@@ -1,0 +1,5 @@
+1/4 segment_outer_adapter_manifest_v2_test_root.test_0...OK
+2/4 recursion.air.segment_outer_adapter_manifest_v2_test.test.V2 catalog append-fixes all 39 rows without moving rows zero through 37...OK
+3/4 recursion.air.segment_outer_adapter_manifest_v2_test.test.rows 10 through 17 consume their exact V2 typed authorities...OK
+4/4 recursion.air.segment_outer_adapter_manifest_v2_test.test.catalog manifest ordering claims identities and geometry reject mutation...OK
+All 4 tests passed.

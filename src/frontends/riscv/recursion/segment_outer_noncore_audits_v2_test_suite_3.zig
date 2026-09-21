@@ -14,7 +14,7 @@ const subject = dependency_0.subject;
 const zeroAudit = dependency_1.zeroAudit;
 
 test "family and domain mutations fail closed and installation stays atomic" {
-    var fixture = try Fixture.init(std.testing.allocator);
+    const fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
     const receipt = try subject.rebuild(std.testing.allocator, fixture.inputs());
 

@@ -1,0 +1,14 @@
+{
+  "status": "pure_manifest_claims_catalog_and_authority_checks_passed",
+  "closure_sources": 224,
+  "ownership_checks": 12,
+  "catalog_adapter_substantive_tests": 5,
+  "source_custody_substantive_tests": 2,
+  "pinned_serialized_key_tests": 1,
+  "pinned_key_sha256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2",
+  "remaining": [
+    "Leaf verifier component assembly still uses prover-capable adapters.",
+    "Leaf transcript and command still depend on integration owners.",
+    "Complete CPU/Metal production qualification is pending for this separation batch."
+  ]
+}

@@ -68,6 +68,7 @@ pub fn proveWithOptions(
     var owned_scheme = scheme;
     var scheme_transferred = false;
     defer if (!scheme_transferred) Engine.deinit(&owned_scheme, allocator);
+    try @import("../air/native_infrastructure_typed_admission.zig").validateStatement(&workspace.statement, allocator);
 
     const active = try assemble(
         workspace,
@@ -112,6 +113,7 @@ pub fn proveAuthenticatedLookupV2(
     var owned_scheme = scheme;
     var scheme_transferred = false;
     defer if (!scheme_transferred) Engine.deinit(&owned_scheme, allocator);
+    try @import("../air/native_infrastructure_typed_admission.zig").validateStatement(&workspace.statement, allocator);
 
     const active = try assembleAuthenticatedLookupV2(
         workspace,

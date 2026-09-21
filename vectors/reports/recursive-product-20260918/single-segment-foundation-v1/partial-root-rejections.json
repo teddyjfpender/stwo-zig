@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "binary_sha256": "b0b6159a65a2d72e8f80647be579a5ea66c58d28cf963b8f9c2d909b22db4e4d",
+  "cases": [
+    {
+      "case": "verify-leaf-0-cannot-be-single-root",
+      "passed": true,
+      "argv": [
+        "/tmp/pr198-single-segment-root-20260918-v1/bin/recursive-segment-v2-detached-verify",
+        "--root",
+        "/private/tmp/pr198-product-cpu-leaf-command-20260918-v1/tree/leaves/child-0",
+        "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-expected-wire.json"
+      ],
+      "exit_code": 1,
+      "stderr": "error: DetachedSingleSegmentRequired\n"
+    },
+    {
+      "case": "verify-leaf-1-cannot-be-single-root",
+      "passed": true,
+      "argv": [
+        "/tmp/pr198-single-segment-root-20260918-v1/bin/recursive-segment-v2-detached-verify",
+        "--root",
+        "/private/tmp/pr198-product-cpu-leaf-command-20260918-v1/tree/leaves/child-1",
+        "0723005d48d350f3719a61e384df4e3ad7b06550e1ffaa9a6a0f66da3a694fab",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-1-expected-wire.json"
+      ],
+      "exit_code": 1,
+      "stderr": "error: DetachedSingleSegmentRequired\n"
+    },
+    {
+      "case": "verify-leaf-2-cannot-be-single-root",
+      "passed": true,
+      "argv": [
+        "/tmp/pr198-single-segment-root-20260918-v1/bin/recursive-segment-v2-detached-verify",
+        "--root",
+        "/private/tmp/pr198-product-cpu-leaf-command-20260918-v1/tree/leaves/child-2",
+        "bf5cb7e0102a36053e53e20097ee12dc2f35cdcf23ee5105f1a7134594eb2dd2",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-2-expected-wire.json"
+      ],
+      "exit_code": 1,
+      "stderr": "error: DetachedSingleSegmentRequired\n"
+    },
+    {
+      "case": "verify-leaf-3-cannot-be-single-root",
+      "passed": true,
+      "argv": [
+        "/tmp/pr198-single-segment-root-20260918-v1/bin/recursive-segment-v2-detached-verify",
+        "--root",
+        "/private/tmp/pr198-product-cpu-leaf-command-20260918-v1/tree/leaves/child-3",
+        "45aec7e8e4757f900a72a2bbad40bfb68269f09c6899c163afb1240e8df4dfd3",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-3-expected-wire.json"
+      ],
+      "exit_code": 1,
+      "stderr": "error: DetachedSingleSegmentRequired\n"
+    }
+  ]
+}

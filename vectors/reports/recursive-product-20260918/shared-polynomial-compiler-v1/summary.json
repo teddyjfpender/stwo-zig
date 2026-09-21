@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "compiler_tests": 143,
+  "proposal_and_product_ownership_tests": 43,
+  "inventory_tests": 2,
+  "shared_compiler_owners": 4,
+  "changed_import_consumers": 27,
+  "canonical_compiler_bodies_preserved": true,
+  "ordered_build_specs_preserved": 111,
+  "standalone_build_help_checked": true,
+  "frontend_build_lines": 460,
+  "frontend_catalog_lines": 812,
+  "source_conformance_before": 120,
+  "source_conformance_after": 112,
+  "remaining_source_conformance_categories": {
+    "manual_source_ceilings": 105,
+    "build_support_owner_ceilings": 2,
+    "command_owner_ceilings": 5
+  },
+  "production_proposal_authorization_added": false,
+  "full_proof_rerun": false,
+  "qualified_proof_checkpoint": "../typed-final-authority-v1/README.md"
+}

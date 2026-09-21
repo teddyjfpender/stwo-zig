@@ -9,27 +9,26 @@
 
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
 const outer_proof = @import("recursive_segment_v2_outer_proof_test.zig");
 const recording_support = @import("recursive_v3_recording_test_support.zig");
 
-const leaf_outer = integration.recursive_segment_v2_leaf_outer;
-const outer_cohort = integration.recursive_segment_v2_outer_cohort;
-const outer_engine = integration.recursive_segment_v2_outer_engine;
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
+const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
+const outer_engine = @import("recursive_segment_v2_outer_engine.zig");
 const child_authority =
-    integration.recursive_segment_v2_temporal_child_authority;
-const pair_authority = integration.recursive_temporal_pair_authority_v2;
-const prefix_runtime = integration.recursive_temporal_parent_prefix_runtime;
-const row18_source = integration.recursive_temporal_parent_row18_source_v3;
-const temporal_cohort = integration.recursive_temporal_parent_cohort_v3;
-const temporal_manifest = integration.recursive_temporal_parent_manifest_v3;
-const temporal_nonfri = integration.recursive_temporal_nonfri_source_v2;
+    @import("recursive_segment_v2_temporal_child_authority.zig");
+const pair_authority = @import("recursive_temporal_pair_authority_v2.zig");
+const prefix_runtime = @import("recursive_temporal_parent_prefix_runtime.zig");
+const row18_source = @import("recursive_temporal_parent_row18_source_v3.zig");
+const temporal_cohort = @import("recursive_temporal_parent_cohort_v3.zig");
+const temporal_manifest = @import("recursive_temporal_parent_manifest_v3.zig");
+const temporal_nonfri = @import("recursive_temporal_nonfri_source_v2.zig");
 const level2_composition =
-    integration.recursive_temporal_level2_composition_v1;
-const binary_driver = integration.recursive_binary_outer;
-const binary_cohort_mod = integration.recursive_binary_outer_cohort;
+    @import("recursive_temporal_level2_composition_v1.zig");
+const binary_driver = @import("recursive_binary_outer.zig");
+const binary_cohort_mod = @import("recursive_binary_outer_cohort.zig");
 
 const recursion = frontend.recursion;
 const universal = recursion.air.universal_challenges;
@@ -99,13 +98,13 @@ pub fn proveTemporalParentWithConsumer(
             left_prepared.authority_prepared.authority_hash_plan.infra_count,
             left_prepared.capture.vm_air.infra_descs.len,
             left_prepared.capture.vm_air.detailed_claims.len,
-            left_prepared.capture.vm_air.profile.claimed_sum_count,
+            left_prepared.capture.vm_air.profile.input_profile.claimed_sum_count,
             right_prepared.authority_prepared.authority_hash_plan.component_count,
             right_prepared.capture.vm_air.component_descs.len,
             right_prepared.authority_prepared.authority_hash_plan.infra_count,
             right_prepared.capture.vm_air.infra_descs.len,
             right_prepared.capture.vm_air.detailed_claims.len,
-            right_prepared.capture.vm_air.profile.claimed_sum_count,
+            right_prepared.capture.vm_air.profile.input_profile.claimed_sum_count,
         },
     );
 

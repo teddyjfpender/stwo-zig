@@ -67,6 +67,30 @@ def public_values(
     return json.dumps(document).encode()
 
 
-def admission_resolve(cli, *, cwd=None, timeout_seconds=30):
+def admission_resolve(cli, *, cwd=None, timeout_seconds=30, backend="cpu"):
     """Stand in for the CLI admission probe without a built executable."""
     return riscv_cli_admission.Admission("promoted", "release_gated", False)
+
+
+def artifact_workload(case):
+    import struct
+
+    raw = case.input_path.read_bytes()
+    padded = raw + bytes(-len(raw) % 4)
+    output = bytes.fromhex(case.expected_digest)
+    data = output + bytes(-len(output) % 4)
+    return {
+        "source": {"elf_sha256": case.guest_sha256, "input_sha256": case.input_sha256},
+        "statement": {
+            "segment_count": 1, "segment_ordinal": 0, "total_steps": case.expected_cycles,
+            "public_data": {
+                "clock": case.expected_cycles, "input_len": len(raw),
+                "input_words": list(struct.unpack(f"<{len(padded)//4}I", padded)),
+                "output_len": len(output), "output_len_addr": 4096, "output_data_addr": 4100,
+                "output_words": [{"addr": 4096, "value": len(output)}] + [
+                    {"addr": 4100 + i, "value": int.from_bytes(data[i:i+4], "little")}
+                    for i in range(0, len(data), 4)
+                ],
+            },
+        },
+    }

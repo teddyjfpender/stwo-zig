@@ -3,9 +3,30 @@ import unittest
 from pathlib import Path
 
 from scripts.source_conformance_lib import typed_air_proposals
+from scripts.product_closure.graph import inspect_sources
+from scripts.product_closure.model import Manifest, NamedImport
 
 
 class TypedAirProposalIsolationTests(unittest.TestCase):
+    def test_shared_polynomial_compiler_excludes_proposal_and_witness_authority(self) -> None:
+        from scripts.source_conformance_lib.typed_air_proposals import AUTHORING_FILES
+        root = Path(__file__).resolve().parents[2]
+        owners = ("direct_polynomial_graph.zig", "direct_polynomial_program.zig",
+                  "fixed_polynomial_program.zig", "typed_poseidon2_fixed_polynomials.zig")
+        manifest = Manifest(
+            product="shared-polynomial-compiler",
+            entry_roots=tuple("src/frontends/riscv/air/lang/" + owner for owner in owners),
+            named_imports=(NamedImport("stwo_core", "src/core/mod.zig"),),
+            generated_imports=frozenset({"std", "builtin"}),
+            allowed_files=frozenset(),
+            allowed_prefixes=("src/core", "src/frontends/riscv/air"),
+        )
+        for path in inspect_sources(root, manifest).relative_sources():
+            self.assertNotIn(Path(path).name, AUTHORING_FILES)
+            self.assertNotIn("witness", Path(path).name)
+            self.assertNotIn("/prover/", path)
+            self.assertNotIn("/runner/", path)
+
     def test_only_exact_authoring_tools_and_tests_may_reference_proposals(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)
@@ -16,7 +37,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 "src/frontends/riscv/air/lang/materialization_cost_test.zig": (
                     'const cost = @import("materialization_cost.zig");\n'
                 ),
-                "src/frontends/riscv/air/lang/materialization_direct_program.zig": (
+                "src/frontends/riscv/air/lang/materialization_direct_benchmark.zig": (
                     'const cost = @import("materialization_cost.zig");\n'
                 ),
                 "src/frontends/riscv/air/lang/typed_poseidon2_layout_executor_test.zig": (
@@ -64,6 +85,9 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                     'const validate = @import('
                     '"air/lang/materialization_direct_benchmark_validate.zig");\n'
                 ),
+                "src/frontends/riscv/air/lang/direct_polynomial_program.zig": (
+                    'const forbidden = @import("materialization_cost.zig");\n'
+                ),
                 "src/frontends/riscv/air/lang/nested/materialization_cost.zig": (
                     'const cost = @import("../materialization_cost.zig");\n'
                 ),
@@ -78,6 +102,7 @@ class TypedAirProposalIsolationTests(unittest.TestCase):
                 {
                     "typed-air-proposal-consumer:frontends/riscv/air/lang/mod.zig",
                     "typed-air-proposal-consumer:frontends/riscv/air/lang/nested/materialization_cost.zig",
+                    "typed-air-proposal-consumer:frontends/riscv/air/lang/direct_polynomial_program.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/direct_validate.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/layout.zig",
                     "typed-air-proposal-consumer:frontends/riscv/prover/layout_validate.zig",

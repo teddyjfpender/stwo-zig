@@ -3,7 +3,7 @@ const search_policy = @import("cost_aware_materializer.zig");
 const ir = @import("ir.zig");
 const materializer = @import("degree3_materializer.zig");
 const poseidon = @import("typed_poseidon2.zig");
-const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
+const poseidon_fixed = @import("typed_poseidon2_fixed_polynomials.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
 

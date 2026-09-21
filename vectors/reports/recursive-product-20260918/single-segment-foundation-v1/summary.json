@@ -1,0 +1,46 @@
+{
+  "status": "execution_and_root_admission_implemented_fresh_single_proof_pending",
+  "single_segment_retired_instructions": 35,
+  "execution_ladder_cases": 12,
+  "execution_segment_counts": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "execution_address_counts": [
+    1,
+    4,
+    16
+  ],
+  "transport_and_root_tests": 5,
+  "ownership_checks": 13,
+  "ordinary_leaf_replay": {
+    "passed": true,
+    "cases": 52,
+    "verifier": "/tmp/pr198-single-segment-root-20260918-v1/bin/recursive-segment-v2-detached-verify",
+    "verifier_sha256": "b0b6159a65a2d72e8f80647be579a5ea66c58d28cf963b8f9c2d909b22db4e4d"
+  },
+  "genuine_partial_job_root_rejections": 4,
+  "independent_expected_inputs": {
+    "13": {
+      "path": "seed13-expected-wire.json",
+      "sha256": "e6af22014c085825b888888230a1450c61bb19f4be823b9bff711a75bc55bf58",
+      "words": 676
+    },
+    "14": {
+      "path": "seed14-expected-wire.json",
+      "sha256": "54a69654c2b833c9e3be340c78030dc042cda0edf7b7ce10fd84002be267ace6",
+      "words": 676
+    }
+  },
+  "single_segment_proof_produced": false,
+  "complete_single_segment_gate_passed": false,
+  "remaining": [
+    "Add separate leaf key setup deriving the fixed preprocessing commitment before outer proof production; reuse the producer key-construction owner.",
+    "Authenticate expected inputs against independently pinned exported bytes during setup.",
+    "Check admitted circuit identity across seed13 and seed14 under the same geometry.",
+    "Produce CPU and Metal one-segment proofs under the setup pin, destroy producers, run the root-mode hostile gate.",
+    "Regenerate and qualify current 2/4/8 admissions and report measured root-verification and memory economics."
+  ]
+}

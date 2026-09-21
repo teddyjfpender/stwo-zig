@@ -1,8 +1,7 @@
 const std = @import("std");
-const integration = @import("stwo_riscv_cpu_integration");
-const subject = integration.recursive_segment_v2_noncore_owner;
+const subject = @import("recursive_segment_v2_noncore_owner.zig");
 const real_gate = @import("recursive_segment_v2_noncore_owner_real_gate.zig");
-const cohort = integration.recursive_segment_v2_outer_cohort;
+const cohort = @import("recursive_segment_v2_outer_cohort.zig");
 
 test "SegmentV2 non-core owner exposes stable split-custody API" {
     std.testing.refAllDeclsRecursive(subject);

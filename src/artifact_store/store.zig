@@ -358,19 +358,17 @@ pub const Store = struct {
         defer self.allocator.free(shard_path);
         const object_path = try self.objectPath(source_measurement.sha256);
         defer self.allocator.free(object_path);
-        var linked = true;
-        std.posix.link(temporary_path, object_path) catch |err| switch (err) {
-            error.PathAlreadyExists => linked = false,
-            else => return err,
-        };
+        // Publish before measuring: link/unlink would change the cached ctime
+        // after return and could race another publisher's measurement.
+        const published = try @import("publication.zig").publish(temporary_path, object_path);
         const measured = measureStoredObject(self.allocator, object_path) catch |err| {
-            if (!linked) return error.ArtifactStoreCollision;
+            if (!published) return error.ArtifactStoreCollision;
             return err;
         };
         if (measured.bytes != source_measurement.bytes or
             !std.mem.eql(u8, &measured.sha256, &source_measurement.sha256))
         {
-            return if (linked) error.ArtifactStoreCorrupt else error.ArtifactStoreCollision;
+            return if (published) error.ArtifactStoreCorrupt else error.ArtifactStoreCollision;
         }
         var shard = try std.fs.openDirAbsolute(shard_path, .{ .iterate = true });
         defer shard.close();

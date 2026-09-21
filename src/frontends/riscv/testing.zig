@@ -4,6 +4,8 @@
 //! committed-witness rejection without turning their implementation files into
 //! cross-package relative-import entry points.
 
+pub const interaction_legacy_test_oracle = @import("air/interaction_legacy_test_oracle.zig");
+
 pub const recursion_air_composition_v3 = @import("recursion/recursion_air_composition_circuit_v3_test_support.zig");
 
 pub const clock_update_component_test =
@@ -259,3 +261,20 @@ pub const incremental_ethereum_omit_orchestration_v4_internal =
 test {
     @import("std").testing.refAllDecls(@This());
 }
+
+/// Backend-neutral authorities consumed by cross-backend component proof tests.
+/// Concrete engines and serialized proof transactions belong to src/tests/riscv.
+pub const component_proof = struct {
+    pub const narrow_air = @import("air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
+    pub const universal_air = @import("air/memory_commitment/poseidon2_universal_degree3_v1.zig");
+    pub const poseidon_air = @import("air/memory_commitment/poseidon2_air.zig");
+    pub const narrow_component = @import("air/memory_commitment/poseidon2_narrow_component_v1.zig");
+    pub const universal_component = @import("air/memory_commitment/poseidon2_universal_component_v1.zig");
+    pub const narrow_backend = @import("air/memory_commitment/poseidon2_narrow_backend_v1.zig");
+    pub const program_commitment = @import("air/program/commitment.zig");
+    pub const program_interaction = @import("air/program/interaction.zig");
+    pub const fixed_program_table = @import("air/program/fixed_table_v1.zig");
+    pub const trace_component = @import("air/component.zig");
+    pub const relations = @import("air/relation_challenges.zig");
+    pub const support = @import("prover/memory_provider_shards/proof_harness.zig");
+};

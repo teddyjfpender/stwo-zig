@@ -1,0 +1,2 @@
+Metal quotient shape: raw_bytes=307395600 columns=14338 views=45014 source_runs=4 resident_sources=4 resident_trees=4 batches=21 rows=2097152 path=resident-direct groups=0 partial_bytes=0
+Metal quotient timing: gpu_ms=748.171 wall_ms=852.032 path=resident-direct source_runs=4 resident_sources=4

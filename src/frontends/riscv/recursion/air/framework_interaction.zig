@@ -221,15 +221,16 @@ pub fn Runtime(comptime RelationRuntime: type) type {
             );
         }
 
-        fn generatePreparedIntoInternal(
-            comptime decompose_domains: bool,
+        /// Admit the same shape and memory contract before an alternative
+        /// writer touches scratch or caller-owned columns.
+        pub fn preflightPreparedInto(
             workspace: *Workspace,
             plan: *const Plan,
             rows: []const Row,
             log_size: u32,
             relations: *const universal.UniversalRelations,
             destination: *[INTERACTION_COLUMN_COUNT][]M31,
-        ) Error!DomainClaims {
+        ) Error!usize {
             try relations.validate();
             const size = try traceSize(log_size);
             if (rows.len > size) return error.InvalidTraceShape;
@@ -242,6 +243,20 @@ pub fn Runtime(comptime RelationRuntime: type) type {
                 destination,
                 size,
             );
+
+            return size;
+        }
+
+        fn generatePreparedIntoInternal(
+            comptime decompose_domains: bool,
+            workspace: *Workspace,
+            plan: *const Plan,
+            rows: []const Row,
+            log_size: u32,
+            relations: *const universal.UniversalRelations,
+            destination: *[INTERACTION_COLUMN_COUNT][]M31,
+        ) Error!DomainClaims {
+            const size = try preflightPreparedInto(workspace, plan, rows, log_size, relations, destination);
 
             const term_count = std.math.mul(usize, BATCH_COUNT, size) catch
                 return error.InvalidTraceShape;

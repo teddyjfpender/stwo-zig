@@ -7,7 +7,7 @@
 | Field | Value |
 | --- | --- |
 | Schema | `stwo.typed-air.native-family-static-profile.v1` v1 |
-| Report SHA-256 | `0dd67acd8705f77a5c482a8d3706b38929d799091b3971e995b20dcc44f56772` |
+| Report SHA-256 | `8410e177c95cdc288f16c60ae3506e233bfbc673cc4228ed8ea7f0f3c486fa40` |
 | Families | 17, in production protocol enum order |
 | Native program authority | `native_typed_definition` |
 | Production activation | `not_assessed` |
@@ -17,13 +17,13 @@
 
 | Coordinate | Sum or maximum |
 | --- | ---: |
-| Physical main columns | 644 |
-| Logical input nodes | 677 |
+| Physical main columns | 646 |
+| Logical input nodes | 678 |
 | Direct constraint roots | 545 |
-| Typed effects / lookup events | 242 / 242 |
-| Lookup batches / interaction coordinates | 155 / 620 |
-| Expression DAG nodes / edges / shared nodes | 3079 / 4370 / 649 |
-| Reachable / outside-closure nodes | 3034 / 45 |
+| Typed effects / lookup events | 243 / 243 |
+| Lookup batches / interaction coordinates | 156 / 624 |
+| Expression DAG nodes / edges / shared nodes | 3086 / 4380 / 651 |
+| Reachable / outside-closure nodes | 3040 / 46 |
 | Maximum degree: direct / numerator / denominator / interaction | 3 / 2 / 2 / 3 |
 
 ## Family profiles
@@ -44,7 +44,7 @@ Degree columns are logical value, direct constraint, lookup numerator, lookup de
 | 9 | `auipc` | `typed_auipc` | `b65eb0279c680db06f9fe36f4bbf3db1f1c99d913afb5e0a0e00e3a1b0f9abfe` | 29 / 31 | 17 | 12 / 2 / 6 / 24 | 2/2/1/1/3 | 106/132/25/1 |
 | 10 | `jalr` | `typed_jalr` | `9e374e33bcc65926240d5181eac52bad8b57b699097a211425715ba372a86f28` | 41 / 43 | 23 | 18 / 2 / 9 / 36 | 2/2/1/1/3 | 159/197/37/2 |
 | 11 | `jal` | `typed_jal` | `0677d8ecf741d37f938ae0f77e647e782952fbec11a8f07702e62d6980735dc5` | 20 / 22 | 10 | 8 / 2 / 4 / 16 | 2/2/1/1/3 | 59/61/12/1 |
-| 12 | `load_store` | `typed_load_store` | `ec8aefea7299e84a480524c3848c1ccc73241caea4e89f983f7c2605e6b04e90` | 48 / 52 | 63 | 16 / 2 / 8 / 32 | 3/3/1/1/3 | 312/476/73/9 |
+| 12 | `load_store` | `typed_load_store` | `3257ffcf1f911056a0724255043536e7820607159c4ea8b7e490b65dc16b7316` | 50 / 53 | 63 | 17 / 2 / 9 / 36 | 3/3/1/1/3 | 319/486/75/10 |
 | 13 | `mul` | `typed_mul` | `0d93e601535fa7ec6cb6c744afbf72418f12ca68cbbd16dc18a9fea4b33bfce4` | 39 / 40 | 17 | 16 / 1 / 16 / 64 | 2/2/1/2/3 | 119/142/22/1 |
 | 14 | `mulh` | `typed_mulh` | `00d717cfbaa5ba3f82604ce9fdedd1e3f4de1ede56d3fe09ddd835d3118c0e7b` | 47 / 48 | 24 | 22 / 1 / 22 / 88 | 2/2/1/2/3 | 214/306/44/3 |
 | 15 | `div` | `typed_div` | `a33fd73890a391f954566eac75c54111c3ab5da54f20554ce095f7083b9e3ec2` | 67 / 68 | 79 | 25 / 1 / 25 / 100 | 3/3/2/2/3 | 433/698/88/5 |

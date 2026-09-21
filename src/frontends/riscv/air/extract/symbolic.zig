@@ -37,6 +37,8 @@ pub const Arena = struct {
     names: std.ArrayList([]const u8),
     interned: std.AutoHashMap(Node, u32),
     allocator: std.mem.Allocator,
+    recover_allocation_failure: bool = false,
+    allocation_failed: bool = false,
 
     pub fn init(allocator: std.mem.Allocator) Arena {
         return .{
@@ -53,20 +55,41 @@ pub const Arena = struct {
         self.interned.deinit();
     }
 
+    /// Admission callers must checkAllocation before reading the recorded DAG.
+    /// Scalar operations cannot return errors; after OOM they return inert IDs
+    /// until the enclosing transaction observes and returns the latched error.
+    pub fn initRecoverable(allocator: std.mem.Allocator) Arena {
+        var result = init(allocator);
+        result.recover_allocation_failure = true;
+        return result;
+    }
+
+    pub fn checkAllocation(self: *const Arena) error{OutOfMemory}!void {
+        if (self.allocation_failed) return error.OutOfMemory;
+    }
+
+    fn allocationFailure(self: *Arena) u32 {
+        if (!self.recover_allocation_failure) @panic("symbolic arena OOM");
+        self.allocation_failed = true;
+        return 0;
+    }
+
     /// Hash-consed insertion. `derive()` results are reused across many
     /// constraints, so interning is what keeps the emitted DAG the size of the
     /// source rather than the size of its unfolding.
     fn intern(self: *Arena, node: Node) u32 {
+        if (self.allocation_failed) return 0;
         if (self.interned.get(node)) |existing| return existing;
         const id: u32 = @intCast(self.nodes.items.len);
-        self.nodes.append(self.allocator, node) catch @panic("symbolic arena OOM");
-        self.interned.put(node, id) catch @panic("symbolic arena OOM");
+        self.nodes.append(self.allocator, node) catch return self.allocationFailure();
+        self.interned.put(node, id) catch return self.allocationFailure();
         return id;
     }
 
     pub fn column(self: *Arena, name: []const u8) Scalar {
+        if (self.allocation_failed) return .{ .id = 0 };
         const index: u32 = @intCast(self.names.items.len);
-        self.names.append(self.allocator, name) catch @panic("symbolic arena OOM");
+        self.names.append(self.allocator, name) catch return .{ .id = self.allocationFailure() };
         return .{ .id = self.intern(.{ .op = .column, .value = index }) };
     }
 };

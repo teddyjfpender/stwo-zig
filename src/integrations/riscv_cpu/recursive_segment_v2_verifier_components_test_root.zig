@@ -1,9 +1,10 @@
 //! Canonical SegmentV2 verifier adapters without native proof or witness owners.
 comptime {
+    _ = @import("recursive_segment_v2_single_root_test.zig");
     _ = @import("recursive_segment_v2_detached_parent_capture_test.zig");
     _ = @import("recursive_segment_v2_detached_parent_producer.zig");
     _ = @import("recursive_segment_v2_detached_parent_prepare.zig");
-    _ = @import("recursive_segment_v2_detached_parent_cohort.zig");
+    _ = @import("recursive_segment_v2_detached_parent_prepared_test.zig");
     _ = @import("recursive_segment_v2_detached_routing_test.zig");
     // Zig collects tests only from the test root's module. These focused
     // builds own the source files here; production runners use the integration

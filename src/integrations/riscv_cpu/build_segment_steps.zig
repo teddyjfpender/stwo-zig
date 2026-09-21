@@ -12,6 +12,15 @@ pub fn add(ctx: anytype) void {
     const frontend = ctx.frontend;
     const postcard = ctx.postcard;
     const integration = ctx.integration;
+    const leaf_options_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_leaf_options_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_options_root.addImport("stwo_riscv_frontend", frontend);
+    const leaf_options_test = b.addTest(.{ .root_module = leaf_options_root });
+    b.step("test-recursive-detached-leaf-command", "Check detached leaf arguments without building a prover")
+        .dependOn(&b.addRunArtifact(leaf_options_test).step);
     const segment_v2_leaf_outer_root = support.createHarnessModule(
         b,
         "recursive_segment_v2_leaf_outer_test_root.zig",
@@ -183,40 +192,6 @@ pub fn add(ctx: anytype) void {
         segment_v2_poseidon_ingress_test_names,
         "native V2 Poseidon recursive-ingress proof identity guard",
     ));
-    const segment_v2_poseidon_ingress_runner_root = support.createHarnessModule(
-        b,
-        "recursive_segment_v2_poseidon_ingress_runner.zig",
-        target,
-        optimize,
-        core,
-        cpu_backend,
-        frontend,
-        integration,
-    );
-    segment_v2_poseidon_ingress_runner_root.addImport(
-        "stwo_prover_api",
-        prover_api,
-    );
-    segment_v2_poseidon_ingress_runner_root.addImport(
-        "stwo_prover_engine",
-        prover,
-    );
-    segment_v2_poseidon_ingress_runner_root.addImport(
-        "interop_postcard",
-        postcard,
-    );
-    const segment_v2_poseidon_ingress_runner = b.addExecutable(.{
-        .name = "recursive-segment-v2-poseidon-ingress",
-        .root_module = segment_v2_poseidon_ingress_runner_root,
-    });
-    const run_segment_v2_poseidon_ingress = b.addRunArtifact(
-        segment_v2_poseidon_ingress_runner,
-    );
-    run_segment_v2_poseidon_ingress.has_side_effects = true;
-    b.step(
-        "run-recursive-segment-v2-poseidon-ingress",
-        "Run the real V2 recursion ingress through the lean executable loop",
-    ).dependOn(&run_segment_v2_poseidon_ingress.step);
     const segment_v2_outer_engine_root = support.createHarnessModule(
         b,
         "recursive_segment_v2_outer_engine.zig",
@@ -1094,7 +1069,7 @@ pub fn add(ctx: anytype) void {
         "role0 native core publishes into the nominal universal manifest",
         "fresh composition schedule projection is deterministic across workers",
         "stage102 V4 fresh program custody rejects pointer and identity drift",
-        "role0 genuine runtime allocator counts ownership and host workers",
+        "role0 genuine runtime accounts host workers",
     };
     const incremental_leaf_field_public_v4_compile = b.addTest(.{
         .root_module = incremental_leaf_field_public_v4_root,
@@ -1109,7 +1084,20 @@ pub fn add(ctx: anytype) void {
         incremental_leaf_field_public_v4_test_names,
         "recursive common Ethereum incremental leaf V4 structural guard",
     ));
+    const runtime_ownership_names = [_][]const u8{"role0 genuine runtime accounts host workers"};
+    const runtime_ownership = b.addTest(.{
+        .root_module = incremental_leaf_field_public_v4_root,
+        .filters = &runtime_ownership_names,
+    });
+    b.step("test-recursive-runtime-ownership", "Check worker policy and runtime accounting without constructing proofs").dependOn(support.ProofTestGuard.add(
+        b,
+        b.addRunArtifact(runtime_ownership),
+        &runtime_ownership_names,
+        "Recursive runtime ownership guard",
+    ));
     const compact_ledger_names = [_][]const u8{
+        "Recursive shared interaction preparation preserves audited columns and failure cleanup",
+        "Recursive streamed tuple projection matches every parent diagnostic entry",
         "Ethereum compact tuple ledger cleans up provider failures after source sealing",
         "Ethereum compact tuple ledger keeps map allocation failure sticky through cancellation",
         "Ethereum compact tuple ledger matches canonical records and range provider exactly",
@@ -1839,6 +1827,7 @@ pub fn add(ctx: anytype) void {
         "SegmentV2 detached command requires separate circuit and statement authority",
         "SegmentV2 detached command owns and canonically admits expected wire",
         "SegmentV2 detached command rejects unsupported claims version and empty proof",
+        "SegmentV2 single root admits a complete one-segment execution",
     };
     const detached_command_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_command_names });
     b.step("test-recursive-segment-v2-detached-command", "Check bounded detached transport and independent public-input admission").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_command_tests), detached_command_names, "SegmentV2 detached transport guard"));
@@ -1860,19 +1849,56 @@ pub fn add(ctx: anytype) void {
     const detached_parent_prepare_names: []const []const u8 = &.{ "detached parent prepares two genuine children with one exact routing plan", "detached parent snapshots typed rows and rejects mutable ingress and inactive claims" };
     const detached_parent_prepare_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_parent_prepare_names });
     b.step("test-recursive-segment-v2-detached-parent-prepare", "Admit two genuine children and exact parent rows before proving").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_parent_prepare_tests), detached_parent_prepare_names, "SegmentV2 detached parent preparation guard"));
-    const detached_runner = support.createHarnessModule(b, "recursive_segment_v2_detached_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
-    detached_runner.addImport("stwo_prover_engine", prover);
-    detached_runner.addImport("stwo_prover_api", prover_api);
-    detached_runner.addImport("interop_postcard", postcard);
+    const leaf_verifier_command = b.createModule(.{
+        .root_source_file = b.path("../../frontends/riscv/leaf_verifier.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_verifier_command.addImport("stwo_core", core);
+    leaf_verifier_command.addImport("interop_postcard", postcard);
+    const detached_runner = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_verifier_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    detached_runner.addImport("stwo_leaf_verifier", leaf_verifier_command);
     const detached_exe = b.addExecutable(.{ .name = "recursive-segment-v2-detached-verify", .root_module = detached_runner });
     b.step("build-recursive-segment-v2-detached-verifier", "Build SegmentV2 verification without native preparation").dependOn(&b.addInstallArtifact(detached_exe, .{}).step);
     const detached_run = b.addRunArtifact(detached_exe);
     if (b.args) |args| detached_run.addArgs(args);
     b.step("run-recursive-segment-v2-detached-verifier", "Verify DIRECTORY KEY_SHA256 EXPECTED_WIRE_JSON").dependOn(&detached_run.step);
-    const detached_parent_producer = support.createHarnessModule(b, "recursive_segment_v2_detached_parent_producer_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const detached_parent_owner = b.addModule("stwo_riscv_detached_parent_producer", .{
+        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    detached_parent_owner.addImport("stwo_core", core);
+    detached_parent_owner.addImport("stwo_cpu_backend", cpu_backend);
+    detached_parent_owner.addImport("stwo_riscv_frontend", frontend);
+    detached_parent_owner.addImport("stwo_prover_api", prover_api);
+    detached_parent_owner.addImport("stwo_prover_engine", prover);
+    detached_parent_owner.addImport("interop_postcard", postcard);
+    const detached_parent_producer = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    detached_parent_producer.addImport("stwo_riscv_detached_parent_producer", detached_parent_owner);
     const detached_parent_producer_exe = b.addExecutable(.{ .name = "recursive-segment-v2-detached-parent-prove", .root_module = detached_parent_producer });
     b.step("build-recursive-segment-v2-detached-parent-producer", "Build the explicit tiny two-child parent producer").dependOn(&b.addInstallArtifact(detached_parent_producer_exe, .{}).step);
-    const detached_parent_verifier = support.createHarnessModule(b, "recursive_segment_v2_detached_parent_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const parent_verifier_command = b.createModule(.{
+        .root_source_file = b.path("../../frontends/riscv/parent_verifier.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    parent_verifier_command.addImport("stwo_core", core);
+    parent_verifier_command.addImport("interop_postcard", postcard);
+    const detached_parent_verifier = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_parent_verifier_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    detached_parent_verifier.addImport("stwo_parent_verifier", parent_verifier_command);
     const detached_parent_verifier_exe = b.addExecutable(.{ .name = "recursive-segment-v2-detached-parent-verify", .root_module = detached_parent_verifier });
     b.step("build-recursive-segment-v2-detached-parent-verifier", "Build independent detached parent verification").dependOn(&b.addInstallArtifact(detached_parent_verifier_exe, .{}).step);
     const ethereum_root_verifier = support.createHarnessModule(b, "ethereum_wrapper_root_command_v1.zig", target, optimize, core, cpu_backend, frontend, integration);
@@ -2527,58 +2553,42 @@ pub fn add(ctx: anytype) void {
         secure_parent_v1_test_names,
         "Secure q193 temporal-parent proof identity guard",
     ));
-    const temporal_parent_real_runner_root = support.createHarnessModule(
-        b,
-        "recursive_temporal_parent_real_proof_runner.zig",
-        target,
-        optimize,
-        core,
-        cpu_backend,
-        frontend,
-        integration,
-    );
-    temporal_parent_real_runner_root.addImport("stwo_prover_api", prover_api);
-    temporal_parent_real_runner_root.addImport("stwo_prover_engine", prover);
-    temporal_parent_real_runner_root.addImport("interop_postcard", postcard);
-    const temporal_parent_real_runner = b.addExecutable(.{
-        .name = "recursive-temporal-parent-real-proof",
-        .root_module = temporal_parent_real_runner_root,
-    });
-    b.step(
-        "check-recursive-temporal-parent-real-proof-runner",
-        "Compile the lean authenticated temporal-parent proof runner",
-    ).dependOn(&temporal_parent_real_runner.step);
-    const run_temporal_parent_real = b.addRunArtifact(
-        temporal_parent_real_runner,
-    );
-    run_temporal_parent_real.has_side_effects = true;
-    b.step(
-        "run-recursive-temporal-parent-real-proof",
-        "Run the authenticated temporal parent through the lean proof loop",
-    ).dependOn(&run_temporal_parent_real.step);
     // Export the same lean driver for the Metal dependency-boundary shim.
     // CPU products retain no dependency on the Metal backend or frameworks.
-    const segment_v2_concrete_outer_runner_root = b.addModule("stwo_riscv_cpu_small_recursion_runner", .{
-        .root_source_file = b.path("recursive_segment_v2_concrete_outer_proof_runner.zig"),
+    const detached_leaf_runner_root = b.addModule("stwo_riscv_detached_leaf_runner", .{
+        .root_source_file = b.path("recursive_segment_v2_detached_leaf_runner.zig"),
         .target = target,
         .optimize = optimize,
     });
-    segment_v2_concrete_outer_runner_root.addImport("stwo_core", core);
-    segment_v2_concrete_outer_runner_root.addImport("stwo_cpu_backend", cpu_backend);
-    segment_v2_concrete_outer_runner_root.addImport("stwo_riscv_frontend", frontend);
-    segment_v2_concrete_outer_runner_root.addImport("stwo_riscv_cpu_integration", integration);
-    segment_v2_concrete_outer_runner_root.addImport(
+    detached_leaf_runner_root.addImport("stwo_core", core);
+    detached_leaf_runner_root.addImport("stwo_cpu_backend", cpu_backend);
+    detached_leaf_runner_root.addImport("stwo_riscv_frontend", frontend);
+    detached_leaf_runner_root.addImport(
         "stwo_prover_api",
         prover_api,
     );
-    segment_v2_concrete_outer_runner_root.addImport(
+    detached_leaf_runner_root.addImport(
         "stwo_prover_engine",
         prover,
     );
-    segment_v2_concrete_outer_runner_root.addImport(
+    detached_leaf_runner_root.addImport(
         "interop_postcard",
         postcard,
     );
+    const leaf_key_setup_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_leaf_key_setup_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    leaf_key_setup_root.addImport("stwo_core", core);
+    leaf_key_setup_root.addImport("stwo_cpu_backend", cpu_backend);
+    leaf_key_setup_root.addImport("stwo_riscv_frontend", frontend);
+    leaf_key_setup_root.addImport("stwo_prover_api", prover_api);
+    leaf_key_setup_root.addImport("stwo_prover_engine", prover);
+    leaf_key_setup_root.addImport("interop_postcard", postcard);
+    const leaf_key_setup = b.addExecutable(.{ .name = "recursive-segment-v2-leaf-key-setup", .root_module = leaf_key_setup_root });
+    b.step("build-recursive-segment-v2-leaf-key-setup", "Derive fixed leaf keys from independently pinned expected inputs before outer proof production")
+        .dependOn(&b.addInstallArtifact(leaf_key_setup, .{}).step);
     const segment_workload_root = b.createModule(.{
         .root_source_file = b.path("recursive_segment_v2_workload_runner.zig"),
         .target = target,
@@ -2595,25 +2605,27 @@ pub fn add(ctx: anytype) void {
     const run_segment_workload = b.addRunArtifact(segment_workload);
     run_segment_workload.has_side_effects = true;
     if (b.args) |args| run_segment_workload.addArgs(args);
-    b.step("run-recursive-segment-v2-workload", "Check 2/4/8 segment execution or export expected inputs without compiling a prover")
+    b.step("run-recursive-segment-v2-workload", "Check 1/2/4/8 segment execution or export expected inputs without compiling a prover")
         .dependOn(&run_segment_workload.step);
-    const segment_v2_concrete_outer_runner = b.addExecutable(.{
-        .name = "recursive-segment-v2-concrete-outer-proof",
-        .root_module = segment_v2_concrete_outer_runner_root,
+    const detached_leaf_executable = b.addExecutable(.{
+        .name = "recursive-segment-v2-detached-leaf-prove",
+        .root_module = detached_leaf_runner_root,
     });
     b.step(
-        "build-recursive-segment-v2-concrete-outer-proof",
-        "Install the small complete-proof runner for fresh-process development checks",
-    ).dependOn(&b.addInstallArtifact(segment_v2_concrete_outer_runner, .{}).step);
-    const run_segment_v2_concrete_outer = b.addRunArtifact(
-        segment_v2_concrete_outer_runner,
+        "build-recursive-segment-v2-detached-leaf-producer",
+        "Install the canonical detached leaf candidate producer",
+    ).dependOn(&b.addInstallArtifact(detached_leaf_executable, .{}).step);
+    b.step("check-recursive-segment-v2-detached-leaf-producer", "Compile the canonical detached leaf producer")
+        .dependOn(&detached_leaf_executable.step);
+    const run_detached_leaf = b.addRunArtifact(
+        detached_leaf_executable,
     );
-    run_segment_v2_concrete_outer.has_side_effects = true;
-    if (b.args) |args| run_segment_v2_concrete_outer.addArgs(args);
+    run_detached_leaf.has_side_effects = true;
+    if (b.args) |args| run_detached_leaf.addArgs(args);
     b.step(
-        "run-recursive-segment-v2-concrete-outer-proof",
-        "Run the real 39-row SegmentV2 outer proof through the lean loop",
-    ).dependOn(&run_segment_v2_concrete_outer.step);
+        "run-recursive-segment-v2-detached-leaf-producer",
+        "Produce admitted detached leaf candidates for standalone verification",
+    ).dependOn(&run_detached_leaf.step);
     const segment_v2_outer_proof_root = support.createHarnessModule(
         b,
         "recursive_segment_v2_outer_proof_test.zig",

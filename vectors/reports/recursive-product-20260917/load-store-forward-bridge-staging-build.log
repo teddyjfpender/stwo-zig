@@ -1,0 +1,8 @@
+⚠ [10/10] Built RiscvRefinement.Air.Bridge.LoadStoreBridge (4.2s)
+warning: RiscvRefinement/Air/Bridge/LoadStoreBridge.lean:769:50: unused variable `holds`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Air/Bridge/LoadStoreBridge.lean:909:5: unused variable `fits`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+Build completed successfully (10 jobs).

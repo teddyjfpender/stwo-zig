@@ -40,8 +40,8 @@ const CANONICAL_PROOF_SERIALIZATION_PASSES =
 const RETAINED_CANONICAL_PROOF_BYTES = contract.RETAINED_CANONICAL_PROOF_BYTES;
 const canonicalProofIdentity = support.canonicalProofIdentity;
 const ProofExecutionPool = support.ProofExecutionPool;
-const moveOwnedForVerifier = support.moveOwnedForVerifier;
-const commitVerifierTreeForManifest = support.commitVerifierTreeForManifest;
+const moveOwnedForVerifier = recursion.verifier_tree.moveOwnedForVerifier;
+const commitVerifierTreeForManifest = recursion.verifier_tree.commitVerifierTreeForManifest;
 const TreeStorageForManifest = support.TreeStorageForManifest;
 
 pub fn NativeCoreEngineKernelForManifest(

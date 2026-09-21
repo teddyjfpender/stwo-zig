@@ -1,0 +1,7 @@
+1/6 segment_outer_noncore_audits_v2_test_root.test.non-core custody focused inventory compiles...OK
+2/6 recursion.segment_outer_noncore_audits_v2_test.test.non-core custody suite imports every shard...OK
+3/6 recursion.segment_outer_noncore_audits_v2_test_fixture.test.non-core custody rebuilds and installs the exact 22 Tree-2 rows...OK
+4/6 recursion.segment_outer_noncore_audits_v2_test_suite_3.test.family and domain mutations fail closed and installation stays atomic...OK
+5/6 air.memory_commitment.poseidon2_air.test_0...OK
+6/6 air.semantic_eval.test_0...OK
+All 6 tests passed.

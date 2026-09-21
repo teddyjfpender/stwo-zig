@@ -1,0 +1,7 @@
+1/6 recursion_air_test_root.test_0...OK
+2/6 recursion.segment_statement_outer_source_test.test_0...OK
+3/6 recursion.air.universal_shared_provider_test.test.R-012 shared provider admission rejects challenge geometry and authority drift...OK
+4/6 recursion.air.universal_shared_provider_test.test.R-012 shared provider binding revalidates borrowed authority and component shape...OK
+5/6 recursion.air.universal_shared_provider_test.test.R-012 shared provider rejects malformed cached powers and field limbs...OK
+6/6 air.memory_commitment.poseidon2_air.test_0...OK
+All 6 tests passed.

@@ -209,6 +209,10 @@ pub const Channel = struct {
         self.context_tag = value;
     }
 
+    pub fn drawCount(self: Self) u32 {
+        return self.inner.n_draws;
+    }
+
     pub fn digestWords(self: Self) Digest {
         return self.inner.digestWords();
     }

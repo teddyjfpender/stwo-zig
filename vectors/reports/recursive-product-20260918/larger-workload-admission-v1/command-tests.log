@@ -1,0 +1,11 @@
+test-recursive-segment-v2-detached-command
++- SegmentV2 detached transport guard
+   +- run test stderr
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=35 cumulative_cycles=35 loads=11 stores=11 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=108c
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-recursive-segment-v2-detached-command success
++- SegmentV2 detached transport guard success
+   +- run test 5 passed 790ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 8s MaxRSS:746M
+

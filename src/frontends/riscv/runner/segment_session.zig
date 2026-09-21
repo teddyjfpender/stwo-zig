@@ -9,7 +9,6 @@
 //! continues to fail closed on non-first locally clocked segments.
 
 const std = @import("std");
-const custom0 = @import("../isa/custom0.zig");
 const ethereum_candidate_combined_authority =
     @import("../isa/ethereum_candidate_combined_authority_v1.zig");
 const ethereum_bulk_memcpy_authority =
@@ -17,16 +16,11 @@ const ethereum_bulk_memcpy_authority =
 const ethereum_stack_swap_authority =
     @import("../isa/ethereum_stack_swap_candidate_v1.zig");
 const execution_profile = @import("../isa/execution_profile.zig");
-const isa_profile = @import("../isa/profile.zig");
 const access_clock = @import("../access_clock.zig");
 const Cpu = @import("cpu.zig").Cpu;
 const Memory = @import("memory.zig").Memory;
-const decode = @import("decode.zig");
 const decode_cache = @import("decode_cache.zig");
 const elf_loader = @import("elf_loader.zig");
-const execute_mod = @import("execute.zig");
-const generated_retirement = @import("generated_retirement.zig");
-const guest_precompile = @import("guest_precompile/mod.zig");
 const ethereum_candidate_combined_state =
     @import("guest_precompile/ethereum_candidate_combined_v1.zig");
 const ethereum_bulk_memcpy_state =
@@ -34,7 +28,7 @@ const ethereum_bulk_memcpy_state =
 const ethereum_stack_swap_state =
     @import("guest_precompile/ethereum_stack_swap_candidate_v1.zig");
 const extension_state = @import("guest_precompile/session_state.zig");
-const host_mod = @import("../host/mod.zig");
+const host_mod = @import("../host/interface.zig");
 const trace = @import("trace.zig");
 const state_chain = @import("state_chain.zig");
 const segment_capacity = @import("segment_capacity.zig");
@@ -46,80 +40,18 @@ const ethereum_bulk_memcpy_result =
     @import("ethereum_bulk_memcpy_candidate_result_v1.zig");
 const ethereum_stack_swap_result =
     @import("ethereum_stack_swap_candidate_result_v1.zig");
-const access_witness = @import("access_witness.zig");
 const session_support = @import("segment_session_support.zig");
+const session_contract = @import("segment_session_contract.zig");
+const session_retirement = @import("segment_session_retirement.zig");
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 pub const HostInterface = host_mod.HostInterface;
 pub const SegmentClockFrame = result_mod.SegmentClockFrame;
-/// Controls whether a resumable session retains the whole execution trace or
-/// transfers each completed range directly to its `SegmentResult`.
-///
-/// `cumulative` preserves the original diagnostic surface. `segment_owned`
-/// is the bounded-memory production path: after every yielded segment the
-/// session retains only the clock origin needed to admit the next row.
-pub const TraceRetention = enum { cumulative, segment_owned };
-
-/// Optional diagnostic observer invoked only after typed core retirement has
-/// committed. The callback cannot influence proof bytes or instruction
-/// semantics; any error poisons the owning execution session before a segment
-/// can be published.
-pub const RetirementObserverV1 = struct {
-    context: *anyopaque,
-    begin_segment_fn: *const fn (*anyopaque, u32) anyerror!void,
-    core_row_fn: *const fn (*anyopaque, trace.TraceRow) anyerror!void,
-
-    pub fn beginSegment(self: RetirementObserverV1, segment_index: u32) !void {
-        return self.begin_segment_fn(self.context, segment_index);
-    }
-
-    pub fn observeCoreRow(
-        self: RetirementObserverV1,
-        row: trace.TraceRow,
-    ) !void {
-        return self.core_row_fn(self.context, row);
-    }
-};
-
-/// Optional, versioned view of the exact architectural boundary immediately
-/// before one decoded core instruction retires. All execution-owned state is
-/// borrowed as const: observers may derive diagnostic custody, but cannot
-/// mutate the guest, reserve transitions, or alter retirement ordering.
-pub const PreRetirementBoundaryV1 = struct {
-    execution_clock: u32,
-    cpu: *const Cpu,
-    memory: *const Memory,
-    memory_layout: memory_state.MemoryLayout,
-    state_chain_tracker: *const state_chain.StateChainTracker,
-};
-
-/// Candidate/diagnostic-only pre-retirement observer. The default-null route
-/// performs no call and preserves the existing post-retirement observer order.
-pub const PreRetirementBoundaryObserverV1 = struct {
-    context: *anyopaque,
-    observe_fn: *const fn (
-        *anyopaque,
-        PreRetirementBoundaryV1,
-    ) anyerror!void,
-
-    pub fn observe(
-        self: PreRetirementBoundaryObserverV1,
-        boundary: PreRetirementBoundaryV1,
-    ) !void {
-        return self.observe_fn(self.context, boundary);
-    }
-};
-
-pub const SessionOptions = struct {
-    host: ?HostInterface = null,
-    input: []const u8 = &.{},
-    stop_on_halt_flag: bool = false,
-    strict_completion: bool = false,
-    trace_retention: TraceRetention = .cumulative,
-    clock_frame: SegmentClockFrame = .global_continuous,
-    retirement_observer: ?RetirementObserverV1 = null,
-    pre_retirement_boundary_observer: ?PreRetirementBoundaryObserverV1 = null,
-};
+pub const TraceRetention = session_contract.TraceRetention;
+pub const RetirementObserverV1 = session_contract.RetirementObserverV1;
+pub const PreRetirementBoundaryV1 = session_contract.PreRetirementBoundaryV1;
+pub const PreRetirementBoundaryObserverV1 = session_contract.PreRetirementBoundaryObserverV1;
+pub const SessionOptions = session_contract.SessionOptions;
 
 pub fn ConfiguredSegmentResult(comptime profile: ExecutionProfile) type {
     return ConfiguredSegmentResultForPolicy(profile, false, false);
@@ -170,12 +102,6 @@ fn ConfiguredRunResultForPolicy(
 const SessionStatus = enum { active, complete, poisoned };
 const ExhaustionPolicy = enum { yield, legacy_terminal };
 
-const StepOutcome = struct {
-    retired: bool,
-    completion_reason: ?result_mod.CompletionReason = null,
-    exit_code: ?u32 = null,
-};
-
 pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
     return ExecutionSessionWithPolicy(profile, false, false);
 }
@@ -222,6 +148,12 @@ fn ExecutionSessionWithPolicy(
         extension_state.State(profile);
     return struct {
         const Self = @This();
+        const retireOne = session_retirement.For(
+            profile,
+            ethereum_stack_swap_candidate,
+            ethereum_bulk_memcpy_candidate,
+            ExtensionState,
+        ).retireOne;
 
         allocator: std.mem.Allocator,
         memory: Memory,
@@ -884,254 +816,6 @@ fn ExecutionSessionWithPolicy(
             tracker.mem_last_clk = try cloneClockMap(self.allocator, &self.memory_clocks);
             tracker.mem_initial = try cloneClockMap(self.allocator, &self.memory_initials);
             return tracker;
-        }
-
-        fn retireOne(
-            self: *Self,
-            execution_clock: u32,
-            exec_trace: *trace.Trace,
-            chain_tracker: *state_chain.StateChainTracker,
-            extension: *ExtensionState,
-        ) !StepOutcome {
-            const pc_before = self.cpu.pc;
-            isa_profile.requireInstructionAligned(pc_before) catch
-                return error.InstructionAddressMisaligned;
-            const inst_word = self.memory.readU32(pc_before);
-            if (self.strict_completion and
-                (inst_word == 0x00000073 or inst_word == 0x00100073))
-            {
-                return error.InvalidInstruction;
-            }
-            if (comptime profile != .rv32im_zkvm_v1) {
-                if (@as(u7, @truncate(inst_word)) == custom0.major_opcode) {
-                    if (comptime ethereum_stack_swap_candidate or
-                        ethereum_bulk_memcpy_candidate)
-                    {
-                        try extension.executeWithRecordedClock(
-                            inst_word,
-                            execution_clock,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                        );
-                    } else if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
-                        try guest_precompile.poseidon2_v1.executeWithRecordedClock(
-                            profile,
-                            inst_word,
-                            execution_clock,
-                            extension.external_step_origin,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                            &extension.calls,
-                            &extension.rows,
-                        );
-                    } else if (comptime profile == .rv32im_zkvm_keccakf_v1) {
-                        try guest_precompile.keccakf_v1.executeWithRecordedClock(
-                            profile,
-                            inst_word,
-                            execution_clock,
-                            extension.external_step_origin,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                            &extension.calls,
-                            &extension.rows,
-                        );
-                    } else {
-                        try guest_precompile.ethereum_v1.executeWithRecordedClock(
-                            profile,
-                            inst_word,
-                            execution_clock,
-                            &self.cpu,
-                            &self.memory,
-                            self.elf_info.memory_layout,
-                            chain_tracker,
-                            exec_trace,
-                            extension,
-                        );
-                    }
-                    return .{ .retired = true };
-                }
-            }
-            const inst = self.instruction_cache.decode(inst_word) catch {
-                if (self.strict_completion) return error.InvalidInstruction;
-                return .{ .retired = false, .completion_reason = .invalid_instruction };
-            };
-
-            const rs1_val = self.cpu.readReg(inst.rs1);
-            const is_self_loop = switch (inst.opcode) {
-                .JAL => inst.rd == 0 and inst.imm == 0,
-                .JALR => inst.rd == 0 and
-                    ((rs1_val +% @as(u32, @bitCast(inst.imm))) & ~@as(u32, 1)) == pc_before,
-                else => false,
-            };
-            if (is_self_loop)
-                return .{ .retired = false, .completion_reason = .self_loop };
-
-            if (self.pre_retirement_boundary_observer) |observer| {
-                try observer.observe(.{
-                    .execution_clock = execution_clock,
-                    .cpu = &self.cpu,
-                    .memory = &self.memory,
-                    .memory_layout = self.elf_info.memory_layout,
-                    .state_chain_tracker = chain_tracker,
-                });
-            }
-
-            if (try generated_retirement.retireAtomic(
-                &self.cpu,
-                &self.memory,
-                exec_trace,
-                chain_tracker,
-                inst,
-                inst_word,
-                execution_clock,
-            )) {
-                try self.observeLastCoreRow(exec_trace);
-                return .{ .retired = true };
-            }
-            if (!exec_trace.expectsNextCoreRetirement(execution_clock))
-                return error.InstructionClockMismatch;
-
-            const rs2_val = self.cpu.readReg(inst.rs2);
-            const rd_prev_val = self.cpu.readReg(inst.rd);
-            const access = access_witness.capture(chain_tracker, inst, execution_clock);
-            const memory_access_clock = access_clock.encode(execution_clock, .third);
-            var mem_addr: u32 = 0;
-            var mem_val: u32 = 0;
-            var mem_prev_word: u32 = 0;
-            var mem_prev_clk: u32 = 0;
-            const is_load = decode.isLoad(inst.opcode);
-            const is_store = decode.isStore(inst.opcode);
-            if (is_load or is_store) {
-                mem_addr = rs1_val +% @as(u32, @bitCast(inst.imm));
-                const aligned_addr = mem_addr & ~@as(u32, 3);
-                mem_prev_word = self.memory.readU32(aligned_addr);
-                mem_prev_clk = state_chain.StateChainTracker.effectivePreviousClock(
-                    chain_tracker.mem_last_clk.get(aligned_addr) orelse 0,
-                    memory_access_clock,
-                );
-                if (is_load) {
-                    mem_val = switch (inst.opcode) {
-                        .LB, .LBU => @as(u32, self.memory.readByte(mem_addr)),
-                        .LH, .LHU => @as(u32, self.memory.readU16(mem_addr)),
-                        .LW => self.memory.readU32(mem_addr),
-                        else => 0,
-                    };
-                } else {
-                    mem_val = rs2_val;
-                }
-            }
-
-            var halted = false;
-            var completion_reason: ?result_mod.CompletionReason = null;
-            var exit_code: ?u32 = null;
-            execute_mod.execute(&self.cpu, &self.memory, inst) catch |err| switch (err) {
-                error.Ecall => {
-                    if (self.host) |host| {
-                        const host_result = host.handleSyscall(&self.cpu, &self.memory);
-                        for (host.lastMemoryWrites()) |write| {
-                            try chain_tracker.recordMemTransition(
-                                write.addr,
-                                memory_access_clock,
-                                write.previous_value,
-                                write.value,
-                            );
-                        }
-                        switch (host_result) {
-                            .Halt => |code| {
-                                exit_code = code;
-                                completion_reason = .host_halt;
-                                halted = true;
-                            },
-                            .Continue => self.cpu.pc +%= 4,
-                        }
-                    } else {
-                        completion_reason = .ecall;
-                        halted = true;
-                    }
-                },
-                error.Ebreak => {
-                    completion_reason = .ebreak;
-                    halted = true;
-                },
-                error.GeneratedRetirementRequired => return error.GeneratedRetirementRequired,
-                error.MisalignedMemoryAccess => return error.MisalignedMemoryAccess,
-                error.InstructionAddressMisaligned => return error.InstructionAddressMisaligned,
-            };
-
-            const rd_val = self.cpu.readReg(inst.rd);
-            try exec_trace.append(.{
-                .clk = execution_clock,
-                .pc = pc_before,
-                .opcode = inst.opcode,
-                .rd = inst.rd,
-                .rs1 = inst.rs1,
-                .rs2 = inst.rs2,
-                .imm = inst.imm,
-                .rs1_val = rs1_val,
-                .rs2_val = rs2_val,
-                .rs1_prev_clk = access.rs1_prev_clock,
-                .rs2_prev_clk = access.rs2_prev_clock,
-                .rd_prev_val = rd_prev_val,
-                .rd_prev_clk = access.rd_prev_clock,
-                .rd_val = rd_val,
-                .mem_addr = mem_addr,
-                .mem_val = mem_val,
-                .mem_prev_word = mem_prev_word,
-                .mem_next_word = if (is_load or is_store)
-                    self.memory.readU32(mem_addr & ~@as(u32, 3))
-                else
-                    0,
-                .mem_prev_clk = mem_prev_clk,
-                .is_load = is_load,
-                .is_store = is_store,
-                .branch_taken = self.cpu.pc != pc_before +% 4,
-                .next_pc = self.cpu.pc,
-                .inst_word = inst_word,
-            });
-            try access.recordRegisters(
-                chain_tracker,
-                inst,
-                rs1_val,
-                rs2_val,
-                rd_prev_val,
-                rd_val,
-            );
-            if (is_load or is_store) {
-                const aligned_addr = mem_addr & ~@as(u32, 3);
-                try chain_tracker.recordMemTransition(
-                    aligned_addr,
-                    memory_access_clock,
-                    mem_prev_word,
-                    self.memory.readU32(aligned_addr),
-                );
-            }
-            try self.observeLastCoreRow(exec_trace);
-            if (halted) return .{
-                .retired = true,
-                .completion_reason = completion_reason,
-                .exit_code = exit_code,
-            };
-            if (self.cpu.pc == pc_before)
-                return .{ .retired = true, .completion_reason = .stalled_pc };
-            return .{ .retired = true };
-        }
-
-        fn observeLastCoreRow(self: *Self, exec_trace: *trace.Trace) !void {
-            const observer = self.retirement_observer orelse return;
-            if (exec_trace.rows.items.len == 0)
-                return error.InvalidRetirementObserverState;
-            try observer.observeCoreRow(
-                exec_trace.rows.items[exec_trace.rows.items.len - 1],
-            );
         }
     };
 }

@@ -4,10 +4,10 @@
 const std = @import("std");
 const recursion = @import("stwo_riscv_frontend").recursion;
 const postcard = @import("interop_postcard");
-const cohort = @import("recursive_segment_v2_detached_parent_cohort.zig");
-const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
+const cohort = @import("stwo_riscv_frontend").recursion.detached_parent_prepared_v1;
+const protocol = @import("stwo_riscv_frontend").recursion.detached_parent_protocol_v1;
 const verifier = @import("recursive_segment_v2_detached_parent_verifier.zig");
-const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
+const storage = @import("stwo_riscv_frontend").recursion.transaction_storage_v2;
 pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 const stage_profile = @import("stwo_prover_api").stage_profile;
 pub const Candidate = struct {
@@ -51,23 +51,7 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     var scheme_moved = false;
     defer if (!scheme_moved) Engine.deinit(&scheme, allocator);
     var channel = Engine.Channel{};
-    var preprocessed = try TreeStorage.init(allocator, manifest, 0);
-    defer preprocessed.deinit();
-    try prepared.fillPreprocessedInto(preprocessed.columns);
-    try preprocessed.commit(&scheme, &channel);
-    try Engine.flushPendingCommit(&scheme, allocator, &channel);
-    var roots = try scheme.roots(allocator);
-    defer roots.deinit(allocator);
-    if (roots.items.len != 1) return error.DetachedParentPreprocessedCommitmentMismatch;
-    const candidate_key = protocol.KeyV1{
-        .profile = profile,
-        .pcs_config = profile.pcsConfig(),
-        .manifest = manifest.*,
-        .publication_mode = mode,
-        .parameters = prepared.parameters(),
-        .preprocessed_root = roots.items[0],
-        .child_key_sha256 = child_key_sha256,
-    };
+    const candidate_key = try fixedKey(Engine, allocator, prepared, child_key_sha256, mode, profile, &scheme, &channel);
     const identity = try candidate_key.identity();
     const key = admitted_key orelse &candidate_key;
     if (!std.meta.eql(identity, try key.identity())) return error.DetachedParentFixedCircuitMismatch;
@@ -93,7 +77,17 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     const relations = try cohort.Relations.draw(allocator, &channel);
     var interaction = try TreeStorage.init(allocator, manifest, 2);
     defer interaction.deinit();
-    var claims = try prepared.fillInteractionInto(&relations, interaction.columns);
+    const device_capable = comptime @hasDecl(Engine.Backend, "supportsFrameworkInteractions");
+    const device_interactions = if (device_capable) try Engine.Backend.supportsFrameworkInteractions() else false;
+    const dispatches_before = if (device_capable) (try Engine.Backend.telemetrySnapshot()).counters.metal_framework_interaction_dispatches else 0;
+    var claims = try prepared.fillInteractionForBackend(Engine.Backend, &relations, interaction.columns, @import("stwo_prover_engine").work_pool.getGlobalPool());
+    if (comptime device_capable) {
+        if (device_interactions) {
+            const dispatches = (try Engine.Backend.telemetrySnapshot()).counters.metal_framework_interaction_dispatches - dispatches_before;
+            if (dispatches != cohort.LOGICAL_ROWS.len * 4) return error.ParentTypedInteractionDispatchMissing;
+            std.debug.print("DETACHED_PARENT_TYPED_DEVICE_INTERACTION components={d} dispatches={d}\n", .{ cohort.LOGICAL_ROWS.len, dispatches });
+        }
+    }
     claims.interaction_pow = interaction_pow;
     try protocol.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
     phase.end();
@@ -124,4 +118,37 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
         std.debug.print("DETACHED_PARENT_STAGE_PROFILE {s}\n", .{json});
     }
     return .{ .allocator = allocator, .key_json = key_json, .proof_bytes = try encoded.toOwnedSlice(allocator), .claims = claims, .circuit_identity = identity, .prepare_ns = prepare_ns, .prove_ns = timer.read() };
+}
+
+/// Commit only verifier-owned fixed columns. The returned key borrows prepared
+/// parameters; no main columns, interaction columns or proof are constructed.
+fn fixedKey(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, profile: protocol.ProfileV1, scheme: anytype, channel: anytype) !protocol.KeyV1 {
+    const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
+    const manifest = prepared.manifest();
+    var preprocessed = try TreeStorage.init(allocator, manifest, 0);
+    defer preprocessed.deinit();
+    try prepared.fillPreprocessedInto(preprocessed.columns);
+    try preprocessed.commit(scheme, channel);
+    try Engine.flushPendingCommit(scheme, allocator, channel);
+    var roots = try scheme.roots(allocator);
+    defer roots.deinit(allocator);
+    if (roots.items.len != 1) return error.DetachedParentPreprocessedCommitmentMismatch;
+    return protocol.KeyV1{
+        .profile = profile,
+        .pcs_config = profile.pcsConfig(),
+        .manifest = manifest.*,
+        .publication_mode = mode,
+        .parameters = prepared.parameters(),
+        .preprocessed_root = roots.items[0],
+        .child_key_sha256 = child_key_sha256,
+    };
+}
+
+pub fn deriveKey(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, profile: protocol.ProfileV1) ![]u8 {
+    var scheme = try CpuEngine.init(allocator, profile.pcsConfig());
+    defer CpuEngine.deinit(&scheme, allocator);
+    var channel = CpuEngine.Channel{};
+    const key = try fixedKey(CpuEngine, allocator, prepared, child_key_sha256, mode, profile, &scheme, &channel);
+    try key.validate();
+    return std.json.Stringify.valueAlloc(allocator, key, .{});
 }

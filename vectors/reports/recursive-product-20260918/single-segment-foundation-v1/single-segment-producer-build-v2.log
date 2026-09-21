@@ -1,0 +1,14 @@
+test-recursive-segment-v2-detached-command
++- SegmentV2 detached transport guard
+   +- run test stderr
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=35 cumulative_cycles=35 loads=11 stores=11 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=108c
+
+Build Summary: 7/7 steps succeeded; 5/5 tests passed
+build-recursive-segment-v2-concrete-outer-proof success
++- install recursive-segment-v2-concrete-outer-proof success
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native success 2m MaxRSS:8G
+test-recursive-segment-v2-detached-command success
++- SegmentV2 detached transport guard success
+   +- run test 5 passed 926ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 8s MaxRSS:742M
+

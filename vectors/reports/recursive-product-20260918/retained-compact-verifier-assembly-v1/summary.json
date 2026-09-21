@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "cases": 84,
+  "serialized_parents": 3,
+  "verifier_sha256": "050af45baad1656e0823fcf765f61b78354957e89c52963c50bbd68ff988e46a",
+  "source_artifacts": "/tmp/pr198-product-cpu-canonical-compat-20260917-v2/tree",
+  "scope": "Fresh verifier replay of retained compact two intermediate parent proofs and root, with hostile cases; no new proof production.",
+  "wide_proof_replay_qualified": false
+}

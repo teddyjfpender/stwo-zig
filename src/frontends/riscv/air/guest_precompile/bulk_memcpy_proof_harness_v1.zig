@@ -25,7 +25,7 @@ const session = @import("../../runner/guest_precompile/bulk_memcpy_session_tape_
 const stark_component = @import("bulk_memcpy_stark_component_v1.zig");
 const trace_mod = @import("bulk_memcpy_trace_v1.zig");
 const words = @import("bulk_memcpy_word_candidate_v1.zig");
-const prepared_evaluation = @import("../prepared_evaluation_owner.zig");
+const prepared_evaluation_test = @import("../prepared_evaluation_owner_test.zig");
 
 pub const format_version: u16 = 1;
 pub const production_active = false;
@@ -35,7 +35,7 @@ pub const maximum_encoded_proof_bytes: usize = 16 * 1024 * 1024;
 
 /// Candidate-leaf filtered-gate coverage for coefficient-retention parity.
 pub fn exerciseRetainedLdeParityForTest(allocator: std.mem.Allocator) !void {
-    return prepared_evaluation.exerciseRetainedLdeParityForTest(allocator);
+    return prepared_evaluation_test.exerciseRetainedLdeParityForTest(allocator);
 }
 
 const preprocessed_count = 2 * trace_mod.preprocessed_column_count;

@@ -1,4 +1,4 @@
-//! Maintained CLI, with all implementation owned by the integration module.
+//! Canonical CPU entry for the shared detached parent producer.
 pub fn main() !void {
-    return @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_parent_producer.main();
+    return @import("stwo_riscv_detached_parent_producer").main();
 }

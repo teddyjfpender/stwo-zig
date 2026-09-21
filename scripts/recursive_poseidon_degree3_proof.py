@@ -37,7 +37,7 @@ def main() -> int:
         environment["STWO_RECURSIVE_POSEIDON_AOT_BUNDLE"] = str(args.bundle.resolve())
         environment["STWO_RECURSIVE_POSEIDON_AOT_MANIFEST_SHA256"] = args.manifest_sha256
         command = test_command(
-            "src/frontends/riscv/recursion_poseidon_degree3_metal_test.zig",
+            "src/tests/riscv/recursion_poseidon_degree3_metal_test.zig",
             "-O", "ReleaseSafe", "-fstrip",
             "--test-filter", "recursive universal degree3 Metal",
             "-lc", "-framework", "Foundation", "-framework", "Metal", "-lobjc",
@@ -46,10 +46,20 @@ def main() -> int:
         command[position:position] = ["-cflags", "-fobjc-arc", "-fblocks", "--", "src/backends/metal/runtime.m"]
     else:
         command = test_command(
-            "src/frontends/riscv/recursion_poseidon_degree3_test_root.zig",
+            "src/tests/riscv/recursion_poseidon_degree3_test_root.zig",
             "-O", "ReleaseSafe", "-fstrip", "--test-filter", "degree3",
         )
     with build_lock(DEFAULT_LOCK, label="recursive-poseidon-degree3-proof"):
+        if not args.metal:
+            # Zig does not collect tests from a named dependency module. Run
+            # the backend-neutral semantic root explicitly before full proofs.
+            semantic = test_command(
+                "src/frontends/riscv/recursion_poseidon_degree3_test_root.zig",
+                "-O", "ReleaseSafe", "-fstrip", "--test-filter", "degree3",
+            )
+            result = subprocess.run(semantic, cwd=ROOT, env=environment, check=False)
+            if result.returncode:
+                return result.returncode
         return subprocess.run(command, cwd=ROOT, env=environment, check=False).returncode
 
 

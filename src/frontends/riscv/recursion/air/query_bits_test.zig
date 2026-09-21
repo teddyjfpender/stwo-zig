@@ -106,6 +106,10 @@ test "R-012 query bits static profile is exact and closed" {
 
 test "R-012 query profile derives exact use counts and canonical lane order" {
     const reference = try fixtureReference();
+    // Frozen reference preimage: version 1, VM (2,12,4,2), recursion (2,10,4,2).
+    var expected_digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&expected_digest, "c4b362c57baa298cb85eb876a595a65ea8ba360ac832ee8bd4d1c248e392878f");
+    try std.testing.expectEqualSlices(u8, &expected_digest, &reference.authority_digest);
     try reference.validate();
     try std.testing.expectEqual(@as(u32, 10), try VM_PROFILE.useCount());
     var preprocessing = try witness.Preprocessed.init(std.testing.allocator, reference);

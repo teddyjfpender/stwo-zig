@@ -26,103 +26,15 @@ pub const universal = @import("universal_challenges.zig");
 
 pub const CirclePointQM31 = circle.CirclePointQM31;
 
-/// Equation-free manifest projection shared by every versioned outer
-/// protocol.  Geometry is derived only from the authenticated typed AIR; a
-/// manifest may select a different AIR for a versioned row, but it cannot
-/// transcribe that AIR's widths, degrees, or semantic identity by hand.
-pub fn manifestGeometryForAir(
-    comptime Air: type,
-    comptime manifest_mod: type,
-    comptime roster_row: manifest_mod.ComponentKey,
-    log_size: u32,
-) manifest_mod.Geometry {
-    return .{
-        .roster_row = manifest_mod.keyIndex(roster_row),
-        .log_size = log_size,
-        .preprocessed_columns = Air.PREPROCESSED_COLUMN_COUNT,
-        .main_columns = Air.PHYSICAL_MAIN_COLUMN_COUNT,
-        .interaction_columns = Air.INTERACTION_COLUMN_COUNT,
-        .direct_constraints = Air.DIRECT_CONSTRAINT_COUNT,
-        .interaction_batches = Air.INTERACTION_BATCH_COUNT,
-        .protocol_constraint_degree = @intCast(
-            protocolMaximumConstraintDegree(Air),
-        ),
-        .profiled_constraint_degree = Air.MAXIMUM_CONSTRAINT_DEGREE,
-        .semantic_digest = Air.SEMANTIC_DIGEST,
-    };
-}
+pub const manifestGeometryForAir = @import("universal_typed_geometry.zig").manifestGeometryForAir;
+pub const protocolMaximumConstraintDegree = @import("universal_typed_geometry.zig").protocolMaximumConstraintDegree;
 
-pub fn protocolMaximumConstraintDegree(comptime Air: type) u32 {
-    const compatibility: u32 = if (@hasDecl(
-        Air,
-        "REFERENCE_MAXIMUM_CONSTRAINT_DEGREE",
-    )) Air.REFERENCE_MAXIMUM_CONSTRAINT_DEGREE else @max(
-        Air.MAXIMUM_CONSTRAINT_DEGREE,
-        if (Air.INTERACTION_BATCH_COUNT == 0) @as(u32, 0) else 3,
-    );
-    return if (@hasDecl(
-        Air,
-        "LOWERED_MAXIMUM_CONSTRAINT_DEGREE",
-    )) @max(
-        compatibility,
-        Air.LOWERED_MAXIMUM_CONSTRAINT_DEGREE,
-    ) else compatibility;
-}
-
-pub fn sampledSecure(columns: [][]QM31, base: usize, point_index: usize) !QM31 {
-    if (columns.len < base + 4) return error.InvalidProofShape;
-    var coordinates: [4]QM31 = undefined;
-    for (&coordinates, columns[base .. base + 4]) |*coordinate, column| {
-        if (column.len <= point_index) return error.InvalidProofShape;
-        coordinate.* = column[point_index];
-    }
-    return QM31.fromPartialEvals(coordinates);
-}
-
-pub inline fn secureAt(columns: []const []const M31, row: usize) QM31 {
-    return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);
-}
-
-pub fn emptyOrFilledLogs(
-    allocator: std.mem.Allocator,
-    count: usize,
-    log_size: u32,
-) ![]u32 {
-    const result = try allocator.alloc(u32, count);
-    @memset(result, log_size);
-    return result;
-}
-
-pub fn currentPointColumns(
-    allocator: std.mem.Allocator,
-    count: usize,
-    point: CirclePointQM31,
-) ![][]CirclePointQM31 {
-    const result = try allocator.alloc([]CirclePointQM31, count);
-    var initialized: usize = 0;
-    errdefer {
-        for (result[0..initialized]) |column| allocator.free(column);
-        allocator.free(result);
-    }
-    for (result) |*column| {
-        column.* = try allocator.dupe(CirclePointQM31, &.{point});
-        initialized += 1;
-    }
-    return result;
-}
-
-pub fn freePointColumns(
-    allocator: std.mem.Allocator,
-    columns: [][]CirclePointQM31,
-) void {
-    for (columns) |column| allocator.free(column);
-    allocator.free(columns);
-}
-
-pub fn checkedEnd(offset: anytype, count: usize) !usize {
-    return std.math.add(usize, @intCast(offset), count) catch
-        error.InvalidProofShape;
-}
+pub const sampledSecure = @import("universal_typed_verifier_support.zig").sampledSecure;
+pub const secureAt = @import("universal_typed_verifier_support.zig").secureAt;
+pub const emptyOrFilledLogs = @import("universal_typed_verifier_support.zig").emptyOrFilledLogs;
+pub const currentPointColumns = @import("universal_typed_verifier_support.zig").currentPointColumns;
+pub const freePointColumns = @import("universal_typed_verifier_support.zig").freePointColumns;
+pub const checkedEnd = @import("universal_typed_verifier_support.zig").checkedEnd;
 
 pub fn sourceNeedsExtension(
     poly: prover_component.Poly,

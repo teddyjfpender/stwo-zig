@@ -8,7 +8,7 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const logup = @import("../logup.zig");
+const logup = @import("../logup_equations.zig");
 const relations_mod = @import("../relation_challenges.zig");
 const common = @import("../semantics/common.zig");
 const control = @import("../semantics/control_common.zig");

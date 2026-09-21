@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "focused_passed": 223,
+  "focused_skipped": 1,
+  "source_closure_tests": 32,
+  "inventory_tests": 2,
+  "audited_parent_key_references": 14,
+  "retired_parent_variants": [
+    "qm31_mul_full",
+    "wide_poseidon",
+    "compact_poseidon_legacy_source_digest"
+  ],
+  "post_gate_changes": "test inventory wiring only; documentation appended afterward"
+}

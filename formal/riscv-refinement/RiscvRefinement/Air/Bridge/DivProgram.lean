@@ -117,11 +117,7 @@ def DivCircuit.lookupNumerator
     (circuit : DivCircuit) (columns : List M31) (entry : DivLookup) : M31 :=
   circuit.value columns entry.numerator
 
-/-- Membership in the `range_check_8_8` preprocessed table, transcribed from
-`checkedIndex` in `air/lookups/tables/schema.zig`. -/
-def rangeCheck88Contains : List M31 → Bool
-  | [low, high] => decide (low.toNat < 256) && decide (high.toNat < 256)
-  | _ => false
+-- rangeCheck88Contains is shared with the load/store bridge via MulhProgram.
 
 /-- One request lands inside the fixed table it names. Requests against the
 three bus relations are not fixed-table requests and impose nothing here. -/

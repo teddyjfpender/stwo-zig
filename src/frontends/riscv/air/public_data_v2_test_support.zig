@@ -149,6 +149,45 @@ pub const Fixture = struct {
         };
     }
 
+    /// Rebuild the job and Span when a test substitutes untouched sparse memory.
+    pub fn leftSourceWithUntouchedMemory(self: *const Fixture, words: []const memory_state.WordState) !segment_v2.SourceV2 {
+        for (words) |word| {
+            if (word.initial_word != word.final_word or word.final_clock != 0)
+                return error.InvalidUntouchedMemoryFixture;
+        }
+        const old = self.job.complete;
+        const executed = self.statements[0].body.executed;
+        var entry = executed.entry;
+        var exit = executed.exit;
+        entry.rw_memory = segment_v2.snapshotDigest(words, .initial_word).id;
+        exit.rw_memory = segment_v2.snapshotDigest(words, .final_word).id;
+        const job = try span.JobContext.init(try span.CompleteExecution.init(
+            old.protocol_id,
+            old.program,
+            entry,
+            old.final_state,
+            old.public_input,
+            old.public_output,
+            old.total_cycles,
+        ), self.job.segment_count);
+        var source = self.leftSource();
+        source.base_statement = try span.SpanStatement.segmentLeaf(job, 0, try span.ExecutedSpan.init(
+            executed.first_segment,
+            executed.segment_count,
+            executed.first_cycle,
+            executed.cycle_count,
+            entry,
+            exit,
+            executed.input,
+            executed.output,
+        ));
+        source.memory_words = words;
+        source.entry_memory_clocks = &.{};
+        source.exit_memory_clocks = &.{};
+        try source.validate();
+        return source;
+    }
+
     pub fn rightSource(self: *const Fixture) segment_v2.SourceV2 {
         return .{
             .session_id = id("session"),

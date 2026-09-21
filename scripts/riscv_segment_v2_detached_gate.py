@@ -42,7 +42,7 @@ AOT_PROFILES = {"core-v2": "core_v2", "recursive-framework-v1": "recursive_frame
 
 
 def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None, recursive_backend: str = "cpu", segment_count: int = 2, aot_profile: str | None = None) -> dict:
-    if segment_count not in (2, 4, 8):
+    if segment_count not in (1, 2, 4, 8):
         raise ValueError("unsupported small-tree segment count")
     native = records(output, "SEGMENT_V2_NATIVE_MEMORY")
     children = records(output, "SEGMENT_V2_TWO_CHILD_CANDIDATE")
@@ -153,6 +153,7 @@ def main() -> None:
     parser.add_argument("--key-sha256", required=True)
     parser.add_argument("--expected-wire", type=Path, required=True)
     parser.add_argument("--other-expected-wire", type=Path)
+    parser.add_argument("--require-root", action="store_true", help="require this proof to cover a complete one-segment job")
     parser.add_argument("--adjacent-bundle", type=Path)
     parser.add_argument("--adjacent-key-sha256")
     parser.add_argument("--adjacent-expected-wire", type=Path)
@@ -173,6 +174,8 @@ def main() -> None:
     if not 0 <= args.initial_memory_word <= 0xffffffff:
         parser.error("initial memory word must fit in u32")
     adjacent_options = (args.adjacent_bundle, args.adjacent_key_sha256, args.adjacent_expected_wire)
+    if args.require_root and (args.producer or any(adjacent_options)):
+        parser.error("single-root replay uses an existing one-segment bundle without pair options")
     if any(adjacent_options) and not all(adjacent_options):
         parser.error("adjacent bundle, independent key pin and expected wire must be supplied together")
     verifier = args.verifier.resolve()
@@ -227,6 +230,10 @@ def main() -> None:
             entry["receipt"] = receipt
             if receipt.get("verified") is not True or receipt.get("native_inputs_used") is not False:
                 raise RuntimeError(f"{name}: missing detached verification receipt")
+            if args.require_root and (receipt.get("endpoint") != "verified_segment_v2_single_root"
+                    or not isinstance(receipt.get("root"), dict)
+                    or receipt.get("child", {}).get("verified") is not True):
+                raise RuntimeError(f"{name}: missing complete single-segment root receipt")
         results.append(entry)
         if (result.returncode == 0) != accept:
             raise RuntimeError(f"{name}: unexpected verifier result: {result.stdout}")
@@ -234,13 +241,13 @@ def main() -> None:
             raise RuntimeError(f"{name}: verifier crashed instead of rejecting input")
 
     def run(name: str, directory: Path, pin: str, wire: Path, accept: bool) -> None:
-        invoke(name, [str(directory), pin, str(wire)], accept)
+        invoke(name, (["--root"] if args.require_root else []) + [str(directory), pin, str(wire)], accept)
 
     report = {"gate_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "verifier_sha256": hashlib.sha256(verifier.read_bytes()).hexdigest(),
               "key_sha256": args.key_sha256,
               "expected_wire_sha256": sha256(expected),
-              "development_only": True, "proof_profile": args.proof_profile, "cases": results, "passed": False}
+              "development_only": True, "proof_profile": args.proof_profile, "single_segment_root_required": args.require_root, "cases": results, "passed": False}
     trusted_paths = [verifier, expected]
     if args.adjacent_expected_wire:
         trusted_paths.append(args.adjacent_expected_wire.resolve())

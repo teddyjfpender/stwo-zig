@@ -1,0 +1,53 @@
+{
+  "schema": "stwo.frontend-baseline-repair.v1",
+  "status": "Full Debug frontend passed: 3140 passed, 12 skipped, zero failures",
+  "new_inventory_files": 154,
+  "focused_tests_passed": 111,
+  "static_profile_tests_passed": 197,
+  "source_sha256": {
+    "src/frontends/riscv/test_inventory.zig": "02d6fcea659aeced9f4e806a80fd879258ada22301a81281fb34f487a375e854",
+    "src/frontends/riscv/prover/verifier_test.zig": "ddef2cd66c956d88ff9bc30f77cab9fd46b937621af493d7c0b9d2b3771a5359",
+    "src/frontends/riscv/opcode_manifest.zig": "bc4adb2263c2970eb82e04a564d4880eaaff4a7fd06eece16aeb46f7e97706f3",
+    "src/frontends/riscv/air/lang/opcode_composition_manifest_test.zig": "9d7de49fe6378674caddd6e9dc75d3ba801471fa8a83299099e364028abf37e7",
+    "src/frontends/riscv/air/lang/opcode_composition_manifest_extended_test.zig": "99422bf3ab03c80c9dbf9efada347ddb6d3ce788a84be29cfc6d3436f297c8de",
+    "src/frontends/riscv/air/lang/static_profile_registry_test.zig": "7aec28af30f97797114b5791b9702202c7544a4a6bd5cefe63d9717b7027d2c7",
+    "src/frontends/riscv/air/lang/static_profile_registry_artifact_test.zig": "991dde87af8a7495b3b96533a2aff57dc39adfb0386a43cfcc8a9c607787b326",
+    "design/typed-air/artifacts/p002-native-family-static-profile-v1/profiles-v1.tsv": "e61540ffbb0ebc35379fb1bc2d0c160e4c9f707b584687b53d4486b7f54f0f2a",
+    "design/typed-air/artifacts/p002-native-family-static-profile-v1/profiles-v1.md": "d112808bd5676ab1955302910ee5bc450fc30eff44cf4e1f48bb5e230d98f87c",
+    "src/frontends/riscv/air/guest_precompile/analyze_legacy_bitmap_candidate_v1.zig": "efdcbd881cfbfa2929a98fb737c6d6485f7ceba21ae11e03914f07db32a23a4b",
+    "src/frontends/riscv/air/guest_precompile/analyze_legacy_scan_candidate_v1.zig": "ed400b1cc96b07e97fa3705f032a74104049b9f3ebdb594ea150fa7bdc82c223",
+    "src/frontends/riscv/air/guest_precompile/analyze_legacy_relations_candidate_v1.zig": "cf2f0dfff945d542d8fb6af4a324fd2a4104e0d8ae46f4b8a0a97860823f9dcb",
+    "src/frontends/riscv/air/guest_precompile/analyze_legacy_candidate_v1_test.zig": "0b35591c8e3f3992c98965a4002c15e9354ab84273e3b722cf0066bce85d6e68",
+    "src/frontends/riscv/air/guest_precompile/keccak256_sponge_candidate_v1.zig": "65d24bf2b58d6d023b10896e7ac3e0d02f08926d201abd6bd6da84fe3022275a",
+    "src/frontends/riscv/air/guest_precompile/keccak256_sponge_direct_candidate_v1.zig": "8cb95c4bf5d30a51bbea0fbc87a9b37b83db918ec670cc9bdd3ab7712895febb",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_segment_poseidon2_proof_artifact.zig": "5799fbb2cb6bef86bea72423cca77590487833afeb526d17ab0d0bfd45cb6dee",
+    "src/frontends/riscv/air/public_data_v2_test_support.zig": "fd0a5fe3fb7d50370d5bb8342c876ca6dd50092fd523f56abe7cadc7af722546",
+    "src/frontends/riscv/air/incremental_public_logup_v4.zig": "90fa0a0decfe028306bc92c61aadf3a1907d249c49d8566a3570b7a69c28cd76",
+    "src/frontends/riscv/air/incremental_public_logup_v4_bench_test.zig": "13f5e6ffafb548508e76db3d87d0d0a02a31629342050b1a037ba92a6b3bd887",
+    "src/frontends/riscv/prover/guest_precompile/stack_swap_vm_integration_v1.zig": "072e4b319f28d94b7eadd87005b914cb2f98fd77f9c4099cc060ddc6e622a2a5",
+    "src/frontends/riscv/air/lang/runtime_profile_test.zig": "9d011c1651299ebcc895efa2e881fb7dd75b6b43567d0495007beeb4f28f9f2a",
+    "design/typed-air/artifacts/m2-production-shadow-report-v1.tsv": "9022e3a5fb21f13d376eadedd6699993a744084a7cdb940e3b2e5ef911525e39",
+    "design/typed-air/artifacts/m2-production-shadow-report-v1.md": "31b87b2dd018190766f7a15fe85e65cc43eff034b11f26b19fcc12d492510433"
+  },
+  "full_frontend_log": "/tmp/pr198-frontend-baseline-full-v5.log",
+  "full_frontend_passed": true,
+  "formal_bindings_regenerated": false,
+  "current_batch_complete_proof_qualified": true,
+  "remaining_failure_focused_tests_passed": 103,
+  "prior_full_frontend_result": {
+    "passed": 3135,
+    "skipped": 12,
+    "failed": 5,
+    "total": 3152
+  },
+  "full_frontend_result": {
+    "passed": 3140,
+    "skipped": 12,
+    "failed": 0,
+    "total": 3152
+  },
+  "complete_proof_receipts": [
+    "cpu-frontend-baseline-v1/summary.json",
+    "metal-frontend-baseline-v1/summary.json"
+  ]
+}

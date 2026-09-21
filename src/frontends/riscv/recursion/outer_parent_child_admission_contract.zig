@@ -1,5 +1,7 @@
 //! Internal outer parent child admission authority shard; use outer_parent_child_admission.zig publicly.
 
+const admission_profile = @import("outer_parent_child_admission_profile.zig");
+
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");
 
@@ -8,7 +10,7 @@ pub const QM31 = stwo_core.fields.qm31.QM31;
 pub const CirclePointQM31 = stwo_core.circle.CirclePointQM31;
 
 pub const channel = @import("poseidon2_channel.zig");
-pub const engine = @import("engine.zig");
+pub const engine = @import("engine_protocol.zig");
 pub const fixed_profile = @import("fixed_profile.zig");
 pub const fixed_wire = @import("fixed_wire.zig");
 pub const pair_node = @import("pair_node.zig");
@@ -22,12 +24,12 @@ pub const FORMAT_VERSION: u32 = 1;
 pub const WIRE_MAGIC: u32 = 0x4f50_4331; // "OPC1"
 pub const OUTER_FORMAT_VERSION: u32 = 1;
 pub const OUTER_TRANSCRIPT_DOMAIN: u32 = 0x5246_4131; // "RFA1"
-pub const QUERY_COUNT: usize = 3;
-pub const INTERACTION_POW_BITS: u32 = 0;
-pub const PCS_POW_BITS: u32 = 0;
-pub const LOG_BLOWUP_FACTOR: u32 = 1;
-pub const LOG_LAST_LAYER_DEGREE_BOUND: u32 = 0;
-pub const FOLD_STEP: u32 = 1;
+pub const QUERY_COUNT = admission_profile.QUERY_COUNT;
+pub const INTERACTION_POW_BITS = admission_profile.INTERACTION_POW_BITS;
+pub const PCS_POW_BITS = admission_profile.PCS_POW_BITS;
+pub const LOG_BLOWUP_FACTOR = admission_profile.LOG_BLOWUP_FACTOR;
+pub const LOG_LAST_LAYER_DEGREE_BOUND = admission_profile.LOG_LAST_LAYER_DEGREE_BOUND;
+pub const FOLD_STEP = admission_profile.FOLD_STEP;
 pub const TREE_COUNT: usize = fixed_profile.TREE_COUNT;
 pub const CLAIMED_SUM_COUNT: usize = roster.COMPONENT_COUNT;
 pub const MAX_FRI_ROUNDS: usize = fixed_profile.MAX_DOMAIN_LOG;
@@ -40,17 +42,9 @@ pub const CAPTURE_ID_DOMAIN: u32 = 0x4f43_4150; // "OCAP"
 pub const CLAIMS_ID_DOMAIN: u32 = 0x4f43_4c4d; // "OCLM"
 pub const RECEIPT_ID_DOMAIN: u32 = 0x4f52_4350; // "ORCP"
 
-pub const OUTER_FRI_CONFIG: stwo_core.fri.FriConfig = .{
-    .log_blowup_factor = LOG_BLOWUP_FACTOR,
-    .log_last_layer_degree_bound = LOG_LAST_LAYER_DEGREE_BOUND,
-    .n_queries = QUERY_COUNT,
-    .fold_step = FOLD_STEP,
-};
+pub const OUTER_FRI_CONFIG = admission_profile.OUTER_FRI_CONFIG;
 
-pub const OUTER_PCS_CONFIG: stwo_core.pcs.PcsConfig = .{
-    .pow_bits = PCS_POW_BITS,
-    .fri_config = OUTER_FRI_CONFIG,
-};
+pub const OUTER_PCS_CONFIG = admission_profile.OUTER_PCS_CONFIG;
 
 /// The present integration proves a verifier subsystem, not yet the complete
 /// universal recursive statement.  The scope is explicit and seal-bound so

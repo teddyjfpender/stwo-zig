@@ -1,0 +1,22 @@
+{
+  "schema": "stwo.baseline-fixture-repair.v1",
+  "passed": true,
+  "command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/frontends/riscv",
+    "test-recursion-segment-outer-noncore-audits-v2",
+    "--summary",
+    "all"
+  ],
+  "optimization": "Debug",
+  "tests_passed": 5,
+  "change": "Initialize all fixture fields in one allocator-owned object; preserve staged error cleanup and destroy the object during deinit. No stack-budget increase.",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/segment_outer_noncore_audits_v2_test_fixture.zig": "177b30b2331d5914ea556dd3394694c8cfdae8567d0eb55bf0ced70027f71dc6",
+    "src/frontends/riscv/recursion/segment_outer_noncore_audits_v2_test_suite_3.zig": "50068036ffce97edb98a7cbde22896ccc2280709a193e9a31cc45eaf8068a38e"
+  },
+  "log_sha256": "6a5c9e0b053e0bf2993cc69c94d71f88ebc214a0a05c5e9cd3e87ae8838151a0",
+  "full_frontend_suite_qualified": false
+}

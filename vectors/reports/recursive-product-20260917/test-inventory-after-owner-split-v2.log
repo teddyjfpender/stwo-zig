@@ -1,0 +1,5 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 4s
+1/2 test_inventory_test.test.test inventory: every test-bearing file in this package is named...OK
+2/2 test_inventory_test.test.test inventory: every path it names exists and holds tests...OK
+All 2 tests passed.

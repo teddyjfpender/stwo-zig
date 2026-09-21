@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 241/241 tests passed
+test-vm-public-claim success
++- stwo_riscv_frontend test count floor success
+   +- run test 7 passed 524ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 3s MaxRSS:384M
+test-lookup-table-interaction success
++- stwo_riscv_frontend test count floor success
+   +- run test 234 passed 944ms MaxRSS:100M
+      +- compile test ReleaseSafe native success 55s MaxRSS:4G
+

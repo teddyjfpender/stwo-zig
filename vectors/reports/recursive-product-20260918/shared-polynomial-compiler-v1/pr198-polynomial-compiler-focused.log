@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 143/143 tests passed
+test-polynomial-compiler success
++- stwo_riscv_frontend test count floor success
+   +- run test 143 passed 853ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 8s MaxRSS:751M
+

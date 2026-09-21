@@ -24,6 +24,8 @@
     "arena_plan",
     "commit_backend",
     "commit_policy",
+    "core_aot",
+    "execution_policy",
     "hash_domain",
     "merkle_tree",
     "protocol_recipes",

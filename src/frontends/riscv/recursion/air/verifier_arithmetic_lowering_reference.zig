@@ -21,7 +21,7 @@ pub const REFERENCE_DOMAIN =
     "stwo-zig/typed-air/recursion-verifier-arithmetic-reference/v1\x00";
 
 pub const ProofKind = proof_kind_mod.ProofKind;
-pub const Mode = enum(u8) { segment, binary };
+pub const Mode = @import("verifier_wire_protocol.zig").Mode;
 
 pub const Error = std.mem.Allocator.Error || graph_mod.Error || error{
     AliasedDestination,
@@ -39,10 +39,7 @@ pub const Error = std.mem.Allocator.Error || graph_mod.Error || error{
     MissingProofMode,
 };
 
-pub const PublicClaimError = universal.Error || QM31.Error || error{
-    InvalidPublicAnchor,
-    ZeroDenominator,
-};
+pub const PublicClaimError = @import("verifier_wire_claims.zig").PublicClaimError;
 
 /// The graph-derived input boundary is a cold trust-boundary audit.  It
 /// authenticates the lowering plan and evaluations before allocating its one
@@ -130,15 +127,7 @@ pub const Evaluations = struct {
     }
 };
 
-pub const PublicWireTerm = struct {
-    lane: u32,
-    active_in: Mode,
-    role: relation.Role,
-    circuit_id: u32,
-    node_id: u32,
-    value: QM31,
-    multiplicity: u32,
-};
+pub const PublicWireTerm = @import("verifier_wire_protocol.zig").PublicWireTerm;
 
 pub const InvocationBuffers = struct {
     multiply: []multiply.Invocation,
@@ -387,60 +376,10 @@ pub fn metadataMatches(
         metadata.rhs_id.toU32() == rhs_id;
 }
 
-pub const PublicTermParts = struct { tuple: [6]QM31, numerator: QM31 };
-/// One native/recursive authority for fixed public-anchor tuple order and sign.
-pub fn publicTermParts(term: PublicWireTerm) PublicClaimError!PublicTermParts {
-    if (term.circuit_id >= m31.Modulus or term.node_id >= m31.Modulus or
-        term.multiplicity == 0 or term.multiplicity >= m31.Modulus or
-        term.role == .request)
-    {
-        return error.InvalidPublicAnchor;
-    }
-    const words = term.value.toM31Array();
-    const tuple = [6]QM31{
-        QM31.fromBase(M31.fromCanonical(term.circuit_id)),
-        QM31.fromBase(M31.fromCanonical(term.node_id)),
-        QM31.fromBase(words[0]),
-        QM31.fromBase(words[1]),
-        QM31.fromBase(words[2]),
-        QM31.fromBase(words[3]),
-    };
-    var numerator = QM31.fromBase(M31.fromCanonical(term.multiplicity));
-    if (term.role == .consume) numerator = numerator.neg();
-    return .{ .tuple = tuple, .numerator = numerator };
-}
-
-pub fn publicTermClaim(challenge: *const universal.Elements, term: PublicWireTerm) PublicClaimError!QM31 {
-    const parts = try publicTermParts(term);
-    const denominator = challenge.combineSecure(&parts.tuple) catch return error.InvalidPublicAnchor;
-    const inverse_value = denominator.inv() catch return error.ZeroDenominator;
-    return parts.numerator.mul(inverse_value);
-}
-
-pub fn inputTermClaim(
-    challenge: *const universal.Elements,
-    circuit_id: u32,
-    node_id: u32,
-    value: QM31,
-    multiplicity: u32,
-) PublicClaimError!QM31 {
-    if (circuit_id >= m31.Modulus or node_id >= m31.Modulus or
-        multiplicity == 0 or multiplicity >= m31.Modulus)
-    {
-        return error.InvalidPublicAnchor;
-    }
-    const words = value.toM31Array();
-    const denominator = challenge.combineSecure(&.{
-        QM31.fromBase(M31.fromCanonical(circuit_id)),
-        QM31.fromBase(M31.fromCanonical(node_id)),
-        QM31.fromBase(words[0]),
-        QM31.fromBase(words[1]),
-        QM31.fromBase(words[2]),
-        QM31.fromBase(words[3]),
-    }) catch return error.InvalidPublicAnchor;
-    const inverse_value = denominator.inv() catch return error.ZeroDenominator;
-    return QM31.fromBase(M31.fromCanonical(multiplicity)).mul(inverse_value);
-}
+pub const PublicTermParts = @import("verifier_wire_claims.zig").PublicTermParts;
+pub const publicTermParts = @import("verifier_wire_claims.zig").publicTermParts;
+pub const publicTermClaim = @import("verifier_wire_claims.zig").publicTermClaim;
+pub const inputTermClaim = @import("verifier_wire_claims.zig").inputTermClaim;
 
 pub const AddressRange = struct {
     start: usize,

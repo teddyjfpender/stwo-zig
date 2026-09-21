@@ -11,7 +11,6 @@ const field_transcript = @import("ethereum_wrapper_field_transcript_v1.zig");
 const public_mod = @import("recursive_field_node_public_v2.zig");
 const public_boundary = @import("recursive_common_ethereum_incremental_leaf_public_statement_boundary_v4.zig");
 const codec = @import("recursive_temporal_secure_parent_native_engine_v1.zig");
-const support = @import("recursive_binary_outer_support.zig");
 const lowering = recursion.air.verifier_arithmetic_lowering;
 const Relations = recursion.air.universal_challenges.UniversalRelations;
 const QM31 = core.fields.qm31.QM31;
@@ -127,7 +126,7 @@ pub fn Types(comptime ManifestMod: type) type {
             var scheme = try Scheme.init(allocator, try protocol.pcsConfig());
             defer scheme.deinit(allocator);
             var channel = recursion.poseidon2_channel.Channel{};
-            for (0..2) |tree| try support.commitVerifierTreeForManifest(ManifestMod, allocator, &scheme, &key.manifest, tree, commitments[tree], &channel);
+            for (0..2) |tree| try recursion.verifier_tree.commitVerifierTreeForManifest(ManifestMod, allocator, &scheme, &key.manifest, tree, commitments[tree], &channel);
             try key.manifest.mixStatementPrefix(&channel);
             try field_transcript.mixAuthority(&channel, &words);
             try field_transcript.mixSessionFields(&channel, key.session_fields);
@@ -140,10 +139,10 @@ pub fn Types(comptime ManifestMod: type) type {
             if (!total.isZero()) return error.InvalidEthereumRootClaimClosure;
             try field_transcript.mixClaims(&channel, &key.manifest, &claim_vector);
             try field_transcript.mixBoundaryFields(&channel, @intCast(key.wire_terms.len), wire_claim, &claims.poseidon_partials);
-            try support.commitVerifierTreeForManifest(ManifestMod, allocator, &scheme, &key.manifest, 2, commitments[2], &channel);
+            try recursion.verifier_tree.commitVerifierTreeForManifest(ManifestMod, allocator, &scheme, &key.manifest, 2, commitments[2], &channel);
             const components = try Components.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, &relations, claims);
             defer components.deinit();
-            const moved = support.moveOwnedForVerifier(recursion.engine.Proof, &proof, &proof_owned);
+            const moved = recursion.verifier_tree.moveOwnedForVerifier(recursion.engine.Proof, &proof, &proof_owned);
             if (capture) |output|
                 try core.verifier.verifyWithProofCapture(recursion.engine.Hasher, recursion.engine.MerkleChannel, allocator, try components.verifierComponents(), &channel, &scheme, moved, output)
             else

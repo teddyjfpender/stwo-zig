@@ -25,7 +25,7 @@ const trace_mod = @import("secp256k1_component_trace.zig");
 const CirclePointQM31 = circle.CirclePointQM31;
 
 /// Exact main-column mask order, also consumed by recursive PCS replay.
-pub const MAIN_MASK_OFFSETS = [_]isize{ 0, -1, 1 };
+pub const MAIN_MASK_OFFSETS = @import("mask_layout.zig").SECP256K1_MAIN_MASK_OFFSETS;
 
 pub const Placement = struct {
     preprocessed_offset: usize,

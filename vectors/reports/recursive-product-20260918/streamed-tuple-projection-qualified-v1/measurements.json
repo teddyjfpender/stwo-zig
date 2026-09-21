@@ -1,0 +1,28 @@
+{
+  "scope": "Three alternating fresh-process instrumented samples per version over the same admitted 16-address eight-segment root. Separate complete four-segment CPU/Metal gates qualify uninstrumented production.",
+  "samples_per_version": 3,
+  "medians": {
+    "before": {
+      "process_ns": 7099726667,
+      "source_projection_ns": 1735211250
+    },
+    "after": {
+      "process_ns": 6682931541,
+      "source_projection_ns": 1250026333
+    }
+  },
+  "median_projection_reduction": 0.27961144039378494,
+  "median_parent_process_reduction": 0.05870579890593408,
+  "complete_tree_observations": {
+    "cpu": {
+      "leaf_production_ns": 33806276500,
+      "parent_production_ns": 31663938334,
+      "maximum_rss_bytes": 3898163200
+    },
+    "metal": {
+      "leaf_production_ns": 26049682375,
+      "parent_production_ns": 21859373834,
+      "maximum_rss_bytes": 4393189376
+    }
+  }
+}

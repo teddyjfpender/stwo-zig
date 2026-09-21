@@ -212,7 +212,7 @@ structure StoreHoldsWithoutPartialStorePreserve (row : LoadStoreRow) : Prop wher
   /-- The instruction clock of a placed row. -/
   clockPositive :
     0 < row.clock
-  /-- C00 and C70: exactly one opcode flag is set. -/
+  /-- C00 and C62: exactly one opcode flag is set. -/
   selectorSum :
     row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -238,7 +238,7 @@ structure StoreHoldsWithoutPartialStorePreserve (row : LoadStoreRow) : Prop wher
     row.isWord = true → row.shiftAmount = 0
   /-- L06: the aligned word address divided by four is a 20-bit value. -/
   alignedQuarterRange :
-    row.alignedQuarter < 2 ^ 20
+    row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 with L06: the memory address selector is
     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
   memoryAddress :
@@ -247,14 +247,9 @@ structure StoreHoldsWithoutPartialStorePreserve (row : LoadStoreRow) : Prop wher
   /-- `imm_felt` is a base-field element. -/
   immFeltRange :
     row.immFelt < m31Modulus
-  /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+  /-- L07, second component: twice `rs1_next_3` is a seven-bit value. -/
   baseHighLimbRange :
-    row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero :
-    row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+    row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -366,8 +361,6 @@ theorem storeHolds_weakens_partialStorePreserve
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   byteStoreSelect := holds.byteStoreSelect
@@ -440,7 +433,7 @@ structure StoreHoldsWithoutByteStoreSelect (row : LoadStoreRow) : Prop where
   /-- The instruction clock of a placed row. -/
   clockPositive :
     0 < row.clock
-  /-- C00 and C70: exactly one opcode flag is set. -/
+  /-- C00 and C62: exactly one opcode flag is set. -/
   selectorSum :
     row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -466,7 +459,7 @@ structure StoreHoldsWithoutByteStoreSelect (row : LoadStoreRow) : Prop where
     row.isWord = true → row.shiftAmount = 0
   /-- L06: the aligned word address divided by four is a 20-bit value. -/
   alignedQuarterRange :
-    row.alignedQuarter < 2 ^ 20
+    row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 with L06: the memory address selector is
     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
   memoryAddress :
@@ -475,14 +468,9 @@ structure StoreHoldsWithoutByteStoreSelect (row : LoadStoreRow) : Prop where
   /-- `imm_felt` is a base-field element. -/
   immFeltRange :
     row.immFelt < m31Modulus
-  /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+  /-- L07, second component: twice `rs1_next_3` is a seven-bit value. -/
   baseHighLimbRange :
-    row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero :
-    row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+    row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -595,8 +583,6 @@ theorem storeHolds_weakens_byteStoreSelect
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   halfLoadExtension := holds.halfLoadExtension
@@ -671,7 +657,7 @@ structure StoreHoldsWithoutHalfStoreHigh (row : LoadStoreRow) : Prop where
   /-- The instruction clock of a placed row. -/
   clockPositive :
     0 < row.clock
-  /-- C00 and C70: exactly one opcode flag is set. -/
+  /-- C00 and C62: exactly one opcode flag is set. -/
   selectorSum :
     row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -697,7 +683,7 @@ structure StoreHoldsWithoutHalfStoreHigh (row : LoadStoreRow) : Prop where
     row.isWord = true → row.shiftAmount = 0
   /-- L06: the aligned word address divided by four is a 20-bit value. -/
   alignedQuarterRange :
-    row.alignedQuarter < 2 ^ 20
+    row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 with L06: the memory address selector is
     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
   memoryAddress :
@@ -706,14 +692,9 @@ structure StoreHoldsWithoutHalfStoreHigh (row : LoadStoreRow) : Prop where
   /-- `imm_felt` is a base-field element. -/
   immFeltRange :
     row.immFelt < m31Modulus
-  /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+  /-- L07, second component: twice `rs1_next_3` is a seven-bit value. -/
   baseHighLimbRange :
-    row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero :
-    row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+    row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -827,8 +808,6 @@ theorem storeHolds_weakens_halfStoreHigh
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   byteStoreSelect := holds.byteStoreSelect
@@ -928,7 +907,7 @@ structure StoreHoldsWithoutStoreResultZeroOnStores (row : LoadStoreRow) : Prop w
   /-- The instruction clock of a placed row. -/
   clockPositive :
     0 < row.clock
-  /-- C00 and C70: exactly one opcode flag is set. -/
+  /-- C00 and C62: exactly one opcode flag is set. -/
   selectorSum :
     row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -954,7 +933,7 @@ structure StoreHoldsWithoutStoreResultZeroOnStores (row : LoadStoreRow) : Prop w
     row.isWord = true → row.shiftAmount = 0
   /-- L06: the aligned word address divided by four is a 20-bit value. -/
   alignedQuarterRange :
-    row.alignedQuarter < 2 ^ 20
+    row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 with L06: the memory address selector is
     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
   memoryAddress :
@@ -963,14 +942,9 @@ structure StoreHoldsWithoutStoreResultZeroOnStores (row : LoadStoreRow) : Prop w
   /-- `imm_felt` is a base-field element. -/
   immFeltRange :
     row.immFelt < m31Modulus
-  /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+  /-- L07, second component: twice `rs1_next_3` is a seven-bit value. -/
   baseHighLimbRange :
-    row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero :
-    row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+    row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -1086,8 +1060,6 @@ theorem storeHolds_weakens_storeResultZero
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   byteStoreSelect := holds.byteStoreSelect
@@ -1157,7 +1129,7 @@ structure StoreHoldsWithoutWordStore (row : LoadStoreRow) : Prop where
   /-- The instruction clock of a placed row. -/
   clockPositive :
     0 < row.clock
-  /-- C00 and C70: exactly one opcode flag is set. -/
+  /-- C00 and C62: exactly one opcode flag is set. -/
   selectorSum :
     row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -1183,7 +1155,7 @@ structure StoreHoldsWithoutWordStore (row : LoadStoreRow) : Prop where
     row.isWord = true → row.shiftAmount = 0
   /-- L06: the aligned word address divided by four is a 20-bit value. -/
   alignedQuarterRange :
-    row.alignedQuarter < 2 ^ 20
+    row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 with L06: the memory address selector is
     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
   memoryAddress :
@@ -1192,14 +1164,9 @@ structure StoreHoldsWithoutWordStore (row : LoadStoreRow) : Prop where
   /-- `imm_felt` is a base-field element. -/
   immFeltRange :
     row.immFelt < m31Modulus
-  /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+  /-- L07, second component: twice `rs1_next_3` is a seven-bit value. -/
   baseHighLimbRange :
-    row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero :
-    row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+    row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -1315,8 +1282,6 @@ theorem storeHolds_weakens_wordStore
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   byteStoreSelect := holds.byteStoreSelect

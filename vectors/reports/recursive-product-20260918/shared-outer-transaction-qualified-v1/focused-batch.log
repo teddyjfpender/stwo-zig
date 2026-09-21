@@ -1,0 +1,43 @@
+test-recursive-segment-v2-concrete-outer-proof
++- SegmentV2 concrete outer-proof identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_segment_v2_concrete_outer_proof_test.test.SegmentV2 concrete 39-row outer proof independently verifies all 47 domains' failed: SEGMENT_V2_NATIVE_MEMORY backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=458184140 producer_live_bytes_after_destroy=0 canonical_proof_bytes=24261
+
+V2_NATIVE_CORE_STAGE stage=core_init elapsed_ms=84.751
+V2_NATIVE_CORE_STAGE stage=provider elapsed_ms=23.105
+V2_NATIVE_CORE_STAGE stage=interaction elapsed_ms=24.500
+V2_NATIVE_CORE_STAGE stage=independent elapsed_ms=133.995
+
+V2_NONCORE_OWNER_REAL rows=22 init_ms=87.626 publish_01_ms=0.490 interaction_ms=57.551 publish_2_ms=0.261 cached_validate_ns=85624209 cached_validate_iterations=4 hot_allocations=0/0/0 cold_independent_audit_replays=1
+
+SEGMENT_V2_OUTER_PHASES role=producer scope=body_before_cleanup setup_ns=31250 tree0_prepare_ns=24137833 tree0_commit_ns=133860833 tree1_prepare_ns=24770834 tree1_commit_ns=121488000 transcript_prefix_ns=44308583 interaction_generate_ns=157106542 interaction_admit_closure_ns=68583291 transcript_tree2_commit_ns=86736167 components_ns=71333625 diagnostic_ns=42 stark_ns=626203916 phase_sum_ns=1358560916
+
+SEGMENT_V2_OUTER_ARTIFACT_REJECTIONS truncated=true trailing=true
+
+SEGMENT_V2_OUTER_PHASES role=verifier scope=body_before_cleanup preflight_ns=12917 preprocessed_root_ns=166676916 transcript_prefix_ns=44428417 interaction_regenerate_ns=133401542 interaction_validate_claims_ns=22054333 closure_ns=46783125 transcript_after_ns=24132792 components_ns=36219333 publication_authority_ns=22331125 stark_ns=91475292 publication_total_ns=27781750 phase_sum_ns=615297542
+
+SEGMENT_V2_OUTER status=verified rows=39 domains=47 proof_size_estimate_bytes=78420 canonical_proof_bytes=91749 canonicalize_ms=3.862 prove_ms=1358.591 verify_ms=620.763 publication_ms=3.997 producer_prepare_ms=257.224 producer_destroy_ms=1.092 verifier_prepare_ms=269.254 decode_ms=9.676 stark_verify_ms=91.475 transaction_ms=2567.714 artifact_rejections_ms=39.607 producer_peak_bytes=99412620 producer_live_bytes_after_destroy=0 serialization_passes=1 retained_canonical_bytes=91749 verification=native_assisted_fresh_decode draws=1 cols=577/1010/532 workers=1
+error: while executing test 'recursive_segment_v2_concrete_outer_proof_test.test.SegmentV2 concrete 39-row outer proof independently verifies all 47 domains', the following test command failed:
+./.zig-cache/o/f1ec4c110aff4b3df6d5083db95d66f1/test --cache-dir=./.zig-cache --seed=0x4f7a93b2 --listen=-
+
+Build Summary: 14/17 steps succeeded; 1 failed; 20/21 tests passed; 1 failed
+test-recursive-segment-v2-outer-engine success
++- run test 1 passed 981ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 4s MaxRSS:577M
+test-recursive-segment-v2-verified-artifact success
++- run test 2 passed 558ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 3s MaxRSS:442M
+test-recursive-binary-verified-publication success
++- binary verifier publication identity guard success
+   +- run test 5 passed 654ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 4s MaxRSS:482M
+test-recursive-segment-v2-outer-cohort success
++- run test 12 passed 737ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 15s MaxRSS:2G
+test-recursive-segment-v2-concrete-outer-proof transitive failure
++- SegmentV2 concrete outer-proof identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 2m MaxRSS:8G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/655edcb20860a1cab15a94097760ed69/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x4f7a93b2 -Z0f84e7a22cc1f872 --maxrss 25769803776 -j1 test-recursive-segment-v2-outer-engine test-recursive-segment-v2-verified-artifact test-recursive-binary-verified-publication test-recursive-segment-v2-outer-cohort test-recursive-segment-v2-concrete-outer-proof -Doptimize=ReleaseSafe --summary all

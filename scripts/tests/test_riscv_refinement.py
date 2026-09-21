@@ -33,6 +33,19 @@ del _test_case
 
 
 class RefinementAirTest(unittest.TestCase):
+    def test_rendered_bridge_binds_next_manifest_without_second_generation(self):
+        paths = Paths(ROOT)
+        bridge = Path("RiscvRefinement/Air/Bridge/LoadStoreProgram.lean")
+        key = (paths.formal / bridge).relative_to(ROOT).as_posix()
+        before = render._proof_digests(paths)
+        rendered = b"-- replacement bridge for the next generation\n"
+        after = render._proof_digests(paths, {bridge: rendered})
+        self.assertEqual(after[key], codec.sha256_bytes(rendered))
+        self.assertNotEqual(after[key], before[key])
+        self.assertEqual({k: v for k, v in before.items() if k != key},
+                         {k: v for k, v in after.items() if k != key})
+        self.assertEqual(before, render._proof_digests(paths))
+
     def test_source_closure_is_version_controlled_and_cache_free(self) -> None:
         digests = render._source_digests(Paths(ROOT))
         self.assertIn("src/core/fields/m31.zig", digests)

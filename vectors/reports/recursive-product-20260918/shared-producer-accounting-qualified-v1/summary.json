@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "ladder_cases": 1110,
+  "ladder_baseline_identical_artifacts": 78,
+  "focused_tests": 3,
+  "ownership_tests": 15,
+  "allocator_body_identical_after_type_rename": true,
+  "legacy_outer_wrapper_migrated": false,
+  "leaf_device_ladder_qualified": true,
+  "source_patch_sha256": "ec0c9f8d8b6c85deb87aa6d5a4229b3c07950faf0de9ae66dc7aa0b54503769b"
+}

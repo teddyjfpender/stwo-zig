@@ -1,0 +1,35 @@
+{
+  "removed_public_aliases": [
+    "recursive_segment_v2_detached_boundary",
+    "recursive_segment_v2_detached_child_transcript",
+    "recursive_segment_v2_detached_composition",
+    "recursive_segment_v2_detached_parent_statement",
+    "recursive_segment_v2_detached_pcs_rows",
+    "recursive_segment_v2_detached_prefix",
+    "recursive_segment_v2_detached_transcript",
+    "recursive_segment_v2_public_inputs",
+    "recursive_segment_v2_verifier_components"
+  ],
+  "preserved_test_imports": [
+    "recursive_segment_v2_detached_boundary",
+    "recursive_segment_v2_detached_child_transcript",
+    "recursive_segment_v2_detached_composition",
+    "recursive_segment_v2_detached_parent_statement",
+    "recursive_segment_v2_detached_pcs_rows",
+    "recursive_segment_v2_detached_prefix",
+    "recursive_segment_v2_detached_transcript",
+    "recursive_segment_v2_public_inputs",
+    "recursive_segment_v2_verifier_components"
+  ],
+  "external_consumer": "src/integrations/riscv_metal/recursive_segment_v2_detached_parent_producer_runner.zig",
+  "ownership_limit": "Shared transaction orchestration still resides in CPU integration; this API repair does not claim the final backend-neutral ownership goal.",
+  "retained_public_entries": [
+    "recursive_segment_v2_detached_command",
+    "recursive_segment_v2_detached_parent_command",
+    "recursive_segment_v2_detached_parent_producer",
+    "recursive_segment_v2_detached_proof",
+    "recursive_segment_v2_detached_verifier"
+  ],
+  "review_correction": "Four entry points are consumed by separately compiled runners inside the CPU package. The first scan excluded that directory. The full build caught the omission; restored and explicitly declared these supported entry points. Nine unused exports remain removed.",
+  "failure_log": "wire-owner-build-failure-v1.log"
+}

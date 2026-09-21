@@ -51,7 +51,7 @@ pub fn fill(
     for (&result.input_bits, 0..) |*bit, position| {
         const byte = position / 8;
         const offset: u3 = @intCast(position % 8);
-        bit.* = M31.fromCanonical(@truncate(block.input_rate[byte] >> offset));
+        bit.* = M31.fromCanonical((block.input_rate[byte] >> offset) & 1);
     }
     writeStateBits(M31, &result.state_before, block.state_before);
     writeStateBits(M31, &result.state_after, block.permutation_output);

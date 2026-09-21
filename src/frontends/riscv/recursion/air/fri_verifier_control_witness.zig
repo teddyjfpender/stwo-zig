@@ -21,8 +21,8 @@ pub const QueryWitness = query_mapping.QueryWitness;
 pub const SEGMENT_VERIFIER_ID: u32 = 0;
 pub const LEFT_RECURSION_VERIFIER_ID: u32 = 1;
 pub const RIGHT_RECURSION_VERIFIER_ID: u32 = 2;
-pub const POSITION_FIELD: u32 = 1;
-pub const OFFSET_FIELD: u32 = 2;
+pub const POSITION_FIELD = @import("verifier_parameter_tags.zig").control.POSITION_FIELD;
+pub const OFFSET_FIELD = @import("verifier_parameter_tags.zig").control.OFFSET_FIELD;
 
 pub const BINDING_FORMAT_VERSION: u16 = 1;
 pub const BINDING_DOMAIN = "stwo-zig/typed-air/recursion-fri-verifier-control-witness/v1\x00";

@@ -235,45 +235,7 @@ pub const GateReceiptV2 = struct {
 /// claim: the concrete cohort derives it from its pre-challenge-sealed core and
 /// the already drawn universal relation.  `term_count` retains geometry that
 /// is intentionally disjoint from committed logical/event row accounting.
-pub const PublicWireBoundaryV2 = struct {
-    format_version: u16 = PUBLIC_WIRE_BOUNDARY_FORMAT_VERSION,
-    domain: relation.Domain = .recursion_wire,
-    term_count: u32,
-    source_authority_id: digest.Digest,
-    claimed_sum: QM31,
-    identity: digest.Digest,
-
-    pub fn init(
-        source_authority_id: digest.Digest,
-        term_count: u32,
-        claimed_sum: QM31,
-    ) Error!PublicWireBoundaryV2 {
-        var result = PublicWireBoundaryV2{
-            .term_count = term_count,
-            .source_authority_id = source_authority_id,
-            .claimed_sum = claimed_sum,
-            .identity = undefined,
-        };
-        result.identity = publicWireBoundaryIdentity(&result);
-        try result.validate();
-        return result;
-    }
-
-    pub fn validate(self: *const PublicWireBoundaryV2) Error!void {
-        try requireCanonical(self.claimed_sum);
-        if (self.format_version != PUBLIC_WIRE_BOUNDARY_FORMAT_VERSION or
-            self.domain != .recursion_wire or self.term_count == 0 or
-            allZero(&self.source_authority_id) or
-            !std.mem.eql(
-                u8,
-                &self.identity,
-                &publicWireBoundaryIdentity(self),
-            ))
-        {
-            return error.PublicWireBoundaryMismatch;
-        }
-    }
-};
+pub const PublicWireBoundaryV2 = @import("segment_public_wire_boundary_v2.zig").PublicWireBoundaryV2;
 
 pub const ClosureSummaryV2 = struct {
     domain_totals: [DOMAIN_COUNT]QM31,
@@ -531,18 +493,7 @@ pub fn auditIdentity(
     return hash.finalResult();
 }
 
-pub fn publicWireBoundaryIdentity(
-    boundary: *const PublicWireBoundaryV2,
-) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update(PUBLIC_WIRE_BOUNDARY_ID_DOMAIN);
-    hashInt(&hash, u16, boundary.format_version);
-    hashInt(&hash, u8, @intFromEnum(boundary.domain));
-    hashInt(&hash, u32, boundary.term_count);
-    hash.update(&boundary.source_authority_id);
-    hashQM31(&hash, boundary.claimed_sum);
-    return hash.finalResult();
-}
+pub const publicWireBoundaryIdentity = @import("segment_public_wire_boundary_v2.zig").publicWireBoundaryIdentity;
 
 pub fn boundaryAuditIdentity(
     audits: *const [COMPONENT_COUNT]relation_interaction.DomainAudit,
@@ -560,12 +511,7 @@ pub fn boundaryAuditIdentity(
     return hash.finalResult();
 }
 
-pub fn requireCanonical(value: QM31) Error!void {
-    for (value.toM31Array()) |limb| {
-        if (limb.toU32() >= stwo_core.fields.m31.Modulus)
-            return error.NonCanonicalField;
-    }
-}
+pub const requireCanonical = @import("segment_public_wire_boundary_v2.zig").requireCanonical;
 
 pub fn requireProviderDomains(
     values: *const [DOMAIN_COUNT]QM31,
@@ -577,12 +523,6 @@ pub fn requireProviderDomains(
     }
 }
 
-pub fn allZero(bytes: []const u8) bool {
-    var aggregate: u8 = 0;
-    for (bytes) |byte| aggregate |= byte;
-    return aggregate == 0;
-}
+pub const allZero = @import("segment_public_wire_boundary_v2.zig").allZero;
 
-pub fn hashQM31(hash: anytype, value: QM31) void {
-    for (value.toM31Array()) |limb| hashInt(hash, u32, limb.toU32());
-}
+pub const hashQM31 = @import("segment_public_wire_boundary_v2.zig").hashQM31;

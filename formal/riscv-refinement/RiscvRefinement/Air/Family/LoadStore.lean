@@ -42,11 +42,11 @@ open RiscvRefinement
 
 /-- SHA-256 of the exported production symbolic AIR this file transcribes. -/
 def loadStoreIrDigest : String :=
-  "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9"
+  "d9af9ea593130937565b96891babc7984389743410d5d3f77a5f499e6ff9f1a6"
 
-/-- Sparse-polynomial identity shared by the reviewed and typed exports. -/
+/-- Sparse-polynomial identity of the reviewed one-GiB production export. -/
 def loadStorePolynomialDigest : String :=
-  "d19899f907d0d5a3ec364963e1f3901e03c2620e3ad203a01bbf2e298775b59f"
+  "4fe41e9473bc360082680cdb264aa857765a66872f6a34bc433c24f771932a83"
 
 /-- The base field the production AIR evaluates in. -/
 def m31Modulus : Nat := 2147483647
@@ -97,7 +97,7 @@ structure LoadStoreRow where
   srcMsb : Bool
   /-- `shift_amount`: the byte offset of the access inside its aligned word. -/
   shiftAmount : Nat
-  /-- The value `L06` range-checks: the aligned word address divided by four. -/
+  /-- The committed aligned word address divided by four, bounded by L06/L16. -/
   alignedQuarter : Nat
   /-- `markers_0`. -/
   marker0 : Bool
@@ -140,11 +140,11 @@ namespace LoadStoreRow
 /-- The emitted program counter is derived by the production AIR. -/
 @[simp] def claimedNextPc (row : LoadStoreRow) : Word := nextPc row.pc
 
-/-- `is_store = is_sb + is_sh + is_sw`. Under C69 at most one flag is set, so
+/-- `is_store = is_sb + is_sh + is_sw`. Under C62 at most one flag is set, so
 the field sum and the boolean disjunction agree. -/
 def isStore (row : LoadStoreRow) : Bool := row.isSb || row.isSh || row.isSw
 
-/-- `is_load = active - is_store`, and C69 pins `active = 1`. -/
+/-- `is_load = active - is_store`, and C62 pins `active = 1`. -/
 def isLoad (row : LoadStoreRow) : Bool := !row.isStore
 
 /-- `opcode_b = is_lbu + is_lb + is_sb`. -/
@@ -258,7 +258,7 @@ the corresponding row fields and therefore have no field here. -/
 structure LoadStoreHolds (row : LoadStoreRow) : Prop where
   /-- The instruction clock of a placed row. -/
   clockPositive : 0 < row.clock
-  /-- C00 and C70: `active * (active - 1) = 0` together with the placement
+  /-- C00 and C62: `active * (active - 1) = 0` together with the placement
   residual `active - 1 = 0`, so exactly one opcode flag is set. -/
   selectorSum : row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -277,28 +277,19 @@ structure LoadStoreHolds (row : LoadStoreRow) : Prop where
   halfShiftAmount : row.isHalf = true → 2 * row.shiftAmount + 1 = row.shiftId
   /-- C15, word branch: neither `opcode_b` nor `opcode_h` fires. -/
   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
-  /-- L06: the aligned word address divided by four is a 20-bit value, so the
-  modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
-  /-- C16 and C17 jointly: whichever of the two address selectors carries the
-  memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
-  base field, and L06 pins that selector to `4 * aligned_quarter`. The right
-  hand side is below `2^22 + 4`, hence already canonical. -/
+  /-- L06 and L16 range-check low 20 and high eight bits of the committed
+  aligned quarter. C61 binds that quarter to the address selectors. -/
+  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+  /-- C16/C17 and C61 bind the effective field address to the aligned address
+  and byte offset. Their sum is below 2^30 and therefore canonical. -/
   memoryAddress :
     (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
-  /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
-  component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
-  /-- C69: every placed row pins the high byte of the base register to zero.
-  This keeps the full signed-12-bit address calculation inside the M31 field. -/
-  baseHighLimbZero : row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
-  exactly what keeps `compose(rs1_next)` below the modulus. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+  /-- L07 checks twice the byte-valued base high limb against a seven-bit
+  table. This bounds the base below 2^30; there is no high-byte-zero root. -/
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →

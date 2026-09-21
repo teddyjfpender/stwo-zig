@@ -480,6 +480,25 @@ fn admitTypedRow(
         ),
         component.maxConstraintLogDegreeBound(),
     );
+    const Verifier = @import("universal_typed_verifier_component.zig").ComponentForManifest(
+        Air,
+        Relation,
+        @import("universal_manifest_contract.zig"),
+    );
+    try std.testing.expect(!@hasDecl(Verifier, "asProverComponent"));
+    const verifier = try Verifier.init(
+        &definition,
+        relation_plan,
+        &manifest,
+        roster_row,
+        log_size,
+        parameters,
+        relations,
+        QM31.zero(),
+    );
+    const verifier_binding = verifier.asVerifierComponent();
+    try std.testing.expectEqual(component.nConstraints(), verifier_binding.nConstraints());
+    try std.testing.expectEqual(component.maxConstraintLogDegreeBound(), verifier_binding.maxConstraintLogDegreeBound());
     const binding = try component.binding(&manifest);
     try std.testing.expectEqual(component.nConstraints(), binding.verifier.nConstraints());
     try std.testing.expectEqual(component.nConstraints(), binding.prover.nConstraints());
@@ -570,6 +589,16 @@ fn prepareFailureCase(
 }
 
 test "R-012 generic adapter verifier point path consumes manifest offsets" {
+    try verifierPointCase(MerkleAdapter);
+    const Verifier = @import("universal_typed_verifier_component.zig").ComponentForManifest(
+        merkle,
+        merkle_relation,
+        @import("universal_manifest_contract.zig"),
+    );
+    try verifierPointCase(Verifier);
+}
+
+fn verifierPointCase(comptime Component: type) !void {
     var definition = try merkle.build(std.testing.allocator);
     defer definition.deinit();
     const relation_plan = try merkle_relation.authenticate(&definition);
@@ -578,7 +607,7 @@ test "R-012 generic adapter verifier point path consumes manifest offsets" {
     _ = try builder.append(merkleGeometry(4));
     const manifest = try builder.seal();
     const claimed_sum = QM31.fromU32Unchecked(17, 19, 23, 29);
-    const component = try MerkleAdapter.init(
+    const component = try Component.init(
         &definition,
         relation_plan,
         &manifest,
@@ -626,13 +655,23 @@ test "R-012 generic adapter verifier point path consumes manifest offsets" {
     var values = pcs.TreeVec([][]QM31).initOwned(values_items);
     // Ownership remains with the explicit defer above.
     var accumulator = core_accumulation.PointEvaluationAccumulator.init(QM31.one());
-    try component.evaluateConstraintQuotientsAtPoint(
+    try component.asVerifierComponent().evaluateConstraintQuotientsAtPoint(
         point,
         &values,
         &accumulator,
         component.log_size,
     );
     try std.testing.expect(accumulator.finalize().isZero());
+    // Previous/current reversal must fail even though geometry and claims match.
+    for (0..4) |index| std.mem.swap(QM31, &values_items[manifest_mod.INTERACTION_TREE_INDEX][final_start + index][0], &values_items[manifest_mod.INTERACTION_TREE_INDEX][final_start + index][1]);
+    var reversed = core_accumulation.PointEvaluationAccumulator.init(QM31.one());
+    try component.asVerifierComponent().evaluateConstraintQuotientsAtPoint(
+        point,
+        &values,
+        &reversed,
+        component.log_size,
+    );
+    try std.testing.expect(!reversed.finalize().isZero());
 }
 
 test "Ethereum typed quotient domains reject recovery larger than quotient buffer" {

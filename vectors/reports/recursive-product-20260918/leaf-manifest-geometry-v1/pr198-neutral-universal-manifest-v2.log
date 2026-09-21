@@ -1,0 +1,6 @@
+1/5 recursion_air_core_test_root.test_0...OK
+2/5 recursion.air.universal_manifest_test.test.R-012 universal manifest closes all 36 rows in exact protocol order...OK
+3/5 recursion.air.universal_manifest_test.test.R-012 universal manifest binds every row size and fixed provider geometry...OK
+4/5 recursion.air.universal_typed_component_test.test.R-012 universal manifest pins roster order offsets claims and transcript...OK
+5/5 air.memory_commitment.poseidon2_air.test_0...OK
+All 5 tests passed.

@@ -212,13 +212,7 @@ pub const Binding = struct {
     }
 };
 
-pub const QueryPositionKind = enum(u32) {
-    trace_tree = 1,
-    deep = 2,
-    fri_fold = 3,
-    fri_merkle = 4,
-    last_layer = 5,
-};
+pub const QueryPositionKind = @import("verifier_parameter_tags.zig").QueryPositionKind;
 
 pub const LaneProfile = struct {
     query_count: u32,

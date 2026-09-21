@@ -7,10 +7,9 @@
 
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
-const subject = integration.recursive_segment_v2_leaf_outer;
+const subject = @import("recursive_segment_v2_leaf_outer.zig");
 const runner = frontend.runner;
 const recursion = frontend.recursion;
 const span = recursion.span_statement;

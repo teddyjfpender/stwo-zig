@@ -3,7 +3,7 @@
 //! Schedule coefficients are preprocessing, never proof-dependent selectors.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../../air/lang/mod.zig");
+const lang = @import("../../air/lang/definition.zig");
 const effects = @import("relation_effect.zig");
 const product = @import("qm31_mul.zig");
 const M31 = core.fields.m31.M31;

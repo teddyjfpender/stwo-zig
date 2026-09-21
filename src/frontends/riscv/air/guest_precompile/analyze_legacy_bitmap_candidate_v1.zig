@@ -69,7 +69,7 @@ pub fn materialize(
         row.source_length = felt(descriptor.source_length);
         row.bitmap_bytes = felt(descriptor.summary.bitmap_bytes);
         row.expected_jumpdest_count = felt(descriptor.summary.jumpdest_count);
-        row.word_index = felt(@intCast(word_index));
+        row.word_index = felt(word_index);
         for (0..bits_per_word) |bit| {
             const position = word_index * bits_per_word + bit;
             row.valid_bits[bit] = feltBool(position < source.len);

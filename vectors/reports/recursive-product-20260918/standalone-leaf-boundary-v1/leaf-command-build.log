@@ -1,0 +1,10 @@
+
+Build Summary: 7/7 steps succeeded; 4/4 tests passed
+build-recursive-segment-v2-detached-verifier success
++- install recursive-segment-v2-detached-verify success
+   +- compile exe recursive-segment-v2-detached-verify ReleaseSafe native success 31s MaxRSS:2G
+test-recursive-segment-v2-detached-command success
++- SegmentV2 detached transport guard success
+   +- run test 4 passed 788ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:566M
+

@@ -1,0 +1,28 @@
+{
+  "status": "focused_parameter_golden_ownership_and_all39_leaf_checks_passed",
+  "parameter_builders": 10,
+  "proof_kind_variants": 3,
+  "protocol_word_sha256": "45d94b24b6a6dcb00003274ac45727c99def2c3b9a9ea3b2e3d4772f50b63d51",
+  "ownership_checks": 12,
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/verifier_component_parameters.zig": "91497488bb927c0da1df233045a5eb1e23461e89d928eee5adefeff884c0526b",
+    "src/frontends/riscv/recursion/air/verifier_parameter_tags.zig": "13c972790dc471770e895dfeae9149cae818e1968878959755f766f11dee927d",
+    "src/frontends/riscv/recursion/air/query_bits_profile.zig": "6ea9adeeda1a1f64deb9fb0c1b7afb216f99b526f7b4b7e47c4c0df4769d7170",
+    "src/frontends/riscv/recursion/air/query_bits_witness.zig": "5cc4929a4a5f331b3e01af1a7151ed52b5c70688088af8f0d2c45b2f979c313c",
+    "src/frontends/riscv/recursion/air/vm_air_composition_input_witness.zig": "3ba3c7628f9855adb50b1d4c5529e8c0d0fada3bd8fd555389c2afd0c54380ac",
+    "src/frontends/riscv/recursion/air/trace_merkle_witness_contract.zig": "3ff3bf5162822580836e576c12013c243aba313a2b084fe0fc1ddffa40b8115d",
+    "src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_contract.zig": "b3d2a469a9f1393d871a9bab2e0780fba2e023188d66b7c5e9ae0a011c7dd27e",
+    "src/frontends/riscv/recursion/air/fri_merkle_anchor_witness.zig": "699188ca4c5956d83c40e4ab33f8d50e25c94f9c4cd1f626aaf46969ca83a2b0",
+    "src/frontends/riscv/recursion/air/fri_verifier_control_witness.zig": "d6c6130f4a00c095c4e3b5d2e8189460d9ffa311371fa326f6a9ec6eee4bc432",
+    "src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig": "0a6533969f0bd35b0d4de6b0fcbe6a31dcdeed010223e2936d9351798bdc454a",
+    "src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig": "6a42256d22a75f376d56a771381b5e732f1919a447b7fd9b9fcce2b09732a66e",
+    "src/frontends/riscv/recursion/air/query_mapping_witness_preprocessed_source.zig": "26b71ed27de9dcfcf5f59cb3a6a6ed1841e3a0f1b02a9ec656ece331ab438256",
+    "src/frontends/riscv/recursion/air/mod.zig": "0775ce7486bde5291beff518f7463bb5280745e9dffb5bde8b7dd9f580684fd4",
+    "src/frontends/riscv/verifier_parameters_test_root.zig": "18b082b22c1645640c770b471d8296a62b32cfe6137b9e5793ed2cde113951b2",
+    "src/integrations/riscv_cpu/recursive_fri_component_parameters.zig": "b941e9f9eebffb68b820dd746f09aa8710f13945b6baca3590ce743a5b72fcd3",
+    "src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig": "d253e750f58116108334cdd05cc85b9d8a882fa161219a36e010d0af32b3fca5",
+    "scripts/tests/test_product_closure.py": "d497b25d9b942d6a9eeb47b024c6f2c0818472b0b0a8a7182cdc19af8d7cc4be"
+  },
+  "complete_leaf_isolation": false,
+  "leaf_tests": 4
+}

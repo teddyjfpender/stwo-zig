@@ -1,17 +1,14 @@
-//! Per-shard RISC-V AIR component with real LogUp constraints.
+//! Program and memory infrastructure AIR component with real LogUp constraints.
 //!
 //! Every component references three committed trees:
 //!   tree 0: its IsFirst column at `preprocessed_col_idx`;
 //!   tree 1: `desc.n_columns` main columns starting at `main_col_offset`;
 //!   tree 2: its interaction columns starting at `interaction_col_offset`
-//!           (family-specific for opcode shards, 16 for the program ROM, and
-//!           16 for a memory-boundary shard).
+//!           (16 for the program ROM and 16 for a memory-boundary shard).
 //!
-//! Opcode components enforce the two pairs-batched LogUp transitions (CPU
-//! state chain and program-bus consume); the program component enforces the
-//! ROM emission columns; memory components enforce their four pairs-batched
-//! boundary transitions. Hash, lookup-table, and clock-update infrastructure
-//! use their dedicated AIR component types.
+//! Program components enforce ROM emission; memory components enforce boundary
+//! transitions. Opcode AIR is owned exclusively by typed semantic components.
+//! Hash, lookup-table and clock-update infrastructure use dedicated components.
 
 const std = @import("std");
 const core_air_accumulation = @import("stwo_core").air.accumulation;
@@ -28,34 +25,25 @@ const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
 const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const prover_work_pool = @import("stwo_prover_engine").work_pool;
-const composition_work_support = @import("composition_work_support.zig");
 const prepared_execution = @import("component_prepared_execution.zig");
-const interaction_gen = @import("interaction_gen.zig");
 const logup = @import("logup.zig");
 const incremental_boundary_interaction_v3 = @import("memory_commitment/incremental_boundary_interaction_v3.zig");
 const memory_interaction = @import("memory_commitment/interaction.zig");
-const opcode_memory = @import("opcode_memory.zig");
 const prepared_evaluation = @import("prepared_evaluation_owner.zig");
 const program_commitment = @import("program/commitment.zig");
 const program_interaction = @import("program/interaction.zig");
 const relation_challenges = @import("relation_challenges.zig");
-const semantic_eval = @import("semantic_eval.zig");
-const trace_mod = @import("../runner/trace.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
 
 /// Per-family component descriptor within the proof.
-pub const FamilyComponentDesc = struct {
-    family: trace_mod.OpcodeFamily,
-    log_size: u32,
-    n_rows: u32,
-    n_columns: u32 = 10,
-};
+pub const FamilyComponentDesc = @import("statement_geometry.zig").FamilyComponentDesc;
 
 /// Constraint role of a component.
-pub const Kind = enum { opcode, program, memory };
+// Preserve the existing infrastructure discriminants while retiring opcode 0.
+pub const Kind = enum(u2) { program = 1, memory = 2 };
 
 /// AIR policy for the otherwise byte-identical eight-column memory-boundary
 /// table. The default preserves every V1 component and proof byte. V3 keeps
@@ -103,7 +91,6 @@ pub const MemoryBoundaryPolicy = enum(u32) {
 /// Number of committed M31 interaction columns for a component kind.
 pub fn nInteractionCols(kind: Kind) u32 {
     return switch (kind) {
-        .opcode => @intCast(interaction_gen.OPCODE_INTERACTION_COLS),
         .program => @intCast(program_interaction.N_COLUMNS),
         .memory => @intCast(memory_interaction.N_COLUMNS),
     };
@@ -126,14 +113,11 @@ pub const RiscVTraceComponent = struct {
     relations: *const relation_challenges.Relations,
     /// Offset of this component's first column within tree 2 (interaction).
     interaction_col_offset: usize = 0,
-    state_claim: QM31 = QM31.zero(),
-    prog_claim: QM31 = QM31.zero(),
     program_claims: [program_interaction.N_SUMS]QM31 =
         .{QM31.zero()} ** program_interaction.N_SUMS,
-    opcode_memory_claims: [opcode_memory.N_ACCESSES]QM31 =
-        .{QM31.zero()} ** opcode_memory.N_ACCESSES,
     memory_claims: [memory_interaction.N_SUMS]QM31 =
         .{QM31.zero()} ** memory_interaction.N_SUMS,
+    const WorkProfiles = @import("component_work_profiles.zig").For(@This());
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
         prover_component.ComponentProver,
@@ -144,160 +128,9 @@ pub const RiscVTraceComponent = struct {
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
-        component.composition_work_profile = switch (self.kind) {
-            .program => compositionWorkProfileErased,
-            .memory => compositionWorkProfileErased,
-            // Legacy opcode shards do not have a single generic semantic
-            // evaluator. The typed semantic/lookup components publish their
-            // own source-identical profiles; a legacy-only route fails closed.
-            .opcode => null,
-        };
-        component.oods_work_profile = switch (self.kind) {
-            .program, .memory => oodsWorkProfileErased,
-            .opcode => null,
-        };
+        component.composition_work_profile = WorkProfiles.compositionWorkProfileErased;
+        component.oods_work_profile = WorkProfiles.oodsWorkProfileErased;
         return component;
-    }
-
-    fn oodsWorkProfileErased(
-        ctx: *const anyopaque,
-        allocator: std.mem.Allocator,
-        max_log_degree_bound: u32,
-        source: *const composition_work_support.ComponentProfile,
-    ) anyerror!composition_work_support.OodsComponentProfile {
-        _ = allocator;
-        const self: *const @This() = @ptrCast(@alignCast(ctx));
-        const partial_evaluations: usize = switch (self.kind) {
-            .program => 2 * program_interaction.N_SUMS,
-            .memory => 2 * memory_interaction.N_SUMS,
-            .opcode => return error.UnsupportedOodsWorkProfile,
-        };
-        return composition_work_support.oodsProfile(
-            source,
-            self.desc.log_size,
-            max_log_degree_bound,
-            partial_evaluations,
-            true,
-        );
-    }
-
-    fn compositionWorkProfileErased(
-        ctx: *const anyopaque,
-        allocator: std.mem.Allocator,
-    ) anyerror!composition_work_support.ComponentProfile {
-        _ = allocator;
-        const self: *const @This() = @ptrCast(@alignCast(ctx));
-        const Scalar = composition_work_support.Scalar;
-        const relations = composition_work_support.Relations.init();
-        const is_active = composition_work_support.values(1, 100)[0];
-        const is_first = composition_work_support.values(1, 101)[0];
-        var expression: composition_work_support.FieldOperations = undefined;
-        switch (self.kind) {
-            .program => {
-                const main = composition_work_support.values(
-                    program_commitment.N_MAIN_COLUMNS,
-                    0,
-                );
-                const sums = composition_work_support.values(
-                    program_interaction.N_SUMS,
-                    20,
-                );
-                const previous = composition_work_support.values(
-                    program_interaction.N_SUMS,
-                    40,
-                );
-                const claims = composition_work_support.values(
-                    program_interaction.N_SUMS,
-                    60,
-                );
-                try composition_work_support.begin(&expression);
-                defer composition_work_support.end();
-                if (self.fixed_program_columns != null) {
-                    _ = program_interaction.evaluateFixedGeneric(Scalar, main, composition_work_support.values(program_interaction.FIXED_COLUMN_COUNT, 120), is_active, is_first, sums, previous, claims, &relations);
-                } else {
-                    _ = program_interaction.evaluateGeneric(
-                        Scalar,
-                        main,
-                        is_active,
-                        is_first,
-                        sums,
-                        previous,
-                        claims,
-                        &relations,
-                    );
-                }
-                return composition_work_support.profile(
-                    .program,
-                    if (self.fixed_program_columns != null) "riscv-program-fixed-elf-evaluate-generic-v1" else "riscv-program-interaction-evaluate-generic-v1",
-                    self.maxConstraintLogDegreeBound(),
-                    self.nConstraints(),
-                    expression,
-                    .{},
-                    &.{
-                        @as(u64, self.desc.log_size),
-                        @as(u64, program_commitment.N_MAIN_COLUMNS),
-                        @as(u64, program_interaction.N_SUMS),
-                    },
-                );
-            },
-            .memory => {
-                const main = composition_work_support.values(8, 0);
-                const sums = composition_work_support.values(
-                    memory_interaction.N_SUMS,
-                    20,
-                );
-                const previous = composition_work_support.values(
-                    memory_interaction.N_SUMS,
-                    40,
-                );
-                const claims = composition_work_support.values(
-                    memory_interaction.N_SUMS,
-                    60,
-                );
-                try composition_work_support.begin(&expression);
-                defer composition_work_support.end();
-                _ = self.evaluateMemoryConstraintsGeneric(
-                    Scalar,
-                    main,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    claims,
-                    &relations,
-                );
-                return switch (self.memory_boundary_policy) {
-                    .legacy_role_filtered_v1 => composition_work_support.profile(
-                        .memory,
-                        "riscv-memory-interaction-evaluate-generic-v1",
-                        self.maxConstraintLogDegreeBound(),
-                        self.nConstraints(),
-                        expression,
-                        .{},
-                        &.{
-                            @as(u64, self.desc.log_size),
-                            8,
-                            @as(u64, memory_interaction.N_SUMS),
-                        },
-                    ),
-                    .full_state_split_multiplicity_v3 => composition_work_support.profile(
-                        .memory,
-                        "riscv-incremental-boundary-interaction-evaluate-generic-v3",
-                        self.maxConstraintLogDegreeBound(),
-                        self.nConstraints(),
-                        expression,
-                        .{},
-                        &.{
-                            @as(u64, self.desc.log_size),
-                            8,
-                            @as(u64, memory_interaction.N_SUMS),
-                            @as(u64, @intFromEnum(self.memory_boundary_policy)),
-                        },
-                    ),
-                };
-            },
-            .opcode => return error.UnsupportedCompositionWorkProfile,
-        }
     }
 
     fn prepareDomainEvaluatorErased(
@@ -316,10 +149,6 @@ pub const RiscVTraceComponent = struct {
 
     pub fn nConstraints(self: *const @This()) usize {
         return switch (self.kind) {
-            .opcode => 2 + opcode_memory.N_ACCESSES + if (semantic_eval.isTraceCompatible(self.desc.family))
-                semantic_eval.constraintCount(self.desc.family)
-            else
-                0,
             .program => if (self.fixed_program_columns != null) program_interaction.N_FIXED_CONSTRAINTS else program_interaction.N_CONSTRAINTS,
             .memory => memory_interaction.N_CONSTRAINTS,
         };
@@ -464,76 +293,6 @@ pub const RiscVTraceComponent = struct {
         const is_active = pp[self.is_active_col_idx][0];
 
         switch (self.kind) {
-            .opcode => {
-                const pc = main[self.main_col_offset + semantic_eval.pcColumn(self.desc.family)][0];
-                const clk = main[self.main_col_offset + semantic_eval.clockColumn(self.desc.family)][0];
-                const bus = self.main_col_offset + self.desc.n_columns - 5;
-                const next_pc = main[bus][0];
-                const opcode_id = main[bus + 1][0];
-                const value_1 = main[bus + 2][0];
-                const value_2 = main[bus + 3][0];
-                const value_3 = main[bus + 4][0];
-                const s_state = try sampledSecure(inter, o, 0);
-                const s_state_prev = try sampledSecure(inter, o, 1);
-                const s_prog = try sampledSecure(inter, o + 4, 0);
-                const s_prog_prev = try sampledSecure(inter, o + 4, 1);
-
-                const state_pair = logup.stateChainPair(self.relations, pc, clk, next_pc, is_active);
-                evaluation_accumulator.accumulate(
-                    logup.pairConstraint(s_state, s_state_prev, is_first, self.state_claim, state_pair)
-                        .mul(denominator_inv),
-                );
-                const prog_pair = logup.programConsume(
-                    self.relations,
-                    pc,
-                    opcode_id,
-                    value_1,
-                    value_2,
-                    value_3,
-                    is_active,
-                );
-                evaluation_accumulator.accumulate(
-                    logup.pairConstraint(s_prog, s_prog_prev, is_first, self.prog_claim, prog_pair)
-                        .mul(denominator_inv),
-                );
-                var sampled: [trace_mod.MAX_FAMILY_COLUMNS]QM31 = undefined;
-                const n_columns = semantic_eval.mainColumnCount(self.desc.family);
-                for (sampled[0..n_columns], 0..) |*value, column| {
-                    value.* = main[self.main_col_offset + column][0];
-                }
-                var memory_sums: [opcode_memory.N_ACCESSES]QM31 = undefined;
-                var memory_previous: [opcode_memory.N_ACCESSES]QM31 = undefined;
-                for (0..opcode_memory.N_ACCESSES) |slot| {
-                    const memory_offset = o + 8 + slot * 4;
-                    memory_sums[slot] = try sampledSecure(inter, memory_offset, 0);
-                    memory_previous[slot] = try sampledSecure(inter, memory_offset, 1);
-                }
-                const memory_constraints = try opcode_memory.constraints(
-                    self.desc.family,
-                    sampled[0..n_columns],
-                    is_active,
-                    is_first,
-                    memory_sums,
-                    memory_previous,
-                    self.opcode_memory_claims,
-                    &self.relations.memory_access,
-                );
-                for (memory_constraints) |constraint| {
-                    evaluation_accumulator.accumulate(constraint.mul(denominator_inv));
-                }
-                if (semantic_eval.isTraceCompatible(self.desc.family)) {
-                    var constraints: semantic_eval.Evaluation = undefined;
-                    try semantic_eval.evaluateInto(
-                        self.desc.family,
-                        sampled[0..n_columns],
-                        is_active,
-                        &constraints,
-                    );
-                    for (constraints.values[0..constraints.len]) |constraint| {
-                        evaluation_accumulator.accumulate(constraint.mul(denominator_inv));
-                    }
-                }
-            },
             .program => {
                 const sampled = try sampledMainRow(
                     program_commitment.N_MAIN_COLUMNS,
@@ -646,7 +405,6 @@ pub const RiscVTraceComponent = struct {
         const descriptor_main_sources = std.math.cast(usize, self.desc.n_columns) orelse
             return error.InvalidProofShape;
         const main_source_count: usize = switch (self.kind) {
-            .opcode => trace_mod.nColumnsForFamily(self.desc.family),
             .program => program_commitment.N_MAIN_COLUMNS,
             .memory => 8,
         };
@@ -796,7 +554,6 @@ pub const RiscVTraceComponent = struct {
             .accumulators = accumulators,
             .eval_log_size = eval_log_size,
             .eval_size = eval_size,
-            .opcode_main_sources = descriptor_main_sources,
         };
         return .{
             .context = state,
@@ -860,7 +617,6 @@ const PreparedDomainState = struct {
     accumulators: []prover_air_accumulation.ColumnAccumulator,
     eval_log_size: u32,
     eval_size: usize,
-    opcode_main_sources: usize,
 
     const vtable = prepared_domain.VTable{
         .run = runErased,

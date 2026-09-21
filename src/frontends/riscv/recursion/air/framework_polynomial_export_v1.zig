@@ -8,7 +8,7 @@ const direct_mod = @import("direct_constraint_program.zig");
 const relation_mod = @import("relation_interaction.zig");
 const binding_mod = @import("universal_relation_binding.zig");
 const universal = @import("universal_challenges.zig");
-const lang = @import("../../air/lang/mod.zig");
+const lang = @import("../../air/lang/definition.zig");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const NO_NODE = std.math.maxInt(u32);
@@ -28,6 +28,29 @@ pub fn exportPrepared(
     tree_column_counts: []const usize,
 ) !backend.OwnedFrameworkPolynomialProgramV1 {
     return exportPreparedLayout(Air, allocator, direct, relations, inputs, interaction_columns, profile_parameter_count, tree_column_counts, null);
+}
+
+/// Canonical component-local bindings for interaction production and AOT
+/// generation. Both paths use the same physical columns and profile slots.
+pub fn exportLocalPrepared(
+    comptime Air: type,
+    allocator: std.mem.Allocator,
+    direct: *const direct_mod.Program,
+    relations: *const binding_mod.Binding(Air).Plan,
+) !backend.OwnedFrameworkPolynomialProgramV1 {
+    const parameter_start = Air.PHYSICAL_MAIN_COLUMN_COUNT + Air.PREPROCESSED_COLUMN_COUNT;
+    const parameter_count = Air.LOGICAL_INPUT_COUNT - parameter_start;
+    var inputs: [Air.LOGICAL_INPUT_COUNT]backend.TypedPolynomialInputV1 = undefined;
+    for (&inputs, 0..) |*input, index| input.* = if (index < Air.PHYSICAL_MAIN_COLUMN_COUNT)
+        .{ .trace_column = .{ .tree_index = 1, .column_index = @intCast(index) } }
+    else if (index < parameter_start)
+        .{ .trace_column = .{ .tree_index = 0, .column_index = @intCast(index - Air.PHYSICAL_MAIN_COLUMN_COUNT) } }
+    else
+        .{ .profile_parameter = @intCast(index - parameter_start) };
+    var interaction: [Air.INTERACTION_COLUMN_COUNT]backend.TypedPolynomialColumnV1 = undefined;
+    for (&interaction, 0..) |*column, index| column.* = .{ .tree_index = 2, .column_index = @intCast(index) };
+    const counts = [_]usize{ Air.PREPROCESSED_COLUMN_COUNT, Air.PHYSICAL_MAIN_COLUMN_COUNT, Air.INTERACTION_COLUMN_COUNT };
+    return exportPrepared(Air, allocator, direct, relations, &inputs, &interaction, parameter_count, &counts);
 }
 
 /// The extra committed selector belongs to the framework, not the typed

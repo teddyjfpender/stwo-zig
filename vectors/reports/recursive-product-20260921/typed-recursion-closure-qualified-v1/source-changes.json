@@ -1,0 +1,40 @@
+{
+  "added": [
+    "scripts/tests/test_riscv_retired_interactions.py",
+    "src/frontends/riscv/air/component_work_profiles.zig",
+    "src/frontends/riscv/air/interaction_legacy_test_oracle.zig",
+    "src/frontends/riscv/host/interface.zig",
+    "src/frontends/riscv/infrastructure_component_test_root.zig",
+    "src/frontends/riscv/prover/commitment_program_witness.zig",
+    "src/frontends/riscv/prover/commitment_tree_witness.zig",
+    "src/frontends/riscv/runner/segment_session_contract.zig",
+    "src/frontends/riscv/runner/segment_session_retirement.zig"
+  ],
+  "deleted": [
+    "src/frontends/riscv/air/interaction_gen.zig",
+    "src/frontends/riscv/runner/execute.zig"
+  ],
+  "modified": [
+    "design/riscv-proving-stack/canonical-typed-recursion.md",
+    "design/riscv-proving-stack/small-detached-recursion-goal.md",
+    "src/frontends/riscv/air/component.zig",
+    "src/frontends/riscv/air/component_prepared_execution.zig",
+    "src/frontends/riscv/air/component_prepared_test.zig",
+    "src/frontends/riscv/air/lang/typed_branch_lt_witness_test.zig",
+    "src/frontends/riscv/air/lang/typed_lt_imm_witness_test.zig",
+    "src/frontends/riscv/air/lang/typed_opcode_production_authority_test.zig",
+    "src/frontends/riscv/air/mod.zig",
+    "src/frontends/riscv/air/opcode_memory.zig",
+    "src/frontends/riscv/air_semantics_test_root.zig",
+    "src/frontends/riscv/build_focused_tests.zig",
+    "src/frontends/riscv/host/mod.zig",
+    "src/frontends/riscv/host/runtime.zig",
+    "src/frontends/riscv/prover/commitment_witness.zig",
+    "src/frontends/riscv/runner/generated_retirement.zig",
+    "src/frontends/riscv/runner/segment_session.zig",
+    "src/frontends/riscv/runner_test_root.zig",
+    "src/frontends/riscv/test_inventory.zig",
+    "src/frontends/riscv/testing.zig",
+    "src/tests/riscv/opcode_family_precondition_test.zig"
+  ]
+}

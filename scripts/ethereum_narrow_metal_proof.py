@@ -32,7 +32,7 @@ def main() -> int:
     environment["STWO_ETHEREUM_NARROW_AOT_BUNDLE"] = str(arguments.bundle.resolve())
     environment["STWO_ETHEREUM_NARROW_AOT_MANIFEST_SHA256"] = arguments.manifest_sha256
     command = test_command(
-        "src/frontends/riscv/ethereum_narrow_metal_proof_test.zig",
+        "src/tests/riscv/ethereum_narrow_metal_proof_test.zig",
         "-O", "ReleaseSafe", "-fstrip",
         "--test-filter", "Ethereum narrow Metal authenticated AOT",
         "-lc", "-framework", "Foundation", "-framework", "Metal", "-lobjc",

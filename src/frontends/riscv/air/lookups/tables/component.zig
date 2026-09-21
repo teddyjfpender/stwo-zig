@@ -1,5 +1,6 @@
 //! Generic prover/verifier AIR adapter for exact preprocessed lookup tables.
 
+const verifier = @import("verifier.zig");
 const std = @import("std");
 const core_air_accumulation = @import("stwo_core").air.accumulation;
 const core_air_components = @import("stwo_core").air.components;
@@ -28,7 +29,7 @@ const schema = @import("schema.zig");
 const CirclePointQM31 = circle.CirclePointQM31;
 
 /// A multiplicity table owns one singleton LogUp recurrence.
-pub const N_CONSTRAINTS: usize = 1;
+pub const N_CONSTRAINTS = @import("layout.zig").N_CONSTRAINTS;
 pub const PARALLEL_DOMAIN_ROWS: usize = 2 * 4096;
 
 pub const PreparedParallelTelemetrySnapshot = prepared_parallel.TelemetrySnapshot;
@@ -38,38 +39,17 @@ pub fn preparedParallelTelemetrySnapshot() PreparedParallelTelemetrySnapshot {
     return prepared_parallel_telemetry.snapshot();
 }
 
-pub const ConstructionMetadata = struct {
-    kind: schema.Kind,
-    log_size: u32,
-    tuple_columns: usize,
-    preprocessed_columns: usize,
-    main_columns: usize,
-    interaction_columns: usize,
-    previous_masks: usize,
-    constraints: usize,
-
-    pub fn forKind(kind: schema.Kind) ConstructionMetadata {
-        return .{
-            .kind = kind,
-            .log_size = schema.logSize(kind),
-            .tuple_columns = schema.arity(kind),
-            .preprocessed_columns = 1 + schema.arity(kind),
-            .main_columns = 1,
-            .interaction_columns = interaction.N_COLUMNS,
-            .previous_masks = interaction.N_COLUMNS,
-            .constraints = 1,
-        };
-    }
-};
+pub const ConstructionMetadata = @import("layout.zig").ConstructionMetadata;
 
 pub const LookupTableComponent = struct {
-    kind: schema.Kind,
-    is_first_col_idx: usize,
-    tuple_col_indices: [schema.MAX_ARITY]usize,
-    main_col_offset: usize,
-    interaction_col_offset: usize,
-    relations: *const relations_mod.Relations,
-    claim: QM31,
+    const VerifierMethods = verifier.Methods(@This());
+    kind: @FieldType(verifier.LookupTableVerifier, "kind"),
+    is_first_col_idx: @FieldType(verifier.LookupTableVerifier, "is_first_col_idx"),
+    tuple_col_indices: @FieldType(verifier.LookupTableVerifier, "tuple_col_indices"),
+    main_col_offset: @FieldType(verifier.LookupTableVerifier, "main_col_offset"),
+    interaction_col_offset: @FieldType(verifier.LookupTableVerifier, "interaction_col_offset"),
+    relations: @FieldType(verifier.LookupTableVerifier, "relations"),
+    claim: @FieldType(verifier.LookupTableVerifier, "claim"),
 
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
@@ -78,25 +58,7 @@ pub const LookupTableComponent = struct {
         prover_air_accumulation.DomainEvaluationAccumulator,
     );
 
-    pub fn initVerifier(
-        kind: schema.Kind,
-        is_first_col_idx: usize,
-        tuple_col_indices: []const usize,
-        main_col_offset: usize,
-        interaction_col_offset: usize,
-        relations: *const relations_mod.Relations,
-        claim: QM31,
-    ) !LookupTableComponent {
-        return init(
-            kind,
-            is_first_col_idx,
-            tuple_col_indices,
-            main_col_offset,
-            interaction_col_offset,
-            relations,
-            claim,
-        );
-    }
+    pub const initVerifier = VerifierMethods.initVerifier;
 
     pub fn initProver(
         kind: schema.Kind,
@@ -118,38 +80,9 @@ pub const LookupTableComponent = struct {
         );
     }
 
-    fn init(
-        kind: schema.Kind,
-        is_first_col_idx: usize,
-        tuple_col_indices: []const usize,
-        main_col_offset: usize,
-        interaction_col_offset: usize,
-        relations: *const relations_mod.Relations,
-        claim: QM31,
-    ) !LookupTableComponent {
-        if (tuple_col_indices.len != schema.arity(kind)) return error.InvalidTraceShape;
-        var stored_indices = [_]usize{0} ** schema.MAX_ARITY;
-        for (tuple_col_indices, 0..) |column, index| {
-            if (column == is_first_col_idx) return error.InvalidTraceShape;
-            for (tuple_col_indices[0..index]) |prior| {
-                if (column == prior) return error.InvalidTraceShape;
-            }
-            stored_indices[index] = column;
-        }
-        return .{
-            .kind = kind,
-            .is_first_col_idx = is_first_col_idx,
-            .tuple_col_indices = stored_indices,
-            .main_col_offset = main_col_offset,
-            .interaction_col_offset = interaction_col_offset,
-            .relations = relations,
-            .claim = claim,
-        };
-    }
+    const init = VerifierMethods.init;
 
-    pub fn metadata(self: *const @This()) ConstructionMetadata {
-        return ConstructionMetadata.forKind(self.kind);
-    }
+    pub const metadata = VerifierMethods.metadata;
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
         var component = Adapter.asProverComponent(self);
@@ -227,124 +160,19 @@ pub const LookupTableComponent = struct {
         return self.prepareDomainEvaluator(allocator, trace_data, accumulator);
     }
 
-    pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
-        return Adapter.asVerifierComponent(self);
-    }
+    pub const asVerifierComponent = VerifierMethods.asVerifierComponent;
 
-    pub fn nConstraints(_: *const @This()) usize {
-        return N_CONSTRAINTS;
-    }
+    pub const nConstraints = VerifierMethods.nConstraints;
 
-    pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
-        return schema.logSize(self.kind) + 1;
-    }
+    pub const maxConstraintLogDegreeBound = VerifierMethods.maxConstraintLogDegreeBound;
 
-    pub fn traceLogDegreeBounds(
-        self: *const @This(),
-        allocator: std.mem.Allocator,
-    ) !core_air_components.TraceLogDegreeBounds {
-        const log_size = schema.logSize(self.kind);
-        const n_preprocessed = 1 + schema.arity(self.kind);
-        const preprocessed = try allocator.alloc(u32, n_preprocessed);
-        errdefer allocator.free(preprocessed);
-        @memset(preprocessed, log_size);
-        const main = try allocator.dupe(u32, &.{log_size});
-        errdefer allocator.free(main);
-        const secure = try allocator.alloc(u32, interaction.N_COLUMNS);
-        errdefer allocator.free(secure);
-        @memset(secure, log_size);
-        return core_air_components.TraceLogDegreeBounds.initOwned(
-            try allocator.dupe([]u32, &.{ preprocessed, main, secure }),
-        );
-    }
+    pub const traceLogDegreeBounds = VerifierMethods.traceLogDegreeBounds;
 
-    pub fn maskPoints(
-        self: *const @This(),
-        allocator: std.mem.Allocator,
-        point: CirclePointQM31,
-        max_log_degree_bound: u32,
-    ) !core_air_components.MaskPoints {
-        if (max_log_degree_bound < schema.logSize(self.kind)) return error.InvalidProofShape;
-        const preprocessed = try currentPointColumns(
-            allocator,
-            1 + schema.arity(self.kind),
-            point,
-        );
-        errdefer freePointColumns(allocator, preprocessed);
-        const main = try currentPointColumns(allocator, 1, point);
-        errdefer freePointColumns(allocator, main);
-        // The PCS folds a log-(k+1) commitment at a point derived from the
-        // maximal composition domain. Shifting the request by that maximal
-        // step becomes exactly one trace-row shift after folding.
-        const previous_point = logup.prevRowPoint(max_log_degree_bound, point);
-        const secure = try allocator.alloc([]CirclePointQM31, interaction.N_COLUMNS);
-        var initialized_secure: usize = 0;
-        errdefer {
-            for (secure[0..initialized_secure]) |column| allocator.free(column);
-            allocator.free(secure);
-        }
-        for (secure) |*column| {
-            column.* = try allocator.dupe(CirclePointQM31, &.{ point, previous_point });
-            initialized_secure += 1;
-        }
-        return core_air_components.MaskPoints.initOwned(
-            try allocator.dupe([][]CirclePointQM31, &.{ preprocessed, main, secure }),
-        );
-    }
+    pub const maskPoints = VerifierMethods.maskPoints;
 
-    pub fn preprocessedColumnIndices(
-        self: *const @This(),
-        allocator: std.mem.Allocator,
-    ) ![]usize {
-        const result = try allocator.alloc(usize, 1 + schema.arity(self.kind));
-        result[0] = self.is_first_col_idx;
-        @memcpy(result[1..], self.tuple_col_indices[0..schema.arity(self.kind)]);
-        return result;
-    }
+    pub const preprocessedColumnIndices = VerifierMethods.preprocessedColumnIndices;
 
-    pub fn evaluateConstraintQuotientsAtPoint(
-        self: *const @This(),
-        point: CirclePointQM31,
-        mask: *const core_air_components.MaskValues,
-        accumulator: *core_air_accumulation.PointEvaluationAccumulator,
-        max_log_degree_bound: u32,
-    ) !void {
-        const log_size = schema.logSize(self.kind);
-        if (max_log_degree_bound < log_size or mask.items.len < 3)
-            return error.InvalidProofShape;
-        const preprocessed = mask.items[0];
-        const main = mask.items[1];
-        const secure = mask.items[2];
-        if (preprocessed.len <= self.is_first_col_idx or
-            main.len <= self.main_col_offset or
-            main[self.main_col_offset].len < 1 or
-            secure.len < self.interaction_col_offset + interaction.N_COLUMNS)
-            return error.InvalidProofShape;
-
-        var tuple: [schema.MAX_ARITY]QM31 = undefined;
-        for (self.tuple_col_indices[0..schema.arity(self.kind)], tuple[0..schema.arity(self.kind)]) |column_index, *value| {
-            if (preprocessed.len <= column_index or preprocessed[column_index].len < 1)
-                return error.InvalidProofShape;
-            value.* = preprocessed[column_index][0];
-        }
-        if (preprocessed[self.is_first_col_idx].len < 1) return error.InvalidProofShape;
-        const current = try sampledSecure(secure, self.interaction_col_offset, 0);
-        const previous = try sampledSecure(secure, self.interaction_col_offset, 1);
-        const constraint = try self.evaluateRow(
-            tuple[0..schema.arity(self.kind)],
-            main[self.main_col_offset][0],
-            current,
-            previous,
-            preprocessed[self.is_first_col_idx][0],
-        );
-        const fold = max_log_degree_bound - log_size;
-        const denominator_inv = try core_constraints.cosetVanishing(
-            QM31,
-            canonic.CanonicCoset.new(log_size).coset(),
-            point.repeatedDouble(fold),
-        ).inv();
-        accumulator.accumulate(constraint.mul(denominator_inv));
-    }
+    pub const evaluateConstraintQuotientsAtPoint = VerifierMethods.evaluateConstraintQuotientsAtPoint;
 
     pub fn evaluateConstraintQuotientsOnDomain(
         self: *const @This(),
@@ -507,25 +335,7 @@ pub const LookupTableComponent = struct {
         };
     }
 
-    pub fn evaluateRow(
-        self: *const @This(),
-        tuple: []const QM31,
-        signed_multiplicity: QM31,
-        current: QM31,
-        previous: QM31,
-        is_first: QM31,
-    ) !QM31 {
-        return interaction.evaluate(
-            self.kind,
-            tuple,
-            signed_multiplicity,
-            current,
-            previous,
-            is_first,
-            self.claim,
-            self.relations,
-        );
-    }
+    pub const evaluateRow = VerifierMethods.evaluateRow;
 };
 
 const PreparedDomainState = struct {
@@ -796,38 +606,11 @@ fn serialTaskContext(
     };
 }
 
-fn currentPointColumns(
-    allocator: std.mem.Allocator,
-    n_columns: usize,
-    point: CirclePointQM31,
-) ![][]CirclePointQM31 {
-    const result = try allocator.alloc([]CirclePointQM31, n_columns);
-    var initialized: usize = 0;
-    errdefer {
-        for (result[0..initialized]) |column| allocator.free(column);
-        allocator.free(result);
-    }
-    for (result) |*column| {
-        column.* = try allocator.dupe(CirclePointQM31, &.{point});
-        initialized += 1;
-    }
-    return result;
-}
+const currentPointColumns = @import("../../component_point_support.zig").currentPointColumns;
 
-fn freePointColumns(allocator: std.mem.Allocator, columns: [][]CirclePointQM31) void {
-    for (columns) |column| allocator.free(column);
-    allocator.free(columns);
-}
+const freePointColumns = @import("../../component_point_support.zig").freePointColumns;
 
-fn sampledSecure(columns: [][]QM31, offset: usize, point: usize) !QM31 {
-    var coordinates: [interaction.N_COLUMNS]QM31 = undefined;
-    for (&coordinates, 0..) |*value, index| {
-        if (columns.len <= offset + index or columns[offset + index].len <= point)
-            return error.InvalidProofShape;
-        value.* = columns[offset + index][point];
-    }
-    return QM31.fromPartialEvals(coordinates);
-}
+const sampledSecure = verifier.sampledSecure;
 
 fn secureAt(columns: []const []const M31, row: usize) QM31 {
     return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);

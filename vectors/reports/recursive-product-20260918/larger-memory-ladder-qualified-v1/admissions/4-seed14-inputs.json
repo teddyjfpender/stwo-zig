@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "profile": "recursive_q193_v1",
+  "memory_addresses": 16,
+  "initial_memory_word": 14,
+  "leaf_expected": [
+    {
+      "path": "../inputs/ab4a278eb407a8f084c9462980c337b6a57e6bde0761eb88d0800e9cdb782c32.json",
+      "sha256": "ab4a278eb407a8f084c9462980c337b6a57e6bde0761eb88d0800e9cdb782c32"
+    },
+    {
+      "path": "../inputs/7b720a24e1b98d6f1c5ed227aa2601b844eed989cc96fac86211244416a8700b.json",
+      "sha256": "7b720a24e1b98d6f1c5ed227aa2601b844eed989cc96fac86211244416a8700b"
+    },
+    {
+      "path": "../inputs/bcad384916a02b3aa24b4eeee9526a94d6a7a3f49fde9bfda5b9e2b966003724.json",
+      "sha256": "bcad384916a02b3aa24b4eeee9526a94d6a7a3f49fde9bfda5b9e2b966003724"
+    },
+    {
+      "path": "../inputs/afccf5ee25ca2816f87eef89def6b8b0d47b7c82219e79d6c6d434667802c8c7.json",
+      "sha256": "afccf5ee25ca2816f87eef89def6b8b0d47b7c82219e79d6c6d434667802c8c7"
+    }
+  ],
+  "parents": [
+    [
+      {
+        "expected": {
+          "path": "../inputs/c3b977b172d84c939d9e220ca1dc0d6a098be608c46b38570ecc2c04634b5f74.json",
+          "sha256": "c3b977b172d84c939d9e220ca1dc0d6a098be608c46b38570ecc2c04634b5f74"
+        },
+        "boundary_profile": {
+          "path": "../inputs/3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834.json",
+          "sha256": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834"
+        }
+      },
+      {
+        "expected": {
+          "path": "../inputs/bc489a53109f747f4880031832e14cd30d52f1e5a3886aa8be70e0a4865866eb.json",
+          "sha256": "bc489a53109f747f4880031832e14cd30d52f1e5a3886aa8be70e0a4865866eb"
+        },
+        "boundary_profile": {
+          "path": "../inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json",
+          "sha256": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252"
+        }
+      }
+    ],
+    [
+      {
+        "expected": {
+          "path": "../inputs/a803b9f5ebeeb5d707224dd8dbcb31acbc323a1e776952c54091d5e1beb51a89.json",
+          "sha256": "a803b9f5ebeeb5d707224dd8dbcb31acbc323a1e776952c54091d5e1beb51a89"
+        },
+        "boundary_profile": null
+      }
+    ]
+  ]
+}

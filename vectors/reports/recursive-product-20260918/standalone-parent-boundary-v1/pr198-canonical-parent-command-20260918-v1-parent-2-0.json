@@ -1,0 +1,765 @@
+{
+  "gate_sha256": "c40389008d53cc16ac7ddb01c7716d9221471db4163aef96837328c7fe159ea7",
+  "proof_profile": "recursive_q193_v1",
+  "proving_backend": "not_observed",
+  "development_only": true,
+  "verifier_sha256": "5577d71fccf9522e1850bf4975dc233b8661ad8f25723c7a6948be60677f1319",
+  "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+  "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+  "original_files": {
+    "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify": "5577d71fccf9522e1850bf4975dc233b8661ad8f25723c7a6948be60677f1319",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+    "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0/key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+    "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0/claims.json": "4a5760cd07b7a8316626775d41724d39959b6c03db5584cb665b15ce4e146cd5",
+    "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0/proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+  },
+  "cases": [
+    {
+      "case": "genuine",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": true,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "4a5760cd07b7a8316626775d41724d39959b6c03db5584cb665b15ce4e146cd5",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 71104583,
+      "exit_code": 0,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_two_child_parent_q193\",\"development_only\":true,\"publication_mode\":\"root\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[124,203,201,74,57,17,232,181,199,77,243,90,117,82,166,39,116,215,138,59,137,49,39,2,162,51,14,198,177,207,210,185],\"expected_root_sha256\":[178,123,13,42,208,24,172,29,17,139,247,236,92,174,136,216,170,1,74,23,70,42,6,213,159,238,199,204,117,214,124,63],\"claims_sha256\":[74,87,96,205,7,183,168,49,102,38,119,93,65,114,77,57,149,155,108,3,219,85,132,203,102,91,21,206,78,20,108,213],\"proof_sha256\":[200,51,105,4,74,84,168,77,90,27,151,133,207,199,219,61,31,184,123,208,52,48,75,223,71,238,69,128,28,52,13,246],\"proof_bytes\":2295377,\"request_ns\":62584208,\"verify_ns\":61138708,\"transcript_digest\":[866175535,874352226,71992520,1132100285,1602766648,1209125989,992726732,408140641]}\n",
+      "stderr": "",
+      "receipt": {
+        "endpoint": "verified_segment_v2_detached_two_child_parent_q193",
+        "development_only": true,
+        "publication_mode": "root",
+        "proof_profile": "recursive_q193_v1",
+        "verified": true,
+        "native_inputs_used": false,
+        "key_sha256": [
+          124,
+          203,
+          201,
+          74,
+          57,
+          17,
+          232,
+          181,
+          199,
+          77,
+          243,
+          90,
+          117,
+          82,
+          166,
+          39,
+          116,
+          215,
+          138,
+          59,
+          137,
+          49,
+          39,
+          2,
+          162,
+          51,
+          14,
+          198,
+          177,
+          207,
+          210,
+          185
+        ],
+        "expected_root_sha256": [
+          178,
+          123,
+          13,
+          42,
+          208,
+          24,
+          172,
+          29,
+          17,
+          139,
+          247,
+          236,
+          92,
+          174,
+          136,
+          216,
+          170,
+          1,
+          74,
+          23,
+          70,
+          42,
+          6,
+          213,
+          159,
+          238,
+          199,
+          204,
+          117,
+          214,
+          124,
+          63
+        ],
+        "claims_sha256": [
+          74,
+          87,
+          96,
+          205,
+          7,
+          183,
+          168,
+          49,
+          102,
+          38,
+          119,
+          93,
+          65,
+          114,
+          77,
+          57,
+          149,
+          155,
+          108,
+          3,
+          219,
+          85,
+          132,
+          203,
+          102,
+          91,
+          21,
+          206,
+          78,
+          20,
+          108,
+          213
+        ],
+        "proof_sha256": [
+          200,
+          51,
+          105,
+          4,
+          74,
+          84,
+          168,
+          77,
+          90,
+          27,
+          151,
+          133,
+          207,
+          199,
+          219,
+          61,
+          31,
+          184,
+          123,
+          208,
+          52,
+          48,
+          75,
+          223,
+          71,
+          238,
+          69,
+          128,
+          28,
+          52,
+          13,
+          246
+        ],
+        "proof_bytes": 2295377,
+        "request_ns": 62584208,
+        "verify_ns": 61138708,
+        "transcript_digest": [
+          866175535,
+          874352226,
+          71992520,
+          1132100285,
+          1602766648,
+          1209125989,
+          992726732,
+          408140641
+        ]
+      }
+    },
+    {
+      "case": "changed_proof_config",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed_proof_config",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "43e2507a511f3ec2a0664aeba2fecba8a695541a6bea7a1419c66dab72d706dd",
+        "proof.bin": "c369d9cab9ec048317f5cef78c9d4181c5891819721394a08450aa68ac5d0c60"
+      },
+      "process_ns": 16300709,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidProofConfig\n"
+    },
+    {
+      "case": "noncanonical_varint",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/noncanonical_varint",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "182d91cce1b98093b2787f74da471732d2c6128f0833586a6575615b7f256739",
+        "proof.bin": "472adffaa46a8fe6298429d24a48ae8931c9adafc0ebdb327b4a61db93d156b9"
+      },
+      "process_ns": 13900750,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: NonCanonicalVarint\n"
+    },
+    {
+      "case": "forged_commitment_length",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/forged_commitment_length",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "1bb903588d03ee9cf88e9638002ba6d610856e4c5621fc938d9b7345daceb0ff",
+        "proof.bin": "03c03c55a7daeb66dd95ab32070ffab946dfd51c6d01a80b18c9850407749c9e"
+      },
+      "process_ns": 15097250,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidProofShape\n"
+    },
+    {
+      "case": "truncated",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/truncated",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "6a700bf981921372a6a45fa083beec598f97cb9dd7bc5f47918645d5f57147d1",
+        "proof.bin": "db04a74641ef67ef86e1dcc77365c45b32645557947f0251431c5f0f0c210a95"
+      },
+      "process_ns": 16684791,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: EndOfStream\n"
+    },
+    {
+      "case": "trailing",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/trailing",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "282ae1dad0987b1455ee651e09ee76521b9bd10cdb7ba3fe42a9e296cd810dd5",
+        "proof.bin": "d3cb89ddc358b863f7bc26e06b35cadb6879993cad2ec23f0adf56cbf00d55ad"
+      },
+      "process_ns": 17793292,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: TrailingProofBytes\n"
+    },
+    {
+      "case": "altered_proof_tail",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/altered_proof_tail",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "2241657544529a400feb5641aa25b0227e682bba739ae847e47f19792b376a34",
+        "proof.bin": "2958b9ab2d352b65d2e1a54e54455e3b509d1a1b909dd2222d7c008fa3b0d97b"
+      },
+      "process_ns": 28341958,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: ProofOfWork\n"
+    },
+    {
+      "case": "changed_claim",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed_claim",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "16d9cce702b4a754e5ee4d099197469ceb60bece9dcb64b70cecce9f67455df5",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 21392542,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimClosureMismatch\n"
+    },
+    {
+      "case": "balanced_claims",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/balanced_claims",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "651d0ee153d4e56cad2a798f8037221bb0ecf90d52c5c8b3457dd2e7682afb2a",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 26762875,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: OodsNotMatching\n"
+    },
+    {
+      "case": "balanced_provider_partials",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/balanced_provider_partials",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "ef657c1671712b4eb3b5b861ba848ee609129ac700f0cf474ba4246a5297629d",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 25330167,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: OodsNotMatching\n"
+    },
+    {
+      "case": "missing_interaction_pow",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/missing_interaction_pow",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "ffc16e3a19b40ac69b9b6e09ad9ae9e7648f34fdef8e352d21dd7fa46627024b",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 23808375,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: MissingDetachedInteractionPow\n"
+    },
+    {
+      "case": "changed_interaction_pow",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed_interaction_pow",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "ad21ee55f62bdd27066a553c1f8dcf7f6544d32e7f56df7ec99a45d5610ea4b2",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 23010500,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "case": "active_claim_14",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/active_claim_14",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "7a830f58929a1b54a5b33efa2967718a2b7f8abbf0d49642639ab65ab2a642f0",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 21025417,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimClosureMismatch\n"
+    },
+    {
+      "case": "balanced_active_claim_14",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/balanced_active_claim_14",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "c922b6351ea5ff046775940191fb2361aa8cb1f3e999b52ff82a4087fe873842",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 24495958,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: OodsNotMatching\n"
+    },
+    {
+      "case": "inactive_claim_15",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/inactive_claim_15",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "e3973f4b0d7721726839035f1aab5bd89d855cf584b1f80a4c5f5877973d948d",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 11405458,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_16",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/inactive_claim_16",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "1c9bf632de370b2be3e7161ed409ebe1783a7ff1452491864a0ae49fab9c44d6",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 11345667,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_17",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/inactive_claim_17",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "c3081a3cb8741065e21d05c7072f4a4b1967f4076dd4519083d34b9e9c0ddcd2",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 11350625,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_18",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/inactive_claim_18",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "d22b5cf823eab391a5a8c41b4fbfaf024fcc3119aacc18da3593e9fbb566fbb8",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 10049750,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_19",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/inactive_claim_19",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "d92aedb6fb96772cf3c8eca384efad4b3c43e99d281daab08753ac23511d4dca",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 8614917,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "claims_version",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/claims_version",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "1c8d4db702a5ddfd3746dd2d2f0168054fa243e27562a71c012fceb40ca38040",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 8144333,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimsEnvelopeMismatch\n"
+    },
+    {
+      "case": "key_version",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/key_version",
+        "3008ef26d43dee9511a4fff1861d26b8b27ce66d72b8a2f0a9831d54218e46e3",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "3008ef26d43dee9511a4fff1861d26b8b27ce66d72b8a2f0a9831d54218e46e3",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "3008ef26d43dee9511a4fff1861d26b8b27ce66d72b8a2f0a9831d54218e46e3",
+        "claims.json": "69f6716c534ab286d23e64e82c757dcc7ed17b59ca46ebb24d34462207a13bc7",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 9045583,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentProfileMismatch\n"
+    },
+    {
+      "case": "key_config",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/key_config",
+        "24f2ae33b8449a572926c5f19c014fc161064a42372ea93b28137c0aa1f867b2",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "24f2ae33b8449a572926c5f19c014fc161064a42372ea93b28137c0aa1f867b2",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "24f2ae33b8449a572926c5f19c014fc161064a42372ea93b28137c0aa1f867b2",
+        "claims.json": "69f6716c534ab286d23e64e82c757dcc7ed17b59ca46ebb24d34462207a13bc7",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 7253250,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentProfileMismatch\n"
+    },
+    {
+      "case": "wrong_independent_key_pin",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0",
+        "0ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "0ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "4a5760cd07b7a8316626775d41724d39959b6c03db5584cb665b15ce4e146cd5",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 7605083,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentKeyHashMismatch\n"
+    },
+    {
+      "case": "changed_canonical_expected_root",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed-canonical-root.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "511e71ac85a6f40d4d340132b401bc9e8c980dfba46cffa896fbdc662b3afbbe",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "4a5760cd07b7a8316626775d41724d39959b6c03db5584cb665b15ce4e146cd5",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 21898041,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "case": "changed_publication_mode",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed_publication_mode",
+        "5c87c8f933265274b71fa31a35cb70acba5966508df613d4c00910582e079a2e",
+        "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "5c87c8f933265274b71fa31a35cb70acba5966508df613d4c00910582e079a2e",
+      "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+      "artifact_sha256": {
+        "key.json": "5c87c8f933265274b71fa31a35cb70acba5966508df613d4c00910582e079a2e",
+        "claims.json": "69f6716c534ab286d23e64e82c757dcc7ed17b59ca46ebb24d34462207a13bc7",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 22235708,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "case": "changed_published_session",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed-session.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "6792ae37cdd9740165de742cd02278456ef5aff09eb0516c8aad661fd92ac635",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "4a5760cd07b7a8316626775d41724d39959b6c03db5584cb665b15ce4e146cd5",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 20785917,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "case": "changed_published_entry_lineage",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed-entry_lineage.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "45d0a6ab5c9f7c0c787544471b464987fbdb980786bb5d398201af36e02b55c4",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "4a5760cd07b7a8316626775d41724d39959b6c03db5584cb665b15ce4e146cd5",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 19666125,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "case": "changed_published_exit_lineage",
+      "argv": [
+        "/private/tmp/pr198-parent-command-20260918-v1/bin/recursive-segment-v2-detached-parent-verify",
+        "/private/tmp/pr198-product-cpu-verifier-assembly-20260918-v1/tree/parent-2-0",
+        "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/segment-v2-parent-replay-tnunne8u/changed-exit_lineage.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+      "expected_root_sha256": "52620842cfd9fbf33946d10f9cced826fa481890cf7897ba488edfc8a21c8419",
+      "artifact_sha256": {
+        "key.json": "7ccbc94a3911e8b5c74df35a7552a62774d78a3b89312702a2330ec6b1cfd2b9",
+        "claims.json": "4a5760cd07b7a8316626775d41724d39959b6c03db5584cb665b15ce4e146cd5",
+        "proof.bin": "c83369044a54a84d5a1b9785cfc7db3d1fb87bd034304bdf47ee45801c340df6"
+      },
+      "process_ns": 21135416,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    }
+  ],
+  "passed": true,
+  "unchanged_files": true
+}

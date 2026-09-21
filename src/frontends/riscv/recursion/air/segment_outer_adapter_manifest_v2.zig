@@ -64,3 +64,5 @@ pub const assemble = shard_1.assemble;
 /// the admission boundary.
 pub const programGeometryShaId = shard_1.programGeometryShaId;
 pub const requireSameProgramGeometry = shard_1.requireSameProgramGeometry;
+
+pub const validateAgainstSources = shard_0.validateAgainstSources;

@@ -8,7 +8,6 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -16,9 +15,9 @@ const recursion = frontend.recursion;
 const cohort_mod = recursion.segment_outer_cohort_v2;
 const boundary = recursion.segment_leaf_outer_authority_v2;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;
-const leaf_outer = integration.recursive_segment_v2_leaf_outer;
-const outer_cohort = integration.recursive_segment_v2_outer_cohort;
-const proof_engine = integration.recursive_segment_v2_outer_engine;
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
+const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
+const proof_engine = @import("recursive_segment_v2_outer_engine.zig");
 
 pub const VerifiedOuterProof = struct {
     receipt: proof_engine.Receipt,

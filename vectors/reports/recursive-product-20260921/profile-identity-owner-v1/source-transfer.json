@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "post_format_audit": true,
+  "compute_body_unchanged": true,
+  "four_hash_helper_bodies_unchanged": true,
+  "domains_unchanged": true,
+  "new_source_sha256": "75563909704b3597a6952a9ffe10104c0c4709694d31fc6ea7c2439560baff6c"
+}

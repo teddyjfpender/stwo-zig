@@ -1,0 +1,101 @@
+{
+  "source_files": 20,
+  "poseidon2": {
+    "main_columns": 445,
+    "inputs": 16,
+    "materialized_cells": 426,
+    "permutation_constraints": 427,
+    "generic_direct_constraints": 430,
+    "component_direct_constraints": 433,
+    "component_interaction_constraints": 2,
+    "component_total_constraints": 435,
+    "nonvacuity_rows": 4,
+    "rejected_cell_mutations": 429,
+    "inactive_counterexample": true,
+    "theorem": "active narrow rows agreeing on 16 inputs agree on all 445 main cells"
+  },
+  "tables": [
+    {
+      "kind": "bitwise",
+      "log_size": 18,
+      "arity": 4,
+      "rows": 262144,
+      "semantic_digest": "0e19d78e512562e5dd59ecb49acfd08eeec1b920568bdc48d44aa80bbccd7d54",
+      "dummy_zero_denominators": 0,
+      "nonzero_transcript_control": true,
+      "is_first_deterministic": true,
+      "row_to_tuple_deterministic": true,
+      "tuple_to_row_injective": true
+    },
+    {
+      "kind": "range_check_20",
+      "log_size": 20,
+      "arity": 1,
+      "rows": 1048576,
+      "semantic_digest": "ec6ae9336fc3923a3ef7607f248fac5c62e19019cfef04ac003cca36a3140235",
+      "dummy_zero_denominators": 0,
+      "nonzero_transcript_control": true,
+      "is_first_deterministic": true,
+      "row_to_tuple_deterministic": true,
+      "tuple_to_row_injective": true
+    },
+    {
+      "kind": "range_check_8_11",
+      "log_size": 19,
+      "arity": 2,
+      "rows": 524288,
+      "semantic_digest": "113a078514116f8ccdb7c83df36740072517dab6ab1e1d98694774449c8aa62d",
+      "dummy_zero_denominators": 0,
+      "nonzero_transcript_control": true,
+      "is_first_deterministic": true,
+      "row_to_tuple_deterministic": true,
+      "tuple_to_row_injective": true
+    },
+    {
+      "kind": "range_check_8_8_4",
+      "log_size": 20,
+      "arity": 3,
+      "rows": 1048576,
+      "semantic_digest": "1ccfc1980bd3add53d310c584793fd8760f3706bb6540730c2ff447c4c8e8d68",
+      "dummy_zero_denominators": 0,
+      "nonzero_transcript_control": true,
+      "is_first_deterministic": true,
+      "row_to_tuple_deterministic": true,
+      "tuple_to_row_injective": true
+    },
+    {
+      "kind": "range_check_8_8",
+      "log_size": 16,
+      "arity": 2,
+      "rows": 65536,
+      "semantic_digest": "2a0721cb88559eb416241bbc330dbf22fb9d57d7283b33b8de4b65ab7e77decf",
+      "dummy_zero_denominators": 0,
+      "nonzero_transcript_control": true,
+      "is_first_deterministic": true,
+      "row_to_tuple_deterministic": true,
+      "tuple_to_row_injective": true
+    },
+    {
+      "kind": "range_check_m31",
+      "log_size": 15,
+      "arity": 2,
+      "rows": 32768,
+      "semantic_digest": "b4ab54610d360a6a28db6829844901646d9c66fac5566444d00aafaaaa80aaef",
+      "dummy_zero_denominators": 0,
+      "nonzero_transcript_control": true,
+      "is_first_deterministic": true,
+      "row_to_tuple_deterministic": true,
+      "tuple_to_row_injective": false
+    }
+  ],
+  "total_table_rows": 2981888,
+  "zero_denominator_counterexample": true,
+  "exclusions": [
+    "inactive/padding Poseidon2 row uniqueness",
+    "Poseidon2 interaction-column and bus-closure uniqueness",
+    "unconditioned zero-denominator transcript uniqueness",
+    "lookup signed-multiplicity source correctness",
+    "cross-row and global LogUp closure",
+    "proof-wire PCS/FRI/OODS/Fiat-Shamir verification"
+  ]
+}

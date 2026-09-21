@@ -1,0 +1,356 @@
+{
+  "semantic_programs_unchanged": 46,
+  "updated_identity_count": 38,
+  "manual_identity_owners": [
+    "RiscvRefinement/Publication/Universal.lean",
+    "RiscvRefinement/Air/Bridge/Branches.lean",
+    "RiscvRefinement/Air/Bridge/LtReg.lean",
+    "RiscvRefinement/Air/Bridge/LtImm.lean",
+    "RiscvRefinement/Air/Bridge/Jalr.lean",
+    "RiscvRefinement/Air/Bridge/Auipc.lean",
+    "RiscvRefinement/Publication/TeamB/Multiply.lean",
+    "RiscvRefinement/Publication/TeamB/Shifts.lean",
+    "RiscvRefinement/Publication/TeamA/Pilots.lean",
+    "RiscvRefinement/Publication/TeamB/MulhDiv/HighMultiply.lean",
+    "RiscvRefinement/Publication/TeamB/MulhDiv/Division/Semantics.lean",
+    "generated-sail-bridge/Composition.lean"
+  ],
+  "digest_mapping": {
+    "a6303e0fa12517cc0d6fb2ae12890b15ae2799a696f540d13000d957c3f0a7d2": "88c4da19c84cc274da4b6ad8b5c33ce819a3596ba829ca3197f8f7377540d1cc",
+    "6a7950bcee273474dfa3a366685ee3b1caeec5091fc4852fc3181a9ae513402c": "daa8b1c387dadf65889e1be703950c1eaef3f83a4aeecd8d937de018d203df8c",
+    "7b62fb42ff92827bf55533d67d584724c700ea179d1efcfd2f9b5ae3e20fbb32": "8ef6c2e350d70a0abf62f0ce9113d14f5743fdea243a5fd2f76d949a60dc44b5",
+    "a5514838afdfa286601efb9856274169e31c6b6d0720bb21d681baa1e70ab892": "012b15c685eaa4edc3a793f24c62364a9209dcf5ffa4bbd83f864d223fe36ece",
+    "4ce9b929880ca4bd00e4f10e95655ddab7f03b73da01a183af698bf036463a56": "c844a5c651c6d1df17214a638c7ca1eb412d311772a53deef77a8319d47335e1",
+    "f1c95c8f98200eb54a71176ba770850c40233fc93780ab57102cb635e28dfca6": "356bcfd27b52658d6e45a16bf959eef49e1ccdb8ef7208d9d7a93419ba530aaf",
+    "869c9706b00fd61143a8f6ed5b08507aa171c82b784c7d236555f6d2eb679f93": "650d9b9771af80c64a173aa58f8eefce965e5253edc047dcdfab1dc3a9fe8fe2",
+    "4abb1006eb351fc2d570346833d1f3fa4c3175a30d02d0d4f05b5d8098b78b45": "ba0e69abd218f419afe8f1c19ee9ed1e293681b2c7df044d5d6e50573b45cc13",
+    "33c55dc1fdc6abb292c6d5f11994b83460bf60fb252057d930c37ead810cc9a1": "a9ab7b731604fa5aa4d3f110bc88c7953770733e668eeaa0cc8a86edbafbf22f",
+    "1531795e236217168a70a78bb8ca24e13b0f684d94376a6d7afdbcdb77da3734": "9863b6769d7db2d977d75adf93cf16b113ba363cb4f22f140ad6a25545d06ce7",
+    "437cc32977f4c9bb767e69e055266ede208c362b348ea35cb3891a38250305c2": "f0e81262d86766362e9b0104610909c69d9546d7d522dbfcaec8e687b9f15b9b",
+    "013cf0cc544c169eca8a236a0f3df0cdfacce41a7418265a238670aa9fda0960": "bc15f4eac35a9b1c2d2eacdbd23d7b932f095f9bcd9b074d8655ae528399569c",
+    "eb49bf0eecea44cb1f34d5cd2b0c2c0487de55e704931feffede15f6307cff3c": "c8ff76c937a8029713a60dcd2108209756b2e5bd19eee4599cee491d4caf11e5",
+    "59f4a2b943c1d0da84c61a3f0ab7962dd81feb17be09b9fcb807b0b83a6db359": "193fdae4723e114ad4dee2f04fec6dc7b95a406a268fafdb8225bddf1a1fa48e",
+    "7390dd29e46e7128a2760e2cefb3051a04a728c9ae838f806a6a7321267c1dbf": "19823554574aa7e37f08b1f72bc606cfa4b30ef51b45d694c34d41e301af4e44",
+    "b70bfc3590d192c85dbc7d744da2e8203192a9f66fc13ba7c904384d6782b49d": "a44563c3d92d9abe18ed37540c30843956a9cb966b6882926648deeaa37895de",
+    "4c055fd72015887caae84bca79261a77464b5c5357adfa57a9959938f53f1dc5": "02033bd0ddca0bac2b9d7d040a31ab77cb21b4917d09949c17909f1ddae51fd7",
+    "dc75bfeb776b77851cf313d9228b476d03d806df30af3de0ec40ca2ee94d03ee": "c479c053b2ec02a8a429bb7030e0986a0974f8e14ce95575e3d9b5fa8e8fe3d2",
+    "f0ebdc717fd1cb70b182fba5dc42dd4294ac8597fa23e04b702e9601292ad637": "2139c3d9b08459e820353448853692572350a19f8852846539a61383ae865085",
+    "5a6adb0f4d3b792225dc5be68fa31b4cec925a871ff118083cbc715ce520113c": "f431fa56267fc1b61f7215022504dd202d270da60568c4e798bf8e8c99205804",
+    "787402ce2b3363746953984049946c6bf035d2dd762a338cfaee78fdca337a27": "72e735a06c45041aa3d305035a0e70750c1f2c14cff215e906906ab69181338a",
+    "94e53684f8c1e8ee123f92ab8e2fb0f33e6cdd7fe69b21b0418ea75375648f02": "87e54d7b6ea3fc497a26bc1e07945fb1c4df86781c3243e1fc52ccf86f0ee6f1",
+    "b23a244a355b70ee2f5651eaeb78549a4168431c0c2399b673232407062de85f": "1345b3f3225ca8d7ee62aa3366bf3028a19758a6f89c205d02b028c537f28663",
+    "216bf30a6ed658f1f171d73cb025f1978c569b66bd33cc7e568142baf72c3fd8": "0abfd42df8bd61a5c6d20f62d9ffb6060a055391628a4ae02cd09258d6ef63a2",
+    "9b67d41cb45015b6691826b09c7eaa00fcc0d77e6237d3dc1ef7415b15514c9b": "b3a708cb976a8799c33a43a7de38100bf15a7b570de552ea7f0cb02c63e853f3",
+    "43e0f4c3a10272746ae84e195ee7290b5e13e78cb70ac370e21dd5e8679b891d": "878b60f8f2c94a48dcca6f62b418eb6c60ad5da8c0cf24ec904aa4fb12027cd5",
+    "410b6f2ec4f0e7db637dc4ecad3fbbe7e08e9cdb8ca83644c107a2a23dcb8a65": "cc359091d9a15f7a32f4a81c176b632b3f59cee09cefd2179ab6cfcbebe4609b",
+    "90b48bf81c506fc024785727ebe33de6e98b96e8e0973bd82299de2a278e287e": "431069edd6bce7e3c52e52295a983537c73fb28b164cf5fd84dfe023bf73bba8",
+    "accba4813f2c0c3381de8b0cecc2cb44a815b496cf32e11d8688331dfad8b45d": "289538cb5697b72f10f4a49596eed7673309939c612520dcc6bcdc5419562c3c",
+    "806a22150acdc82df7208d96ff2fb9ec5ff3ad8fd75f8f6b087f1c8f993e09d6": "4d9b4af8f32301252f58b636037db832b26a4aa546e8e3a2b5a288f5f031f79a",
+    "57eac49375238359ba89eaa1854b36bef14b5211c93976739ab7e1dd71185e56": "1c4021ff148fc392fe732a21b9c05e49fc9e50d42745d9f957db20a47be7cf5c",
+    "b623312b168e8f8b6a193e524183fa1e9671def8266150a6be1176d12d0440ee": "8bb22d0dcf899074b02c53878b89ddcc94a43bbb0bfa3a2c8cda81dbbbea094c",
+    "223e5dcdb0fb47153da9aad8985c200ae9a38e2f08f83ace848d11475c6ddf88": "7e000311941f0e96b3bdaeef488d7c778d8c10b9034de6a0237d20e1a6e20018",
+    "681d13aee072a72e68cdb3903c76fe58a3e1b4f2e8df6722fc746024dd3314ab": "404d056288a58310931aae2dc0a47359be49bc1cdb7d8da84b9b50b01266adec",
+    "882f8fe3a09b3ba780dfea6e7453bc039bff836804ff4dff774ac1edfbddeff8": "7181afeab5da03975f96417382f4c60e757e89b6bfdb9a4c9d20d87464de5df2",
+    "5ec35248a3836ffa6265131c5e40dc0f69bd2268fb7458f25d57dcb6460b8cde": "32c13ccdab51e55ea43f14022ab9db3f01f2b0d953ecda4a3ac01f5dfa0cea27",
+    "31a62c685e287fa010e6ae4bf4cd501d8ef587618a23b5901b116344a8d9de07": "ce0af0a877a70193c916089ecd195a16bb4a1a47c6c9c06e183dc2d64d85abfe",
+    "3d7901704479363a7fc48613fe6953559346fc69a80b45fa252636317010aeb2": "52b243ba6a0d3e8511fa5106ee98c62c5b332c67969389cdd107ea5c234878df"
+  },
+  "repository_lake_build": {
+    "passed": true,
+    "jobs": 124,
+    "log": "formal-after-source-refresh.log"
+  },
+  "live_axiom_audit": {
+    "passed": true,
+    "theorems": 4642,
+    "log": "formal-live-audit.log"
+  },
+  "aggregate_coverage": {
+    "passed": true,
+    "opcodes": 46,
+    "publication_level_opcodes": 0
+  },
+  "bridge_receipt_refresh": {
+    "status": "passed_live_kernel_verification",
+    "canonical_digest": "52daa4202dfd472908a70c5a8b78c16f21bddcc85ba18221a56dfbbc63d28fbb",
+    "changed_bridge_sources": [
+      "formal/riscv-refinement/generated-sail-bridge/Composition.lean"
+    ],
+    "other_receipt_fields_unchanged": true
+  },
+  "certificate_refresh_review": {
+    "formal/riscv-refinement/team-a-coverage.json": {
+      "changed_fields_by_opcode": {
+        "add": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "sub": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "slt": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "sltu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "xor": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "or": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "and": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "addi": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "slti": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "sltiu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "xori": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "ori": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "andi": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "beq": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bne": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "blt": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bge": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bltu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bgeu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "jal": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "jalr": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "lui": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "auipc": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "fence": [
+          "air_digest",
+          "proof_time_ms"
+        ]
+      },
+      "evidence_grades_unchanged": true
+    },
+    "formal/riscv-refinement/opcode-coverage.json": {
+      "changed_fields_by_opcode": {
+        "add": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "sub": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "sll": [
+          "air_digest"
+        ],
+        "slt": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "sltu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "xor": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "srl": [
+          "air_digest"
+        ],
+        "sra": [
+          "air_digest"
+        ],
+        "or": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "and": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "addi": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "slti": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "sltiu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "xori": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "ori": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "andi": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "slli": [
+          "air_digest"
+        ],
+        "srli": [
+          "air_digest"
+        ],
+        "srai": [
+          "air_digest"
+        ],
+        "lb": [
+          "air_digest"
+        ],
+        "lh": [
+          "air_digest"
+        ],
+        "lw": [
+          "air_digest"
+        ],
+        "lbu": [
+          "air_digest"
+        ],
+        "lhu": [
+          "air_digest"
+        ],
+        "sb": [
+          "air_digest"
+        ],
+        "sh": [
+          "air_digest"
+        ],
+        "sw": [
+          "air_digest"
+        ],
+        "beq": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bne": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "blt": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bge": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bltu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "bgeu": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "jal": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "jalr": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "lui": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "auipc": [
+          "air_digest",
+          "proof_time_ms"
+        ],
+        "mul": [
+          "air_digest"
+        ],
+        "mulh": [
+          "air_digest"
+        ],
+        "mulhsu": [
+          "air_digest"
+        ],
+        "mulhu": [
+          "air_digest"
+        ],
+        "div": [
+          "air_digest"
+        ],
+        "divu": [
+          "air_digest"
+        ],
+        "rem": [
+          "air_digest"
+        ],
+        "remu": [
+          "air_digest"
+        ],
+        "fence": [
+          "air_digest",
+          "proof_time_ms"
+        ]
+      },
+      "evidence_grades_unchanged": true
+    }
+  },
+  "artifact_reproducibility": {
+    "passed": true,
+    "artifacts": 60
+  },
+  "certificate_followup": "pending refresh of Sail receipt digests after final Lean build"
+}

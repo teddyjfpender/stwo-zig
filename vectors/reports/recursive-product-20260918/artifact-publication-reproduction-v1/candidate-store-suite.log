@@ -1,0 +1,18 @@
+1/17 mod.test_0...OK
+2/17 types_test.test.artifact keys: BlobRef preserves zero-byte native kind and schema...OK
+3/17 types_test.test.artifact keys: canonical Zig semantic and execution golden vectors...OK
+4/17 types_test.test.artifact keys: direct input order and semantic options are semantic...OK
+5/17 types_test.test.artifact keys: execution policy changes do not alter semantic key...OK
+6/17 types_test.test.artifact manifest: validator version revalidates without changing proof key...OK
+7/17 types_test.test.artifact wire: manifest cold roundtrip and truncation fail closed...OK
+8/17 types_test.test.artifact wire: semantic key roundtrip releases every failed allocation...OK
+9/17 store_test.test.artifact store: zero-byte blob persists across reopened instances...OK
+10/17 store_test.test.artifact store: dedup retains one sharded raw object...OK
+11/17 store_test.test.artifact store: lazy open ignores unrelated corruption but audit detects it...OK
+12/17 store_test.test.artifact store: exact kind and schema checks precede content reuse...OK
+13/17 store_test.test.artifact store: truncation and same-name corruption fail closed...OK
+14/17 store_test.test.artifact store: preexisting digest-name collision is rejected...OK
+15/17 store_test.test.artifact store: concurrent store instances publish one object...OK
+16/17 store_test.test.artifact store: Metal initNew retains owner-thread behavior...OK
+17/17 store_test.test.artifact store: cold open releases every failed allocation...OK
+All 17 tests passed.

@@ -9,7 +9,7 @@
 // Only this focused test translation unit compiles generated source. The
 // production implementation above resolves exclusively admitted AOT pipelines.
 void *stwo_framework_interaction_test_prepare(const char *source,size_t source_length,const char *name_bytes,size_t name_length,
-    const uint32_t *tags,uint32_t inputs,uint32_t profiles,uint32_t relations,uint32_t batches) {
+    const uint32_t *tags,uint32_t inputs,uint32_t profiles,uint32_t relations,uint32_t batches,uint32_t layout) {
     @autoreleasepool {
         id<MTLDevice> device=MTLCreateSystemDefaultDevice();
         id<MTLCommandQueue> queue=[device newCommandQueue];
@@ -20,13 +20,13 @@ void *stwo_framework_interaction_test_prepare(const char *source,size_t source_l
         id<MTLLibrary> library=[device newLibraryWithSource:source_string options:options error:&error];
         if(library==nil) { NSLog(@"framework interaction compile: %@",error); return NULL; }
         NSMutableDictionary *pipelines=[NSMutableDictionary new];
-        for(NSString *symbol in stwo_framework_interaction_names(name)) {
+        for(NSString *symbol in stwo_framework_interaction_names(name,layout)) {
             id<MTLFunction> function=[library newFunctionWithName:symbol];
             id<MTLComputePipelineState> pipeline=[device newComputePipelineStateWithFunction:function error:&error];
             if(pipeline==nil) { NSLog(@"framework interaction pipeline: %@",error); return NULL; }
             pipelines[symbol]=pipeline;
         }
-        return stwo_framework_interaction_plan(device,device,queue,pipelines,name,tags,inputs,profiles,relations,batches);
+        return stwo_framework_interaction_plan(device,device,queue,pipelines,name,tags,inputs,profiles,relations,batches,layout);
     }
 }
 void *stwo_framework_interaction_test_upload(void *plan_ptr,const uint32_t *words,size_t length,void **contents) {

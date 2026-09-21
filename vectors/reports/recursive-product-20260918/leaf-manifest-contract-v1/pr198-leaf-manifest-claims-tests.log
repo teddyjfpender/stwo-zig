@@ -1,0 +1,8 @@
+1/7 segment_outer_adapter_manifest_v2_test_root.test_0...OK
+2/7 recursion.air.segment_outer_adapter_manifest_v2_test.test.V2 provider geometry follows the authenticated claim inventory...OK
+3/7 recursion.air.segment_outer_adapter_manifest_v2_test.test.V2 catalog append-fixes all 39 rows without moving rows zero through 37...OK
+4/7 recursion.air.segment_outer_adapter_manifest_v2_test.test.catalog manifest ordering claims identities and geometry reject mutation...OK
+5/7 recursion.air.segment_outer_adapter_manifest_v2_test.test.generic typed adapter accepts the V2 manifest contract without a copy...OK
+6/7 recursion.air.segment_outer_adapter_manifest_v2_test.test.native provider adapters retain their exact V1 identities...OK
+7/7 air.memory_commitment.poseidon2_air.test_0...OK
+All 7 tests passed.

@@ -1,0 +1,16 @@
+Native core metallib accepted: 166 exact kernel exports, zero function constants, AOT/JIT kernel parity
+test-riscv-metal-recursive-resident
++- run test stderr
+NATIVE_TABLE_AOT_INTERACTION kind=bitwise rows=262144 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=1.733
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_20 rows=1048576 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=3.897
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_8_11 rows=524288 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=1.648
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_8_8_4 rows=1048576 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=4.002
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_8_8 rows=65536 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=0.188
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_m31 rows=32768 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=0.089
+FRAMEWORK_RESIDENT_AOT air=recursion.qm31_mul_add.v1 manifest=ccc64528edb010884c717507b0ea32a38e1df02c27c0e9a579c68ea636d76d59 rows=16 dispatches=2 coordinates=64 negative_controls=6 gpu_ms=0.231
+
+Build Summary: 3/3 steps succeeded
+test-riscv-metal-recursive-resident success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 16s MaxRSS:943M
+   +- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 10s MaxRSS:420M
+

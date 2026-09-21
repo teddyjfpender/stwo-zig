@@ -22,8 +22,8 @@ const framework_interaction = @import("air/framework_interaction.zig");
 const universal = @import("air/universal_challenges.zig");
 const boundary = @import("segment_leaf_outer_authority_v2.zig");
 
-pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const FORMAT_VERSION = @import("segment_publication_input_provider_contract_v2.zig").FORMAT_VERSION;
+pub const SCHEMA_VERSION = @import("segment_publication_input_provider_contract_v2.zig").SCHEMA_VERSION;
 pub const Shape = witness.Shape;
 // Compatibility geometry for existing fixed-21 fixtures, not live captures.
 pub const LOGICAL_ROW_COUNT = witness.LOGICAL_ROW_COUNT;
@@ -317,6 +317,19 @@ pub fn prepareInto(
     inputs: witness.InputsV2,
     relations: *const universal.UniversalRelations,
 ) Error!void {
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return prepareIntoWithGenerator(destination, workspace, authority, traces, inputs, relations, &generator);
+}
+
+pub fn prepareIntoWithGenerator(
+    destination: *PreparedAuthorityV2,
+    workspace: *WorkspaceV2,
+    authority: *const AuthorityV2,
+    traces: TraceV2,
+    inputs: witness.InputsV2,
+    relations: *const universal.UniversalRelations,
+    generator: anytype,
+) !void {
     // Authenticate both verifier-owned inputs before materializing their
     // immutable source view. The context remains owned by this caller.
     const source = try witness.preflight(inputs);
@@ -331,7 +344,8 @@ pub fn prepareInto(
     try witness.writeInto(&source, workspace.sourceDestinations());
     try validateDirectRows(workspace, authority);
     var staged_trace = workspace.stagedTrace();
-    const domain_claims = try Framework.generatePreparedIntoWithDomainSums(
+    const domain_claims = try generator.generatePreparedIntoWithDomainSums(
+        Framework,
         &workspace.interaction_workspace,
         &authority.relation_plan,
         workspace.logical_rows,
@@ -566,27 +580,7 @@ fn committedTraceShaId(
 
 /// Stable allocation-free seal for manifest geometry/authorship binding.
 /// Per-proof snapshot identities and claims deliberately do not enter it.
-pub fn sourceAuthorityShaId() [32]u8 {
-    var hash = ShaHasher.init(
-        "stwo-zig/typed-air/segment-publication-input-provider/authority/v2\x00",
-    );
-    hash.u16Value(FORMAT_VERSION);
-    hash.u16Value(SCHEMA_VERSION);
-    hash.u8Value(PROPOSED_ROSTER_ROW);
-    hash.u16Value(witness.FORMAT_VERSION);
-    hash.u16Value(witness.SECURE_LIMB_COUNT);
-    hash.u16Value(witness.LUP2_WORD_COUNT);
-    hash.u16Value(air.PREPROCESSED_COLUMN_COUNT);
-    hash.u16Value(air.PHYSICAL_MAIN_COLUMN_COUNT);
-    hash.u16Value(air.INTERACTION_COLUMN_COUNT);
-    hash.u16Value(air.DIRECT_CONSTRAINT_COUNT);
-    hash.u16Value(air.RELATION_EVENT_COUNT);
-    hash.u8Value(@intFromEnum(relation.Domain.recursion_verifier_input_word));
-    hash.u8Value(@intFromEnum(relation.Role.emit));
-    hash.rawBytes(&air.SEMANTIC_DIGEST);
-    hash.rawBytes(&relation.registryOrderDigest());
-    return hash.finalize();
-}
+pub const sourceAuthorityShaId = @import("segment_publication_input_provider_contract_v2.zig").sourceAuthorityShaId;
 
 /// Byte-identical to the capture-backed boundary authority's relation-context
 /// seal, so a publisher cannot be generated under different denominators.
@@ -634,48 +628,7 @@ fn preparedAuthorityId(prepared: *const PreparedAuthorityV2) [32]u8 {
     return hash.finalize();
 }
 
-const ShaHasher = struct {
-    inner: std.crypto.hash.sha2.Sha256,
-
-    fn init(domain: []const u8) ShaHasher {
-        var inner = std.crypto.hash.sha2.Sha256.init(.{});
-        inner.update(domain);
-        return .{ .inner = inner };
-    }
-
-    fn u8Value(self: *ShaHasher, value: anytype) void {
-        self.inner.update(&.{@intCast(value)});
-    }
-
-    fn u16Value(self: *ShaHasher, value: anytype) void {
-        var bytes: [2]u8 = undefined;
-        std.mem.writeInt(u16, &bytes, @intCast(value), .little);
-        self.inner.update(&bytes);
-    }
-
-    fn u32Value(self: *ShaHasher, value: anytype) void {
-        var bytes: [4]u8 = undefined;
-        std.mem.writeInt(u32, &bytes, @intCast(value), .little);
-        self.inner.update(&bytes);
-    }
-
-    fn rawBytes(self: *ShaHasher, value: []const u8) void {
-        self.u32Value(value.len);
-        self.inner.update(value);
-    }
-
-    fn nativeDigest(self: *ShaHasher, value: boundary.NativeDigest) void {
-        for (value) |word| self.u32Value(word);
-    }
-
-    fn qm31(self: *ShaHasher, value: QM31) void {
-        for (value.toM31Array()) |word| self.u32Value(word.toU32());
-    }
-
-    fn finalize(self: *ShaHasher) [32]u8 {
-        return self.inner.finalResult();
-    }
-};
+const ShaHasher = @import("publication_authority_encoding.zig").ShaHasher;
 
 fn requireNativeDigest(value: boundary.NativeDigest) Error!void {
     var aggregate: u32 = 0;

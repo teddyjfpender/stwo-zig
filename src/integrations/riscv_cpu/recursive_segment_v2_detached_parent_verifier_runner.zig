@@ -1,4 +1,4 @@
-//! Standalone verifier; protocol implementation is owned by the integration.
+//! Standalone entry with only the admitted parent-verifier command module.
 pub fn main() !void {
-    return @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_parent_command.main();
+    return @import("stwo_parent_verifier").main();
 }

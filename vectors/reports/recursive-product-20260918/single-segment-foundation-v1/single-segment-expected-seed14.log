@@ -1,0 +1,2 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=14 segment_cycles=35 cumulative_cycles=35 loads=11 stores=11 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=108c
+SEGMENT_V2_EXPECTED_INPUTS segments=1 addresses=1 seed=14 retired=35 proofs_created=0 directory=/tmp/pr198-single-segment-expected-seed14-20260918-v1

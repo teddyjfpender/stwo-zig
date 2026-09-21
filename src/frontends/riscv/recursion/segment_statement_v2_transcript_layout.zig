@@ -3,7 +3,6 @@
 //! constant merely because a native recording supplies its value.
 const std = @import("std");
 const contract = @import("segment_statement_v2_contract.zig");
-const view_mod = @import("segment_statement_v2_canonical_wire_view_v2.zig");
 const M31 = contract.M31;
 pub const Error = contract.Error;
 pub const fixed_layout = contract.fixed_layout;
@@ -96,7 +95,7 @@ pub const Layout = struct {
 
     /// Structural check against an already authenticated native view. This
     /// intentionally does not repeat its expensive digest/snapshot validation.
-    pub fn fromView(view: *const view_mod.CanonicalWireViewV2) Error!Layout {
+    pub fn fromView(view: *const contract.CanonicalWireViewV2) Error!Layout {
         const result = try fromStatement(&view.statement);
         if (view.words.len != result.total_words or !std.meta.eql(result.sections, [4]contract.RetainedSectionV2{ view.entry_snapshot, view.exit_snapshot, view.entry_memory_clocks, view.exit_memory_clocks }))
             return error.RetainedBoundaryMismatch;

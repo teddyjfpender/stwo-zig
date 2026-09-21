@@ -9,7 +9,7 @@ const interaction = @import("framework_interaction.zig");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const allocator = std.testing.allocator;
-extern fn stwo_framework_interaction_test_prepare([*]const u8, usize, [*]const u8, usize, [*]const u32, u32, u32, u32, u32) ?*anyopaque;
+extern fn stwo_framework_interaction_test_prepare([*]const u8, usize, [*]const u8, usize, [*]const u32, u32, u32, u32, u32, u32) ?*anyopaque;
 extern fn stwo_framework_interaction_test_reject_metadata(*anyopaque) bool;
 extern fn stwo_framework_interaction_test_upload(*anyopaque, [*]const u32, usize, *?*anyopaque) ?*anyopaque;
 const counts = [_]usize{ 3, 4, 8 };
@@ -71,10 +71,28 @@ fn readRow(result: *const interaction.Result, batch: usize, row: usize) QM31 {
 }
 
 test "framework interaction GPU independent fractions scans claims padding and rejection" {
+    try checkLayout(false);
+}
+
+test "framework interaction GPU cumulative planes shifted prefix and rejection" {
+    try checkLayout(true);
+}
+
+fn checkLayout(cumulative: bool) !void {
     var fixture_arena = std.heap.ArenaAllocator.init(allocator);
     defer fixture_arena.deinit();
     var program = try fixture(fixture_arena.allocator());
     defer program.deinit();
+    if (cumulative) {
+        program.direct.allocator.free(program.direct.nodes);
+        program.direct.allocator.free(program.direct.roots);
+        program.direct.nodes = try program.direct.allocator.dupe(backend.BasePolynomialNode, &.{.{ .op = .column, .value = 0 }});
+        program.direct.roots = try program.direct.allocator.dupe(u32, &.{0});
+        program.layout = .same_row_prefix_v1;
+        program.is_first_input = null;
+        program.identity = program.identityDigest();
+        try program.validate(&counts);
+    }
     const entry = generator.Entry{ .program = &program, .tree_column_counts = &counts };
     var plan = try interaction.Plan.init(allocator, entry);
     defer plan.deinit();
@@ -87,6 +105,7 @@ test "framework interaction GPU independent fractions scans claims padding and r
     program.profile_parameter_count = 2;
     program.batches[0].entry_count = 1;
     program.identity = @splat(0);
+    program.layout = if (cumulative) .independent_prefix_v1 else .same_row_prefix_v1;
     // Wrong/unadmitted profiles fail before dereferencing this dummy runtime.
     var old_core = runtime.Runtime{ .handle = @ptrFromInt(1), .admitted_profile = .core_v2 };
     try std.testing.expectError(error.FrameworkInteractionUnavailable, plan.prepare(&old_core));
@@ -129,6 +148,8 @@ test "framework interaction GPU independent fractions scans claims padding and r
         const invocation = interaction.Invocation{ .trace_log_size = log, .profile_values = &.{}, .relation_values = &challenges };
         var result = try plan.generate(trees, invocation);
         defer result.deinit();
+        const fractions = try allocator.alloc([2]QM31, rows);
+        defer allocator.free(fractions);
         var totals = [_]QM31{ QM31.zero(), QM31.zero() };
         for (0..rows) |index| {
             const row = rowIndex(index, log);
@@ -137,12 +158,29 @@ test "framework interaction GPU independent fractions scans claims padding and r
             const d0 = value.mul(challenges[1]).add(QM31.fromBase(M31.fromCanonical(7)).mul(challenges[2])).sub(challenges[0]);
             const d1 = value.mul(challenges[4]).sub(challenges[3]);
             const d2 = QM31.fromBase(M31.fromCanonical(7)).mul(challenges[6]).sub(challenges[5]);
-            totals[0] = totals[0].add(numerator.mul(try d0.inv())).sub(numerator.mul(try d1.inv()));
-            totals[1] = totals[1].add(numerator.mul(try d2.inv()));
-            for (totals, 0..) |expected, batch| try std.testing.expect(readRow(&result, batch, row).eql(expected));
+            fractions[index] = .{ numerator.mul(try d0.inv()).sub(numerator.mul(try d1.inv())), numerator.mul(try d2.inv()) };
+            for (0..2) |batch| totals[batch] = totals[batch].add(fractions[index][batch]);
+            if (!cumulative) for (totals, 0..) |expected, batch| {
+                try std.testing.expect(readRow(&result, batch, row).eql(expected));
+            };
         }
-        for (totals, 0..) |expected, batch| try std.testing.expect(result.claim(batch).eql(expected));
-        try std.testing.expect(!result.claim(0).eql(result.claim(1)));
+        const claim = if (cumulative) totals[0].add(totals[1]) else totals[0];
+        if (cumulative) {
+            const average = claim.mul(try QM31.fromBase(M31.fromU64(rows)).inv());
+            var prefix = QM31.zero();
+            for (fractions, 0..) |fraction, index| {
+                const row = rowIndex(index, log);
+                try std.testing.expect(readRow(&result, 0, row).eql(fraction[0]));
+                prefix = prefix.add(fraction[0]).add(fraction[1]).sub(average);
+                try std.testing.expect(readRow(&result, 1, row).eql(prefix));
+            }
+            try std.testing.expect(prefix.eql(QM31.zero()));
+            try std.testing.expectEqual(@as(usize, 1), result.claim_count);
+            try std.testing.expect(result.claim(0).eql(claim));
+        } else {
+            for (totals, 0..) |expected, batch| try std.testing.expect(result.claim(batch).eql(expected));
+            try std.testing.expect(!result.claim(0).eql(result.claim(1)));
+        }
         checked_rows += rows;
         // A zero denominator in a padded row is still rejected, not silently
         // replaced by 0/1. This provider's AIR evaluates all rows.
@@ -153,9 +191,11 @@ test "framework interaction GPU independent fractions scans claims padding and r
         try std.testing.expectError(error.FrameworkInteractionZeroDenominator, plan.generate(trees, invalid));
         const mapped_pp: [*]u32 = @ptrCast(@alignCast(pp_resident.contents));
         const bad_row = rowIndex(rows - 1, log);
-        mapped_pp[5 + bad_row] = 1;
-        try std.testing.expectError(error.FrameworkInteractionInvalidSelector, plan.generate(trees, invocation));
-        mapped_pp[5 + bad_row] = 0;
+        if (!cumulative) {
+            mapped_pp[5 + bad_row] = 1;
+            try std.testing.expectError(error.FrameworkInteractionInvalidSelector, plan.generate(trees, invocation));
+            mapped_pp[5 + bad_row] = 0;
+        }
         const mapped_main: [*]u32 = @ptrCast(@alignCast(main_resident.contents));
         mapped_main[7 + bad_row] = core.fields.m31.Modulus;
         try std.testing.expectError(error.FrameworkInteractionNoncanonicalInput, plan.generate(trees, invocation));
@@ -167,7 +207,7 @@ test "framework interaction GPU independent fractions scans claims padding and r
         try std.testing.expectError(error.InvalidFrameworkInteraction, plan.generate(malformed_trees, invocation));
         var recovered = try plan.generate(trees, invocation);
         defer recovered.deinit();
-        try std.testing.expect(recovered.claim(0).eql(totals[0]));
+        try std.testing.expect(recovered.claim(0).eql(claim));
     }
-    std.debug.print("FRAMEWORK_INTERACTION_GPU_V1 geometries=5 rows={} batches=2 dispatches=100 includes_failure_recovery=true\n", .{checked_rows});
+    std.debug.print("FRAMEWORK_INTERACTION_GPU_V1 cumulative={} geometries=5 rows={} batches=2 includes_failure_recovery=true\n", .{ cumulative, checked_rows });
 }

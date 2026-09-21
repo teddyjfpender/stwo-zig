@@ -1,0 +1,247 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "node": "leaf-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-0",
+        "c1cc1c838a4937f2258e4464cbdebbc90cef684334fa5e5ec2e812da988f39b3",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 96648208,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[193,204,28,131,138,73,55,242,37,142,68,100,203,222,187,201,12,239,104,67,52,250,94,94,194,232,18,218,152,143,57,179],\"expected_wire_sha256\":[64,239,207,161,24,231,173,189,227,143,226,38,22,167,214,172,159,220,134,165,45,1,15,60,251,251,214,16,204,153,132,200],\"claims_sha256\":[83,44,124,223,210,236,117,193,157,225,50,87,185,159,218,217,12,21,235,224,82,11,158,112,145,53,9,48,215,87,69,184],\"proof_sha256\":[151,84,26,136,239,242,242,176,77,225,74,56,178,157,76,4,46,6,175,210,84,203,240,245,30,254,32,180,123,201,106,130],\"proof_bytes\":2494288,\"request_ns\":89036417,\"verify_ns\":77216375,\"transcript_digest\":[1992939131,2122618765,1638940337,1009507830,1891761906,1937763048,639532014,2051720624]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-0",
+        "c1cc1c838a4937f2258e4464cbdebbc90cef684334fa5e5ec2e812da988f39b3",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 35486875,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-1",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-1",
+        "92ac8438c83ff319d089e8f87bd4cc5afab5a23f3bc97e4f804336683e6bd9f1",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-1-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 119627750,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[146,172,132,56,200,63,243,25,208,137,232,248,123,212,204,90,250,181,162,63,59,201,126,79,128,67,54,104,62,107,217,241],\"expected_wire_sha256\":[193,11,251,211,115,152,37,125,16,158,81,197,135,89,246,89,230,207,81,161,173,146,11,171,88,243,170,126,129,151,230,183],\"claims_sha256\":[195,188,133,232,22,249,221,111,126,159,66,163,212,157,232,143,48,16,73,240,50,135,0,82,84,78,170,29,77,205,62,127],\"proof_sha256\":[169,3,235,250,122,0,229,90,172,134,122,203,226,47,205,44,191,237,182,151,145,67,231,60,130,19,103,185,199,220,85,85],\"proof_bytes\":2486047,\"request_ns\":102752500,\"verify_ns\":89923708,\"transcript_digest\":[2060839260,1065578045,2030131505,1337295441,195741889,57846697,1686606332,431348222]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-1",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-1",
+        "92ac8438c83ff319d089e8f87bd4cc5afab5a23f3bc97e4f804336683e6bd9f1",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-1-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 39492625,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-2",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-2",
+        "284fdfd81255cb460b75e79be26c9bf48660dc8dbca54c1d6cdddcea313a92ce",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-2-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 108940000,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[40,79,223,216,18,85,203,70,11,117,231,155,226,108,155,244,134,96,220,141,188,165,76,29,108,221,220,234,49,58,146,206],\"expected_wire_sha256\":[115,239,65,176,124,135,153,154,88,246,45,180,144,111,83,188,234,243,57,192,163,174,12,127,188,169,54,90,19,218,122,9],\"claims_sha256\":[84,21,211,22,242,203,86,37,84,96,49,139,253,241,79,213,176,24,240,72,244,238,64,97,120,195,189,62,110,42,0,23],\"proof_sha256\":[79,102,217,183,120,236,112,42,157,177,78,204,216,192,55,166,151,103,203,208,187,113,166,161,248,58,92,29,150,28,40,76],\"proof_bytes\":2481103,\"request_ns\":101504667,\"verify_ns\":88198166,\"transcript_digest\":[1881178692,807539502,1849128697,99810945,152636143,1616842648,1468434799,1065707399]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-2",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-2",
+        "284fdfd81255cb460b75e79be26c9bf48660dc8dbca54c1d6cdddcea313a92ce",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-2-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 39473041,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-3",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-3",
+        "a4bfecc4f0e9d307c4c0c898d9d96680166beeee489f70c42a74f471f1bc7a46",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-3-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 112944500,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[164,191,236,196,240,233,211,7,196,192,200,152,217,217,102,128,22,107,238,238,72,159,112,196,42,116,244,113,241,188,122,70],\"expected_wire_sha256\":[51,77,32,96,154,169,206,11,12,96,98,153,25,72,94,197,97,209,252,35,38,150,143,45,148,112,219,196,141,197,161,35],\"claims_sha256\":[27,23,27,222,44,58,70,24,113,133,50,12,38,56,159,232,175,176,122,47,55,84,102,31,151,156,0,253,193,89,229,76],\"proof_sha256\":[17,72,1,254,246,159,84,147,221,145,47,135,205,36,78,119,237,144,43,206,199,49,64,121,72,209,192,2,217,167,103,129],\"proof_bytes\":2493255,\"request_ns\":103177750,\"verify_ns\":89874083,\"transcript_digest\":[1082742680,464054599,612493673,1725604101,1140522449,777030407,385368955,441776576]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-3",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/leaves/child-3",
+        "a4bfecc4f0e9d307c4c0c898d9d96680166beeee489f70c42a74f471f1bc7a46",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-3-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 39628834,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-1-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/parent-1-0",
+        "795ad0ca7ef373d21b43cedaad789eaefece807334aa2ba0ec41c1e21a745d61",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-1-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 87735750,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[121,90,208,202,126,243,115,210,27,67,206,218,173,120,158,174,254,206,128,115,52,170,43,160,236,65,193,226,26,116,93,97],\"expected_root_sha256\":[186,3,15,48,240,216,170,84,115,73,22,200,56,33,248,243,33,53,50,139,92,200,120,137,70,15,8,17,46,108,240,227],\"claims_sha256\":[158,41,217,120,95,170,146,84,227,131,70,102,249,226,60,174,242,20,176,162,199,87,221,108,190,216,224,10,11,108,210,77],\"proof_sha256\":[130,175,212,214,190,33,229,68,167,36,64,251,4,5,62,186,1,37,155,232,67,17,111,242,195,142,66,25,28,204,184,118],\"proof_bytes\":2423251,\"request_ns\":80549083,\"verify_ns\":78779334,\"transcript_digest\":[1652061850,1726887879,1681385418,1425152101,1088334617,781899649,1733578974,283252574]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-1-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/parent-1-0",
+        "795ad0ca7ef373d21b43cedaad789eaefece807334aa2ba0ec41c1e21a745d61",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-1-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 23941333,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-1-1",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/parent-1-1",
+        "8cbbdc3202350c742fd7aa23cfceb071fb9e3977cad069e2d8205f1bb7a1b1d6",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-1-1-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 87631917,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[140,187,220,50,2,53,12,116,47,215,170,35,207,206,176,113,251,158,57,119,202,208,105,226,216,32,95,27,183,161,177,214],\"expected_root_sha256\":[90,228,80,120,25,22,39,32,79,165,210,44,60,170,212,157,25,226,26,104,94,36,64,66,196,94,195,211,112,56,114,201],\"claims_sha256\":[179,116,4,108,220,6,209,171,119,222,81,132,209,92,197,203,59,7,90,229,231,251,119,233,71,43,115,207,192,66,100,178],\"proof_sha256\":[139,143,202,16,246,67,104,4,87,5,198,115,194,128,30,49,191,136,224,148,235,127,81,26,176,15,36,99,49,99,222,66],\"proof_bytes\":2421971,\"request_ns\":80719208,\"verify_ns\":78964625,\"transcript_digest\":[1171717308,1379939485,1627389435,1965431148,412184668,139056645,1562743279,2051609378]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-1-1",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/parent-1-1",
+        "8cbbdc3202350c742fd7aa23cfceb071fb9e3977cad069e2d8205f1bb7a1b1d6",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-1-1-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 23783000,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-2-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/parent-2-0",
+        "4a31dd6ac57c7fe3675c3949690aabad9a6ede2c6926df23d330da252c31402d",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-2-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 87870500,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_two_child_parent_q193\",\"development_only\":true,\"publication_mode\":\"root\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[74,49,221,106,197,124,127,227,103,92,57,73,105,10,171,173,154,110,222,44,105,38,223,35,211,48,218,37,44,49,64,45],\"expected_root_sha256\":[25,170,250,226,2,133,224,139,249,201,151,251,16,159,72,19,84,54,235,101,162,212,92,168,26,87,162,189,101,91,176,118],\"claims_sha256\":[230,110,115,219,229,158,68,55,218,49,36,78,55,87,39,158,8,163,25,100,164,37,219,32,150,74,47,42,230,210,131,159],\"proof_sha256\":[91,203,86,184,12,149,196,102,21,115,250,104,114,69,106,53,138,120,101,209,147,128,177,126,176,26,62,182,201,91,158,8],\"proof_bytes\":2287573,\"request_ns\":79656125,\"verify_ns\":77981583,\"transcript_digest\":[411553882,281831142,680457953,1079032581,277041894,597512452,1141264446,2111202562]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-2-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-4-metal-tree-v1/parent-2-0",
+        "4a31dd6ac57c7fe3675c3949690aabad9a6ede2c6926df23d330da252c31402d",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-2-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 19960667,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    }
+  ],
+  "script_sha256": "5d15df57ef2f13e7081d113a4f12db727ffcbc8ddd9dfefc6722f799816edf12",
+  "inputs": {
+    "/private/tmp/pr198-useful-parent-setup-4-v1/admission.json": "13134adef99ac0ca31c698fb037b4e149e366f8f243f296a2f86968583a9b72e",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/tree-inputs.json": "d4c1311f4324f388ea08daa6b48998ccfce32d7538bb615dbf922a125da32c5b",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify": "b0b6159a65a2d72e8f80647be579a5ea66c58d28cf963b8f9c2d909b22db4e4d",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify": "5577d71fccf9522e1850bf4975dc233b8661ad8f25723c7a6948be60677f1319",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-1-0-boundary.json": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-1-0-boundary.json": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-1-1-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-1-1-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-0-expected.json": "40efcfa118e7adbde38fe22616a7d6ac9fdc86a52d010f3cfbfbd610cc9984c8",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-0-expected.json": "ab4a278eb407a8f084c9462980c337b6a57e6bde0761eb88d0800e9cdb782c32",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-0/key.json": "c1cc1c838a4937f2258e4464cbdebbc90cef684334fa5e5ec2e812da988f39b3",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-0/claims.json": "532c7cdfd2ec75c19de13257b99fdad90c15ebe0520b9e7091350930d75745b8",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-0/proof.bin": "97541a88eff2f2b04de14a38b29d4c042e06afd254cbf0f51efe20b47bc96a82",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-1-expected.json": "c10bfbd37398257d109e51c58759f659e6cf51a1ad920bab58f3aa7e8197e6b7",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-1-expected.json": "7b720a24e1b98d6f1c5ed227aa2601b844eed989cc96fac86211244416a8700b",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-1/key.json": "92ac8438c83ff319d089e8f87bd4cc5afab5a23f3bc97e4f804336683e6bd9f1",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-1/claims.json": "c3bc85e816f9dd6f7e9f42a3d49de88f301049f032870052544eaa1d4dcd3e7f",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-1/proof.bin": "a903ebfa7a00e55aac867acbe22fcd2cbfedb6979143e73c821367b9c7dc5555",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-2-expected.json": "73ef41b07c87999a58f62db4906f53bceaf339c0a3ae0c7fbca9365a13da7a09",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-2-expected.json": "bcad384916a02b3aa24b4eeee9526a94d6a7a3f49fde9bfda5b9e2b966003724",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-2/key.json": "284fdfd81255cb460b75e79be26c9bf48660dc8dbca54c1d6cdddcea313a92ce",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-2/claims.json": "5415d316f2cb56255460318bfdf14fd5b018f048f4ee406178c3bd3e6e2a0017",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-2/proof.bin": "4f66d9b778ec702a9db14eccd8c037a69767cbd0bb71a6a1f83a5c1d961c284c",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/child-3-expected.json": "334d20609aa9ce0b0c60629919485ec561d1fc2326968f2d9470dbc48dc5a123",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/child-3-expected.json": "afccf5ee25ca2816f87eef89def6b8b0d47b7c82219e79d6c6d434667802c8c7",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-3/key.json": "a4bfecc4f0e9d307c4c0c898d9d96680166beeee489f70c42a74f471f1bc7a46",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-3/claims.json": "1b171bde2c3a46187185320c26389fe8afb07a2f3754661f979c00fdc159e54c",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/leaves/child-3/proof.bin": "114801fef69f5493dd912f87cd244e77ed902bcec731407948d1c002d9a76781",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-1-0-expected.json": "ba030f30f0d8aa54734916c83821f8f32135328b5cc87889460f08112e6cf0e3",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-1-0-expected.json": "c3b977b172d84c939d9e220ca1dc0d6a098be608c46b38570ecc2c04634b5f74",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-1-0/key.json": "795ad0ca7ef373d21b43cedaad789eaefece807334aa2ba0ec41c1e21a745d61",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-1-0/claims.json": "9e29d9785faa9254e3834666f9e23caef214b0a2c757dd6cbed8e00a0b6cd24d",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-1-0/proof.bin": "82afd4d6be21e544a72440fb04053eba01259be843116ff2c38e42191cccb876",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-1-1-expected.json": "5ae45078191627204fa5d22c3caad49d19e21a685e244042c45ec3d3703872c9",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-1-1-expected.json": "bc489a53109f747f4880031832e14cd30d52f1e5a3886aa8be70e0a4865866eb",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-1-1/key.json": "8cbbdc3202350c742fd7aa23cfceb071fb9e3977cad069e2d8205f1bb7a1b1d6",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-1-1/claims.json": "b374046cdc06d1ab77de5184d15cc5cb3b075ae5e7fb77e9472b73cfc04264b2",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-1-1/proof.bin": "8b8fca10f64368045705c673c2801e31bf88e094eb7f511ab00f24633163de42",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed13/parent-2-0-expected.json": "19aafae20285e08bf9c997fb109f48135436eb65a2d45ca81a57a2bd655bb076",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-4-seed14/parent-2-0-expected.json": "a803b9f5ebeeb5d707224dd8dbcb31acbc323a1e776952c54091d5e1beb51a89",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-2-0/key.json": "4a31dd6ac57c7fe3675c3949690aabad9a6ede2c6926df23d330da252c31402d",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-2-0/claims.json": "e66e73dbe59e4437da31244e3757279e08a31964a425db20964a2f2ae6d2839f",
+    "/private/tmp/pr198-useful-4-metal-tree-v1/parent-2-0/proof.bin": "5bcb56b80c95c4661573fa6872456a358a7865d19380b17eb01a3eb6c95b9e08"
+  }
+}

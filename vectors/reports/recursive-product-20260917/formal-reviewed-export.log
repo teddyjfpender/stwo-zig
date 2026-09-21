@@ -1,0 +1,7 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 301s
+
+Build Summary: 2/2 steps succeeded
+riscv-refinement-ir success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 19s MaxRSS:2G
+

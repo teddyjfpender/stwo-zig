@@ -41,4 +41,5 @@ pub const digestBytes = store.digestBytes;
 test {
     _ = @import("types_test.zig");
     _ = @import("store_test.zig");
+    _ = @import("publication_test.zig");
 }

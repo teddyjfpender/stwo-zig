@@ -142,3 +142,5 @@ pub const verifyEthereumSegmentWithEngineAndEthereumV3Capture =
     ethereum_segment_verifier.verifyWithEngineAndEthereumV3Capture;
 pub const verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannel =
     ethereum_segment_verifier.verifyWithEngineAndEthereumV3CaptureUsingChannel;
+
+pub const ecdsa_csp = @import("ecdsa_csp.zig");

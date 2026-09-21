@@ -1,0 +1,22 @@
+{
+  "profile": "rv32im-zkvm-v1",
+  "profile_sha256": "103650dca260bbeda5ca64defe2a991dffbe1784d084ee1faa95fa639181363e",
+  "riscv_arch_test": {
+    "revision": "426e1598ebc3688eaf9aba7b4a1b8a81dae9807f",
+    "source": "/private/tmp/stwo-riscv-formal/source/riscv-arch-test"
+  },
+  "sail": {
+    "binary": "/private/tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim",
+    "binary_sha256": "abfb4f6f58fcd6886309abf9b0ac4a72d0350c1a07133e982f9a3e524a956018",
+    "compiler": "0.20.2",
+    "compiler_path": "/Users/theodorepender/.opam/default/bin/sail",
+    "revision": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+    "transport_patch_sha256": "1309655496ea8c8aae3cade751b1ba695dd19b2048f6118d28371be693dbb734"
+  },
+  "schema": "stwo-riscv-formal-tools-v1",
+  "spike": {
+    "binary": "/private/tmp/stwo-riscv-formal/install/spike/bin/spike",
+    "binary_sha256": "cb17f1c953c228f8049973fd81c23f43a41842f149854bc0721a109d42a2db29",
+    "revision": "520a5f185083ac3c97b751501dfac02a6c1f5970"
+  }
+}

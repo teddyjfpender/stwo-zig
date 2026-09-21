@@ -1,0 +1,10 @@
+test-secp256k1-precompile-proof
++- run test stderr
+secp256k1 proof timings: witness=8.972ms pp=6.815ms main=7.772ms interaction-gen=15.168ms interaction-commit=5.398ms prove=123.005ms verify=2.759ms
+secp256k1 Metal total: prove=167.129ms fresh-verify=2.759ms total=169.889ms dispatches=32 fallbacks=3
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-secp256k1-precompile-proof success
++- run test 1 passed 207ms MaxRSS:126M
+   +- compile test ReleaseFast native cached 104ms MaxRSS:36M
+

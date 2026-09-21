@@ -1,0 +1,220 @@
+--- recorded/src/core/fields/m31.zig
++++ current/src/core/fields/m31.zig
+@@ -489,20 +489,37 @@
+     const lhs_end = std.math.add(usize, lhs_start, byte_len) catch return false;
+     const rhs_end = std.math.add(usize, rhs_start, byte_len) catch return false;
+     return lhs_end <= rhs_start or rhs_end <= lhs_start;
++}
++
++/// Appends one already-computed `2^tail_bits - 1` exponent block.
++///
++/// If `prefix = a^(2^m - 1)` and `tail = a^(2^tail_bits - 1)`, the result is
++/// `a^(2^(m + tail_bits) - 1)`. Keeping the block lengths comptime-known makes
++/// the squaring schedule branch-free.
++inline fn appendMersenneExponentBlock(
++    prefix: M31,
++    tail: M31,
++    comptime tail_bits: usize,
++) M31 {
++    var shifted = prefix;
++    inline for (0..tail_bits) |_| shifted = shifted.square();
++    return shifted.mul(tail);
+ }
+ 
+ /// Fixed-exponent inversion for `p = 2^31 - 1`, computing `a^(p-2)`.
+-/// Exponent bits: `111...1101` (31 bits).
++///
++/// A bit-at-a-time chain needs 30 squarings and 29 general multiplies. Building
++/// reusable `2^k - 1` blocks for k=2/4/8/16/24/28/29 keeps the 30 required
++/// squarings but reduces the general multiplies to eight.
+ fn powPMinus2(a: M31) M31 {
+-    var acc = a;
+-    inline for (0..30) |step| {
+-        acc = acc.square();
+-        const bit = 29 - step;
+-        if (bit >= 2 or bit == 0) {
+-            acc = acc.mul(a);
+-        }
+-    }
+-    return acc;
++    const x2 = appendMersenneExponentBlock(a, a, 1);
++    const x4 = appendMersenneExponentBlock(x2, x2, 2);
++    const x8 = appendMersenneExponentBlock(x4, x4, 4);
++    const x16 = appendMersenneExponentBlock(x8, x8, 8);
++    const x24 = appendMersenneExponentBlock(x16, x8, 8);
++    const x28 = appendMersenneExponentBlock(x24, x4, 4);
++    const x29 = appendMersenneExponentBlock(x28, a, 1);
++    return x29.square().square().mul(a);
+ }
+ 
+ test "m31: bounded product reduction matches generic reduction" {
+--- recorded/src/frontends/riscv/access_clock.zig
++++ current/src/frontends/riscv/access_clock.zig
+@@ -48,10 +48,34 @@
+ /// Zero is the initial boundary and is accepted only when the caller permits
+ /// it (registers that were never touched and unretired completion records).
+ pub fn isWithinExecution(clock: u32, instruction_count: u32, allow_zero: bool) bool {
+-    if (clock == 0) return allow_zero;
+-    return isCanonical(clock) and @as(u64, clock) <= maximum(instruction_count);
++    return withinExecutionGeneric(clock, instruction_count, allow_zero, NativePredicate{});
+ }
+ 
++/// Shared access-clock predicate for native admission and symbolic boundary
++/// checks. The three used subclocks occupy each four-wide instruction bucket.
++/// Implementations supply boolean operations and unsigned integer projections.
++pub fn withinExecutionGeneric(clock: anytype, instruction_count: @TypeOf(clock), allow_zero: bool, ops: anytype) @TypeOf(ops.isZero(clock)) {
++    const active = ops.both(ops.hasOrdinal(clock), ops.bucketPrecedes(clock, instruction_count));
++    return if (allow_zero) ops.either(ops.isZero(clock), active) else active;
++}
++const NativePredicate = struct {
++    pub fn isZero(_: NativePredicate, value: u32) bool {
++        return value == 0;
++    }
++    pub fn hasOrdinal(_: NativePredicate, value: u32) bool {
++        return value % STRIDE != 0;
++    }
++    pub fn bucketPrecedes(_: NativePredicate, clock: u32, count: u32) bool {
++        return clock / STRIDE < count;
++    }
++    pub fn both(_: NativePredicate, a: bool, b: bool) bool {
++        return a and b;
++    }
++    pub fn either(_: NativePredicate, a: bool, b: bool) bool {
++        return a or b;
++    }
++};
++
+ test "access clock: instruction buckets are ordered and reserve every fourth value" {
+     try std.testing.expectEqual(@as(u32, 1), encode(1, .first));
+     try std.testing.expectEqual(@as(u32, 2), encode(1, .second));
+@@ -62,6 +86,12 @@
+ }
+ 
+ test "access clock: public execution bound includes the last actual ordinal" {
++    for (0..33) |count| for (0..132) |clock| for ([_]bool{ false, true }) |allow_zero| {
++        const value: u32 = @intCast(clock);
++        const steps: u32 = @intCast(count);
++        const scalar_reference = if (value == 0) allow_zero else isCanonical(value) and @as(u64, value) <= maximum(steps);
++        try std.testing.expectEqual(scalar_reference, isWithinExecution(value, steps, allow_zero));
++    };
+     try std.testing.expectEqual(@as(u64, 0), maximum(0));
+     try std.testing.expectEqual(@as(u64, 3), maximum(1));
+     try std.testing.expectEqual(@as(u64, 7), maximum(2));
+--- recorded/src/frontends/riscv/air/extract/symbolic.zig
++++ current/src/frontends/riscv/air/extract/symbolic.zig
+@@ -73,7 +73,7 @@
+ 
+ /// The installed arena. `Scalar` methods take no allocator and no context, so
+ /// the arena cannot be a parameter; see the module comment.
+-var installed: ?*Arena = null;
++threadlocal var installed: ?*Arena = null;
+ 
+ pub fn begin(arena: *Arena) void {
+     std.debug.assert(installed == null);
+@@ -120,6 +120,10 @@
+         return binary(.mul, self, other);
+     }
+ 
++    pub fn square(self: Scalar) Scalar {
++        return self.mul(self);
++    }
++
+     pub fn neg(self: Scalar) Scalar {
+         return .{ .id = current().intern(.{ .op = .neg, .lhs = self.id }) };
+     }
+--- recorded/src/frontends/riscv/air/lookups/entry.zig
++++ current/src/frontends/riscv/air/lookups/entry.zig
+@@ -6,6 +6,7 @@
+ //! `denominator`/`pair` are QM31-bound, because only they touch the challenge
+ //! tower; they are analysed lazily and never reached from a symbolic replay.
+ 
++const std = @import("std");
+ const QM31 = @import("stwo_core").fields.qm31.QM31;
+ const logup = @import("../logup.zig");
+ const relations_mod = @import("../relation_challenges.zig");
+@@ -59,6 +60,41 @@
+         .range_check_20 => 1,
+         .range_check_8_8_4 => 3,
+     };
++}
++
++/// Appends the canonical `(z, alpha^0, ..., alpha^(arity-1))` parameters for
++/// one production relation domain. Runtime polynomial exporters share this
++/// authority so a new resident component cannot silently reorder transcript
++/// challenges while duplicating the domain switch.
++pub fn appendRelationParameters(
++    parameters: *std.ArrayList(QM31),
++    allocator: std.mem.Allocator,
++    relations: *const relations_mod.Relations,
++    domain: Domain,
++) !void {
++    switch (domain) {
++        .registers_state => try appendRelation(parameters, allocator, relations.registers_state),
++        .memory_access => try appendRelation(parameters, allocator, relations.memory_access),
++        .program_access => try appendRelation(parameters, allocator, relations.program_access),
++        .merkle => try appendRelation(parameters, allocator, relations.merkle),
++        .poseidon2 => try appendRelation(parameters, allocator, relations.poseidon2),
++        .poseidon2_io => try appendRelation(parameters, allocator, relations.poseidon2_io),
++        .bitwise => try appendRelation(parameters, allocator, relations.bitwise),
++        .range_check_20 => try appendRelation(parameters, allocator, relations.range_check_20),
++        .range_check_8_11 => try appendRelation(parameters, allocator, relations.range_check_8_11),
++        .range_check_8_8_4 => try appendRelation(parameters, allocator, relations.range_check_8_8_4),
++        .range_check_8_8 => try appendRelation(parameters, allocator, relations.range_check_8_8),
++        .range_check_m31 => try appendRelation(parameters, allocator, relations.range_check_m31),
++    }
++}
++
++fn appendRelation(
++    parameters: *std.ArrayList(QM31),
++    allocator: std.mem.Allocator,
++    relation: anytype,
++) !void {
++    try parameters.append(allocator, relation.z);
++    try parameters.appendSlice(allocator, &relation.alpha_powers);
+ }
+ 
+ pub fn Builder(comptime S: type) type {
+@@ -309,8 +345,6 @@
+     };
+ }
+ 
+-const std = @import("std");
+-
+ const shipped = Builder(QM31);
+ 
+ pub const Entry = shipped.Entry;
+--- recorded/src/frontends/riscv/air/lookups/opcode_entries.zig
++++ current/src/frontends/riscv/air/lookups/opcode_entries.zig
+@@ -117,8 +117,8 @@
+ }
+ 
+ test "opcode lookup matrix preserves reviewed family geometry" {
+-    const expected_entries = [_]usize{ 18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3 };
+-    const expected_batches = [_]usize{ 9, 8, 10, 8, 7, 6, 5, 6, 4, 6, 9, 4, 8, 16, 22, 25, 2 };
++    const expected_entries = [_]usize{ 18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 17, 16, 22, 25, 3 };
++    const expected_batches = [_]usize{ 9, 8, 10, 8, 7, 6, 5, 6, 4, 6, 9, 4, 9, 16, 22, 25, 2 };
+     for (0..trace.N_FAMILIES) |index| {
+         const family: trace.OpcodeFamily = @enumFromInt(index);
+         try std.testing.expectEqual(expected_entries[index], entryCount(family));
+@@ -154,7 +154,7 @@
+         // jal
+         &.{ .program_access, .registers_state, .registers_state, .range_check_8_8, .range_check_m31, .memory_access, .memory_access, .range_check_20 },
+         // load_store
+-        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .range_check_20, .range_check_m31, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_m31, .range_check_m31 },
++        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .range_check_20, .range_check_m31, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_m31, .range_check_m31, .range_check_8_8 },
+         // mul
+         &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .memory_access, .memory_access, .range_check_20 },
+         // mulh
+--- recorded/src/frontends/riscv/opcode_manifest.zig
++++ current/src/frontends/riscv/opcode_manifest.zig
+@@ -255,7 +255,9 @@
+         // row-local target binding is what makes the composed jump target a
+         // bounded value rather than a free field element.
+         .jalr => relationSet(base ++ [_]RelationDomain{ .range_check_8_8, .range_check_m31, .range_check_8_8_4 }),
+-        .load_store => relationSet(base ++ [_]RelationDomain{.range_check_m31}),
++        // The admitted one-GiB address profile bounds the high eight bits
++        // of the aligned word address through the appended byte-table lookup.
++        .load_store => relationSet(base ++ [_]RelationDomain{ .range_check_m31, .range_check_8_8 }),
+         .mul => relationSet(base ++ [_]RelationDomain{.range_check_8_11}),
+         .mulh => relationSet(base ++ [_]RelationDomain{ .range_check_8_11, .range_check_m31 }),
+         // The quotient-sign witness is bounded through range_check_m31; without

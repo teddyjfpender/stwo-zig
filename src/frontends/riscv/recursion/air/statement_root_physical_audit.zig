@@ -25,7 +25,7 @@ test "statement root physical admission matches native and recursive evaluation"
 test "statement root catalog derives the full physical manifest without changing legacy rows" {
     const manifests = @import("universal_manifest.zig");
     var logs = [_]u32{11} ** @import("universal_roster.zig").COMPONENT_COUNT;
-    logs[@intFromEnum(manifest_mod.ComponentKey.range_check_8_8)] = @import("range_check_8_8_bridge.zig").LOG_SIZE;
+    logs[@intFromEnum(manifest_mod.ComponentKey.range_check_8_8)] = @import("range_check_8_8_contract.zig").LOG_SIZE;
     const old = try manifests.build(logs);
     const selected = try manifests.buildForCatalog(profile.StatementRootOuterCatalog, logs);
     try std.testing.expectEqual(old.total_preprocessed_columns + 1, selected.total_preprocessed_columns);

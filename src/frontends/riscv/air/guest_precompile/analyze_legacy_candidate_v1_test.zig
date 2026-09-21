@@ -226,6 +226,12 @@ test "bitmap set bits cancel exactly against semantic JUMPDEST requests" {
         error.JumpdestMultiplicityMismatch,
         relations.validateExactJumpdestClosure(scan_rows, malformed),
     );
+    malformed[0] = bitmap_rows[0];
+    malformed[0].word_index = M31.fromCanonical(1 << 30);
+    try std.testing.expectError(
+        error.DescriptorMismatch,
+        relations.validateExactJumpdestClosure(scan_rows, malformed),
+    );
     var wrong_descriptor = descriptor;
     wrong_descriptor.summary.scan_iterations += 1;
     try std.testing.expectError(

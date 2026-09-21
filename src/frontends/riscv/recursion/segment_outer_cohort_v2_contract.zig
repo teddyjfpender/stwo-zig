@@ -34,7 +34,7 @@ pub const TREE_PLAN_FORMAT_VERSION: u16 = 1;
 pub const PROVIDER_SCHEDULE_FORMAT_VERSION: u16 = 1;
 pub const GATE_RECEIPT_FORMAT_VERSION: u16 = 1;
 pub const CLOSURE_RECEIPT_FORMAT_VERSION: u16 = 1;
-pub const PUBLIC_WIRE_BOUNDARY_FORMAT_VERSION: u16 = 1;
+pub const PUBLIC_WIRE_BOUNDARY_FORMAT_VERSION = @import("segment_public_wire_boundary_v2.zig").PUBLIC_WIRE_BOUNDARY_FORMAT_VERSION;
 pub const READINESS_RECEIPT_FORMAT_VERSION: u16 = 1;
 
 pub const COMPONENT_COUNT: usize = manifest_mod.COMPONENT_COUNT;
@@ -84,8 +84,7 @@ pub const CLOSURE_RECEIPT_ID_DOMAIN =
     "stwo-zig/typed-air/segment-v2-cohort-closure/v1\x00";
 pub const AUDIT_ID_DOMAIN =
     "stwo-zig/typed-air/segment-v2-cohort-audits/v1\x00";
-pub const PUBLIC_WIRE_BOUNDARY_ID_DOMAIN =
-    "stwo-zig/typed-air/segment-v2-public-wire-boundary/v1\x00";
+pub const PUBLIC_WIRE_BOUNDARY_ID_DOMAIN = @import("segment_public_wire_boundary_v2.zig").PUBLIC_WIRE_BOUNDARY_ID_DOMAIN;
 pub const BOUNDARY_AUDIT_ID_DOMAIN =
     "stwo-zig/typed-air/segment-v2-boundary-audits/v1\x00";
 pub const READINESS_RECEIPT_ID_DOMAIN =
@@ -93,27 +92,7 @@ pub const READINESS_RECEIPT_ID_DOMAIN =
 pub const CLOSURE_DIAGNOSTIC_ENV =
     "STWO_RECURSION_OUTER_SCALAR_CLOSURE_DIAGNOSTIC";
 
-pub const Error = manifest_mod.Error || catalog_mod.Error || error{
-    ArithmeticOverflow,
-    CapabilityEscalation,
-    ClaimMismatch,
-    ClosureIdentityMismatch,
-    CohortIdentityMismatch,
-    ComponentCoverageMismatch,
-    DomainOrderMismatch,
-    GateIdentityMismatch,
-    InvalidAuditGeometry,
-    InvalidProviderSchedule,
-    NonCanonicalField,
-    ProductionReadinessUnavailable,
-    PublicWireBoundaryMismatch,
-    ProviderDomainMismatch,
-    RelationNotClosed,
-    RosterIdentityMismatch,
-    SourceManifestMismatch,
-    TreeAccountingMismatch,
-    TreePlanIdentityMismatch,
-};
+pub const Error = @import("segment_public_wire_boundary_v2.zig").Error;
 
 pub const RowAuthority = enum(u8) {
     transcript_v2 = 1,
@@ -567,8 +546,4 @@ pub fn rangeMask(comptime first: usize, comptime end: usize) u64 {
     return result;
 }
 
-pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
-    var encoded: [@sizeOf(T)]u8 = undefined;
-    std.mem.writeInt(T, &encoded, @intCast(value), .little);
-    hash.update(&encoded);
-}
+pub const hashInt = @import("segment_public_wire_boundary_v2.zig").hashInt;

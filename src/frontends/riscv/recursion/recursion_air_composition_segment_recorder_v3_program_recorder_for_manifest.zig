@@ -628,12 +628,7 @@ pub fn ProgramRecorderForManifest(
             const placement = self.manifest.placements[row_index] orelse
                 return error.InvalidManifest;
             if (!adapter.placement.eql(placement) or
-                !std.meta.eql(
-                    placement.geometry,
-                    SelectedAdapter.manifestGeometry(
-                        placement.geometry.log_size,
-                    ),
-                ))
+                !SelectedAdapter.acceptsGeometry(placement.geometry))
             {
                 return error.ComponentGeometryMismatch;
             }

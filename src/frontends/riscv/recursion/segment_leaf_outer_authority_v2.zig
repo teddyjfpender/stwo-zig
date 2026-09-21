@@ -118,3 +118,5 @@ pub const publishVerifiedInto = shard_3.publishVerifiedInto;
 /// Intentionally has no current success path. Constructing valid V2 traces or
 /// a development authority receipt cannot manufacture native proof custody.
 pub const publishProductionInto = shard_3.publishProductionInto;
+
+pub const prepareNativeVerifierIntoWithGenerator = shard_3.prepareNativeVerifierIntoWithGenerator;

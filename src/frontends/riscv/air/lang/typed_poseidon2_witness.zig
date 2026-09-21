@@ -26,7 +26,7 @@ const types = @import("types.zig");
 pub const N_MAIN_COLUMNS: usize = compat.N_MAIN_COLUMNS;
 pub const WIDTH: usize = compat.WIDTH;
 pub const Call = production.Call;
-pub const EXECUTION_DIGEST_FORMAT_VERSION: u16 = 1;
+pub const EXECUTION_DIGEST_FORMAT_VERSION = @import("typed_poseidon2_identity_codec.zig").EXECUTION_DIGEST_FORMAT_VERSION;
 pub const EXECUTION_DIGEST_DOMAIN_SEPARATOR =
     "stwo-zig/typed-air/poseidon2-witness-executor/v1";
 

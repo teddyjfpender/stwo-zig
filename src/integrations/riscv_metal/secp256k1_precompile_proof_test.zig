@@ -33,7 +33,7 @@ test "secp256k1 typed ECDSA bundle proves on Metal and independently verifies" {
     defer if (owns_runtime) Engine.Backend.shutdown() catch unreachable;
 
     const before = try Engine.telemetrySnapshot();
-    const timings = try proof_harness.Harness(Engine).run(allocator);
+    const timings = try proof_harness.Harness(Engine).runSelected(allocator);
     const delta = (try Engine.telemetrySnapshot()).delta(before);
     try delta.requireMetalDispatch();
 

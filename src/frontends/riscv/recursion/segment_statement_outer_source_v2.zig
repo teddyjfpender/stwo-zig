@@ -83,3 +83,5 @@ pub const generateInteractionInto = shard_2.generateInteractionInto;
 /// the zero-allocation custody seam used by the partial shared-row-35 ledger.
 pub const validateLogicalRows = shard_2.validateLogicalRows;
 pub const closureLedger = shard_2.closureLedger;
+
+pub const generateInteractionIntoWithGenerator = shard_2.generateInteractionIntoWithGenerator;

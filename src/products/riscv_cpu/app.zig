@@ -8,6 +8,7 @@ const std = @import("std");
 const shared = @import("riscv_shared_app");
 
 const Deps = struct {
+    pub const csp_identity = @import("product_identity");
     pub const stwo = @import("stwo_riscv_cpu");
     pub const adapter = @import("riscv_adapter");
     pub const cli = @import("cli.zig");

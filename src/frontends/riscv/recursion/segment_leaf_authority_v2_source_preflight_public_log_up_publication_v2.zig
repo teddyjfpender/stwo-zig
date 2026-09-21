@@ -90,11 +90,7 @@ pub const TraceColumnsV2 = struct {
     value: []M31,
 };
 
-pub const StatementRelationEventV2 = struct {
-    domain: relation.Domain = STATEMENT_RELATION_DOMAIN,
-    role: relation.Role = .emit,
-    tuple: [3]M31,
-};
+pub const StatementRelationEventV2 = @import("segment_leaf_statement_contract_v2.zig").StatementRelationEventV2;
 
 /// Allocation geometry obtained only after authenticating the borrowed wire.
 /// Drivers use this cold preflight before allocating reusable trace/event slabs;
@@ -350,16 +346,8 @@ pub fn writeTraceRow(
     trace.value[row] = value;
 }
 
-/// Same scoped tuple for native source rows and symbolic expected-public AIR.
-pub fn statementTupleGeneric(comptime S: type, from_base: anytype, scope: u32, index: usize, value: S) [3]S {
-    return .{ from_base(M31.fromCanonical(scope)), from_base(M31.fromCanonical(@intCast(index))), value };
-}
-fn identityBase(value: M31) M31 {
-    return value;
-}
-pub fn statementEvent(scope: u32, index: usize, value: M31) StatementRelationEventV2 {
-    return .{ .tuple = statementTupleGeneric(M31, identityBase, scope, index, value) };
-}
+pub const statementTupleGeneric = @import("segment_leaf_statement_contract_v2.zig").statementTupleGeneric;
+pub const statementEvent = @import("segment_leaf_statement_contract_v2.zig").statementEvent;
 
 pub fn validateTraceShape(trace: TraceColumnsV2, expected: u32) Error!void {
     const len: usize = expected;
@@ -576,14 +564,7 @@ pub fn authorityIdentityPoseidonPermutationCount() usize {
         channel.canonicalWordPermutationCount(36);
 }
 
-pub fn overlap(left: []const u8, right: []const u8) bool {
-    if (left.len == 0 or right.len == 0) return false;
-    const left_start = @intFromPtr(left.ptr);
-    const right_start = @intFromPtr(right.ptr);
-    const left_end = left_start + left.len;
-    const right_end = right_start + right.len;
-    return left_start < right_end and right_start < left_end;
-}
+pub const overlap = @import("segment_expected_authority_hash_v2.zig").overlap;
 
 pub const ShaHasher = struct {
     inner: std.crypto.hash.sha2.Sha256,

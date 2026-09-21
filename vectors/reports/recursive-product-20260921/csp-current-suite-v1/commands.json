@@ -1,0 +1,84 @@
+[
+  {
+    "name": "build",
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "scripts/zig_serial_build.py",
+      "stwo-zig-riscv-cpu",
+      "stwo-riscv-metal",
+      "riscv-trace-dump",
+      "-Doptimize=ReleaseFast",
+      "--prefix",
+      "/tmp/pr198-csp-clean-products-v1",
+      "--summary",
+      "all"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "cpu",
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "scripts/riscv_csp_benchmark.py",
+      "--backend",
+      "cpu",
+      "--cli",
+      "/tmp/pr198-csp-clean-products-v1/bin/stwo-zig-riscv-cpu",
+      "--trace-cli",
+      "/tmp/pr198-csp-clean-products-v1/bin/riscv-trace-dump",
+      "--report-out",
+      "/tmp/pr198-csp-clean-evidence-v1/cpu.json",
+      "--workers",
+      "16",
+      "--warmups",
+      "1",
+      "--samples",
+      "10"
+    ],
+    "exit_code": 1
+  },
+  {
+    "name": "cpu-internal-install",
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "scripts/riscv_csp_benchmark.py",
+      "--backend",
+      "cpu",
+      "--cli",
+      "/private/tmp/pr198-csp-clean-source-v1/zig-out/bin/stwo-zig-riscv-cpu",
+      "--trace-cli",
+      "/private/tmp/pr198-csp-clean-source-v1/zig-out/bin/riscv-trace-dump",
+      "--report-out",
+      "/tmp/pr198-csp-clean-evidence-v1/cpu.json",
+      "--workers",
+      "16",
+      "--warmups",
+      "1",
+      "--samples",
+      "10"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "metal-internal-install",
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "scripts/riscv_csp_benchmark.py",
+      "--backend",
+      "metal",
+      "--cli",
+      "/private/tmp/pr198-csp-clean-source-v1/zig-out/bin/stwo-zig-riscv-metal",
+      "--trace-cli",
+      "/private/tmp/pr198-csp-clean-source-v1/zig-out/bin/riscv-trace-dump",
+      "--report-out",
+      "/tmp/pr198-csp-clean-evidence-v1/metal.json",
+      "--workers",
+      "16",
+      "--warmups",
+      "1",
+      "--samples",
+      "10"
+    ],
+    "exit_code": 0
+  }
+]

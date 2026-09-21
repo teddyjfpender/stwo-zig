@@ -1,0 +1,32 @@
+test-recursive-segment-v2-detached-boundary
++- SegmentV2 detached boundary guard
+   +- run test stderr
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test stderr
+detached composition: samples=2287 inputs=10116 nodes=40152 outputs=52 rejected_claims=41 rejected_sample_words=4
+SEGMENT_V2_DETACHED_PREFIX operations=61 calls=237 payload_fixed=54 payload_dynamic=876 input_uses=892 boundary_challenges=2 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_SCHEDULE operations=42 shared_secure_emitter=true
+SEGMENT_V2_DETACHED_PCS_ROWS operations=42 provider_calls=1235 sampled_words=9148 randomness_rows=33 pow_rows=1 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=1 query_rows=193 trace_rows=51917 fri_leaf_rows=10422 path_rows=23353 provider_calls=88201 pcs_inputs=426616 fri_inputs=64487 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=2 query_rows=193 trace_rows=51917 fri_leaf_rows=10422 path_rows=23353 provider_calls=88201 pcs_inputs=426616 fri_inputs=64487 parent_proof_verified=false
+detached expected boundary: inputs=13960 nodes=177798 outputs=8537 provider_calls=322 rejected=37
+SEGMENT_V2_DETACHED_PCS samples=2287 queried_values=410511 layers=5 rejected_deep_answers=193 parent_proof_verified=false
+SEGMENT_V2_DETACHED_CHILD transcript_operations=103 poseidon_calls=1472 sampled_values=2287 queried_values=410511 fri_layers=5 raw_queries=193 input_bytes=2483410 caller_destroyed=true
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-recursive-segment-v2-detached-child success
++- SegmentV2 detached child guard success
+   +- run test 1 passed 14s MaxRSS:1G
+      +- compile test ReleaseSafe native success 59s MaxRSS:3G
+test-recursive-segment-v2-detached-boundary success
++- SegmentV2 detached boundary guard success
+   +- run test 1 passed 1s MaxRSS:17M
+      +- compile test ReleaseSafe native success 5s MaxRSS:589M
+

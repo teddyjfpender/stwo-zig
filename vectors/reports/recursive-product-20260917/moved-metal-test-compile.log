@@ -1,0 +1,4 @@
+[moved-metal-proof-compile] another build holds /tmp/stwo-zig-build.lock; waiting
+[moved-metal-proof-compile] acquired after 228s
+Compile: ethereum_narrow_metal_proof_test.zig
+Compile: recursion_poseidon_degree3_metal_test.zig

@@ -298,7 +298,7 @@ test "E-022 statement claim projection preserves the frozen mapping for all 17 f
             canonical_view.get(subject.transcriptComponent(family)).eql(expected),
         );
     }
-    try std.testing.expectEqual(@as(usize, 620), canonical.n_log_sizes);
+    try std.testing.expectEqual(@as(usize, 624), canonical.n_log_sizes);
 }
 
 test "E-022 composition metadata is pointer-free fixed storage" {

@@ -21,31 +21,13 @@ const QM31 = qm31.QM31;
 pub const FamilyComponentDesc = component.FamilyComponentDesc;
 pub const PublicData = public_data.PublicData;
 
-pub const MAX_COMPONENTS: usize = 256;
-pub const MAX_INFRA_COMPONENTS: usize = 512;
+pub const MAX_COMPONENTS = @import("statement_geometry.zig").MAX_COMPONENTS;
+pub const MAX_INFRA_COMPONENTS = @import("statement_geometry.zig").MAX_INFRA_COMPONENTS;
 pub const MAX_INTERACTION_COLUMNS: usize =
     MAX_COMPONENTS * opcode_interaction.MAX_COLUMNS + MAX_INFRA_COMPONENTS * 16;
 
-pub const InfraKind = enum(u32) {
-    program,
-    memory,
-    clock_update,
-    poseidon2,
-    merkle,
-    bitwise,
-    range_check_20,
-    range_check_8_11,
-    range_check_8_8_4,
-    range_check_8_8,
-    range_check_m31,
-};
-
-pub const InfraComponentDesc = struct {
-    kind: InfraKind,
-    log_size: u32,
-    n_rows: u32,
-    n_columns: u32,
-};
+pub const InfraKind = @import("statement_geometry.zig").InfraKind;
+pub const InfraComponentDesc = @import("statement_geometry.zig").InfraComponentDesc;
 
 pub fn nInteractionColsForInfra(kind: InfraKind) u32 {
     return switch (kind) {

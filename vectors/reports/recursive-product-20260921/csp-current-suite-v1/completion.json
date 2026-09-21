@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "source_snapshot_clean_after_run": true,
+  "backends": {
+    "cpu": {
+      "summary": {
+        "all_metal_resident_polynomial_dispatches_verified": true,
+        "all_negative_fixtures_rejected": true,
+        "all_outputs_match": true,
+        "all_peak_memory_available": true,
+        "all_proofs_verified": true,
+        "all_recursion_disabled": true,
+        "row_count": 16,
+        "target_count": 4
+      },
+      "result_class": "host-qualified-non-comparable",
+      "power_conditions_admissible": true,
+      "measurement_commit": "267d2200f6e4dbe8053f4e2181b5fc26d40d5066"
+    },
+    "metal": {
+      "summary": {
+        "all_metal_resident_polynomial_dispatches_verified": true,
+        "all_negative_fixtures_rejected": true,
+        "all_outputs_match": true,
+        "all_peak_memory_available": true,
+        "all_proofs_verified": true,
+        "all_recursion_disabled": true,
+        "row_count": 16,
+        "target_count": 4
+      },
+      "result_class": "host-qualified-non-comparable",
+      "power_conditions_admissible": true,
+      "measurement_commit": "267d2200f6e4dbe8053f4e2181b5fc26d40d5066"
+    }
+  },
+  "same_proofs_statements_outputs": true,
+  "measured_verified_samples": 320,
+  "precompile_csp_integration_claimed": false
+}

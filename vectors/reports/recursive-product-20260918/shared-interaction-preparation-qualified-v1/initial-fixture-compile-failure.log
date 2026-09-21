@@ -1,0 +1,28 @@
+test-recursive-compact-tuple-ledger
++- Recursive compact tuple ledger guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/framework_interaction.zig:43:28: error: struct 'recursion.air.universal_relation_binding.Binding(recursion.air.control)' has no member named 'BATCH_COUNT'
+        if (RelationRuntime.BATCH_COUNT == 0)
+            ~~~~~~~~~~~~~~~^~~~~~~~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/universal_relation_binding.zig:14:12: note: struct declared here
+    return struct {
+           ^~~~~~
+recursive_compact_tuple_ledger_v1_test.zig:235:56: note: called at comptime here
+    const Framework = air.framework_interaction.Runtime(Binding);
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+referenced by:
+    checkAllAllocationFailures__anon_81315: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:1137:13
+    test.Recursive shared interaction preparation preserves audited columns and failure cleanup: recursive_compact_tuple_ledger_v1_test.zig:229:47
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine --dep stwo_prover_api --dep interop_postcard -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "Recursive shared interaction preparation preserves audited columns and failure cleanup" --test-filter "Recursive streamed tuple projection matches every parent diagnostic entry" --test-filter "Ethereum compact tuple ledger cleans up provider failures after source sealing" --test-filter "Ethereum compact tuple ledger keeps map allocation failure sticky through cancellation" --test-filter "Ethereum compact tuple ledger matches canonical records and range provider exactly" --test-filter "Ethereum compact tuple ledger preserves cancellation counts without retained records" --test-filter "Ethereum compact tuple ledger rejects malformed range requests before cancellation" --test-filter "Ethereum compact tuple ledger checks initial histogram and source phase exactly" --test-filter "Ethereum compact tuple ledger cleans up every allocation failure" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-recursive-compact-tuple-ledger transitive failure
++- Recursive compact tuple ledger guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/cc11df6d50c18e61f2e70befb4405095/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xbc2c03b9 -Zc93f41e2560bb1d2 --maxrss 25769803776 -j1 test-recursive-compact-tuple-ledger -Doptimize=ReleaseSafe --summary all

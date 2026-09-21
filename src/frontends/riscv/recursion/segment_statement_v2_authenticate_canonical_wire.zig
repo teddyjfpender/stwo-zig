@@ -41,11 +41,11 @@ const WireByteIterator = dependency_2.WireByteIterator;
 const channel = dependency_0.channel;
 const continuationRoot = dependency_1.continuationRoot;
 const executedLeaf = dependency_0.executedLeaf;
-const memory_state = dependency_0.memory_state;
+const memory_state = @import("../runner/memory_state.zig");
 const protocol = dependency_0.protocol;
 const readFixed = dependency_2.readFixed;
 const readRetainedSection = dependency_2.readRetainedSection;
-const runner_result = dependency_0.runner_result;
+const runner_result = @import("../runner/result.zig");
 const snapshotSectionIdentity = dependency_2.snapshotSectionIdentity;
 const span_statement = dependency_0.span_statement;
 const statementRange = dependency_0.statementRange;
@@ -55,116 +55,6 @@ const validateWireClockProgress = dependency_2.validateWireClockProgress;
 /// Authenticate an untrusted canonical wire without allocation.  All retained
 /// tuples are checked for strict order, nonzero sparse normalization, bounds,
 /// count/header agreement, and digest agreement before a view is returned.
-pub fn authenticateCanonicalWire(words: []const M31) Error!CanonicalWireViewV2 {
-    var view = try decodeCanonicalWire(words);
-    try validateRetainedIdentities(&view);
-    return view;
-}
-
-/// Cold-open twin of `authenticateCanonicalWire`. The retained snapshot
-/// authorities must include the exact sparse identity, count, and continuation
-/// root already authenticated by the enclosing segment source. The canonical
-/// wire still replays every sparse tuple and clock identity; only the expensive
-/// Poseidon continuation-root traversal is reused.
-pub fn authenticateCanonicalWireReusingRoots(
-    words: []const M31,
-    retained_entry: SnapshotIdentity,
-    retained_exit: SnapshotIdentity,
-) Error!CanonicalWireViewV2 {
-    var view = try decodeCanonicalWire(words);
-    try validateRetainedIdentitiesReusingRoots(
-        &view,
-        retained_entry,
-        retained_exit,
-    );
-    return view;
-}
-
-fn decodeCanonicalWire(words: []const M31) Error!CanonicalWireViewV2 {
-    if (words.len < MIN_CANONICAL_WORDS) return error.CanonicalLengthMismatch;
-    var fixed: [FIXED_CANONICAL_WORDS]M31 = undefined;
-    @memcpy(&fixed, words[0..FIXED_CANONICAL_WORDS]);
-    const statement_v2 = try readFixed(&fixed);
-
-    var reader = Reader{ .words = words, .at = FIXED_CANONICAL_WORDS };
-    const entry_snapshot = try readRetainedSection(
-        &reader,
-        .entry_memory_state,
-        statement_v2.entry_snapshot_count,
-        .sparse_state,
-        0,
-    );
-    const exit_snapshot = try readRetainedSection(
-        &reader,
-        .exit_memory_state,
-        statement_v2.exit_snapshot_count,
-        .sparse_state,
-        0,
-    );
-    const base = try statement_v2.base();
-    const executed = try executedLeaf(base);
-    const range = try statementRange(base, executed);
-    const entry_memory_clocks = try readRetainedSection(
-        &reader,
-        .entry_memory_clocks,
-        statement_v2.entry_memory_clock_count,
-        .memory_clock,
-        range.start,
-    );
-    const exit_memory_clocks = try readRetainedSection(
-        &reader,
-        .exit_memory_clocks,
-        statement_v2.exit_memory_clock_count,
-        .memory_clock,
-        range.end,
-    );
-    if (reader.at != words.len) return error.CanonicalLengthMismatch;
-
-    const view = CanonicalWireViewV2{
-        .words = words,
-        .statement = statement_v2,
-        .entry_snapshot = entry_snapshot,
-        .exit_snapshot = exit_snapshot,
-        .entry_memory_clocks = entry_memory_clocks,
-        .exit_memory_clocks = exit_memory_clocks,
-        .wire_id = channel.hashCanonicalWords(words, WIRE_ID_DOMAIN),
-    };
-    try validateWireClockProgress(&view);
-    try validateWireCompletionLink(&view);
-    return view;
-}
-
-/// Exact adjacent-span authentication over the retained canonical wires.
-/// This re-authenticates both inputs so a mutation after an earlier decode
-/// cannot reuse a stale view.
-pub fn authenticateAdjacentCanonicalWires(
-    left_words: []const M31,
-    right_words: []const M31,
-) Error!AdjacentReceiptV2 {
-    const left = try authenticateCanonicalWire(left_words);
-    const right = try authenticateCanonicalWire(right_words);
-    try requireAdjacentViews(&left, &right);
-    var hasher = IdentityHasher.init(ADJACENCY_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.digest(left.statement.session_id);
-    hasher.digest(left.statement.job_id);
-    hasher.digest(left.statement.exit_lineage_id);
-    hasher.digest(left.wire_id);
-    hasher.digest(right.wire_id);
-    return .{
-        .session_id = left.statement.session_id,
-        .job_id = left.statement.job_id,
-        .shared_boundary_lineage_id = left.statement.exit_lineage_id,
-        .left_wire_id = left.wire_id,
-        .right_wire_id = right.wire_id,
-        .identity = hasher.finalize(),
-    };
-}
-
-/// Exact source-side check used before encoding two adjacent runner results.
-/// Sparse memory equality treats an omitted address as zero, matching the
-/// sparse Merkle default.  Clock maps are cumulative and therefore compare as
-/// exact retained slices.
 pub fn requireAdjacentSources(
     left: *const SourceV2,
     right: *const SourceV2,
@@ -209,185 +99,6 @@ pub fn requireAdjacentSources(
     // Consecutive execution segments need not be aligned binary siblings.
     // The recursive parent separately enforces SpanStatement.fold geometry.
     _ = try span_statement.foldExecuted(left_span, right_span);
-}
-
-pub fn formatId() Digest {
-    var hasher = IdentityHasher.init(FORMAT_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.scalar(SCHEMA_VERSION);
-    hasher.scalar(KNOWN_FLAGS);
-    hasher.scalar(V1_PROJECTION_WORD_COUNT);
-    hasher.scalar(FIXED_CANONICAL_WORDS);
-    hasher.scalar(RETAINED_ENTRY_WORDS);
-    hasher.u32Value(MAX_GLOBAL_CYCLES);
-    hasher.u32Value(MAX_SPARSE_BOUNDARY_ENTRIES);
-    hasher.u32Value(MAX_RW_ADDRESS_EXCLUSIVE);
-    inline for (.{
-        FORMAT_ID_DOMAIN,
-        JOB_ID_DOMAIN,
-        POSITION_ID_DOMAIN,
-        MEMORY_STATE_ID_DOMAIN,
-        MEMORY_CLOCK_ID_DOMAIN,
-        BOUNDARY_LINEAGE_ID_DOMAIN,
-        SEGMENT_LINEAGE_ID_DOMAIN,
-        WIRE_ID_DOMAIN,
-        ADJACENCY_ID_DOMAIN,
-    }) |domain| hasher.scalar(domain);
-    inline for (std.meta.tags(Tag)) |tag| hasher.scalar(@intFromEnum(tag));
-    hasher.digest(protocol.PROTOCOL_ID_WORDS);
-    return hasher.finalize();
-}
-
-pub fn validateRetainedIdentities(view: *const CanonicalWireViewV2) Error!void {
-    const entry_snapshot = snapshotSectionIdentity(view, view.entry_snapshot);
-    const exit_snapshot = snapshotSectionIdentity(view, view.exit_snapshot);
-    const entry_clocks = clockSectionIdentity(view, view.entry_memory_clocks);
-    const exit_clocks = clockSectionIdentity(view, view.exit_memory_clocks);
-    var entry_root_iterator = WireByteIterator.init(view, view.entry_snapshot);
-    var exit_root_iterator = WireByteIterator.init(view, view.exit_snapshot);
-    const entry_root = continuationRoot(&entry_root_iterator);
-    const exit_root = continuationRoot(&exit_root_iterator);
-    if (!std.meta.eql(entry_snapshot, view.statement.entry_snapshot_id) or
-        !std.meta.eql(exit_snapshot, view.statement.exit_snapshot_id) or
-        entry_root != view.statement.entry_continuation_root or
-        exit_root != view.statement.exit_continuation_root or
-        !std.meta.eql(entry_clocks, view.statement.entry_memory_clock_id) or
-        !std.meta.eql(exit_clocks, view.statement.exit_memory_clock_id))
-    {
-        return error.BoundaryIdentityMismatch;
-    }
-}
-
-pub fn validateRetainedIdentitiesReusingRoots(
-    view: *const CanonicalWireViewV2,
-    retained_entry: SnapshotIdentity,
-    retained_exit: SnapshotIdentity,
-) Error!void {
-    const entry_snapshot = snapshotSectionIdentity(view, view.entry_snapshot);
-    const exit_snapshot = snapshotSectionIdentity(view, view.exit_snapshot);
-    const entry_clocks = clockSectionIdentity(view, view.entry_memory_clocks);
-    const exit_clocks = clockSectionIdentity(view, view.exit_memory_clocks);
-    if (!std.meta.eql(entry_snapshot, view.statement.entry_snapshot_id) or
-        !std.meta.eql(exit_snapshot, view.statement.exit_snapshot_id) or
-        !std.meta.eql(entry_clocks, view.statement.entry_memory_clock_id) or
-        !std.meta.eql(exit_clocks, view.statement.exit_memory_clock_id) or
-        !std.meta.eql(retained_entry.id, entry_snapshot) or
-        retained_entry.count != view.statement.entry_snapshot_count or
-        retained_entry.root != view.statement.entry_continuation_root or
-        !std.meta.eql(retained_exit.id, exit_snapshot) or
-        retained_exit.count != view.statement.exit_snapshot_count or
-        retained_exit.root != view.statement.exit_continuation_root)
-    {
-        return error.BoundaryIdentityMismatch;
-    }
-}
-
-pub fn clockSectionIdentity(
-    view: *const CanonicalWireViewV2,
-    section: RetainedSectionV2,
-) Digest {
-    var hasher = IdentityHasher.init(MEMORY_CLOCK_ID_DOMAIN);
-    @import("segment_statement_v2_identity_preimage.zig").emitRetainedSection(
-        &hasher,
-        section.count,
-        view.words[section.payload_start..][0 .. @as(usize, section.count) * 4],
-    );
-    return hasher.finalize();
-}
-
-pub fn validateWireCompletionLink(view: *const CanonicalWireViewV2) Error!void {
-    const completion = view.statement.completion orelse return;
-    if (completion.kind != .halt_flag) return;
-
-    var value_matches = false;
-    for (0..view.exit_snapshot.count) |index| {
-        const entry = view.sparseEntry(view.exit_snapshot, index);
-        if (entry.address < completion.address) continue;
-        if (entry.address == completion.address and entry.value == completion.value)
-            value_matches = true;
-        break;
-    }
-    var clock_matches = false;
-    for (0..view.exit_memory_clocks.count) |index| {
-        const entry = view.clockEntry(view.exit_memory_clocks, index);
-        if (entry.address < completion.address) continue;
-        if (entry.address == completion.address and entry.clock == completion.clock)
-            clock_matches = true;
-        break;
-    }
-    if (!value_matches or !clock_matches) return error.CompletionMismatch;
-}
-
-pub fn requireAdjacentViews(
-    left: *const CanonicalWireViewV2,
-    right: *const CanonicalWireViewV2,
-) Error!void {
-    if (!std.meta.eql(left.statement.session_id, right.statement.session_id))
-        return error.CrossSession;
-    if (!std.meta.eql(left.statement.job_id, right.statement.job_id))
-        return error.JobMismatch;
-    const left_base = try left.statement.base();
-    const right_base = try right.statement.base();
-    const left_span = try executedLeaf(left_base);
-    const right_span = try executedLeaf(right_base);
-    if (left_span.first_segment == std.math.maxInt(u32) or
-        left_span.first_segment + 1 != right_span.first_segment)
-    {
-        return error.NonAdjacentPosition;
-    }
-    if (left_span.endCycle() != right_span.first_cycle)
-        return error.CycleDiscontinuity;
-    if (!std.meta.eql(left_span.exit, right_span.entry))
-        return error.StateDiscontinuity;
-    if (!sectionsEqualSparse(left, left.exit_snapshot, right, right.entry_snapshot))
-        return error.MemorySnapshotMismatch;
-    if (!std.mem.eql(
-        u32,
-        &left.statement.exit_register_clocks,
-        &right.statement.entry_register_clocks,
-    ) or !sectionsEqualClocks(
-        left,
-        left.exit_memory_clocks,
-        right,
-        right.entry_memory_clocks,
-    )) return error.BoundaryClockMismatch;
-    if (!std.meta.eql(
-        left.statement.exit_lineage_id,
-        right.statement.entry_lineage_id,
-    )) return error.LineageMismatch;
-    _ = try span_statement.foldExecuted(left_span, right_span);
-}
-
-pub fn sectionsEqualSparse(
-    left: *const CanonicalWireViewV2,
-    left_section: RetainedSectionV2,
-    right: *const CanonicalWireViewV2,
-    right_section: RetainedSectionV2,
-) bool {
-    if (left_section.count != right_section.count) return false;
-    for (0..left_section.count) |index| {
-        if (!std.meta.eql(
-            left.sparseEntry(left_section, index),
-            right.sparseEntry(right_section, index),
-        )) return false;
-    }
-    return true;
-}
-
-pub fn sectionsEqualClocks(
-    left: *const CanonicalWireViewV2,
-    left_section: RetainedSectionV2,
-    right: *const CanonicalWireViewV2,
-    right_section: RetainedSectionV2,
-) bool {
-    if (left_section.count != right_section.count) return false;
-    for (0..left_section.count) |index| {
-        if (!std.meta.eql(
-            left.clockEntry(left_section, index),
-            right.clockEntry(right_section, index),
-        )) return false;
-    }
-    return true;
 }
 
 pub fn clockSlicesEqual(
@@ -436,21 +147,16 @@ pub fn requireSparseSourceEquality(
         return error.MemorySnapshotMismatch;
 }
 
-pub fn assertPointerFree(comptime T: type) void {
-    switch (@typeInfo(T)) {
-        .pointer => @compileError("segment statement V2 fixed authority contains a pointer"),
-        .optional => |optional| assertPointerFree(optional.child),
-        .array => |array| assertPointerFree(array.child),
-        .@"struct" => |info| inline for (info.fields) |field|
-            assertPointerFree(field.type),
-        .@"union" => |info| inline for (info.fields) |field|
-            assertPointerFree(field.type),
-        else => {},
-    }
-}
-
-comptime {
-    assertPointerFree(CompletionV2);
-    assertPointerFree(StatementV2);
-    assertPointerFree(AdjacentReceiptV2);
-}
+const wire = @import("segment_statement_v2_wire.zig");
+pub const authenticateCanonicalWire = wire.authenticateCanonicalWire;
+pub const authenticateCanonicalWireReusingRoots = wire.authenticateCanonicalWireReusingRoots;
+pub const authenticateAdjacentCanonicalWires = wire.authenticateAdjacentCanonicalWires;
+pub const formatId = wire.formatId;
+pub const validateRetainedIdentities = wire.validateRetainedIdentities;
+pub const validateRetainedIdentitiesReusingRoots = wire.validateRetainedIdentitiesReusingRoots;
+pub const clockSectionIdentity = wire.clockSectionIdentity;
+pub const validateWireCompletionLink = wire.validateWireCompletionLink;
+pub const requireAdjacentViews = wire.requireAdjacentViews;
+pub const sectionsEqualSparse = wire.sectionsEqualSparse;
+pub const sectionsEqualClocks = wire.sectionsEqualClocks;
+pub const assertPointerFree = wire.assertPointerFree;

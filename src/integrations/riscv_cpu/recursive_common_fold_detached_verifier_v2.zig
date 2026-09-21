@@ -11,7 +11,6 @@ const cohort_mod = @import("recursive_common_fold_secure_cohort_v2.zig");
 const artifact = @import("recursive_temporal_secure_parent_artifact_v1.zig");
 const protocol_mod = @import("recursive_temporal_secure_parent_protocol_v1.zig");
 const codec = @import("recursive_temporal_secure_parent_native_engine_v1.zig");
-const support = @import("recursive_binary_outer_support.zig");
 const public_mod = @import("recursive_field_node_public_v2.zig");
 const public_boundary = @import("recursive_common_fold_public_output_v3.zig");
 const catalog = manifest_mod.catalog;
@@ -198,7 +197,7 @@ fn verifyImpl(allocator: std.mem.Allocator, key: *const Key, node: *const public
     var scheme = try Scheme.init(allocator, try protocol.pcsConfig());
     defer scheme.deinit(allocator);
     var channel = recursion.poseidon2_channel.Channel{};
-    for (0..2) |tree| try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, tree, commitments[tree], &channel);
+    for (0..2) |tree| try recursion.verifier_tree.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, tree, commitments[tree], &channel);
     try key.manifest.mixStatementPrefix(&channel);
     channel.mixU32s(&cohort_mod.AUTHORITY_TRANSCRIPT_HEADER);
     channel.mixU32s(&words);
@@ -221,10 +220,10 @@ fn verifyImpl(allocator: std.mem.Allocator, key: *const Key, node: *const public
     if (!total.isZero()) return error.InvalidCommonFoldVerifierClosure;
     try claim_vector.mixInteractionClaimValues(&key.manifest, &channel);
     channel.mixFelts(&claims.poseidon_partials);
-    try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, 2, commitments[2], &channel);
+    try recursion.verifier_tree.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, 2, commitments[2], &channel);
     const components = try Components.init(allocator, key, claims, &relations, &providers);
     defer components.deinit();
-    const moved = support.moveOwnedForVerifier(recursion.engine.Proof, &proof, &proof_owned);
+    const moved = recursion.verifier_tree.moveOwnedForVerifier(recursion.engine.Proof, &proof, &proof_owned);
     if (capture) |output|
         try core.verifier.verifyWithProofCapture(recursion.engine.Hasher, recursion.engine.MerkleChannel, allocator, try components.gate.verifierSlice(), &channel, &scheme, moved, output)
     else

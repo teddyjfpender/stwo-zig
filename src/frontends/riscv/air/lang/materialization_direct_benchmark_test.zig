@@ -1,7 +1,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const benchmark = @import("materialization_direct_benchmark.zig");
-const direct_program = @import("materialization_direct_program.zig");
+const direct_program = @import("direct_polynomial_program.zig");
 const ir = @import("ir.zig");
 const source = @import("source.zig");
 

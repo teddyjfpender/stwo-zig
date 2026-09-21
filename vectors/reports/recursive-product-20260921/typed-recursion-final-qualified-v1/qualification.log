@@ -1,0 +1,229 @@
+build-cpu: started
+build-cpu: passed in 277.157s
+complete-tree: started
+complete-tree: passed in 75.979s
+substitution-0: started
+substitution-0: passed in 0.690s
+substitution-1: started
+substitution-1: passed in 0.687s
+substitution-2: started
+substitution-2: passed in 0.690s
+substitution-3: started
+substitution-3: passed in 0.685s
+build-cpu: started
+build-cpu: passed in 0.210s
+build-metal: started
+build-metal: passed in 239.336s
+build-aot-tool: started
+build-aot-tool: passed in 11.858s
+build-aot: started
+build-aot: passed in 19.461s
+complete-tree: started
+complete-tree: passed in 88.757s
+substitution-0: started
+substitution-0: passed in 0.687s
+substitution-1: started
+substitution-1: passed in 0.686s
+substitution-2: started
+substitution-2: passed in 0.670s
+substitution-3: started
+substitution-3: passed in 0.683s
+1-cpu: complete tree started
+1-cpu: passed 15 checks, baseline artifacts identical
+1-metal: complete tree started
+1-metal: passed 15 checks, baseline artifacts identical
+2-cpu: complete tree started
+2-cpu: passed 60 checks, baseline artifacts identical
+2-metal: complete tree started
+2-metal: passed 60 checks, baseline artifacts identical
+4-cpu: complete tree started
+4-cpu: passed 150 checks, baseline artifacts identical
+4-metal: complete tree started
+4-metal: passed 150 checks, baseline artifacts identical
+8-cpu: complete tree started
+8-cpu: passed 330 checks, baseline artifacts identical
+8-metal: complete tree started
+8-metal: passed 330 checks, baseline artifacts identical
+Ladder passed: 1110 checks, 78 baseline-identical artifacts.
+[
+  {
+    "segments": 1,
+    "backend": "cpu",
+    "production_seconds": 9.692463958,
+    "peak_rss_bytes": 2900033536,
+    "root_proof_bytes": 2481525,
+    "root_verify_ms": 73.199583,
+    "cases": 15,
+    "direct_detached_leaf_verify_ms": 73.199583,
+    "direct_detached_leaf_proof_bytes": 2481525,
+    "root_vs_leaf_verify_ratio": 1.0,
+    "parent_production_seconds": 0.0,
+    "consumer_count_to_amortize_parent_production": null,
+    "root_verifier_peak_rss_bytes": 19529728,
+    "root_memory_run_process_ns": 99065958,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-verify",
+      "--root",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/1-cpu/leaves/child-0",
+      "2ac5155e9ef983d80be4bb4f19ba1202411f61cba537b2185a996b07d12e7d6c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/207c2bed378d85943bc3dd603ea84d9f035a93752634169140b20650030d2f46.json"
+    ]
+  },
+  {
+    "segments": 1,
+    "backend": "metal",
+    "production_seconds": 8.199298959,
+    "peak_rss_bytes": 2570567680,
+    "root_proof_bytes": 2481525,
+    "root_verify_ms": 73.214542,
+    "cases": 15,
+    "direct_detached_leaf_verify_ms": 73.214542,
+    "direct_detached_leaf_proof_bytes": 2481525,
+    "root_vs_leaf_verify_ratio": 1.0,
+    "parent_production_seconds": 0.0,
+    "consumer_count_to_amortize_parent_production": null,
+    "root_verifier_peak_rss_bytes": 19529728,
+    "root_memory_run_process_ns": 98555417,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-verify",
+      "--root",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/1-metal/leaves/child-0",
+      "2ac5155e9ef983d80be4bb4f19ba1202411f61cba537b2185a996b07d12e7d6c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/207c2bed378d85943bc3dd603ea84d9f035a93752634169140b20650030d2f46.json"
+    ]
+  },
+  {
+    "segments": 2,
+    "backend": "cpu",
+    "production_seconds": 30.313014709,
+    "peak_rss_bytes": 4077191168,
+    "root_proof_bytes": 2418969,
+    "root_verify_ms": 68.402083,
+    "cases": 60,
+    "direct_detached_leaf_verify_ms": 147.776874,
+    "direct_detached_leaf_proof_bytes": 4978455,
+    "root_vs_leaf_verify_ratio": 2.1604148224550412,
+    "parent_production_seconds": 10.89027425,
+    "consumer_count_to_amortize_parent_production": 138,
+    "root_verifier_peak_rss_bytes": 15745024,
+    "root_memory_run_process_ns": 88452834,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/2-cpu/parent-1-0",
+      "f1f600a00e36dac7c9202b0a88eb28c525ef98c3c0fcc1af973f2f3623b0abca",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d8a1bce00f246833d7f6c8347f2a28d12c981ce5f36bda7b8aeb52ad841ce535.json"
+    ]
+  },
+  {
+    "segments": 2,
+    "backend": "metal",
+    "production_seconds": 23.7585035,
+    "peak_rss_bytes": 4523065344,
+    "root_proof_bytes": 2418969,
+    "root_verify_ms": 68.620125,
+    "cases": 60,
+    "direct_detached_leaf_verify_ms": 147.616041,
+    "direct_detached_leaf_proof_bytes": 4978455,
+    "root_vs_leaf_verify_ratio": 2.151206238694552,
+    "parent_production_seconds": 7.449307,
+    "consumer_count_to_amortize_parent_production": 95,
+    "root_verifier_peak_rss_bytes": 15745024,
+    "root_memory_run_process_ns": 77369042,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/2-metal/parent-1-0",
+      "f1f600a00e36dac7c9202b0a88eb28c525ef98c3c0fcc1af973f2f3623b0abca",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d8a1bce00f246833d7f6c8347f2a28d12c981ce5f36bda7b8aeb52ad841ce535.json"
+    ]
+  },
+  {
+    "segments": 4,
+    "backend": "cpu",
+    "production_seconds": 72.176058834,
+    "peak_rss_bytes": 4085792768,
+    "root_proof_bytes": 2287573,
+    "root_verify_ms": 67.301417,
+    "cases": 150,
+    "direct_detached_leaf_verify_ms": 295.436292,
+    "direct_detached_leaf_proof_bytes": 9954693,
+    "root_vs_leaf_verify_ratio": 4.3897484654743595,
+    "parent_production_seconds": 32.812028959,
+    "consumer_count_to_amortize_parent_production": 144,
+    "root_verifier_peak_rss_bytes": 15253504,
+    "root_memory_run_process_ns": 73758666,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/4-cpu/parent-2-0",
+      "4a31dd6ac57c7fe3675c3949690aabad9a6ede2c6926df23d330da252c31402d",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/19aafae20285e08bf9c997fb109f48135436eb65a2d45ca81a57a2bd655bb076.json"
+    ]
+  },
+  {
+    "segments": 4,
+    "backend": "metal",
+    "production_seconds": 54.297359167,
+    "peak_rss_bytes": 4533780480,
+    "root_proof_bytes": 2287573,
+    "root_verify_ms": 67.2055,
+    "cases": 150,
+    "direct_detached_leaf_verify_ms": 295.009416,
+    "direct_detached_leaf_proof_bytes": 9954693,
+    "root_vs_leaf_verify_ratio": 4.389661798513514,
+    "parent_production_seconds": 21.980916375,
+    "consumer_count_to_amortize_parent_production": 97,
+    "root_verifier_peak_rss_bytes": 15253504,
+    "root_memory_run_process_ns": 74420875,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/4-metal/parent-2-0",
+      "4a31dd6ac57c7fe3675c3949690aabad9a6ede2c6926df23d330da252c31402d",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/19aafae20285e08bf9c997fb109f48135436eb65a2d45ca81a57a2bd655bb076.json"
+    ]
+  },
+  {
+    "segments": 8,
+    "backend": "cpu",
+    "production_seconds": 153.138812416,
+    "peak_rss_bytes": 4086415360,
+    "root_proof_bytes": 2297319,
+    "root_verify_ms": 69.860542,
+    "cases": 330,
+    "direct_detached_leaf_verify_ms": 590.339206,
+    "direct_detached_leaf_proof_bytes": 19919802,
+    "root_vs_leaf_verify_ratio": 8.450252304083183,
+    "parent_production_seconds": 75.041232833,
+    "consumer_count_to_amortize_parent_production": 145,
+    "root_verifier_peak_rss_bytes": 15450112,
+    "root_memory_run_process_ns": 77655625,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/8-cpu/parent-3-0",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+    ]
+  },
+  {
+    "segments": 8,
+    "backend": "metal",
+    "production_seconds": 115.283421126,
+    "peak_rss_bytes": 4534255616,
+    "root_proof_bytes": 2297319,
+    "root_verify_ms": 69.557417,
+    "cases": 330,
+    "direct_detached_leaf_verify_ms": 592.935918,
+    "direct_detached_leaf_proof_bytes": 19919802,
+    "root_vs_leaf_verify_ratio": 8.5244096686339,
+    "parent_production_seconds": 51.021121084,
+    "consumer_count_to_amortize_parent_production": 98,
+    "root_verifier_peak_rss_bytes": 15450112,
+    "root_memory_run_process_ns": 80492375,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-typed-final-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-typed-final-ladder-20260921-v1/8-metal/parent-3-0",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+    ]
+  }
+]
+Retained final continuation evidence: 1,110 checks and 78 identical artifacts.
+Canonical public surface qualification passed.

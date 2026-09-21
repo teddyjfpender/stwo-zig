@@ -1,0 +1,10 @@
+test-framework-interaction-device
++- run test stderr
+FRAMEWORK_INTERACTION_GPU_V1 cumulative=false geometries=5 rows=1922 batches=2 includes_failure_recovery=true
+FRAMEWORK_INTERACTION_GPU_V1 cumulative=true geometries=5 rows=1922 batches=2 includes_failure_recovery=true
+
+Build Summary: 3/3 steps succeeded; 4/4 tests passed
+test-framework-interaction-device success
++- run test 4 passed 934ms MaxRSS:17M
+   +- compile test ReleaseSafe native success 3s MaxRSS:390M
+

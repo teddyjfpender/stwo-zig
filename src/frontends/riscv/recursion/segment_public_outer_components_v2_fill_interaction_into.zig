@@ -132,6 +132,19 @@ pub fn fillInteractionInto(
     relations: *const universal.UniversalRelations,
     destination: []const []M31,
 ) !Claims {
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return fillInteractionIntoWithGenerator(owner, workspace, prepared, manifest, relations, destination, &generator);
+}
+
+pub fn fillInteractionIntoWithGenerator(
+    owner: *const Source,
+    workspace: *Workspace,
+    prepared: *const source_v2.PreparedV2,
+    manifest: *const manifest_mod.Manifest,
+    relations: *const universal.UniversalRelations,
+    destination: []const []M31,
+    generator: anytype,
+) !Claims {
     try owner.validateAgainst(prepared, manifest);
     try workspace.validateAgainst(prepared);
     try relations.validate();
@@ -148,7 +161,8 @@ pub fn fillInteractionInto(
     var claims: [ROW_COUNT]QM31 = undefined;
     for (plans, RELAY_COMPONENT_INDICES, 0..) |plan, index, local_index| {
         var columns = stagedRelayColumns(workspace, index);
-        claims[index] = try RelayFramework.generatePreparedInto(
+        claims[index] = try generator.generatePreparedInto(
+            RelayFramework,
             &workspace.interactions[local_index],
             plan,
             workspace.logical_rows[index],
@@ -158,7 +172,8 @@ pub fn fillInteractionInto(
         );
     }
     var claim_hash_columns = stagedClaimHashColumns(workspace);
-    claims[1] = try SumsFramework.generatePreparedInto(
+    claims[1] = try generator.generatePreparedInto(
+        SumsFramework,
         &workspace.claim_hash_interaction,
         &owner.owners.native_public_sums.relation,
         workspace.claim_hash_logical_rows,
@@ -167,7 +182,8 @@ pub fn fillInteractionInto(
         &claim_hash_columns,
     );
     var control_columns = stagedControlColumns(workspace);
-    claims[ROW_COUNT - 1] = try ControlFramework.generatePreparedInto(
+    claims[ROW_COUNT - 1] = try generator.generatePreparedInto(
+        ControlFramework,
         &workspace.control_interaction,
         &owner.owners.control_relay.relation,
         workspace.controlActiveRows(),

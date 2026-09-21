@@ -358,41 +358,11 @@ fn validateCall(call: poseidon2_air.Call) Error!void {
         return error.InvalidAuthorityCall;
 }
 
-/// Shared exact public tuple projection; expected callers regenerate calls
-/// from expected public data and fixed admitted descriptors first.
-pub fn callWireTuples(call_index: usize, call: poseidon2_air.Call) [CALL_WIRE_GROUP_COUNT][6]M31 {
-    const words = tupleForCall(call);
-    var tuples: [CALL_WIRE_GROUP_COUNT][6]M31 = undefined;
-    for (&tuples, 0..) |*tuple, group| tuple.* = callWireTupleFromWords(call_index, group, &words);
-    return tuples;
-}
-
-pub fn callWireTuple(call_index: usize, group: usize, call: poseidon2_air.Call) [6]M31 {
-    return callWireTupleFromWords(call_index, group, &tupleForCall(call));
-}
-
-fn callWireTupleFromWords(call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]M31) [6]M31 {
-    return callWireTupleGeneric(M31, identityBase, call_index, group, words);
-}
-fn identityBase(value: M31) M31 {
-    return value;
-}
-/// Canonical circuit/node/word projection, shared by native public boundary
-/// calculation and the parent's provider-authenticated symbolic call words.
-pub fn callWireTupleGeneric(comptime S: type, from_base: anytype, call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]S) [6]S {
-    std.debug.assert(group < CALL_WIRE_GROUP_COUNT);
-    std.debug.assert(call_index <= (m31.Modulus - 1 - group) / CALL_WIRE_GROUP_COUNT);
-    return .{ from_base(felt(CALL_WIRE_CIRCUIT_ID)), from_base(felt(@as(u32, @intCast(call_index * CALL_WIRE_GROUP_COUNT + group)))) } ++ words[group * 4 ..][0..4].*;
-}
-
-fn tupleForCall(call: poseidon2_air.Call) [air.POSEIDON_TUPLE_WIDTH]M31 {
-    var input: [poseidon2_air.WIDTH]M31 = undefined;
-    for (&input, call.input) |*destination, word|
-        destination.* = M31.fromCanonical(word);
-    var output = input;
-    poseidon2.permute(&output);
-    return input ++ output;
-}
+pub const callWireTuples = @import("segment_authority_wire_v2.zig").callWireTuples;
+pub const callWireTuple = @import("segment_authority_wire_v2.zig").callWireTuple;
+pub const callWireTupleGeneric = @import("segment_authority_wire_v2.zig").callWireTupleGeneric;
+const callWireTupleFromWords = @import("segment_authority_wire_v2.zig").callWireTupleFromWords;
+const tupleForCall = @import("segment_authority_wire_v2.zig").tupleForCall;
 
 fn zeroRelay() public_source.RelayRowV2 {
     return .{

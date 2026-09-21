@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -378,7 +379,7 @@ def write_receipt(receipt: dict[str, Any], output: Path) -> None:
     )
 
 
-def check_receipt(receipt_path: Path, candidate_dir: Path) -> str:
+def _checked_records(receipt_path: Path) -> list[dict[str, Any]]:
     receipt = _load(receipt_path)
     if receipt.get("schema_version") != RECEIPT_SCHEMA_VERSION or receipt.get("kind") != RECEIPT_KIND:
         raise EquivalenceError("semantic-equivalence receipt identity drifted")
@@ -425,32 +426,114 @@ def check_receipt(receipt_path: Path, candidate_dir: Path) -> str:
         item.get("family") for item in records if isinstance(item, dict)
     ] != list(TEAM_B_FAMILIES):
         raise EquivalenceError("semantic-equivalence family inventory drifted")
+    return records
+
+
+def _check_equivalent_family(record: dict[str, Any], candidate_dir: Path) -> None:
+    family = record["family"]
+    path = candidate_dir / f"{family}.json"
+    candidate = _load(path)
+    raw = sha256_file(path)
+    normalized = semantic_digest(candidate, family)
+    if record.get("candidate_raw_sha256") != raw:
+        raise EquivalenceError(f"{family} typed raw AIR digest drifted")
+    if (
+        record.get("baseline_semantic_sha256") != normalized
+        or record.get("candidate_semantic_sha256") != normalized
+    ):
+        raise EquivalenceError(f"{family} polynomial semantics drifted")
+    if record.get("baseline_raw_sha256") == raw:
+        raise EquivalenceError(f"{family} receipt does not describe a raw-DAG rebind")
+    if (
+        record.get("column_count") != len(candidate["columns"])
+        or record.get("constraint_count") != len(candidate["constraints"])
+        or record.get("lookup_count") != len(candidate["lookups"])
+        or record.get("unmodelled_bus_requests")
+        != candidate["unmodelled_bus_requests"]
+    ):
+        raise EquivalenceError(f"{family} recorded AIR geometry drifted")
+
+
+def check_receipt(receipt_path: Path, candidate_dir: Path) -> str:
+    records = _checked_records(receipt_path)
     for record in records:
-        family = record["family"]
-        path = candidate_dir / f"{family}.json"
-        candidate = _load(path)
-        raw = sha256_file(path)
-        normalized = semantic_digest(candidate, family)
-        if record.get("candidate_raw_sha256") != raw:
-            raise EquivalenceError(f"{family} typed raw AIR digest drifted")
-        if (
-            record.get("baseline_semantic_sha256") != normalized
-            or record.get("candidate_semantic_sha256") != normalized
-        ):
-            raise EquivalenceError(f"{family} polynomial semantics drifted")
-        if record.get("baseline_raw_sha256") == raw:
-            raise EquivalenceError(f"{family} receipt does not describe a raw-DAG rebind")
-        if (
-            record.get("column_count") != len(candidate["columns"])
-            or record.get("constraint_count") != len(candidate["constraints"])
-            or record.get("lookup_count") != len(candidate["lookups"])
-            or record.get("unmodelled_bus_requests")
-            != candidate["unmodelled_bus_requests"]
-        ):
-            raise EquivalenceError(f"{family} recorded AIR geometry drifted")
+        _check_equivalent_family(record, candidate_dir)
     return (
         f"team B typed-AIR rebind: {len(records)} raw exports preserve exact "
         "ordered polynomial constraints and lookups"
+    )
+
+
+REVISION_KIND = "stwo-riscv-team-b-load-store-reviewed-revision"
+REVISION_REASON = "one-gib-load-store-address-bound"
+
+
+def check_reviewed_revision(
+    historical_receipt: Path, revision_path: Path, candidate_dir: Path,
+    load_store_capsule: Path,
+) -> str:
+    """Check one explicit equation revision without relabeling it equivalence.
+
+    The reviewed receipt and capsule are trusted repository inputs. This binds
+    their exact bytes and exported polynomial identity; compiling the Lean
+    proofs remains the separate formal build gate.
+    """
+    records = _checked_records(historical_receipt)
+    revision = _load(revision_path)
+    if (revision.get("schema_version") != 1
+            or revision.get("kind") != REVISION_KIND
+            or revision.get("reason") != REVISION_REASON
+            or revision.get("family") != "load_store"):
+        raise EquivalenceError("reviewed revision identity drifted")
+    if revision.get("canonical_digest") != canonical_digest(revision):
+        raise EquivalenceError("reviewed revision digest mismatch")
+    if revision.get("historical_receipt_sha256") != sha256_file(historical_receipt):
+        raise EquivalenceError("reviewed revision history mismatch")
+    boundary = {
+        "equivalent_to_historical_air": False,
+        "reviewed_capsule_binds_current_export": True,
+        "lean_proofs_checked_by_this_receipt": False,
+        "cross_row_or_multiset_closure": False,
+        "witness_generation_equivalence": False,
+    }
+    actual_boundary = revision.get("claim_boundary")
+    if (not isinstance(actual_boundary, dict)
+            or actual_boundary.keys() != boundary.keys()
+            or any(actual_boundary[k] is not v for k, v in boundary.items())):
+        raise EquivalenceError("reviewed revision claim boundary drifted")
+    for record in records:
+        if record["family"] != "load_store":
+            _check_equivalent_family(record, candidate_dir)
+            continue
+        if revision.get("previous_raw_sha256") != record["candidate_raw_sha256"] or revision.get("previous_semantic_sha256") != record["candidate_semantic_sha256"]:
+            raise EquivalenceError("reviewed revision predecessor mismatch")
+        path = candidate_dir / "load_store.json"
+        candidate = _load(path)
+        raw = sha256_file(path)
+        normalized = semantic_digest(candidate, "load_store")
+        if revision.get("current_raw_sha256") != raw or revision.get("current_semantic_sha256") != normalized:
+            raise EquivalenceError("reviewed load_store export drifted")
+        if raw == record["candidate_raw_sha256"] or normalized == record["candidate_semantic_sha256"]:
+            raise EquivalenceError("reviewed revision requires changed equations")
+        geometry = {
+            "column_count": len(candidate["columns"]),
+            "constraint_count": len(candidate["constraints"]),
+            "lookup_count": len(candidate["lookups"]),
+            "unmodelled_bus_requests": candidate["unmodelled_bus_requests"],
+        }
+        if revision.get("current_geometry") != geometry:
+            raise EquivalenceError("reviewed revision geometry drifted")
+        if revision.get("capsule_sha256") != sha256_file(load_store_capsule):
+            raise EquivalenceError("reviewed load_store capsule drifted")
+        capsule = load_store_capsule.read_text(encoding="utf-8")
+        for name, expected in (("loadStoreIrDigest", raw), ("loadStorePolynomialDigest", normalized)):
+            pins = re.findall(r'def\s+' + name + r'\s*:\s*String\s*:=\s*"([0-9a-f]{64})"', capsule)
+            if pins != [expected]:
+                raise EquivalenceError("reviewed load_store capsule export binding drifted")
+    return (
+        "team B AIR history: 5 raw exports preserve exact ordered polynomial "
+        "constraints and lookups; load_store binds a separately reviewed "
+        "equation revision (not equivalent to historical AIR)"
     )
 
 

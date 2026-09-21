@@ -21,7 +21,7 @@ elab "#audit_recursive_air" : command => do
           for axiomName in (← collectAxioms name) do
             unless axiomName == ``propext || axiomName == ``Quot.sound ||
                 axiomName == ``Classical.choice do
-              throwError "Unexpected axiom in {name}: {axiomName}"
+              throwError "Unexpected kernel dependency in {name}: {axiomName}"
             logInfo m!"RECURSIVE_AIR_AXIOM {name} {axiomName}"
       | _ => pure ()
   unless count == 10 do

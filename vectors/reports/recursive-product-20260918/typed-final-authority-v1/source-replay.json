@@ -1,0 +1,22 @@
+{
+  "base_head": "1358234f1e8a2ac34241658dcd3505bad5feb1fc",
+  "source_patch_sha256": "b3049b2a672deb1c66dc3b7e5342fc8a17526a8f1b3f94e997a907b60e8207e6",
+  "snapshot_files": 6184,
+  "new_source_files": 219,
+  "source_scope": [
+    "build.zig",
+    "build.zig.zon",
+    "build_support",
+    "src",
+    "scripts",
+    "design",
+    "conformance"
+  ],
+  "includes_formal_tree": false,
+  "formal_checkpoint": "../formal-reviewed-revision-v1/summary.json",
+  "replay_checked": true,
+  "reconstructed_tree": "fe4cef29bd27e4b2b98c2f54ad90bd25ab3b1e8b",
+  "matching_source_files": 6184,
+  "clean_index": true,
+  "independent_rebuild": false
+}

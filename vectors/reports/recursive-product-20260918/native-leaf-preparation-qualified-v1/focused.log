@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded; 12/12 tests passed
+test-recursive-segment-v2-leaf-outer success
++- run test 11 passed 646ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 13s MaxRSS:2G
+test-recursive-segment-v2-noncore-owner success
++- run test 1 passed 904ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 15s MaxRSS:2G
+

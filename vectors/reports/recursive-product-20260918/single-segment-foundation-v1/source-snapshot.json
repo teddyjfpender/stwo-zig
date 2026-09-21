@@ -1,0 +1,13 @@
+{
+  "src/frontends/riscv/recursion/detached_segment_command_v1.zig": "589fe198a887699aea257e8ee4341f73809a31c7cb666340940877d943dcb7b0",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig": "e6bb349dcc92f878e72e769807d5d5dbf29db1aa7d08c08b5480d2a14893e180",
+  "src/integrations/riscv_cpu/recursive_segment_v2_single_root_test.zig": "4bbd397b0bba6e1bf026e3b78f8cdbf0fe6c6c323f7e8446db057dc5aaea54fb",
+  "src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig": "77cbfc779927686bc1220d4dd09da2de53d955b92c2de6da5a2325b65243c1ff",
+  "src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig": "2c981c415b09a0d20eec8a70825f366053ba914ce5f8d160e836088f23851fa4",
+  "src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig": "5c274a1e0c0fb09cca0c70805622c867583d4e0143356988e31b50b6c49260e6",
+  "src/integrations/riscv_cpu/recursive_segment_v2_workload_runner.zig": "905a76c01d5372c556b26b9ce0f2b59fdad223f72c9d1a502f23601c61be9e97",
+  "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig": "e89a4ee3ff8bb0ace50dc26250fbd0937ebe88a369068dd4ef947a2800540004",
+  "src/integrations/riscv_cpu/build_segment_steps.zig": "03262ab2954a6aa1edfa745cc9f96fa3810d78ee86e5dffaf47d333af939c1b0",
+  "scripts/riscv_segment_v2_detached_gate.py": "fede4f694d486e94cde126a040c378cb944d6e3f7e59cdc4111d7f786f9292a3",
+  "scripts/riscv_segment_v2_detached_tree_gate.py": "e8c09a247072d74238fa48c4b08ccf98069f6d7a4f882cadbbaa16936c4998cc"
+}

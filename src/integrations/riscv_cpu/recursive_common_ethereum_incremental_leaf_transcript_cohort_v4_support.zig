@@ -264,16 +264,13 @@ pub fn generateWithAudit(
     relations: *const air.universal_challenges.UniversalRelations,
 ) !AuditedInteraction(Framework) {
     const size = try traceSize(log_size);
-    const event_terms = try std.math.mul(usize, rows.len, plan.events.len);
     const storage = try allocator.alloc(M31, try Framework.requiredStorageElementCount(log_size));
     errdefer allocator.free(storage);
     var columns: [Framework.INTERACTION_COLUMN_COUNT][]M31 = undefined;
     for (&columns, 0..) |*column, index| column.* = storage[index * size ..][0..size];
-    var workspace = try Framework.Workspace.init(allocator, log_size);
-    defer workspace.deinit();
-    const generated = try Framework.generatePreparedIntoWithDomainSums(&workspace, plan, rows, log_size, relations, &columns);
+    const generated = try air.prepared_interaction_generation.generateInto(Framework, allocator, plan, rows, log_size, relations, &columns, .{});
     return .{
         .interaction = .{ .columns = columns, .claimed_sum = generated.claimed_sum, .storage = storage },
-        .audit = .{ .values = generated.by_domain, .total = generated.claimed_sum, .logical_rows = rows.len, .event_terms = event_terms },
+        .audit = generated.audit.?,
     };
 }

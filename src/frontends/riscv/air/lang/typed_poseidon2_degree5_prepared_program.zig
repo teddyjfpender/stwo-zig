@@ -10,8 +10,8 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const candidate_mod = @import("typed_poseidon2_degree_bounded_candidate.zig");
-const direct = @import("materialization_cost_direct.zig");
-const direct_program = @import("materialization_direct_program.zig");
+const direct = @import("direct_polynomial_graph.zig");
+const direct_program = @import("direct_polynomial_program.zig");
 const poseidon = @import("typed_poseidon2.zig");
 
 pub const node_count: usize = 2_842;

@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "unchanged_declarations": [
+    "Frontend",
+    "Backend",
+    "Role",
+    "Product",
+    "ModuleSpec",
+    "coreProduct",
+    "proverProduct"
+  ]
+}

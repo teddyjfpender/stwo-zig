@@ -27,10 +27,7 @@ test "Ethereum surviving public sums sparse work benchmark" {
         .final_clock = 0,
     };
     var fixture = try support.Fixture.init();
-    var source = fixture.leftSource();
-    source.memory_words = memory;
-    source.entry_memory_clocks = &.{};
-    source.exit_memory_clocks = &.{};
+    const source = try fixture.leftSourceWithUntouchedMemory(memory);
     const words = try support.encode(allocator, &source);
     var lease = public_data_v2.PublicDataV2.OwnedValidatedLeaseV2.adoptCold(allocator, words, null) catch |err| {
         allocator.free(words);

@@ -28,7 +28,7 @@ const prepared_support = @import("../memory_commitment/hash_component_prepared_s
 const CirclePointQM31 = circle.CirclePointQM31;
 
 /// Exact state-column mask order, also consumed by recursive PCS replay.
-pub const STATE_MASK_OFFSETS = [_]isize{ 0, -2, -1, 1, 2, 27 };
+pub const STATE_MASK_OFFSETS = @import("mask_layout.zig").KECCAKF_STATE_MASK_OFFSETS;
 
 pub const preprocessed_column_count = trace_mod.Layout.preprocessed_columns;
 pub const main_column_count = trace_mod.Layout.main_columns;

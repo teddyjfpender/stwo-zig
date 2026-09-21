@@ -219,8 +219,7 @@ pub const CaptureLayoutV3 = struct {
         try manifest.validate();
         if (poseidon_roster_row >= manifest.placements.len or
             manifest.placements[poseidon_roster_row] == null or
-            std.mem.indexOfScalar(u8, manifest.roster_rows[0..manifest.roster_count],
-                @as(u8, @intCast(poseidon_roster_row))) == null)
+            std.mem.indexOfScalar(u8, manifest.roster_rows[0..manifest.roster_count], @as(u8, @intCast(poseidon_roster_row))) == null)
         {
             return error.ManifestAuthorityMismatch;
         }

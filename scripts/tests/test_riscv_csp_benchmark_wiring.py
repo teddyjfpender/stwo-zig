@@ -126,13 +126,16 @@ class HarnessWiringTests(unittest.TestCase):
             {
                 "target": case.target,
                 "input_size": case.input_size,
+                "cycles": case.expected_cycles,
                 "recursion_enabled": False,
+                "uses_precompile": False,
                 "proof_duration": 1,
                 "verify_duration": 1,
                 "proof_size": 1,
                 "peak_memory": 1,
                 "evidence": {
                     "status": "verified",
+                    "public_values_sha256": "a" * 64,
                     "output_digest": case.expected_digest,
                     "expected_output_digest": case.expected_digest,
                 },
@@ -301,7 +304,7 @@ class HarnessWiringTests(unittest.TestCase):
 
     def test_written_report_declares_the_bumped_schema(self) -> None:
         report = self.report()
-        self.assertEqual("stwo_riscv_csp_benchmark_v4", report["schema"])
+        self.assertEqual("stwo_riscv_csp_benchmark_v5", report["schema"])
         self.assertEqual(csp.SCHEMA, report["schema"])
         self.assertNotIn(report["schema"], csp.SUPERSEDED_SCHEMAS)
 

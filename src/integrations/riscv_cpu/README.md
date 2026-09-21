@@ -64,45 +64,15 @@ defer statement.deinit(allocator);
 | `proveEthereumBlock` | Host-bound Ethereum block proving helper |
 | `recursive_node_artifact_store_v1` | Project recursive-node artifacts into the shared Zig CAS and canonical stage keys/manifests |
 
-The recursive integration surface is deliberately explicit. Binary-parent
-construction and publication are exported as
-`recursive_binary_composition_authority`, `recursive_binary_outer`,
-`recursive_binary_outer_cohort`, and `recursive_binary_verified_publication`;
-the PCS/FRI authority is `recursive_fri_outer`. Parent-statement ownership is
-split between `recursive_parent_statement_source` and
-`recursive_parent_statement_air_source`.
+The supported detached recursion commands use dedicated leaf/parent producer and
+verifier modules, rather than exports from this broad integration namespace.
+See the [canonical typed RISC-V and recursion route](../../../design/riscv-proving-stack/canonical-typed-recursion.md)
+for the complete-proof command, module owners and verification boundary.
 
-Segment V2 admission and publication are owned by
-`recursive_segment_v2_leaf_outer`, `recursive_segment_v2_noncore_owner`,
-`recursive_segment_v2_outer_admission_v2`, `recursive_segment_v2_outer_cohort`,
-`recursive_segment_v2_outer_engine`,
-`recursive_segment_v2_temporal_child_authority`,
-`recursive_segment_v2_tuple_closure_diagnostic`,
-`recursive_segment_v2_verified_artifact`, and
-`recursive_segment_v2_verified_publication`. Temporal 2-to-1 authority is
-exported through `recursive_temporal_child_authority`,
-`recursive_temporal_nonfri_source_v2`, `recursive_temporal_pair_authority_v2`,
-`recursive_temporal_parent_cohort_v3`,
-`recursive_temporal_parent_manifest_v3`,
-`recursive_temporal_parent_prefix_runtime`,
-`recursive_temporal_parent_row18_source_v3`,
-`recursive_temporal_parent_row35_owner_v1`,
-`recursive_temporal_parent_suffix_v3`, and
-`recursive_temporal_parent_verifier_input_publication_v3`. These modules expose
-authenticated authorities and verified-publication types; they do not make an
-unverified proof or capture publishable.
-
-The retained height-two composition surface is exported through
-`recursive_temporal_level2_cohort_v1`,
-`recursive_temporal_level2_composition_v1`,
-`recursive_temporal_level2_prefix_v1`,
-`recursive_temporal_level2_suffix_v1`,
-`recursive_temporal_level2_transcript_v1`,
-`recursive_temporal_level2_verifier_input_v1`,
-`recursive_temporal_parent_pair_authority_v1`,
-`recursive_temporal_parent_recursive_admission_v1`,
-`recursive_temporal_parent_transcript_prefix_v1`, and
-`recursive_temporal_parent_verified_artifact_v1`.
+Historical binary-composition, temporal and segment-outer facades are no longer
+public exports. Their direct test fixtures remain available for protocol
+regressions. The `recursive_fri_outer` CPU binding remains for the separate CSP
+tool and its tests; canonical detached commands use the shared frontend owner.
 
 Returned proof/statement values own allocations according to the frontend
 types. Callers must deinitialize them and must not publish before verification
@@ -205,21 +175,6 @@ Experimental Ethereum and recursion exports (not a production block-proof guaran
 - `recursive_node_artifact_v2`
 - `recursive_pipeline_worker_protocol_v1`
 - `recursive_pipeline_worker_v1`
-- `recursive_temporal_child_transcript_authority_v1`
-- `recursive_temporal_empty_parent_source_v1`
-- `recursive_temporal_empty_parent_transcript_v1`
-- `recursive_temporal_ethereum_leaf_bridge_v1`
-- `recursive_temporal_ethereum_leaf_descriptor_v1`
-- `recursive_temporal_heterogeneous_pair_v1`
-- `recursive_temporal_leaf_or_empty_v1`
-- `recursive_temporal_node_profile_v1`
-- `recursive_temporal_profile_plan_transport_v1`
-- `recursive_temporal_proof_security_v1`
-- `recursive_temporal_statement_plan_v1`
-- `recursive_temporal_topology_v1`
-- `recursive_temporal_verified_node_v1`
-- `recursive_temporal_verified_parent_capture_v1`
-- `recursive_temporal_verified_reducer_v1`
 - `resource_usage`
 
 ## Dependencies

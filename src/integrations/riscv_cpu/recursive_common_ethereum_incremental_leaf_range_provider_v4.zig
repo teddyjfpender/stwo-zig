@@ -147,10 +147,13 @@ pub const OwnerV4 = struct {
     /// This consumes source phase even if subsequent provider allocation fails.
     pub fn initFromCompact(
         allocator: std.mem.Allocator,
-        source: *@import("recursive_compact_tuple_ledger_v1.zig").Owner,
+        source: *@import("stwo_riscv_frontend").recursion.compact_tuple_ledger_v1.Owner,
         initial: ?*const initial_rows.OwnedV1,
     ) !OwnerV4 {
-        try source.sealSources(initial);
+        try source.sealSourceHistogram(
+            if (initial) |rows| rows.rangeHistogram() else null,
+            if (initial) |rows| rows.rangeContributionCount() else 0,
+        );
         return initFromCounter(allocator, &source.source_counter, source.source_range_contribution_count);
     }
 

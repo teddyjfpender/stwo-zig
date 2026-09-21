@@ -3,7 +3,7 @@
 //! The four products remain degree two, with unrestricted QM31 operands.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../../air/lang/mod.zig");
+const lang = @import("../../air/lang/definition.zig");
 const effects = @import("relation_effect.zig");
 const arithmetic = @import("qm31_mul.zig");
 const M31 = core.fields.m31.M31;

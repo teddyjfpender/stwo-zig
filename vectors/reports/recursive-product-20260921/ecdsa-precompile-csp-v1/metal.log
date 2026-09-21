@@ -1,0 +1,31 @@
+test-secp256k1-precompile-proof
++- run test stderr
+secp256k1 proof timings: witness=11.567ms pp=7.748ms main=7.698ms interaction-gen=18.300ms interaction-commit=7.066ms prove=134.257ms verify=11.037ms
+secp256k1-csp sample=0 warmup=true queries=70 pow_bits=26 proving_ns=186635500 verify_ns=11036583 pow_nonce=560941
+secp256k1 proof timings: witness=9.315ms pp=4.544ms main=4.458ms interaction-gen=15.585ms interaction-commit=5.592ms prove=128.901ms verify=10.503ms
+secp256k1-csp sample=1 warmup=false queries=70 pow_bits=26 proving_ns=168393500 verify_ns=10502792 pow_nonce=560941
+secp256k1 proof timings: witness=9.176ms pp=5.302ms main=6.106ms interaction-gen=15.830ms interaction-commit=5.464ms prove=126.666ms verify=10.534ms
+secp256k1-csp sample=2 warmup=false queries=70 pow_bits=26 proving_ns=168544125 verify_ns=10533958 pow_nonce=560941
+secp256k1 proof timings: witness=9.156ms pp=4.979ms main=6.014ms interaction-gen=15.788ms interaction-commit=5.508ms prove=128.937ms verify=10.188ms
+secp256k1-csp sample=3 warmup=false queries=70 pow_bits=26 proving_ns=170380875 verify_ns=10188250 pow_nonce=560941
+secp256k1 proof timings: witness=9.339ms pp=2.129ms main=6.184ms interaction-gen=15.370ms interaction-commit=4.119ms prove=131.379ms verify=10.648ms
+secp256k1-csp sample=4 warmup=false queries=70 pow_bits=26 proving_ns=168520667 verify_ns=10648083 pow_nonce=560941
+secp256k1 proof timings: witness=11.295ms pp=2.450ms main=5.489ms interaction-gen=15.819ms interaction-commit=3.973ms prove=122.019ms verify=9.892ms
+secp256k1-csp sample=5 warmup=false queries=70 pow_bits=26 proving_ns=161044792 verify_ns=9891875 pow_nonce=560941
+secp256k1 proof timings: witness=8.940ms pp=4.974ms main=5.282ms interaction-gen=15.157ms interaction-commit=4.364ms prove=127.273ms verify=9.890ms
+secp256k1-csp sample=6 warmup=false queries=70 pow_bits=26 proving_ns=165990416 verify_ns=9890042 pow_nonce=560941
+secp256k1 proof timings: witness=8.981ms pp=2.009ms main=3.551ms interaction-gen=15.253ms interaction-commit=3.627ms prove=119.041ms verify=9.898ms
+secp256k1-csp sample=7 warmup=false queries=70 pow_bits=26 proving_ns=152462709 verify_ns=9898416 pow_nonce=560941
+secp256k1 proof timings: witness=8.755ms pp=3.048ms main=3.630ms interaction-gen=15.159ms interaction-commit=5.137ms prove=126.417ms verify=9.876ms
+secp256k1-csp sample=8 warmup=false queries=70 pow_bits=26 proving_ns=162145625 verify_ns=9875500 pow_nonce=560941
+secp256k1 proof timings: witness=8.853ms pp=2.178ms main=3.602ms interaction-gen=14.858ms interaction-commit=4.665ms prove=119.288ms verify=9.986ms
+secp256k1-csp sample=9 warmup=false queries=70 pow_bits=26 proving_ns=153442916 verify_ns=9985834 pow_nonce=560941
+secp256k1 proof timings: witness=8.882ms pp=3.222ms main=6.145ms interaction-gen=14.929ms interaction-commit=6.038ms prove=123.878ms verify=9.982ms
+secp256k1-csp sample=10 warmup=false queries=70 pow_bits=26 proving_ns=163093708 verify_ns=9981833 pow_nonce=560941
+secp256k1 Metal total: prove=163.094ms fresh-verify=9.982ms total=173.076ms dispatches=363 fallbacks=33
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-secp256k1-precompile-proof success
++- run test 1 passed 2s MaxRSS:160M
+   +- compile test ReleaseFast native success 31s MaxRSS:1G
+

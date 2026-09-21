@@ -40,7 +40,7 @@
 //!
 //! 3. **Fail-closed behaviour at the two prove entrypoints.** This used to be
 //!    what stood in for a proof of the precondition at the *remaining*
-//!    unchecked call sites (`air/interaction_gen.zig`,
+//!    unchecked call sites (`air/interaction_legacy_test_oracle.zig`,
 //!    `prover/opcode_trace.zig`): those sites live in
 //!    `main_trace`/`interaction_trace`, which `prover/orchestration.zig` runs
 //!    only after `derive`, so a trace carrying an unsupported opcode had to be
@@ -81,7 +81,7 @@ const std = @import("std");
 const pcs = @import("stwo_core").pcs;
 const isa_decode = @import("stwo_riscv_frontend").isa.decode;
 const opcode_manifest = @import("stwo_riscv_frontend").opcode_manifest;
-const interaction_gen = @import("stwo_riscv_frontend").air.interaction_gen;
+const interaction_gen = @import("stwo_riscv_frontend").testing.interaction_legacy_test_oracle;
 const opcode_memory = @import("stwo_riscv_frontend").air.opcode_memory;
 const relation_challenges = @import("stwo_riscv_frontend").air.relation_challenges;
 const runner = @import("stwo_riscv_frontend").runner;

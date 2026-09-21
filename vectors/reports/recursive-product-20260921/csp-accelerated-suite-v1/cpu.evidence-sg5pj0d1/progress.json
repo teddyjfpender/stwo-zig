@@ -1,0 +1,1670 @@
+{
+  "status": "complete",
+  "results": [
+    {
+      "kind": "negative",
+      "result": {
+        "name": "ecdsa_secp256k1_bad_signature",
+        "target": "ecdsa_secp256k1",
+        "status": "rejected_as_expected",
+        "execution_mode": "software_fallback",
+        "proof_status": "verified",
+        "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+        "output_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "cycles": 5428253,
+        "public_values_sha256": "77bdd145ad43ffe59cc6de4a7e0df2cff3ec66bbc851f6e73425a66e261935cc",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/ecdsa_secp256k1_bad_signature/ecdsa_secp256k1_32.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/ecdsa_secp256k1_bad_signature/ecdsa_secp256k1_32.bench.json",
+          "input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+          "guest_sha256": "2442039f6437e58b9367dd75d0e6f43435eb9a1698b18f81c53104d8c6ad5189",
+          "output_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+          "expected_output_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+          "public_values_sha256": "77bdd145ad43ffe59cc6de4a7e0df2cff3ec66bbc851f6e73425a66e261935cc",
+          "statement_sha256": "94104b74a9f9f6d45b2c9921f820ad762583d33f0794fb7b9fd57d52d81e82e0",
+          "proof_sha256": "fae9dee87136ff38abebbfe7033f34e86c5c07d544f80c1040a0eab262d81279",
+          "artifact_sha256": "294b965e37de095fb9611f5125f58b8dfaa43b0f7f4ad3d36f08742e3f528209",
+          "artifact_bytes": 6818528,
+          "retained_verify_wall_ns": 287003542,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "94104b74a9f9f6d45b2c9921f820ad762583d33f0794fb7b9fd57d52d81e82e0",
+            "proof_bytes": 3377296,
+            "proof_sha256": "fae9dee87136ff38abebbfe7033f34e86c5c07d544f80c1040a0eab262d81279",
+            "transcript_state_blake2s": "f67b913c3033bf0c9dae0b6c31b8d35bbbb97b4556b03bf49694886e1be9df69",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing_scope": "validation only; excluded from performance measurements"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "sha256",
+        "input_size": 128,
+        "proof_duration": 775690316,
+        "verify_duration": 127437758,
+        "cycles": 14056,
+        "proof_size": 836463,
+        "preprocessing_size": 76016,
+        "num_constraints": 0,
+        "peak_memory": 1384387048,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_128.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_128.bench.json",
+          "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+          "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+          "output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+          "expected_output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+          "public_values_sha256": "d0cfe719cc0e78aef666ff35881ddf3b24daa9fedcf3e9043a7b5055e0d3c997",
+          "statement_sha256": "9df5218af2de642a37a73445e955305010a12074a18cad1bf4b15735547001b0",
+          "proof_sha256": "19bb635973c23a3b9aea16b420f763d5e6b89fb6ee7760ae0704541e53ec90fa",
+          "artifact_sha256": "4b8813ff1a7df8489c072bc6fbba785e7e99a4642a9b7fcddfe7823eb13922f8",
+          "artifact_bytes": 1684176,
+          "retained_verify_wall_ns": 169360625,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "9df5218af2de642a37a73445e955305010a12074a18cad1bf4b15735547001b0",
+            "proof_bytes": 836463,
+            "proof_sha256": "19bb635973c23a3b9aea16b420f763d5e6b89fb6ee7760ae0704541e53ec90fa",
+            "transcript_state_blake2s": "d120580c67e1d3561dd7beb777b5c40feb5f2b150c96850d3cd5432ac20638b5",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0011159457,
+          "mean_witness_seconds": 0.06590090000000001,
+          "mean_proving_seconds": 0.7086734706000001,
+          "mean_verification_seconds": 0.1274377585,
+          "median_end_to_end_seconds": 0.91020475,
+          "verified_end_to_end_sample_seconds": [
+            0.905177041,
+            0.909076917,
+            0.906680041,
+            0.908651,
+            0.909192375,
+            0.912592542,
+            0.91020475,
+            0.912923291,
+            0.922129084,
+            0.926945167
+          ],
+          "outer_command_wall_ns": 10060355333
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "sha256",
+        "input_size": 256,
+        "proof_duration": 696773746,
+        "verify_duration": 134300562,
+        "cycles": 22832,
+        "proof_size": 845755,
+        "preprocessing_size": 76016,
+        "num_constraints": 0,
+        "peak_memory": 1378717176,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_256.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_256.bench.json",
+          "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+          "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+          "output_digest": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+          "expected_output_digest": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+          "public_values_sha256": "8a5a41a935f1f881a3aeb35c7fd5b47c2818f4c46acb53c3a45a18f7f61d3d35",
+          "statement_sha256": "9b5025f166f9987deecd0c4eac7344ec5038d85c90aa1725ca2b23556c57c3a7",
+          "proof_sha256": "7e23693a9ebb874cd55415bc1828f679e327ccb0b2917406248f76c59eb03048",
+          "artifact_sha256": "d3b495df4dd77a71d02978c4f4c6612a99ab22961da192b8f36a185f08947f4e",
+          "artifact_bytes": 1703087,
+          "retained_verify_wall_ns": 174395000,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "9b5025f166f9987deecd0c4eac7344ec5038d85c90aa1725ca2b23556c57c3a7",
+            "proof_bytes": 845755,
+            "proof_sha256": "7e23693a9ebb874cd55415bc1828f679e327ccb0b2917406248f76c59eb03048",
+            "transcript_state_blake2s": "00b78e4eac035bf9d05c29d2d6f3c10f37826b77d7fd82bfe2f885754827e61d",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0016710040999999998,
+          "mean_witness_seconds": 0.06698879999999999,
+          "mean_proving_seconds": 0.6281139417,
+          "mean_verification_seconds": 0.1343005623,
+          "median_end_to_end_seconds": 0.841686166,
+          "verified_end_to_end_sample_seconds": [
+            0.827942875,
+            0.8362875,
+            0.837403542,
+            0.838071709,
+            0.843497083,
+            0.841686166,
+            0.853372792,
+            0.8451205,
+            0.840704041,
+            0.844670125
+          ],
+          "outer_command_wall_ns": 9266843875
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "sha256",
+        "input_size": 512,
+        "proof_duration": 603021517,
+        "verify_duration": 141102125,
+        "cycles": 40384,
+        "proof_size": 839786,
+        "preprocessing_size": 76016,
+        "num_constraints": 0,
+        "peak_memory": 1405013640,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_512.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_512.bench.json",
+          "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+          "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+          "output_digest": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+          "expected_output_digest": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+          "public_values_sha256": "8453986f598737317051836274a85ef6652d8af800fe2736fefaeb5a58fd4f7a",
+          "statement_sha256": "6bd8da5d96eb12e90e21ffbe02035f28b33d13127cc5ea59dbe7c4caf3dde22c",
+          "proof_sha256": "3652a7c4a4fe02999fdb6f052c9e890a635c1a92fc7cf7bc78201ecd4998f696",
+          "artifact_sha256": "55da67da781ba17562bf3a748155ea180d6d98d4842838cc8d0bac53006c5b75",
+          "artifact_bytes": 1691872,
+          "retained_verify_wall_ns": 180600416,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "6bd8da5d96eb12e90e21ffbe02035f28b33d13127cc5ea59dbe7c4caf3dde22c",
+            "proof_bytes": 839786,
+            "proof_sha256": "3652a7c4a4fe02999fdb6f052c9e890a635c1a92fc7cf7bc78201ecd4998f696",
+            "transcript_state_blake2s": "746eccd37896f6fb61303a6530bd8f2ca6c3827d5a9fc10d6286bc80a1fca222",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0025319458,
+          "mean_witness_seconds": 0.0675485,
+          "mean_proving_seconds": 0.5329410708000001,
+          "mean_verification_seconds": 0.1411021251,
+          "median_end_to_end_seconds": 0.7580485,
+          "verified_end_to_end_sample_seconds": [
+            0.747727,
+            0.747728666,
+            0.759535417,
+            0.749440666,
+            0.7580485,
+            0.758853125,
+            0.747690417,
+            0.750339,
+            0.75866875,
+            0.764018875
+          ],
+          "outer_command_wall_ns": 8313905958
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "sha256",
+        "input_size": 1024,
+        "proof_duration": 697765792,
+        "verify_duration": 139364546,
+        "cycles": 75488,
+        "proof_size": 837882,
+        "preprocessing_size": 76016,
+        "num_constraints": 0,
+        "peak_memory": 1462375056,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_1024.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_1024.bench.json",
+          "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+          "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+          "output_digest": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+          "expected_output_digest": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+          "public_values_sha256": "a0549d97cbcdc057a8e292dbd22c280c06935381209ae5adecf9577dbd04a553",
+          "statement_sha256": "b9f8b02cf4797305d248e052294684e0ebd3cdc2204e9333737e6e79659ab3bf",
+          "proof_sha256": "229bfd31a6ff5f0a3d2db61e9d304ce62ecc700331fa80a148298bfcfd5cc1e0",
+          "artifact_sha256": "d183c6df9ea2c432650fccd338f8104af5541e0faa54fd696d8be02870fd8e76",
+          "artifact_bytes": 1689463,
+          "retained_verify_wall_ns": 184398709,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "b9f8b02cf4797305d248e052294684e0ebd3cdc2204e9333737e6e79659ab3bf",
+            "proof_bytes": 837882,
+            "proof_sha256": "229bfd31a6ff5f0a3d2db61e9d304ce62ecc700331fa80a148298bfcfd5cc1e0",
+            "transcript_state_blake2s": "440c8f65ed5215c9d4d20f712f1a5de41e661e75e6a43611966a34eef4f311a7",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0046383914,
+          "mean_witness_seconds": 0.0772433,
+          "mean_proving_seconds": 0.6158841001,
+          "mean_verification_seconds": 0.13936454580000002,
+          "median_end_to_end_seconds": 0.846812333,
+          "verified_end_to_end_sample_seconds": [
+            0.845688375,
+            0.846812333,
+            0.838276667,
+            0.845368416,
+            0.841683833,
+            0.848266375,
+            0.846594,
+            0.851497167,
+            0.853481042,
+            0.856167459
+          ],
+          "outer_command_wall_ns": 9344110167
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "sha256",
+        "input_size": 2048,
+        "proof_duration": 672352429,
+        "verify_duration": 145356404,
+        "cycles": 145696,
+        "proof_size": 856498,
+        "preprocessing_size": 76016,
+        "num_constraints": 0,
+        "peak_memory": 1551684696,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_2048.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/sha256_2048.bench.json",
+          "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+          "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+          "output_digest": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+          "expected_output_digest": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+          "public_values_sha256": "32851febee19fedb7c6cdcf17c756e3187d6c4151f2c69ebb04315483a0367bd",
+          "statement_sha256": "60fbf9f502e211374abe455323ba46ba691547ba76a091e6c5baeacc1931c14c",
+          "proof_sha256": "9ad5506c4a5601213246ef1853bb0d61591d3ab62cb2cc0d1cdc37212aaf059f",
+          "artifact_sha256": "adc06ec14278a508cf02e3d22383aa81ce3e758e20a576635c5a91e2a8ce3a61",
+          "artifact_bytes": 1730001,
+          "retained_verify_wall_ns": 182054917,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "60fbf9f502e211374abe455323ba46ba691547ba76a091e6c5baeacc1931c14c",
+            "proof_bytes": 856498,
+            "proof_sha256": "9ad5506c4a5601213246ef1853bb0d61591d3ab62cb2cc0d1cdc37212aaf059f",
+            "transcript_state_blake2s": "2082696637e1cb178c9621a1f324199789de84c4c93705b4c5046fc04b71568f",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.008930208300000003,
+          "mean_witness_seconds": 0.08136489999999999,
+          "mean_proving_seconds": 0.5820573208,
+          "mean_verification_seconds": 0.1453564044,
+          "median_end_to_end_seconds": 0.830167292,
+          "verified_end_to_end_sample_seconds": [
+            0.825651667,
+            0.818029167,
+            0.8213905,
+            0.819673541,
+            0.830167292,
+            0.831550708,
+            0.842855458,
+            0.836393334,
+            0.829366042,
+            0.839233042
+          ],
+          "outer_command_wall_ns": 9140803125
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "keccak",
+        "input_size": 128,
+        "proof_duration": 541405496,
+        "verify_duration": 138046408,
+        "cycles": 19114,
+        "proof_size": 839651,
+        "preprocessing_size": 76628,
+        "num_constraints": 0,
+        "peak_memory": 1386155968,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_128.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_128.bench.json",
+          "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+          "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+          "output_digest": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+          "expected_output_digest": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+          "public_values_sha256": "8d7d3567289337efad85db51732c52a0c6622dc1b865447aea70b65dc7bc5509",
+          "statement_sha256": "b95890110961c710cff023617af22fefc0162f01f90579722b0317d799f8e9c9",
+          "proof_sha256": "b92746c7432d141f3ce5f2f6e761c51cfbb61bcbf361a7623a4701b514e68273",
+          "artifact_sha256": "cd5ba11e3a68276f7af22ab2bd075341291828939bc909d45f29189e975c06c5",
+          "artifact_bytes": 1690579,
+          "retained_verify_wall_ns": 176843041,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "b95890110961c710cff023617af22fefc0162f01f90579722b0317d799f8e9c9",
+            "proof_bytes": 839651,
+            "proof_sha256": "b92746c7432d141f3ce5f2f6e761c51cfbb61bcbf361a7623a4701b514e68273",
+            "transcript_state_blake2s": "7c8c3d02f81b7c101fe4a11c8c8ea12136b09cf74bed3f2a608380edc1f232f8",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0015651500999999998,
+          "mean_witness_seconds": 0.06917549999999999,
+          "mean_proving_seconds": 0.4706648458,
+          "mean_verification_seconds": 0.1380464082,
+          "median_end_to_end_seconds": 0.691330709,
+          "verified_end_to_end_sample_seconds": [
+            0.685765417,
+            0.686306292,
+            0.688192875,
+            0.686676125,
+            0.691330709,
+            0.686562083,
+            0.693082833,
+            0.692464292,
+            0.69157975,
+            0.694194333
+          ],
+          "outer_command_wall_ns": 7611079125
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "keccak",
+        "input_size": 256,
+        "proof_duration": 614105612,
+        "verify_duration": 146339758,
+        "cycles": 36904,
+        "proof_size": 840065,
+        "preprocessing_size": 76628,
+        "num_constraints": 0,
+        "peak_memory": 1401180264,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_256.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_256.bench.json",
+          "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+          "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+          "output_digest": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+          "expected_output_digest": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+          "public_values_sha256": "d277a7bf2da25c66e30397c371fd617c4b9665aeb146fdea5090604e61940600",
+          "statement_sha256": "454c31c156ca1de1f4e51dc3b0fecf777bef639f07d5520f11b3d90583d8ac77",
+          "proof_sha256": "1cabf34c0e4cdcc3464ff4310b91b9ae134bb4276bfc0a5d4d98bae1ed1f5db1",
+          "artifact_sha256": "4b1bfa8766eebb689ac69559dec05e0e57c1909724a4f76901c60c430f27fddb",
+          "artifact_bytes": 1691789,
+          "retained_verify_wall_ns": 183639291,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "454c31c156ca1de1f4e51dc3b0fecf777bef639f07d5520f11b3d90583d8ac77",
+            "proof_bytes": 840065,
+            "proof_sha256": "1cabf34c0e4cdcc3464ff4310b91b9ae134bb4276bfc0a5d4d98bae1ed1f5db1",
+            "transcript_state_blake2s": "302c517b6b2cc8d1ea28c7b8af3d221b3473ed6afbb6e20091abc8a6c1dfb735",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0027327083999999996,
+          "mean_witness_seconds": 0.0706581,
+          "mean_proving_seconds": 0.5407148041,
+          "mean_verification_seconds": 0.1463397585,
+          "median_end_to_end_seconds": 0.772371291,
+          "verified_end_to_end_sample_seconds": [
+            0.762963125,
+            0.770124208,
+            0.774415333,
+            0.765650375,
+            0.769228417,
+            0.772467917,
+            0.772371291,
+            0.770991041,
+            0.775122667,
+            0.782136375
+          ],
+          "outer_command_wall_ns": 8510586208
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "keccak",
+        "input_size": 512,
+        "proof_duration": 591316454,
+        "verify_duration": 141912792,
+        "cycles": 72408,
+        "proof_size": 841905,
+        "preprocessing_size": 76628,
+        "num_constraints": 0,
+        "peak_memory": 1458768176,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_512.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_512.bench.json",
+          "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+          "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+          "output_digest": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+          "expected_output_digest": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+          "public_values_sha256": "c23149ef2e8eb1917f5bc078f80ea756173e539696626d73a2fb458d491f9fdb",
+          "statement_sha256": "24c7b0d64dcb139713ece7697a6df80791d87f6204c5c1b1eaa7bf8690632429",
+          "proof_sha256": "1fd91686f7b0b0f0930c55346b7cc59423e8468de8a20c56dcd320af6377dcb9",
+          "artifact_sha256": "e009c9bc618d1bb885fcc72b772ea8ab21825878c4854112fdb08cc7371b6180",
+          "artifact_bytes": 1696142,
+          "retained_verify_wall_ns": 181897209,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "24c7b0d64dcb139713ece7697a6df80791d87f6204c5c1b1eaa7bf8690632429",
+            "proof_bytes": 841905,
+            "proof_sha256": "1fd91686f7b0b0f0930c55346b7cc59423e8468de8a20c56dcd320af6377dcb9",
+            "transcript_state_blake2s": "39438fb83c109ec16deba08ea3c9bcb8f57eab7991f7291de954775174609cc3",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.004625708399999999,
+          "mean_witness_seconds": 0.0749355,
+          "mean_proving_seconds": 0.5117552458000001,
+          "mean_verification_seconds": 0.1419127916,
+          "median_end_to_end_seconds": 0.745155042,
+          "verified_end_to_end_sample_seconds": [
+            0.747490584,
+            0.742051084,
+            0.745987208,
+            0.746852792,
+            0.739571875,
+            0.742784833,
+            0.748275083,
+            0.745155042,
+            0.736302667,
+            0.74283775
+          ],
+          "outer_command_wall_ns": 8214884750
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "keccak",
+        "input_size": 1024,
+        "proof_duration": 633371346,
+        "verify_duration": 146729954,
+        "cycles": 143416,
+        "proof_size": 838018,
+        "preprocessing_size": 76628,
+        "num_constraints": 0,
+        "peak_memory": 1526108456,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_1024.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_1024.bench.json",
+          "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+          "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+          "output_digest": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+          "expected_output_digest": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+          "public_values_sha256": "a01cb098c6845bbe3125bb6390bc3270805d5e2fdc1aeeac9490b0a428370fbb",
+          "statement_sha256": "93411d626d55a8511490287601c9955a6bc3d4b1f710e8e9ea09eaa90cf9cd5d",
+          "proof_sha256": "db7c71429a20bfa3ee21a8e0366757ccf340ba181fc22c76bc57b2a8e618d04f",
+          "artifact_sha256": "5b23cea7192a5f7d55aabb81431fb4d1cc21fa72e7e360d43032142afc3bb6e3",
+          "artifact_bytes": 1689768,
+          "retained_verify_wall_ns": 189224417,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "93411d626d55a8511490287601c9955a6bc3d4b1f710e8e9ea09eaa90cf9cd5d",
+            "proof_bytes": 838018,
+            "proof_sha256": "db7c71429a20bfa3ee21a8e0366757ccf340ba181fc22c76bc57b2a8e618d04f",
+            "transcript_state_blake2s": "695b499789ef39b808e0ef86b12ac36c842b272bff6e5a33a2b4458b340c3aa4",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.009581716700000001,
+          "mean_witness_seconds": 0.08573109999999999,
+          "mean_proving_seconds": 0.5380585292,
+          "mean_verification_seconds": 0.1467299542,
+          "median_end_to_end_seconds": 0.793891,
+          "verified_end_to_end_sample_seconds": [
+            0.779156041,
+            0.783798208,
+            0.800263541,
+            0.785862417,
+            0.794090584,
+            0.793891,
+            0.781771625,
+            0.792753333,
+            0.801631792,
+            0.796105041
+          ],
+          "outer_command_wall_ns": 8720977834
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "keccak",
+        "input_size": 2048,
+        "proof_duration": 795965954,
+        "verify_duration": 149966175,
+        "cycles": 285456,
+        "proof_size": 892778,
+        "preprocessing_size": 76628,
+        "num_constraints": 0,
+        "peak_memory": 1769543344,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_2048.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/keccak_2048.bench.json",
+          "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+          "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+          "output_digest": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+          "expected_output_digest": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+          "public_values_sha256": "a3fa74c0c66f891637e142615878d7be3aa993c6f9827ead4e6c543ccb90d78d",
+          "statement_sha256": "5eaa65d9b03d589e18409b6acea9ce62e35ff03409b1501df1aac18afffc5e5d",
+          "proof_sha256": "b473af815458a3250c1a9b50bb5a23524566b0e255d482d1c30245b69d45aded",
+          "artifact_sha256": "6f1b1374bcb474e4e6945c6c9fe682d0730845933b1b22985ea4d9775251f175",
+          "artifact_bytes": 1803309,
+          "retained_verify_wall_ns": 188357375,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "5eaa65d9b03d589e18409b6acea9ce62e35ff03409b1501df1aac18afffc5e5d",
+            "proof_bytes": 892778,
+            "proof_sha256": "b473af815458a3250c1a9b50bb5a23524566b0e255d482d1c30245b69d45aded",
+            "transcript_state_blake2s": "6285de663d75de8eeb269ac6e2886ec63687a2720eaff65bb1ca65933b3cef7b",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0178653,
+          "mean_witness_seconds": 0.09367650000000002,
+          "mean_proving_seconds": 0.6844241543,
+          "mean_verification_seconds": 0.1499661751,
+          "median_end_to_end_seconds": 0.958798375,
+          "verified_end_to_end_sample_seconds": [
+            0.944713792,
+            0.950688583,
+            0.954324875,
+            0.958798375,
+            0.967837541,
+            0.954396416,
+            0.956927917,
+            0.969470958,
+            0.962459667,
+            0.959581208
+          ],
+          "outer_command_wall_ns": 10557558375
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "poseidon2_m31",
+        "input_size": 2,
+        "proof_duration": 617468604,
+        "verify_duration": 148191996,
+        "cycles": 82297,
+        "proof_size": 869958,
+        "preprocessing_size": 14408,
+        "num_constraints": 0,
+        "peak_memory": 1415369648,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_2.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_2.bench.json",
+          "input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+          "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+          "output_digest": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+          "expected_output_digest": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+          "public_values_sha256": "565c6f0c79f8ee20ed8382737a4cca53d4545aa0ae55e6a04ceb2afe32e0bf01",
+          "statement_sha256": "ad8eb1023f147a7bae344d28a76ec08e948c9cd050dc6ae79753da9e3b6e774b",
+          "proof_sha256": "9e73497f6f6e37f50952a302f2f47c5e79385d0b1431d8099a75d46f408289a5",
+          "artifact_sha256": "a1677b36ad0b0de81e1824d99ff9ff2e9aa293a489836be0488395d2da72183b",
+          "artifact_bytes": 1751325,
+          "retained_verify_wall_ns": 185302875,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "ad8eb1023f147a7bae344d28a76ec08e948c9cd050dc6ae79753da9e3b6e774b",
+            "proof_bytes": 869958,
+            "proof_sha256": "9e73497f6f6e37f50952a302f2f47c5e79385d0b1431d8099a75d46f408289a5",
+            "transcript_state_blake2s": "23182eb1020f7836fcd980fc875cf27b12deaec177d1e79ff84fa7342709eb0a",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0046284455999999995,
+          "mean_witness_seconds": 0.06660740000000001,
+          "mean_proving_seconds": 0.5462327587,
+          "mean_verification_seconds": 0.14819199589999998,
+          "median_end_to_end_seconds": 0.77845575,
+          "verified_end_to_end_sample_seconds": [
+            0.768174959,
+            0.7702265,
+            0.774783875,
+            0.776047334,
+            0.781569167,
+            0.772102917,
+            0.77845575,
+            0.781736583,
+            0.784788417,
+            0.782172791
+          ],
+          "outer_command_wall_ns": 8581509125
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "poseidon2_m31",
+        "input_size": 4,
+        "proof_duration": 679995021,
+        "verify_duration": 151788816,
+        "cycles": 164403,
+        "proof_size": 891745,
+        "preprocessing_size": 14408,
+        "num_constraints": 0,
+        "peak_memory": 1485754832,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_4.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_4.bench.json",
+          "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+          "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+          "output_digest": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+          "expected_output_digest": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+          "public_values_sha256": "17a77891ad7ea2396605bf7f8c7d443374f3b9df8f0838329f62aad3c6c5c98a",
+          "statement_sha256": "4515e82790e5cc956fa1d9defb6579a6acdf60183dac6f3be41fdbfa14b62b86",
+          "proof_sha256": "93ec05a4eeb6f25c8c9aba7b867852f5c942bbdbcd40a345dcf1d12aa469b5ae",
+          "artifact_sha256": "f731050d22e77a8f20d87f9c89470301ef0ead2b4af9932545f92e47f8ae1688",
+          "artifact_bytes": 1795530,
+          "retained_verify_wall_ns": 185616708,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "4515e82790e5cc956fa1d9defb6579a6acdf60183dac6f3be41fdbfa14b62b86",
+            "proof_bytes": 891745,
+            "proof_sha256": "93ec05a4eeb6f25c8c9aba7b867852f5c942bbdbcd40a345dcf1d12aa469b5ae",
+            "transcript_state_blake2s": "6b820b5b27770597c8a6ff1c5138171e4077b20d48adefe9da12bdf459bd8508",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.009487275100000001,
+          "mean_witness_seconds": 0.0758705,
+          "mean_proving_seconds": 0.594637246,
+          "mean_verification_seconds": 0.1517888164,
+          "median_end_to_end_seconds": 0.842644833,
+          "verified_end_to_end_sample_seconds": [
+            0.855494208,
+            0.841234292,
+            0.846960666,
+            0.851431667,
+            0.842644833,
+            0.833173584,
+            0.838928875,
+            0.84861425,
+            0.837301958,
+            0.840573459
+          ],
+          "outer_command_wall_ns": 9310322458
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "poseidon2_m31",
+        "input_size": 8,
+        "proof_duration": 969447150,
+        "verify_duration": 148667442,
+        "cycles": 328615,
+        "proof_size": 932489,
+        "preprocessing_size": 14408,
+        "num_constraints": 0,
+        "peak_memory": 1727992656,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_8.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_8.bench.json",
+          "input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+          "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+          "output_digest": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+          "expected_output_digest": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+          "public_values_sha256": "656bbe473036483f624dc2046e5e412f7cf9f77be46c814ae54e1a5bf83102fa",
+          "statement_sha256": "de5da945e962711015f6c24da1b4328fcace3dfa120bf2dabc170e9843faf78d",
+          "proof_sha256": "2097b4438182689f885f04f002af64fe7cd94d5559a3a29306a22b982d4b8065",
+          "artifact_sha256": "55333d801722925274643437e9666ad2da1c4c1ace56d8d36fc9d6e04e971b6d",
+          "artifact_bytes": 1877760,
+          "retained_verify_wall_ns": 186538250,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "de5da945e962711015f6c24da1b4328fcace3dfa120bf2dabc170e9843faf78d",
+            "proof_bytes": 932489,
+            "proof_sha256": "2097b4438182689f885f04f002af64fe7cd94d5559a3a29306a22b982d4b8065",
+            "transcript_state_blake2s": "218d1005385a7fb6601b9643e28e593ee9fc77faf80df6d7eb9db4fb50bddad2",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.018050466499999997,
+          "mean_witness_seconds": 0.081113,
+          "mean_proving_seconds": 0.8702836831999999,
+          "mean_verification_seconds": 0.14866744160000003,
+          "median_end_to_end_seconds": 1.13264325,
+          "verified_end_to_end_sample_seconds": [
+            1.115338375,
+            1.12255775,
+            1.135546459,
+            1.122466833,
+            1.13264325,
+            1.119909792,
+            1.13568775,
+            1.12741775,
+            1.145071334,
+            1.148801917
+          ],
+          "outer_command_wall_ns": 12464884750
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "poseidon2_m31",
+        "input_size": 12,
+        "proof_duration": 805100329,
+        "verify_duration": 171037379,
+        "cycles": 492827,
+        "proof_size": 1005700,
+        "preprocessing_size": 14408,
+        "num_constraints": 0,
+        "peak_memory": 1900367376,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_12.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_12.bench.json",
+          "input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+          "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+          "output_digest": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+          "expected_output_digest": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+          "public_values_sha256": "751de449414443049ba4f40c93856e125ab1be9d3ec16d812dae8a6e15a80e58",
+          "statement_sha256": "911688dadb33856103abe3693dcfa0cc54a29de7f4022c9c6af6b4ed1a3ae396",
+          "proof_sha256": "9c2aaad0c3a2b2e70830c82ee1be86857d436208b136183bd1e03363dccc930d",
+          "artifact_sha256": "0fdcb0e56fa5fa90b887458af8520aaf444fac7e46446ce48f62b05e9fad6dd8",
+          "artifact_bytes": 2025975,
+          "retained_verify_wall_ns": 208276709,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "911688dadb33856103abe3693dcfa0cc54a29de7f4022c9c6af6b4ed1a3ae396",
+            "proof_bytes": 1005700,
+            "proof_sha256": "9c2aaad0c3a2b2e70830c82ee1be86857d436208b136183bd1e03363dccc930d",
+            "transcript_state_blake2s": "4536275619939481e5774b05bd16d5a4cf13cfe4d3a3f025f3ca178250f2ec05",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.027596491600000002,
+          "mean_witness_seconds": 0.08727599999999999,
+          "mean_proving_seconds": 0.6902278374999999,
+          "mean_verification_seconds": 0.17103737919999998,
+          "median_end_to_end_seconds": 0.986736958,
+          "verified_end_to_end_sample_seconds": [
+            0.983648,
+            0.978383042,
+            0.993648125,
+            0.972796083,
+            0.986015209,
+            0.990594292,
+            0.979066458,
+            0.986736958,
+            1.030214875,
+            0.998971542
+          ],
+          "outer_command_wall_ns": 10913127000
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "recursion_enabled": false,
+        "target": "poseidon2_m31",
+        "input_size": 16,
+        "proof_duration": 1260158671,
+        "verify_duration": 160328667,
+        "cycles": 657039,
+        "proof_size": 1094462,
+        "preprocessing_size": 14408,
+        "num_constraints": 0,
+        "peak_memory": 2158320168,
+        "uses_precompile": false,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_16.proof.json",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/poseidon2_m31_16.bench.json",
+          "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+          "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+          "output_digest": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+          "expected_output_digest": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+          "public_values_sha256": "e94e787e9fd2e8b35e3a86f175a3734a0f02e728a9090e1728fd9842e4519fac",
+          "statement_sha256": "854c3e1ef2eb6bd481456d7881a17de9e8dbfbdeef0af5ca4ec80be563094044",
+          "proof_sha256": "45ee10ecb49a75f9404349f80af3da8bcc74ef43b166dc33a0de4304950e9a8c",
+          "artifact_sha256": "e61a3fc6c3e11110c99dcecadecdea47e8751eb91ce56d75010704848023c92b",
+          "artifact_bytes": 2205213,
+          "retained_verify_wall_ns": 212349333,
+          "retained_verify_receipt": {
+            "schema": "riscv_verify_v1",
+            "status": "verified",
+            "artifact_kind": "stwo_riscv_proof",
+            "artifact_schema_version": 4,
+            "release_status": "release_gated",
+            "security_policy": "secure",
+            "statement_sha256": "854c3e1ef2eb6bd481456d7881a17de9e8dbfbdeef0af5ca4ec80be563094044",
+            "proof_bytes": 1094462,
+            "proof_sha256": "45ee10ecb49a75f9404349f80af3da8bcc74ef43b166dc33a0de4304950e9a8c",
+            "transcript_state_blake2s": "9e3c18daff25ccde103167416db26927dfd7f984d0adb8baf6babe69e8ef1272",
+            "implementation_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+            "implementation_dirty": false,
+            "executable_sha256": "f576d0b1cb7d28f2007042b49253fd3bd9aed66063ed21fcd923a281b270e27a"
+          }
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution + witness + proof generation",
+          "verify_definition": "production proof verification",
+          "mean_execution_seconds": 0.0353554875,
+          "mean_witness_seconds": 0.0910035,
+          "mean_proving_seconds": 1.1337996833,
+          "mean_verification_seconds": 0.16032866659999997,
+          "median_end_to_end_seconds": 1.432657375,
+          "verified_end_to_end_sample_seconds": [
+            1.4214085,
+            1.41897,
+            1.454464333,
+            1.43115525,
+            1.432657375,
+            1.429311167,
+            1.446000875,
+            1.430034833,
+            1.451949625,
+            1.443774459
+          ],
+          "outer_command_wall_ns": 15821436500
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self-process lifetime peak across verified samples",
+          "includes_mandatory_self_verification": true
+        },
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "kind": "measurement",
+      "result": {
+        "system": "stwo-zig-riscv",
+        "backend": "cpu",
+        "target": "ecdsa_secp256k1",
+        "input_size": 32,
+        "recursion_enabled": false,
+        "uses_precompile": true,
+        "execution_mode": "precompile",
+        "proof_scope": "riscv_guest",
+        "proof_duration": 881595788,
+        "verify_duration": 171198258,
+        "cycles": 1828,
+        "proof_size": 3748143,
+        "preprocessing_size": 9300,
+        "num_constraints": 0,
+        "peak_memory": 1382174656,
+        "protocol": {
+          "name": "secure",
+          "pcs_config": {
+            "pow_bits": 26,
+            "fri_config": {
+              "log_blowup_factor": 1,
+              "log_last_layer_degree_bound": 0,
+              "n_queries": 70,
+              "fold_step": 1
+            },
+            "lifting_log_size": null
+          }
+        },
+        "evidence": {
+          "status": "verified",
+          "public_io_bound_to_proof": true,
+          "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+          "guest_sha256": "3bd286d0d5b11d1419d3cadad5e33a2fa0d88184998d19c5484f2bcc9c419060",
+          "output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+          "expected_output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+          "statement_sha256": "0557c397861241938e3dfbcda70faeba403c73195a56e987eec9df0ba25f7dff",
+          "artifact_sha256": "714d8e1d68db54f4b981a308029567cb7a1230841fadda6ae8cb45d1756770e5",
+          "proof_sha256": "88a338690cf8174191a2d5eeac24bc8ce5738df196ef53555f6ff3fc513caa3e",
+          "artifact_bytes": 3778701,
+          "artifact_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/ecdsa_secp256k1_32.proof.bin",
+          "benchmark_report_path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1/ecdsa_secp256k1_32.bench.json",
+          "retained_verify_wall_ns": 180345000,
+          "retained_verify_receipt": {
+            "schema": "stwo.csp.ecdsa-verify.v1",
+            "status": "verified",
+            "artifact_sha256": "714d8e1d68db54f4b981a308029567cb7a1230841fadda6ae8cb45d1756770e5",
+            "statement_sha256": "0557c397861241938e3dfbcda70faeba403c73195a56e987eec9df0ba25f7dff",
+            "elf_sha256": "3bd286d0d5b11d1419d3cadad5e33a2fa0d88184998d19c5484f2bcc9c419060",
+            "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+            "pcs_config": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            }
+          },
+          "precompile_manifest_sha256": "341ca0942317a2c50783941003bc2c8f929188de39693dff1aae5b4b7412547d",
+          "precompile_dispatch_samples": [
+            {
+              "execution_ns": 828542,
+              "witness_and_proving_ns": 898971625,
+              "verification_ns": 170724208,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 769750,
+              "witness_and_proving_ns": 877658750,
+              "verification_ns": 171425541,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 782042,
+              "witness_and_proving_ns": 896312625,
+              "verification_ns": 173439959,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 830958,
+              "witness_and_proving_ns": 882786417,
+              "verification_ns": 172808917,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 835500,
+              "witness_and_proving_ns": 875503209,
+              "verification_ns": 171511375,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 781667,
+              "witness_and_proving_ns": 875694917,
+              "verification_ns": 171181416,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 800041,
+              "witness_and_proving_ns": 874156167,
+              "verification_ns": 173056750,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 828875,
+              "witness_and_proving_ns": 874181958,
+              "verification_ns": 172722084,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 843250,
+              "witness_and_proving_ns": 879608792,
+              "verification_ns": 169051292,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 788958,
+              "witness_and_proving_ns": 872993834,
+              "verification_ns": 166061042,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            }
+          ]
+        },
+        "timing": {
+          "source": "production CLI internal stage timers",
+          "proof_definition": "execution (including route computation) + witness + proof generation",
+          "verify_definition": "artifact decode, guest/public-input binding and proof verification",
+          "samples_ns": [
+            {
+              "execution_ns": 828542,
+              "witness_and_proving_ns": 898971625,
+              "verification_ns": 170724208,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 769750,
+              "witness_and_proving_ns": 877658750,
+              "verification_ns": 171425541,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 782042,
+              "witness_and_proving_ns": 896312625,
+              "verification_ns": 173439959,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 830958,
+              "witness_and_proving_ns": 882786417,
+              "verification_ns": 172808917,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 835500,
+              "witness_and_proving_ns": 875503209,
+              "verification_ns": 171511375,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 781667,
+              "witness_and_proving_ns": 875694917,
+              "verification_ns": 171181416,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 800041,
+              "witness_and_proving_ns": 874156167,
+              "verification_ns": 173056750,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 828875,
+              "witness_and_proving_ns": 874181958,
+              "verification_ns": 172722084,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 843250,
+              "witness_and_proving_ns": 879608792,
+              "verification_ns": 169051292,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            },
+            {
+              "execution_ns": 788958,
+              "witness_and_proving_ns": 872993834,
+              "verification_ns": 166061042,
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0
+            }
+          ],
+          "median_proving_ns": 877452542.0,
+          "outer_command_wall_ns": 11741038667
+        },
+        "memory": {
+          "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+          "scope": "self_process_lifetime"
+        },
+        "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "report": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.json"
+}

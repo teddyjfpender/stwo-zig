@@ -1,10 +1,7 @@
 //! Build ownership for the focused Sail RV32IM + CPU/SIMD product.
 const std = @import("std");
-const build_identity = @import("../build_identity.zig");
 const closure_gate = @import("../gates/product_closure.zig");
-const graph_identity = @import("../graph/identity.zig");
 const graph = @import("../graph/modules.zig");
-const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
 const riscv_cpu_policy = @import("riscv_cpu_policy.zig");
 const riscv_cpu_modules = @import("riscv_cpu_modules.zig");
@@ -17,22 +14,10 @@ const degree5_poseidon = @import("riscv_cpu_degree5_poseidon.zig");
 const memory_provider_shards = @import("riscv_cpu_memory_provider_shards.zig");
 const sail_oracle_tests = @import("riscv_sail_oracle_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
-const product = graph.Product{
-    .name = "stwo-riscv-cpu",
-    .frontend = .riscv,
-    .backend = .cpu,
-    .role = .cli,
-    .protocol_features = "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1" ++
-        "+rv32im-zkvm-poseidon2-v1",
-};
+const executables = @import("riscv_cpu_executables.zig");
+const product = executables.product;
 const source_closure = riscv_cpu_policy.source_closure;
-pub const Context = struct {
-    b: *std.Build,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    identity: build_identity.Identity,
-    protocol: graph.ProtocolModules,
-};
+pub const Context = executables.Context;
 fn testContext(context: Context) riscv_cpu_tests.Context {
     return .{
         .b = context.b,
@@ -60,7 +45,7 @@ pub fn addProduct(context: Context) void {
         "invalid RISC-V CPU descriptor: {s}",
         .{@errorName(err)},
     );
-    const host = addExecutable(
+    const host = executables.addExecutable(
         context,
         context.protocol,
         context.target,
@@ -68,35 +53,23 @@ pub fn addProduct(context: Context) void {
         "stwo-zig-riscv-cpu",
     );
     const install_host = context.b.addInstallArtifact(host, .{});
-    const host_trace = addTraceExecutable(context, context.target, context.optimize, "riscv-trace-dump");
+    const host_trace = executables.addTraceExecutable(context, context.target, context.optimize, "riscv-trace-dump");
     const install_host_trace = context.b.addInstallArtifact(host_trace, .{});
     const trace_step = context.b.step("riscv-trace-dump", "Build RISC-V trace dumper CLI");
     trace_step.dependOn(&install_host_trace.step);
-    const pc_hotspot = addPcHotspotExecutable(
-        context,
-        context.target,
-        context.optimize,
-    );
+    const pc_hotspot = executables.addObserver(context, context.target, context.optimize, .pc_hotspot);
     const install_pc_hotspot = context.b.addInstallArtifact(pc_hotspot, .{});
     context.b.step(
         "riscv-pc-hotspot-observer",
         "Build the bounded RISC-V retirement PC-hotspot observer",
     ).dependOn(&install_pc_hotspot.step);
-    const function_value = addFunctionValueExecutable(
-        context,
-        context.target,
-        context.optimize,
-    );
+    const function_value = executables.addObserver(context, context.target, context.optimize, .function_value);
     const install_function_value = context.b.addInstallArtifact(function_value, .{});
     context.b.step(
         "riscv-function-value-observer",
         "Build the bounded RISC-V function-load value observer",
     ).dependOn(&install_function_value.step);
-    const analyze_legacy_semantic = addAnalyzeLegacySemanticExecutable(
-        context,
-        context.target,
-        context.optimize,
-    );
+    const analyze_legacy_semantic = executables.addObserver(context, context.target, context.optimize, .legacy_semantics);
     const install_analyze_legacy_semantic = context.b.addInstallArtifact(
         analyze_legacy_semantic,
         .{},
@@ -105,21 +78,13 @@ pub fn addProduct(context: Context) void {
         "riscv-analyze-legacy-semantic-observer",
         "Build the bounded Revm-42 analyze_legacy semantic observer",
     ).dependOn(&install_analyze_legacy_semantic.step);
-    const memcpy_hotspot = addMemcpyHotspotExecutable(
-        context,
-        context.target,
-        context.optimize,
-    );
+    const memcpy_hotspot = executables.addObserver(context, context.target, context.optimize, .memcpy_hotspot);
     const install_memcpy_hotspot = context.b.addInstallArtifact(memcpy_hotspot, .{});
     context.b.step(
         "riscv-memcpy-hotspot-observer",
         "Build the bounded RISC-V memcpy-call hotspot observer",
     ).dependOn(&install_memcpy_hotspot.step);
-    const memcpy_admission = addMemcpyAdmissionExecutable(
-        context,
-        context.target,
-        context.optimize,
-    );
+    const memcpy_admission = executables.addObserver(context, context.target, context.optimize, .memcpy_admission);
     const install_memcpy_admission = context.b.addInstallArtifact(
         memcpy_admission,
         .{},
@@ -139,7 +104,7 @@ pub fn addProduct(context: Context) void {
     );
     host_step.dependOn(&install_host.step);
 
-    const recursive_csp_producer = addRecursiveCspProducer(context);
+    const recursive_csp_producer = executables.addRecursiveCspProducer(context);
     const install_recursive_csp_producer = context.b.addInstallArtifact(
         recursive_csp_producer,
         .{},
@@ -149,7 +114,7 @@ pub fn addProduct(context: Context) void {
         "Build the canonical one-workload recursive CSP producer",
     ).dependOn(&install_recursive_csp_producer.step);
 
-    const recursion_shape_inspector = addRecursionShapeInspector(context);
+    const recursion_shape_inspector = executables.addRecursionShapeInspector(context);
     const install_recursion_shape_inspector = context.b.addInstallArtifact(
         recursion_shape_inspector,
         .{},
@@ -164,7 +129,7 @@ pub fn addProduct(context: Context) void {
         .os_tag = .linux,
         .abi = .musl,
     });
-    const static = addExecutable(
+    const static = executables.addExecutable(
         context,
         graph.createPrivateProtocolModules(context.b, static_target, .ReleaseFast),
         static_target,
@@ -174,7 +139,7 @@ pub fn addProduct(context: Context) void {
     static.linkage = .static;
     const install_static = context.b.addInstallArtifact(static, .{});
     // Keep both dumpers installed while host tooling resolves the native name.
-    const static_trace = addTraceExecutable(context, static_target, .ReleaseFast, "riscv-trace-dump-x86_64-linux-musl");
+    const static_trace = executables.addTraceExecutable(context, static_target, .ReleaseFast, "riscv-trace-dump-x86_64-linux-musl");
     static_trace.linkage = .static;
     const install_static_trace = context.b.addInstallArtifact(static_trace, .{});
     // Refuse cross-target names that would overwrite a host install artifact.
@@ -346,366 +311,4 @@ pub fn addProduct(context: Context) void {
         "scripts/check_riscv_cpu_product.py",
     });
     test_step.dependOn(&marker_check.step);
-}
-fn addTraceExecutable(
-    context: Context,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    name: []const u8,
-) *std.Build.Step.Compile {
-    const b = context.b;
-    const protocol = if (target.result.cpu.arch == context.target.result.cpu.arch and
-        target.result.os.tag == context.target.result.os.tag and
-        target.result.abi == context.target.result.abi)
-        context.protocol
-    else
-        graph.createPrivateProtocolModules(b, target, optimize);
-    const root = graph.create(b, .{
-        .product = product,
-        .root_source_file = "src/riscv_trace_cli.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    protocol.addImports(root);
-    integration_graph.addRiscVCpuStack(
-        b,
-        protocol,
-        product,
-        target,
-        optimize,
-        root,
-    );
-    root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
-    return b.addExecutable(.{ .name = name, .root_module = root });
-}
-fn addPcHotspotExecutable(
-    context: Context,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Step.Compile {
-    const b = context.b;
-    const root = graph.create(b, .{
-        .product = product,
-        .root_source_file = "src/tools/riscv/pc_hotspot/main.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    context.protocol.addImports(root);
-    integration_graph.addRiscVCpuStack(
-        b,
-        context.protocol,
-        product,
-        target,
-        optimize,
-        root,
-    );
-    root.addOptions(
-        "build_identity",
-        graph_identity.buildOptions(b, context.identity),
-    );
-    return b.addExecutable(.{
-        .name = "riscv-pc-hotspot-observer",
-        .root_module = root,
-    });
-}
-fn addFunctionValueExecutable(
-    context: Context,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Step.Compile {
-    const b = context.b;
-    const root = graph.create(b, .{
-        .product = product,
-        .root_source_file = "src/tools/riscv/function_value/main.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    context.protocol.addImports(root);
-    integration_graph.addRiscVCpuStack(
-        b,
-        context.protocol,
-        product,
-        target,
-        optimize,
-        root,
-    );
-    root.addOptions(
-        "build_identity",
-        graph_identity.buildOptions(b, context.identity),
-    );
-    return b.addExecutable(.{
-        .name = "riscv-function-value-observer",
-        .root_module = root,
-    });
-}
-fn addAnalyzeLegacySemanticExecutable(
-    context: Context,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Step.Compile {
-    const b = context.b;
-    const root = graph.create(b, .{
-        .product = product,
-        .root_source_file = "src/tools/riscv/analyze_legacy_semantics/main.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    context.protocol.addImports(root);
-    integration_graph.addRiscVCpuStack(
-        b,
-        context.protocol,
-        product,
-        target,
-        optimize,
-        root,
-    );
-    root.addOptions(
-        "build_identity",
-        graph_identity.buildOptions(b, context.identity),
-    );
-    return b.addExecutable(.{
-        .name = "riscv-analyze-legacy-semantic-observer",
-        .root_module = root,
-    });
-}
-fn addMemcpyHotspotExecutable(
-    context: Context,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Step.Compile {
-    const b = context.b;
-    const root = graph.create(b, .{
-        .product = product,
-        .root_source_file = "src/tools/riscv/memcpy_hotspot/main.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    context.protocol.addImports(root);
-    integration_graph.addRiscVCpuStack(
-        b,
-        context.protocol,
-        product,
-        target,
-        optimize,
-        root,
-    );
-    root.addOptions(
-        "build_identity",
-        graph_identity.buildOptions(b, context.identity),
-    );
-    return b.addExecutable(.{
-        .name = "riscv-memcpy-hotspot-observer",
-        .root_module = root,
-    });
-}
-fn addMemcpyAdmissionExecutable(
-    context: Context,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Step.Compile {
-    const b = context.b;
-    const root = graph.create(b, .{
-        .product = product,
-        .root_source_file = "src/tools/riscv/memcpy_admission/main.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    context.protocol.addImports(root);
-    integration_graph.addRiscVCpuStack(
-        b,
-        context.protocol,
-        product,
-        target,
-        optimize,
-        root,
-    );
-    root.addOptions(
-        "build_identity",
-        graph_identity.buildOptions(b, context.identity),
-    );
-    return b.addExecutable(.{
-        .name = "riscv-memcpy-admission-observer",
-        .root_module = root,
-    });
-}
-fn addExecutable(
-    context: Context,
-    protocol: graph.ProtocolModules,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-    name: []const u8,
-) *std.Build.Step.Compile {
-    const b = context.b;
-    const stwo = createStwoModule(b, protocol, target, optimize);
-    const capabilities = riscv_cpu_modules.capabilities(context.b, product, target, optimize);
-    const shell = riscv_cpu_modules.binding(context.b, product, target, optimize);
-    const adapter = shell.adapterModule(.{
-        .protocol = protocol,
-        .identity = context.identity,
-        .stwo = stwo,
-        .capabilities = capabilities,
-    });
-    const root = graph.create(b, .{
-        .product = product,
-        .root_source_file = "src/products/riscv_cpu/main.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    protocol.addImports(root);
-    root.addImport("stwo", stwo);
-    root.addImport("stwo_riscv_cpu", stwo);
-    root.addImport("riscv_adapter", adapter);
-    root.addImport("riscv_cpu_capabilities", capabilities);
-    shell.addShellImports(root);
-    root.addImport(
-        "output_transaction",
-        riscv_cpu_modules.outputTransaction(context.b, product, target, optimize),
-    );
-    root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
-    root.addOptions(
-        "product_identity",
-        graph_identity.productOptions(b, context.identity, product, target, optimize),
-    );
-    return b.addExecutable(.{ .name = name, .root_module = root });
-}
-
-fn addRecursiveCspProducer(context: Context) *std.Build.Step.Compile {
-    const b = context.b;
-    const stwo = createStwoModule(
-        b,
-        context.protocol,
-        context.target,
-        context.optimize,
-    );
-    const root = graph.create(b, .{
-        .product = riscv_cpu_modules.roleProduct(product, .benchmark),
-        .root_source_file = "src/tools/riscv/recursive_csp_producer/main.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    context.protocol.addImports(root);
-    root.addImport("stwo", stwo);
-    root.addImport(
-        "recursive_csp_profile_registry",
-        recursionProfileRegistryModule(context, .benchmark),
-    );
-    root.addImport(
-        "output_transaction",
-        riscv_cpu_modules.outputTransaction(
-            context.b,
-            product,
-            context.target,
-            context.optimize,
-        ),
-    );
-    root.addOptions(
-        "build_identity",
-        graph_identity.buildOptions(b, context.identity),
-    );
-    root.addOptions(
-        "product_identity",
-        graph_identity.productOptions(
-            b,
-            context.identity,
-            riscv_cpu_modules.roleProduct(product, .benchmark),
-            context.target,
-            context.optimize,
-        ),
-    );
-    return b.addExecutable(.{
-        .name = "stwo-zig-riscv-recursive-csp-producer",
-        .root_module = root,
-    });
-}
-fn addRecursionShapeInspector(context: Context) *std.Build.Step.Compile {
-    const b = context.b;
-    const root = graph.create(b, .{
-        .product = riscv_cpu_modules.roleProduct(product, .gate),
-        .root_source_file = "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-    context.protocol.addImports(root);
-    _ = graph.addRiscVFrontendImport(
-        b,
-        context.protocol,
-        riscv_cpu_modules.roleProduct(product, .gate),
-        context.target,
-        context.optimize,
-        root,
-    );
-    root.addImport(
-        "atomic_file",
-        graph.create(b, .{
-            .product = riscv_cpu_modules.roleProduct(product, .gate),
-            .root_source_file = "src/interop/atomic_file.zig",
-            .target = context.target,
-            .optimize = context.optimize,
-        }),
-    );
-    root.addImport(
-        "recursive_csp_profile_registry",
-        recursionProfileRegistryModule(context, .gate),
-    );
-    root.addOptions(
-        "build_identity",
-        graph_identity.buildOptions(b, context.identity),
-    );
-    root.addOptions(
-        "product_identity",
-        graph_identity.productOptions(
-            b,
-            context.identity,
-            riscv_cpu_modules.roleProduct(product, .gate),
-            context.target,
-            context.optimize,
-        ),
-    );
-    return b.addExecutable(.{
-        .name = "stwo-zig-riscv-recursion-shape-inspector",
-        .root_module = root,
-    });
-}
-
-fn recursionProfileRegistryModule(
-    context: Context,
-    role: graph.Role,
-) *std.Build.Module {
-    return graph.create(context.b, .{
-        .product = riscv_cpu_modules.roleProduct(product, role),
-        .root_source_file = "src/tools/riscv/recursive_csp_producer/profile_registry.zig",
-        .target = context.target,
-        .optimize = context.optimize,
-    });
-}
-fn createStwoModule(
-    b: *std.Build,
-    protocol: graph.ProtocolModules,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Module {
-    const module = graph.create(b, .{
-        .product = riscv_cpu_modules.roleProduct(product, .library),
-        .root_source_file = "src/stwo_riscv_cpu.zig",
-        .target = target,
-        .optimize = optimize,
-    });
-    protocol.addImports(module);
-    _ = graph.addProofWireImport(
-        b,
-        protocol,
-        riscv_cpu_modules.roleProduct(product, .library),
-        target,
-        optimize,
-        module,
-    );
-    integration_graph.addRiscVCpuStack(
-        b,
-        protocol,
-        riscv_cpu_modules.roleProduct(product, .library),
-        target,
-        optimize,
-        module,
-    );
-    return module;
 }

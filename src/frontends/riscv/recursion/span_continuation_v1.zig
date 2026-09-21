@@ -15,7 +15,7 @@ pub const Words = [WORD_COUNT]M31;
 pub const Mode = enum(u8) { intermediate = 0, root = 1 };
 pub const Error = span.Error || error{ NonCanonicalContinuationWord, SessionMismatch, LineageDiscontinuity, EndpointPropagationMismatch };
 
-pub fn fromSegment(statement: *const @import("segment_statement_v2.zig").StatementV2) !Words {
+pub fn fromSegment(statement: *const @import("segment_statement_v2_contract.zig").StatementV2) !Words {
     try statement.validate();
     var result: Words = undefined;
     result[0..SPAN_WORDS].* = statement.base_statement_words;

@@ -1,0 +1,11 @@
+{
+  "reproduced": true,
+  "platform": "macOS",
+  "error": "ArtifactStoreCorrupt",
+  "operation": "putBytes followed immediately by resolveObject on the same store",
+  "source_sha256": "d48205161b42841a0948c3850fb42e480bf6ea2828c7639546552a2249a190c5",
+  "source_modified": false,
+  "linux_runtime_qualified": false,
+  "historical_linux_failure_cause_proven": false,
+  "finding": "Publication caches identity before deferred temporary hard-link unlink; unlink changes ctime with inode/size/mtime unchanged."
+}

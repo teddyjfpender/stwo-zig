@@ -40,6 +40,8 @@ pub fn shutdown() MetalCommitBackend.ShutdownError!void {
 }
 
 pub const MetalCommitBackend = struct {
+    pub const supportsFrameworkInteractions = @import("runtime/framework_interaction_host_bridge.zig").available;
+    pub const generateFrameworkInteractionInto = @import("runtime/framework_interaction_host_bridge.zig").generateInto;
     pub const admitHostProving = @import("execution_policy.zig").admitHost;
     pub const capabilities: @import("stwo_backend_contracts").Capabilities = .{
         .host_batch_inverse = true,

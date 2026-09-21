@@ -76,7 +76,8 @@ pub fn createDirectoryCreateOnly(path: []const u8) !void {
 
 fn openDirectoryPathNoFollow(path: []const u8) !std.fs.Dir {
     if (!std.fs.path.isAbsolute(path)) return error.AbsolutePathRequired;
-    var current = try std.fs.openDirAbsolute("/", .{ .no_follow = true });
+    // Linux opens non-iterable directories with O_PATH, which cannot be fsynced.
+    var current = try std.fs.openDirAbsolute("/", .{ .no_follow = true, .iterate = true });
     errdefer current.close();
     var components = std.mem.tokenizeScalar(u8, path, std.fs.path.sep);
     while (components.next()) |component| {
@@ -85,7 +86,7 @@ fn openDirectoryPathNoFollow(path: []const u8) !std.fs.Dir {
         {
             return error.InvalidArtifactPath;
         }
-        const next = try current.openDir(component, .{ .no_follow = true });
+        const next = try current.openDir(component, .{ .no_follow = true, .iterate = true });
         current.close();
         current = next;
     }
@@ -124,9 +125,9 @@ pub fn publishCreateOnlyDurable(path: []const u8, bytes: []const u8) !void {
         std.mem.eql(u8, basename, "..")) return error.InvalidOutputPath;
     const parent_path = std.fs.path.dirname(path) orelse ".";
     var parent = if (std.fs.path.isAbsolute(parent_path))
-        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true })
+        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true, .iterate = true })
     else
-        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true });
+        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true, .iterate = true });
     defer parent.close();
     var file = try parent.createFile(basename, .{
         .read = false,
@@ -154,9 +155,9 @@ pub fn appendDurable(path: []const u8, bytes: []const u8) !void {
     const basename = std.fs.path.basename(path);
     const parent_path = std.fs.path.dirname(path) orelse ".";
     var parent = if (std.fs.path.isAbsolute(parent_path))
-        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true })
+        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true, .iterate = true })
     else
-        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true });
+        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true, .iterate = true });
     defer parent.close();
     var file = try openRegularNoFollow(parent, basename, .read_write);
     defer file.close();
@@ -324,6 +325,23 @@ test "Ethereum artifact CLI paths resolve to absolute retained authority" {
     defer allocator.free(root_boundary);
     try std.testing.expect(std.fs.path.isAbsolute(root_boundary));
     try std.testing.expectEqualStrings("/retained", root_boundary);
+}
+
+test "Ethereum durable publication and append use sync-capable directory handles" {
+    const allocator = std.testing.allocator;
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const root = try temporary.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(root);
+    const path = try std.fs.path.join(allocator, &.{ root, "journal" });
+    defer allocator.free(path);
+
+    try publishCreateOnlyDurable(path, "first\n");
+    try appendDurable(path, "second\n");
+    try std.testing.expectError(error.PathAlreadyExists, publishCreateOnlyDurable(path, "replacement\n"));
+    const contents = try readFileBounded(allocator, path, 64);
+    defer allocator.free(contents);
+    try std.testing.expectEqualStrings("first\nsecond\n", contents);
 }
 
 test "Ethereum artifact directory publication is fresh and create-only" {

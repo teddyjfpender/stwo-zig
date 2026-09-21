@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "unchanged_function_bodies": [
+    "printCircuitCensus",
+    "censusHashU64",
+    "censusHashM31",
+    "collectClosure",
+    "diagnoseRedTupleClosure after envelope admission"
+  ],
+  "validation_order_unchanged": true,
+  "per_instantiation_counter_retained": true
+}

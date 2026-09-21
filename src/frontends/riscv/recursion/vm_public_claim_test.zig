@@ -158,6 +158,9 @@ test "R-012 clock-free transport projections validate their exact fields" {
 }
 
 test "R-012 VM public claim fails closed outside the admitted completion profile" {
+    try std.testing.expectEqual(@as(usize, 259), try (try claim.Shape.init(0, 0)).wordCount());
+    try std.testing.expectError(error.InvalidShape, claim.Shape.init(stwo_core.fields.m31.Modulus, 0));
+    try std.testing.expectError(error.LogSizeOutOfRange, claim.Shape.init(1 << 29, 0));
     const shape = try claim.Shape.init(3, 3);
     var halt = testPublicData();
     halt.completion = .{

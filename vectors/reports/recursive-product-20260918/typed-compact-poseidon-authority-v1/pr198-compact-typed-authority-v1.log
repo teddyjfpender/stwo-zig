@@ -1,0 +1,61 @@
+test-parent-canonical-admission
++- stwo_riscv_frontend test count floor
+   +- run test 220/227 passed, 6 failed, 1 skipped
+DIRECT_EXECUTION_PRUNING row=0 canonical_nodes=7 executed_nodes=3
+DIRECT_EXECUTION_PRUNING row=1 canonical_nodes=40 executed_nodes=29
+DIRECT_EXECUTION_PRUNING row=2 canonical_nodes=49 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=3 canonical_nodes=41 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=4 canonical_nodes=12 executed_nodes=10
+DIRECT_EXECUTION_PRUNING row=5 canonical_nodes=10 executed_nodes=9
+DIRECT_EXECUTION_PRUNING row=6 canonical_nodes=314 executed_nodes=314
+DIRECT_EXECUTION_PRUNING row=7 canonical_nodes=12 executed_nodes=8
+DIRECT_EXECUTION_PRUNING row=8 canonical_nodes=23 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=9 canonical_nodes=55 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=10 canonical_nodes=41 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=11 canonical_nodes=21 executed_nodes=21
+DIRECT_EXECUTION_PRUNING row=12 canonical_nodes=36 executed_nodes=35
+DIRECT_EXECUTION_PRUNING row=13 canonical_nodes=1 executed_nodes=1
+DIRECT_EXECUTION_PRUNING row=14 canonical_nodes=149 executed_nodes=149
+DIRECT_EXECUTION_PRUNING row=20 canonical_nodes=289 executed_nodes=231
+DIRECT_EXECUTION_PRUNING row=21 canonical_nodes=166 executed_nodes=166
+DIRECT_EXECUTION_PRUNING row=22 canonical_nodes=22 executed_nodes=14
+DIRECT_EXECUTION_PRUNING row=23 canonical_nodes=121 executed_nodes=99
+DIRECT_EXECUTION_PRUNING row=24 canonical_nodes=20 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=25 canonical_nodes=125 executed_nodes=102
+DIRECT_EXECUTION_PRUNING row=26 canonical_nodes=46 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=27 canonical_nodes=17 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=28 canonical_nodes=16 executed_nodes=13
+DIRECT_EXECUTION_PRUNING row=29 canonical_nodes=21 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=30 canonical_nodes=49 executed_nodes=49
+DIRECT_EXECUTION_PRUNING row=31 canonical_nodes=74 executed_nodes=73
+DIRECT_EXECUTION_PRUNING row=32 canonical_nodes=106 executed_nodes=106
+DIRECT_EXECUTION_PRUNING row=33 canonical_nodes=43 executed_nodes=39
+error: 'poseidon2_protocol_identity_test_root.test.canonical recursive provider admits new identities and explicit retained compact identities' failed
+error: 'poseidon2_protocol_identity_test_root.test.canonical recursive provider rejects forged identities geometry and borrowed challenge changes' failed
+error: 'poseidon2_protocol_identity_test_root.test.canonical parent preparation rejects retired identities and preserves admitted snapshots' failed
+error: 'poseidon2_protocol_identity_test_root.test.parent collections agree on canonical geometry and reject retired AIR and identities' failed
+error: 'air.memory_commitment.poseidon2_universal_identity_v2.test.compact Poseidon canonical identity records production equations deterministically' failed: slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+E3 7C 58 9F AB FF A3 71  1C 41 C6 CB 25 9E 68 30  .|X....q.A..%.h0
+35 43 BC 36 ED CE F3 D5  BE 5C AE C7 45 9F 8D DF  5C.6.....\..E...
+
+============= instead found this: ==============  len: 32 (0x20)
+
+50 F0 77 AB 67 EA 0E 3A  43 93 CE 4B 87 E4 D8 F9  P.w.g..:C..K....
+15 BA 6B 9B D4 CA 10 A9  17 28 C6 3B 58 DA 89 E1  ..k......(.;X...
+
+================================================
+error: 'air.memory_commitment.poseidon2_universal_identity_v2.test.canonical Poseidon admission requires explicit legacy compatibility' failed
+error: while executing test 'isa.custom0.test.Ethereum profile combines unchanged Keccak-f and exact signer recovery', the following test command failed:
+./.zig-cache/o/d05a620b2b7cf3da800c2dcfc546fe81/test --cache-dir=./.zig-cache --seed=0x23dfd0bf --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 220/227 tests passed; 1 skipped; 6 failed
+test-parent-canonical-admission transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test 220/227 passed, 6 failed, 1 skipped
+      +- compile test ReleaseSafe native success 1m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/98815aeb77af33dc99294513712117ba/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x23dfd0bf -Zbcf2c121cf428aa6 --maxrss 25769803776 -j1 test-parent-canonical-admission -Doptimize=ReleaseSafe --summary all

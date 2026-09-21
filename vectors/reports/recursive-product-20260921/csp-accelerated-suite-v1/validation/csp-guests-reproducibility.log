@@ -1,0 +1,5 @@
+   Compiling ecdsa-secp256k1-precompile-guest v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_guests/ecdsa_secp256k1_precompile)
+    Finished `release` profile [optimized] target(s) in 0.11s
+   Compiling ecdsa-secp256k1-precompile-guest v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_guests/ecdsa_secp256k1_precompile)
+    Finished `release` profile [optimized] target(s) in 0.06s
+Both CSP ECDSA guests and their source manifest match.

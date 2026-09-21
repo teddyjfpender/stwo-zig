@@ -19,6 +19,26 @@ const segment_v2 = @import("segment_statement_v2.zig");
 const scheduled = @import("scheduled_channel_v2.zig");
 const transcript = @import("transcript_program_v2.zig");
 
+test "recording channel preserves native transcript and rejects corrupt trace coordinates" {
+    const recording = @import("recording_poseidon_channel_v4.zig");
+    var recorder = recording.Channel.init(std.testing.allocator);
+    defer recorder.deinit();
+    var native = channel.Channel{};
+    const words = [_]u32{ 1, 17, 65536 };
+    recorder.mixU32s(&words);
+    native.mixU32s(&words);
+    try std.testing.expectEqualDeep(native.drawU32s(), recorder.drawU32s());
+    var execution = try recorder.finish();
+    defer execution.deinit();
+    try std.testing.expectEqualDeep(native.digestWords(), execution.final_digest);
+    try execution.validate();
+    const original = execution.hash_frames[0].hash_id;
+    execution.hash_frames[0].hash_id = original + 1;
+    try std.testing.expectError(error.InvalidTranscriptTrace, execution.validate());
+    execution.hash_frames[0].hash_id = original;
+    try execution.validate();
+}
+
 const config = PcsConfig{
     .pow_bits = 0,
     .fri_config = .{

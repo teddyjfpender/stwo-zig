@@ -1,0 +1,1715 @@
+[
+  {
+    "backend": "cpu",
+    "sample": 0,
+    "process_ns": 9707667667,
+    "argv": [
+      "/private/tmp/pr198-product-cpu-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-prove",
+      "--profile",
+      "tiny-parent-root-v2",
+      "/tmp/pr198-speed-parent-baseline-v1/cpu-0",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-cpu/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-cpu/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    "binary_sha256": "0626d3a977bbdd8f6ea80e8740ab6119a1721c787c2434ec1c2b34af99398cc5",
+    "phases": [
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "1",
+        "selected_lane_only": "true",
+        "capture_ns": "221872208",
+        "plans_ns": "3338834",
+        "authority_ns": "501311833",
+        "rows_ns": "415304125"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "1",
+        "prefix_ns": "160250",
+        "transcript_ns": "136375",
+        "pcs_ns": "1141887041",
+        "boundary_ns": "8145709",
+        "composition_ns": "7026041"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "1",
+        "preparation_ns": "1157390000"
+      },
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "2",
+        "selected_lane_only": "true",
+        "capture_ns": "218642958",
+        "plans_ns": "3072333",
+        "authority_ns": "503194250",
+        "rows_ns": "418620042"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "2",
+        "prefix_ns": "135667",
+        "transcript_ns": "64958",
+        "pcs_ns": "1143569959",
+        "boundary_ns": "8573333",
+        "composition_ns": "6970208"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "2",
+        "preparation_ns": "2316742166"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "0",
+        "rows": "6378",
+        "logical_bytes": "306144"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "1",
+        "rows": "2768",
+        "logical_bytes": "531456"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "2",
+        "rows": "2768",
+        "logical_bytes": "409664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "3",
+        "rows": "206",
+        "logical_bytes": "29664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "4",
+        "rows": "20496",
+        "logical_bytes": "1557696"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "5",
+        "rows": "18892",
+        "logical_bytes": "1586928"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "6",
+        "rows": "4",
+        "logical_bytes": "1088"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "7",
+        "rows": "4",
+        "logical_bytes": "240"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "8",
+        "rows": "94",
+        "logical_bytes": "9400"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "9",
+        "rows": "66",
+        "logical_bytes": "8448"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "10",
+        "rows": "8",
+        "logical_bytes": "736"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "11",
+        "rows": "61669",
+        "logical_bytes": "5673548"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "12",
+        "rows": "0",
+        "logical_bytes": "0"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "13",
+        "rows": "80125",
+        "logical_bytes": "3205000"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "14",
+        "rows": "231932",
+        "logical_bytes": "50097312"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "20",
+        "rows": "386",
+        "logical_bytes": "114256"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "21",
+        "rows": "6176",
+        "logical_bytes": "2593920"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "22",
+        "rows": "18",
+        "logical_bytes": "1368"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "23",
+        "rows": "94956",
+        "logical_bytes": "33044688"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "24",
+        "rows": "782056",
+        "logical_bytes": "81333824"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "25",
+        "rows": "23160",
+        "logical_bytes": "8708160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "26",
+        "rows": "5790",
+        "logical_bytes": "972720"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "27",
+        "rows": "1930",
+        "logical_bytes": "216160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "28",
+        "rows": "2702",
+        "logical_bytes": "237776"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "29",
+        "rows": "141326",
+        "logical_bytes": "16959120"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "30",
+        "rows": "678113",
+        "logical_bytes": "73236204"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "31",
+        "rows": "36030",
+        "logical_bytes": "4611840"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "32",
+        "rows": "217792",
+        "logical_bytes": "44429568"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "33",
+        "rows": "49794",
+        "logical_bytes": "9162096"
+      },
+      {
+        "kind": "DETACHED_PARENT_PREPARATION",
+        "rows_bytes": "339039024",
+        "providers": "176468",
+        "graph_ns": "2653451791",
+        "snapshot_pending": "true"
+      },
+      {
+        "kind": "PARENT_MAIN_FINALIZE",
+        "preflight_ns": "262792",
+        "main_fill_ns": "213260083",
+        "source_projection_ns": "1282983708",
+        "range_fill_ns": "759542",
+        "closure_ns": "187843958"
+      },
+      {
+        "kind": "PARENT_INTERACTION_FILL",
+        "preflight_ns": "919042",
+        "typed_ns": "1192748125",
+        "poseidon_ns": "10082417",
+        "range_ns": "2268583"
+      },
+      {
+        "kind": "DETACHED_PARENT_STAGE_PROFILE"
+      }
+    ],
+    "verified": true,
+    "baseline_artifacts_identical": true,
+    "log_sha256": "b533aee73ef0e4eeb1d47f5bc4c4c6fa78697dbf2e070e93fb05b1faaba3983b"
+  },
+  {
+    "backend": "metal",
+    "sample": 0,
+    "process_ns": 6739055375,
+    "argv": [
+      "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/metal/bin/recursive-segment-v2-detached-parent-prove-metal",
+      "--aot-bundle",
+      "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+      "--aot-manifest-sha256",
+      "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+      "--aot-profile",
+      "recursive-framework-v1",
+      "--profile",
+      "tiny-parent-root-v2",
+      "/tmp/pr198-speed-parent-baseline-v1/metal-0",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    "binary_sha256": "997e54ba48ca0f3ca7c026ddd25091691160ed924556b471a93d06c9bd4d4294",
+    "phases": [
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "1",
+        "selected_lane_only": "true",
+        "capture_ns": "222466083",
+        "plans_ns": "3043250",
+        "authority_ns": "506850917",
+        "rows_ns": "419224500"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "1",
+        "prefix_ns": "171959",
+        "transcript_ns": "140500",
+        "pcs_ns": "1151683458",
+        "boundary_ns": "8067708",
+        "composition_ns": "7074917"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "1",
+        "preparation_ns": "1167175542"
+      },
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "2",
+        "selected_lane_only": "true",
+        "capture_ns": "223272875",
+        "plans_ns": "3084459",
+        "authority_ns": "505073333",
+        "rows_ns": "420494958"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "2",
+        "prefix_ns": "140042",
+        "transcript_ns": "64750",
+        "pcs_ns": "1151963500",
+        "boundary_ns": "8175750",
+        "composition_ns": "6980875"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "2",
+        "preparation_ns": "2334530792"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "0",
+        "rows": "6378",
+        "logical_bytes": "306144"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "1",
+        "rows": "2768",
+        "logical_bytes": "531456"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "2",
+        "rows": "2768",
+        "logical_bytes": "409664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "3",
+        "rows": "206",
+        "logical_bytes": "29664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "4",
+        "rows": "20496",
+        "logical_bytes": "1557696"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "5",
+        "rows": "18892",
+        "logical_bytes": "1586928"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "6",
+        "rows": "4",
+        "logical_bytes": "1088"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "7",
+        "rows": "4",
+        "logical_bytes": "240"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "8",
+        "rows": "94",
+        "logical_bytes": "9400"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "9",
+        "rows": "66",
+        "logical_bytes": "8448"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "10",
+        "rows": "8",
+        "logical_bytes": "736"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "11",
+        "rows": "61669",
+        "logical_bytes": "5673548"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "12",
+        "rows": "0",
+        "logical_bytes": "0"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "13",
+        "rows": "80125",
+        "logical_bytes": "3205000"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "14",
+        "rows": "231932",
+        "logical_bytes": "50097312"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "20",
+        "rows": "386",
+        "logical_bytes": "114256"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "21",
+        "rows": "6176",
+        "logical_bytes": "2593920"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "22",
+        "rows": "18",
+        "logical_bytes": "1368"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "23",
+        "rows": "94956",
+        "logical_bytes": "33044688"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "24",
+        "rows": "782056",
+        "logical_bytes": "81333824"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "25",
+        "rows": "23160",
+        "logical_bytes": "8708160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "26",
+        "rows": "5790",
+        "logical_bytes": "972720"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "27",
+        "rows": "1930",
+        "logical_bytes": "216160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "28",
+        "rows": "2702",
+        "logical_bytes": "237776"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "29",
+        "rows": "141326",
+        "logical_bytes": "16959120"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "30",
+        "rows": "678113",
+        "logical_bytes": "73236204"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "31",
+        "rows": "36030",
+        "logical_bytes": "4611840"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "32",
+        "rows": "217792",
+        "logical_bytes": "44429568"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "33",
+        "rows": "49794",
+        "logical_bytes": "9162096"
+      },
+      {
+        "kind": "DETACHED_PARENT_PREPARATION",
+        "rows_bytes": "339039024",
+        "providers": "176468",
+        "graph_ns": "2676138959",
+        "snapshot_pending": "true"
+      },
+      {
+        "kind": "PARENT_MAIN_FINALIZE",
+        "preflight_ns": "455000",
+        "main_fill_ns": "218404209",
+        "source_projection_ns": "1284408125",
+        "range_fill_ns": "723958",
+        "closure_ns": "187392375"
+      },
+      {
+        "kind": "PARENT_INTERACTION_FILL",
+        "preflight_ns": "824583",
+        "typed_ns": "416517792",
+        "poseidon_ns": "10111417",
+        "range_ns": "2632375"
+      },
+      {
+        "kind": "DETACHED_PARENT_TYPED_DEVICE_INTERACTION",
+        "components": "29",
+        "dispatches": "116"
+      },
+      {
+        "kind": "DETACHED_PARENT_STAGE_PROFILE"
+      },
+      {
+        "kind": "DETACHED_PARENT_METAL",
+        "dispatches": "235",
+        "poseidon_commits": "9",
+        "cpu_fallbacks": "0",
+        "host_composition_components": "0",
+        "pow_dispatches": "2",
+        "runtime_released": "true",
+        "manifest_sha256": "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+        "profile": "recursive_framework_v1",
+        "framework_dispatches": "30"
+      }
+    ],
+    "verified": true,
+    "baseline_artifacts_identical": true,
+    "log_sha256": "4e751cc9c2f88491995615dac63b5452f990e509da29c6e2073dfac75de3c577"
+  },
+  {
+    "backend": "cpu",
+    "sample": 1,
+    "process_ns": 9753617167,
+    "argv": [
+      "/private/tmp/pr198-product-cpu-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-prove",
+      "--profile",
+      "tiny-parent-root-v2",
+      "/tmp/pr198-speed-parent-baseline-v1/cpu-1",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-cpu/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-cpu/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    "binary_sha256": "0626d3a977bbdd8f6ea80e8740ab6119a1721c787c2434ec1c2b34af99398cc5",
+    "phases": [
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "1",
+        "selected_lane_only": "true",
+        "capture_ns": "230880875",
+        "plans_ns": "3268083",
+        "authority_ns": "507566750",
+        "rows_ns": "419052333"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "1",
+        "prefix_ns": "159375",
+        "transcript_ns": "147291",
+        "pcs_ns": "1160840167",
+        "boundary_ns": "8433708",
+        "composition_ns": "7485334"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "1",
+        "preparation_ns": "1177085583"
+      },
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "2",
+        "selected_lane_only": "true",
+        "capture_ns": "223082333",
+        "plans_ns": "3086375",
+        "authority_ns": "506684583",
+        "rows_ns": "417558000"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "2",
+        "prefix_ns": "148000",
+        "transcript_ns": "70958",
+        "pcs_ns": "1150452084",
+        "boundary_ns": "7922666",
+        "composition_ns": "6977500"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "2",
+        "preparation_ns": "2342687208"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "0",
+        "rows": "6378",
+        "logical_bytes": "306144"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "1",
+        "rows": "2768",
+        "logical_bytes": "531456"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "2",
+        "rows": "2768",
+        "logical_bytes": "409664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "3",
+        "rows": "206",
+        "logical_bytes": "29664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "4",
+        "rows": "20496",
+        "logical_bytes": "1557696"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "5",
+        "rows": "18892",
+        "logical_bytes": "1586928"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "6",
+        "rows": "4",
+        "logical_bytes": "1088"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "7",
+        "rows": "4",
+        "logical_bytes": "240"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "8",
+        "rows": "94",
+        "logical_bytes": "9400"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "9",
+        "rows": "66",
+        "logical_bytes": "8448"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "10",
+        "rows": "8",
+        "logical_bytes": "736"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "11",
+        "rows": "61669",
+        "logical_bytes": "5673548"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "12",
+        "rows": "0",
+        "logical_bytes": "0"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "13",
+        "rows": "80125",
+        "logical_bytes": "3205000"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "14",
+        "rows": "231932",
+        "logical_bytes": "50097312"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "20",
+        "rows": "386",
+        "logical_bytes": "114256"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "21",
+        "rows": "6176",
+        "logical_bytes": "2593920"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "22",
+        "rows": "18",
+        "logical_bytes": "1368"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "23",
+        "rows": "94956",
+        "logical_bytes": "33044688"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "24",
+        "rows": "782056",
+        "logical_bytes": "81333824"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "25",
+        "rows": "23160",
+        "logical_bytes": "8708160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "26",
+        "rows": "5790",
+        "logical_bytes": "972720"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "27",
+        "rows": "1930",
+        "logical_bytes": "216160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "28",
+        "rows": "2702",
+        "logical_bytes": "237776"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "29",
+        "rows": "141326",
+        "logical_bytes": "16959120"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "30",
+        "rows": "678113",
+        "logical_bytes": "73236204"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "31",
+        "rows": "36030",
+        "logical_bytes": "4611840"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "32",
+        "rows": "217792",
+        "logical_bytes": "44429568"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "33",
+        "rows": "49794",
+        "logical_bytes": "9162096"
+      },
+      {
+        "kind": "DETACHED_PARENT_PREPARATION",
+        "rows_bytes": "339039024",
+        "providers": "176468",
+        "graph_ns": "2689429500",
+        "snapshot_pending": "true"
+      },
+      {
+        "kind": "PARENT_MAIN_FINALIZE",
+        "preflight_ns": "262250",
+        "main_fill_ns": "209975083",
+        "source_projection_ns": "1281642542",
+        "range_fill_ns": "667250",
+        "closure_ns": "193552417"
+      },
+      {
+        "kind": "PARENT_INTERACTION_FILL",
+        "preflight_ns": "813167",
+        "typed_ns": "1200749458",
+        "poseidon_ns": "10194417",
+        "range_ns": "2530500"
+      },
+      {
+        "kind": "DETACHED_PARENT_STAGE_PROFILE"
+      }
+    ],
+    "verified": true,
+    "baseline_artifacts_identical": true,
+    "log_sha256": "42feebc9d4a8c17208abb17dc1b914732970c548154e58b2b0cfec96b5b0f85a"
+  },
+  {
+    "backend": "metal",
+    "sample": 1,
+    "process_ns": 6782095583,
+    "argv": [
+      "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/metal/bin/recursive-segment-v2-detached-parent-prove-metal",
+      "--aot-bundle",
+      "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+      "--aot-manifest-sha256",
+      "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+      "--aot-profile",
+      "recursive-framework-v1",
+      "--profile",
+      "tiny-parent-root-v2",
+      "/tmp/pr198-speed-parent-baseline-v1/metal-1",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    "binary_sha256": "997e54ba48ca0f3ca7c026ddd25091691160ed924556b471a93d06c9bd4d4294",
+    "phases": [
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "1",
+        "selected_lane_only": "true",
+        "capture_ns": "228711875",
+        "plans_ns": "3238792",
+        "authority_ns": "512658750",
+        "rows_ns": "422336708"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "1",
+        "prefix_ns": "166458",
+        "transcript_ns": "128625",
+        "pcs_ns": "1167020500",
+        "boundary_ns": "8389084",
+        "composition_ns": "7557666"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "1",
+        "preparation_ns": "1183297792"
+      },
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "2",
+        "selected_lane_only": "true",
+        "capture_ns": "224141333",
+        "plans_ns": "3200334",
+        "authority_ns": "514900666",
+        "rows_ns": "418199959"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "2",
+        "prefix_ns": "146500",
+        "transcript_ns": "88083",
+        "pcs_ns": "1160483000",
+        "boundary_ns": "8311167",
+        "composition_ns": "7179250"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "2",
+        "preparation_ns": "2359551667"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "0",
+        "rows": "6378",
+        "logical_bytes": "306144"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "1",
+        "rows": "2768",
+        "logical_bytes": "531456"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "2",
+        "rows": "2768",
+        "logical_bytes": "409664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "3",
+        "rows": "206",
+        "logical_bytes": "29664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "4",
+        "rows": "20496",
+        "logical_bytes": "1557696"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "5",
+        "rows": "18892",
+        "logical_bytes": "1586928"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "6",
+        "rows": "4",
+        "logical_bytes": "1088"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "7",
+        "rows": "4",
+        "logical_bytes": "240"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "8",
+        "rows": "94",
+        "logical_bytes": "9400"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "9",
+        "rows": "66",
+        "logical_bytes": "8448"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "10",
+        "rows": "8",
+        "logical_bytes": "736"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "11",
+        "rows": "61669",
+        "logical_bytes": "5673548"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "12",
+        "rows": "0",
+        "logical_bytes": "0"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "13",
+        "rows": "80125",
+        "logical_bytes": "3205000"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "14",
+        "rows": "231932",
+        "logical_bytes": "50097312"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "20",
+        "rows": "386",
+        "logical_bytes": "114256"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "21",
+        "rows": "6176",
+        "logical_bytes": "2593920"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "22",
+        "rows": "18",
+        "logical_bytes": "1368"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "23",
+        "rows": "94956",
+        "logical_bytes": "33044688"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "24",
+        "rows": "782056",
+        "logical_bytes": "81333824"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "25",
+        "rows": "23160",
+        "logical_bytes": "8708160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "26",
+        "rows": "5790",
+        "logical_bytes": "972720"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "27",
+        "rows": "1930",
+        "logical_bytes": "216160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "28",
+        "rows": "2702",
+        "logical_bytes": "237776"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "29",
+        "rows": "141326",
+        "logical_bytes": "16959120"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "30",
+        "rows": "678113",
+        "logical_bytes": "73236204"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "31",
+        "rows": "36030",
+        "logical_bytes": "4611840"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "32",
+        "rows": "217792",
+        "logical_bytes": "44429568"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "33",
+        "rows": "49794",
+        "logical_bytes": "9162096"
+      },
+      {
+        "kind": "DETACHED_PARENT_PREPARATION",
+        "rows_bytes": "339039024",
+        "providers": "176468",
+        "graph_ns": "2704190625",
+        "snapshot_pending": "true"
+      },
+      {
+        "kind": "PARENT_MAIN_FINALIZE",
+        "preflight_ns": "351917",
+        "main_fill_ns": "221586000",
+        "source_projection_ns": "1279488583",
+        "range_fill_ns": "700542",
+        "closure_ns": "189264167"
+      },
+      {
+        "kind": "PARENT_INTERACTION_FILL",
+        "preflight_ns": "852417",
+        "typed_ns": "429994333",
+        "poseidon_ns": "10334708",
+        "range_ns": "2660209"
+      },
+      {
+        "kind": "DETACHED_PARENT_TYPED_DEVICE_INTERACTION",
+        "components": "29",
+        "dispatches": "116"
+      },
+      {
+        "kind": "DETACHED_PARENT_STAGE_PROFILE"
+      },
+      {
+        "kind": "DETACHED_PARENT_METAL",
+        "dispatches": "235",
+        "poseidon_commits": "9",
+        "cpu_fallbacks": "0",
+        "host_composition_components": "0",
+        "pow_dispatches": "2",
+        "runtime_released": "true",
+        "manifest_sha256": "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+        "profile": "recursive_framework_v1",
+        "framework_dispatches": "30"
+      }
+    ],
+    "verified": true,
+    "baseline_artifacts_identical": true,
+    "log_sha256": "1fc16dd5cdd4c16d2cfe7cc7ce31a1417eed466cfbc663c3efdd90575caff10a"
+  },
+  {
+    "backend": "cpu",
+    "sample": 2,
+    "process_ns": 9819689792,
+    "argv": [
+      "/private/tmp/pr198-product-cpu-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-prove",
+      "--profile",
+      "tiny-parent-root-v2",
+      "/tmp/pr198-speed-parent-baseline-v1/cpu-2",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-cpu/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-cpu/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    "binary_sha256": "0626d3a977bbdd8f6ea80e8740ab6119a1721c787c2434ec1c2b34af99398cc5",
+    "phases": [
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "1",
+        "selected_lane_only": "true",
+        "capture_ns": "230918458",
+        "plans_ns": "3313459",
+        "authority_ns": "521485000",
+        "rows_ns": "424334708"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "1",
+        "prefix_ns": "157666",
+        "transcript_ns": "128750",
+        "pcs_ns": "1180119875",
+        "boundary_ns": "8372500",
+        "composition_ns": "7137167"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "1",
+        "preparation_ns": "1195946292"
+      },
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "2",
+        "selected_lane_only": "true",
+        "capture_ns": "225739833",
+        "plans_ns": "3296542",
+        "authority_ns": "507221458",
+        "rows_ns": "429899584"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "2",
+        "prefix_ns": "136875",
+        "transcript_ns": "65041",
+        "pcs_ns": "1166207500",
+        "boundary_ns": "8550875",
+        "composition_ns": "7123125"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "2",
+        "preparation_ns": "2378059792"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "0",
+        "rows": "6378",
+        "logical_bytes": "306144"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "1",
+        "rows": "2768",
+        "logical_bytes": "531456"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "2",
+        "rows": "2768",
+        "logical_bytes": "409664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "3",
+        "rows": "206",
+        "logical_bytes": "29664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "4",
+        "rows": "20496",
+        "logical_bytes": "1557696"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "5",
+        "rows": "18892",
+        "logical_bytes": "1586928"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "6",
+        "rows": "4",
+        "logical_bytes": "1088"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "7",
+        "rows": "4",
+        "logical_bytes": "240"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "8",
+        "rows": "94",
+        "logical_bytes": "9400"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "9",
+        "rows": "66",
+        "logical_bytes": "8448"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "10",
+        "rows": "8",
+        "logical_bytes": "736"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "11",
+        "rows": "61669",
+        "logical_bytes": "5673548"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "12",
+        "rows": "0",
+        "logical_bytes": "0"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "13",
+        "rows": "80125",
+        "logical_bytes": "3205000"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "14",
+        "rows": "231932",
+        "logical_bytes": "50097312"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "20",
+        "rows": "386",
+        "logical_bytes": "114256"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "21",
+        "rows": "6176",
+        "logical_bytes": "2593920"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "22",
+        "rows": "18",
+        "logical_bytes": "1368"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "23",
+        "rows": "94956",
+        "logical_bytes": "33044688"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "24",
+        "rows": "782056",
+        "logical_bytes": "81333824"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "25",
+        "rows": "23160",
+        "logical_bytes": "8708160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "26",
+        "rows": "5790",
+        "logical_bytes": "972720"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "27",
+        "rows": "1930",
+        "logical_bytes": "216160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "28",
+        "rows": "2702",
+        "logical_bytes": "237776"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "29",
+        "rows": "141326",
+        "logical_bytes": "16959120"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "30",
+        "rows": "678113",
+        "logical_bytes": "73236204"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "31",
+        "rows": "36030",
+        "logical_bytes": "4611840"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "32",
+        "rows": "217792",
+        "logical_bytes": "44429568"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "33",
+        "rows": "49794",
+        "logical_bytes": "9162096"
+      },
+      {
+        "kind": "DETACHED_PARENT_PREPARATION",
+        "rows_bytes": "339039024",
+        "providers": "176468",
+        "graph_ns": "2719223792",
+        "snapshot_pending": "true"
+      },
+      {
+        "kind": "PARENT_MAIN_FINALIZE",
+        "preflight_ns": "314958",
+        "main_fill_ns": "220969542",
+        "source_projection_ns": "1292370083",
+        "range_fill_ns": "728625",
+        "closure_ns": "194085292"
+      },
+      {
+        "kind": "PARENT_INTERACTION_FILL",
+        "preflight_ns": "829583",
+        "typed_ns": "1228491333",
+        "poseidon_ns": "10413875",
+        "range_ns": "2602792"
+      },
+      {
+        "kind": "DETACHED_PARENT_STAGE_PROFILE"
+      }
+    ],
+    "verified": true,
+    "baseline_artifacts_identical": true,
+    "log_sha256": "2e2922be84c97768aec1fb1e1be57a18fdf4b782a5b9565ba855cd46c8badd58"
+  },
+  {
+    "backend": "metal",
+    "sample": 2,
+    "process_ns": 6864835500,
+    "argv": [
+      "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/metal/bin/recursive-segment-v2-detached-parent-prove-metal",
+      "--aot-bundle",
+      "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+      "--aot-manifest-sha256",
+      "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+      "--aot-profile",
+      "recursive-framework-v1",
+      "--profile",
+      "tiny-parent-root-v2",
+      "/tmp/pr198-speed-parent-baseline-v1/metal-2",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    "binary_sha256": "997e54ba48ca0f3ca7c026ddd25091691160ed924556b471a93d06c9bd4d4294",
+    "phases": [
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "1",
+        "selected_lane_only": "true",
+        "capture_ns": "232898333",
+        "plans_ns": "3263959",
+        "authority_ns": "529860375",
+        "rows_ns": "435408375"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "1",
+        "prefix_ns": "174375",
+        "transcript_ns": "140167",
+        "pcs_ns": "1201502583",
+        "boundary_ns": "8766417",
+        "composition_ns": "7430083"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "1",
+        "preparation_ns": "1218051000"
+      },
+      {
+        "kind": "DETACHED_PARENT_PCS_PHASE",
+        "lane": "2",
+        "selected_lane_only": "true",
+        "capture_ns": "228092208",
+        "plans_ns": "3275417",
+        "authority_ns": "519022375",
+        "rows_ns": "431188625"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD_PHASE",
+        "lane": "2",
+        "prefix_ns": "144000",
+        "transcript_ns": "69084",
+        "pcs_ns": "1181620166",
+        "boundary_ns": "8745875",
+        "composition_ns": "7290209"
+      },
+      {
+        "kind": "DETACHED_PARENT_CHILD",
+        "lane": "2",
+        "preparation_ns": "2415956041"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "0",
+        "rows": "6378",
+        "logical_bytes": "306144"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "1",
+        "rows": "2768",
+        "logical_bytes": "531456"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "2",
+        "rows": "2768",
+        "logical_bytes": "409664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "3",
+        "rows": "206",
+        "logical_bytes": "29664"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "4",
+        "rows": "20496",
+        "logical_bytes": "1557696"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "5",
+        "rows": "18892",
+        "logical_bytes": "1586928"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "6",
+        "rows": "4",
+        "logical_bytes": "1088"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "7",
+        "rows": "4",
+        "logical_bytes": "240"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "8",
+        "rows": "94",
+        "logical_bytes": "9400"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "9",
+        "rows": "66",
+        "logical_bytes": "8448"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "10",
+        "rows": "8",
+        "logical_bytes": "736"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "11",
+        "rows": "61669",
+        "logical_bytes": "5673548"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "12",
+        "rows": "0",
+        "logical_bytes": "0"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "13",
+        "rows": "80125",
+        "logical_bytes": "3205000"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "14",
+        "rows": "231932",
+        "logical_bytes": "50097312"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "20",
+        "rows": "386",
+        "logical_bytes": "114256"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "21",
+        "rows": "6176",
+        "logical_bytes": "2593920"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "22",
+        "rows": "18",
+        "logical_bytes": "1368"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "23",
+        "rows": "94956",
+        "logical_bytes": "33044688"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "24",
+        "rows": "782056",
+        "logical_bytes": "81333824"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "25",
+        "rows": "23160",
+        "logical_bytes": "8708160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "26",
+        "rows": "5790",
+        "logical_bytes": "972720"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "27",
+        "rows": "1930",
+        "logical_bytes": "216160"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "28",
+        "rows": "2702",
+        "logical_bytes": "237776"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "29",
+        "rows": "141326",
+        "logical_bytes": "16959120"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "30",
+        "rows": "678113",
+        "logical_bytes": "73236204"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "31",
+        "rows": "36030",
+        "logical_bytes": "4611840"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "32",
+        "rows": "217792",
+        "logical_bytes": "44429568"
+      },
+      {
+        "kind": "DETACHED_PARENT_ROW",
+        "row": "33",
+        "rows": "49794",
+        "logical_bytes": "9162096"
+      },
+      {
+        "kind": "DETACHED_PARENT_PREPARATION",
+        "rows_bytes": "339039024",
+        "providers": "176468",
+        "graph_ns": "2766844750",
+        "snapshot_pending": "true"
+      },
+      {
+        "kind": "PARENT_MAIN_FINALIZE",
+        "preflight_ns": "300875",
+        "main_fill_ns": "213030334",
+        "source_projection_ns": "1295547208",
+        "range_fill_ns": "749500",
+        "closure_ns": "189133958"
+      },
+      {
+        "kind": "PARENT_INTERACTION_FILL",
+        "preflight_ns": "969042",
+        "typed_ns": "424725291",
+        "poseidon_ns": "10353959",
+        "range_ns": "2320333"
+      },
+      {
+        "kind": "DETACHED_PARENT_TYPED_DEVICE_INTERACTION",
+        "components": "29",
+        "dispatches": "116"
+      },
+      {
+        "kind": "DETACHED_PARENT_STAGE_PROFILE"
+      },
+      {
+        "kind": "DETACHED_PARENT_METAL",
+        "dispatches": "235",
+        "poseidon_commits": "9",
+        "cpu_fallbacks": "0",
+        "host_composition_components": "0",
+        "pow_dispatches": "2",
+        "runtime_released": "true",
+        "manifest_sha256": "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+        "profile": "recursive_framework_v1",
+        "framework_dispatches": "30"
+      }
+    ],
+    "verified": true,
+    "baseline_artifacts_identical": true,
+    "log_sha256": "18d0747460cc3a37e5b743676323b81847098c648c1e49b4a9b9b91e52b30090"
+  }
+]

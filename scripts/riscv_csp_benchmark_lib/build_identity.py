@@ -244,6 +244,7 @@ def read_trace_provenance(
     repository_head: str,
     max_steps: int,
     timeout: int,
+    env: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Validate the trace executable before it produces any published number.
 
@@ -263,6 +264,7 @@ def read_trace_provenance(
     try:
         completed = subprocess.run(
             command,
+            env=None if env is None else dict(env),
             capture_output=True,
             check=False,
             timeout=timeout,

@@ -1,0 +1,11 @@
+{
+  "implementation_identical_after_factory_indentation_and_dependency_aliases": true,
+  "before_sha256": "b21060865fd39723265564e4d8ba3ebadef225733b0d442aa2762e739758b1b0",
+  "after_normalized_sha256": "b21060865fd39723265564e4d8ba3ebadef225733b0d442aa2762e739758b1b0",
+  "transferred_lines": 736,
+  "normalization": [
+    "Remove factory indentation and enclosing return struct",
+    "CorePreflight -> recursive_fri_outer",
+    "relation_challenges -> frontend.air.relation_challenges"
+  ]
+}

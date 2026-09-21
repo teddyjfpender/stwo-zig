@@ -16,7 +16,7 @@ backend use elsewhere in the request, not GPU composition.
 returns `null` when `semantic_count + lookup_count == 0`, before scheduler,
 residency or AOT preparation. This is the applicable decline condition:
 
-- The 28 typed components in the [parent catalog](../../src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig)
+- The typed components in the [parent catalog](../../src/frontends/riscv/recursion/air/detached_parent_catalog_v1.zig)
   install a prepared host evaluator through
   [the shared typed adapter](../../src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig),
   but no `backend_composition_capability`.

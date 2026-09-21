@@ -229,6 +229,14 @@ pub fn add(ctx: anytype) void {
         "secp256k1_proof_harness",
         ctx.secp256k1_proof_harness,
     );
+    const csp_ecdsa_gate = b.addTest(.{
+        .root_module = secp256k1_proof_root,
+        .filters = &.{"CSP ECDSA guest proves caller memory and result at canonical security"},
+    });
+    const csp_ecdsa_run = b.addRunArtifact(csp_ecdsa_gate);
+    csp_ecdsa_run.has_side_effects = true;
+    b.step("test-csp-ecdsa-guest-proof", "Prove and freshly verify full CSP ECDSA precompile guest").dependOn(&csp_ecdsa_run.step);
+
     const secp256k1_proof_name =
         "secp256k1 typed ECDSA bundle proves and independently verifies";
     const secp256k1_proof_compile = b.addTest(.{

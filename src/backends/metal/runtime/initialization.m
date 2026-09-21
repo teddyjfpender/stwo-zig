@@ -149,7 +149,10 @@ static void *create_runtime_from_metallib_data_on_device(
                                 [name hasPrefix:@"stwo_zig_framework_interaction_v1_"] ||
                                 [name isEqualToString:@"stwo_zig_framework_interaction_block_scan_v1"] ||
                                 [name isEqualToString:@"stwo_zig_framework_interaction_scan_blocks_v1"] ||
-                                [name isEqualToString:@"stwo_zig_framework_interaction_finalize_v1"]) ||
+                                [name isEqualToString:@"stwo_zig_framework_interaction_finalize_v1"] ||
+                                [name isEqualToString:@"stwo_zig_framework_interaction_cumulative_block_scan_v1"] ||
+                                [name isEqualToString:@"stwo_zig_framework_interaction_cumulative_scan_blocks_v1"] ||
+                                [name isEqualToString:@"stwo_zig_framework_interaction_cumulative_finalize_v1"]) ||
                 runtime.riscvPolynomialPipelines[name] != nil) {
                 write_error(error_message, error_message_len, @"Invalid additional admitted polynomial export");
                 return NULL;

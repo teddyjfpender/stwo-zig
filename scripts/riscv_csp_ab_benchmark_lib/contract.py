@@ -30,6 +30,7 @@ BASELINE_COMMIT = "b6c4f6326aee9c4f57432ac30c55c5b1f2296fab"
 EXPECTED_OUTER_SCHEMAS = {
     "stwo_riscv_csp_benchmark_v3",
     "stwo_riscv_csp_benchmark_v4",
+    "stwo_riscv_csp_benchmark_v5",
 }
 MAX_JSON_BYTES = 128 * 1024 * 1024
 HEX_32 = csp_contract.HEX_32
@@ -497,7 +498,7 @@ def _methodology(report: Mapping[str, Any], label: str) -> dict[str, Any]:
     for key, expected in required.items():
         if value.get(key) != expected:
             raise ABError(f"{label} methodology {key} drifted")
-    if report.get("schema") == "stwo_riscv_csp_benchmark_v4" and value.get(
+    if report.get("schema") in {"stwo_riscv_csp_benchmark_v4", "stwo_riscv_csp_benchmark_v5"} and value.get(
         "proof_scope"
     ) != "native RISC-V leaf STARK; recursion and outer proving disabled":
         raise ABError(f"{label} has no native proof-scope attestation")
@@ -553,7 +554,7 @@ def validate_partial_report(
         raise ABError(f"{label} partial-run contract drifted")
 
     guard = arm["native_guard"]
-    if schema == "stwo_riscv_csp_benchmark_v4":
+    if schema in {"stwo_riscv_csp_benchmark_v4", "stwo_riscv_csp_benchmark_v5"}:
         if (
             run.get("recursion_enabled") is not False
             or summary.get("all_recursion_disabled") is not True

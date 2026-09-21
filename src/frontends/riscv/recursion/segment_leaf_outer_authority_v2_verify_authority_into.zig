@@ -271,6 +271,23 @@ pub fn rebuildNativeVerifierStages(
     infra_descs: []const statement_v1.InfraComponentDesc,
     outer: *const universal.UniversalRelations,
 ) Error!PreparedNativeVerifierOuterAuthorityV2 {
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return rebuildNativeVerifierStagesWithGenerator(workspace, authority, data, keys, native, native_sums, receipt, component_descs, infra_descs, outer, &generator);
+}
+
+pub fn rebuildNativeVerifierStagesWithGenerator(
+    workspace: *WorkspaceV2,
+    authority: *const AuthorityV2,
+    data: *const public_data_v2.PublicDataV2,
+    keys: *const source_v2.VerifierKeyAuthorityV2,
+    native: *const native_relations.Relations,
+    native_sums: *const statement_v2.NativePublicSums,
+    receipt: *const statement_v2.VerifiedReceipt,
+    component_descs: []const statement_v1.FamilyComponentDesc,
+    infra_descs: []const statement_v1.InfraComponentDesc,
+    outer: *const universal.UniversalRelations,
+    generator: anytype,
+) !PreparedNativeVerifierOuterAuthorityV2 {
     try authority.validate();
     try outer.validate();
     const source_preflight = try source_v2.preflight(data, keys);
@@ -314,7 +331,8 @@ pub fn rebuildNativeVerifierStages(
     try materializeStatementRows(workspace, authority, &prepared_source);
     try materializePublicLogUpRows(workspace, authority, &public_logup);
     var statement_stage = workspace.statementStage();
-    const statement_claim = try StatementFramework.generatePreparedInto(
+    const statement_claim = try generator.generatePreparedInto(
+        StatementFramework,
         &workspace.statement_interaction,
         &authority.statement_plan,
         workspace.statement_rows,
@@ -324,7 +342,8 @@ pub fn rebuildNativeVerifierStages(
     );
     var logup_stage = workspace.publicLogUpStage();
     const public_logup_domains =
-        try PublicLogUpFramework.generatePreparedIntoWithDomainSums(
+        try generator.generatePreparedIntoWithDomainSums(
+            PublicLogUpFramework,
             &workspace.public_logup_interaction,
             &authority.public_logup_plan,
             &workspace.public_logup_rows,

@@ -59,6 +59,7 @@ pub fn Harness(comptime Engine: type) type {
             interaction_commit_ns: u64,
             prove_ns: u64,
             verify_ns: u64,
+            proof_of_work_nonce: u64,
 
             pub fn proveProductionNs(self: Timings) u64 {
                 return self.witness_ns + self.preprocessed_commit_ns + self.main_commit_ns +
@@ -71,6 +72,38 @@ pub fn Harness(comptime Engine: type) type {
         };
 
         pub fn run(allocator: std.mem.Allocator) !Timings {
+            return runWithConfig(allocator, .{
+                .pow_bits = 0,
+                .fri_config = try stwo_core.fri.FriConfig.init(0, 1, 3),
+            });
+        }
+
+        /// Explicit research mode; ordinary proof gates retain their small config.
+        /// Measures the provider statement, not RISC-V caller/memory composition.
+        pub fn runSelected(allocator: std.mem.Allocator) !Timings {
+            const encoded = std.process.getEnvVarOwned(allocator, "STWO_SECP256K1_CSP_SAMPLES") catch |err| switch (err) {
+                error.EnvironmentVariableNotFound => return run(allocator),
+                else => return err,
+            };
+            defer allocator.free(encoded);
+            const samples = try std.fmt.parseInt(u32, encoded, 10);
+            if (samples == 0 or samples > 1000) return error.InvalidSampleCount;
+            const pcs_config = pcs_core.PcsConfig{
+                .pow_bits = 26,
+                .fri_config = try stwo_core.fri.FriConfig.init(0, 1, 70),
+            };
+            var result: Timings = undefined;
+            // One explicitly labelled warmup, followed by measured fresh proofs.
+            for (0..samples + 1) |index| {
+                result = try runWithConfig(allocator, pcs_config);
+                std.debug.print("secp256k1-csp sample={d} warmup={} queries=70 pow_bits=26 proving_ns={d} verify_ns={d} pow_nonce={d}\n", .{
+                    index, index == 0, result.proveProductionNs(), result.verify_ns, result.proof_of_work_nonce,
+                });
+            }
+            return result;
+        }
+
+        pub fn runWithConfig(allocator: std.mem.Allocator, pcs_config: pcs_core.PcsConfig) !Timings {
             var timer = try std.time.Timer.start();
             var tape = affine.Tape.init(allocator);
             defer tape.deinit();
@@ -85,10 +118,6 @@ pub fn Harness(comptime Engine: type) type {
             defer bundle.deinit();
             const witness_ns = timer.lap();
 
-            const pcs_config = pcs_core.PcsConfig{
-                .pow_bits = 0,
-                .fri_config = try stwo_core.fri.FriConfig.init(0, 1, 3),
-            };
             var scheme = try Engine.init(allocator, pcs_config);
             var scheme_moved = false;
             defer if (!scheme_moved) Engine.deinit(&scheme, allocator);
@@ -234,6 +263,7 @@ pub fn Harness(comptime Engine: type) type {
             defer if (!proof_moved) extended.proof.deinit(allocator);
             const prove_ns = timer.lap();
 
+            const proof_of_work_nonce = extended.proof.commitment_scheme_proof.proof_of_work;
             const commitments = extended.proof.commitment_scheme_proof.commitments.items;
             try std.testing.expect(commitments.len >= 4);
             var verifier_scheme = try VerifierScheme.init(allocator, pcs_config);
@@ -294,6 +324,7 @@ pub fn Harness(comptime Engine: type) type {
                 .interaction_commit_ns = interaction_commit_ns,
                 .prove_ns = prove_ns,
                 .verify_ns = verify_ns,
+                .proof_of_work_nonce = proof_of_work_nonce,
             };
         }
 

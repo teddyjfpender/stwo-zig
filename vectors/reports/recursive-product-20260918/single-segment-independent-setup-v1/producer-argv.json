@@ -1,0 +1,21 @@
+[
+  "/tmp/pr198-single-leaf-key-setup-20260918-v1/bin/recursive-segment-v2-concrete-outer-proof",
+  "--memory-addresses",
+  "1",
+  "--segments-output",
+  "/tmp/pr198-single-independent-setup-20260918-v1/cpu-proof",
+  "--segment-count",
+  "1",
+  "--initial-memory-word",
+  "13",
+  "--proof-profile",
+  "recursive_q193_v1",
+  "--native-backend",
+  "cpu",
+  "--recursive-backend",
+  "cpu",
+  "--child-0-key",
+  "/tmp/pr198-single-independent-setup-20260918-v1/seed13-keys/child-0-key.json",
+  "--child-0-key-sha256",
+  "b061a3107ef94b5404af2a486d949e1b4d60e80ed421e498e8d1a2024994fa6e"
+]

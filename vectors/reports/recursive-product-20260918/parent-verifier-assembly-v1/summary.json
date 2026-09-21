@@ -1,0 +1,42 @@
+{
+  "status": "focused_and_complete_cpu_metal_gates_passed",
+  "source_freeze": false,
+  "full_runs": {
+    "cpu": "/tmp/pr198-product-cpu-verifier-assembly-20260918-v1",
+    "metal": "/tmp/pr198-product-metal-verifier-assembly-20260918-v1"
+  },
+  "focused_logs": [
+    "pr198-parent-definitions.log",
+    "pr198-parent-definitions-rollback.log",
+    "pr198-parent-verifier-compatibility-v3.log",
+    "pr198-parent-verifier-ownership.log"
+  ],
+  "ownership_checks": 11,
+  "geometry_variants": [
+    "canonical_compact",
+    "retained_compact",
+    "wide",
+    "wide_legacy_multiplication"
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/recursion/detached_parent_definitions_v1.zig": "3e7b71a393cf8be2383912345664e700273cf3a83c1c61bae09e7c7e8ac18691",
+    "src/frontends/riscv/recursion/detached_parent_components_v1.zig": "6c042ae1d41b1badae5e210e7d9e937746d7d72d03cef6f5e3ac4d19dd72a647",
+    "src/frontends/riscv/recursion/detached_parent_verifier_components_v1.zig": "00ea06f0e10c2d090d38d1e08a343945572064bd9b2917dc336972747e9ebed7",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig": "55706c0952e95fdd2ca2babd2b9d1b0f80b265932e077c8e842b32761533d21d",
+    "src/frontends/riscv/recursion/air/relation_interaction_tuple_ledger.zig": "c82d4b7a178b8297608d3a92b94a654be3c0480176c58e2de940804b48b2b03a",
+    "src/frontends/riscv/recursion/air/relation_interaction_domain_audit.zig": "c4379fdde552080b106926d08775e7363629eb39da589be812be697bca3aa358",
+    "src/frontends/riscv/air/logup.zig": "d59b4b7d692c846ce265f45799bd1e617246917d8fbe13dd605d47e5ae42d4a7",
+    "src/frontends/riscv/air/logup_equations.zig": "bc97580a9a10497ee09636207c1380f7b97c6e35ef0b970c68d430fe4d23732f",
+    "src/frontends/riscv/poseidon2_protocol_identity_test_root.zig": "f65bb7fd6486aa38e5ace4cf6b9bee719de1e13d9aff3d34600ebf1610e20c92",
+    "scripts/tests/test_product_closure.py": "0e4a07f945b73f866703445c9e34de054526c8eb62566fdcc9029e970f1923c5"
+  },
+  "limitations": [
+    "Whole standalone executable source manifest remains pending.",
+    "Full gate covers canonical four-segment production; retained compact and wide replay are separately qualified."
+  ],
+  "complete_qualification": "../verifier-assembly-qualified-v1/cross-backend.json",
+  "retained_replay": {
+    "compact": "../retained-compact-verifier-assembly-v1/summary.json",
+    "wide": "../retained-wide-verifier-assembly-v1/summary.json"
+  }
+}

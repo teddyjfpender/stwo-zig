@@ -2,6 +2,7 @@
 
 pub fn Runtime(comptime context: anytype) type {
     return struct {
+        const equation_kernel = @import("poseidon2_wide_equation_kernel.zig").Kernel(context);
         const std = context.std;
         const M31 = context.M31;
         const QM31 = context.QM31;
@@ -16,24 +17,7 @@ pub fn Runtime(comptime context: anytype) type {
 
         /// Symbolic permutation for verifier arithmetic. Reuses this AIR's matrix
         /// operations and round constants; the native memory-hashing path is unchanged.
-        pub fn permuteGeneric(comptime S: type, state: *[WIDTH]S) void {
-            externalMatrixSecure(S, state);
-            for (constants.EXTERNAL_ROUND[0..4]) |round| fullRoundGeneric(S, state, round);
-            for (constants.INTERNAL_ROUND) |round_constant| {
-                const value = state[0].add(S.fromBase(M31.fromCanonical(round_constant)));
-                state[0] = value.square().square().mul(value);
-                internalMatrixSecure(S, state, constants.INTERNAL_MATRIX);
-            }
-            for (constants.EXTERNAL_ROUND[4..8]) |round| fullRoundGeneric(S, state, round);
-        }
-
-        fn fullRoundGeneric(comptime S: type, state: *[WIDTH]S, round: [WIDTH]u32) void {
-            for (state, round) |*value, constant| {
-                const shifted = value.add(S.fromBase(M31.fromCanonical(constant)));
-                value.* = shifted.square().square().mul(shifted);
-            }
-            externalMatrixSecure(S, state);
-        }
+        pub const permuteGeneric = equation_kernel.permuteGeneric;
 
         pub fn fillFirstFullRound(
             row: *[N_MAIN_COLUMNS]M31,
@@ -92,151 +76,19 @@ pub fn Runtime(comptime context: anytype) type {
             cursor.* += PARTIAL_ROUND_WIDTH;
         }
 
-        pub fn evaluateFirstFullRound(
-            comptime S: type,
-            main: [N_MAIN_COLUMNS]S,
-            cursor: *usize,
-            state: *[WIDTH]S,
-            round: [WIDTH]u32,
-            enabler: S,
-            result: *[N_CONSTRAINTS]S,
-            constraint: *usize,
-        ) void {
-            var sboxed: [WIDTH]S = undefined;
-            for (state, round, 0..) |value, constant, lane| {
-                const x = value.add(baseSecure(S, constant));
-                const x2 = main[cursor.* + 2 * lane];
-                const x4 = main[cursor.* + 2 * lane + 1];
-                result[constraint.*] = enabler.mul(x2.sub(x.square()));
-                constraint.* += 1;
-                result[constraint.*] = enabler.mul(x4.sub(x2.square()));
-                constraint.* += 1;
-                sboxed[lane] = x.mul(x4);
-            }
-            externalMatrixSecure(S, &sboxed);
-            state.* = sboxed;
-            cursor.* += FIRST_FULL_ROUND_WIDTH;
-        }
+        pub const evaluateFirstFullRound = equation_kernel.evaluateFirstFullRound;
 
-        pub fn evaluateMaterializedFullRound(
-            comptime S: type,
-            main: [N_MAIN_COLUMNS]S,
-            cursor: *usize,
-            state: *[WIDTH]S,
-            round: [WIDTH]u32,
-            enabler: S,
-            result: *[N_CONSTRAINTS]S,
-            constraint: *usize,
-        ) void {
-            for (state, round, 0..) |*value, constant, lane| {
-                const x = main[cursor.* + 3 * lane];
-                const x2 = main[cursor.* + 3 * lane + 1];
-                const x4 = main[cursor.* + 3 * lane + 2];
-                result[constraint.*] = enabler.mul(x.sub(value.add(baseSecure(S, constant))));
-                constraint.* += 1;
-                result[constraint.*] = enabler.mul(x2.sub(x.square()));
-                constraint.* += 1;
-                result[constraint.*] = enabler.mul(x4.sub(x2.square()));
-                constraint.* += 1;
-                value.* = x.mul(x4);
-            }
-            externalMatrixSecure(S, state);
-            cursor.* += MATERIALIZED_FULL_ROUND_WIDTH;
-        }
+        pub const evaluateMaterializedFullRound = equation_kernel.evaluateMaterializedFullRound;
 
-        pub fn evaluateMaterializedPartialRound(
-            comptime S: type,
-            main: [N_MAIN_COLUMNS]S,
-            cursor: *usize,
-            state: *[WIDTH]S,
-            round_constant: u32,
-            diagonal: [WIDTH]u32,
-            enabler: S,
-            result: *[N_CONSTRAINTS]S,
-            constraint: *usize,
-        ) void {
-            const x = main[cursor.*];
-            const x2 = main[cursor.* + 1];
-            const x4 = main[cursor.* + 2];
-            result[constraint.*] = enabler.mul(x.sub(state[0].add(baseSecure(S, round_constant))));
-            constraint.* += 1;
-            result[constraint.*] = enabler.mul(x2.sub(x.square()));
-            constraint.* += 1;
-            result[constraint.*] = enabler.mul(x4.sub(x2.square()));
-            constraint.* += 1;
-            state[0] = x.mul(x4);
-            internalMatrixSecure(S, state, diagonal);
-            cursor.* += PARTIAL_ROUND_WIDTH;
-        }
+        pub const evaluateMaterializedPartialRound = equation_kernel.evaluateMaterializedPartialRound;
 
-        pub fn externalMatrixM31(state: *[WIDTH]M31) void {
-            for (0..4) |block| {
-                const start = 4 * block;
-                const mixed = m4M31(state[start..][0..4].*);
-                @memcpy(state[start..][0..4], &mixed);
-            }
-            for (0..4) |lane| {
-                const sum = state[lane].add(state[lane + 4]).add(state[lane + 8]).add(state[lane + 12]);
-                for (0..4) |block| {
-                    const index = 4 * block + lane;
-                    state[index] = state[index].add(sum);
-                }
-            }
-        }
-
-        pub fn externalMatrixSecure(comptime S: type, state: *[WIDTH]S) void {
-            for (0..4) |block| {
-                const start = 4 * block;
-                const mixed = m4Secure(S, state[start..][0..4].*);
-                @memcpy(state[start..][0..4], &mixed);
-            }
-            for (0..4) |lane| {
-                const sum = state[lane].add(state[lane + 4]).add(state[lane + 8]).add(state[lane + 12]);
-                for (0..4) |block| {
-                    const index = 4 * block + lane;
-                    state[index] = state[index].add(sum);
-                }
-            }
-        }
-
-        pub fn m4M31(input: [4]M31) [4]M31 {
-            const t0 = input[0].add(input[1]);
-            const t1 = input[2].add(input[3]);
-            const t2 = input[1].add(input[1]).add(t1);
-            const t3 = input[3].add(input[3]).add(t0);
-            const t4 = t1.add(t1).add(t1.add(t1)).add(t3);
-            const t5 = t0.add(t0).add(t0.add(t0)).add(t2);
-            return .{ t3.add(t5), t5, t2.add(t4), t4 };
-        }
-
-        pub fn m4Secure(comptime S: type, input: [4]S) [4]S {
-            const t0 = input[0].add(input[1]);
-            const t1 = input[2].add(input[3]);
-            const t2 = input[1].add(input[1]).add(t1);
-            const t3 = input[3].add(input[3]).add(t0);
-            const t4 = t1.add(t1).add(t1.add(t1)).add(t3);
-            const t5 = t0.add(t0).add(t0.add(t0)).add(t2);
-            return .{ t3.add(t5), t5, t2.add(t4), t4 };
-        }
-
-        pub fn internalMatrixM31(state: *[WIDTH]M31, diagonal: [WIDTH]u32) void {
-            var sum = M31.zero();
-            for (state) |value| sum = sum.add(value);
-            for (state, diagonal) |*value, coefficient| {
-                value.* = value.mul(M31.fromCanonical(coefficient)).add(sum);
-            }
-        }
-
-        pub fn internalMatrixSecure(comptime S: type, state: *[WIDTH]S, diagonal: [WIDTH]u32) void {
-            var sum = S.zero();
-            for (state) |value| sum = sum.add(value);
-            for (state, diagonal) |*value, coefficient| {
-                value.* = if (S == QM31)
-                    value.mulM31(M31.fromCanonical(coefficient)).add(sum)
-                else
-                    value.mul(S.fromBase(M31.fromCanonical(coefficient))).add(sum);
-            }
-        }
+        const matrix = @import("poseidon2_matrix.zig");
+        pub const externalMatrixM31 = matrix.externalMatrixM31;
+        pub const externalMatrixSecure = matrix.externalMatrixSecure;
+        pub const m4M31 = matrix.m4M31;
+        pub const m4Secure = matrix.m4Secure;
+        pub const internalMatrixM31 = matrix.internalMatrixM31;
+        pub const internalMatrixSecure = matrix.internalMatrixSecure;
 
         pub fn allocateColumns(allocator: std.mem.Allocator, comptime n: usize, len: usize) ![n][]M31 {
             var columns: [n][]M31 = undefined;
@@ -253,19 +105,11 @@ pub fn Runtime(comptime context: anytype) type {
             for (columns) |column| allocator.free(column);
         }
 
-        pub fn baseSecure(comptime S: type, value: u32) S {
-            return S.fromBase(M31.fromCanonical(value));
-        }
+        pub const baseSecure = equation_kernel.baseSecure;
 
-        pub fn append(list: *lookup_entry.List, domain: lookup_entry.Domain, numerator: QM31, values: anytype) void {
-            return appendGeneric(QM31, list, domain, numerator, values);
-        }
+        pub const append = equation_kernel.append;
 
-        pub fn appendGeneric(comptime S: type, list: *lookup_entry.Builder(S).List, domain: lookup_entry.Domain, numerator: S, values: anytype) void {
-            var item = lookup_entry.Builder(S).Entry{ .domain = domain, .numerator = numerator, .arity = values.len };
-            inline for (values, 0..) |value, index| item.values[index] = value;
-            list.append(item);
-        }
+        pub const appendGeneric = equation_kernel.appendGeneric;
 
         pub fn secureRow(row: [N_MAIN_COLUMNS]M31) [N_MAIN_COLUMNS]QM31 {
             var result: [N_MAIN_COLUMNS]QM31 = undefined;

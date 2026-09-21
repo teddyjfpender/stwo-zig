@@ -1,0 +1,21 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=128 loads=21 stores=22 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1200
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=192 loads=22 stores=21 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1300
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=35 cumulative_cycles=227 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=138c
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 1232 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=468851856 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1321549 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=0 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=2058806208 transport_ns=8693042 verify_ns=305134208 recursive_prepare_ns=757910958 proof_bytes=1321549 transcript_calls=1187 verifier_core_calls=58865 outer_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 1232 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=1 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=468840048 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1285149 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=1 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=1624355125 transport_ns=8778333 verify_ns=308315750 recursive_prepare_ns=755429459 proof_bytes=1285149 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 1232 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=2 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=468840048 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1277536 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=2 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=1791116584 transport_ns=8733000 verify_ns=308606958 recursive_prepare_ns=756395292 proof_bytes=1277536 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 1232 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=3 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=468783856 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1280335 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=3 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=1486104167 transport_ns=8657416 verify_ns=307661959 recursive_prepare_ns=758365208 proof_bytes=1280335 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_KEY_SETUP segments=4 outer_proofs_created=0 directory=/tmp/pr198-useful-workload-admissions-v1/keys-4-seed13

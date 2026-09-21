@@ -1,6 +1,7 @@
 //! Canonical shape admission and direct SoA witness generation for row 12.
 
 const std = @import("std");
+const claim_layout = @import("../vm_public_claim_layout.zig");
 const stwo_core = @import("stwo_core");
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
@@ -10,11 +11,11 @@ const types = @import("../../air/lang/types.zig");
 const air = @import("vm_public_claim_input.zig");
 const proof_kind_mod = @import("proof_kind.zig");
 
-pub const MIN_LOG_SIZE: u32 = 4;
-pub const MAX_LOG_SIZE: u32 = 30;
-pub const FIXED_CLAIM_WORDS: usize = 259;
-pub const INPUT_SLOT_WORDS: usize = 3;
-pub const OUTPUT_SLOT_WORDS: usize = 7;
+pub const MIN_LOG_SIZE = claim_layout.MIN_LOG_SIZE;
+pub const MAX_LOG_SIZE = claim_layout.MAX_LOG_SIZE;
+pub const FIXED_CLAIM_WORDS = claim_layout.FIXED_CLAIM_WORDS;
+pub const INPUT_SLOT_WORDS = claim_layout.INPUT_SLOT_WORDS;
+pub const OUTPUT_SLOT_WORDS = claim_layout.OUTPUT_SLOT_WORDS;
 pub const MAIN_COLUMN_COUNT = air.PHYSICAL_MAIN_COLUMN_COUNT;
 pub const PREPROCESSED_COLUMN_COUNT = air.PREPROCESSED_COLUMN_COUNT;
 pub const ProofKind = proof_kind_mod.ProofKind;
@@ -45,49 +46,7 @@ pub const Error = direct.Error || std.mem.Allocator.Error || error{
     WordCountMismatch,
 };
 
-pub const Shape = struct {
-    max_input_words: u32,
-    max_output_words: u32,
-
-    pub fn init(max_input_words: u32, max_output_words: u32) Error!Shape {
-        const result = Shape{
-            .max_input_words = max_input_words,
-            .max_output_words = max_output_words,
-        };
-        _ = try result.wordCount();
-        return result;
-    }
-
-    pub fn wordCount(self: Shape) Error!usize {
-        if (self.max_input_words >= m31.Modulus or
-            self.max_output_words >= m31.Modulus)
-        {
-            return error.InvalidShape;
-        }
-        const input = std.math.mul(
-            usize,
-            self.max_input_words,
-            INPUT_SLOT_WORDS,
-        ) catch return error.ArithmeticOverflow;
-        const output = std.math.mul(
-            usize,
-            self.max_output_words,
-            OUTPUT_SLOT_WORDS,
-        ) catch return error.ArithmeticOverflow;
-        const count = std.math.add(
-            usize,
-            std.math.add(usize, FIXED_CLAIM_WORDS, input) catch
-                return error.ArithmeticOverflow,
-            output,
-        ) catch return error.ArithmeticOverflow;
-        if (count == 0 or count > (@as(usize, 1) << MAX_LOG_SIZE) or
-            count - 1 >= m31.Modulus)
-        {
-            return error.LogSizeOutOfRange;
-        }
-        return count;
-    }
-};
+pub const Shape = claim_layout.Shape;
 
 pub const WordKind = union(enum) {
     constant: u32,

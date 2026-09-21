@@ -1,0 +1,105 @@
+1/103 mod.test_0...OK
+2/103 test_inventory.test_0...OK
+3/103 air.extract.mod.test_0...OK
+4/103 air.semantic_eval.test_0...OK
+5/103 runner.decode.test_0...OK
+6/103 poseidon2_universal_degree3_test_root.test_0...OK
+7/103 recursion_arithmetic_fusion_test_root.test_0...OK
+8/103 recursion_opening_accumulation_test_root.test_0...OK
+9/103 air_semantics_test_root.test_0...OK
+10/103 ethereum_runner_test_root.test_0...OK
+11/103 guest_precompile_test_root.test_0...OK
+12/103 isa_test_root.test_0...OK
+13/103 lookup_batch_test_root.test_0...OK
+14/103 outer_parent_statement_source_test_root.test_0...OK
+15/103 outer_parent_range_authority_test_root.test_0...OK
+16/103 outer_parent_statement_air_source_test_root.test_0...OK
+17/103 outer_parent_transcript_source_test_root.test_0...OK
+18/103 owned_statement.test_0...OK
+19/103 recursion_air_test_root.test_0...OK
+20/103 recursion_outer_sources_test_root.test_0...OK
+21/103 row_window_test_root.test_0...OK
+22/103 runner_test_root.test_0...OK
+23/103 segment_public_outer_source_test_root.test_0...OK
+24/103 segment_leaf_outer_bundle_test_root.test_0...OK
+25/103 segment_statement_outer_source_test_root.test_0...OK
+26/103 temporal_pair_node_test_root.test_0...OK
+27/103 testing.test_0...OK
+28/103 aggregation.reference_test.test_0...OK
+29/103 recursion.segment_statement_outer_source_test.test_0...OK
+30/103 recursion.pair_node_test.test_0...OK
+31/103 isa.mod.test_0...OK
+32/103 runner.guest_precompile.mod.test_0...OK
+33/103 runner.minimal_trace.mod.test_0...OK
+34/103 runner.mod.test_0...OK
+35/103 air.guest_precompile.relation_test.test_0...OK
+36/103 air.mod.test_0...OK
+37/103 air.lang.protocol_report_test.test.protocol report emits deterministic machine and human views...OK
+38/103 air.lang.protocol_report_test.test.protocol report writers survive every allocation failure...OK
+39/103 air.lang.protocol_report_test.test.protocol report rejects corrupt structural summaries...OK
+40/103 air.lang.runtime_profile_test.test.runtime profile: exact static, stage, task, and hardware evidence joins deterministically...OK
+41/103 air.lang.runtime_profile_test.test.runtime profile: complete source records are bound beyond their aggregates...OK
+42/103 air.lang.runtime_profile_test.test.runtime profile: estimates and missing hardware counters stay non-promotable...OK
+43/103 air.lang.runtime_profile_test.test.runtime profile: malformed source and receipt mutations fail closed...OK
+44/103 air.lang.runtime_profile_test.test.runtime profile: canonical JSON is deterministic and validates before output...OK
+45/103 air.lang.static_profile_registry_test.test.AIR static profile registry: native facts match the audited production protocol report...OK
+46/103 air.lang.typed_div_adversarial_test.test_0...OK
+47/103 air.lookups.mod.test_0...OK
+48/103 air.lookups.tables.mod.test_0...OK
+49/103 air.lookups.tables.source_ingest.test_0...OK
+50/103 air.memory_commitment.mod.test_0...OK
+51/103 air.preprocessed.mod.test_0...OK
+52/103 air.semantics.mod.test_0...OK
+53/103 air.program.mod.test_0...OK
+54/103 diagnostics.mod.test_0...OK
+55/103 prover.interaction_trace_plan_test.test_0...OK
+56/103 prover.guest_precompile.split_leaf_prepare_test.test_0...OK
+57/103 prover.test_witness_hook.test_0...OK
+58/103 air.lang.opcode_composition_manifest_test.test_0...OK
+59/103 binary_fri_outer_bundle_v2_test_root.test_0...OK
+60/103 binary_global_closure_outer_source_test_root.test_0...OK
+61/103 binary_inactive_outer_source_test_root.test_0...OK
+62/103 binary_pair_nonfri_outer_bundle_test_root.test_0...OK
+63/103 binary_transcript_outer_source_test_root.test_0...OK
+64/103 framework_interaction_test_root.test_0...OK
+65/103 fri_profile_frontier_measurement_test_root.test_0...OK
+66/103 lookup_batch_edit_test_root.test_0...OK
+67/103 lookup_polynomial_v2_edit_test_root.test_0...OK
+68/103 opcode_composition_manifest_test_root.test_0...OK
+69/103 opcode_composition_performance_test_root.test_0...OK
+70/103 proof_phase_meter_test_root.test_0...OK
+71/103 recursion.recursion_air_composition_circuit_v3_test.test_0...OK
+72/103 recursion.segment_statement_outer_source_v2_test_root.test_0...OK
+73/103 row_window_edit_test_root.test_0...OK
+74/103 row_window_expression_v2_edit_test_root.test_0...OK
+75/103 segment_outer_cohort_v2_test_root.test_0...OK
+76/103 segment_public_native_sum_authority_v2_test_root.test_0...OK
+77/103 segment_statement_outer_source_v2_test_root.test_0...OK
+78/103 segment_transcript_outer_source_v2_test_root.test_0...OK
+79/103 transcript_v2_test_root.test_0...OK
+80/103 sail_oracle_test_root.test_0...OK
+81/103 air.incremental_public_logup_v4.test.incremental public V4 adds one actual nonfinal program fetch...OK
+82/103 air.incremental_public_logup_v4.test.incremental public V4 decodes boundary CUSTOM-0 under Ethereum profile...OK
+83/103 air.incremental_public_logup_v4.test.incremental public V4 surviving fractions match scalar replacement by domain...OK
+84/103 air.incremental_public_logup_v4.test.incremental public V4 still rejects zero denominators in removed sparse terms...OK
+85/103 air.incremental_public_logup_v4_bench_test.test.Ethereum surviving public sums sparse work benchmark...ETHEREUM_PUBLIC_SUMS_BENCH source=expanded_existing_authenticated_fixture words=4096 canonical_wire_words=33432 sparse_rw_terms=8192 sparse_continuation_terms=32768 removed_scalar_inversions=81920 surviving_removed_term_inversions=0 scalar_median_ns=9269500 surviving_median_ns=326042 rounds=3 setup_included=false native_proving=false wrapper_proving=false
+OK
+86/103 bulk_memcpy_candidate_test_root.test_0...OK
+87/103 ethereum_candidate_execution_contract_test_root.test_0...OK
+88/103 ethereum_candidate_leaf_test_root.test_0...OK
+89/103 ethereum_initial_input_lane_v1_test_root.test_0...OK
+90/103 ethereum_leaf_context_v1_test_root.test_0...OK
+91/103 ethereum_minimal_trace_test_root.test_0...OK
+92/103 ethereum_narrow_poseidon_proof_test_root.test_0...OK
+93/103 incremental_memory_transition_test_root.test_0...OK
+94/103 keccakf_precompile_test_root.test_0...OK
+95/103 poseidon_materialization_frontier_test_root.test_0...OK
+96/103 prover.guest_precompile.stack_swap_vm_integration_v1.test.stack-swap private decoder binds the exact declared program tuple...OK
+97/103 recursion_framework_export_test_root.test_0...OK
+98/103 recursion_preparation_test_root.test_0...OK
+99/103 secp256k1_precompile_test_root.test_0...OK
+100/103 segment_statement_v2_test_root.test_0...OK
+101/103 stack_swap_candidate_test_root.test_0...OK
+102/103 vm_air_profile_v2_test_root.test_0...OK
+103/103 vm_leaf_context_v2_test_root.test_0...OK
+All 103 tests passed.

@@ -50,13 +50,13 @@ const canonicalProofIdentity = support.canonicalProofIdentity;
 const ProofExecutionPool = support.ProofExecutionPool;
 const assertNativeCohortContract = support.assertNativeCohortContract;
 const assertManifestContract = support.assertManifestContract;
-const moveOwnedForVerifier = support.moveOwnedForVerifier;
+const moveOwnedForVerifier = recursion.verifier_tree.moveOwnedForVerifier;
 const rejectNativeTransactionOutputAlias = support.rejectNativeTransactionOutputAlias;
 const rejectNativeArtifactTransactionOutputAlias =
     support.rejectNativeArtifactTransactionOutputAlias;
 const rejectV3TransactionOutputAlias = support.rejectV3TransactionOutputAlias;
 const nativeDigestCanonicalNonzero = support.nativeDigestCanonicalNonzero;
-const commitVerifierTreeForManifest = support.commitVerifierTreeForManifest;
+const commitVerifierTreeForManifest = recursion.verifier_tree.commitVerifierTreeForManifest;
 const TreeStorageForManifest = support.TreeStorageForManifest;
 const mintTemporalVerifierSuccessEvidence =
     contract.mintTemporalVerifierSuccessEvidence;

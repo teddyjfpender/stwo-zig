@@ -1,0 +1,9 @@
+1/8 recursion_air_test_root.test_0...OK
+2/8 recursion.segment_statement_outer_source_test.test_0...OK
+3/8 recursion.air.universal_shared_provider_test.test.R-012 shared providers occupy exact roster slots without duplicate AIR...OK
+4/8 recursion.air.universal_shared_provider_test.test.R-012 shared provider admission rejects challenge geometry and authority drift...OK
+5/8 recursion.air.universal_shared_provider_test.test.R-012 shared provider binding revalidates borrowed authority and component shape...OK
+6/8 recursion.air.universal_shared_provider_test.test.R-012 shared provider rejects malformed cached powers and field limbs...OK
+7/8 recursion.air.universal_shared_provider_test.test.R-012 shared provider receipt preserves high canonical challenge limbs...OK
+8/8 air.memory_commitment.poseidon2_air.test_0...OK
+All 8 tests passed.

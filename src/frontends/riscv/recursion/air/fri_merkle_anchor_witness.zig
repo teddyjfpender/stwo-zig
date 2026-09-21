@@ -26,7 +26,7 @@ pub const ProofKind = leaf.ProofKind;
 pub const SEGMENT_VERIFIER_ID = leaf.SEGMENT_VERIFIER_ID;
 pub const LEFT_RECURSION_VERIFIER_ID = leaf.LEFT_RECURSION_VERIFIER_ID;
 pub const RIGHT_RECURSION_VERIFIER_ID = leaf.RIGHT_RECURSION_VERIFIER_ID;
-pub const FRI_MERKLE_KIND: u32 = @intFromEnum(query_mapping.QueryPositionKind.fri_merkle);
+pub const FRI_MERKLE_KIND = @import("verifier_parameter_tags.zig").fri_anchor.FRI_MERKLE_KIND;
 
 pub const BINDING_FORMAT_VERSION: u16 = 1;
 pub const BINDING_DOMAIN = "stwo-zig/typed-air/recursion-fri-merkle-anchor-witness/v1\x00";

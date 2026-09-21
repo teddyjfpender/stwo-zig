@@ -67,28 +67,7 @@ pub const Error = error{
     WorkspaceGeometryMismatch,
 };
 
-pub const ClaimsV2 = struct {
-    row10_inactive: QM31 = QM31.zero(),
-    row11_statement: QM31,
-
-    pub fn validate(self: ClaimsV2) Error!void {
-        if (!self.row10_inactive.isZero())
-            return error.InactiveRowInvariantMismatch;
-    }
-
-    pub fn asArray(self: ClaimsV2) [ROW_COUNT]QM31 {
-        return .{ self.row10_inactive, self.row11_statement };
-    }
-
-    pub fn bindInto(
-        self: ClaimsV2,
-        vector: *manifest_mod.ClaimVector,
-    ) !void {
-        try self.validate();
-        try vector.bind(.statement_input, self.row10_inactive);
-        try vector.bind(.statement_semantics_input, self.row11_statement);
-    }
-};
+pub const ClaimsV2 = @import("segment_statement_claims_v2.zig").ClaimsV2;
 
 pub const ComponentsV2 = struct {
     row10_inactive: Row10AdapterV2,
@@ -392,6 +371,20 @@ pub fn fillInteractionInto(
     relations: *const universal.UniversalRelations,
     destination: []const []M31,
 ) !ClaimsV2 {
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return fillInteractionIntoWithGenerator(authority, workspace, prepared, logical_rows, manifest, relations, destination, &generator);
+}
+
+pub fn fillInteractionIntoWithGenerator(
+    authority: *const AuthorityV2,
+    workspace: *WorkspaceV2,
+    prepared: *const statement.PreparedV2,
+    logical_rows: []const statement.Air.Row,
+    manifest: *const manifest_mod.Manifest,
+    relations: *const universal.UniversalRelations,
+    destination: []const []M31,
+    generator: anytype,
+) !ClaimsV2 {
     try validateInputs(authority, prepared, logical_rows, manifest);
     try workspace.validateAgainst(prepared);
     try relations.validate();
@@ -416,14 +409,7 @@ pub fn fillInteractionInto(
 
     try validateInactiveRow10(authority, relations);
     var staged = workspace.stagedColumns();
-    const row11_claim = try statement.generateInteractionInto(
-        &workspace.row11_interaction,
-        &authority.row11,
-        prepared,
-        logical_rows,
-        relations,
-        &staged,
-    );
+    const row11_claim = try statement.generateInteractionIntoWithGenerator(&workspace.row11_interaction, &authority.row11, prepared, logical_rows, relations, &staged, generator);
 
     zeroComponent(
         manifest.placements[FIRST_ROW].?,

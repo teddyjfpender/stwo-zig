@@ -1,0 +1,12 @@
+stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in air/memory_commitment/poseidon2_narrow_proof_v1_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_cpu_backend' in air/memory_commitment/poseidon2_narrow_proof_v1_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in air/memory_commitment/poseidon2_universal_proof_v1_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_cpu_backend' in air/memory_commitment/poseidon2_universal_proof_v1_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in air/program/fixed_table_proof_v1_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_cpu_backend' in air/program/fixed_table_proof_v1_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_metal_backend' in ethereum_narrow_aot_generator_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_metal_backend' in ethereum_narrow_metal_proof_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in ethereum_narrow_metal_proof_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_metal_backend' in recursion_poseidon_degree3_metal_test.zig
+stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in recursion_poseidon_degree3_metal_test.zig
+stwo_riscv_cpu_integration: undeclared named import 'stwo_metal_backend' in recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig

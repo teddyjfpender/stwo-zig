@@ -6,13 +6,7 @@
 
 const roster = @import("universal_roster.zig");
 
-pub const Entry = struct {
-    Air: type,
-    row: roster.Component,
-    /// The three arithmetic components retain an explicit source-location
-    /// build selector; every other row has a location-independent builder.
-    requires_location: bool = false,
-};
+pub const Entry = @import("universal_catalog_entry.zig").Entry;
 
 const control = @import("control.zig");
 const fri_merkle_anchor = @import("fri_merkle_anchor.zig");

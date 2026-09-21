@@ -1,0 +1,22 @@
+{
+  "previous_exports": 93,
+  "new_exports": 105,
+  "previous_declarations_unchanged": true,
+  "new_kernel_names": [
+    "stwo_zig_framework_interaction_v1_2b2b7f88704ac384d981503753d490c9302ac92b3a095181d792800cf87252d5",
+    "stwo_zig_framework_interaction_v1_3506070d16a54c1978ed4ab847ed35bacba8a5366e3f0f0314401082dfae8fae",
+    "stwo_zig_framework_interaction_v1_60e53ed73a4bb05d8835ba5e490aebcf6872bde8cd130ac6d12b13330207325d",
+    "stwo_zig_framework_interaction_v1_61382eb13ef5979431059f3aac4b26d1ea034363f7dcedd89dbdb2aafd1d1ada",
+    "stwo_zig_framework_interaction_v1_8ccd4cf2047c529453a6d33e42933719be5e986f0d86b0d470c8b30c6b1d0a9e",
+    "stwo_zig_framework_interaction_v1_8eff2bd9a57667424c5f56d4c44e38858b72a83dc62635e12f37833d764908a6",
+    "stwo_zig_framework_interaction_v1_a561e54d4cc864408e7e89b6af4e436d42460bfd1da6880c537dd3ae7974deb9",
+    "stwo_zig_framework_interaction_v1_add1270dbab7bfa060dfbaf027d41ed57e2331f1489998ca201e99a32c398897",
+    "stwo_zig_framework_interaction_v1_b0ba738410ff4447da19dcbe3b3b086b846778beed6f7ff950563d265f5bdfb0",
+    "stwo_zig_framework_interaction_v1_cc7a4611c6456002cb6a6f3897f03b2615ee1b5ce59e180c92b35eaa29c957da",
+    "stwo_zig_framework_interaction_v1_d12a93d655c8dae877bc9b6dc70575a54893ea03ed1288d130f9ae3f493efa4e",
+    "stwo_zig_framework_interaction_v1_fd0ff6b0ca039052fbe15191380583665d7a2b1c31a379684e254c332b5b4247"
+  ],
+  "leaf_interaction_rows": 37,
+  "parent_interaction_rows": 29,
+  "leaf_proof_dispatch_integrated": false
+}

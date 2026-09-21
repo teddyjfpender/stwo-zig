@@ -1,0 +1,28 @@
+{
+  "status": "focused_and_complete_cpu_metal_gates_passed",
+  "source_freeze": false,
+  "closure_sources": 249,
+  "ownership_checks": 12,
+  "assembly_tests": 4,
+  "sampled_allocation_failure_indices_per_owner": [
+    0,
+    1,
+    8,
+    32,
+    128,
+    512,
+    2048
+  ],
+  "pinned_key_sha256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2",
+  "retained_leaf_replay": {
+    "passed": true,
+    "cases": 52,
+    "verifier": "/tmp/pr198-leaf-pure-assembly-20260918-v1/bin/recursive-segment-v2-detached-verify",
+    "verifier_sha256": "d12e294babf62a485ca3030a25092c64af0c5509cc813d9fea872fb103ed2edf"
+  },
+  "remaining": [
+    "Leaf transcript and command still depend on integration owners.",
+    "Broader 1/2/4/8 receipt ladder and typed GPU interactions remain incomplete."
+  ],
+  "complete_qualification": "../leaf-assembly-qualified-v1/cross-backend.json"
+}

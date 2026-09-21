@@ -11,7 +11,7 @@ const contract = @import("segment_statement_v2_contract.zig");
 const canonical = @import("segment_statement_v2_canonical_wire_view_v2.zig");
 
 const memory_poseidon2 = contract.memory_poseidon2;
-const memory_state = contract.memory_state;
+const memory_state = @import("../runner/memory_state.zig");
 
 pub const SnapshotIdentity = contract.SnapshotIdentity;
 pub const SnapshotSide = canonical.SnapshotSide;

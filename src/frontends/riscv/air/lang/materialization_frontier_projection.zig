@@ -7,7 +7,7 @@ const frontier_digest = @import("materialization_frontier_digest.zig");
 const ir = @import("ir.zig");
 const manifest = @import("materialization_frontier_manifest.zig");
 const materializer = @import("degree3_materializer.zig");
-const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
+const poseidon_fixed = @import("typed_poseidon2_fixed_polynomials.zig");
 const types = @import("types.zig");
 
 pub const Error = search_policy.Error || manifest.ManifestError || error{

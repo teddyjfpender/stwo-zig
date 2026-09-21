@@ -18,7 +18,6 @@ pub const diagnostic_hints = @import("diagnostic_hints.zig");
 pub const extract = @import("extract/mod.zig");
 pub const guest_precompile = @import("guest_precompile/mod.zig");
 pub const interaction = @import("interaction.zig");
-pub const interaction_gen = @import("interaction_gen.zig");
 pub const logup = @import("logup.zig");
 pub const lookups = @import("lookups/mod.zig");
 pub const lookup_physical_manifest_v2 =

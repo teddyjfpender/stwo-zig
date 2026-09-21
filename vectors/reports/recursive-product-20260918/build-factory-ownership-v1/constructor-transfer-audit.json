@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "unchanged_constructors": [
+    "addTraceExecutable",
+    "addExecutable",
+    "addRecursiveCspProducer",
+    "addRecursionShapeInspector",
+    "recursionProfileRegistryModule",
+    "createStwoModule",
+    "addPcHotspotExecutable",
+    "addFunctionValueExecutable",
+    "addAnalyzeLegacySemanticExecutable",
+    "addMemcpyHotspotExecutable",
+    "addMemcpyAdmissionExecutable"
+  ],
+  "observer_normalization": "Only selector argument, spec lookup and exact source/binary literals differ."
+}

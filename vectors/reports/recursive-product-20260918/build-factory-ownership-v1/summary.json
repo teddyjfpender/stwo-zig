@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "focused_python_tests": 103,
+  "root_build_graph_constructs": true,
+  "unchanged_constructor_transfers": 11,
+  "unchanged_product_declarations": 7,
+  "retired_cpu_export_declarations_removed": 51,
+  "obsolete_metal_runner_binding_removed": true,
+  "package_workspace_errors": 0,
+  "full_proof_rerun": false,
+  "qualified_proof_checkpoint": "../typed-final-authority-v1",
+  "goal_complete": false
+}

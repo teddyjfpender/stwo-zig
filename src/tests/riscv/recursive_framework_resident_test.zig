@@ -13,6 +13,97 @@ const Adapter = air.universal_typed_component.Component(Air, Relation);
 const Dispatch = metal.runtime.FrameworkPolynomialDispatch;
 const Output = metal.runtime.BasePolynomialOutput;
 
+test "recursive framework AOT executes native table interactions with exact columns claims and recovery" {
+    const allocator = std.testing.allocator;
+    const tables = @import("stwo_riscv_frontend").air.lookups.tables;
+    const interaction = metal.runtime.framework_interaction;
+    const bundle = try std.process.getEnvVarOwned(allocator, "STWO_RECURSIVE_FRAMEWORK_AOT_BUNDLE");
+    defer allocator.free(bundle);
+    const pin = try std.process.getEnvVarOwned(allocator, "STWO_RECURSIVE_FRAMEWORK_AOT_MANIFEST_SHA256");
+    defer allocator.free(pin);
+    if (pin.len != 64) return error.InvalidRecursiveFrameworkAotPin;
+    var digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&digest, pin);
+    var admission = try metal.core_aot.admitForProfile(allocator, bundle, digest, .recursive_framework_v1);
+    defer admission.deinit();
+    var runtime = try metal.Runtime.initFromAotAdmission(&admission);
+    defer runtime.deinit();
+    const relations = @import("stwo_riscv_frontend").air.relation_challenges.Relations.dummy();
+
+    for (std.meta.tags(tables.schema.Kind)) |kind| {
+        const rows = tables.schema.size(kind);
+        const log = tables.schema.logSize(kind);
+        const arity = tables.schema.arity(kind);
+        const counts = [_]usize{ arity + 1, 1, 4 };
+        const indices = [_]usize{ 1, 2, 3, 4 };
+        const component = try tables.component.LookupTableComponent.initProver(kind, 0, indices[0..arity], 0, 0, &relations, QM31.zero());
+        var program = try tables.framework_export.exportProgram(allocator, &component, &counts);
+        defer program.deinit();
+        var parameters = try tables.framework_export.exportParameters(allocator, &component);
+        defer parameters.deinit();
+        var plan = try interaction.Plan.init(allocator, .{ .program = &program, .tree_column_counts = &counts });
+        defer plan.deinit();
+        // The production loader must resolve the fraction and all three scan
+        // kernels in the independently admitted metallib. No source compiler.
+        try plan.prepare(&runtime);
+        var preprocessed = try runtime.allocateResidentBuffer(counts[0] * rows * @sizeOf(M31));
+        defer preprocessed.deinit();
+        var main = try runtime.allocateResidentBuffer(rows * @sizeOf(M31));
+        defer main.deinit();
+        const pre: []M31 = @as([*]M31, @ptrCast(@alignCast(preprocessed.contents)))[0 .. counts[0] * rows];
+        const mult: []M31 = @as([*]M31, @ptrCast(@alignCast(main.contents)))[0..rows];
+        @memset(pre, M31.zero());
+        var counter = try tables.counter.Counter.init(allocator, kind);
+        defer counter.deinit(allocator);
+        for (0..rows) |row| {
+            const physical = core.utils.bitReverseIndex(core.utils.cosetIndexToCircleDomainIndex(row, log), log);
+            const tuple = try tables.schema.tupleAt(kind, row);
+            for (tuple.slice(), 0..) |value, column| pre[(column + 1) * rows + physical] = value;
+            const value = if (row % 103 == 0 or row == rows - 1) M31.fromU64(1 + row % 19) else M31.zero();
+            counter.values[row] = value;
+            mult[physical] = value;
+        }
+        pre[0] = M31.one();
+        var reference = try tables.interaction.generate(allocator, &counter, &relations);
+        defer reference.deinit(allocator);
+        var pre_offsets: [5]u64 = undefined;
+        for (pre_offsets[0..counts[0]], 0..) |*offset, index| offset.* = index * rows;
+        const trees = [2]?interaction.Tree{
+            .{ .buffer = &preprocessed, .column_offsets = pre_offsets[0..counts[0]] },
+            .{ .buffer = &main, .column_offsets = &.{0} },
+        };
+        const invocation = interaction.Invocation{
+            .trace_log_size = log,
+            .profile_values = parameters.values.profile_values,
+            .relation_values = parameters.values.relation_values,
+        };
+        var result = try plan.generate(trees, invocation);
+        defer result.deinit();
+        try std.testing.expectEqual(rows, result.rows);
+        try std.testing.expectEqual(@as(usize, 1), result.batches);
+        for (reference.columns, 0..) |column, index|
+            try std.testing.expectEqualSlices(M31, column, result.column(index));
+        try std.testing.expect(reference.claim.eql(result.claim(0)));
+        try std.testing.expect(result.gpu_milliseconds > 0);
+
+        pre[0] = M31.zero();
+        try std.testing.expectError(error.FrameworkInteractionInvalidSelector, plan.generate(trees, invocation));
+        pre[0] = M31.one();
+        const poles = try allocator.alloc(QM31, invocation.relation_values.len);
+        defer allocator.free(poles);
+        @memset(poles, QM31.zero());
+        var pole_invocation = invocation;
+        pole_invocation.relation_values = poles;
+        try std.testing.expectError(error.FrameworkInteractionZeroDenominator, plan.generate(trees, pole_invocation));
+        var recovered = try plan.generate(trees, invocation);
+        defer recovered.deinit();
+        try std.testing.expect(reference.claim.eql(recovered.claim(0)));
+        for (reference.columns, 0..) |column, index|
+            try std.testing.expectEqualSlices(M31, column, recovered.column(index));
+        std.debug.print("NATIVE_TABLE_AOT_INTERACTION kind={s} rows={} columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms={d:.3}\n", .{ @tagName(kind), rows, result.gpu_milliseconds });
+    }
+}
+
 // Rejected invocations exercise the production C admission boundary directly:
 // expected failures must not emit std.log.err through the friendly Zig API.
 extern fn stwo_zig_metal_framework_polynomial_batch(
@@ -260,4 +351,178 @@ test "recursive framework AOT executes exported typed AIR on resident trees with
     std.debug.print("FRAMEWORK_RESIDENT_AOT air={s} manifest={s} rows={} dispatches=2 coordinates={} negative_controls=6 gpu_ms={d:.3}\n", .{
         Air.STABLE_NAME, pin, rows, rows * 4, gpu_ms,
     });
+}
+
+test "recursive framework AOT executes production table bridge with native parity" {
+    const allocator = std.testing.allocator;
+    const frontend = @import("stwo_riscv_frontend");
+    const tables = frontend.air.lookups.tables;
+    const Backend = metal.MetalCommitBackend;
+    const bundle = try std.process.getEnvVarOwned(allocator, "STWO_RECURSIVE_FRAMEWORK_AOT_BUNDLE");
+    defer allocator.free(bundle);
+    const pin = try std.process.getEnvVarOwned(allocator, "STWO_RECURSIVE_FRAMEWORK_AOT_MANIFEST_SHA256");
+    defer allocator.free(pin);
+    var digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&digest, pin);
+    try Backend.initializeRuntime(allocator, .{ .authenticated_aot = .{ .bundle_path = bundle, .manifest_sha256 = digest, .profile = .recursive_framework_v1 } });
+    defer Backend.shutdown() catch unreachable;
+    try std.testing.expect(try Backend.supportsFrameworkInteractions());
+    const before = try Backend.telemetrySnapshot();
+    const relations = frontend.air.relation_challenges.Relations.dummy();
+    inline for (std.meta.tags(tables.schema.Kind)) |kind| {
+        var counter = try tables.counter.Counter.init(allocator, kind);
+        defer counter.deinit(allocator);
+        for (counter.values, 0..) |*value, index| value.* = M31.fromCanonical(@intCast(index % 13));
+        var reference = try tables.interaction.generate(allocator, &counter, &relations);
+        defer reference.deinit(allocator);
+        var actual = try tables.device_interaction.generate(Backend, allocator, &counter, &relations);
+        defer actual.deinit(allocator);
+        try std.testing.expect(reference.claim.eql(actual.claim));
+        for (reference.columns, actual.columns) |expected, got| try std.testing.expectEqualSlices(M31, expected, got);
+        var malformed = counter;
+        malformed.values = counter.values[0 .. counter.values.len - 1];
+        try std.testing.expectError(error.InvalidTraceShape, tables.device_interaction.generate(Backend, allocator, &malformed, &relations));
+        var poles = relations;
+        switch (kind) {
+            inline else => |selected| @field(poles, @tagName(selected)).z = QM31.zero(),
+        }
+        try std.testing.expectError(error.DivisionByZero, tables.device_interaction.generate(Backend, allocator, &counter, &poles));
+        var recovered = try tables.device_interaction.generate(Backend, allocator, &counter, &relations);
+        defer recovered.deinit(allocator);
+        try std.testing.expect(reference.claim.eql(recovered.claim));
+        for (reference.columns, recovered.columns) |expected, got| try std.testing.expectEqualSlices(M31, expected, got);
+    }
+    const delta = (try Backend.telemetrySnapshot()).delta(before);
+    try std.testing.expectEqual(@as(u64, 48), delta.counters.metal_framework_interaction_dispatches);
+}
+
+test "recursive framework AOT executes parent interaction catalog with CPU column and claim parity" {
+    try checkTypedInteractionCatalog(air.detached_parent_catalog_v1.LOGICAL_ROWS, "PARENT");
+}
+
+test "recursive framework AOT executes leaf interaction catalog with CPU column and claim parity" {
+    try checkTypedInteractionCatalog(air.segment_leaf_catalog_v2.LOGICAL_ROWS, "LEAF");
+}
+
+fn checkTypedInteractionCatalog(comptime catalog: anytype, comptime profile: []const u8) !void {
+    @setEvalBranchQuota(1_000_000);
+    const allocator = std.testing.allocator;
+    const Backend = metal.MetalCommitBackend;
+    const bundle = try std.process.getEnvVarOwned(allocator, "STWO_RECURSIVE_FRAMEWORK_AOT_BUNDLE");
+    defer allocator.free(bundle);
+    const pin = try std.process.getEnvVarOwned(allocator, "STWO_RECURSIVE_FRAMEWORK_AOT_MANIFEST_SHA256");
+    defer allocator.free(pin);
+    var digest: [32]u8 = undefined;
+    _ = try std.fmt.hexToBytes(&digest, pin);
+    try Backend.initializeRuntime(allocator, .{ .authenticated_aot = .{ .bundle_path = bundle, .manifest_sha256 = digest, .profile = .recursive_framework_v1 } });
+    defer Backend.shutdown() catch unreachable;
+    const before = try Backend.telemetrySnapshot();
+    const relations = air.universal_challenges.UniversalRelations.dummy();
+    const recursion = @import("stwo_riscv_frontend").recursion;
+    const leaf_profile = comptime std.mem.eql(u8, profile, "LEAF");
+    const lane = air.query_bits_profile.LaneProfile{ .query_count = 1, .lifting_log_size = 9, .trace_tree_count = 3, .fri_layer_count = 1 };
+    const admitted = recursion.detached_segment_admission_v1.AdmissionParametersV1{ .query_reference = try air.query_bits_profile.Reference.seal(lane, lane), .poseidon_active_rows = 0 };
+    inline for (catalog) |entry| {
+        for ([_]usize{ 512, 509 }) |live_count| {
+            const Typed = entry.Air;
+            const Binding = air.universal_relation_binding.Binding(Typed);
+            const Framework = air.framework_interaction.Runtime(Binding.Runtime);
+            var arena = std.heap.ArenaAllocator.init(allocator);
+            defer arena.deinit();
+            const temporary = arena.allocator();
+            var definition = if (entry.requires_location) try Typed.build(temporary, .generated) else try Typed.build(temporary);
+            defer definition.deinit();
+            const direct = try air.direct_constraint_program.authenticate(&definition.arena, Typed.SEMANTIC_DIGEST, Typed.LOGICAL_INPUT_COUNT);
+            const relation = try Binding.authenticate(&definition);
+            var program = try air.framework_polynomial_export_v1.exportLocalPrepared(Typed, temporary, &direct, &relation);
+            defer program.deinit();
+            const counts = [_]usize{ Typed.PREPROCESSED_COLUMN_COUNT, Typed.PHYSICAL_MAIN_COLUMN_COUNT, Typed.INTERACTION_COLUMN_COUNT };
+            const log = 9;
+            const row_count = 1 << log;
+            const logical = try temporary.alloc([Typed.LOGICAL_INPUT_COUNT]M31, row_count);
+            const parameter_start = counts[0] + counts[1];
+            for (logical, 0..) |*row, index| for (row, 0..) |*value, column| {
+                // These exercise relation evaluation; direct AIR satisfaction is
+                // covered by the complete proof gate, not claimed by this test.
+                value.* = M31.fromU64(2 + (column * 13 + if (column < parameter_start) index * 7 else 0) % 251);
+            };
+            if (comptime leaf_profile) {
+                const profile_values = try recursion.segment_leaf_parameters_v2.parametersFor(entry, admitted);
+                for (logical) |*row| @memcpy(row[parameter_start..], &profile_values);
+            }
+            const live_rows = logical[0..live_count];
+            for (logical[live_rows.len..]) |*row| @memset(row, M31.zero());
+            var sources: [2][]const []const M31 = undefined;
+            for (0..2) |tree| {
+                const columns = try temporary.alloc([]const M31, counts[tree]);
+                for (columns, 0..) |*column, local| {
+                    const values = try temporary.alloc(M31, row_count);
+                    const source = if (tree == 0) counts[1] + local else local;
+                    for (logical, 0..) |row, index| values[air.framework_interaction.committedRow(index, log)] = row[source];
+                    column.* = values;
+                }
+                sources[tree] = columns;
+            }
+            const destination = try temporary.alloc([]M31, counts[2]);
+            for (destination) |*column| column.* = try temporary.alloc(M31, row_count);
+            const relation_values = try air.framework_polynomial_export_v1.exportRelationParameters(temporary, &relation, &relations);
+            var reference = try Framework.generatePrepared(temporary, &relation, live_rows, log, &relations);
+            defer reference.deinit(temporary);
+            const invocation = metal.runtime.framework_interaction.Invocation{ .trace_log_size = log, .profile_values = logical[0][parameter_start..], .relation_values = relation_values };
+            const claim = if (comptime leaf_profile) generated: {
+                var workspace = try Framework.Workspace.init(temporary, log);
+                defer workspace.deinit();
+                // This is a component fixture, not a cohort admission. Production
+                // constructs the policy with init against the independently admitted key.
+                var measured = std.testing.FailingAllocator.init(temporary, .{});
+                const Generator = recursion.leaf_interaction_generator_v2.ForBackend(Backend);
+                const generator = Generator{ .allocator = measured.allocator(), .parameters = admitted, .device = true };
+                const typed_destination: *[Typed.INTERACTION_COLUMN_COUNT][]M31 = destination[0..Typed.INTERACTION_COLUMN_COUNT];
+                const actual = try generator.generatePreparedIntoWithDomainSums(Framework, &workspace, &relation, live_rows, log, &relations, typed_destination);
+                const host_generator = recursion.leaf_interaction_generator_v2.ForBackend(void){ .allocator = temporary, .parameters = admitted, .device = false };
+                const expected_domains = try host_generator.generatePreparedIntoWithDomainSums(Framework, &workspace, &relation, live_rows, log, &relations, &reference.columns);
+                try std.testing.expectEqualDeep(expected_domains, actual);
+                if (comptime @intFromEnum(entry.row) == 0) {
+                    if (live_count == 512) {
+                        // The last allocation belongs to the independent audit:
+                        // prove a completed GPU dispatch cannot publish early.
+                        var failing = std.testing.FailingAllocator.init(temporary, .{ .fail_index = measured.alloc_index - 1 });
+                        const failing_generator = Generator{ .allocator = failing.allocator(), .parameters = admitted, .device = true };
+                        for (destination) |column| @memset(column, M31.one());
+                        const before_failure = try Backend.telemetrySnapshot();
+                        try std.testing.expectError(error.OutOfMemory, failing_generator.generatePreparedIntoWithDomainSums(Framework, &workspace, &relation, live_rows, log, &relations, typed_destination));
+                        const after_failure = try Backend.telemetrySnapshot();
+                        try std.testing.expectEqual(@as(u64, 4), after_failure.counters.metal_framework_interaction_dispatches - before_failure.counters.metal_framework_interaction_dispatches);
+                        for (destination) |column| for (column) |word| try std.testing.expectEqual(M31.one(), word);
+                        failing.fail_index = std.math.maxInt(usize);
+                        const retried = try failing_generator.generatePreparedIntoWithDomainSums(Framework, &workspace, &relation, live_rows, log, &relations, typed_destination);
+                        try std.testing.expectEqualDeep(expected_domains, retried);
+                        for (reference.columns, destination) |expected, got| try std.testing.expectEqualSlices(M31, expected, got);
+                        var aliased = typed_destination.*;
+                        const flat: []M31 = @alignCast(std.mem.bytesAsSlice(M31, std.mem.sliceAsBytes(logical)));
+                        aliased[0] = flat[0..row_count];
+                        try std.testing.expectError(error.DestinationAlias, generator.generatePreparedInto(Framework, &workspace, &relation, live_rows, log, &relations, &aliased));
+                        for (reference.columns, destination) |expected, got| try std.testing.expectEqualSlices(M31, expected, got);
+                        std.debug.print("LEAF_GENERATOR_AUDIT_FAILURE gpu_completed=true destination_unchanged=true retry=true alias_rejected=true\n", .{});
+                    }
+                }
+                break :generated actual.claimed_sum;
+            } else try air.framework_device_interaction.generateInto(Backend, Typed, temporary, &direct, &relation, live_rows, invocation.profile_values, log, &relations, destination);
+            try std.testing.expect(claim.eql(reference.claimed_sum));
+            for (reference.columns, destination) |expected, actual| try std.testing.expectEqualSlices(M31, expected, actual);
+            // Rejected output must leave every caller-owned destination untouched.
+            const poles = try temporary.alloc(QM31, relation_values.len);
+            @memset(poles, QM31.zero());
+            var invalid = invocation;
+            invalid.relation_values = poles;
+            try std.testing.expectError(error.FrameworkInteractionZeroDenominator, Backend.generateFrameworkInteractionInto(temporary, &program, &counts, sources, invalid, destination));
+            for (reference.columns, destination) |expected, actual| try std.testing.expectEqualSlices(M31, expected, actual);
+            const recovered = try Backend.generateFrameworkInteractionInto(temporary, &program, &counts, sources, invocation, destination);
+            try std.testing.expect(recovered.eql(claim));
+            for (reference.columns, destination) |expected, actual| try std.testing.expectEqualSlices(M31, expected, actual);
+            std.debug.print("{s}_TYPED_INTERACTION_AOT row={} rows={} trace_rows={} batches={} parity=true recovery=true\n", .{ profile, @intFromEnum(entry.row), live_count, row_count, program.batches.len });
+        }
+    }
+    const after = try Backend.telemetrySnapshot();
+    try std.testing.expectEqual(@as(u64, catalog.len * 16 + (if (leaf_profile) @as(usize, 8) else 0)), after.counters.metal_framework_interaction_dispatches - before.counters.metal_framework_interaction_dispatches);
 }

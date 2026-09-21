@@ -1,0 +1,192 @@
+{
+  "cpu": {
+    "samples": [
+      {
+        "sample": 0,
+        "warmup": true,
+        "proving_ns": 252765583,
+        "verify_ns": 9958583,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 1,
+        "warmup": false,
+        "proving_ns": 228222958,
+        "verify_ns": 9864500,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 2,
+        "warmup": false,
+        "proving_ns": 227187250,
+        "verify_ns": 9914375,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 3,
+        "warmup": false,
+        "proving_ns": 228422917,
+        "verify_ns": 9840791,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 4,
+        "warmup": false,
+        "proving_ns": 228795208,
+        "verify_ns": 10036125,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 5,
+        "warmup": false,
+        "proving_ns": 230210292,
+        "verify_ns": 9791542,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 6,
+        "warmup": false,
+        "proving_ns": 230994375,
+        "verify_ns": 9852583,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 7,
+        "warmup": false,
+        "proving_ns": 228017542,
+        "verify_ns": 9817041,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 8,
+        "warmup": false,
+        "proving_ns": 229723292,
+        "verify_ns": 9898708,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 9,
+        "warmup": false,
+        "proving_ns": 228326416,
+        "verify_ns": 10059459,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 10,
+        "warmup": false,
+        "proving_ns": 228006334,
+        "verify_ns": 9949833,
+        "pow_nonce": 560941
+      }
+    ],
+    "median_proving_ms": 228.3746665,
+    "mean_proving_ms": 228.7906584,
+    "min_proving_ms": 227.18725,
+    "max_proving_ms": 230.994375,
+    "median_verify_ms": 9.881604,
+    "median_stage_ms": {
+      "witness": 8.802,
+      "preprocessed_commit": 0.6585000000000001,
+      "main_commit": 12.614,
+      "interaction_generation": 15.0695,
+      "interaction_commit": 16.0205,
+      "prove": 175.4265,
+      "verify": 9.882
+    }
+  },
+  "metal": {
+    "samples": [
+      {
+        "sample": 0,
+        "warmup": true,
+        "proving_ns": 186635500,
+        "verify_ns": 11036583,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 1,
+        "warmup": false,
+        "proving_ns": 168393500,
+        "verify_ns": 10502792,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 2,
+        "warmup": false,
+        "proving_ns": 168544125,
+        "verify_ns": 10533958,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 3,
+        "warmup": false,
+        "proving_ns": 170380875,
+        "verify_ns": 10188250,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 4,
+        "warmup": false,
+        "proving_ns": 168520667,
+        "verify_ns": 10648083,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 5,
+        "warmup": false,
+        "proving_ns": 161044792,
+        "verify_ns": 9891875,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 6,
+        "warmup": false,
+        "proving_ns": 165990416,
+        "verify_ns": 9890042,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 7,
+        "warmup": false,
+        "proving_ns": 152462709,
+        "verify_ns": 9898416,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 8,
+        "warmup": false,
+        "proving_ns": 162145625,
+        "verify_ns": 9875500,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 9,
+        "warmup": false,
+        "proving_ns": 153442916,
+        "verify_ns": 9985834,
+        "pow_nonce": 560941
+      },
+      {
+        "sample": 10,
+        "warmup": false,
+        "proving_ns": 163093708,
+        "verify_ns": 9981833,
+        "pow_nonce": 560941
+      }
+    ],
+    "median_proving_ms": 164.542062,
+    "mean_proving_ms": 163.4019333,
+    "min_proving_ms": 152.462709,
+    "max_proving_ms": 170.380875,
+    "median_verify_ms": 9.9838335,
+    "median_stage_ms": {
+      "witness": 9.0685,
+      "preprocessed_commit": 3.135,
+      "main_commit": 5.3855,
+      "interaction_generation": 15.311499999999999,
+      "interaction_commit": 4.901,
+      "prove": 126.5415,
+      "verify": 9.984
+    }
+  }
+}

@@ -6,7 +6,6 @@ pub const ethereum = @import("ethereum.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
 pub const memory = @import("memory.zig");
-pub const execute_mod = @import("execute.zig");
 pub const auipc_retirement = @import("auipc_retirement.zig");
 pub const base_alu_imm_retirement = @import("base_alu_imm_retirement.zig");
 pub const base_alu_reg_retirement = @import("base_alu_reg_retirement.zig");

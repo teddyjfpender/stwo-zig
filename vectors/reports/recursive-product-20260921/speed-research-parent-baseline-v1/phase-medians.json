@@ -1,0 +1,18 @@
+{
+  "cpu": {
+    "median_process_seconds": 9.753617167,
+    "child_pcs_seconds": 2.311292251,
+    "pcs_authority_seconds": 1.014251333,
+    "pcs_rows_seconds": 0.836610333,
+    "tuple_projection_seconds": 1.282983708,
+    "typed_interaction_seconds": 1.200749458
+  },
+  "metal": {
+    "median_process_seconds": 6.782095583,
+    "child_pcs_seconds": 2.3275035,
+    "pcs_authority_seconds": 1.027559416,
+    "pcs_rows_seconds": 0.840536667,
+    "tuple_projection_seconds": 1.284408125,
+    "typed_interaction_seconds": 0.424725291
+  }
+}

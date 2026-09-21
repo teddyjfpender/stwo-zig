@@ -149,8 +149,8 @@ pub fn validateExactJumpdestClosure(
             if (bit_value.toU32() != 1) continue;
             const event = JumpEvent{
                 .call_index = row.call_index.toU32(),
-                .cursor = row.word_index.toU32() * bitmap.bits_per_word +
-                    @as(u32, @intCast(bit)),
+                .cursor = std.math.add(u32, std.math.mul(u32, row.word_index.toU32(), bitmap.bits_per_word) catch
+                    return error.DescriptorMismatch, @intCast(bit)) catch return error.DescriptorMismatch,
             };
             const result = requests.getOrPut(event) catch return error.OutOfMemory;
             if (!result.found_existing) result.value_ptr.* = 0;

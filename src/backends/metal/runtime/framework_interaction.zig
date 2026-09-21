@@ -1,4 +1,4 @@
-//! AOT-only independent-prefix interaction generation. Cold admission owns the
+//! AOT-only framework interaction generation. Cold admission owns the
 //! program's exact input routing; execution uploads metadata only and returns
 //! resident columns plus device-computed claims after checking device status.
 const std = @import("std");
@@ -8,7 +8,7 @@ const runtime = @import("../runtime.zig");
 const generator = @import("framework_interaction_codegen.zig");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-extern fn stwo_zig_framework_interaction_prepare(*anyopaque, [*]const u8, usize, [*]const u32, u32, u32, u32, u32) ?*anyopaque;
+extern fn stwo_zig_framework_interaction_prepare(*anyopaque, [*]const u8, usize, [*]const u32, u32, u32, u32, u32, u32) ?*anyopaque;
 extern fn stwo_zig_framework_interaction_destroy(*anyopaque) void;
 extern fn stwo_zig_framework_interaction_generate(*anyopaque, ?*anyopaque, ?*anyopaque, [*]const u32, [*]const u64, u32, [*]const u32, u32, [*]const u32, u32, u32, u32, *?*anyopaque, *?*anyopaque, *usize, *f64) u32;
 
@@ -27,6 +27,7 @@ pub const Result = struct {
     resident: runtime.ResidentBuffer,
     rows: usize,
     batches: usize,
+    claim_count: usize,
     gpu_milliseconds: f64,
     pub fn deinit(self: *Result) void {
         self.resident.deinit();
@@ -38,7 +39,7 @@ pub const Result = struct {
         return words[index * self.rows ..][0..self.rows];
     }
     pub fn claim(self: *const Result, index: usize) QM31 {
-        std.debug.assert(index < self.batches);
+        std.debug.assert(index < self.claim_count);
         const words: [*]const M31 = @ptrCast(@alignCast(self.resident.contents));
         return QM31.fromM31Array(words[self.batches * 4 * self.rows + index * 4 ..][0..4].*);
     }
@@ -83,7 +84,7 @@ pub const Plan = struct {
             .trace_column => |column| column.tree_index,
             .profile_parameter => std.math.maxInt(u32),
         };
-        owned.handle = factory(source.ptr, source.len, owned.name.ptr, owned.name.len, tags.ptr, @intCast(owned.inputs.len), @intCast(owned.profile_count), @intCast(owned.relation_count * 4), @intCast(owned.batches)) orelse return error.FrameworkInteractionUnavailable;
+        owned.handle = factory(source.ptr, source.len, owned.name.ptr, owned.name.len, tags.ptr, @intCast(owned.inputs.len), @intCast(owned.profile_count), @intCast(owned.relation_count * 4), @intCast(owned.batches), @intFromBool(owned.cumulative)) orelse return error.FrameworkInteractionUnavailable;
     }
     pub fn handleForTesting(self: *const Plan) *anyopaque {
         if (!@import("builtin").is_test) @compileError("test-only interaction handle");
@@ -100,6 +101,7 @@ const State = struct {
     relation_count: usize,
     batches: usize,
     program_identity: [32]u8,
+    cumulative: bool,
     handle: ?*anyopaque = null,
 
     pub fn init(allocator: std.mem.Allocator, entry: generator.Entry) !State {
@@ -111,7 +113,7 @@ const State = struct {
         const name = try generator.kernelName(allocator, entry);
         errdefer allocator.free(name);
         const inputs = try allocator.dupe(backend.TypedPolynomialInputV1, entry.program.inputs);
-        return .{ .allocator = allocator, .name = name, .inputs = inputs, .tree_counts = .{ entry.tree_column_counts[0], entry.tree_column_counts[1] }, .profile_count = entry.program.profile_parameter_count, .relation_count = entry.program.lookupParameterCount(), .batches = entry.program.batches.len, .program_identity = entry.program.identity };
+        return .{ .allocator = allocator, .name = name, .inputs = inputs, .tree_counts = .{ entry.tree_column_counts[0], entry.tree_column_counts[1] }, .profile_count = entry.program.profile_parameter_count, .relation_count = entry.program.lookupParameterCount(), .batches = entry.program.batches.len, .program_identity = entry.program.identity, .cumulative = entry.program.layout == .same_row_prefix_v1 };
     }
     pub fn deinit(self: *State) void {
         if (self.handle) |handle| stwo_zig_framework_interaction_destroy(handle);
@@ -123,7 +125,7 @@ const State = struct {
         if (self.handle != null) return error.FrameworkInteractionAlreadyPrepared;
         const profile = metal.admitted_profile orelse return error.FrameworkInteractionUnavailable;
         if (profile != .recursive_framework_v1) return error.FrameworkInteractionUnavailable;
-        for ([_][]const u8{ self.name, "stwo_zig_framework_interaction_block_scan_v1", "stwo_zig_framework_interaction_scan_blocks_v1", "stwo_zig_framework_interaction_finalize_v1" }) |name| {
+        for (if (self.cumulative) [_][]const u8{ self.name, "stwo_zig_framework_interaction_cumulative_block_scan_v1", "stwo_zig_framework_interaction_cumulative_scan_blocks_v1", "stwo_zig_framework_interaction_cumulative_finalize_v1" } else [_][]const u8{ self.name, "stwo_zig_framework_interaction_block_scan_v1", "stwo_zig_framework_interaction_scan_blocks_v1", "stwo_zig_framework_interaction_finalize_v1" }) |name| {
             var admitted = false;
             for (profile.exports()) |entry| if (std.mem.eql(u8, entry.name, name)) {
                 admitted = true;
@@ -137,7 +139,7 @@ const State = struct {
             .trace_column => |column| column.tree_index,
             .profile_parameter => std.math.maxInt(u32),
         };
-        self.handle = stwo_zig_framework_interaction_prepare(metal.handle, self.name.ptr, self.name.len, tags.ptr, @intCast(self.inputs.len), @intCast(self.profile_count), @intCast(self.relation_count * 4), @intCast(self.batches)) orelse return error.FrameworkInteractionUnavailable;
+        self.handle = stwo_zig_framework_interaction_prepare(metal.handle, self.name.ptr, self.name.len, tags.ptr, @intCast(self.inputs.len), @intCast(self.profile_count), @intCast(self.relation_count * 4), @intCast(self.batches), @intFromBool(self.cumulative)) orelse return error.FrameworkInteractionUnavailable;
     }
     pub fn generate(self: *const State, trees: [2]?Tree, invocation: Invocation) !Result {
         const handle = self.handle orelse return error.FrameworkInteractionNotPrepared;
@@ -194,6 +196,6 @@ const State = struct {
             4 => error.FrameworkInteractionNoncanonicalInput,
             else => error.FrameworkInteractionExecutionFailed,
         };
-        return .{ .resident = .{ .handle = resident_handle.?, .contents = contents.?, .byte_length = bytes }, .rows = rows, .batches = self.batches, .gpu_milliseconds = gpu_ms };
+        return .{ .resident = .{ .handle = resident_handle.?, .contents = contents.?, .byte_length = bytes }, .rows = rows, .batches = self.batches, .claim_count = if (self.cumulative) 1 else self.batches, .gpu_milliseconds = gpu_ms };
     }
 };

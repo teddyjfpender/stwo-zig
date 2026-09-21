@@ -1,0 +1,6 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=35 cumulative_cycles=35 loads=11 stores=11 distinct_accessed=11 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=108c
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 466 exact sparse-node calls, poseidon_log_size=9, merkle_log_size=9
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=459735900 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1313479 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=0 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=1570482791 transport_ns=8575125 verify_ns=305050000 recursive_prepare_ns=736543292 proof_bytes=1313479 transcript_calls=1184 verifier_core_calls=58865 outer_proof_created=false
+SEGMENT_V2_KEY_SETUP segments=1 outer_proofs_created=0 directory=/tmp/pr198-useful-workload-admissions-v1/keys-1-seed13

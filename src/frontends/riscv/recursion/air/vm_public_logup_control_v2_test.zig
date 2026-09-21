@@ -187,8 +187,12 @@ test "V2 row17 rejects schedule relay geometry and alias drift fail-atomically" 
 
     var changed_plan = try testPlan(std.testing.allocator, schedule.VM_PROGRAM_SPEC_V1);
     defer changed_plan.deinit();
+    // Mutate an owned copy: admitted schedules expose their steps as immutable.
+    const changed_steps = try std.testing.allocator.dupe(schedule.VerifierStep, changed_plan.steps);
+    std.testing.allocator.free(changed_plan.steps);
+    changed_plan.steps = changed_steps;
     const term_index: usize = witness.PUBLIC_PHASE_FIRST_SEQUENCE + 9;
-    changed_plan.steps[term_index].accumulate_public_logup_term.term += 1;
+    changed_steps[term_index].accumulate_public_logup_term.term += 1;
     var destination = prepared;
     const before_destination = destination;
     try std.testing.expectError(

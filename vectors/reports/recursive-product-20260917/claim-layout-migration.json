@@ -1,0 +1,28 @@
+{
+  "schema": "stwo.claim-layout-owner-migration.v1",
+  "status": "focused qualification and complete CPU/Metal tree qualification passed",
+  "zig_tests_passed": 241,
+  "dependency_tests_passed": 20,
+  "uniqueness_unit_tests_passed": 10,
+  "public_claim_transitive_source_count": 90,
+  "parent_protocol_transitive_source_count": 565,
+  "full_verifier_dependency_separation": false,
+  "scope": "Canonical Shape moved unchanged from witness owner to protocol layout. Counter uses the same permutation type directly. Public claim Error excludes errors belonging only to witness generation.",
+  "remaining_dependencies": "Other parent AIR paths still import execution and witness helpers; no whole-parent closure reduction claimed.",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/vm_public_claim_input_witness.zig": "1339bdc7653cd7bf0002cee236be89c6fb869688548e09e0c88c06f596b34770",
+    "src/frontends/riscv/recursion/vm_public_claim_layout.zig": "88620b2e731fbbae7e4ca7c456cd87e51eaefa9f6e6e17f07efefec7f67de941",
+    "src/frontends/riscv/recursion/vm_public_claim.zig": "29ee30519596cb6051f4f0f1f0f2cfaa4e9abed949f363b1d06479fbf7f8b268",
+    "src/frontends/riscv/air/lookups/tables/counter.zig": "d833a2e5599de6265ec98c06e83f419a7b7da86af87098a0dd3bedaddb75a7ee",
+    "src/frontends/riscv/recursion_protocol_test_root.zig": "dec3c69b39e678ab76fd02ed911186ccb0ceb74b3d03eb471906199c8aff6f6c",
+    "src/frontends/riscv/build.zig": "8a8afd813756b4e957d7a98ba12acbe2ddbeb945b8693f2388290b17b9a0dafa",
+    "src/frontends/riscv/recursion/vm_public_claim_test.zig": "498ab113025dad6340f396f38753b26c7fe91d588b5f2ce1e59287a6d82afd7a",
+    "scripts/riscv_poseidon_table_uniqueness.py": "7fd3a8068db91125d4716bb93a87800a287460a0ec3c218d9539f71273f1fa70",
+    "scripts/tests/test_product_closure.py": "e7f7cd434fe0b1b017a28d9a89415f4a1d9f50ce03f9219eea5712867e8e11e7"
+  },
+  "failure_log": "claim-layout-build-failure-v1.log",
+  "repair": "transcript_program_v2_contract.Error explicitly includes trace_mod.Error rather than depending on witness errors leaking through public claim Error",
+  "cpu_receipt": "cpu-backend-test-owner-v1/summary.json",
+  "metal_receipt": "metal-backend-test-owner-v1/summary.json",
+  "full_product_qualification": true
+}

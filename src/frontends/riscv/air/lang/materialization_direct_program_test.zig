@@ -1,13 +1,13 @@
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const cost = @import("materialization_cost.zig");
-const direct_program = @import("materialization_direct_program.zig");
+const direct_program = @import("direct_polynomial_program.zig");
 const effects = @import("effects.zig");
-const fixed = @import("materialization_fixed_direct.zig");
+const fixed = @import("fixed_polynomial_program.zig");
 const ir = @import("ir.zig");
 const materializer = @import("degree3_materializer.zig");
 const poseidon = @import("typed_poseidon2.zig");
-const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
+const poseidon_fixed = @import("typed_poseidon2_fixed_polynomials.zig");
 const source = @import("source.zig");
 const types = @import("types.zig");
 

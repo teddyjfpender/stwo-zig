@@ -71,6 +71,8 @@ def main() -> None:
                         default="detached_continuation_development_q3_v2")
     parser.add_argument("--publication-mode", choices=("root", "intermediate"), default="root")
     parser.add_argument("--memory-profile", choices=("initial", "continuation"), default="initial")
+    parser.add_argument("--boundary-profile", type=Path)
+    parser.add_argument("--boundary-profile-sha256", type=digest)
     parser.add_argument("--child-family", choices=("segment", "parent"), default="segment")
     parser.add_argument("--producer", type=Path, help="produce a new candidate before fresh verification")
     parser.add_argument("--producer-sha256", type=digest)
@@ -81,6 +83,10 @@ def main() -> None:
     parser.add_argument("--left", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     parser.add_argument("--right", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     args = parser.parse_args()
+    if bool(args.boundary_profile) != bool(args.boundary_profile_sha256):
+        parser.error("boundary profile requires an independent SHA256 pin")
+    if args.boundary_profile and (not args.producer or args.child_family != "segment"):
+        parser.error("boundary profile applies only when producing from segment children")
     if args.metal_aot_profile is not None and not args.metal_aot_bundle:
         parser.error("AOT profile selection requires a Metal producer and bundle")
     if bool(args.metal_aot_bundle) != bool(args.metal_aot_manifest_sha256) or (args.metal_aot_bundle and not args.producer):
@@ -107,6 +113,9 @@ def main() -> None:
             parser.error("production requires a new bundle directory")
         inputs += [args.producer.resolve(), args.parent_key.resolve()]
         pins += [(args.producer.resolve(), args.producer_sha256), (args.parent_key.resolve(), args.key_sha256)]
+        if args.boundary_profile:
+            inputs.append(args.boundary_profile.resolve())
+            pins.append((args.boundary_profile.resolve(), args.boundary_profile_sha256))
         for child in (args.left, args.right):
             child[0], child[2] = str(Path(child[0]).resolve()), str(Path(child[2]).resolve())
             try:
@@ -187,6 +196,9 @@ def main() -> None:
             argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
                     "--parent-key-sha256", args.key_sha256, "--proof-profile", args.proof_profile]
+            if args.boundary_profile:
+                argv += ["--boundary-profile", str(args.boundary_profile.resolve()),
+                         "--boundary-profile-sha256", args.boundary_profile_sha256]
             if args.metal_aot_bundle:
                 argv[1:1] = ["--aot-bundle", str(args.metal_aot_bundle.resolve()),
                              "--aot-manifest-sha256", args.metal_aot_manifest_sha256]

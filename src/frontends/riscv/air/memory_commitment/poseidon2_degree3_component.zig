@@ -1,5 +1,6 @@
 //! Shared native prover/verifier adapter for versioned degree-three Poseidon
 //! layouts. Reuses hash-domain sampling and source preparation.
+const verifier = @import("poseidon2_degree3_verifier.zig");
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
@@ -22,29 +23,27 @@ const sampling = @import("hash_component_sampling.zig").Namespace(.{ .std = std,
 /// Shared prover/verifier adapter for admitted degree-three Poseidon layouts.
 pub fn Namespace(comptime air: type, comptime backend_module: ?type) type {
     return struct {
-        pub const N_CONSTRAINTS = air.N_CONSTRAINTS + air.N_SUMS;
-        const ACTIVE = if (@hasDecl(air, "BINDS_ACTIVE_SELECTOR")) air.BINDS_ACTIVE_SELECTOR else true;
-        const PP: usize = if (ACTIVE) 2 else 1;
+        const Shape = verifier.Layout(air);
+        const VerifierState = verifier.Component(air);
+        pub const N_CONSTRAINTS = Shape.N_CONSTRAINTS;
+        const ACTIVE = Shape.ACTIVE;
+        const PP = Shape.PP;
         const N_SOURCES = PP + air.N_MAIN_COLUMNS + air.N_INTERACTION_COLUMNS;
 
         pub const Component = struct {
-            log_size: u32,
-            n_rows: u32,
-            is_first_col_idx: usize,
-            is_active_col_idx: usize,
-            main_col_offset: usize,
-            interaction_col_offset: usize,
-            relations: *const Relations,
-            claims: [air.N_SUMS]QM31,
+            const SharedVerifier = verifier.Methods(@This(), air);
+            log_size: @FieldType(VerifierState, "log_size"),
+            n_rows: @FieldType(VerifierState, "n_rows"),
+            is_first_col_idx: @FieldType(VerifierState, "is_first_col_idx"),
+            is_active_col_idx: @FieldType(VerifierState, "is_active_col_idx"),
+            main_col_offset: @FieldType(VerifierState, "main_col_offset"),
+            interaction_col_offset: @FieldType(VerifierState, "interaction_col_offset"),
+            relations: @FieldType(VerifierState, "relations"),
+            claims: @FieldType(VerifierState, "claims"),
 
             const Adapter = core.air.derive.ComponentAdapter(@This(), component_prover.ComponentProver, component_prover.Trace, accumulation.DomainEvaluationAccumulator);
 
-            pub fn validate(self: *const Component) !void {
-                if (self.log_size == 0 or self.log_size >= core.circle.M31_CIRCLE_LOG_ORDER - 1 or (ACTIVE and self.n_rows == 0) or @as(u64, self.n_rows) > @as(u64, 1) << @intCast(self.log_size)) return error.InvalidPoseidonNarrowComponentV1;
-                _ = try std.math.add(usize, self.main_col_offset, air.N_MAIN_COLUMNS);
-                _ = try std.math.add(usize, self.interaction_col_offset, air.N_INTERACTION_COLUMNS);
-                if (ACTIVE and self.is_first_col_idx == self.is_active_col_idx) return error.InvalidPoseidonNarrowComponentV1;
-            }
+            pub const validate = SharedVerifier.validate;
 
             pub fn asProverComponent(self: *const Component) component_prover.ComponentProver {
                 var result = Adapter.asProverComponent(self);
@@ -78,74 +77,21 @@ pub fn Namespace(comptime air: type, comptime backend_module: ?type) type {
                 return work.oodsProfile(source, self.log_size, max_log_degree_bound, 2 * air.N_SUMS, true);
             }
 
-            pub fn asVerifierComponent(self: *const Component) components.Component {
-                return Adapter.asVerifierComponent(self);
-            }
-            pub fn nPreprocessedColumns(_: *const Component) usize {
-                return PP;
-            }
-            pub fn nConstraints(_: *const Component) usize {
-                return N_CONSTRAINTS;
-            }
-            pub fn maxConstraintLogDegreeBound(self: *const Component) u32 {
-                return self.log_size + 1;
-            }
-            pub fn compositionLogSplit(_: *const Component) u32 {
-                return 1;
-            }
+            pub const asVerifierComponent = SharedVerifier.asVerifierComponent;
+            pub const nPreprocessedColumns = SharedVerifier.nPreprocessedColumns;
+            pub const nConstraints = SharedVerifier.nConstraints;
+            pub const maxConstraintLogDegreeBound = SharedVerifier.maxConstraintLogDegreeBound;
+            pub const compositionLogSplit = SharedVerifier.compositionLogSplit;
 
-            pub fn traceLogDegreeBounds(self: *const Component, allocator: std.mem.Allocator) !components.TraceLogDegreeBounds {
-                try self.validate();
-                const outer = try allocator.alloc([]u32, 3);
-                var initialized: usize = 0;
-                errdefer {
-                    for (outer[0..initialized]) |slice| allocator.free(slice);
-                    allocator.free(outer);
-                }
-                for (outer, [_]usize{ PP, air.N_MAIN_COLUMNS, air.N_INTERACTION_COLUMNS }) |*slice, count| {
-                    slice.* = try allocator.alloc(u32, count);
-                    @memset(slice.*, self.log_size);
-                    initialized += 1;
-                }
-                return components.TraceLogDegreeBounds.initOwned(outer);
-            }
+            pub const traceLogDegreeBounds = SharedVerifier.traceLogDegreeBounds;
 
-            pub fn preprocessedColumnIndices(self: *const Component, allocator: std.mem.Allocator) ![]usize {
-                try self.validate();
-                return allocator.dupe(usize, if (ACTIVE) &.{ self.is_first_col_idx, self.is_active_col_idx } else &.{self.is_first_col_idx});
-            }
+            pub const preprocessedColumnIndices = SharedVerifier.preprocessedColumnIndices;
 
-            pub fn maskPoints(self: *const Component, allocator: std.mem.Allocator, point: Point, max_log_degree_bound: u32) !components.MaskPoints {
-                try self.validate();
-                if (max_log_degree_bound < self.log_size) return error.InvalidProofShape;
-                const pp = try sampling.currentPointColumns(allocator, PP, point);
-                errdefer sampling.freePointColumns(allocator, pp);
-                const main = try sampling.currentPointColumns(allocator, air.N_MAIN_COLUMNS, point);
-                errdefer sampling.freePointColumns(allocator, main);
-                const interaction = try sampling.currentAndPreviousPointColumns(allocator, air.N_INTERACTION_COLUMNS, point, logup.prevRowPoint(max_log_degree_bound, point));
-                errdefer sampling.freePointColumns(allocator, interaction);
-                return components.MaskPoints.initOwned(try allocator.dupe([][]Point, &.{ pp, main, interaction }));
-            }
+            pub const maskPoints = SharedVerifier.maskPoints;
 
-            pub fn evaluateConstraintQuotientsAtPoint(self: *const Component, point: Point, mask: *const components.MaskValues, accumulator: *core.air.accumulation.PointEvaluationAccumulator, max_log_degree_bound: u32) !void {
-                try self.validate();
-                if (max_log_degree_bound < self.log_size or mask.items.len < 3) return error.InvalidProofShape;
-                const pp = mask.items[0];
-                if (pp.len <= @max(self.is_first_col_idx, self.is_active_col_idx) or pp[self.is_first_col_idx].len != 1 or pp[self.is_active_col_idx].len != 1 or mask.items[2].len < self.interaction_col_offset + air.N_INTERACTION_COLUMNS) return error.InvalidProofShape;
-                const main = try sampling.sampleMain(air.N_MAIN_COLUMNS, mask.items[1], self.main_col_offset);
-                var sums: [air.N_SUMS]QM31 = undefined;
-                var previous: [air.N_SUMS]QM31 = undefined;
-                try sampling.sampleInteraction(air.N_SUMS, mask.items[2], self.interaction_col_offset, &sums, &previous);
-                const inverse = try core.constraints.cosetVanishing(QM31, canonic.CanonicCoset.new(self.log_size).coset(), point.repeatedDouble(max_log_degree_bound - self.log_size)).inv();
-                for (self.constraints(main, pp[self.is_active_col_idx][0], pp[self.is_first_col_idx][0], sums, previous)) |constraint| accumulator.accumulate(constraint.mul(inverse));
-            }
+            pub const evaluateConstraintQuotientsAtPoint = SharedVerifier.evaluateConstraintQuotientsAtPoint;
 
-            fn constraints(self: *const Component, main: [air.N_MAIN_COLUMNS]QM31, active: QM31, first: QM31, sums: [air.N_SUMS]QM31, previous: [air.N_SUMS]QM31) [N_CONSTRAINTS]QM31 {
-                var result: [N_CONSTRAINTS]QM31 = undefined;
-                @memcpy(result[0..air.N_CONSTRAINTS], &(if (ACTIVE) air.evaluateGeneric(QM31, main, active) else air.evaluateGeneric(QM31, main)));
-                @memcpy(result[air.N_CONSTRAINTS..], &air.interactionConstraintsGeneric(QM31, main, first, sums, previous, self.claims, self.relations));
-                return result;
-            }
+            const constraints = SharedVerifier.constraints;
 
             /// The prepared owner admits geometry and powers before hot row reads.
             fn evaluatePreparedRow(self: *const Component, main: [air.N_MAIN_COLUMNS]M31, active: M31, first: M31, sums: [air.N_SUMS]QM31, previous: [air.N_SUMS]QM31, powers: []const QM31) QM31 {

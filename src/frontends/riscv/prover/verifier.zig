@@ -445,6 +445,7 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
     if (proof.commitment_scheme_proof.commitments.items.len != 4) {
         return core_verifier.VerificationError.InvalidStructure;
     }
+    try @import("../air/native_infrastructure_typed_admission.zig").validateStatement(core_statement, allocator);
     try statement_validation.verifyPreprocessedRoot(
         Engine,
         allocator,

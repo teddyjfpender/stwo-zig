@@ -4,7 +4,7 @@ const std = @import("std");
 const metal = @import("stwo_metal_backend");
 const Backend = metal.MetalCommitBackend;
 const Engine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
-const producer = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_parent_producer;
+const producer = @import("stwo_riscv_detached_parent_producer");
 
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;

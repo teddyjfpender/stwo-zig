@@ -83,7 +83,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # by the constructive proof.
 SOURCE_BINDINGS: dict[str, str] = {
     "src/core/fields/m31.zig":
-        "cb5122f72960fd8bc5fb21f5690e3de5038ab8bbeb47aa345160058e28af2e57",
+        "6f6393f878cdf4e5474163dc3ddc8e8f758180f603482f1e275185fac5e8b4cd",
     "src/core/fields/cm31.zig":
         "4b7a14c91fba7c467f92e924ce90c7230a22d08329591e3d5b8874d862b31288",
     "src/core/fields/qm31.zig":
@@ -91,27 +91,27 @@ SOURCE_BINDINGS: dict[str, str] = {
     "src/core/utils.zig":
         "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18",
     "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig":
-        "336c816f98081e133d363533cadbdc58a6db9d6be931fc45f58bc2eb5461cb71",
+        "17e09f482788b6c4ddfa81d0a830e683ba9a171e81a8641826c08841c353f0c3",
     "src/frontends/riscv/air/memory_commitment/poseidon2_constants.zig":
         "d02b32f2f5302d21a440fbace2112d3232603e759cd0b24691c32e81d2bd4cfd",
     "src/frontends/riscv/air/memory_commitment/hash_component.zig":
-        "d48925894e83352fcf99f6b5bf5a016a02b06c30b406b9b651bd93bb40284c70",
+        "f10bf62978d6310f4af0c4fccf0445273fd451c8695868c08c375ce53d71ba35",
     "src/frontends/riscv/air/lookups/tables/schema.zig":
         "8ab73ea534acd89deb9ceb8fad83b1d9e775bf96aeb5a1e7344a0e1551bc3cef",
     "src/frontends/riscv/air/lookups/tables/interaction.zig":
-        "fccaf56a4c74234b3ab0a7acc4a425cf93f5e2df5b7e7fd0d894d4ea89bcdfd9",
+        "7f3c8afba846d83f72ba36e8d469b17018906fea18f2e1d029a5d6857b85ba56",
     "src/frontends/riscv/air/lookups/tables/component.zig":
-        "bcdea5560300c0457e2fa0377cd46f7ece23203cf06891d6c63aefdd475ac41b",
+        "7ae2e5b6952c6b03158e12c23c84d7ebd2eedc4e7834e37e3734842e83e4170d",
     "src/frontends/riscv/air/lookups/tables/counter.zig":
-        "ac27a42de635d78816b37c5cc1e096432b0c6733b6c8c3c3377f64b9d02ba324",
+        "d833a2e5599de6265ec98c06e83f419a7b7da86af87098a0dd3bedaddb75a7ee",
     "src/frontends/riscv/air/lookups/entry.zig":
-        "b304989c184b0cddcdb8f6e7474edb8ff33c72253ec2b153f4dc90f08c9701e4",
+        "158f7e3fcf7666f800e97c0e394355d0261d6c813a333dfcdeec6d796f8c7db9",
     "src/frontends/riscv/air/logup.zig":
         "c2264e61781e94a4080b977c2d5e045bcf1e6caad0b0290693dcf59bd338ed06",
     "src/frontends/riscv/air/relation_challenges.zig":
         "6c56083bc2467de1d2de73b74da4b20adc6422eec5ddfc8385a397719f9a36cf",
     "src/frontends/riscv/prover/preprocessed.zig":
-        "c5081225763ed08d88cf740124759297d465a45075e38e4a49251c379cd7e80b",
+        "005473b815ca576773bf7aac28deaaa03b6b671beb2e9787a59db2d730ccdd7c",
     "src/frontends/riscv/prover/opcode_trace.zig":
         "d648017174f8f122562617b0d823843900ad0b7eb8ba5db2ac3d91f20e86335b",
     "src/frontends/riscv/infra_trace/permutation.zig":
@@ -272,7 +272,12 @@ def _production_semantic_anchors(root: Path) -> None:
         (root / table_interaction_source).read_text(encoding="utf-8")
     )
     for anchor in (
-        ".numerator=QM31.fromBase(signed_multiplicity).neg(),",
+        "returntableEntryGeneric(QM31,kind,values[0..tuple.len],QM31.fromBase(signed_multiplicity));",
+        "dst.*=QM31.fromBase(value);",
+        ".domain=schema.domain(kind),",
+        ".numerator=signed_multiplicity.neg(),",
+        ".arity=@intCast(tuple.len),",
+        "@memcpy(result.values[0..tuple.len],tuple);",
         "returnlogup.RowPair.single(relation_entry.numerator,"
         "tryrelation_entry.denominator(relations));",
         "returnlogup.pairConstraintGeneric(S,current,previous,is_first,claim,"

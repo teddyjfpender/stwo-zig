@@ -1,0 +1,291 @@
+test
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement for guest 'sail_oracle ADDI/ADD self-test' was NOT checked.
+{
+  "compared_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "differences": [],
+  "elapsed_seconds": 0.0,
+  "elf_sha256": "",
+  "exit_code": 3,
+  "identity": {},
+  "reason": "pinned Sail binary not found at /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim (from default workspace /tmp/stwo-riscv-formal); build it with: python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal",
+  "retirements": 0,
+  "sail_source": "",
+  "schema": "stwo-riscv-sail-oracle-report-v1",
+  "seeded_words": 0,
+  "verdict": "UNAVAILABLE"
+}
+
+SKIP: pinned Sail oracle unavailable; the forged-trace rejection was NOT checked.
+{
+  "compared_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "differences": [],
+  "elapsed_seconds": 0.0,
+  "elf_sha256": "",
+  "exit_code": 3,
+  "identity": {},
+  "reason": "pinned Sail binary not found at /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim (from default workspace /tmp/stwo-riscv-formal); build it with: python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal",
+  "retirements": 0,
+  "sail_source": "",
+  "schema": "stwo-riscv-sail-oracle-report-v1",
+  "seeded_words": 0,
+  "verdict": "UNAVAILABLE"
+}
+
+SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement for guest 'E-018 staged typed LUI authority' was NOT checked.
+{
+  "compared_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "differences": [],
+  "elapsed_seconds": 0.0,
+  "elf_sha256": "",
+  "exit_code": 3,
+  "identity": {},
+  "reason": "pinned Sail binary not found at /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim (from default workspace /tmp/stwo-riscv-formal); build it with: python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal",
+  "retirements": 0,
+  "sail_source": "",
+  "schema": "stwo-riscv-sail-oracle-report-v1",
+  "seeded_words": 0,
+  "verdict": "UNAVAILABLE"
+}
+
+SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement for guest 'E-019 staged typed FENCE authority' was NOT checked.
+{
+  "compared_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "differences": [],
+  "elapsed_seconds": 0.0,
+  "elf_sha256": "",
+  "exit_code": 3,
+  "identity": {},
+  "reason": "pinned Sail binary not found at /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim (from default workspace /tmp/stwo-riscv-formal); build it with: python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal",
+  "retirements": 0,
+  "sail_source": "",
+  "schema": "stwo-riscv-sail-oracle-report-v1",
+  "seeded_words": 0,
+  "verdict": "UNAVAILABLE"
+}
+
+SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement for guest 'E-020 staged typed BASE_ALU_IMM authority' was NOT checked.
+{
+  "compared_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "differences": [],
+  "elapsed_seconds": 0.0,
+  "elf_sha256": "",
+  "exit_code": 3,
+  "identity": {},
+  "reason": "pinned Sail binary not found at /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim (from default workspace /tmp/stwo-riscv-formal); build it with: python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal",
+  "retirements": 0,
+  "sail_source": "",
+  "schema": "stwo-riscv-sail-oracle-report-v1",
+  "seeded_words": 0,
+  "verdict": "UNAVAILABLE"
+}
+
+SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement for guest 'E-020 staged typed BASE_ALU_REG authority' was NOT checked.
+{
+  "compared_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "differences": [],
+  "elapsed_seconds": 0.0,
+  "elf_sha256": "",
+  "exit_code": 3,
+  "identity": {},
+  "reason": "pinned Sail binary not found at /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim (from default workspace /tmp/stwo-riscv-formal); build it with: python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal",
+  "retirements": 0,
+  "sail_source": "",
+  "schema": "stwo-riscv-sail-oracle-report-v1",
+  "seeded_words": 0,
+  "verdict": "UNAVAILABLE"
+}
+
+SKIP: pinned Sail oracle unavailable; runner-vs-Sail agreement for guest 'typed AUIPC authority' was NOT checked.
+{
+  "compared_fields": [
+    "pc",
+    "instruction",
+    "rd",
+    "rd_value",
+    "next_pc",
+    "memory.address",
+    "memory.read_mask",
+    "memory.read_value",
+    "memory.write_mask",
+    "memory.write_value"
+  ],
+  "differences": [],
+  "elapsed_seconds": 0.0,
+  "elf_sha256": "",
+  "exit_code": 3,
+  "identity": {},
+  "reason": "pinned Sail binary not found at /tmp/stwo-riscv-formal/source/sail-riscv/build/c_emulator/sail_riscv_sim (from default workspace /tmp/stwo-riscv-formal); build it with: python3 scripts/riscv_formal_tools.py prepare --workspace /tmp/stwo-riscv-formal",
+  "retirements": 0,
+  "sail_source": "",
+  "schema": "stwo-riscv-sail-oracle-report-v1",
+  "seeded_words": 0,
+  "verdict": "UNAVAILABLE"
+}
+
+qm31_mul_add_v1 semantic digest: eb8d491f5b07bf17fb4b6b4e7c408da1289dd1907b66926547bd39d204b0f849
+
+  R-007 V1: bytes=552 relation_domain=a8d442a9f4c2247ad16065bee87325a0be8e30f9618b6db83ce04b984adc5548 wire_sha256=5ffd6c876f1de01ad4b9ec8c25613cebcc1c8f7f8364e98e59de4a02a105b3d9 pair_blake2s=c9ee92cb1d2172c50e19290861dbf59ea7335ef2d545ed0f60adc15de9ca12df left=549b10e778f21e8ecb06a7fe204456e1dd5d06eaa275950635456a412f7b3a49 right=fd198c8df3c3fa7530fc4e7b4fa8872cc587463cb1bea98da16de33fb163164e
+
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+DIRECT_EXECUTION_PRUNING row=0 canonical_nodes=7 executed_nodes=3
+DIRECT_EXECUTION_PRUNING row=1 canonical_nodes=40 executed_nodes=29
+DIRECT_EXECUTION_PRUNING row=2 canonical_nodes=49 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=3 canonical_nodes=41 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=4 canonical_nodes=12 executed_nodes=10
+DIRECT_EXECUTION_PRUNING row=5 canonical_nodes=10 executed_nodes=9
+DIRECT_EXECUTION_PRUNING row=6 canonical_nodes=314 executed_nodes=314
+DIRECT_EXECUTION_PRUNING row=7 canonical_nodes=12 executed_nodes=8
+DIRECT_EXECUTION_PRUNING row=8 canonical_nodes=23 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=9 canonical_nodes=55 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=10 canonical_nodes=41 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=11 canonical_nodes=21 executed_nodes=21
+DIRECT_EXECUTION_PRUNING row=12 canonical_nodes=36 executed_nodes=35
+DIRECT_EXECUTION_PRUNING row=13 canonical_nodes=1 executed_nodes=1
+DIRECT_EXECUTION_PRUNING row=20 canonical_nodes=289 executed_nodes=231
+DIRECT_EXECUTION_PRUNING row=21 canonical_nodes=166 executed_nodes=166
+DIRECT_EXECUTION_PRUNING row=22 canonical_nodes=22 executed_nodes=14
+DIRECT_EXECUTION_PRUNING row=23 canonical_nodes=121 executed_nodes=99
+DIRECT_EXECUTION_PRUNING row=24 canonical_nodes=20 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=25 canonical_nodes=125 executed_nodes=102
+DIRECT_EXECUTION_PRUNING row=26 canonical_nodes=46 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=27 canonical_nodes=17 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=28 canonical_nodes=16 executed_nodes=13
+DIRECT_EXECUTION_PRUNING row=29 canonical_nodes=21 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=30 canonical_nodes=84 executed_nodes=83
+DIRECT_EXECUTION_PRUNING row=31 canonical_nodes=74 executed_nodes=73
+DIRECT_EXECUTION_PRUNING row=32 canonical_nodes=106 executed_nodes=106
+DIRECT_EXECUTION_PRUNING row=33 canonical_nodes=43 executed_nodes=39
+
+  LOAD_STORE footprint plan=88B prepared=16B
+
+  MUL footprint transaction=80B plan=104B prepared=16B
+
+  MULH footprint transaction=80B plan=104B prepared=16B
+
+  DIV footprint transaction=80B plan=104B prepared=16B
+minimal-capture-benchmark cycles=65532 rom_bytes=3350000 capture_ns=5711542 capture_cycles_per_second=11473609 replay_ns=29080000 replay_cycles_per_second=2253508
+minimal-parallel-replay-benchmark leaves=256 cycles=16776192 workers=1 wall_ns=7518863375 cycles_per_second=2231214 efficiency=1.000000
+minimal-parallel-replay-benchmark leaves=256 cycles=16776192 workers=2 wall_ns=3929197625 cycles_per_second=4269623 efficiency=0.956794
+minimal-parallel-replay-benchmark leaves=256 cycles=16776192 workers=4 wall_ns=2032145167 cycles_per_second=8255410 efficiency=0.924991
+minimal-parallel-replay-benchmark leaves=256 cycles=16776192 workers=8 wall_ns=1171806750 cycles_per_second=14316518 efficiency=0.802059
+minimal-parallel-replay-benchmark leaves=256 cycles=16776192 workers=12 wall_ns=890458750 cycles_per_second=18839943 efficiency=0.703651
+minimal-parallel-replay-benchmark leaves=256 cycles=16776192 workers=16 wall_ns=710255208 cycles_per_second=23619949 efficiency=0.661634
+riscv prove: register boundary derivation failed (UnsupportedForProof): an execution-only opcode (ECALL/EBREAK) reached the prover: this is an admission failure in the caller, not a witness defect. A proven run must end on the halt flag or a self-loop. List what the run actually retired with `riscv-trace-dump --elf <elf> --input <input>`.
+riscv prove: register boundary derivation failed (InvalidRegisterAccessChain): a proof-representable trace's register source-before-destination chain does not close, so the memory_access bus cannot balance. Isolate the offending tuples with `riscv-trace-dump --relation-tuples <elf> --input <input>` and cross-check the committed rows with `python3 scripts/air_satisfaction.py`.
+
+  typed AUIPC Debug log_rows=9: generated=249959 ns legacy=270542 ns speed=1.0823x
+
+  typed AUIPC Debug log_rows=12: generated=2008250 ns legacy=2153209 ns speed=1.0722x
+
+  typed AUIPC Debug log_rows=15: generated=16062000 ns legacy=17281125 ns speed=1.0759x
+
+  typed BRANCH_EQ Debug log_rows=9: generated=308458 ns legacy=321375 ns median_speed=1.0419x
+
+  typed BRANCH_EQ Debug log_rows=12: generated=2449125 ns legacy=2385708 ns median_speed=0.9741x
+
+  typed BRANCH_EQ Debug log_rows=15: generated=18277416 ns legacy=18815916 ns median_speed=1.0295x
+
+  typed FENCE Debug log_rows=10: generated=22750 ns legacy=28459 ns speed=1.2509x
+
+  typed FENCE Debug log_rows=14: generated=378292 ns legacy=480000 ns speed=1.2689x
+
+  typed FENCE Debug log_rows=18: generated=6133291 ns legacy=7704250 ns speed=1.2561x
+
+  typed JAL Debug log_rows=9: generated=232541 ns legacy=239917 ns speed=1.0317x
+
+  typed JAL Debug log_rows=12: generated=1842958 ns legacy=1920333 ns speed=1.0420x
+
+  typed JAL Debug log_rows=15: generated=14747583 ns legacy=15370250 ns speed=1.0422x
+R-003 synthetic Debug: serial=1789000ns N1=1821709ns N4=517250ns N1/serial=1.018 N1/N4=3.522
+SEGMENT_V2_SPARSE_SPECIALIZATION value=13 nodes=2417 merkle_terms=15 public_terms=118 graph_sha256=7537426f6df4ad4f3498fcc90b187da0aee178e8ea2b9bff8f6c668dd8eba280 native_proof_created=false
+SEGMENT_V2_SPARSE_SPECIALIZATION value=14 nodes=2417 merkle_terms=15 public_terms=118 graph_sha256=7537426f6df4ad4f3498fcc90b187da0aee178e8ea2b9bff8f6c668dd8eba280 native_proof_created=false
+SEGMENT_V2_SPARSE_SPECIALIZATION value=269 nodes=2417 merkle_terms=15 public_terms=118 graph_sha256=7537426f6df4ad4f3498fcc90b187da0aee178e8ea2b9bff8f6c668dd8eba280 native_proof_created=false
+ETHEREUM_PUBLIC_SUMS_BENCH source=expanded_existing_authenticated_fixture words=4096 canonical_wire_words=33432 sparse_rw_terms=8192 sparse_continuation_terms=32768 removed_scalar_inversions=81920 surviving_removed_term_inversions=0 scalar_median_ns=71054500 surviving_median_ns=10257208 rounds=3 setup_included=false native_proving=false wrapper_proving=false
+ETHEREUM_INITIAL_INPUT_LANE_SEAL=487faca476d9d26334696c03adc9f7d814ceaffc0e77868b3f41994e949e49f8
+ETHEREUM_PUBLIC_LOGUP_INPUT_SEMANTIC_DIGEST=fdeacd0daf651b507d28664714d131fa9837e4a701bcb00e41cf84b9c815b8fd
+ETHEREUM_PUBLICATION_CONTROL_SEAL=c57c74c861342ddeb224ccd32a56feba18f60b11c8e671708a227b1b1355b238
+ETHEREUM_PUBLICATION_HASH_SEMANTIC_DIGEST=5ca22b7fd0a6e08537c18b391a148900182a827aca4ec8056251dabce6f483c3
+ETHEREUM_TRANSCRIPT_STATE_SEMANTIC_DIGEST=450fe2b9364468383ad2bc1e6c50ac1b2a5dee33fb2ca47f8d39b3b08224995f
+ETHEREUM_TRANSCRIPT_PAYLOAD_SEMANTIC_DIGEST=95a72779d509cbf9b844a662e220e000d6cd88f0a45b7351f50bf7654567f79d
+ETHEREUM_RAW_TRANSCRIPT_PAYLOAD_SEMANTIC_DIGEST=991e77a54fc6e135eba0d8a2776a687d344675b3e307c61303e2624e387bdc74
+ETHEREUM_CLAIM_ROUTING_SEMANTIC_DIGEST=064801f229b955638e49c848d704cc91691e493038d6461898936e3f0b989bc6
+RETAINED_ROWS_DIGEST_AB lengths=131 legacy_bytes_preserved=true changed_word_rejected=true
+VM_COMPOSITION_UNSAT output=0/1 node=9 value=.{ .c0 = .{ .a = .{ .v = 1 }, .b = .{ .v = 0 } }, .c1 = .{ .a = .{ .v = 0 }, .b = .{ .v = 0 } } }
+VM_COMPOSITION_UNSAT output=0/1 node=9 value=.{ .c0 = .{ .a = .{ .v = 1 }, .b = .{ .v = 0 } }, .c1 = .{ .a = .{ .v = 0 }, .b = .{ .v = 0 } } }
+
+Build Summary: 4/4 steps succeeded; 3140/3152 tests passed; 12 skipped
+test success
++- stwo_riscv_frontend test count floor success
+   +- run test 3140 passed 12 skipped 7m MaxRSS:806M
+      +- compile test Debug native success 1m MaxRSS:18G
+

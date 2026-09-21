@@ -208,11 +208,25 @@ bool stwo_zig_metal_compute_quotients(
                 &partial_words
             )) {
             const uint64_t partial_bytes = (uint64_t)partial_words * sizeof(uint32_t);
-            // The intermediate is admitted only when it is materially smaller
-            // than the resident inputs and remains bounded to one GiB.  All
-            // other shapes retain the established direct resident kernel.
-            gpu_grouped_partials = partial_bytes <= UINT64_C(1024) * 1024u * 1024u &&
-                partial_bytes <= raw_bytes / 2u;
+            // Compare evaluated cells, not temporary bytes with input bytes.
+            // Mixed-log guest traces can have tiny source columns lifted over
+            // millions of quotient rows. Their grouped intermediate is larger
+            // than the inputs but avoids rereading each column at every row.
+            // Keep the established one-GiB cap and require at least a 2x work
+            // reduction before admitting the extra intermediate.
+            uint64_t direct_cells = 0u;
+            uint64_t grouped_cells = 0u;
+            bool bounded_work = stwo_zig_checked_mul_u64(row_count, view_count, &direct_cells) &&
+                stwo_zig_checked_mul_u64(row_count, partial_group_count, &grouped_cells);
+            const StwoZigResidentRawQuotientGroup *groups = partial_group_data.bytes;
+            for (uint32_t group = 0u; bounded_work && group < partial_group_count; ++group) {
+                uint64_t cells = 0u;
+                bounded_work = stwo_zig_checked_mul_u64(groups[group].row_count, groups[group].view_count, &cells) &&
+                    stwo_zig_checked_add_u64(grouped_cells, cells, &grouped_cells);
+            }
+            gpu_grouped_partials = bounded_work &&
+                partial_bytes <= UINT64_C(1024) * 1024u * 1024u &&
+                grouped_cells <= direct_cells / 2u;
         }
         if (profile_quotient) {
             fprintf(stderr,

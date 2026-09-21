@@ -1,4 +1,5 @@
-//! Internal segment statement v2 authority shard; use segment_statement_v2.zig publicly.
+//! Shared SegmentV2 statement data and validation, independent of runner conversion.
+//! The public segment_statement_v2.zig facade also exposes source-side helpers.
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");
@@ -9,9 +10,6 @@ pub const access_clock = @import("../access_clock.zig");
 pub const isa_profile = @import("../isa/profile.zig");
 pub const public_data = @import("../air/public_data.zig");
 pub const memory_poseidon2 = @import("../air/memory_commitment/poseidon2.zig");
-pub const memory_state = @import("../runner/memory_state.zig");
-pub const runner_result = @import("../runner/result.zig");
-pub const Cpu = @import("../runner/cpu.zig").Cpu;
 pub const channel = @import("poseidon2_channel.zig");
 pub const protocol = @import("protocol.zig");
 pub const span_statement = @import("span_statement.zig");
@@ -607,5 +605,49 @@ pub const IdentityHasher = struct {
 
     pub fn finalize(self: *IdentityHasher) Digest {
         return self.inner.finalize();
+    }
+};
+
+/// Allocation-free authenticated view over one canonical variable-length V2
+/// wire.  Offsets refer to retained four-word `(u32,u32)` entries.
+pub const CanonicalWireViewV2 = struct {
+    words: []const M31,
+    statement: StatementV2,
+    entry_snapshot: RetainedSectionV2,
+    exit_snapshot: RetainedSectionV2,
+    entry_memory_clocks: RetainedSectionV2,
+    exit_memory_clocks: RetainedSectionV2,
+    wire_id: Digest,
+
+    pub fn sparseEntry(
+        self: *const CanonicalWireViewV2,
+        section: RetainedSectionV2,
+        index: usize,
+    ) SparseEntryV2 {
+        std.debug.assert(index < section.count);
+        const start = section.payload_start + index * RETAINED_ENTRY_WORDS;
+        return .{
+            .address = readEncodedU32(self.words[start..][0..2]),
+            .value = readEncodedU32(self.words[start + 2 ..][0..2]),
+        };
+    }
+
+    pub fn clockEntry(
+        self: *const CanonicalWireViewV2,
+        section: RetainedSectionV2,
+        index: usize,
+    ) ClockEntryV2 {
+        std.debug.assert(index < section.count);
+        const start = section.payload_start + index * RETAINED_ENTRY_WORDS;
+        return .{
+            .address = readEncodedU32(self.words[start..][0..2]),
+            .clock = readEncodedU32(self.words[start + 2 ..][0..2]),
+        };
+    }
+
+    /// One canonical transcript frame.  Callers cannot alter framing by
+    /// splitting variable sections into a different sequence of mix calls.
+    pub fn mixInto(self: *const CanonicalWireViewV2, transcript: anytype) void {
+        transcript.mixCanonicalM31Words(self.words);
     }
 };

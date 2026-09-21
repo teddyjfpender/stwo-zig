@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "complete_proof_qualified": true,
+  "leaf_proof_dispatch_integrated": true,
+  "production_security_qualified": false,
+  "total_cases": 384,
+  "baseline_identical_artifacts": 21,
+  "host_tests": 25,
+  "ownership_tests": 14,
+  "leaf_component_cases": 74,
+  "parent_component_cases": 58,
+  "post_device_audit_failure_preserves_destination": true,
+  "alias_rejection": true,
+  "canonical_leaf_parameters": true,
+  "tree_successful_device_dispatches": 1020,
+  "additional_aot_exports": 105,
+  "total_aot_exports": 271,
+  "aot_manifest_sha256": "5cca2547204d7b9820c408f2bd4083d65cb9e23c91f3d10602992ae4528967ca",
+  "aot_metallib_sha256": "0f264c9df0747b7331e3f0cb69bb22b67d8feef4af854095e4d533cac2402de2"
+}

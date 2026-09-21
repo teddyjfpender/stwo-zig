@@ -32,7 +32,7 @@ const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
 const profile = @import("../isa/profile.zig");
-const segment_v2 = @import("../recursion/segment_statement_v2.zig");
+const segment_v2 = @import("../recursion/segment_statement_v2_wire.zig");
 
 pub const Digest = segment_v2.Digest;
 

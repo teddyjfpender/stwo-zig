@@ -1,0 +1,32 @@
+{
+  "source_admission_sha256": "91a52ebe8c56977c9d589284e2d03bf4bf749b9310272c2a409b14980ce78d6a",
+  "admission_sha256": "e140652b533ed064b262e69d87e8e93305dc65b072025b675b6c0484732a5e33",
+  "canonical_identity": "e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf",
+  "script_sha256": "1b7fdbd30fd7aad75caebe436efa96e54b72e8c4d824ea8b11b75d1855e16784",
+  "helper_source_sha256": "ba9280039d89ca45e934d6e3735ad105613e7f9446e5033253ef2ed34a8d1efe",
+  "helper_binary_sha256": "a891d1ce7228702e0e9ee3cc65cce9d87f3edfda2ea2c122528ca0676a53be53",
+  "keys": [
+    {
+      "level": 1,
+      "index": 0,
+      "old_key_sha256": "a6699c0eebc189ec372e8df780558a72761b2587404b9d345792d66cae19f603",
+      "new_key_sha256": "2a3e57c7d8e2feb846aff4ace4bd89ba094b10bc2f2e49560c9ae3b13300af63"
+    },
+    {
+      "level": 1,
+      "index": 1,
+      "old_key_sha256": "274fd7b2b8d9f55fedf272d17389dd86f333fb14875ffa7dc058d3fa29a65d54",
+      "new_key_sha256": "f53e3cbbc813f1379f4a760210ab7b2a197d4721cc2f0e0409a6f06693b948df"
+    },
+    {
+      "level": 2,
+      "index": 0,
+      "old_key_sha256": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+      "new_key_sha256": "22a0be9dbcad32324fe2712022e17e666c2af1fe74ea5107dc2ad348c0535b41"
+    }
+  ],
+  "public_inputs_unchanged": true,
+  "proofs_produced": false,
+  "status": "superseded_invalid_root_preprocessing",
+  "reason": "Canonical child identities change fixed constants in root preprocessing; copying the historical root commitment was insufficient."
+}

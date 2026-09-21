@@ -1,0 +1,56 @@
+{
+  "status": "cpu_metal_single_segment_passed",
+  "development_only": true,
+  "production_security_qualified": false,
+  "segments": 1,
+  "retired_cycles": 35,
+  "memory_addresses": 1,
+  "setup_outer_proofs_created": 0,
+  "setup_native_proofs_created_per_seed": 1,
+  "setup_negative_cases": 6,
+  "cpu_root_gate_cases": 28,
+  "changed_memory_under_same_key": true,
+  "local_evidence": "/tmp/pr198-single-independent-setup-20260918-v1",
+  "binaries": {
+    "/tmp/pr198-single-leaf-key-setup-20260918-v1/bin/recursive-segment-v2-leaf-key-setup": "b3317d9f4add1c794dca4cf6ef87f48d66cc34638d127e7a88aaef40dd247980",
+    "/tmp/pr198-single-leaf-key-setup-20260918-v1/bin/recursive-segment-v2-concrete-outer-proof": "0c43a32e2a7ea68e887be2d3c8b584b9934023b8f8ec83b6cbf6b048f50c2a25",
+    "/tmp/pr198-single-segment-root-20260918-v1/bin/recursive-segment-v2-detached-verify": "b0b6159a65a2d72e8f80647be579a5ea66c58d28cf963b8f9c2d909b22db4e4d",
+    "/tmp/pr198-single-leaf-metal-20260918-v1/bin/recursive-segment-v2-concrete-outer-proof-metal": "9df6ef84ca070a530aa38759f298a96b16734a8942029c82b96cee68a3579b20"
+  },
+  "cpu_artifacts": {
+    "cpu-proof/candidate-receipt.json": "977a2c3e55bb047d09ad9cbdb8b836bc85bce29889e21a00594dac3c8a3a9c63",
+    "cpu-proof/child-0/key.json": "b061a3107ef94b5404af2a486d949e1b4d60e80ed421e498e8d1a2024994fa6e",
+    "cpu-proof/child-0/expected-wire.json": "e6af22014c085825b888888230a1450c61bb19f4be823b9bff711a75bc55bf58",
+    "cpu-proof/child-0/claims.json": "37d8de8b02efb2a6c726827dfe61db2771564c8381b2fe7f9ed2b86a6b3015a2",
+    "cpu-proof/child-0/proof.bin": "9229d452b551dd6c835c37b52de354e05423e6f379c0cd52498a677cffaa6fb2",
+    "cpu-seed14-proof/candidate-receipt.json": "88dfa4e92e4dbda8156cd20a9bf8e36c4088062d39afb3598c4e649362d8c325",
+    "cpu-seed14-proof/child-0/key.json": "b061a3107ef94b5404af2a486d949e1b4d60e80ed421e498e8d1a2024994fa6e",
+    "cpu-seed14-proof/child-0/expected-wire.json": "54a69654c2b833c9e3be340c78030dc042cda0edf7b7ce10fd84002be267ace6",
+    "cpu-seed14-proof/child-0/claims.json": "a8498f3911087c8906d1dd70dd83b9ff9b98e3ade9e1dc69f208fb62e5284c45",
+    "cpu-seed14-proof/child-0/proof.bin": "2259da2b75975519771e9287ff9e5aa8e8a193ebb086c37af336fdfe9efe2514"
+  },
+  "remaining": [],
+  "metal_root_gate_cases": 14,
+  "tree_gate_cases": 26,
+  "tree_measurements": {
+    "cpu": {
+      "maximum_rss_bytes": 2895085568,
+      "leaf_production_ns": 8052133042,
+      "complete_gate_ns": 8651461208
+    },
+    "metal": {
+      "maximum_rss_bytes": 2561802240,
+      "leaf_production_ns": 7689102042,
+      "complete_gate_ns": 8296212542
+    }
+  },
+  "identical_cpu_metal_artifacts": {
+    "key.json": "b061a3107ef94b5404af2a486d949e1b4d60e80ed421e498e8d1a2024994fa6e",
+    "expected-wire.json": "e6af22014c085825b888888230a1450c61bb19f4be823b9bff711a75bc55bf58",
+    "claims.json": "37d8de8b02efb2a6c726827dfe61db2771564c8381b2fe7f9ed2b86a6b3015a2",
+    "proof.bin": "9229d452b551dd6c835c37b52de354e05423e6f379c0cd52498a677cffaa6fb2"
+  },
+  "source_unchanged_through_qualification": true,
+  "four_segment_regression": "../leaf-key-setup-qualified-v1/cross-backend.json",
+  "current_ladder": "../canonical-ladder-v1/summary.json"
+}

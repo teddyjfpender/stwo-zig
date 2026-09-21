@@ -1,0 +1,46 @@
+build-cpu: started
+build-cpu: passed in 217.453s
+complete-tree: started
+complete-tree: passed in 77.120s
+substitution-0: started
+substitution-0: passed in 0.680s
+substitution-1: started
+substitution-1: passed in 0.684s
+substitution-2: started
+substitution-2: passed in 0.686s
+substitution-3: started
+substitution-3: passed in 0.627s
+build-cpu: started
+build-cpu: passed in 0.203s
+build-metal: started
+build-metal: passed in 236.911s
+build-aot-tool: started
+build-aot-tool: passed in 4.375s
+build-aot: started
+build-aot: passed in 9.975s
+complete-tree: started
+complete-tree: passed in 58.537s
+substitution-0: started
+substitution-0: passed in 0.678s
+substitution-1: started
+substitution-1: passed in 0.679s
+substitution-2: started
+substitution-2: passed in 0.691s
+substitution-3: started
+substitution-3: passed in 0.679s
+Traceback (most recent call last):
+  File "/tmp/pr198-run-canonical-surface-ladder-v1.py", line 8, in <module>
+    out=Path('/tmp/pr198-typed-final-ladder-20260918-v1');out.mkdir(exist_ok=False)
+                                                          ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 1011, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+FileExistsError: [Errno 17] File exists: '/tmp/pr198-typed-final-ladder-20260918-v1'
+Traceback (most recent call last):
+  File "/tmp/pr198-qualify-canonical-surface-v1.py", line 22, in <module>
+    subprocess.run([sys.executable,'/tmp/pr198-run-canonical-surface-ladder-v1.py'],check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/tmp/pr198-run-canonical-surface-ladder-v1.py']' returned non-zero exit status 1.

@@ -288,18 +288,7 @@ pub const Rows = struct {
 pub const ACTIVE_ROWS = [_]usize{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 10, 11, 13, 14, 15, 16, 17 };
 const ROW_FIELDS = .{ "control", "sponge", "binding", "state", "word", "payload", "pow_check", "pow_frame", "challenges", "randomness", "statement" };
 
-pub fn payloadKind(kind: program_mod.Source) ?air.transcript_payload.VerifierInputKind {
-    if (kind == .canonical_preprocessed_root or kind == .common_preprocessed_root) return .commitment;
-    if (kind.isConstantPayload()) return .protocol;
-    return switch (kind) {
-        .commitment => .commitment,
-        .claim_value, .provider_partial, .canonical_wire_boundary => .claimed_sum,
-        .sampled_values => .sampled_value,
-        .fri_commitment => .fri_commitment,
-        .last_layer => .last_layer_coefficient,
-        else => null,
-    };
-}
+pub const payloadKind = recursion.transcript_payload_kind_v1.payloadKind;
 
 pub fn bindsVerifierInput(kind: u32, item: u32) bool {
     const Kind = air.transcript_payload.VerifierInputKind;
@@ -321,20 +310,7 @@ pub fn bindsControlTag(tag: u32) bool {
     };
 }
 
-pub fn logicalRow(comptime index: usize, row: anytype) ![catalog.LOGICAL_ROWS[index].Air.LOGICAL_INPUT_COUNT]M31 {
-    return switch (index) {
-        0 => air.control_witness.logicalRow(row, .binary_node),
-        1 => air.transcript_air_witness.logicalRow(row),
-        2 => air.transcript_binding_witness.logicalInputs(row.main, row.preprocessing, .binary_node),
-        3 => air.transcript_state_witness.logicalInputs(row.main, row.preprocessing, .binary_node),
-        4 => air.transcript_word_witness.logicalRow(row.preprocessing, row.value, .binary_node),
-        5 => air.transcript_payload_witness.logicalRowForRecordedFrame(row.preprocessing, row.value, .binary_node),
-        6, 7, 12 => row,
-        8 => air.relation_challenge_witness.logicalInputs(row.main, row.preprocessing, .binary_node),
-        9 => air.verifier_randomness_witness.logicalInputs(row.main, row.preprocessing, .binary_node),
-        else => @compileError("inactive transcript component"),
-    };
-}
+pub const logicalRow = recursion.transcript_logical_rows_v1.logicalRow;
 
 const LogicalRows = blk: {
     var types: [ACTIVE_ROWS.len]type = undefined;

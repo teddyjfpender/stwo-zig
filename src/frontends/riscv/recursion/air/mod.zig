@@ -33,6 +33,8 @@ pub const fri_verifier_input = @import("fri_verifier_input.zig");
 pub const fri_verifier_input_relation = @import("fri_verifier_input_relation.zig");
 pub const fri_verifier_input_witness = @import("fri_verifier_input_witness.zig");
 pub const fri_verifier_lowering = @import("fri_verifier_lowering.zig");
+pub const framework_device_interaction = @import("framework_device_interaction.zig");
+pub const prepared_interaction_generation = @import("prepared_interaction_generation.zig");
 pub const framework_interaction = @import("framework_interaction.zig");
 pub const linear_ops = @import("linear_ops.zig");
 pub const linear_ops_relation = @import("linear_ops_relation.zig");
@@ -165,6 +167,8 @@ pub const universal_roster = @import("universal_roster.zig");
 pub const universal_shared_provider = @import("universal_shared_provider.zig");
 pub const universal_shared_provider_composition = @import("universal_shared_provider_composition.zig");
 pub const universal_typed_component = @import("universal_typed_component.zig");
+/// Typed admission and core point-verification interface without prover construction.
+pub const universal_typed_verifier_component = @import("universal_typed_verifier_component.zig");
 pub const verifier_schedule = @import("verifier_schedule.zig");
 pub const verifier_arithmetic_lowering = @import("verifier_arithmetic_lowering.zig");
 pub const verifier_randomness = @import("verifier_randomness.zig");
@@ -223,3 +227,15 @@ pub const detached_poseidon_graph_v1 = @import("detached_poseidon_graph_v1.zig")
 pub const detached_parent_catalog_v1 = @import("detached_parent_catalog_v1.zig");
 pub const segment_leaf_catalog_v2 = @import("segment_leaf_catalog_v2.zig");
 pub const framework_polynomial_export_v1 = @import("framework_polynomial_export_v1.zig");
+
+pub const query_bits_profile = @import("query_bits_profile.zig");
+
+pub const verifier_component_parameters = @import("verifier_component_parameters.zig");
+
+pub const proof_kind = @import("proof_kind.zig");
+
+pub const segment_outer_manifest_contract_v2 = @import("segment_outer_manifest_contract_v2.zig");
+
+pub const verifier_wire_claims = @import("verifier_wire_claims.zig");
+
+pub const interaction_generator = @import("interaction_generator.zig");

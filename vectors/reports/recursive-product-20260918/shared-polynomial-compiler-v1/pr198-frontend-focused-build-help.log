@@ -1,0 +1,241 @@
+Usage: /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build [steps] [options]
+
+Steps:
+  install (default)            Copy build artifacts to prefix path
+  uninstall                    Remove build artifacts from prefix path
+  test                         Compile and test the stwo_riscv_frontend package
+  test-ethereum-fixed-program-air Check fixed ELF table constraints and unchanged legacy program relations
+  test-vm-leaf-context-v2      Test SegmentV2 verifier-instance and capture authority
+  test-ethereum-vm-composition-program Check the recording scalar, production masks and active Ethereum verifier program
+  test-vm-air-profile-v2       Test physical VM profile and composition-program authority
+  test-ethereum-commitment-v1  Test Ethereum node sponge and full-output Poseidon caller constraints
+  test-poseidon-materialization-frontier Run focused typed-Poseidon layout and quotient-frontier tests
+  typed-air-manifest           Check or explicitly update typed-AIR compatibility artifacts
+  typed-air-frontier           Check or explicitly update the H-009 Poseidon cost-frontier artifacts
+  typed-air-static-profile     Check or explicitly update the P-002 native-family profile artifacts
+  typed-air-layout-benchmark   Check H-010 correctness or run one isolated experimental sample
+  typed-air-layout-benchmark-install Install the isolated H-010 runner for fresh-process host sampling
+  keccakf-adaptive-corpus-projection Create an exact adaptive-Keccak committed-cell projection receipt
+  keccakf-adaptive-corpus-projection-install Install the retained-corpus adaptive-Keccak projection tool
+  check-stack-swap-candidate-elf-v1 Check and receipt one externally digest-bound Ethereum+SWAP guest ELF
+  check-ethereum-combined-candidate-elf-v1 Cold-check and receipt one actual combined bulk4+SWAP5 guest ELF
+  test-isa                     Run only RISC-V ISA authority and decoder tests
+  test-runner                  Run only RISC-V execution-runner tests
+  test-minimal-trace-parallel-replay Run only the bounded parallel minimal-trace replay gate
+  benchmark-minimal-trace-parallel-replay Measure bounded parallel minimal-trace replay scaling
+  test-ethereum-runner         Run the combined Ethereum profile and signer-recovery runner tests
+  test-ethereum-minimal-trace  Run compact Ethereum minimal-trace capture and replay tests
+  test-main-trace-plan-execution Run only bounded main-trace plan and production execution tests
+  test-poseidon-witness-work   Run exact sparse-memory and guest-Poseidon work-receipt tests
+  test-interaction-witness-work Run exact relation-challenge and Tree-2 work-receipt tests
+  test-compact-poseidon-authority Run compact typed lowering, specialization identity and allocation checks
+  test-polynomial-compiler     Check shared polynomial lowering, fixed shells and degree-bounded consumers
+  test-wide-poseidon-authority Check all typed wide Poseidon equations, events and shared witness authority
+  test-native-boundary-authority Check typed program, memory, clock and lookup policy equations and admission
+  test-merkle-authority        Check typed native Merkle equations, lookup order and specialization rejection
+  test-parent-canonical-admission Run parent canonical AIR admission, rejection and protocol identity checks
+  test-trace-authority         Run trace admission, typed ownership and retired-oracle differential checks
+  test-air-semantics           Run only RISC-V instruction-family AIR tests
+  test-load-store-private      Run focused load/store AIR authority and retirement tests
+  test-register-read-alias-private Run nonproduction register-read alias candidate tests
+  test-two-read-register-alias-private Run nonproduction two-read register alias candidate tests
+  test-vm-public-claim         Check canonical claim geometry, witness parity, transport binding and allocation cleanup
+  test-recursion-native-parity Check native/recursive memory and PCS parity plus claim mutations
+  test-semantic-component      Run only semantic-component prepared-domain and resource tests
+  test-hash-component-prepared Run only memory-hash prepared-domain and stack-certificate tests
+  test-air-static-profile      Run only typed-AIR static profiler tests
+  test-air-static-profile-registry Run the complete native typed-AIR static profile registry
+  test-air-runtime-profile     Run the authenticated typed-AIR/runtime profile join tests
+  test-proof-phase-meter       Run the exact five-region witness/proving phase-meter state machine
+  test-air-function-frames     Run Cairo-style frame isolation and activation-relation tests
+  test-air-function-body-lowering Run bounded authenticated inline-function body lowering tests
+  test-air-function-body-ownership Run sealed per-function body ownership and lowering tests
+  test-air-function-activation-logup Run live compiler-owned function activation LogUp tests
+  test-lookup-batching         Run compiler-selected LogUp planning and row execution tests
+  test-lookup-source-ingest    Run exact opcode-source ingestion and rollback tests
+  test-lookup-table-framework-export Check native fixed-table backend export and ownership without proving
+  test-lookup-table-interaction Run lookup-table interaction parity and rollback tests
+  test-opcode-interaction      Run scalar/packed opcode interaction parity and rollback tests
+  test-lookup-batching-edit    Run the lightweight authenticated lookup-batch planner edit loop
+  test-lookup-polynomial-v2-edit Run the lightweight variable-partition polynomial-authority edit loop
+  test-row-windows             Run compiler-owned row-window, mask, and ownership tests
+  test-row-windows-edit        Run the lightweight typed row-window authority edit loop
+  test-row-window-expressions-v2-edit Run the lightweight shifted-expression authority edit loop
+  test-guest-precompile        Run only proof-side guest-precompile protocol tests
+  test-bulk-memcpy-candidate   Run the nonproduction word-granular memcpy AIR candidate tests
+  test-stack-swap-candidate    Run the nonproduction SWAP1..SWAP16 semantic and AIR candidate tests
+  test-ethereum-candidate-execution-contract Run combined candidate registry, capability, journal, and product tests
+  test-ethereum-candidate-leaf Run candidate leaf profile, tree, and admission authority tests
+  test-ethereum-candidate-provider Run candidate shared-transcript and degree-five provider adapter tests
+  test-ethereum-omit-validated-parity Run validated-vs-unvalidated omission-path parity tests
+  test-incremental-ethereum-omit-protocol-v4 Run the omitted-provider V4 route pin, frame, and leaf authority tests
+  test-incremental-ethereum-omit-orchestration-v4 Run the omitted-provider V4 orchestration prologue, geometry, transcript, and binding tests
+  test-ethereum-matched-ab-omitted-provider-policy Run matched omitted-provider geometry, plan, and fresh-closure authority tests
+  test-sha256-pair-candidate   Run the nonproduction fixed64 SHA-256 pair AIR and caller tests
+  test-poseidon-merkle         Check canonical Poseidon transcript and scalar/SIMD Merkle parity
+  test-keccakf-row             Run only the shared Keccak row scalar parity and lazy-error regression
+  test-keccakf-precompile      Run the Keccak-f semantic and paired-witness authority tests
+  test-secp256k1-precompile    Run compact secp256k1 field and precompile authority tests
+  test-interaction-trace-plan  Run the prepared Tree-2 planning and execution tests
+  test-recursion-protocol      Run the frozen recursion protocol and native boundary tests
+  test-ethereum-native-root-claim Check native-root claim semantics and exact row11/row15 source ownership
+  test-ethereum-initial-manifest Check initial input component admission and preserve legacy claim and adapter protocol
+  test-recursion-transcript-v2 Run exact generic-channel V2 scheduled transcript parity tests
+  test-recursion-pair-node     Run the authenticated native R-009 pair-node boundary tests
+  test-ethereum-cold-wire-admission Authenticate fresh Ethereum canonical wire once with immutable ownership and hostile input checks
+  test-recursion-temporal-pair Run the V2 adjacent-span temporal pair authority tests
+  test-recursion-vm-composition Run only the row-18 VM AIR authority and composition graph tests
+  test-recursion-preparation   Check composition ownership, statement routing closure and legacy provider compatibility
+  test-recursion-composition-recorder Run the compile-isolated authenticated AIR graph recorder tests
+  test-recursion-composition-v3 Run the versioned 39+2 shared recursion composition authority tests
+  test-recursion-composition-v3-session Run only the V3 universal orchestration and heterogeneous-session tests
+  test-recursion-outer-sources Run only segment outer-proof sources for rows 0 through 17 and 35
+  test-recursion-binary-transcript-source Run only the binary-node rows 0 through 9 source tests
+  test-recursion-segment-leaf-bundle Run only the composed segment-leaf outer bundle
+  test-recursion-segment-leaf-outer-v2 Run the authenticated V2 segment-leaf outer authority tests
+  test-recursion-segment-transcript-source-v2 Run the V2 scheduled-transcript outer source tests
+  test-recursion-segment-transcript-components-v2 Run the V2 rows 0 through 9 component and tree-writer gates
+  test-segment-statement-v2    Run only SegmentV2 boundary and continuation-root tests
+  test-recursion-segment-statement-source-v2 Run the V2 rows 10 and 11 statement authority gates
+  test-recursion-segment-public-source-v2 Run the V2 rows 12 through 17 public-spine source gates
+  test-recursion-segment-claim-hash-v2 Check dynamic statement-authority hashing and fixed preprocessing
+  test-recursion-segment-native-sum-v2 Run the SegmentV2 native-sum graph and register-input authority gates
+  test-recursion-segment-public-components-v2 Run the V2 public-spine typed AIR and component gates
+  test-recursion-segment-publication-provider-v2 Run the committed SegmentV2 verifier-input provider authority tests
+  test-recursion-segment-outer-manifest-v2 Run the versioned 38-component segment outer manifest tests
+  test-recursion-segment-outer-cohort-v2 Run the strict 38-row SegmentV2 cohort and shared-schedule gates
+  test-recursion-segment-outer-noncore-audits-v2 Run exact-domain custody for SegmentV2 non-core Tree-2 rows
+  test-recursion-segment-boundary-components-v2 Run the concrete V2 boundary source component adapter tests
+  test-recursion-fri-profile-measurements Run exact receipt-backed frozen-V1 to V1.1 FRI profile comparisons
+  test-recursion-parent-transcript-source Run the authenticated two-child parent transcript source tests
+  test-recursion-parent-statement-source Run the authenticated two-child parent statement source tests
+  test-recursion-binary-nonfri Run only the binary-parent rows 0 through 17 and row 35 bundle
+  test-recursion-binary-fri    Run only the binary-parent rows 18 through 34 authority
+  test-riscv-recursion-binary-fri-outer-bundle-v2 Run the binary-pair V2 rows 18 through 34 shared-provider gates
+  test-recursion-binary-fri-row18 Run only row 18/19 committed-layout and composition custody
+  test-recursion-binary-closure Run only the binary-parent all-row global LogUp closure
+  test-recursion-quotient-domains Check typed AIR quotient domains against retained PCS sources
+  test-recursion-schedule-admission Check admitted verifier schedules and FRI control ownership
+  test-recursion-air-edit      Run only named R-012 recursion tests for the shortest edit loop
+  test-recursion-framework-interaction Run interaction column/domain parity, workspace and failure-atomicity checks
+  test-recursion-air-row18     Run only row-18 VM AIR composition-input identity and witness tests
+  test-recursion-temporal-packed-relation Run only the temporal V2 packed relation-challenge ABI gate
+  test-recursion-air-roster    Run only universal recursion inventory and manifest pin tests
+  test-recursion-direct-execution Compare pruned direct execution with canonical parent AIR programs
+  test-recursion-selected-lane-writers Compare selected-lane recursive witness materialization with the complete native writers
+  test-recursion-framework-export Compare backend polynomial export with authenticated recursive AIR plans
+  test-recursion-arithmetic-fusion Check fused verifier arithmetic and authenticated graph lowering
+  test-recursion-opening-accumulation Check fused opening accumulation and exact wire fanout
+  test-poseidon-universal-degree3 Check compact universal Poseidon AIR against the retained permutation
+  test-recursion-structural-hashes Check canonical hash byte parity and FRI parameter extraction
+  test-recursion-air-core      Run recursion-local typed-AIR tests without shared VM-provider bridges
+  test-recursion-air           Run recursion-local typed-AIR compiler and witness tests
+
+General Options:
+  -p, --prefix [path]          Where to install files (default: zig-out)
+  --prefix-lib-dir [path]      Where to install libraries
+  --prefix-exe-dir [path]      Where to install executables
+  --prefix-include-dir [path]  Where to install C header files
+
+  --release[=mode]             Request release mode, optionally specifying a
+                               preferred optimization mode: fast, safe, small
+
+  -fdarling,  -fno-darling     Integration with system-installed Darling to
+                               execute macOS programs on Linux hosts
+                               (default: no)
+  -fqemu,     -fno-qemu        Integration with system-installed QEMU to execute
+                               foreign-architecture programs on Linux hosts
+                               (default: no)
+  --libc-runtimes [path]       Enhances QEMU integration by providing dynamic libc
+                               (e.g. glibc or musl) built for multiple foreign
+                               architectures, allowing execution of non-native
+                               programs that link with libc.
+  -frosetta,  -fno-rosetta     Rely on Rosetta to execute x86_64 programs on
+                               ARM64 macOS hosts. (default: no)
+  -fwasmtime, -fno-wasmtime    Integration with system-installed wasmtime to
+                               execute WASI binaries. (default: no)
+  -fwine,     -fno-wine        Integration with system-installed Wine to execute
+                               Windows programs on Linux hosts. (default: no)
+
+  -h, --help                   Print this help and exit
+  -l, --list-steps             Print available steps
+  --verbose                    Print commands before executing them
+  --color [auto|off|on]        Enable or disable colored error messages
+  --prominent-compile-errors   Buffer compile errors and display at end
+  --summary [mode]             Control the printing of the build summary
+    all                        Print the build summary in its entirety
+    new                        Omit cached steps
+    failures                   (Default) Only print failed steps
+    none                       Do not print the build summary
+  -j<N>                        Limit concurrent jobs (default is to use all CPU cores)
+  --maxrss <bytes>             Limit memory usage (default is to use available memory)
+  --skip-oom-steps             Instead of failing, skip steps that would exceed --maxrss
+  --fetch[=mode]               Fetch dependency tree (optionally choose laziness) and exit
+    needed                     (Default) Lazy dependencies are fetched as needed
+    all                        Lazy dependencies are always fetched
+  --watch                      Continuously rebuild when source files are modified
+  --debounce <ms>              Delay before rebuilding after changed file detected
+  --webui[=ip]                 Enable the web interface on the given IP address
+  --fuzz                       Continuously search for unit test failures (implies '--webui')
+  --time-report                Force full rebuild and provide detailed information on
+                               compilation time of Zig source code (implies '--webui')
+     -fincremental             Enable incremental compilation
+  -fno-incremental             Disable incremental compilation
+
+Project-Specific Options:
+  -Dtarget=[string]            The CPU architecture, OS, and ABI to build for
+  -Dcpu=[string]               Target CPU features to add or subtract
+  -Dofmt=[string]              Target object format
+  -Ddynamic-linker=[string]    Path to interpreter on the target system
+  -Doptimize=[enum]            Prioritize performance, safety, or binary size
+                                 Supported Values:
+                                   Debug
+                                   ReleaseSafe
+                                   ReleaseFast
+                                   ReleaseSmall
+  -Dcheck-only=[bool]          Type-check focused roots without emitting or running test binaries
+  -Dprofile-test-strip=[bool]  Omit VM profile-test debug symbols while retaining the selected runtime safety mode
+  -Dtyped-air-manifest-mode=[string] Compatibility artifact mode: check (default) or update
+  -Dtyped-air-frontier-mode=[string] H-009 Poseidon cost-frontier artifact mode: check (default) or update
+  -Dtyped-air-static-profile-mode=[string] P-002 native-family profile artifact mode: check (default) or update
+
+System Integration Options:
+  --search-prefix [path]       Add a path to look for binaries, libraries, headers
+  --sysroot [path]             Set the system root directory (usually /)
+  --libc [file]                Provide a file which specifies libc paths
+
+  --system [pkgdir]            Disable package fetching; enable all integrations
+  -fsys=[name]                 Enable a system integration
+  -fno-sys=[name]              Disable a system integration
+
+  Available System Integrations:                Enabled:
+  (none)                                        -
+
+Advanced Options:
+  -freference-trace[=num]      How many lines of reference trace should be shown per compile error
+  -fno-reference-trace         Disable reference trace
+  -fallow-so-scripts           Allows .so files to be GNU ld scripts
+  -fno-allow-so-scripts        (default) .so files must be ELF files
+  --build-file [file]          Override path to build.zig
+  --cache-dir [path]           Override path to local Zig cache directory
+  --global-cache-dir [path]    Override path to global Zig cache directory
+  --zig-lib-dir [arg]          Override path to Zig lib directory
+  --build-runner [file]        Override path to build runner
+  --seed [integer]             For shuffling dependency traversal order (default: random)
+  --build-id[=style]           At a minor link-time expense, embeds a build ID in binaries
+      fast                     8-byte non-cryptographic hash (COFF, ELF, WASM)
+      sha1, tree               20-byte cryptographic hash (ELF, WASM)
+      md5                      16-byte cryptographic hash (ELF)
+      uuid                     16-byte random UUID (ELF, WASM)
+      0x[hexstring]            Constant ID, maximum 32 bytes (ELF, WASM)
+      none                     (default) No build ID
+  --debug-log [scope]          Enable debugging the compiler
+  --debug-pkg-config           Fail if unknown pkg-config flags encountered
+  --debug-rt                   Debug compiler runtime libraries
+  --verbose-link               Enable compiler debug output for linking
+  --verbose-air                Enable compiler debug output for Zig AIR
+  --verbose-llvm-ir[=file]     Enable compiler debug output for LLVM IR
+  --verbose-llvm-bc=[file]     Enable compiler debug output for LLVM BC
+  --verbose-cimport            Enable compiler debug output for C imports
+  --verbose-cc                 Enable compiler debug output for C compilation
+  --verbose-llvm-cpu-features  Enable compiler debug output for LLVM CPU features

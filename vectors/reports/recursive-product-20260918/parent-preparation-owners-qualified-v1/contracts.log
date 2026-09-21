@@ -1,0 +1,24 @@
+test-recursive-segment-v2-detached-routing
++- SegmentV2 detached routing guard
+   +- run test stderr
+detached routing input=c73a0e906b7cc3c4bc01d0211ed1dbafffee16a548276c5e543b327aa61f5d27 poseidon=7ea0b8e40c8b757e94023b2e407a2baf303d10cf133b1cfdc0b1c667ef24f46e
+detached routing source_kinds=7 changed_value_rejected=true scalar_extension_rejected=true exact_exports=true poseidon_words=32 changed_provider_output_rejected=true changed_fanout_rejected=true
+
+Build Summary: 16/16 steps succeeded; 9/10 tests passed; 1 skipped
+test-recursive-segment-v2-witness-free-verifier success
++- SegmentV2 witness-free verifier guard success
+   +- run test 4 passed 916ms MaxRSS:14M
+      +- compile test ReleaseSafe native success 46s MaxRSS:3G
+test-recursive-segment-v2-detached-transcript success
++- SegmentV2 detached transcript guard success
+   +- run test 4 passed 838ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:571M
+test-recursive-segment-v2-detached-parent-statement success
++- SegmentV2 detached parent statement guard success
+   +- run test 0 passed 1 skipped 890ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:636M
+test-recursive-segment-v2-detached-routing success
++- SegmentV2 detached routing guard success
+   +- run test 1 passed 571ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:675M
+

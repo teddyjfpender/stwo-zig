@@ -141,6 +141,19 @@ pub fn generateInteractionInto(
     relations: *const universal.UniversalRelations,
     destination: *[Air.INTERACTION_COLUMN_COUNT][]M31,
 ) !QM31 {
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return generateInteractionIntoWithGenerator(workspace, authority, prepared, logical_rows, relations, destination, &generator);
+}
+
+pub fn generateInteractionIntoWithGenerator(
+    workspace: *Framework.Workspace,
+    authority: *const AuthorityV2,
+    prepared: *const PreparedV2,
+    logical_rows: []const Air.Row,
+    relations: *const universal.UniversalRelations,
+    destination: *[Air.INTERACTION_COLUMN_COUNT][]M31,
+    generator: anytype,
+) !QM31 {
     try authority.validate();
     try prepared.validate();
     if (logical_rows.len != prepared.manifest.logical_row_count or
@@ -152,7 +165,8 @@ pub fn generateInteractionInto(
     {
         return error.TraceMutation;
     }
-    return Framework.generatePreparedInto(
+    return generator.generatePreparedInto(
+        Framework,
         workspace,
         &authority.relation_plan,
         logical_rows,

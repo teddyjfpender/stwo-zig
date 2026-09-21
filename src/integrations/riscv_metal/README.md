@@ -73,6 +73,10 @@ retains its explicit backend selection.
 
 ## Build, test, and run
 
+For typed detached leaf/parent production and fresh standalone verification, use
+the [canonical recursion route](../../../design/riscv-proving-stack/canonical-typed-recursion.md).
+CPU and Metal commands share the producer implementation and select explicit engines.
+
 The focused package step requires macOS and the Apple Metal SDK. It executes the
 device-free contract suite; the real-device proof skips unless its dedicated
 lane supplies a bundle:

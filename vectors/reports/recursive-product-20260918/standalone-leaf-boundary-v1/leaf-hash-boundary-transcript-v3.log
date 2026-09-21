@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 7/7 tests passed
+test-recursive-segment-v2-detached-transcript success
++- SegmentV2 detached transcript guard success
+   +- run test 4 passed 748ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:568M
+test-recursive-segment-v2-public-inputs success
++- SegmentV2 expected public input guard success
+   +- run test 3 passed 1s MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:544M
+

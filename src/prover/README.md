@@ -59,7 +59,7 @@ comptime prover.engine.assertProverEngine(Engine);
 | AIR and lookup proving | `air`, `lookups` |
 | Polynomial protocol | `fft_pool`, `line`, `poly`, `secure_column` |
 | Commitments and FRI | `pcs`, `fri`, `vcs`, `vcs_lifted`, `channel` |
-| Scheduling and storage | `task_graph`, `work_pool`, `host_budget_allocator`, `resident_storage`, `mmap_alloc` |
+| Scheduling and storage | `task_graph`, `work_pool`, `host_budget_allocator`, `resident_storage`, `mmap_alloc`, `tracked_smp_allocator` |
 | Observability | `measurement`, `stage_profile`, `task_profile`, `work_profile` |
 | Prepared transaction ownership | `transaction` |
 

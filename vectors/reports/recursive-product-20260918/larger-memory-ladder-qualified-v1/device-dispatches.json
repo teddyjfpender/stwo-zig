@@ -1,0 +1,84 @@
+[
+  {
+    "segments": 1,
+    "native_table_dispatches": 24,
+    "typed_parent_dispatches": 0,
+    "parents": []
+  },
+  {
+    "segments": 2,
+    "native_table_dispatches": 48,
+    "typed_parent_dispatches": 116,
+    "parents": [
+      {
+        "file": "parent-1-0-accepted.json.producer.log",
+        "sha256": "62626a08a78d48562ad0c4a61bb70e4b2950f3237a78fa238511c9e85255dd84",
+        "dispatches": 116
+      }
+    ]
+  },
+  {
+    "segments": 4,
+    "native_table_dispatches": 96,
+    "typed_parent_dispatches": 348,
+    "parents": [
+      {
+        "file": "parent-1-0-accepted.json.producer.log",
+        "sha256": "a83373ade0fc31ce36dee45baffda247048dcdad45d8915425a04c8599f24f20",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-1-1-accepted.json.producer.log",
+        "sha256": "6c70cc5d9f715a48860492c8cfef219c5e511c24f3fb829eec196a15bd4f031d",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-2-0-accepted.json.producer.log",
+        "sha256": "971e92d89eb652c8ff89be0f4358ba5097bfa38bb31ef5e1bca29c1a780eb61a",
+        "dispatches": 116
+      }
+    ]
+  },
+  {
+    "segments": 8,
+    "native_table_dispatches": 192,
+    "typed_parent_dispatches": 812,
+    "parents": [
+      {
+        "file": "parent-1-0-accepted.json.producer.log",
+        "sha256": "76ba07ebba0ce33de3f0cf02e10034d16dc198ff7e3a1a80469cc76bbd6c12f1",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-1-1-accepted.json.producer.log",
+        "sha256": "a481926ca58f0028878d8978d1e18c3d9b4772668cbf932bd0e1bc730bf23eec",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-1-2-accepted.json.producer.log",
+        "sha256": "d432a737d3648eb3f4676a5b043e17ba614a522c22cc89e9be43af91b0fc7e62",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-1-3-accepted.json.producer.log",
+        "sha256": "7e5127b346fc5e587ebb44945745a86c9b1d29036c83eb6b916dd0571a952e6a",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-2-0-accepted.json.producer.log",
+        "sha256": "9c771da3fc7e2d4ef2ed3e740006d904a99f65539b14a4cfc5e959e63247e3c3",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-2-1-accepted.json.producer.log",
+        "sha256": "7fce5437a4ff14dc1e31bbafeee0a039d2366d9682d47cb09f0567e051c370af",
+        "dispatches": 116
+      },
+      {
+        "file": "parent-3-0-accepted.json.producer.log",
+        "sha256": "895cf693f9df01cb422e7f509ee11cf877e6012741be00ef6859f17d475b6548",
+        "dispatches": 116
+      }
+    ]
+  }
+]

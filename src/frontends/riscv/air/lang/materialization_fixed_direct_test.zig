@@ -1,8 +1,8 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const fixed = @import("materialization_fixed_direct.zig");
-const poseidon = @import("typed_poseidon2_fixed_direct.zig");
+const fixed = @import("fixed_polynomial_program.zig");
+const poseidon = @import("typed_poseidon2_fixed_polynomials.zig");
 const production = @import("../memory_commitment/poseidon2_air.zig");
 
 test "fixed direct: canonical Poseidon program pins scope roots and placements" {

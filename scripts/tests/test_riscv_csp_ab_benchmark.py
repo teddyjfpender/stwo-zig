@@ -456,6 +456,14 @@ class PartialReportTests(unittest.TestCase):
         normalized = self.validate(self.report(arm), arm)
         self.assertEqual([1.0, 1.1], normalized["end_to_end_sample_seconds"])
 
+    def test_v5_preserves_native_recursion_attestation(self) -> None:
+        arm = self.arm("current", "runtime_native_attestation_v1")
+        report = self.report(arm, "stwo_riscv_csp_benchmark_v5")
+        self.validate(report, arm)
+        report["measurements"][0]["recursion_enabled"] = True
+        with self.assertRaisesRegex(contract.ABError, "recursion attestation"):
+            self.validate(report, arm)
+
     def test_v3_is_only_admitted_when_recursive_sources_are_absent(self) -> None:
         baseline = self.arm("baseline", "recursive_sources_absent_v1")
         self.validate(self.report(baseline, "stwo_riscv_csp_benchmark_v3"), baseline)

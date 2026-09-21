@@ -1,0 +1,10 @@
+Native core metallib accepted: 166 exact kernel exports, zero function constants, AOT/JIT kernel parity
+test-riscv-metal-recursive-aot
++- run test stderr
+RECURSIVE_FRAMEWORK_AOT covered_leaf=39/39 covered_parent=31/31 native_fixed_tables=6/6 recursive_composition_coverage_complete=true native_composition_coverage_complete=false strict_coverage_complete=false bytes=1160081
+
+Build Summary: 3/3 steps succeeded
+test-riscv-metal-recursive-aot success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 22s MaxRSS:1G
+   +- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 205ms MaxRSS:41M
+

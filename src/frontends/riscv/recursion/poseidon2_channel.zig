@@ -260,6 +260,10 @@ pub const Channel = struct {
 
     const Self = @This();
 
+    pub fn drawCount(self: Self) u32 {
+        return self.n_draws;
+    }
+
     pub fn digestWords(self: Self) Hash {
         return self.digest;
     }

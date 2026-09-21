@@ -7,6 +7,7 @@ comptime {
     _ = @import("recursion/statement_semantics_circuit_test.zig");
     _ = @import("recursion/poseidon2_channel.zig");
     _ = @import("recursion/protocol.zig");
+    _ = @import("recursion/vm_public_claim_test.zig");
     _ = @import("recursion/fixed_profile.zig");
     _ = @import("recursion/fixed_wire.zig");
     _ = @import("recursion/fixed_wire_adapter.zig");

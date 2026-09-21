@@ -25,3 +25,5 @@ test {
 pub const poseidon2_universal_degree3_v1 = @import("poseidon2_universal_degree3_v1.zig");
 pub const poseidon2_universal_backend_v1 = @import("poseidon2_narrow_backend_v1.zig").Universal;
 pub const poseidon2_universal_component_v1 = @import("poseidon2_universal_component_v1.zig");
+pub const poseidon2_degree3_verifier = @import("poseidon2_degree3_verifier.zig");
+pub const poseidon2_wide_equations = @import("poseidon2_wide_equations.zig");

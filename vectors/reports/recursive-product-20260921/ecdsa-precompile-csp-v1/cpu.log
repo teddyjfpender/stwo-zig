@@ -1,0 +1,32 @@
+test-secp256k1-precompile-proof
++- secp256k1 native proof identity guard
+   +- run test stderr
+secp256k1 proof timings: witness=18.358ms pp=1.390ms main=18.522ms interaction-gen=19.201ms interaction-commit=18.757ms prove=176.538ms verify=9.959ms
+secp256k1-csp sample=0 warmup=true queries=70 pow_bits=26 proving_ns=252765583 verify_ns=9958583 pow_nonce=560941
+secp256k1 proof timings: witness=8.818ms pp=0.658ms main=12.875ms interaction-gen=14.880ms interaction-commit=16.352ms prove=174.640ms verify=9.865ms
+secp256k1-csp sample=1 warmup=false queries=70 pow_bits=26 proving_ns=228222958 verify_ns=9864500 pow_nonce=560941
+secp256k1 proof timings: witness=8.660ms pp=0.651ms main=12.688ms interaction-gen=15.002ms interaction-commit=16.103ms prove=174.083ms verify=9.914ms
+secp256k1-csp sample=2 warmup=false queries=70 pow_bits=26 proving_ns=227187250 verify_ns=9914375 pow_nonce=560941
+secp256k1 proof timings: witness=8.690ms pp=0.650ms main=12.606ms interaction-gen=15.027ms interaction-commit=15.862ms prove=175.588ms verify=9.841ms
+secp256k1-csp sample=3 warmup=false queries=70 pow_bits=26 proving_ns=228422917 verify_ns=9840791 pow_nonce=560941
+secp256k1 proof timings: witness=8.808ms pp=0.650ms main=12.512ms interaction-gen=15.197ms interaction-commit=16.066ms prove=175.561ms verify=10.036ms
+secp256k1-csp sample=4 warmup=false queries=70 pow_bits=26 proving_ns=228795208 verify_ns=10036125 pow_nonce=560941
+secp256k1 proof timings: witness=8.813ms pp=0.667ms main=12.622ms interaction-gen=15.114ms interaction-commit=16.011ms prove=176.983ms verify=9.792ms
+secp256k1-csp sample=5 warmup=false queries=70 pow_bits=26 proving_ns=230210292 verify_ns=9791542 pow_nonce=560941
+secp256k1 proof timings: witness=8.820ms pp=0.661ms main=12.666ms interaction-gen=15.121ms interaction-commit=16.030ms prove=177.696ms verify=9.853ms
+secp256k1-csp sample=6 warmup=false queries=70 pow_bits=26 proving_ns=230994375 verify_ns=9852583 pow_nonce=560941
+secp256k1 proof timings: witness=8.950ms pp=0.662ms main=12.582ms interaction-gen=15.087ms interaction-commit=16.045ms prove=174.691ms verify=9.817ms
+secp256k1-csp sample=7 warmup=false queries=70 pow_bits=26 proving_ns=228017542 verify_ns=9817041 pow_nonce=560941
+secp256k1 proof timings: witness=8.796ms pp=0.669ms main=12.584ms interaction-gen=15.047ms interaction-commit=15.836ms prove=176.792ms verify=9.899ms
+secp256k1-csp sample=8 warmup=false queries=70 pow_bits=26 proving_ns=229723292 verify_ns=9898708 pow_nonce=560941
+secp256k1 proof timings: witness=8.767ms pp=0.658ms main=12.622ms interaction-gen=15.052ms interaction-commit=15.937ms prove=175.291ms verify=10.059ms
+secp256k1-csp sample=9 warmup=false queries=70 pow_bits=26 proving_ns=228326416 verify_ns=10059459 pow_nonce=560941
+secp256k1 proof timings: witness=8.657ms pp=0.659ms main=12.450ms interaction-gen=15.129ms interaction-commit=15.819ms prove=175.292ms verify=9.950ms
+secp256k1-csp sample=10 warmup=false queries=70 pow_bits=26 proving_ns=228006334 verify_ns=9949833 pow_nonce=560941
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-secp256k1-precompile-proof success
++- secp256k1 native proof identity guard success
+   +- run test 1 passed 3s MaxRSS:138M
+      +- compile test ReleaseFast native success 25s MaxRSS:1G
+

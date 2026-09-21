@@ -13,7 +13,6 @@ const ir = @import("ir.zig");
 const materializer = @import("degree3_materializer.zig");
 const poseidon = @import("typed_poseidon2.zig");
 const relations = @import("typed_poseidon2_relations.zig");
-const source = @import("source.zig");
 const types = @import("types.zig");
 const witness = @import("typed_poseidon2_witness.zig");
 const production = @import("../memory_commitment/poseidon2_air.zig");
@@ -36,66 +35,30 @@ pub const Authority = struct {
     program_identity: identity.ProgramIdentity,
 
     pub fn init(allocator: std.mem.Allocator) !Authority {
-        var arena = ir.Arena.init(allocator);
-        errdefer arena.deinit();
-        const source_id = try arena.addSource(
-            "air/components/poseidon2_m31.proof-harness.zig",
-        );
-        const gate = try arena.input(
-            compat.ENABLER_NAME,
-            .selector,
-            try spanAt(source_id, 1),
-        );
-        const spans = try distinctSpans(source_id);
-        const definition = try poseidon.define(&arena, spans);
-        const roots = poseidon.values(definition.outputs);
-        var plan = try materializer.plan(allocator, &arena, .{
-            .roots = &roots,
-            .gate = gate,
-        });
-        errdefer plan.deinit();
-        var schedule = try compat.generate(allocator);
-        defer schedule.deinit(allocator);
-        var binding = try compat.bindPlan(
-            allocator,
-            &arena,
-            definition,
-            spans,
-            schedule,
-            &plan,
-        );
-        errdefer binding.deinit(allocator);
-        var executor = try witness.Executor.init(
-            allocator,
-            &arena,
-            definition,
-            spans,
-            &plan,
-            &binding,
-        );
+        var program = try @import("typed_poseidon2_bound_program.zig").Program.init(allocator);
+        errdefer program.deinit();
+        var executor = try witness.Executor.init(allocator, &program.arena, program.definition, program.spans, &program.plan, &program.binding);
         errdefer executor.deinit();
-        var result = Authority{
+        const relation_plan = try relations.authenticate(allocator, .{
+            .arena = &program.arena,
+            .definition = program.definition,
+            .spans = program.spans,
+            .materialization_plan = &program.plan,
+            .binding = &program.binding,
+        });
+        const program_identity = try identity.ProgramIdentity.fromAuthenticated(&program.binding, &executor, &relation_plan);
+        return .{
             .allocator = allocator,
-            .arena = arena,
-            .gate = gate,
-            .spans = spans,
-            .definition = definition,
-            .plan = plan,
-            .binding = binding,
+            .arena = program.arena,
+            .gate = program.gate,
+            .spans = program.spans,
+            .definition = program.definition,
+            .plan = program.plan,
+            .binding = program.binding,
             .executor = executor,
-            .relation_plan = undefined,
-            .program_identity = undefined,
+            .relation_plan = relation_plan,
+            .program_identity = program_identity,
         };
-        result.relation_plan = try relations.authenticate(
-            allocator,
-            result.relationAuthority(),
-        );
-        result.program_identity = try identity.ProgramIdentity.fromAuthenticated(
-            &result.binding,
-            &result.executor,
-            &result.relation_plan,
-        );
-        return result;
     }
 
     pub fn deinit(self: *Authority) void {
@@ -166,54 +129,6 @@ pub const Authority = struct {
         );
     }
 };
-
-fn distinctSpans(source_id: types.SourceId) !poseidon.DefinitionSpans {
-    var line: u32 = 2;
-    const declaration = try spanAt(source_id, line);
-    line += 1;
-    var inputs: [poseidon.WIDTH]source.SourceSpan = undefined;
-    for (&inputs) |*span| {
-        span.* = try spanAt(source_id, line);
-        line += 1;
-    }
-    const initial_linear = try spanAt(source_id, line);
-    line += 1;
-    var external: [poseidon.N_EXTERNAL_ROUNDS]poseidon.ExternalRoundSpans = undefined;
-    for (&external) |*round| {
-        round.* = .{
-            .constants = try spanAt(source_id, line),
-            .sbox = try spanAt(source_id, line + 1),
-            .linear = try spanAt(source_id, line + 2),
-        };
-        line += 3;
-    }
-    var internal: [poseidon.N_INTERNAL_ROUNDS]poseidon.InternalRoundSpans = undefined;
-    for (&internal) |*round| {
-        round.* = .{
-            .constant = try spanAt(source_id, line),
-            .sbox = try spanAt(source_id, line + 1),
-            .linear = try spanAt(source_id, line + 2),
-        };
-        line += 3;
-    }
-    return .{
-        .declaration = declaration,
-        .inputs = inputs,
-        .body = .{
-            .initial_linear = initial_linear,
-            .external_rounds = external,
-            .internal_rounds = internal,
-        },
-    };
-}
-
-fn spanAt(source_id: types.SourceId, line: u32) !source.SourceSpan {
-    return source.SourceSpan.init(
-        source_id,
-        .{ .byte_offset = line * 8, .line = line, .column = 1 },
-        .{ .byte_offset = line * 8 + 1, .line = line, .column = 2 },
-    );
-}
 
 test "typed Poseidon2 authority admits byte-exact specialized execution" {
     const allocator = std.testing.allocator;

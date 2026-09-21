@@ -1,0 +1,44 @@
+[
+  {
+    "name": "manifest-pin",
+    "exit_code": 1,
+    "expected_error": "SetupManifestPinMismatch",
+    "output_created": false,
+    "passed": true
+  },
+  {
+    "name": "expected-pin",
+    "exit_code": 1,
+    "expected_error": "SetupExpectedPinMismatch",
+    "output_created": false,
+    "passed": true
+  },
+  {
+    "name": "statement-substitution",
+    "exit_code": 1,
+    "expected_error": "SetupExpectedStatementMismatch",
+    "output_created": false,
+    "passed": true
+  },
+  {
+    "name": "version",
+    "exit_code": 1,
+    "expected_error": "UnsupportedSetupVersion",
+    "output_created": false,
+    "passed": true
+  },
+  {
+    "name": "addresses",
+    "exit_code": 1,
+    "expected_error": "InvalidMemoryAddressCount",
+    "output_created": false,
+    "passed": true
+  },
+  {
+    "name": "count",
+    "exit_code": 1,
+    "expected_error": "InvalidSegmentCount",
+    "output_created": false,
+    "passed": true
+  }
+]

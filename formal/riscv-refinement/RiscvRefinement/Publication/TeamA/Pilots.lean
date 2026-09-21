@@ -45,7 +45,7 @@ structure LuiExactProduction
       Programs.lui.source.opcodeSelector.manifestId = 35 ∧
       Programs.lui.source.opcodeSelector.mnemonic = "lui" ∧
       Programs.lui.source.contentDigest =
-        "90b48bf81c506fc024785727ebe33de6e98b96e8e0973bd82299de2a278e287e"
+        "0ef6b1d13ec86a69b7c9b91a85ff053dcb1b7b40712ad2cbc245af783e46b898"
   orderedLookups : LuiOrderedLookups row witness
 
 theorem lui_accepted_air_implies_retirement
@@ -107,7 +107,7 @@ structure AddiExactProduction
       Programs.addi.source.opcodeSelector.manifestId = 10 ∧
       Programs.addi.source.opcodeSelector.mnemonic = "addi" ∧
       Programs.addi.source.contentDigest =
-        "437cc32977f4c9bb767e69e055266ede208c362b348ea35cb3891a38250305c2"
+        "d682e62f49588e6a583b2b0ab5a204d2f36fa028552bd1e49f14c8a6f15482f9"
   orderedLookups :
     (Air.Bridge.Addi.evaluation row witness).lookup? 22 =
         some (Air.Bridge.Addi.programLookup row) ∧

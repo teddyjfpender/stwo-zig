@@ -6,13 +6,13 @@
 -- restating production constraints in a private Lean predicate, and
 -- `RiscvRefinement/Air/Family/LoadStore.lean` currently does exactly that:
 -- `LoadStoreHolds` is a hand transcription of `/tmp/tb-ir/load_store.json`.
--- This file maps a typed `LoadStoreRow` onto the 48 columns of the shipped AIR
+-- This file maps a typed `LoadStoreRow` onto the 50 columns of the shipped AIR
 -- and proves, by *evaluating the encoded production node table*, that whenever
 -- `LoadStoreHolds row` holds
 --
 --   * every one of the 63 constraint roots evaluates to zero,
 --   * every live fixed-table request lands inside its table, and
---   * every one of the 16 lookup tuples is the transcribed relation tuple.
+--   * every one of the 17 lookup tuples is the transcribed relation tuple.
 --
 -- So the hand transcription is not weaker than the shipped AIR: nothing the
 -- AIR asks for on a placed row is missing from it.
@@ -21,13 +21,13 @@
 --
 -- 1. **An eight-way selector.** `mul` has a committed `enabler` pinned to one
 --    and `mulh` a three-way selector; `load_store`'s "enabler" is the sum of
---    eight opcode flags, pinned to one by root 69. Every derived gate the AIR
+--    eight opcode flags, pinned to one by root 62. Every derived gate the AIR
 --    uses -- `opcode_b`, `opcode_h`, `load_b`, `load_h`, `is_signed`,
 --    `is_store`, `is_load` -- is a *field sum* of those flags, and the
 --    transcription spells the same gates as *boolean disjunctions*. The two
 --    agree only because at most one flag is set, so the eight-way case split
 --    is discharged once, in `selectorCases`, and reused by the seven image
---    lemmas below rather than repeated at each of the 78 roots.
+--    lemmas below rather than repeated at each of the 63 roots.
 --
 -- 2. **Memory lookups.** This is the first bridged family whose
 --    `memory_access` requests carry an address space that is not the constant
@@ -38,17 +38,12 @@
 --    ordinal three and the register side at ordinal two, which the AIR spells
 --    as the single node `4*(clk-1) + 2 + is_load` (resp. `+ is_store`).
 --
--- 3. **Alignment is a lookup, not an equation.** Nothing in the constraint
---    roots forces the effective address to be word-aligned. The only thing
---    that does is lookup 6, the `range_check_20` request on
---    `(src_addr_selector + dst_addr_selector - r2_idx) / 4`; the division is
---    multiplication by `4⁻¹ = 536870912` in `M31`, so a request that lands in
---    the table certifies both `aligned_addr ≡ 0 (mod 4)` and
---    `aligned_addr < 2^22`. `loadStoreFixedRequestsHold` is therefore
---    load-bearing for this family in exactly the way `mulFixedRequestsHold` is
---    for the multiply families' product identity: a bridge scoped to the
---    constraint roots would certify a `load_store` AIR with no alignment
---    discipline at all. See issue #140 and /tmp/o4-ls-bridge-report.md.
+-- 3. **Alignment uses a committed quarter and two range lookups.** Root 61
+--    equates the quarter to the selector-derived address multiplied by 4^-1.
+--    Lookup 6 bounds its low 20 bits; lookup 16 bounds the derived high byte.
+--    Together they bound the aligned address below 2^30. Lookup 7 checks
+--    twice the base-register high byte, preventing M31 address aliasing.
+--    Constraint satisfaction alone does not establish these range facts.
 --
 -- The pc-wrap side condition `LoadStoreRowFits` is carried forward from the
 -- `mul` bridge for the same reason (see the docstring on it): `LoadStoreRow.pc`
@@ -81,14 +76,14 @@ set_option linter.unusedSimpArgs false
 -- AIR IR v2 input. `loadStoreIrDigest` is the byte digest of the aggregate
 -- typed-family export checked by `riscv_team_b.py`; that compatibility export
 -- additionally materialises eight derived bus values, so the serialisations
--- are not byte-identical. The polynomial digest is independently checked by
--- `riscv_air_ir_equivalence.py` against the reviewed pre-cutover family export.
+-- are not byte-identical. The polynomial digest identifies the reviewed one-GiB export; it is a
+-- semantic profile change from the earlier four-MiB transcription.
 #guard loadStoreProgramIrDigest ==
-  "129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80"
+  "dc7a7abc306d0bd0473b115f4cf674efb660caf9dc90c3e900f64e5542b14876"
 #guard loadStoreIrDigest ==
-  "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9"
+  "d9af9ea593130937565b96891babc7984389743410d5d3f77a5f499e6ff9f1a6"
 #guard loadStorePolynomialDigest ==
-  "d19899f907d0d5a3ec364963e1f3901e03c2620e3ad203a01bbf2e298775b59f"
+  "4fe41e9473bc360082680cdb264aa857765a66872f6a34bc433c24f771932a83"
 
 /-! ## The `M31` arithmetic this family adds
 
@@ -299,7 +294,9 @@ def loadStoreColumns (row : LoadStoreRow) : List M31 :=
     M31.reduce row.result.limb2.toNat,             -- 44 result_2
     M31.reduce row.result.limb3.toNat,             -- 45 result_3
     M31.reduce (bitValue row.destinationNonzero),  -- 46 destination_nonzero
-    registerInverse row.r2Idx ]                    -- 47 destination_inverse
+    registerInverse row.r2Idx,                    -- 47 destination_inverse
+    M31.reduce row.alignedQuarter,                 -- 48 aligned_addr_quarter
+    M31.reduce (row.alignedQuarter % 1048576) ]     -- 49 aligned_addr_low20
 
 /-- The side condition the transcription does not carry.
 
@@ -312,12 +309,12 @@ structure LoadStoreRowFits (row : LoadStoreRow) : Prop where
 
 /-! ## The eight-way selector
 
-Roots 0 and 69 together pin the eight opcode flags to exactly one set flag.
+Roots 0 and 62 together pin the eight opcode flags to exactly one set flag.
 Every gate the AIR derives from them is a *field sum* of flag columns, and the
 transcription in `Air/Family/LoadStore.lean` spells the same gates as *boolean
 disjunctions*; the two agree only because at most one flag is set. That case
 split is done once here and consumed by the image lemmas below, so it is not
-repeated at each of the 78 roots. -/
+repeated at each of the 63 roots. -/
 
 private theorem selectorCases (row : LoadStoreRow) (holds : LoadStoreHolds row) :
     (row.isLb = true ∧ row.isLh = false ∧ row.isLbu = false ∧ row.isLhu =
@@ -542,7 +539,7 @@ private theorem shiftAmountSmall (row : LoadStoreRow) (holds : LoadStoreHolds ro
     omega
 
 private theorem alignedAddressSmall (row : LoadStoreRow) (holds : LoadStoreHolds row) :
-    row.alignedAddress < 4194304 := by
+    row.alignedAddress < 1073741824 := by
   have quarter := holds.alignedQuarterRange
   simp only [LoadStoreRow.alignedAddress]
   omega
@@ -1288,25 +1285,31 @@ theorem loadStoreConstraintValues (row : LoadStoreRow) (holds : LoadStoreHolds r
     | true => exact mulLeftZero oneSubBitTrue
     | false => rw [holds.storeResultZero (storeOfNotLoad direction)]
                exact mulRightZero rfl
-  -- C61: an active row's base register has a zero high byte
-  · rw [activeImage row holds, holds.baseHighLimbZero]
-    exact mulRightZero rfl
+  -- C61: bind the committed quarter to the selector-derived quarter.
+  · rw [activeImage row holds]
+    exact mulRightZero (subZero (alignedQuarterImage row).symm)
   -- C62: the placement residual, which pins the selector sum to one
   · rw [activeImage row holds]
     exact M31.sub_self 1
 
+private theorem highImage (q : Nat) (bound : q < 268435456) :
+    (M31.reduce q - M31.reduce (q % 1048576)) * M31.reduce 2048 =
+      M31.reduce (q / 1048576) := by
+  apply M31.eq_of_val
+  simp only [M31.val_mul, M31.val_sub, M31.val_reduce]
+  change (((q % 2147483647 + 2147483647 - (q % 1048576) % 2147483647) % 2147483647) * (2048 % 2147483647)) % 2147483647 = (q / 1048576) % 2147483647
+  have qsmall : q < 2147483647 := by omega
+  have lowSmall : q % 1048576 < 2147483647 := by omega
+  have highSmall : q / 1048576 < 2147483647 := by omega
+  rw [Nat.mod_eq_of_lt qsmall, Nat.mod_eq_of_lt lowSmall, Nat.mod_eq_of_lt highSmall]
+  omega
+
 /-! ## The bridge for the fixed-table requests
 
 This theorem carries the range-table half of the alignment discipline. C15 and
-C20 constrain the byte offset for halfword and word accesses; lookup 6, the
-`range_check_20` request on
-`(src_addr_selector + dst_addr_selector - r2_idx) * 4⁻¹`. A request that lands
-in the table certifies both that the aligned address is divisible by four and
-that it is below `2 ^ 22`. A bridge stated over constraint roots alone would
-miss that canonical aligned-bus bound. -/
-
-/-- Every live fixed-table request the shipped `load_store` AIR makes lands
-inside its table, for every row the transcription accepts.
+C20 constrain the byte offset; C61 binds the committed aligned quarter. L06
+and L16 range-check its low 20 and high eight bits, bounding the aligned
+address below 2^30. L07 independently bounds the base register below 2^30.
 
 "Live" means non-zero numerator, which is the LogUp reading: a term with a zero
 numerator contributes nothing to the bus sum and is therefore not a request.
@@ -1317,6 +1320,14 @@ strengthened to the ungated reading. -/
 theorem loadStoreFixedRequestsHold (row : LoadStoreRow) (holds : LoadStoreHolds row) :
     loadStoreCircuitCompiled.fixedRequestsHold (loadStoreColumns row) = true := by
   try simp only [LoadStoreRow.rs1Next, LoadStoreRow.srcNext] at holds
+  have quarterBound : row.alignedQuarter < 268435456 := holds.alignedQuarterRange
+  have highBound := holds.baseHighLimbRange
+  have baseHigh : (M31.reduce row.rs1Previous.limb3.toNat * M31.reduce 2).toNat =
+      row.rs1Previous.limb3.toNat * 2 := by
+    rw [M31.reduce_mul]
+    apply M31.toNat_reduce_of_lt
+    change row.rs1Previous.limb3.toNat * 2 < 2147483647
+    omega
   have baseClock := holds.baseClock
   have sourceClock := sourceClockValid row holds
   have destinationClock := destinationClockValid row holds
@@ -1325,38 +1336,21 @@ theorem loadStoreFixedRequestsHold (row : LoadStoreRow) (holds : LoadStoreHolds 
     MulhCircuit.value, MulhCircuit.nodeValuesRev, loadStoreCircuitCompiled,
     loadStoreCircuit, evalLoop, Node.evalLocal, nth, List.map_cons, List.map_nil,
     List.all_cons, List.all_nil, loadStoreColumns, rangeCheck20Contains,
-    rangeCheckM31Contains, Bool.or_true, Bool.and_true]
+    rangeCheckM31Contains, rangeCheck88Contains, Bool.or_true, Bool.and_true]
   simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.true_and,
     Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_true_eq]
   rw [activeImage row holds, storeImage row holds, loadImage row,
-    baseGapImage row holds, sourceGapImage row holds, destinationGapImage row holds,
-    alignedQuarterImage row]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    baseGapImage row holds, sourceGapImage row holds, destinationGapImage row holds, baseHigh, highImage row.alignedQuarter quarterBound]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   -- L05: the base register access-clock gap
   · exact Or.inr (reduceToNat_lt baseClock.2)
   -- L06: the aligned address divided by four, which is what forces alignment
-  · exact Or.inr (reduceToNat_lt holds.alignedQuarterRange)
-  -- L07: the base address stays canonical
-  · refine Or.inr ⟨⟨reduceToNat_lt ?_, reduceToNat_lt holds.baseHighLimbRange⟩, ?_⟩
+  · exact Or.inr (reduceToNat_lt (Nat.mod_lt _ (by decide)))
+  -- L07: twice the base high byte is seven-bit and cannot equal 127.
+  · refine Or.inr ⟨⟨reduceToNat_lt ?_, by omega⟩, ?_⟩
     · simpa using row.rs1Previous.limb0.isLt
-    · have canonical0 : (M31.reduce row.rs1Previous.limb0.toNat).toNat =
-          row.rs1Previous.limb0.toNat := by
-        refine M31.toNat_reduce_of_lt ?_
-        have bound := row.rs1Previous.limb0.isLt
-        simp only [Nat.reducePow] at bound
-        simp only [M31.modulus, RiscvRefinement.Air.Bridge.m31Modulus]
-        omega
-      have canonical3 : (M31.reduce row.rs1Previous.limb3.toNat).toNat =
-          row.rs1Previous.limb3.toNat := by
-        refine M31.toNat_reduce_of_lt ?_
-        have bound := row.rs1Previous.limb3.isLt
-        simp only [Nat.reducePow] at bound
-        simp only [M31.modulus, RiscvRefinement.Air.Bridge.m31Modulus]
-        omega
-      rw [canonical0, canonical3]
-      rcases holds.baseLimbsCanonical with low | high
-      · rw [decide_eq_false low, Bool.false_and]
-      · rw [decide_eq_false high, Bool.and_false]
+    · have evenNotReserved : row.rs1Previous.limb3.toNat * 2 ≠ 127 := by omega
+      rw [decide_eq_false evenNotReserved, Bool.and_false]
   -- L10: the source access-clock gap
   · exact Or.inr (reduceToNat_lt sourceClock.2)
   -- L13: the destination access-clock gap
@@ -1377,6 +1371,9 @@ theorem loadStoreFixedRequestsHold (row : LoadStoreRow) (holds : LoadStoreHolds 
         rw [(msbResidue row.result.limb1 row.srcMsb (holds.halfSignWitness halfLoad)).1]
         exact reduceToNat_lt
           (msbResidue row.result.limb1 row.srcMsb (holds.halfSignWitness halfLoad)).2
+
+  -- L16: the high eight bits of the aligned quarter, paired with zero.
+  · exact Or.inr ⟨reduceToNat_lt (by omega), by decide⟩
 
 /-! ## The bridge for the relation arguments
 
@@ -1422,9 +1419,9 @@ theorem loadStoreLookupTuples (row : LoadStoreRow) (holds : LoadStoreHolds row)
         -- 5  rs1 access-clock gap
         [M31.reduce (accessClock row.clock 1 - row.rs1PreviousClock - 1)],
         -- 6  the aligned word address divided by four
-        [M31.reduce row.alignedQuarter],
+        [M31.reduce (row.alignedQuarter % 1048576)],
         -- 7  the base address canonicity request
-        [M31.reduce row.rs1Previous.limb0.toNat, M31.reduce row.rs1Previous.limb3.toNat],
+        [M31.reduce row.rs1Previous.limb0.toNat, M31.reduce (row.rs1Previous.limb3.toNat * 2)],
         -- 8  src block consume, address space `is_load`
         [M31.reduce (bitValue row.isLoad), M31.reduce row.sourceSelector,
           M31.reduce row.srcPreviousClock,
@@ -1464,7 +1461,8 @@ theorem loadStoreLookupTuples (row : LoadStoreRow) (holds : LoadStoreHolds row)
         -- 15 the half-word sign witness residue
         [M31.reduce 0,
           M31.reduce row.result.limb1.toNat -
-            M31.reduce (bitValue row.srcMsb) * M31.reduce 128] ] := by
+            M31.reduce (bitValue row.srcMsb) * M31.reduce 128],
+        [M31.reduce (row.alignedQuarter / 1048576), M31.reduce 0] ] := by
   try simp only [LoadStoreRow.rs1Next, LoadStoreRow.srcNext] at holds
   simp only [MulhCircuit.lookupTuple, MulhCircuit.values, MulhCircuit.value,
     MulhCircuit.nodeValuesRev, loadStoreCircuitCompiled, loadStoreCircuit, evalLoop,
@@ -1473,8 +1471,9 @@ theorem loadStoreLookupTuples (row : LoadStoreRow) (holds : LoadStoreHolds row)
     opcodeImage row holds, baseGapImage row holds, sourceGapImage row holds,
     destinationGapImage row holds, accessClockImage row holds 1,
     sourceAccessClockImage row holds, destinationAccessClockImage row holds,
-    alignedQuarterImage row, nextPcImage row holds fits, M31.reduce_add,
-    M31.reduce_add]
+    nextPcImage row holds fits, M31.reduce_add,
+    M31.reduce_add, M31.reduce_mul,
+    highImage row.alignedQuarter holds.alignedQuarterRange]
 
 /-! ## Reading the address-space swap back in the transcription's vocabulary
 
@@ -1609,10 +1608,37 @@ def loadStoreStoreWitnessRow : LoadStoreRow where
 
 #guard loadStoreColumns loadStoreStoreWitnessRow == loadStoreStoreWitnessColumns
 
+/-- The last aligned word of the one-GiB profile has a nonzero base high byte. -/
+def loadStoreHighAddressWitnessRow : LoadStoreRow := {
+  loadStoreLoadWitnessRow with
+  rs1Previous := { limb0 := 252#8, limb1 := 255#8, limb2 := 255#8, limb3 := 63#8 }
+  alignedQuarter := 268435455
+}
+
+theorem loadStoreHighAddressWitnessHolds : LoadStoreHolds loadStoreHighAddressWitnessRow := by
+  constructor <;> first
+    | decide
+    | exact ⟨by decide, by decide⟩
+
+#guard loadStoreCircuitCompiled.constraintValues (loadStoreColumns loadStoreHighAddressWitnessRow) ==
+  List.replicate 63 0
+#guard loadStoreCircuitCompiled.fixedRequestsHold (loadStoreColumns loadStoreHighAddressWitnessRow)
+
+/-- The first word outside the profile still satisfies direct roots, but the
+fixed-table checks reject it. This protects the lookup part of admission. -/
+def loadStoreOutOfRangeWitnessRow : LoadStoreRow := {
+  loadStoreLoadWitnessRow with
+  rs1Previous := { limb0 := 0#8, limb1 := 0#8, limb2 := 0#8, limb3 := 64#8 }
+  alignedQuarter := 268435456
+}
+#guard loadStoreCircuitCompiled.constraintValues (loadStoreColumns loadStoreOutOfRangeWitnessRow) ==
+  List.replicate 63 0
+#guard !loadStoreCircuitCompiled.fixedRequestsHold (loadStoreColumns loadStoreOutOfRangeWitnessRow)
+
 -- Columns 2 (`dst_addr`) and 18 (`src_addr`) are assigned zero above on the
 -- grounds that the shipped AIR never reads them. That is checked, not asserted:
 -- perturbing exactly those two entries of a satisfying column vector changes
--- neither the 63 constraint values nor any of the 16 lookup tuples. If a future
+-- neither the 63 constraint values nor any of the 17 lookup tuples. If a future
 -- export started reading either column, these two `#guard`s would fail before
 -- the zero assignment could quietly weaken anything.
 def loadStoreDeadColumnsPerturbed : List M31 :=

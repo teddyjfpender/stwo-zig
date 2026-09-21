@@ -37,12 +37,11 @@ pub const AirAuthenticationError = @typeInfo(@typeInfo(@TypeOf(
 pub const FORMAT_VERSION: u16 = 5;
 pub const SCHEMA_VERSION: u16 = 4;
 pub const MANIFEST_VERSION: u16 = 5;
-pub const FROZEN_ROW_10: u8 = @intFromEnum(roster.Component.statement_input);
-pub const ROUTING_ROW_11: u8 =
-    @intFromEnum(roster.Component.statement_semantics_input);
+pub const FROZEN_ROW_10 = @import("segment_statement_outer_geometry_v2.zig").FROZEN_ROW_10;
+pub const ROUTING_ROW_11 = @import("segment_statement_outer_geometry_v2.zig").ROUTING_ROW_11;
 pub const RANGE_PROVIDER_ROW_35: u8 =
     @intFromEnum(roster.Component.range_check_8_8);
-pub const STATEMENT_SOURCE_COMPONENT_36: u8 = roster.COMPONENT_COUNT;
+pub const STATEMENT_SOURCE_COMPONENT_36 = @import("segment_statement_outer_geometry_v2.zig").STATEMENT_SOURCE_COMPONENT_36;
 pub const PUBLIC_LOGUP_SOURCE_COMPONENT_37: u8 = roster.COMPONENT_COUNT + 1;
 pub const VM_PUBLIC_LOGUP_ROW_16: u8 =
     @intFromEnum(roster.Component.vm_public_logup_input);
@@ -69,45 +68,10 @@ pub const WIRE_HASH_AIR_VERIFIED = false;
 pub const AUTHORITY_HASH_AIR_VERIFIED = false;
 pub const PRODUCTION_ACTIVATION = false;
 
-pub const OverrideActivationV2 = enum(u8) {
-    explicitly_inactive = 0,
-    active_v2_override = 1,
-    appended_boundary_source = 2,
-};
-
-/// Exact manifest handoff for the central 38-component V2 roster. Geometry is
-/// exported from each authoritative AIR and is never transcribed by callers.
-pub const ComponentOverrideV2 = struct {
-    component_index: u8,
-    activation: OverrideActivationV2,
-    preprocessed_columns: u16,
-    main_columns: u16,
-    interaction_columns: u16,
-    direct_constraints: u16,
-    interaction_batches: u16,
-    relation_events: u16,
-    protocol_constraint_degree: u8,
-    profiled_constraint_degree: u8,
-    semantic_digest: Sha256Digest,
-};
-
-pub const COMPONENT_OVERRIDE_TABLE_V2 = [_]ComponentOverrideV2{
-    overrideFor(
-        row10_air,
-        FROZEN_ROW_10,
-        .explicitly_inactive,
-    ),
-    overrideFor(
-        Air,
-        ROUTING_ROW_11,
-        .active_v2_override,
-    ),
-    overrideFor(
-        air_v2.Statement,
-        STATEMENT_SOURCE_COMPONENT_36,
-        .appended_boundary_source,
-    ),
-};
+const geometry = @import("segment_statement_outer_geometry_v2.zig");
+pub const OverrideActivationV2 = geometry.OverrideActivationV2;
+pub const ComponentOverrideV2 = geometry.ComponentOverrideV2;
+pub const COMPONENT_OVERRIDE_TABLE_V2 = geometry.COMPONENT_OVERRIDE_TABLE_V2;
 
 /// Auditable producer/consumer multiplicities for the V2 statement boundary.
 /// Source 37 now publishes its exact circuit-44 bridge into rows 12--14. Its
@@ -576,25 +540,7 @@ pub fn requireDigest(value: Digest) Error!void {
     if (aggregate == 0) return error.AuthorityMismatch;
 }
 
-pub fn overrideFor(
-    comptime ComponentAir: type,
-    comptime component_index: u8,
-    comptime activation: OverrideActivationV2,
-) ComponentOverrideV2 {
-    return .{
-        .component_index = component_index,
-        .activation = activation,
-        .preprocessed_columns = ComponentAir.PREPROCESSED_COLUMN_COUNT,
-        .main_columns = ComponentAir.PHYSICAL_MAIN_COLUMN_COUNT,
-        .interaction_columns = ComponentAir.INTERACTION_COLUMN_COUNT,
-        .direct_constraints = ComponentAir.DIRECT_CONSTRAINT_COUNT,
-        .interaction_batches = ComponentAir.INTERACTION_BATCH_COUNT,
-        .relation_events = ComponentAir.RELATION_EVENT_COUNT,
-        .protocol_constraint_degree = ComponentAir.REFERENCE_MAXIMUM_CONSTRAINT_DEGREE,
-        .profiled_constraint_degree = ComponentAir.MAXIMUM_CONSTRAINT_DEGREE,
-        .semantic_digest = ComponentAir.SEMANTIC_DIGEST,
-    };
-}
+pub const overrideFor = geometry.overrideFor;
 
 pub fn isZeroSha(value: Sha256Digest) bool {
     var aggregate: u8 = 0;

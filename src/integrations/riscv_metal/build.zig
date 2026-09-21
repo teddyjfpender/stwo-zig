@@ -34,7 +34,13 @@ pub fn build(b: *std.Build) void {
     ).module("stwo_riscv_cpu_stage101_degree5_metal");
     const tree0_probe_root = b.dependency("stwo_riscv_cpu_integration", dependency_options)
         .module("stwo_riscv_cpu_ethereum_tree0_probe");
-    tree0_probe_root.addImport("stwo_metal_backend", metal_backend);
+    const tree0_backend_policy = b.createModule(.{
+        .root_source_file = b.path("ethereum_tree0_probe_backend.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    tree0_backend_policy.addImport("stwo_metal_backend", metal_backend);
+    tree0_probe_root.addImport("ethereum_tree0_probe_backend", tree0_backend_policy);
     const tree0_probe = b.addTest(.{
         .root_module = tree0_probe_root,
         .filters = &.{"role0 saved Stage101 pair compares CPU and authenticated Metal Tree0 admission"},
@@ -127,28 +133,28 @@ pub fn build(b: *std.Build) void {
         return;
     }
     const small_recursive_runner = b.createModule(.{
-        .root_source_file = b.path("recursive_segment_v2_concrete_outer_proof_runner.zig"),
+        .root_source_file = b.path("recursive_segment_v2_detached_leaf_runner.zig"),
         .target = target,
         .optimize = optimize,
     });
     small_recursive_runner.addImport("stwo_metal_backend", metal_backend);
-    small_recursive_runner.addImport("stwo_riscv_cpu_small_recursion_runner", b.dependency(
+    small_recursive_runner.addImport("stwo_riscv_detached_leaf_runner", b.dependency(
         "stwo_riscv_cpu_integration",
         dependency_options,
-    ).module("stwo_riscv_cpu_small_recursion_runner"));
+    ).module("stwo_riscv_detached_leaf_runner"));
     const small_recursive_executable = b.addExecutable(.{
-        .name = "recursive-segment-v2-concrete-outer-proof-metal",
+        .name = "recursive-segment-v2-detached-leaf-prove-metal",
         .root_module = small_recursive_runner,
     });
     linkMetalFrameworks(small_recursive_executable);
     const small_recursive_run = b.addRunArtifact(small_recursive_executable);
     if (b.args) |args| small_recursive_run.addArgs(args);
     small_recursive_run.has_side_effects = true;
-    b.step("run-recursive-segment-v2-concrete-outer-proof", "Run the shared small recursive proof with explicit native CPU or authenticated Metal")
+    b.step("run-recursive-segment-v2-detached-leaf-producer", "Run the shared small recursive proof with explicit native CPU or authenticated Metal")
         .dependOn(&small_recursive_run.step);
-    b.step("check-recursive-segment-v2-concrete-outer-proof", "Compile the shared small recursive CPU/Metal proof driver")
+    b.step("check-recursive-segment-v2-detached-leaf-producer", "Compile the shared small recursive CPU/Metal proof driver")
         .dependOn(&small_recursive_executable.step);
-    b.step("build-recursive-segment-v2-concrete-outer-proof", "Install the shared small recursive CPU/Metal proof driver")
+    b.step("build-recursive-segment-v2-detached-leaf-producer", "Install the shared small recursive CPU/Metal proof driver")
         .dependOn(&b.addInstallArtifact(small_recursive_executable, .{}).step);
 
     const detached_parent_runner = b.createModule(.{
@@ -158,10 +164,10 @@ pub fn build(b: *std.Build) void {
     });
     detached_parent_runner.addImport("stwo_metal_backend", metal_backend);
     detached_parent_runner.addImport("stwo_riscv_frontend", frontend);
-    detached_parent_runner.addImport("stwo_riscv_cpu_integration", b.dependency(
+    detached_parent_runner.addImport("stwo_riscv_detached_parent_producer", b.dependency(
         "stwo_riscv_cpu_integration",
         dependency_options,
-    ).module("stwo_riscv_cpu_integration"));
+    ).module("stwo_riscv_detached_parent_producer"));
     const detached_parent_exe = b.addExecutable(.{
         .name = "recursive-segment-v2-detached-parent-prove-metal",
         .root_module = detached_parent_runner,

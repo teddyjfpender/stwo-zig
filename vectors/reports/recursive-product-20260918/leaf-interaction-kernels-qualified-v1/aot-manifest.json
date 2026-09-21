@@ -1,0 +1,3036 @@
+{
+  "format": "stwo-zig-metal-core-aot-v2",
+  "core_shader_abi": 22,
+  "source": {
+    "path": "stwo_zig_core.metal",
+    "sha256": "1a094d24e90cb05a2ade40f2115b86cb70bbd1abe31dbaa3b291f4166d272a1c",
+    "bytes": 3170418
+  },
+  "compile_profile": {
+    "sdk": "macosx",
+    "language_standard": "metal3.1",
+    "math_mode": "safe",
+    "warnings_as_errors": true
+  },
+  "target_policy": {
+    "platform": "macos",
+    "sdk": "macosx",
+    "minimum_deployment_target": "14.0",
+    "gpu_architecture_policy": "portable-metallib",
+    "device_family_policy": "runtime-compatible-metal3"
+  },
+  "toolchain": {
+    "xcode_version": "26.6",
+    "xcode_build": "17F113",
+    "metal_toolchain_component": "{\n  \"assetPath\" : \"\\/System\\/Library\\/AssetsV2\\/com_apple_MobileAsset_MetalToolchain\\/5f4a441a6d0a11f2e9b28c67384263afe92320f7.asset\\/AssetData\",\n  \"buildVersion\" : \"17F109\",\n  \"status\" : \"installed\",\n  \"toolchainIdentifier\" : \"com.apple.dt.toolchain.Metal.32023.883\",\n  \"toolchainSearchPath\" : \"\\/private\\/var\\/run\\/com.apple.security.cryptexd\\/mnt\\/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.l2REPY\"\n}",
+    "sdk_version": "26.5",
+    "sdk_build": "25F70",
+    "metal": {
+      "version": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.l2REPY/Metal.xctoolchain/usr/metal/current/bin",
+      "sha256": "3457ceed7d7e9cd5ac4e96affa8726df72331e19f3a836ece5c0758e0ba79f54",
+      "bytes": 238464
+    },
+    "metallib": {
+      "version": "AIR-LLD 32023.883 (metalfe-32023.883) (compatible with legacy metallib linker)",
+      "sha256": "0f391fad93f257988128848b76eec747ddf6863cff871ee9b9518152a8db68ac",
+      "bytes": 238480
+    }
+  },
+  "artifacts": {
+    "air": {
+      "path": "stwo_zig_core.air",
+      "sha256": "6166e47e426abecdb9ca719ed8b050eff425aed0fa15fe9321b4db2fee34ca3d",
+      "bytes": 4575200
+    },
+    "metallib": {
+      "path": "stwo_zig_core.metallib",
+      "sha256": "0f264c9df0747b7331e3f0cb69bb22b67d8feef4af854095e4d533cac2402de2",
+      "bytes": 5750926
+    }
+  },
+  "exports": [
+    {
+      "name": "stwo_zig_quadratic_recurrence_trace",
+      "owner": "trace_generation"
+    },
+    {
+      "name": "stwo_zig_transcript_init_resident",
+      "owner": "transcript"
+    },
+    {
+      "name": "stwo_zig_transcript_mix_resident",
+      "owner": "transcript"
+    },
+    {
+      "name": "stwo_zig_poseidon2_channel_pow_search",
+      "owner": "transcript"
+    },
+    {
+      "name": "stwo_zig_transcript_draw_secure_resident",
+      "owner": "transcript"
+    },
+    {
+      "name": "stwo_zig_transcript_draw_queries_resident",
+      "owner": "transcript"
+    },
+    {
+      "name": "stwo_zig_blake2s_leaves",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_blake2s_pow_search",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_blake2s_leaf_absorb_resident",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_blake2s_leaf_absorb_compact_resident",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_blake2s_parents",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_blake2s_parents_sparse",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_blake2s_parent_tail_sparse",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_blake2s_parents_plain_sparse",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaves",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaves_wide",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaf_absorb_resident",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaf_absorb_compact_resident",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaf_state_digest_resident_v1",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_parents",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_parents_sparse",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_parent_tail_sparse",
+      "owner": "commitments"
+    },
+    {
+      "name": "stwo_zig_circle_ifft_first",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_ifft_layer",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_layer",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_last",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rescale",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_expand_coefficients",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_expand_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_composition_expand_sparse",
+      "owner": "composition"
+    },
+    {
+      "name": "stwo_zig_circle_copy_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_ifft_first_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_ifft_layer_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rescale_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_layer_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_radix4_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_last_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_layer_sparse_wide",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_last_sparse_wide",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_composition_lift_accumulate",
+      "owner": "composition"
+    },
+    {
+      "name": "stwo_zig_composition_split_coordinates",
+      "owner": "composition"
+    },
+    {
+      "name": "stwo_zig_composition_random_powers",
+      "owner": "composition"
+    },
+    {
+      "name": "stwo_zig_composition_ext_params",
+      "owner": "composition"
+    },
+    {
+      "name": "stwo_zig_circle_ifft_fused_tail",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_ifft_fused_tail_wide",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_quadratic_recurrence_ifft_fused_wide",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_fused_tail",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_fused_tail_sparse",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_circle_rfft_fused_tail_sparse_wide",
+      "owner": "circle_transform"
+    },
+    {
+      "name": "stwo_zig_relation_fused",
+      "owner": "relation"
+    },
+    {
+      "name": "stwo_zig_relation_block_scan",
+      "owner": "relation"
+    },
+    {
+      "name": "stwo_zig_relation_scan_blocks",
+      "owner": "relation"
+    },
+    {
+      "name": "stwo_zig_relation_scan_finalize",
+      "owner": "relation"
+    },
+    {
+      "name": "stwo_zig_clear_arena_spans",
+      "owner": "arena_ops"
+    },
+    {
+      "name": "stwo_zig_compact_gather",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_radix_histogram",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_radix_prefix",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_radix_scatter",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_heads",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_scan_local",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_scan_blocks",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_scan_add",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_clear_outputs",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_scatter",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_compact_finalize",
+      "owner": "compaction"
+    },
+    {
+      "name": "stwo_zig_fri_fold_circle",
+      "owner": "fri"
+    },
+    {
+      "name": "stwo_zig_fri_fold_line",
+      "owner": "fri"
+    },
+    {
+      "name": "stwo_zig_qm31_to_coordinates",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_rows",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_rows_raw",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_partials_raw",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_combine_partials_raw",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_numerator_raw",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_finalize",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_coefficients_resident",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_domain_points_resident",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_denominators_resident",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_quotient_combine_resident",
+      "owner": "quotient"
+    },
+    {
+      "name": "stwo_zig_fri_fold3_resident",
+      "owner": "fri"
+    },
+    {
+      "name": "stwo_zig_fri_fold2_resident",
+      "owner": "fri"
+    },
+    {
+      "name": "stwo_zig_fri_packed_leaves_resident",
+      "owner": "fri"
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_fri_packed_leaves_resident",
+      "owner": "fri"
+    },
+    {
+      "name": "stwo_zig_fri_final_line_resident",
+      "owner": "fri"
+    },
+    {
+      "name": "stwo_zig_decommit_normalize_queries_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_prepare_fri_queries_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_prepare_trace_queries_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_gather_trace_values_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_gather_tree_values_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_gather_tree_values_resident_wide",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_gather_fri_values_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_sparse_parent_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_sparse_leaves_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_sparse_leaf_group_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_assemble_trace_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_decommit_assemble_fri_resident",
+      "owner": "decommit"
+    },
+    {
+      "name": "stwo_zig_eval_basis",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_eval_polynomials",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_domain_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_scale_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_parts_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_inverse_direct_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_inverse_tree_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_finish_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_evaluate_many_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_reduce_v1",
+      "owner": "polynomial_eval"
+    },
+    {
+      "name": "stwo_zig_base_poly_e3d97ada62a6ad9f06872ffebf334097",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_94bb6ee080d963f1a9b89ba8836e6cbf",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_43fb3f4df23ca371514fbd130360efba",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_c435f0a2ee25c59eec1ebd9f12b995cd",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_116f3173573043d8dc56aa23e5c1fac4",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_63ea0b65e576f67691cdb43d14a7590b",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_782a4d5d838c828e4ae55bb81b63e389",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_0b0c9beaa20a9460c6d8ecfdfe560eba",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_766a542bb547c7b4eaf4c8a8fb9eef52",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_a995060c2a616369140d09438c7dac67",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_9228c4a31e483b8e787375ff1354be9a",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_c20d068f8ff248590d22364c7c7d5649",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_4a95ed38e5a6795e8a84b0817ddd37e1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_706ca0b14e34ec043cbf5f04e14fb315",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_40d34cb41f90634e26f0b2bb88a77110",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_5d744c2fbb612ce7e9954dfd6cc1b4b7",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_903175038c36e2a6aad8376003874197",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_a5980ef351d2fafc7a22e5aa40300954",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_e5715747fc906de9684a84af2d392d1e",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_8a132b1e9e82b54afcec47fe86f30324",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_bed36219333c2c4ad3c08cfdfda0e8a2",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_020adcddb227238a71dcd523f9c87a7f",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_d6611c9189072c08839d56f6496f63ed",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_94aa7ee9c1399f0ac1615227be890e54",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_ff8f5638e589be25d994070f031c73f4",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_04a5ee0118c370d4f4be88a43aa90c1b",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_71a7dea9a6d87e457404d7286bf51e2b",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_c98fc3b8440d536b2dd11e209cf33406",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_c7ef2b87fccb92355969d231b02a1d52",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_7187bd253b26502c413540ac56eccb23",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_ae8631b5be628fa89a790444be02b7b1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_d7203c97e13213534f5bd98272130f81",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_fe8c4b8e3259f973cd85613a2dd582bc",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_6e35df3dbb1bb66f7c23e82cdf0f6705509c4f08e5719edab77049660d8e632d",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_253283e6dfe6bf332f2e466400c1f09394999e7935e86d6bb99a351d8d0b1f49",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_28bc2d54b9a33dccb35df8513dc35a810077488a2f4be0c88b5d36a55a9e8bf8",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_be13b51301211f686fd16c2f88309d8f847af74402b7d38c61ef79b645d99f79",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_275d7261fb64f5cf5fc049ceac6422a7d6e64f153e09f81ddcf3311c1e2ffaa6",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_c21e7087e658c83a4ea68ba0339efa466e9023c10538de1236d5e94f360cd70f",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_6e0f5b41382a11695ffc997f00f28eb2a1fd365fac56419e6a58bd35fcecaebc",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_330b38988296b847ce7943460949e4339ec66db537e4d03491747b2c39b920c0",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_77f9c3e7ba9b17eb361ff2af6220464a5777f3a52ef415c3524ac42ab6e32f2c",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_69a3e73ed85579645e6ee7eee831fcd273dc41967143d39561a8b07d44d4b8b7",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_17d893819094787c341d61e34fc145d907ae4f229fc5bdf675450f9cbfc783e7",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_c52d555f957bd0bb3a403a52ba9a00707ea38b95680598413ab0c999a4f2e212",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_1d2cb31b377e1584858df2e1571ab50af833573e09a8e92b509736d894751ff5",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_a58738eaf81c1bd3c20292b4d470433552c7c5bef4faf841e4da8e2a5a04681a",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_a5c335d39317cb0ece5d0ffe5dd536cba3b9c4c84da54f5c8876a3b6cd5520f4",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_23bb5dc1410c56ceab84080bd3239e6c9156f3761b93508f773dee7e448a70dc",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_64c076e4946245d3c0f988997bf90b10774d23a6344d856e147c744b2df6d98c",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_28c894d8ba19e7e67cb9ba7c42e105eed5ca58a59c4ceca0c7408f52594c95b8",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_1334f76a18fa26174b95e26b35b43835b862ce8ee972a1690c86e1f6a1cd944a",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_a83b81d070f1360d8a60c651843041cb5c61f1fc4633236f2ab988e8d3479bd6",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_04c7fa4b87c13f202dba5a03f559ae0e8b239ee18fefdb311a98e91d468fa382",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_f921979e443de1698939363ed152616efddf38ac85f86b887e9a95aa030499e8",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_d35e036ba69d4ba201f051fe26af47afe86433f54ea95b6fe4088aa6270dd583",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_96db968abf69e8d5ab272b57ae9b3b03dea9fdb0d85a49a909e9278a750fe251",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_f910246c318863b1e628583a1df1587320c1b30aa9863de1b9d81f53bb7685ff",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_dd144816e0f37e74b81c33ef1e9f3aa9854394c24f8c4e1aaa220298fc468adc",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_29e86874a03d7177a3464b645c2aed84fcb7ff0ba03fa4194924fa8e0b5b66f6",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_bec710dd5d8aaedbe8d8a8a02449766d7b462afd4f4b43ab7d22de84711a1fcf",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_ebdf45cdf6ac3d3f84e739c373a70f88420a80add1b1eb9fff91e5bf21630dfd",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_3ee6675e24dbdd6250c2b9ade267b0bf619dcd74705f70367fec3724e92f781d",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_1a3a2a52d28711c82564f3ee1e51c7acbd19124e93464a9043a583955ae9d6be",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_55368ff56f1d227fb93058163d20c9f0136c8de57094ee1b9c8e0a8155fb9547",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_6fa48ed9517b876d284dafb574c075fb99073925aed07831ce0bc7a4b33a69a8",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_7a72efc0f7f735ecba4dc2bbd3893571a3d5dad279f9b7597ab7865a7cd07902",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_0b67acf334a35e41ec583840cf33bb0a1dd0816fef879cb1a9df404c41018fe4",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_40e1a4072b178a690bb65ffccb06d1ed4491b282bdbf7a969c919342441f4900",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_2850c989ef3bb163e88ba338cba4c33d34f5ad9fbe8484e7adf6ef7586083445",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_b9d92e8721fe3d5bf138dc77ce3ee0aa7d1b2242b945efbc1c8943ad0c573142",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_fd0ff6b0ca039052fbe15191380583665d7a2b1c31a379684e254c332b5b4247",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_3f816ad3b77591647ea1df645a270a5241708ccb3c4af578cce6479e877e5779",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_b0ba738410ff4447da19dcbe3b3b086b846778beed6f7ff950563d265f5bdfb0",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_9caf442461c41e1715bff5b9ae05cac1c314f9542724837e61a0382ff08a728c",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_2b2b7f88704ac384d981503753d490c9302ac92b3a095181d792800cf87252d5",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_846c09f850f16818bc00fc43ae964d970d03c86df5cd3c3f9a028be11ec343a6",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_d12a93d655c8dae877bc9b6dc70575a54893ea03ed1288d130f9ae3f493efa4e",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_2b3717fb73ab7d02adf850c3f8da1876f3181fbbe44ce58125d9e73e4c83c7b2",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_61382eb13ef5979431059f3aac4b26d1ea034363f7dcedd89dbdb2aafd1d1ada",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_ef27f693b63653bfbc338ffef61eecb98c40e2e65659df481cbff5748386318c",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_60e53ed73a4bb05d8835ba5e490aebcf6872bde8cd130ac6d12b13330207325d",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_4cd32871391f1d72e73915e191a0f332c7a5d5011c327229dd69067b33db4438",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_add1270dbab7bfa060dfbaf027d41ed57e2331f1489998ca201e99a32c398897",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_2f5f7696bcd86519ab389fcbe3da9c14806fd0c31338b803dcde77877e2468ed",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_8eff2bd9a57667424c5f56d4c44e38858b72a83dc62635e12f37833d764908a6",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_e0cba0825ada33bba5c353a15ec61607f8222681fa418fbdd35053d94b775735",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_5741aaf575ff5d2d8d285ef2f2410f8d9ce69c23ead90a2711fdc305a1169583",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_a2ccd9f3763b285eafe0c18331d24c1abe19d80e4ea4669daa476892a111c4ee",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_ee395c8f3f5ed0000789ae9973d8a65ac204256cfffe48e72798b35b0044913e",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_0cfeb254c01490404cf35e8218ce88a2de0b70e1ca600de8f1f5d6686fd58013",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_be32187f13545f85e59b39f353cca3fd60c5c1713527889bb9276a67797fcb6b",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_a26812630d5ddc97004b2fdad26ef9c45b480fe9cbf5d7b945703e9da95d8eaf",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_9aab2a5fa1c010ffa8ce83fe52375d248e1ee1b143b4bfbe98573fe9fad30b45",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_cd4a142ff996eb76a0543d9664865943a4c8edc57fb39dca6d85cb0c534ac978",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_a27a7edf6f4806a684ddc570dc5eb72c35754ac9679b3cefd2469cfb6138f215",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_dc3d7a936af525004c8eb830ba507256e3493f40a8c16233a3b33982f8a39fd9",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_0cf0e9d52eb695d8d7e7434c125cec9e8174475b59785b28fe49af42e61363ad",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_ac8355485e3d2fe470466761bcd1afd36ad0da23b8cc2b8eeab6f991ce0bc067",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_80549c7067a7c7863558955bb04ebef614c3e64421dd07b78ed6d556de2053b7",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_3414051ecc645d3777317cb58bbf11009f47a39ad1b1edd460ddcd2a43f4c27f",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_2d2e5e54e32691342e96a869edb1d47a3cee42927f65335b9b868b4d0c7e8b6a",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_8d23938c5754afaed724def0245be4b3847630a537aedd68e1318d7394e143ca",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_3df2ab1be37447b33c53b13892cdf8a2ce54428e04b6f64548ec210c5d550af7",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_099651f90e06ddbb17d8603cc0eb859f447a31401886d436cfdfe93a74660a26",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_0564dc37b7d4d92135c6c002629f78d69c6be1b9c8496bf24240be00a6ad952f",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_078b980b664e2753cdba340cfc89388d382c5987ad96916667011b155da001dd",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_8ccd4cf2047c529453a6d33e42933719be5e986f0d86b0d470c8b30c6b1d0a9e",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_6274eb2e10f711e7a786f5455f46039b9da42ece89303e13ea732873d86b7d66",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_f603aee73483ffc33119c8992e7e8c90f175cd7548e7349b4597713c32b354b5",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_14483798effc504d4a405feea8cda660e91033832b6365fb1d0a3b2d49998278",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_778e211ffdc4f3d2954199c2f95a65b70c9e0ed7634be5817e393d86ecaec3c8",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_1e1020baf7c172c95e3644e59954f86fdcd0e52686a74f7c693f8f319eb187c9",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_af3a37d75096d6a16085df7f985e309d0e579541495fe4301c75cac8d6e60058",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_9c87fd0a40951f25ac4bd9a774ffb7cedc9091ee8f8c346820f0c5cdf3ae86af",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_a561e54d4cc864408e7e89b6af4e436d42460bfd1da6880c537dd3ae7974deb9",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_d9e0a64b2e3776fcd0027edc87d3bf16a38004fb6a3a2b45929cd96bbe267e83",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_cc7a4611c6456002cb6a6f3897f03b2615ee1b5ce59e180c92b35eaa29c957da",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_b75005ff211e8bcb5349091111f46440d6eaffd23ae209d437170e9116f6b08e",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_3506070d16a54c1978ed4ab847ed35bacba8a5366e3f0f0314401082dfae8fae",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_b5c4e7d989ea594b0ca2abbb3c52d5f7",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_21f8e40dcae026d1eb34c88755c69d0f",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_52819e8b179c524ecf280fcb407991ba",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_aafcc569d707c40f3a98625c3427fd9d",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_42f16a1c94050f4201bbdda0e54ee9a41eed1b8659482e30a94d9724d88d4d4e",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_68f6d96fb9c901c838b94545a07ec06bbde2186cb707583c693bac6be3bfcae5",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_53936c1890114690b404b92f57ff72e89dfe5086192aa347d491d072b56b6823",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_33d6809a676008c293d07bf082ec23df08c78f0c70543bd561fc294033683414",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_147d117e88a62cae8a57d194e1d47e05d5ffaa5bb18ef7fce06d8b88fb4861fc",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_318d149c102a9cc72e7a75341c53ed00dff9874625811646b8d755416f64fe93",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_b3f2b76b8ff6ecd4ded1c1cd92d6c316ba439b59460bfdf4cb48af3a45c702df",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_c69a7562440115c59fe168656684199ab54266ea85e23685c38d95ef1cdaae65",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_8e3a951527deb310915790043232cac738236fa42fc17525a52ef6e5264ed58f",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_716804b2e483e5ddd2cbf1e60f6a6cf22be118f9a325478a3a9f2952f9bfc80c",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_491546a18066cf54824ce745761d640e8962b9b6877087958540bf697e7e9a06",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_74272cdf26f41b9556b06fee5bf81b22e82cdaef1ee9d66d74f616fd37b9c0fb",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_d91a559a8500e88e79832a8ee10fa36fc75a74e52a52e12cf12303e0301832a5",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_12495d0ff0e717943fa8ed514961ad0f",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_168cf51dfc4527316321308cfb1d53f5",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_ba50a5297448982c8e7eb175b321e8df",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_base_poly_2847bbd21aa5cb2bb8f239a0aa39ec56",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_lookup_poly_b0c50df2ab2e539ba69c4beef323462c",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_db2d826113e988cb6087f10b7798b9d701f7bbc3d5a7696f826e949b697eb23b",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_84b3af2220590f405b39198e954937cc89d0ed2ceca34f6a9f5f777017b8f026",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_4f71be6dd54e2014809338b17e9ee94c9e1c176dcabf9dcdf46e038ca7f619bc",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_block_scan_v1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_scan_blocks_v1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_finalize_v1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_cumulative_block_scan_v1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_cumulative_scan_blocks_v1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_cumulative_finalize_v1",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_9da81d8cded31a114749d226ae9a61d9d1ac8102237dd046c88495a3cc8e7dcd",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_b3a31aa39a41774ec4bef8362b9b2dabe691e687f0add157cd317d87832a93a3",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_cfb65760d753d5504d8a15adfd6adc30598eee14e51c2c224d405d5bd0ea2f51",
+      "owner": "riscv_polynomials"
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_364edd3f7b7fd165d7cde71fa96bf522fe4c8d8f93e8044f8896fc51d0a98775",
+      "owner": "riscv_polynomials"
+    }
+  ],
+  "kernel_abi": [
+    {
+      "name": "stwo_zig_quadratic_recurrence_trace",
+      "owner": "trace_generation",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "fef54ebe3cc8bd739b88f4b5e47f72b6b8fdaf4280fe30c2ebc1a23232d3e8fd",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_transcript_init_resident",
+      "owner": "transcript",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3dbf9258e59e0e50e2195a05d064634eb2629a396673fbbcddd86032b41a01c6",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_transcript_mix_resident",
+      "owner": "transcript",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3d408530955a5daf06252b1a220b2553b275e56a4e831285247c889d7342c41c",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_channel_pow_search",
+      "owner": "transcript",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "db480e161c938af6df65ca15c2c1d232a9b3e51bbff6b0f6be1c6e7bd12eb81b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_transcript_draw_secure_resident",
+      "owner": "transcript",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8a5cb10144696aaaeb2f53dbd0a0cd201d11d3850dce78ffa4de2961234b5ea5",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_transcript_draw_queries_resident",
+      "owner": "transcript",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8c20d72bdcb073c4fb30037419506f615f8c50a08979798407ecd3ccc83ad726",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_leaves",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "b342a6b6912f06de3babd17beeb130ef7728b63f69f8b8197085fb1230b45ee2",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_pow_search",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d03d5b8438008ce62a930e67df05ea7383910939459636c3b5150c7114858ecb",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_leaf_absorb_resident",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "94235b42704f32dd124f819bfa703e699bb8a5b1054fcfb7bdf767e55a70cea9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_leaf_absorb_compact_resident",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "631f625fb17c31a352e40946c27c5879f4128669cfd6c1bed180f6480a27400c",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_parents",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a71b472017e9a73051d517a3686fb0c99822095837d617e97c52b47e7776760b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_parents_sparse",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "87604c5d347adb56780cd558cc409765e92f25502b2b44498748b72cef807600",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_parent_tail_sparse",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "4b5f3fb208f5e9090f51acfa21215adf230b72308291714bc2a8c853e97c6bef",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_blake2s_parents_plain_sparse",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0fca384a947ccc9695d195c434c93752936af2d063cbbeafa7a2e85477bf02d7",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaves",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "ff30caf64c32eac3779971e4ebc47578b7ddf43e2f7ecbca0b7389133f7498d0",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaves_wide",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5e36ea1834a15394372da60efd34866c497c2371ae4b7540cb0867116ad597bb",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaf_absorb_resident",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c9c57f46a2652e852562114980d7b376ac87b8212b4c9c7e165a7a915e9c5b9d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaf_absorb_compact_resident",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3a04842d9945eb2e6bae7d4a10439f4d932545986f885b3c8aa93f292d7a0923",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_leaf_state_digest_resident_v1",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "940996414c66437e1d426a24d6ae1153b96dfaf8e0d4b8ff664bf1417d1b3ab7",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_parents",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "cdd4be26c0fb2a0252ca8e979a8ee1be5be60d519a48712bf34e81136f36f0f6",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_parents_sparse",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f1b0e858da89fe7b1fe2a68d6d04ed745826efccba76f1c06f3e4a52bb02980d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_parent_tail_sparse",
+      "owner": "commitments",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "901a8adb7c1b5a2372b4993826429d44406550fd9053560e739043daec7f4aba",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_ifft_first",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "dca996229068482a9dc4165e0c6364ec0ba4a1b094a3e1e483f69d0a1b2a44d3",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_ifft_layer",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f586cf1eadec1880de7eeeeea91c7ac05ade1bc48c9d54e62c32a67df32aba68",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_layer",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8d1f64e4274829a2eeaa4d7c48749814bd49b5bf4bc319748913777959dbd323",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_last",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "10b2aea3f0424017c68d61e6fdf214787f742b6a3b2bc1344ac8d20c92af69b5",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rescale",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "336f5e5706f76022f632ecc6239e414a00c19134ce137d7036196086f7235f2d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_expand_coefficients",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9710e0a361cc70e6f79f45155bbebf9d78411d1eb01d2501deb9d47af325376f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_expand_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "ff36d34aebe29a059bfa318bfe590f4bcf53f38a1ab8b2b7351fbe3fef248d72",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_composition_expand_sparse",
+      "owner": "composition",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "eb42d2c8fdf7380d884259d9f849bc4f5a0f09e519ddb568aa80a071755ec21b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_copy_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7f8f9b625d3e1258622fcc14531bbe307bc6a9d4d6d50f3010753104ed6a8bfc",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_ifft_first_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "99d0c2c172ddad831e535056bbfdeee72e0c8cadfcd53241e1fb32940bb6b08e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_ifft_layer_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0cd0e041c148ad6eeefcb55929a7b0167624718d2dbb9c9b615eb06fe0ea4220",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rescale_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "eeafd0b3db39861df8fe320f34115a200045739e968b8703a75995decfd2f45b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_layer_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "103032c24cc6bfe7fce1893ee40a794e4196fa81355da73e7501c3dcbb28bb1b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_radix4_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5b70a6923021b9a4d4e30751631818005e1d6606b51657a322c395de0667f659",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_last_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "185a79b6210c614861ba01c7b547a363c713f2f028df80bc3acbb0a5ec76f7a3",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_layer_sparse_wide",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "615bf6fc4e82b09055fbf8b6365ee9ad603c6ab5762728aa01e20a5f12b255ea",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_last_sparse_wide",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9896ae2bef0b90227d48d30b8dadd9a0c9bace8235122137c51e8edd8fd91aa1",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_composition_lift_accumulate",
+      "owner": "composition",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7ab1963909874f178e086b963fd8932d5dd9c67e2b24628f1038aea62b276db1",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_composition_split_coordinates",
+      "owner": "composition",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d144949d12a5dd48341fe1f69702954db34178b9f6f11fb0bdbd3dfa309007cc",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_composition_random_powers",
+      "owner": "composition",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0e97a935c42e7d3071eb3f5f37252788d70b433726ce48e7cb6f614b65935d30",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_composition_ext_params",
+      "owner": "composition",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "014f2b99f540813fc09abe8b3935156fe8cda2d79ead42791b7f969a21725189",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_ifft_fused_tail",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d633492c7bc27f0e9358cd3fbdbdd57036603ea7dc618504f1a70093a55cde1f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_ifft_fused_tail_wide",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "b2b25343c4a6cfef5110af5ca3766986cc4c267549bf2c6b164aadd75cc4b0f9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quadratic_recurrence_ifft_fused_wide",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e25e8454a05a31e25a3345ad6f2927dd8710c17679da24920f58598c326b1138",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_fused_tail",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "06b21d42f128992d01beb2d2c506834f6e6483fce24425601173f499dd2fce2a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_fused_tail_sparse",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "092867eefb4e209eb81051819108c0d7eea6b7ad4775df45f5ac58cc02e7c565",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_circle_rfft_fused_tail_sparse_wide",
+      "owner": "circle_transform",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "2df02554c7a2f6bf02c201dabdc21442af63fac4f72c5c4a5dce428fe565fed5",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_relation_fused",
+      "owner": "relation",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "dfaee749fb1636663425519111713874ce5e819c3a677788800e65b1887212f5",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_relation_block_scan",
+      "owner": "relation",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f6a8b45505cf874b51eb3ed694ac637498f109abebc86cef926963e269226527",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_relation_scan_blocks",
+      "owner": "relation",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "eff826a54c707ddf6b102daa008a6683cbf6dfd73104d9cb6f85972d0a42811b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_relation_scan_finalize",
+      "owner": "relation",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9fe69f43638d1b50cc44ea07ba253dea909d9dbdf1a8e4704da7a4954e1431e6",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_clear_arena_spans",
+      "owner": "arena_ops",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3d6cc15fb9d7fb863f7f62af0fdfcaa6a1e08676629ebbf5533e7513cc63a6c8",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_gather",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "db27537e350290c8f5ac27daa7628b2589caea77299707a58f0c01e8b6cb84d2",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_radix_histogram",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "317ee704d78197f54795811f6cbdcd1f4b6d5778d5b6ae35cf5ff55449e80a0e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_radix_prefix",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "2fd2b781c8a1fa3d753224184b56a76ebed8dadd5b5224d2790f12a11e34fb04",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_radix_scatter",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "419e5c8dccf6bf01110bd7f0853b05b74ee292b13b72146cbbbbf1413456627f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_heads",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "cc12979dde08693892334e0f1948a80ce6eab6ae8b59c5a510f7502f53d90445",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_scan_local",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6727d7666de53167d3a1f8c40ca19b47c37327f90e4acb069d707197a939b8a3",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_scan_blocks",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d68be9a186911ec3ee38cac74dc1881031637bfe689cd10a31056b38bacc65ad",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_scan_add",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f925cd212aa853cda2bbb32c588c0519648ee452ea2ce19ae9d1e589a2685c43",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_clear_outputs",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5a18ca4cc2098de964a40b664fa9594747cc8e5f31772dced810003aacfb9cd9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_scatter",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0bff870b921409655e7b1fed4f1ea71b6cf981530fa2086bc87c0a0cdb079a5b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_compact_finalize",
+      "owner": "compaction",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "282ed538c80ff8e1797e9277edb279e41a9eda08d5672634438f1ac01f9c2dc8",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_fri_fold_circle",
+      "owner": "fri",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "478ae2f350b32a363b5b82c4dae8e7725f5496c1a36d27454cf649c59b0f4872",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_fri_fold_line",
+      "owner": "fri",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "40094b66f32e662c965c731ad6c28325b8751c47251f37481827f682b6bb4671",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_qm31_to_coordinates",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "4d8b7565397a116dc5f0d8c89ff152098986ec918bc468b24b149d09e54a9026",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_rows",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7d0342c0bca5d634f37f3706ffc0154105b98511af2992e2057b64ac02505fa1",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_rows_raw",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "efc119daa965c437308c72e20bcc21621c079c981a6b4620dd172f11059607da",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_partials_raw",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "06445f781975f73495cab58d20cb2fb06f2e63105b47a13bef53b6841e2a090b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_combine_partials_raw",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c69a724a4e14cc8162147061e4d2b27c6d109a7a798b1d559fd6dd8211b5e610",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_numerator_raw",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "18d28760035998d273d0d4c5514fcdfc31a98a66a60255dcf5f7a9bcabedf433",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_finalize",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "77d0ab83b2074c3fcec649e2d023313115cbf2e3bb22a9127d700a5eadd1d429",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_coefficients_resident",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9c03dbc51dfafa83f5d98a1d4ab97727f79f2f05cae520cd2efa20480e8dd99e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_domain_points_resident",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6f271c66e06b786b1dc5eaf5fe3acc44ef23fd39a489f0042d6fdba2fe42c496",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_denominators_resident",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "dc25eeb0fe415618af82d046f42382f6fa3e48821bb1bad1eb222b2fea861222",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_quotient_combine_resident",
+      "owner": "quotient",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6547b4009a4547a36abe568f40fc1747b6e69854317727f61aeee669fa013280",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_fri_fold3_resident",
+      "owner": "fri",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9ef51b87f12090e0bcda6943ea55649dd8d82bba2248d7d51e5bd9193b49513a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_fri_fold2_resident",
+      "owner": "fri",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d52d60f5acb635d1b479f36d307132c18937376f60b2a197a5748a06589089aa",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_fri_packed_leaves_resident",
+      "owner": "fri",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d7207f0ec6a1efa5ba280162850e070a5ac577ab7536939b5842bdaabccec48a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_poseidon2_m31_fri_packed_leaves_resident",
+      "owner": "fri",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "1875170190940201aa1a4d1e263d5317a9d0474f566b5b1991dffa2f431da57e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_fri_final_line_resident",
+      "owner": "fri",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "b2d5b748b0800515b3d04468b7c6f45b952cf5e0778ee0c404d1f8ce0a863848",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_normalize_queries_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5f51620d11f424f4f3bf9924da3019068b63c5f789deafb71a949e7c0340f9d6",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_prepare_fri_queries_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7d69594e4e295cc4bc148636dec9bfbf3183addb372d68d5b0266e39fe9e4bd6",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_prepare_trace_queries_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5dd6164ded47901f1202339c163378ff6819a8d5e9115de8547dc06bd2ae2a53",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_gather_trace_values_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "43fa2dff90db23be694299590b04af9ad0f907b56b96a0bac1776b5898ad7b25",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_gather_tree_values_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "1af91dde4c954a09f356cb2d7c211ad705746108275d48505ae1defddbd9a959",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_gather_tree_values_resident_wide",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5078acc8a04c67004a1dced3f34eaf35391fad8c027f78f012070a006d3b54ef",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_gather_fri_values_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a10addeae608aed605b1325e2cf46cbfb378cc9c7c26c328a784c46b324b2450",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_sparse_parent_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "02776f53c6aec48570032b4efd5f5a48611e9de5ea4152e6f96a3fc36daa400e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_sparse_leaves_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d51c92d6016d245338e081590075277dca945c8381e15a48a5510f3d063ba623",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_sparse_leaf_group_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "38727857b3a7e6674b787a9088385c98389ae8641d4ccdf159ac2b1ea56b000c",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_assemble_trace_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "55b99812be8a840bcc9e5b6dd20c4730dd313a759671fc17c766de828af51379",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_decommit_assemble_fri_resident",
+      "owner": "decommit",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "12100e13389282eefc4233ece6d3ed3b612edf96f7031d2454f3a83bc8cb732e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_eval_basis",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "397937b70a09a262d8ef0d98ded06e91e347f028cf7310bc5d8e385265421972",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_eval_polynomials",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "ee44cdb3bec85bfe1c05cd394224389c2b31698ffcda9fe5041223aa2e1a5737",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_domain_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c5551b4afe2874329300ccb447c3c22dd4ef7fe0eba8af556aedf917d6ece7ab",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_scale_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e71527408681a1f20baf66d46ed745048f947fc456f58344d61a677487a781e9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_parts_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "208a81eed8d9d5ec26802973ab5ad7f6f31e4c7d61ddc8df67716470c01774cf",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_inverse_direct_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "47c352a319aa78af10f0e69c753e365c9757fee9ba436a2a341ec44aa9fdeb37",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_inverse_tree_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "dc2e535a1139e22e087760e7d4111500cc623426e668d7f8b09747cfc4930e7d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_finish_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9decc5d6e306df2f277fe96a5bf2fff132f7b3a4612fbbd0d4519bde5f8e8697",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_evaluate_many_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "ce571879537b3ad0227c2b0919223a90f27584b67cba2d5ba0e2c64be2335be5",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_sampled_barycentric_reduce_v1",
+      "owner": "polynomial_eval",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "dad53a12b7213dbe1ab28afc435d31281e9b28fc9b46fb4dd2004df0546f62bd",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_e3d97ada62a6ad9f06872ffebf334097",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6c71fff1081d0fd5e60ffc62505c8afbd62f985b25efdcc78dfe30ef5bfbb9e4",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_94bb6ee080d963f1a9b89ba8836e6cbf",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5c42a4b5b2f4a938a18bc411fefa5d839703347e7f3f479d9abddcc910db1339",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_43fb3f4df23ca371514fbd130360efba",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c9bf18e8f89e261f1efde3e5e26b17bea446ced8d3a51282e4c0dc4a2375b7de",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_c435f0a2ee25c59eec1ebd9f12b995cd",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "63b7d09674df705b2dc44a9973539fb5d629662dca6aa060e07377661a536122",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_116f3173573043d8dc56aa23e5c1fac4",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "4b723a920bbc34ec93afc01f2ef13eeaa4a383abaf2d294ea4f94e46a188992e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_63ea0b65e576f67691cdb43d14a7590b",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "4c5760954b20dcd5b894a7b66cb18326ca2d810d85e02cee9cd17ad9daa0d1ba",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_782a4d5d838c828e4ae55bb81b63e389",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "b10d930bc27c9630e04070693748aa7d6339439ea07e7faf5a5a6e547632dc29",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_0b0c9beaa20a9460c6d8ecfdfe560eba",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7f155fb9d381a447bc86ce10cc6260b8f8510837cecbb78fc78f1103ddfa1854",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_766a542bb547c7b4eaf4c8a8fb9eef52",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "816ba66b42259224bcd2e4cb13075ad07eae7bbb1f32b10ed1ce9501b2155c7d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_a995060c2a616369140d09438c7dac67",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7df90ffc430b7344e0c752d27703fc7b8361a0efc3bb7f00d6a3405ec6855f70",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_9228c4a31e483b8e787375ff1354be9a",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "352ca45a686be6f92745c70cb304b51191e2b26fab01eadceadfed47a97cf4fe",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_c20d068f8ff248590d22364c7c7d5649",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5b3dfed5a9bd5ecdb730ae4eee5a12bd74b316c09421f96097acf1c6c05ce851",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_4a95ed38e5a6795e8a84b0817ddd37e1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "fed24c3aefead8eec952eda1ebdb86b5519ff9f58e0437cf80a4e65c3f7e9102",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_706ca0b14e34ec043cbf5f04e14fb315",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d0812faca7e50a374a277a435e3a387635ffea84c980c823310072c39e97f722",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_40d34cb41f90634e26f0b2bb88a77110",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0b8d934702045aa1e22365120bb270ab4dc0d441046418f7bf6b5b8f30eb4c48",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_5d744c2fbb612ce7e9954dfd6cc1b4b7",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "baf64f5bba56efe38afa8298dec8d0a3ec7b80887a3f421426bc29a054bdf509",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_903175038c36e2a6aad8376003874197",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "db5d9487d7a7324203d9dabf3b94c32ff4a8f94f0ce9b54237a43e8bc380b9e7",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_a5980ef351d2fafc7a22e5aa40300954",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "df7953788c5a9bc75c5dd4957d940f2e7cd1d250c5b3ea5e502f6a03b78240b8",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_e5715747fc906de9684a84af2d392d1e",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6de2ffa034b476fd502479948cee0767d5d0f4cdc5ecfda0c13dc3f221ebd6bf",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_8a132b1e9e82b54afcec47fe86f30324",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a609cc93bd05a00b713fc74df3afe51dac76c3b51b70c6b7aeb3d4d6db29b91e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_bed36219333c2c4ad3c08cfdfda0e8a2",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a9e0cbc240613f91b5db79fc2f14f15dc7be56143a2e3a650f13935888dac6fa",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_020adcddb227238a71dcd523f9c87a7f",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "01658f7110ab27de610b98e7bee917059889247e7599e8b4abd2c596ebb0615b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_d6611c9189072c08839d56f6496f63ed",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "44ba9bb2ae3624d95d465f57173018d927ce7321c193b5dae1a9edef4dbda1da",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_94aa7ee9c1399f0ac1615227be890e54",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "30b29f1e2a3e5a91c34800c8917d32cf2f431200325f57d10507af86719fef5e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_ff8f5638e589be25d994070f031c73f4",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "4924590a80c6d306eb94b56bdbff44d58adefb39fa82027ced25d6828a97009e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_04a5ee0118c370d4f4be88a43aa90c1b",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "781dfd4349d513b18775e21539b7e0f80068331cda8171e7f497af3ec1327f04",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_71a7dea9a6d87e457404d7286bf51e2b",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3b2ec2ac2648fccaecfc4b4c538b851b0ccb3f8ad3ca50b62d0a3ced3c7f6846",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_c98fc3b8440d536b2dd11e209cf33406",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "94fe12a7a52a8bbaf15396a218e2c076d1536dde4e17dc748574cefd8169c4f9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_c7ef2b87fccb92355969d231b02a1d52",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7db4a518a942a167c2c7e174723233a76a951fa5868c7355e21d0c65f7d3474c",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_7187bd253b26502c413540ac56eccb23",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e5f75100ee7f4c750a8510a06e4548486805e59b9644a9db821a9f30b43bae0b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_ae8631b5be628fa89a790444be02b7b1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "31201b42359ff00215facfd332ffcad0dbc8f3aa6636be78748d7c65627d7783",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_d7203c97e13213534f5bd98272130f81",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "fa3e937601f39e6ee3c640954c194936cb60348d6056b25d55dee2bc6903df4b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_fe8c4b8e3259f973cd85613a2dd582bc",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a840532a81f17c0a75edd0ec6d8efe64c1a038f9b6695d6c14cc8a09a4f0fa70",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5907b6a0404a94ade64e82f398b1ccbdeaa9e6448e48118dd513f68e5601cf67",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_6e35df3dbb1bb66f7c23e82cdf0f6705509c4f08e5719edab77049660d8e632d",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "decee4214b8450933511e590d2832b934d4677248e14d6f543f307f535172184",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_253283e6dfe6bf332f2e466400c1f09394999e7935e86d6bb99a351d8d0b1f49",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "79f9c5ba7ed4132094ba42735aad0a52cc05a0488b09348e2d529b7e7f7bde77",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_28bc2d54b9a33dccb35df8513dc35a810077488a2f4be0c88b5d36a55a9e8bf8",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "2c03bbd1eb7bb43f987c5b939d7e4c1f9525e0bf44cc119caaa7209ce1da0d62",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_be13b51301211f686fd16c2f88309d8f847af74402b7d38c61ef79b645d99f79",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5135a627ab3a92b22f9095f8b7a1244a413dbbfcebb9c8af10b12433713bfea2",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_275d7261fb64f5cf5fc049ceac6422a7d6e64f153e09f81ddcf3311c1e2ffaa6",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "400235c602bb31436b58c849a91f6ebfdd23e986b92be1fa0be62816ed22e02b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_c21e7087e658c83a4ea68ba0339efa466e9023c10538de1236d5e94f360cd70f",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "4fa9e7214e0576119d1a57e2668af191798ac07a292e92652597d408a48a3dee",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_6e0f5b41382a11695ffc997f00f28eb2a1fd365fac56419e6a58bd35fcecaebc",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d32ebfeae4aed173ab33dea6eaa2f1774a55318286911cf55945d602f5a65991",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_330b38988296b847ce7943460949e4339ec66db537e4d03491747b2c39b920c0",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a8f948fb1a909603b196b209b48326d075d289455988c802edc62c570c9aff50",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_77f9c3e7ba9b17eb361ff2af6220464a5777f3a52ef415c3524ac42ab6e32f2c",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "78bd955b8fc3318e4ff50bdbf7811c16b70ddb84248a8798083b8970e4bec028",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_69a3e73ed85579645e6ee7eee831fcd273dc41967143d39561a8b07d44d4b8b7",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "028469a11c25a47fca738eabbd5a52d0ef1f1615d61f4b2f8e1f293fdd505b27",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_17d893819094787c341d61e34fc145d907ae4f229fc5bdf675450f9cbfc783e7",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5f4ce845aae780a28a6ca52d7384770e5e1c14ace44fb110b5e24f3916fa5c65",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_c52d555f957bd0bb3a403a52ba9a00707ea38b95680598413ab0c999a4f2e212",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "640ffcc90b1f729faab2669a5f61c9c11c9747cf8ae1383889ebd13d46f42398",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_1d2cb31b377e1584858df2e1571ab50af833573e09a8e92b509736d894751ff5",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "cb028fc3969d9c26cf5ca9642dc090d93b827f0c1e03b27f1f5b756717edc49f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_a58738eaf81c1bd3c20292b4d470433552c7c5bef4faf841e4da8e2a5a04681a",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3b998cec683e5010fa74d0f185f7e5d050601da4784bc6be30467cef0aeafef7",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_a5c335d39317cb0ece5d0ffe5dd536cba3b9c4c84da54f5c8876a3b6cd5520f4",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "90fbdb650c488db63d5b9b71192f1479ef2d91b856128d5e642184d8c7c1a20a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_23bb5dc1410c56ceab84080bd3239e6c9156f3761b93508f773dee7e448a70dc",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d6dbd4c7604d7514f9acc184b8c89b4abd4826fc3964657ec6ed70c1be1e614c",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_v2_64c076e4946245d3c0f988997bf90b10774d23a6344d856e147c744b2df6d98c",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6d527ee9aebfc4b5a51858def3ffca2bd834ab3b604a7bf74de2af6618ffd89d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "071fd5de68f58de404d1af0605a1f784f1d38a992403806a784a736488778673",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e04d2a807a300c6662f845d6ab5624d6e89e73f5ba8f5bb4f94c7bff4b6860ff",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "edc729ab56a52f8349bc0cacd8d780e5c87cae377fa0c2d7dc0c9b0ecb0f6cee",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "bc69601bd4bbd43e62b6176b30980615911ad1c7fdf515e66961c61eb34b1875",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "60275af6888b72aef4998300974e7e8aa78fd09810165db5c79319aaa9bcf62b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c8ae87b7beb32887de69bf62c31d0183b1a1ddc3af6025635a684292ad81b35e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "77503c2a38b5ceaa9eef1c5a562de997208c712f9682df0d96fb0bb0237cae59",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "673b94950696d9a0f3bbe02eef2ea73df1d52a098d31568a602adef8451d698b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "bcb2e7af866683d77702301b2524abc79722038fc2ec36a77191317c5893ca36",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "673e84dd5ff8fc7fb47cde9d3e51adb95cb7a1bd550f380ea139b046fb88909c",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_28c894d8ba19e7e67cb9ba7c42e105eed5ca58a59c4ceca0c7408f52594c95b8",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "cfd2c8c929b7130eeaac6ece9f8e7f0bc3c59309e76fe5b6c0e3991ccf95f297",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_1334f76a18fa26174b95e26b35b43835b862ce8ee972a1690c86e1f6a1cd944a",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "286f05e30e22b0625e0771535f9bbc1453f6ae2e837b7d73deb43b17428c8813",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_a83b81d070f1360d8a60c651843041cb5c61f1fc4633236f2ab988e8d3479bd6",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a78593e2661a2338009b5f68daf7eb0307aef7a4adcc07889e50bab61e9ea7ba",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_04c7fa4b87c13f202dba5a03f559ae0e8b239ee18fefdb311a98e91d468fa382",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f37ec628a2e35da1a564a409f1d7b50c4b395bfcf18924d942d84e7fc7942862",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_f921979e443de1698939363ed152616efddf38ac85f86b887e9a95aa030499e8",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "22ef365d287170d15bd95d58e169d1f9d449c2a9e703e4978583ff8d8a4bf195",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_d35e036ba69d4ba201f051fe26af47afe86433f54ea95b6fe4088aa6270dd583",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3bc7c0cda3e6043334c52d65131b0120fa2074ecfe00b50dc63f421e9191a282",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_96db968abf69e8d5ab272b57ae9b3b03dea9fdb0d85a49a909e9278a750fe251",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "82062b9bfb53e0f09e6b6914c963d7072f7bfb566227252a3ae970931ff53587",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_f910246c318863b1e628583a1df1587320c1b30aa9863de1b9d81f53bb7685ff",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "72bee08c0037bc8acd5648600a23e3c494a84f1445dc2fcced39e53ebcb74b15",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_dd144816e0f37e74b81c33ef1e9f3aa9854394c24f8c4e1aaa220298fc468adc",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "1b5d741a634acdfafc07dc168a2d3cb760ffcba1f301576355b77d92b617bf12",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_29e86874a03d7177a3464b645c2aed84fcb7ff0ba03fa4194924fa8e0b5b66f6",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "874cebd02cdd9c845bab00aa3a48f719a154fb55b6d55ed01da19d88ff587dd9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_bec710dd5d8aaedbe8d8a8a02449766d7b462afd4f4b43ab7d22de84711a1fcf",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "41902cd13cb8b432bcbababc73893a120e2e8405a8afaa3a0a87af4150c37511",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_ebdf45cdf6ac3d3f84e739c373a70f88420a80add1b1eb9fff91e5bf21630dfd",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "836cb72f6cd2bbab67fea7cca57e56f8dc90f5579a0023c060afcfc658c222db",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_3ee6675e24dbdd6250c2b9ade267b0bf619dcd74705f70367fec3724e92f781d",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "32c9ee836145124688c752b89451f814097d23e7493e1e43d2b313bef5654635",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_1a3a2a52d28711c82564f3ee1e51c7acbd19124e93464a9043a583955ae9d6be",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "cf03e4d9fe4246f012201035a7d8cf104f7f483935ad58407513a256207037ad",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_55368ff56f1d227fb93058163d20c9f0136c8de57094ee1b9c8e0a8155fb9547",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "11d0ee69a4ef578facb9b850dd8f7ed13fd8aa561bd14c9fdec9296dce985e50",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_6fa48ed9517b876d284dafb574c075fb99073925aed07831ce0bc7a4b33a69a8",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "05d47e4abe62c127e5bb2ba801ea79aacc365466176c700571d4fa7fb66d315b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_7a72efc0f7f735ecba4dc2bbd3893571a3d5dad279f9b7597ab7865a7cd07902",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a365a0ff06df812cf34b960bf424328e21fd63e84cf7aa2deec879628e222615",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_0b67acf334a35e41ec583840cf33bb0a1dd0816fef879cb1a9df404c41018fe4",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "296a2a646c8a0d1cd56ca5b7786f4c2e6f0a22a728d4cf89cca6597252ea3dee",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_40e1a4072b178a690bb65ffccb06d1ed4491b282bdbf7a969c919342441f4900",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5ec1c1756e32a88c052f1a268ee204923dc7419b3e86c322ca3a7bf4285eb25a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_2850c989ef3bb163e88ba338cba4c33d34f5ad9fbe8484e7adf6ef7586083445",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9668bd31c0ee62ec582b21b6cf6dc47605c1c34701f6737bbe833209372d75fc",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_b9d92e8721fe3d5bf138dc77ce3ee0aa7d1b2242b945efbc1c8943ad0c573142",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "11c8275a157b9c8fc47ab0dd63acc7abdcc8ae19e09e381f15d231fcd0e69e71",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_fd0ff6b0ca039052fbe15191380583665d7a2b1c31a379684e254c332b5b4247",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c7d0b55bc02b9f925f11e6e0cad3ca40329e1d7a19c7af69bf3de26056a9fd5a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_3f816ad3b77591647ea1df645a270a5241708ccb3c4af578cce6479e877e5779",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "32e3d8cc6acc071c6e66f0dbf680662286872db5cd7be5d85ba7878902d26b87",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_b0ba738410ff4447da19dcbe3b3b086b846778beed6f7ff950563d265f5bdfb0",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "1157f449a69390cd415aa4552989cf4c0953a8142bb2a93054a66e7c929a17b9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_9caf442461c41e1715bff5b9ae05cac1c314f9542724837e61a0382ff08a728c",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d6069407fd15dc0947dcf3f252632c4d36ebeea13d00c295816c852a55775542",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_2b2b7f88704ac384d981503753d490c9302ac92b3a095181d792800cf87252d5",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8b71063456a04cf189f10b97cda789547e1fb3a0afa5b5e83926a58b357379d0",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_846c09f850f16818bc00fc43ae964d970d03c86df5cd3c3f9a028be11ec343a6",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8109ff696b6a72496638335308fda08057114d39800faa57ed2905d04bd9b481",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_d12a93d655c8dae877bc9b6dc70575a54893ea03ed1288d130f9ae3f493efa4e",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "aaef0e1c36bcca56d29694716581a87d679e3c63a1f6cbc776447fac9f65589b",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_2b3717fb73ab7d02adf850c3f8da1876f3181fbbe44ce58125d9e73e4c83c7b2",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d443e6c1d556febd371550e962ce2c8061dae07a0103861d6a4468011bc9baff",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_61382eb13ef5979431059f3aac4b26d1ea034363f7dcedd89dbdb2aafd1d1ada",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e3748a21223caf4e2d0e47fb889b66599b914ac854bf835ce313c7e85754e60e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_ef27f693b63653bfbc338ffef61eecb98c40e2e65659df481cbff5748386318c",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c9111b961ca5d2635affe7265ca23a1c7dc89b39827451e1566abe3d5765aec0",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_60e53ed73a4bb05d8835ba5e490aebcf6872bde8cd130ac6d12b13330207325d",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d9483374e92591aae0fbbce63d9eb03e7e5d79ca7ad9403c0901730bd0f17c5e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_4cd32871391f1d72e73915e191a0f332c7a5d5011c327229dd69067b33db4438",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3e58b40470fea39ace5da1172e9d43e119744ebebc463fbaa99fb65b33aa9001",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_add1270dbab7bfa060dfbaf027d41ed57e2331f1489998ca201e99a32c398897",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "b63cba4c9e85c78e8e0849ada21b35488b12a952f459e71896049d1b9385c424",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_2f5f7696bcd86519ab389fcbe3da9c14806fd0c31338b803dcde77877e2468ed",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e478d2db4201f6cbc8463d00c74a49138cc49f6ad2defc1ee21c8ddc82f372f2",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_8eff2bd9a57667424c5f56d4c44e38858b72a83dc62635e12f37833d764908a6",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5d4fd582111f0744e9c38288bf00f5c0002b583bcc3e78a739993c8df0ebcdef",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_e0cba0825ada33bba5c353a15ec61607f8222681fa418fbdd35053d94b775735",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d570e3c5e94189c56cf6862d8b18b02426f24fcd82b7c4c5a79240ad1d8359c7",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_5741aaf575ff5d2d8d285ef2f2410f8d9ce69c23ead90a2711fdc305a1169583",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "1df4f3e2ffedc54603efb48ea6d733f3152ae9c7e55ff8388585690975d0d2e3",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_a2ccd9f3763b285eafe0c18331d24c1abe19d80e4ea4669daa476892a111c4ee",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "089c781f9de80304b8f1c06f57e4ccac17b90fc300e313ab065d7c98b765e9e2",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_ee395c8f3f5ed0000789ae9973d8a65ac204256cfffe48e72798b35b0044913e",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0179fb36c1e957e96aacbaf67b495959b5b52735fb0035302b72bc97a5331bad",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_0cfeb254c01490404cf35e8218ce88a2de0b70e1ca600de8f1f5d6686fd58013",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6866bf1065ed0d45791cebb212ad5970dbf2d8e11991217d740d9967df7c4bcc",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_be32187f13545f85e59b39f353cca3fd60c5c1713527889bb9276a67797fcb6b",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "b0a3442c545197e11e12141e903e1713eca921d7a932d593126bced71ad5ede9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_a26812630d5ddc97004b2fdad26ef9c45b480fe9cbf5d7b945703e9da95d8eaf",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7d1eb94e7e6a115aac7080379a9caf4ef519ffd6fd384a5bd468268a2c3e4aa9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_9aab2a5fa1c010ffa8ce83fe52375d248e1ee1b143b4bfbe98573fe9fad30b45",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "780f2b655dc0442b92284bf6e40b6a97a86a97e7139c297b0b16dc3e9fe56750",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_cd4a142ff996eb76a0543d9664865943a4c8edc57fb39dca6d85cb0c534ac978",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "5d11e92e1cfa0ce92c08f77ba96bc82c18416208470c3e3e86296c7492735936",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_a27a7edf6f4806a684ddc570dc5eb72c35754ac9679b3cefd2469cfb6138f215",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "24410d6a753f2c8d66551900675d53d0c0c1c18e5c4227fcaa912beca2df4cb0",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_dc3d7a936af525004c8eb830ba507256e3493f40a8c16233a3b33982f8a39fd9",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "af8307f247c1f5663f68971edcef0f14d9105dc4f39a7a8aa1f93d534546462f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_0cf0e9d52eb695d8d7e7434c125cec9e8174475b59785b28fe49af42e61363ad",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f936837cb664b0c1f3c1e1e049429e0ccfdf0ca5e416433c7f0fe4b0f3e26672",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_ac8355485e3d2fe470466761bcd1afd36ad0da23b8cc2b8eeab6f991ce0bc067",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "78decb6f3d26e7b25e896d0a4f6f9062ec27cb985f10fc2f02dd8be8f119bdf0",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_80549c7067a7c7863558955bb04ebef614c3e64421dd07b78ed6d556de2053b7",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3ed52898f656e50f1f73e314bf906119679c6a99224b51abadec9e4f021e515d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_3414051ecc645d3777317cb58bbf11009f47a39ad1b1edd460ddcd2a43f4c27f",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d49c87f88c09fb5e447a6583133f4f0f702e24cfe56679ea1acb67b0ec0b3f71",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_2d2e5e54e32691342e96a869edb1d47a3cee42927f65335b9b868b4d0c7e8b6a",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0f2b4d9c60169731df8a0890cd4023d4744114c082044e14ea3cd100edd5af73",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_8d23938c5754afaed724def0245be4b3847630a537aedd68e1318d7394e143ca",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a970bb7d892f88a197346e0ec784991cef5159c99902153cf58d6735f5d725bb",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_3df2ab1be37447b33c53b13892cdf8a2ce54428e04b6f64548ec210c5d550af7",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9d8a1a0f54b145cdc78841a07d222f6b0ff0d73f7cbc5576dd8da0321023de06",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_099651f90e06ddbb17d8603cc0eb859f447a31401886d436cfdfe93a74660a26",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "fa4d23dfbb046fea2e3944a2c43f39edcaadc515cd4d4c0602eebc499079747a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_0564dc37b7d4d92135c6c002629f78d69c6be1b9c8496bf24240be00a6ad952f",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "14a9539b3989cc6d2af5deeeba50cbb3c49355ce4d2912addf5db5f17b2f1f34",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_078b980b664e2753cdba340cfc89388d382c5987ad96916667011b155da001dd",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "bbda5ad83cd3dc9798fc4c9003832506d36dcbb6b1a7ae6716ef6d56111cea20",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_8ccd4cf2047c529453a6d33e42933719be5e986f0d86b0d470c8b30c6b1d0a9e",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8bff931c0d3cd36d6e61120f5e463914aa9bd9ff482a3d067ac300efac442a5a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_6274eb2e10f711e7a786f5455f46039b9da42ece89303e13ea732873d86b7d66",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "b93991a1bbbfb4eff1a510dfd017d731f5d276d74ad9fb291e202601bd878757",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_f603aee73483ffc33119c8992e7e8c90f175cd7548e7349b4597713c32b354b5",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "12f2f735ec43586f215229f03aecb6ed13103952d016176c79886cfebb8d6c19",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_14483798effc504d4a405feea8cda660e91033832b6365fb1d0a3b2d49998278",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0d7d164768dd05d0020ce0d22bc55b6e9d7eb5071acf8e6c1740e874972a7858",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_778e211ffdc4f3d2954199c2f95a65b70c9e0ed7634be5817e393d86ecaec3c8",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c340f5171bc970a35b11a4e8c7c9f83db25e24bbe139a6bc00b53c167b2b8789",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_1e1020baf7c172c95e3644e59954f86fdcd0e52686a74f7c693f8f319eb187c9",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7198b4aba026ed5b775a44b4990a320a6b14f90607b5a97d8cfbdb8c26accf02",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_af3a37d75096d6a16085df7f985e309d0e579541495fe4301c75cac8d6e60058",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f932f908b190aade9a3be531d26593dedae7b8859d361877465c8b8fc6509650",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_9c87fd0a40951f25ac4bd9a774ffb7cedc9091ee8f8c346820f0c5cdf3ae86af",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0c420ac1e404f8b5d741301c407e93bf3e3f8c95f1d4539ba44a2e4f305e578a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_a561e54d4cc864408e7e89b6af4e436d42460bfd1da6880c537dd3ae7974deb9",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "9daa91691f4c945b339d45cfb02434550b53a356a56d3819c24dd11a0eba7e7e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_d9e0a64b2e3776fcd0027edc87d3bf16a38004fb6a3a2b45929cd96bbe267e83",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6681bd1ec2dbf39492022a413f260aaa3313062cee9b3529988797dad9c9dce5",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_cc7a4611c6456002cb6a6f3897f03b2615ee1b5ce59e180c92b35eaa29c957da",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8617d1aa13b376a2e00d0f1badead150432661cea5d894c7cadd134d829a284a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_b75005ff211e8bcb5349091111f46440d6eaffd23ae209d437170e9116f6b08e",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "16adf89e7f04c9f2528795621d0537197758a9ef1e9506d98e708ee998e38821",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_3506070d16a54c1978ed4ab847ed35bacba8a5366e3f0f0314401082dfae8fae",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e53482fb23c3b394be1ae35f18ba173f602862cc0e1f58f0aa04ed8b4eaa278c",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_b5c4e7d989ea594b0ca2abbb3c52d5f7",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3133932bdc1474bb958cc2e170b159b2f333544e484f19182977826610841f4e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_21f8e40dcae026d1eb34c88755c69d0f",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "cfe613782746b1515a626a5ca4f354a4c0a611751ec1d07c002612b000a5ab5f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_52819e8b179c524ecf280fcb407991ba",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f5ee1399d82fff3e290ef7c79b154968e409ec0b8021957a24e4c96f723e2b90",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_aafcc569d707c40f3a98625c3427fd9d",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "6fa2835afa1dbbb7c289719769a5029422b03a245c177cfacacd9d82603ab8de",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_42f16a1c94050f4201bbdda0e54ee9a41eed1b8659482e30a94d9724d88d4d4e",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "897e715f46a6f80954d769277b25f145fef05bb5c33e76fbef1123ef3bc5a900",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_68f6d96fb9c901c838b94545a07ec06bbde2186cb707583c693bac6be3bfcae5",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a865e7137ae62dc7058983c0e8cdff2fd884b8003e2d51d7537ec37654daa0d4",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_53936c1890114690b404b92f57ff72e89dfe5086192aa347d491d072b56b6823",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "2f656bdf0dd4b3915a45f42b34ac87b66b6ea9bc17cac56d709f178f27a46a64",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_33d6809a676008c293d07bf082ec23df08c78f0c70543bd561fc294033683414",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "43e4506477353031ec03281b93fd235256cbdcf1e6d65137a67febec84e0ef7a",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_147d117e88a62cae8a57d194e1d47e05d5ffaa5bb18ef7fce06d8b88fb4861fc",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "23821c7e1ce657fc11567100076ef3951a86fbe89a81eb95e41103be0e4e75f6",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_318d149c102a9cc72e7a75341c53ed00dff9874625811646b8d755416f64fe93",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "8bf7bac71d38d149bed4c6baac0802f5745bbec4610f8ae3a7ea5c7d2dfed966",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_b3f2b76b8ff6ecd4ded1c1cd92d6c316ba439b59460bfdf4cb48af3a45c702df",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "bc032e0dcfa48443f845aa734ec670bc87652e9841ea23383978744e7fa7b74f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_c69a7562440115c59fe168656684199ab54266ea85e23685c38d95ef1cdaae65",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e38dc76ee12335ffd0b30cebd45e44dbcf8695e408feb8ed9030c82c12730b2e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_8e3a951527deb310915790043232cac738236fa42fc17525a52ef6e5264ed58f",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "791756f95c3cc12f345e82c56a9cad648e9f6f5618573ef81862a20733d2a2ad",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_716804b2e483e5ddd2cbf1e60f6a6cf22be118f9a325478a3a9f2952f9bfc80c",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "0c743425b6028728a0f25f02b826637d107b26c9f2203af43e596388ff636fc7",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_491546a18066cf54824ce745761d640e8962b9b6877087958540bf697e7e9a06",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "e0db17577d022390d6c7e2c12ca7c73594d2fc3cd8d3a51aa65cd8cad539c4f9",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_74272cdf26f41b9556b06fee5bf81b22e82cdaef1ee9d66d74f616fd37b9c0fb",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "1fea025537d828dd943f8dca01e8d9e6d4ad4f790be18147dcff4d3b41f845aa",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_d91a559a8500e88e79832a8ee10fa36fc75a74e52a52e12cf12303e0301832a5",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "be6edd5ef26a6db7b558f8a1c5adf0d3f8ae8404a711f522a54c3412103059f3",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_12495d0ff0e717943fa8ed514961ad0f",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d7363b8ef581fd8a67a354f8f9b4e70356c41ae17a1eaeef001b0bcb53aeb818",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_168cf51dfc4527316321308cfb1d53f5",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c3e0db3c73ff7b89a5bf78526c885db19e72548c3fbe3bb5eccd2c60aa1be159",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_ba50a5297448982c8e7eb175b321e8df",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "20ec616a15bf6a36272a3e7591f6411aebff5f927d7c4f199244a1cf1d8217ec",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_base_poly_2847bbd21aa5cb2bb8f239a0aa39ec56",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "df157ed5382cb22bb934dafa7580509e419ee5eb99ce3c29b06376045c65d090",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_lookup_poly_b0c50df2ab2e539ba69c4beef323462c",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "d3df427c16bed6c1bd4a118119c5a802bf3ae65bab1f10b9852c8cd94f73b60f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_db2d826113e988cb6087f10b7798b9d701f7bbc3d5a7696f826e949b697eb23b",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "936e25d5a6cdd3c9798e3cba50196d0dd68a95980ff7920ee085ec83d1f800df",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_84b3af2220590f405b39198e954937cc89d0ed2ceca34f6a9f5f777017b8f026",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f05ade31817a42b23fd101b6188d196df395e55ddd900686a111130300734d40",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_poly_v1_4f71be6dd54e2014809338b17e9ee94c9e1c176dcabf9dcdf46e038ca7f619bc",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "7686e2667151f4ece044db1505a1e20ad6db9f328d76a51a5ffd2c018b6aabc8",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_block_scan_v1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "3608a8b50040f109034fcbffa92ac40dc30cc352324b417d5dcae75ac3f2fb4e",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_scan_blocks_v1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "047b3d68b7c06bae4a8dfc4d719fdf5e234cb1ecb09a635049984d276854e3df",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_finalize_v1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "c6aaf8c98c7291de1bac3db1a5721fc5549e8ccbb5738d728d2fadffed0cd6a1",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_cumulative_block_scan_v1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "607c195fe694e64a240c282d9c8ab3683de892d918b74687134cb4b0b8d5594f",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_cumulative_scan_blocks_v1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "4437e6024432587fe95f932aaf2150279a08f88f40092ecce72d8b5b29e10ffa",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_cumulative_finalize_v1",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "a10a7ebb3868ec872a8198aa10ccb7e1095eeae0e0cb2d2f5bfd4624d9e0751d",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_9da81d8cded31a114749d226ae9a61d9d1ac8102237dd046c88495a3cc8e7dcd",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "2e7d3a0c4dcd1354ad3faed46bbe82e36f2de905b286e8b98767133fe29a4b25",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_b3a31aa39a41774ec4bef8362b9b2dabe691e687f0add157cd317d87832a93a3",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "f943e737597c1f13a2d8ca8501593e6f68b81f3789a6128ff285eb5389a3eaba",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_cfb65760d753d5504d8a15adfd6adc30598eee14e51c2c224d405d5bd0ea2f51",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "543346eb7fce717a654f54172db3cdc3f9baa7f6d5969abb05c93c9fdfa40dd4",
+      "function_constants": []
+    },
+    {
+      "name": "stwo_zig_framework_interaction_v1_364edd3f7b7fd165d7cde71fa96bf522fe4c8d8f93e8044f8896fc51d0a98775",
+      "owner": "riscv_polynomials",
+      "minimum_core_shader_abi": 22,
+      "declaration_sha256": "80e798e33350115a4876321f54f64a09a39f9db9b1293ab40cf1df2da900e0b7",
+      "function_constants": []
+    }
+  ]
+}

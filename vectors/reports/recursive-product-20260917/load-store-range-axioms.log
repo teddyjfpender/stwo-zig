@@ -1,0 +1,9 @@
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.field_quarter_decomposition' depends on axioms: [propext, Quot.sound]
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.quarter_lt_two_pow_28' depends on axioms: [propext, Quot.sound]
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.field_doubled_base_high' depends on axioms: [propext, Quot.sound]
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.base_lt_two_pow_30' depends on axioms: [propext, Quot.sound]
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.base_displacement_no_wrap' depends on axioms: [propext, Quot.sound]
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.largest_word_address' does not depend on any axioms
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.first_out_of_range_word' does not depend on any axioms
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.low_lookup_is_necessary' does not depend on any axioms
+'RiscvRefinement.Air.Family.LoadStoreAddressRange.doubled_base_lookup_is_necessary' does not depend on any axioms

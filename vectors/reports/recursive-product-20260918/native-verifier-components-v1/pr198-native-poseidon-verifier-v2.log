@@ -1,0 +1,6 @@
+1/5 recursion_poseidon_degree3_test_root.test_0...OK
+2/5 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 Poseidon matches legacy permutation and all relation modes...OK
+3/5 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 Poseidon constrains all permutation columns even in padding...OK
+4/5 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 provider saves padded cells without raising quotient degree...OK
+5/5 air.memory_commitment.poseidon2_degree3_component.test.degree3 Poseidon prepared rows match full secure evaluation off-domain...OK
+All 5 tests passed.

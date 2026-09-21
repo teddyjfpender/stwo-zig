@@ -23,7 +23,7 @@ const fri_rows = @import("air/fri_rows_authority_heterogeneous_v2.zig");
 const fri_descriptor = @import("air/fri_rows_program_descriptor_v2.zig");
 const universal_manifest = @import("air/universal_manifest.zig");
 const universal_roster = @import("air/universal_roster.zig");
-const range_bridge = @import("air/range_check_8_8_bridge.zig");
+const range_contract = @import("air/range_check_8_8_contract.zig");
 const public_rows = @import("binary_public_rows_program_heterogeneous_v2.zig");
 const composition = @import("binary_composition_rows_heterogeneous_v2.zig");
 const arithmetic = @import("binary_arithmetic_rows_heterogeneous_v2.zig");
@@ -404,7 +404,7 @@ fn rowLogSizes(input: CompilerInputV1) [ROW_COUNT]u32 {
     @memcpy(result[30..33], &input.arithmetic_program.rows.log_sizes);
     result[33] = input.merkle_program.geometry.log_size;
     result[34] = input.provider_program.log_size;
-    result[35] = range_bridge.LOG_SIZE;
+    result[35] = range_contract.LOG_SIZE;
     return result;
 }
 
@@ -539,10 +539,10 @@ fn rowIdentity(row: usize, log_size: u32, owner: digest.Digest) digest.Digest {
 fn rangeProgramIdentity() digest.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(RANGE_PROGRAM_DOMAIN);
-    hash.update(&range_bridge.SOURCE_AUTHORITY_DIGEST);
-    hash.update(&range_bridge.SEMANTIC_DIGEST);
-    hash.update(&range_bridge.BINDING_DIGEST);
-    hashInt(&hash, u32, range_bridge.LOG_SIZE);
+    hash.update(&range_contract.SOURCE_AUTHORITY_DIGEST);
+    hash.update(&range_contract.SEMANTIC_DIGEST);
+    hash.update(&range_contract.BINDING_DIGEST);
+    hashInt(&hash, u32, range_contract.LOG_SIZE);
     return hash.finalResult();
 }
 

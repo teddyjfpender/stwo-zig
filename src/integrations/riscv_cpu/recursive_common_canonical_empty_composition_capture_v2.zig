@@ -547,8 +547,7 @@ fn recordProgram(
     );
     cursor += composition_v3.PROGRAM_KIND_COUNT;
     var public_words: [node_public.AIR_WORD_COUNT]recorder.Scalar = undefined;
-    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT],
-        base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
+    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT], base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
     cursor += composition_v3.STATEMENT_WORD_COUNT;
     for (sampled_values) |*value|
         value.* = composition_v3.takeSecureRecorderInput(base_inputs, &cursor);

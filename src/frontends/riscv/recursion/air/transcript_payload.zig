@@ -210,20 +210,7 @@ pub const SEMANTIC_DIGEST = hexDigest(
 pub const STATIC_PROFILE_DIGEST_HEX =
     "bdb80afc971fe5c1d8483330df0d58453d9f1b22139ed7eed0fd07f488be762a";
 
-pub const VerifierInputKind = enum(u32) {
-    protocol = 1,
-    statement = 2,
-    pcs_parameters = 3,
-    commitment = 4,
-    claimed_sum = 5,
-    sampled_value = 6,
-    fri_commitment = 7,
-    last_layer_coefficient = 8,
-    interaction_pow_nonce = 9,
-    pcs_pow_nonce = 10,
-    vm_public_claim_digest = 11,
-    vm_air_claimed_sum = 12,
-};
+pub const VerifierInputKind = @import("verifier_wire_protocol.zig").VerifierInputKind;
 pub const INPUT_KIND_COUNT: u8 = std.enums.values(VerifierInputKind).len;
 
 pub const MAIN_COLUMN_NAMES = [PHYSICAL_MAIN_COLUMN_COUNT][]const u8{

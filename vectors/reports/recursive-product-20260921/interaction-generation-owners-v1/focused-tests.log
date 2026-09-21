@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 124/124 tests passed
+test-interaction-witness-work success
++- stwo_riscv_frontend test count floor success
+   +- run test 124 passed 704ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:613M
+

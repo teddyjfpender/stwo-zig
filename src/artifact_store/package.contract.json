@@ -52,6 +52,9 @@
       "types_test.zig::artifact keys: canonical Zig semantic and execution golden vectors"
     ],
     "invariant_tests": [
+      "publication_test.zig::artifact store: duplicate publication preserves the first store's cached identity",
+      "publication_test.zig::artifact store: ingested snapshots retain identity after publisher returns",
+      "publication_test.zig::artifact store: publication returns a resolvable cached identity",
       "store_test.zig::artifact store: concurrent store instances publish one object",
       "store_test.zig::artifact store: zero-byte blob persists across reopened instances",
       "types_test.zig::artifact manifest: validator version revalidates without changing proof key"

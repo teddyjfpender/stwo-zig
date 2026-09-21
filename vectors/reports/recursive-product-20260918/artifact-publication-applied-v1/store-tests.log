@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 20/20 tests passed
+test success
++- run test 20 passed 1s MaxRSS:11M
+   +- compile test Debug native success 779ms MaxRSS:277M
+

@@ -3,9 +3,9 @@
 //! A second lookup supplies protocol-defined zero verifier inputs.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../../air/lang/mod.zig");
+const lang = @import("../../air/lang/definition.zig");
 const effects = @import("relation_effect.zig");
-const lowering = @import("verifier_arithmetic_lowering.zig");
+const public_wire = @import("verifier_wire_protocol.zig");
 const M31 = core.fields.m31.M31;
 const Id = lang.types.ValueId;
 pub const STABLE_NAME = "recursion.fixed_wire.v3";
@@ -74,7 +74,7 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
     return .{ .arena = arena, .roots = .{root}, .constraints = .{constraint}, .events = events };
 }
 
-pub fn logicalRow(term: lowering.PublicWireTerm) !Row {
+pub fn logicalRow(term: public_wire.PublicWireTerm) !Row {
     if (term.active_in != .binary or term.role == .request or term.circuit_id >= core.fields.m31.Modulus or
         term.node_id >= core.fields.m31.Modulus or term.multiplicity == 0 or term.multiplicity >= core.fields.m31.Modulus)
         return error.InvalidFixedWireTerm;
@@ -88,6 +88,6 @@ pub fn logicalRow(term: lowering.PublicWireTerm) !Row {
 pub fn zeroVerifierInputRow(verifier_id: u32, item: u32, word: u32) !Row {
     if (verifier_id < 1 or verifier_id > 2 or item >= core.fields.m31.Modulus or word >= 4)
         return error.InvalidFixedWireTerm;
-    const kind = @intFromEnum(@import("transcript_payload.zig").VerifierInputKind.claimed_sum);
+    const kind = @intFromEnum(public_wire.VerifierInputKind.claimed_sum);
     return .{ M31.one(), M31.one(), M31.fromCanonical(verifier_id), M31.fromCanonical(kind), M31.fromCanonical(item), M31.fromCanonical(word), M31.zero(), M31.zero(), M31.zero(), M31.one() };
 }

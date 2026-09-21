@@ -1,0 +1,15 @@
+test-compact-poseidon-authority
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+COMPACT_POSEIDON_CANONICAL_V2=e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf
+
+Build Summary: 8/8 steps succeeded; 277/278 tests passed; 1 skipped
+test-merkle-authority success
++- stwo_riscv_frontend test count floor success
+   +- run test 150 passed 1 skipped 981ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 9s MaxRSS:788M
+test-compact-poseidon-authority success
++- stwo_riscv_frontend test count floor success
+   +- run test 127 passed 1s MaxRSS:3M
+      +- compile test ReleaseSafe native success 8s MaxRSS:738M
+

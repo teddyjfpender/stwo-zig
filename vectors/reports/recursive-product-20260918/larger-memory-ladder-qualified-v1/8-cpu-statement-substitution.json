@@ -1,0 +1,515 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "node": "leaf-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-0",
+        "f89dba4d444dc441deb47e64ae7d23c64258669b989f36bc1aa5998fe70c1f9d",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 96119750,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[248,157,186,77,68,77,196,65,222,180,126,100,174,125,35,198,66,88,102,155,152,159,54,188,26,165,153,143,231,12,31,157],\"expected_wire_sha256\":[30,60,8,189,55,74,50,43,155,124,246,59,116,17,25,31,49,9,206,107,215,10,52,82,2,204,46,65,192,207,131,255],\"claims_sha256\":[215,102,182,89,94,60,63,59,178,123,15,39,211,88,145,102,173,208,49,172,124,158,146,142,146,230,31,252,211,241,30,176],\"proof_sha256\":[17,150,54,153,60,85,228,43,221,93,178,159,104,154,193,223,243,241,95,142,100,208,87,187,79,207,239,219,84,102,141,82],\"proof_bytes\":2492096,\"request_ns\":85140583,\"verify_ns\":73642500,\"transcript_digest\":[62572103,640692816,493960977,1138118651,896315620,1330065033,866506404,1801780928]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-0",
+        "f89dba4d444dc441deb47e64ae7d23c64258669b989f36bc1aa5998fe70c1f9d",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 36963291,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-1",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-1",
+        "d6a99fb9c255cd3f3c71ba6304be18231f392bd73cf340e8884a41143849c998",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-1-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 96878458,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[214,169,159,185,194,85,205,63,60,113,186,99,4,190,24,35,31,57,43,215,60,243,64,232,136,74,65,20,56,73,201,152],\"expected_wire_sha256\":[245,127,156,126,158,67,201,251,205,93,248,29,84,64,1,186,39,55,86,23,209,116,162,52,106,22,185,94,186,66,211,220],\"claims_sha256\":[94,247,12,175,198,111,51,94,20,143,66,135,255,137,248,193,158,232,83,93,252,166,117,100,181,195,139,252,175,29,62,113],\"proof_sha256\":[81,11,22,61,57,153,202,107,70,206,226,8,100,31,55,12,175,69,134,116,212,81,221,194,125,213,245,61,52,4,93,25],\"proof_bytes\":2491193,\"request_ns\":86197875,\"verify_ns\":74811459,\"transcript_digest\":[1444855778,98539433,422335169,1698200723,1737916694,554974417,1569577548,574843575]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-1",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-1",
+        "d6a99fb9c255cd3f3c71ba6304be18231f392bd73cf340e8884a41143849c998",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-1-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 35562625,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-2",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-2",
+        "fd0743bd228b936c88f910fbd8c151d119f280bdb2310b22c1818efab77bde0c",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-2-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 95911667,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[253,7,67,189,34,139,147,108,136,249,16,251,216,193,81,209,25,242,128,189,178,49,11,34,193,129,142,250,183,123,222,12],\"expected_wire_sha256\":[96,112,140,147,140,216,7,173,134,13,167,58,34,86,25,228,43,110,1,213,138,0,239,205,187,177,171,81,70,152,144,248],\"claims_sha256\":[239,27,124,30,246,179,99,6,153,81,232,223,233,141,69,180,200,34,114,117,189,149,235,185,233,47,186,133,90,164,41,193],\"proof_sha256\":[215,186,136,55,166,140,128,104,130,119,253,66,128,164,103,31,156,14,1,169,66,244,52,134,252,72,233,55,242,140,92,191],\"proof_bytes\":2496691,\"request_ns\":85632958,\"verify_ns\":74329084,\"transcript_digest\":[414026731,1536512887,78347884,1330865667,1293487851,520740177,893679266,1785952323]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-2",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-2",
+        "fd0743bd228b936c88f910fbd8c151d119f280bdb2310b22c1818efab77bde0c",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-2-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 37505584,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-3",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-3",
+        "e9d3b5d9f429c77bf49575f5e97c6bf9976c375679f399b3ca7f9de211f29de5",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-3-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 95082667,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[233,211,181,217,244,41,199,123,244,149,117,245,233,124,107,249,151,108,55,86,121,243,153,179,202,127,157,226,17,242,157,229],\"expected_wire_sha256\":[120,200,163,167,134,158,39,40,157,208,194,24,249,2,133,188,121,143,255,241,119,116,159,70,213,242,161,37,182,12,219,116],\"claims_sha256\":[239,117,95,5,7,183,37,193,177,177,174,143,42,89,184,117,111,13,70,68,72,28,203,173,145,202,29,84,131,122,74,218],\"proof_sha256\":[254,200,185,238,123,122,212,93,180,67,0,239,86,145,61,81,187,122,59,162,0,50,125,229,119,119,132,179,24,74,12,60],\"proof_bytes\":2498213,\"request_ns\":85145417,\"verify_ns\":73552208,\"transcript_digest\":[1785775657,1738711160,767772163,846463993,297621341,812187020,1541122312,1857258608]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-3",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-3",
+        "e9d3b5d9f429c77bf49575f5e97c6bf9976c375679f399b3ca7f9de211f29de5",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-3-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 35423500,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-4",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-4",
+        "1a2897d967339dd8ca86bcd79235e41e6d05b1fcfc5dc25f3fff5d5cbe652882",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-4-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 96055458,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[26,40,151,217,103,51,157,216,202,134,188,215,146,53,228,30,109,5,177,252,252,93,194,95,63,255,93,92,190,101,40,130],\"expected_wire_sha256\":[18,198,9,166,236,49,194,47,132,75,254,55,29,95,119,42,180,92,220,253,76,230,154,177,22,162,193,64,166,197,146,11],\"claims_sha256\":[13,97,133,192,185,236,16,94,25,232,242,9,92,205,201,50,244,254,140,97,247,111,139,204,32,16,22,31,241,85,175,37],\"proof_sha256\":[244,136,134,155,202,67,30,119,133,230,159,30,88,168,252,81,116,139,247,167,87,253,122,109,204,182,102,217,184,80,94,184],\"proof_bytes\":2481011,\"request_ns\":85270083,\"verify_ns\":73653500,\"transcript_digest\":[738372586,1155743463,1761794124,1359161099,284493026,398515277,1727936233,23725944]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-4",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-4",
+        "1a2897d967339dd8ca86bcd79235e41e6d05b1fcfc5dc25f3fff5d5cbe652882",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-4-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 37714541,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-5",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-5",
+        "e50dc9b87640583fef7574e554350343d90f427cede45eb28eb61416ab24cc8a",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-5-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 95050833,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[229,13,201,184,118,64,88,63,239,117,116,229,84,53,3,67,217,15,66,124,237,228,94,178,142,182,20,22,171,36,204,138],\"expected_wire_sha256\":[9,197,182,17,31,143,0,80,6,116,18,254,232,136,226,129,42,58,248,158,79,144,126,118,214,131,20,143,249,101,223,138],\"claims_sha256\":[54,186,206,230,63,24,67,87,210,208,83,151,166,236,180,21,25,190,210,21,146,61,106,49,224,8,47,23,232,234,181,255],\"proof_sha256\":[16,115,211,159,182,93,158,113,41,226,146,88,198,173,106,210,183,118,114,228,105,57,231,121,61,134,8,34,114,200,80,155],\"proof_bytes\":2489822,\"request_ns\":84948167,\"verify_ns\":73466417,\"transcript_digest\":[125321645,458499403,1711052324,315050556,1251078515,1973723922,2102757538,837464224]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-5",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-5",
+        "e50dc9b87640583fef7574e554350343d90f427cede45eb28eb61416ab24cc8a",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-5-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 38359167,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-6",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-6",
+        "1514c9939e7156cd0e087e6529695ea9ca77681d9ade351b5901f64aa0c3129f",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-6-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 96392417,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[21,20,201,147,158,113,86,205,14,8,126,101,41,105,94,169,202,119,104,29,154,222,53,27,89,1,246,74,160,195,18,159],\"expected_wire_sha256\":[74,123,105,185,245,194,75,35,43,130,49,96,110,197,130,112,6,149,95,200,57,161,236,100,134,14,30,109,146,246,104,36],\"claims_sha256\":[57,223,120,249,86,51,189,238,130,242,226,114,155,162,238,194,176,192,222,146,227,191,127,207,147,131,109,235,116,228,65,103],\"proof_sha256\":[7,113,91,160,134,92,112,176,157,53,86,145,225,110,202,255,104,195,60,162,205,63,183,166,99,217,89,9,243,38,71,255],\"proof_bytes\":2485314,\"request_ns\":85633417,\"verify_ns\":74170625,\"transcript_digest\":[684388062,1919206038,679139330,832746253,1693910664,464747467,690811061,2114850961]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-6",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-6",
+        "1514c9939e7156cd0e087e6529695ea9ca77681d9ade351b5901f64aa0c3129f",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-6-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 39504625,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-7",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-7",
+        "fe0d56ccd719a6106ef0b12d9ac475a1962fdb0d05b5ec73c2c71f9f16a95917",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-7-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 96285625,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[254,13,86,204,215,25,166,16,110,240,177,45,154,196,117,161,150,47,219,13,5,181,236,115,194,199,31,159,22,169,89,23],\"expected_wire_sha256\":[34,242,250,161,79,94,126,205,81,190,251,113,160,22,240,214,56,255,254,105,229,175,43,168,111,100,130,29,5,0,18,164],\"claims_sha256\":[62,242,242,185,151,219,147,236,250,132,109,33,84,192,134,191,89,52,127,226,109,63,57,177,50,84,9,13,110,90,59,210],\"proof_sha256\":[30,27,128,148,182,192,129,160,191,250,115,192,154,181,161,183,123,77,155,84,147,147,216,59,21,54,144,154,149,94,225,25],\"proof_bytes\":2485462,\"request_ns\":85472958,\"verify_ns\":74029459,\"transcript_digest\":[1049572346,1208152222,411814698,445934231,354309045,2019508405,549877688,2029152119]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-7",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-7",
+        "fe0d56ccd719a6106ef0b12d9ac475a1962fdb0d05b5ec73c2c71f9f16a95917",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-7-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 37724416,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-1-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-0",
+        "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 76866083,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[10,109,179,104,142,245,240,178,181,247,129,191,176,20,70,65,36,21,176,149,44,72,112,226,243,35,247,33,209,166,129,151],\"expected_root_sha256\":[163,108,186,164,235,185,109,109,253,134,26,197,62,63,81,31,132,209,144,32,206,63,28,67,67,28,211,108,30,134,105,164],\"claims_sha256\":[70,252,175,201,255,221,16,169,8,235,161,224,113,110,141,183,114,245,56,76,92,199,176,155,114,99,168,53,175,62,24,198],\"proof_sha256\":[24,91,50,9,212,143,144,201,159,45,88,55,18,53,121,229,115,230,201,78,154,101,108,151,170,90,23,187,206,129,131,58],\"proof_bytes\":2422946,\"request_ns\":66275458,\"verify_ns\":64764167,\"transcript_digest\":[691626653,2064022780,879748438,1404492647,429362426,380832919,651188127,1471087636]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-1-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-0",
+        "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 24139167,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-1-1",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-1",
+        "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-1-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 76453334,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[131,104,22,109,199,64,212,236,189,88,23,76,120,66,17,69,125,172,173,251,45,52,235,144,229,99,26,38,15,16,67,229],\"expected_root_sha256\":[231,106,147,8,177,192,61,242,210,21,157,179,224,72,168,111,228,222,214,124,69,39,176,28,20,22,225,111,164,147,109,253],\"claims_sha256\":[145,116,107,160,133,93,119,129,35,174,247,76,24,235,149,29,89,107,142,57,229,166,225,67,40,30,110,75,92,118,130,63],\"proof_sha256\":[181,211,30,117,201,99,14,184,157,205,63,183,163,69,212,239,138,112,17,21,182,210,208,52,145,167,155,0,94,194,112,240],\"proof_bytes\":2427635,\"request_ns\":66262083,\"verify_ns\":64758417,\"transcript_digest\":[498312948,1558884219,290462385,54646208,1821461478,1944776935,491901980,1746616102]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-1-1",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-1",
+        "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-1-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 24015416,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-1-2",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-2",
+        "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-2-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 76107375,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[41,193,207,68,23,141,135,22,37,12,92,143,251,21,211,209,253,25,38,150,63,17,14,244,149,112,255,134,7,115,154,121],\"expected_root_sha256\":[110,173,94,97,59,162,181,172,52,10,237,9,212,205,11,41,67,228,71,172,231,115,115,216,250,76,220,208,63,29,85,135],\"claims_sha256\":[137,53,199,42,190,192,86,41,22,174,73,53,148,184,135,79,24,232,193,66,198,28,63,200,8,134,187,220,20,87,54,250],\"proof_sha256\":[96,189,234,15,235,111,232,64,119,178,0,175,109,66,79,224,31,99,2,238,174,114,123,68,21,48,201,221,125,200,37,222],\"proof_bytes\":2412980,\"request_ns\":66240291,\"verify_ns\":64735416,\"transcript_digest\":[1212798795,1593770990,1268528565,1448181473,1745551140,169100785,653848297,1013821394]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-1-2",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-2",
+        "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-2-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 24478750,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-1-3",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-3",
+        "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-3-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 76547625,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[67,209,225,34,145,118,65,162,203,141,120,32,187,127,117,235,89,232,34,93,248,38,90,206,8,172,5,26,82,26,173,77],\"expected_root_sha256\":[41,93,63,106,219,134,183,107,154,88,143,185,65,113,46,144,9,157,91,49,187,55,81,23,224,22,238,158,213,214,226,20],\"claims_sha256\":[115,95,187,109,111,250,99,243,68,225,248,223,73,26,113,169,218,115,140,153,171,179,255,141,113,233,57,209,149,50,245,146],\"proof_sha256\":[226,35,78,139,3,104,97,191,7,72,188,250,25,147,244,252,67,195,170,119,68,139,28,97,249,112,34,93,10,56,177,106],\"proof_bytes\":2433843,\"request_ns\":66452583,\"verify_ns\":64930083,\"transcript_digest\":[252579297,1136628356,1880893434,817516929,389905864,1041920270,616418897,883490970]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-1-3",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-1-3",
+        "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-3-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 23319041,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-2-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-2-0",
+        "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-2-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 75512208,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[214,60,24,215,93,161,32,69,64,54,137,18,21,60,2,66,153,247,215,93,214,71,196,191,90,67,15,158,29,129,78,111],\"expected_root_sha256\":[133,77,233,101,11,232,217,137,86,227,135,255,245,27,163,43,48,70,251,105,90,98,180,39,127,190,85,219,56,68,51,184],\"claims_sha256\":[145,143,51,242,119,71,76,39,63,164,145,237,11,137,138,228,35,159,47,193,188,140,136,237,199,176,236,40,181,145,112,244],\"proof_sha256\":[238,51,220,177,211,249,199,196,142,97,184,101,183,84,249,47,194,181,121,88,211,35,224,169,225,10,130,181,143,183,32,77],\"proof_bytes\":2288135,\"request_ns\":65346708,\"verify_ns\":63903250,\"transcript_digest\":[414272659,1583093356,1127077980,1840697449,1286640090,1046630857,2124126568,995288156]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-2-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-2-0",
+        "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-2-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 23586209,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-2-1",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-2-1",
+        "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-2-1-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 75657875,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_q193\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[52,101,122,252,71,235,220,44,62,42,22,241,149,244,116,88,217,46,134,5,126,45,114,83,188,229,65,201,61,128,30,25],\"expected_root_sha256\":[235,100,49,220,244,33,63,158,98,114,62,197,121,213,50,36,159,209,157,122,172,113,194,208,168,163,114,203,149,241,91,201],\"claims_sha256\":[171,63,33,35,130,159,222,197,29,137,167,110,253,48,187,44,126,81,156,66,222,73,116,229,255,244,156,103,216,209,96,169],\"proof_sha256\":[220,172,249,253,168,146,27,5,227,237,147,115,236,205,104,251,34,180,49,52,85,126,70,93,209,213,105,71,121,100,17,83],\"proof_bytes\":2287668,\"request_ns\":65390958,\"verify_ns\":63970792,\"transcript_digest\":[1061393087,1698786851,645410230,1120324063,513790818,2002185703,1127412860,1461984239]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-2-1",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-2-1",
+        "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-2-1-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 23670333,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-3-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-3-0",
+        "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-3-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 75698500,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_two_child_parent_q193\",\"development_only\":true,\"publication_mode\":\"root\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[43,54,70,56,122,217,160,216,106,50,230,24,28,117,174,240,148,190,170,244,129,176,88,11,208,6,252,73,206,8,110,12],\"expected_root_sha256\":[189,249,149,127,224,29,110,114,200,174,151,175,231,135,81,130,99,197,157,73,129,224,15,210,38,249,188,185,180,245,88,172],\"claims_sha256\":[49,178,150,212,209,141,148,238,219,93,40,66,239,70,211,225,229,134,73,248,37,59,245,119,205,108,37,34,142,53,78,179],\"proof_sha256\":[146,45,152,84,36,75,24,7,249,118,40,193,15,14,143,169,78,251,221,88,53,171,159,248,209,106,237,27,129,185,188,187],\"proof_bytes\":2297319,\"request_ns\":65444750,\"verify_ns\":63985750,\"transcript_digest\":[1363178499,359520123,30481762,1207965486,1359941614,765315024,1715880267,520880010]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-3-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-8-cpu-tree-v1/parent-3-0",
+        "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-3-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 23512875,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    }
+  ],
+  "script_sha256": "5d15df57ef2f13e7081d113a4f12db727ffcbc8ddd9dfefc6722f799816edf12",
+  "inputs": {
+    "/private/tmp/pr198-useful-parent-setup-8-v1/admission.json": "c32f233e0a85fce689c0fae9b366f93778e72526f9ee32df53b64c5aa116306d",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/tree-inputs.json": "9d60a3012a72c3e7704773429e95e8cf3c4a76ab3a6f03752ce9e650b1aa2060",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify": "b0b6159a65a2d72e8f80647be579a5ea66c58d28cf963b8f9c2d909b22db4e4d",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify": "5577d71fccf9522e1850bf4975dc233b8661ad8f25723c7a6948be60677f1319",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-0-boundary.json": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-0-boundary.json": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-1-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-1-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-2-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-2-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-3-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-3-boundary.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-0-expected.json": "1e3c08bd374a322b9b7cf63b7411191f3109ce6bd70a345202cc2e41c0cf83ff",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-0-expected.json": "fe8fa23902f4b2aee51f6569d1809b17e7c5827d3d088419adb83ca344501a6e",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-0/key.json": "f89dba4d444dc441deb47e64ae7d23c64258669b989f36bc1aa5998fe70c1f9d",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-0/claims.json": "d766b6595e3c3f3bb27b0f27d3589166add031ac7c9e928e92e61ffcd3f11eb0",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-0/proof.bin": "119636993c55e42bdd5db29f689ac1dff3f15f8e64d057bb4fcfefdb54668d52",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-1-expected.json": "f57f9c7e9e43c9fbcd5df81d544001ba27375617d174a2346a16b95eba42d3dc",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-1-expected.json": "abc68cf5f1b7fb46c843514c334d6921b100fd72283b684e5fd871db08b6b2a0",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-1/key.json": "d6a99fb9c255cd3f3c71ba6304be18231f392bd73cf340e8884a41143849c998",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-1/claims.json": "5ef70cafc66f335e148f4287ff89f8c19ee8535dfca67564b5c38bfcaf1d3e71",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-1/proof.bin": "510b163d3999ca6b46cee208641f370caf458674d451ddc27dd5f53d34045d19",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-2-expected.json": "60708c938cd807ad860da73a225619e42b6e01d58a00efcdbbb1ab51469890f8",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-2-expected.json": "248a01a8e6d2a4d4608b83446b10e89c6a2ea75d4b570f27a3a1e23cbe01cee4",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-2/key.json": "fd0743bd228b936c88f910fbd8c151d119f280bdb2310b22c1818efab77bde0c",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-2/claims.json": "ef1b7c1ef6b363069951e8dfe98d45b4c8227275bd95ebb9e92fba855aa429c1",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-2/proof.bin": "d7ba8837a68c80688277fd4280a4671f9c0e01a942f43486fc48e937f28c5cbf",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-3-expected.json": "78c8a3a7869e27289dd0c218f90285bc798ffff177749f46d5f2a125b60cdb74",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-3-expected.json": "89ec1cc974f774594a76401c805c5424f126e4b7b0402a4cc729173e34bafc9f",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-3/key.json": "e9d3b5d9f429c77bf49575f5e97c6bf9976c375679f399b3ca7f9de211f29de5",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-3/claims.json": "ef755f0507b725c1b1b1ae8f2a59b8756f0d4644481ccbad91ca1d54837a4ada",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-3/proof.bin": "fec8b9ee7b7ad45db44300ef56913d51bb7a3ba200327de5777784b3184a0c3c",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-4-expected.json": "12c609a6ec31c22f844bfe371d5f772ab45cdcfd4ce69ab116a2c140a6c5920b",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-4-expected.json": "7ad015428e835d21caca8594917c98437b3c6533ca1ff83fbc45dc79752e54e2",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-4/key.json": "1a2897d967339dd8ca86bcd79235e41e6d05b1fcfc5dc25f3fff5d5cbe652882",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-4/claims.json": "0d6185c0b9ec105e19e8f2095ccdc932f4fe8c61f76f8bcc2010161ff155af25",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-4/proof.bin": "f488869bca431e7785e69f1e58a8fc51748bf7a757fd7a6dccb666d9b8505eb8",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-5-expected.json": "09c5b6111f8f0050067412fee888e2812a3af89e4f907e76d683148ff965df8a",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-5-expected.json": "bd28e21f43dfdd8d8a8f7ea0f558fbe04596824ce445c2a3b1b29a4564763087",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-5/key.json": "e50dc9b87640583fef7574e554350343d90f427cede45eb28eb61416ab24cc8a",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-5/claims.json": "36bacee63f184357d2d05397a6ecb41519bed215923d6a31e0082f17e8eab5ff",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-5/proof.bin": "1073d39fb65d9e7129e29258c6ad6ad2b77672e46939e7793d86082272c8509b",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-6-expected.json": "4a7b69b9f5c24b232b8231606ec5827006955fc839a1ec64860e1e6d92f66824",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-6-expected.json": "83e74936af8af3dc837bb5ef04f6e23243305ed1b14a3cf97b04ddf38793ab1f",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-6/key.json": "1514c9939e7156cd0e087e6529695ea9ca77681d9ade351b5901f64aa0c3129f",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-6/claims.json": "39df78f95633bdee82f2e2729ba2eec2b0c0de92e3bf7fcf93836deb74e44167",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-6/proof.bin": "07715ba0865c70b09d355691e16ecaff68c33ca2cd3fb7a663d95909f32647ff",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/child-7-expected.json": "22f2faa14f5e7ecd51befb71a016f0d638fffe69e5af2ba86f64821d050012a4",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/child-7-expected.json": "92d9c7582654a1ed02cf716089d2af9b269f110b0c09a832b1c10355d2401c96",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-7/key.json": "fe0d56ccd719a6106ef0b12d9ac475a1962fdb0d05b5ec73c2c71f9f16a95917",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-7/claims.json": "3ef2f2b997db93ecfa846d2154c086bf59347fe26d3f39b13254090d6e5a3bd2",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/leaves/child-7/proof.bin": "1e1b8094b6c081a0bffa73c09ab5a1b77b4d9b549393d83b1536909a955ee119",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-0-expected.json": "a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-0-expected.json": "b3189b10bb5029b1be74700bec82d56c9b5423cf84e25f01ad9a28cc0d7f8e39",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-0/key.json": "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-0/claims.json": "46fcafc9ffdd10a908eba1e0716e8db772f5384c5cc7b09b7263a835af3e18c6",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-0/proof.bin": "185b3209d48f90c99f2d5837123579e573e6c94e9a656c97aa5a17bbce81833a",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-1-expected.json": "e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-1-expected.json": "28058a8d94260f435bf340e6906027e84dc7ce02a016beb9831c09336bd6aa66",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-1/key.json": "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-1/claims.json": "91746ba0855d778123aef74c18eb951d596b8e39e5a6e143281e6e4b5c76823f",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-1/proof.bin": "b5d31e75c9630eb89dcd3fb7a345d4ef8a701115b6d2d03491a79b005ec270f0",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-2-expected.json": "6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-2-expected.json": "00a7af588e8960a603fd81b68489e160694b2d59524ab26234649c60c02b643b",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-2/key.json": "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-2/claims.json": "8935c72abec0562916ae493594b8874f18e8c142c61c3fc80886bbdc145736fa",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-2/proof.bin": "60bdea0feb6fe84077b200af6d424fe01f6302eeae727b441530c9dd7dc825de",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-1-3-expected.json": "295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-1-3-expected.json": "efcf9dd8f9f07bf282d38eeed902453081423b42ba0c048418d852985e58ebb0",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-3/key.json": "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-3/claims.json": "735fbb6d6ffa63f344e1f8df491a71a9da738c99abb3ff8d71e939d19532f592",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-1-3/proof.bin": "e2234e8b036861bf0748bcfa1993f4fc43c3aa77448b1c61f970225d0a38b16a",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-2-0-expected.json": "854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-2-0-expected.json": "a2fbd14cab870a77b3074e000c131b6cb150efc6aae138dc8b649651fe401128",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-2-0/key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-2-0/claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-2-0/proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-2-1-expected.json": "eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-2-1-expected.json": "4b31d5abf084662dfe10a157acc38b1bd7faf423caaa7c53dea69a3e3d0f2e38",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-2-1/key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-2-1/claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-2-1/proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed13/parent-3-0-expected.json": "bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-8-seed14/parent-3-0-expected.json": "f4e4f8e24af7f1d72debec153db44a2793279afb475215ede38169feecb32790",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-3-0/key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-3-0/claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+    "/private/tmp/pr198-useful-8-cpu-tree-v1/parent-3-0/proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb"
+  }
+}

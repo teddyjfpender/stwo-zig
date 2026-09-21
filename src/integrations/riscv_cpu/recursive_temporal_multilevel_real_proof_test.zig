@@ -7,16 +7,15 @@
 
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const quad_fixture = @import("recursive_segment_v2_temporal_quad_fixture.zig");
 const parent_gate = @import("recursive_temporal_parent_real_proof_test.zig");
-const parent_capture = integration.recursive_temporal_verified_parent_capture_v1;
+const parent_capture = @import("recursive_temporal_verified_parent_capture_v1.zig");
 
-const leaf_outer = integration.recursive_segment_v2_leaf_outer;
-const level2 = integration.recursive_temporal_parent_pair_authority_v1;
-const level2_suffix = integration.recursive_temporal_level2_suffix_v1;
-const verified_node = integration.recursive_temporal_verified_node_v1;
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
+const level2 = @import("recursive_temporal_parent_pair_authority_v1.zig");
+const level2_suffix = @import("recursive_temporal_level2_suffix_v1.zig");
+const verified_node = @import("recursive_temporal_verified_node_v1.zig");
 const recursion = frontend.recursion;
 
 pub fn runGate(allocator: std.mem.Allocator) !void {

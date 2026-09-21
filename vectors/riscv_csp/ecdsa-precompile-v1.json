@@ -1,0 +1,44 @@
+{
+  "schema": "stwo.csp.ecdsa-precompile-guests.v1",
+  "implementation": "typed_recovery_key_match_low_s_v1",
+  "sources": [
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/Cargo.toml",
+      "sha256": "f47a167655f79f30236afc6ffaaf1b800aeab3a062aba01b7f2603a746efac58"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/Cargo.lock",
+      "sha256": "7e0af0014233580da8a93ab9c4f8c2026d0721eb1e5a255eab49e96505844d1a"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/rust-toolchain.toml",
+      "sha256": "1553745dccdeca9f2b9daa90c98574067fef94e9aec73a348cfd2fe669934700"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/.cargo/config.toml",
+      "sha256": "46fc9e17033132a0b114940301c796c8dee212f3e2de4e448efa0d1de417bcd6"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/linker.ld",
+      "sha256": "9b76db4ce15314d4b32afd7d454998947f6aa4a2acc9af9807d1a7e527e73ba1"
+    },
+    {
+      "path": "vectors/riscv_guests/ecdsa_secp256k1_precompile/src/main.rs",
+      "sha256": "60b5cb0ac4e64af4457283be94e2b487b3a7fbe63e105baf7c7ac538a84070b0"
+    },
+    {
+      "path": "scripts/build_csp_ecdsa_precompile.py",
+      "sha256": "6421bff539e953fb19cc251f67503328dbb891675409ad01194a05e0caf93985"
+    }
+  ],
+  "guests": {
+    "0": {
+      "path": "vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_even.elf",
+      "sha256": "9f3fe75f68d57efa13b9e58c9957a8da5fbde6d20eeda299277a7ebeb2bcc38f"
+    },
+    "1": {
+      "path": "vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_odd.elf",
+      "sha256": "3bd286d0d5b11d1419d3cadad5e33a2fa0d88184998d19c5484f2bcc9c419060"
+    }
+  }
+}

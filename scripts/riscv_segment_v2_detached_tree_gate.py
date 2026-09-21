@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prove and independently verify an admitted small 2/4/8-segment tree.
+"""Prove and independently verify an admitted small 1/2/4/8-segment tree.
 
 This serial fixture runner owns scheduling and evidence only. The existing Zig
 producers/verifiers own execution, AIR, transcript, coverage and continuation.
@@ -56,9 +56,21 @@ def main() -> None:
         raise ValueError("unsupported small-tree admission profile")
     leaves, levels = manifest["leaves"], manifest["parents"]
     count = len(leaves)
-    if count not in (2, 4, 8) or len(levels) != count.bit_length() - 1 or any(
+    if count not in (1, 2, 4, 8) or len(levels) != count.bit_length() - 1 or any(
             len(level) != count >> (index + 1) for index, level in enumerate(levels)):
-        raise ValueError("admission must describe one complete balanced 2/4/8 tree")
+        raise ValueError("admission must describe one complete balanced 1/2/4/8 tree")
+    memory_addresses = manifest.get("memory_addresses", 1)
+    if type(memory_addresses) is not int or memory_addresses not in (1, 4, 16):
+        raise ValueError("memory_addresses must select the admitted 1/4/16-address workload")
+    for level_index, level in enumerate(levels):
+        for node in level:
+            boundary = node.get("boundary_profile")
+            if boundary is not None:
+                if level_index != 0:
+                    raise ValueError("boundary topology applies only to segment children")
+                boundary["resolved"] = str(admit(manifest_path.parent / boundary["path"], digest(boundary["sha256"])))
+            elif level_index == 0 and memory_addresses != 1:
+                raise ValueError("larger workloads require independently pinned parent boundary topology")
     seed = manifest["initial_memory_word"]
     if type(seed) is not int or not 0 <= seed <= 0xffffffff:
         raise ValueError("initial memory word must fit u32")
@@ -72,7 +84,7 @@ def main() -> None:
         admit(args.aot_bundle / "stwo_zig_core.manifest.json", args.aot_manifest_sha256)
     output.mkdir(parents=True)
     report = {"gate_sha256": sha256(Path(__file__)), "admission_sha256": args.admission_sha256,
-              "backend": args.backend, "aot_profile": AOT_PROFILES[args.aot_profile or "core-v2"] if args.backend == "metal" else None, "segments": count, "profile": manifest["profile"],
+              "backend": args.backend, "aot_profile": AOT_PROFILES[args.aot_profile or "core-v2"] if args.backend == "metal" else None, "segments": count, "memory_addresses": memory_addresses, "profile": manifest["profile"],
               "inputs": {str(p): pin for p, pin in inputs.items()}, "steps": [], "passed": False,
               "timing_scope": "complete gate includes hostile cases; production sums are separate measurements"}
     scripts = Path(__file__).resolve().parent
@@ -110,7 +122,7 @@ def main() -> None:
 
     try:
         leaf_dir = output / "leaves"
-        argv = [str(args.leaf_producer), "--memory-addresses", "1", "--segments-output", str(leaf_dir),
+        argv = [str(args.leaf_producer), "--memory-addresses", str(memory_addresses), "--segments-output", str(leaf_dir),
                 "--segment-count", str(count), "--initial-memory-word", str(seed),
                 "--proof-profile", manifest["profile"], "--native-backend", args.backend,
                 "--recursive-backend", args.backend]
@@ -131,9 +143,13 @@ def main() -> None:
             run(f"verify-leaf-{index}", [sys.executable, str(scripts / "riscv_segment_v2_detached_gate.py"),
                 "--proof-profile", manifest["profile"], "--verifier", str(args.leaf_verifier),
                 "--bundle", str(directory), "--key-sha256", node["key"]["sha256"],
-                "--expected-wire", node["expected"]["resolved"], "--output", str(gate)])
-            if not json.loads(gate.read_bytes())["passed"]:
+                "--expected-wire", node["expected"]["resolved"], "--output", str(gate)] +
+                (["--require-root"] if count == 1 else []))
+            accepted_leaf = json.loads(gate.read_bytes())
+            if not accepted_leaf["passed"]:
                 raise RuntimeError("leaf proof gate did not pass")
+            if count == 1:
+                report["root"] = accepted_leaf["cases"][0]["receipt"]
         previous_nodes = leaves
         parent_production_ns = 0
         for level_index, level in enumerate(levels):
@@ -150,6 +166,9 @@ def main() -> None:
                         "--expected-root", node["expected"]["resolved"], "--expected-root-sha256", node["expected"]["sha256"],
                         "--publication-mode", "root" if root else "intermediate", "--child-family", "segment" if level_index == 0 else "parent",
                         "--memory-profile", "continuation" if level_index == 0 and index > 0 else "initial", "--output", str(gate)]
+                if node.get("boundary_profile") is not None:
+                    boundary = node["boundary_profile"]
+                    argv += ["--boundary-profile", boundary["resolved"], "--boundary-profile-sha256", boundary["sha256"]]
                 for side, child_index in (("left", 2 * index), ("right", 2 * index + 1)):
                     argv += ["--" + side, *child_args(previous_dirs[child_index], previous_nodes[child_index])]
                 if args.backend == "metal":

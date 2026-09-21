@@ -12,8 +12,8 @@ const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 pub const Lane = air.ethereum_initial_input_lane_v1;
 pub const Packet = air.ethereum_initial_input_packet_v1;
-pub const LANE_COMPONENT: u8 = 36;
-pub const PACKET_COMPONENT: u8 = 37;
+pub const LANE_COMPONENT: u8 = frontend.recursion.compact_tuple_ledger_v1.INITIAL_LANE_COMPONENT;
+pub const PACKET_COMPONENT: u8 = frontend.recursion.compact_tuple_ledger_v1.INITIAL_PACKET_COMPONENT;
 pub const RANGE_TABLE_SIZE: usize = table.size(.range_check_8_8);
 
 pub const OwnedV1 = opaque {

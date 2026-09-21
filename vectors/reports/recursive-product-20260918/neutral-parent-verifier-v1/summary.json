@@ -1,0 +1,24 @@
+{
+  "status": "focused_build_replay_capture_passed",
+  "closure_sources": 236,
+  "ownership_checks": 12,
+  "retained_replay_cases": 111,
+  "capture_tests": 1,
+  "rejected_public_words": 436,
+  "rejected_claims_and_samples": 45,
+  "source_sha256": {
+    "src/frontends/riscv/recursion/detached_parent_verifier_v1.zig": "5de68fff415b3a479f1bf0ed97dd609dd4247b6ba6676a24088e345959962f0b",
+    "src/frontends/riscv/recursion/detached_proof_preflight.zig": "d798e22a7645c13e436e2168dc6c78092ace238182c4c99c0cbebe9e413485f9",
+    "src/frontends/riscv/recursion/artifact_limits.zig": "2fdca6b78118c2e5d9a8348fc1606821c1180ad1ac18026ede2928c9e3ddedd5",
+    "src/frontends/riscv/recursion/poseidon2_channel.zig": "a42093c613e68db08fa570efcee1089e57ca3907535c995b77d3f11121461d56",
+    "src/frontends/riscv/recursion/recording_poseidon_channel_v4.zig": "25ad463dfb7654c2b7ebb5324999734bd65e611fae1a32d21167440dd8be787d",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig": "d207e97e3742b1cf6be46576a399b492084d47f74636b3d33323667d506dccdd",
+    "src/integrations/riscv_cpu/recursive_detached_proof_preflight.zig": "76c742900300cfa6542f125b085ff4c78ed7d86550f6e3841b81a531b12d3e15",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_artifact_v1.zig": "59cf0b9c2f218afe5b721751b8401358e49294b6a22cdae31380a19a18770ce5",
+    "scripts/tests/test_product_closure.py": "85ed8cb2bd320fae7f4db81fa0cd5afe833a0f386f4de12c0207182277af8077"
+  },
+  "limitations": [
+    "Complete production qualification predates this module move.",
+    "Standalone command entry and build module still need narrowing."
+  ]
+}

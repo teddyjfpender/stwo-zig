@@ -1,0 +1,40 @@
+Native core metallib accepted: 166 exact kernel exports, zero function constants, AOT/JIT kernel parity
+test-riscv-metal-recursive-resident
++- run test stderr
+NATIVE_TABLE_AOT_INTERACTION kind=bitwise rows=262144 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=1.043
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_20 rows=1048576 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=3.988
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_8_11 rows=524288 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=1.934
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_8_8_4 rows=1048576 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=4.990
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_8_8 rows=65536 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=0.099
+NATIVE_TABLE_AOT_INTERACTION kind=range_check_m31 rows=32768 columns=4 native_parity=true claim_parity=true rejection_recovery=true gpu_ms=0.158
+FRAMEWORK_RESIDENT_AOT air=recursion.qm31_mul_add.v1 manifest=91bb3a6a6111ab0d70d8b0e949611231ec1b2d4a4616766638834426c087df6b rows=16 dispatches=2 coordinates=64 negative_controls=6 gpu_ms=0.426
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.7093333406373858
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.7183749694377184
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=3.50679166149348
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=2.138374955393374
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=1.348666613921523
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=1.3398333685472608
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=2.902416745200753
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=4.199541639536619
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.31287502497434616
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.3316249931231141
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.18924998585134745
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.050875009037554264
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+
+Build Summary: 3/3 steps succeeded
+test-riscv-metal-recursive-resident success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 11s MaxRSS:917M
+   +- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 215ms MaxRSS:41M
+

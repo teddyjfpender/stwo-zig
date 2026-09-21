@@ -1,8 +1,8 @@
 //! Execution-only entry point: no prover or backend ownership is imported.
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const model = @import("recursive_segment_v2_memory_workload_test_support.zig");
-const workload = @import("recursive_segment_v2_two_segment_test_support.zig");
+const model = @import("recursive_segment_v2_memory_workload.zig");
+const workload = @import("recursive_segment_v2_workload.zig");
 
 pub fn main() !void {
     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
@@ -17,7 +17,7 @@ pub fn main() !void {
     const addresses = try std.fmt.parseInt(usize, args[3], 10);
     const seed = try std.fmt.parseInt(u32, args[4], 0);
     switch (count) {
-        inline 2, 4, 8 => |n| try exportInputs(n, allocator, addresses, seed, args[5]),
+        inline 1, 2, 4, 8 => |n| try exportInputs(n, allocator, addresses, seed, args[5]),
         else => return error.InvalidSegmentCount,
     }
 }

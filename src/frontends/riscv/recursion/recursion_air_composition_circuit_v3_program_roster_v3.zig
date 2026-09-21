@@ -843,7 +843,7 @@ test "Initial38 composition descriptor authenticates exact capacity and rejects 
     const base = @import("air/universal_adapter_manifest.zig");
     const profile = @import("incremental_ethereum_composition_profile_v4.zig");
     var logs = [_]u32{4} ** base.COMPONENT_COUNT;
-    logs[@intFromEnum(base.ComponentKey.range_check_8_8)] = @import("air/range_check_8_8_bridge.zig").LOG_SIZE;
+    logs[@intFromEnum(base.ComponentKey.range_check_8_8)] = @import("air/range_check_8_8_contract.zig").LOG_SIZE;
     const ordinary = try @import("air/universal_manifest.zig").buildForCatalog(profile.StatementRoutingOuterCatalog, logs);
     const first = try initial.build(&ordinary, 40);
     const second = try initial.build(&ordinary, 41);

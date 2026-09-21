@@ -1,0 +1,17 @@
+test-recursion-arithmetic-fusion
++- run test stderr
+qm31_mul_add_v1 semantic digest: eb8d491f5b07bf17fb4b6b4e7c408da1289dd1907b66926547bd39d204b0f849
+test-recursion-transcript-v2
++- run test stderr
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+
+Build Summary: 6/6 steps succeeded; 343/344 tests passed; 1 skipped
+test-recursion-transcript-v2 success
++- run test 327 passed 1 skipped 1s MaxRSS:5M
+   +- compile test ReleaseSafe native success 43s MaxRSS:3G
+test-recursion-arithmetic-fusion success
++- run test 16 passed 750ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 5s MaxRSS:446M
+

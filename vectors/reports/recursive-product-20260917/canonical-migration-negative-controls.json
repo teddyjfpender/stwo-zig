@@ -1,0 +1,17 @@
+[
+  {
+    "case": "migration-wrong-pin",
+    "rejected": true,
+    "output_created": false
+  },
+  {
+    "case": "canonical-key-not-legacy",
+    "rejected": true,
+    "output_created": false
+  },
+  {
+    "case": "product-missing-independent-pin",
+    "rejected": true,
+    "output_created": false
+  }
+]

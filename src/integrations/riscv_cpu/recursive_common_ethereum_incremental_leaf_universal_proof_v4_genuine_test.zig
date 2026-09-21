@@ -366,7 +366,7 @@ fn runWrapper(
     printAllocatorSnapshot("materialized-live", tracked_allocator.snapshot());
     if (mode == .tree0_compare) {
         stage.* = .cohort;
-        try @import("ethereum_wrapper_tree0_probe_v1.zig").compare(Engine, @import("stwo_metal_backend").MetalCommitBackend, runtime_allocator, &materialized, worker_policy.worker_count);
+        try @import("ethereum_wrapper_tree0_probe_v1.zig").compare(Engine, @import("ethereum_tree0_probe_backend").Backend, runtime_allocator, &materialized, worker_policy.worker_count);
         try finishAndPrintPhase(total_usage, .total, worker_policy);
         return;
     }

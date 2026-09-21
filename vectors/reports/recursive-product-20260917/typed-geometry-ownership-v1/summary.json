@@ -1,0 +1,32 @@
+{
+  "status": "focused_and_complete_cpu_metal_gates_passed",
+  "whole_parent_verifier_only": false,
+  "geometry_owner_source_closure_count": 1,
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/universal_typed_geometry.zig": "77346df4e5c0ab76799c425b1ea6bc6c09e3d07e6729d71e9b6f32e7c808cd3f",
+    "src/frontends/riscv/recursion/air/universal_typed_component_contract.zig": "b70598b6600a81ecf9108c8e170a0ab91af106fbcdb79949d9d9bcacee86b429",
+    "src/frontends/riscv/recursion/air/ethereum_initial_input_manifest_v1.zig": "fe31ccc1088df442bef9cd875655bb4f243eef87a4c4f2de00e783bc4223f409",
+    "scripts/tests/test_product_closure.py": "2af873595a2602b9a5e71751ce0f091b02d4d936d25ec71512e2535dc76a9ae4"
+  },
+  "checks": {
+    "ownership": {
+      "passed": true,
+      "test_count_including_wrappers": 8,
+      "log": "pr198-typed-geometry-ownership.log"
+    },
+    "admission": {
+      "passed": true,
+      "test_count_including_wrappers": 4,
+      "log": "pr198-typed-geometry-admission.log"
+    },
+    "manifest": {
+      "passed": true,
+      "test_count_including_wrappers": 3,
+      "log": "pr198-typed-geometry-manifest.log"
+    }
+  },
+  "preceding_complete_qualification": "../equation-owners-v1/cross-backend.json",
+  "included_in_preceding_complete_snapshot": false,
+  "remaining": "Separate parent-key admission and remaining provider metadata from prover and witness dependencies.",
+  "complete_qualification": "../parent-contract-qualified-v1/cross-backend.json"
+}

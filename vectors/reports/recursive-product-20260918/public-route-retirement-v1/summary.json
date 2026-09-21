@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "command_tests": 3,
+  "source_ownership_tests": 34,
+  "retired_public_exports": 46,
+  "retired_test_gate_executables": 2,
+  "key_setup_uses_canonical_native_ingress": true,
+  "key_setup_matches_independent_pin": true,
+  "parent_admission_tests_passed": 228,
+  "parent_admission_tests_skipped": 1,
+  "retained_temporal_harness_compile_passed": true,
+  "post_proof_test_only_changes": 6,
+  "canonical_integration_graph_excludes_post_proof_changes": true
+}

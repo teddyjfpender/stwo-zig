@@ -1,0 +1,21 @@
+{
+  "preparation": [
+    "access_clock"
+  ],
+  "graph": [
+    "SectionProfileV1",
+    "SectionV1"
+  ],
+  "identity": [
+    "std",
+    "M31",
+    "QM31",
+    "core",
+    "SectionProfileV1",
+    "Inputs",
+    "NativeCalls"
+  ],
+  "continuation": [
+    "GraphSponge"
+  ]
+}

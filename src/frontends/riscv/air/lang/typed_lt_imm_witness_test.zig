@@ -190,7 +190,6 @@ test "typed LT_IMM ordered relation rows match production entries" {
 test "typed LT_IMM production source is singular pinned and allocator-free" {
     const witness_source = @embedFile("typed_lt_imm_witness.zig");
     const trace_source = @embedFile("../../runner/trace.zig");
-    const execute_source = @embedFile("../../runner/execute.zig");
     const retirement_source = @embedFile("../../runner/generated_retirement.zig");
     const constraint_source = @embedFile("../constraint_program_constructors.zig");
     const semantics_registry = @embedFile("../semantics/mod.zig");
@@ -205,11 +204,6 @@ test "typed LT_IMM production source is singular pinned and allocator-free" {
         trace_source,
         ".lt_imm => typed_lt_imm_witness.writeActiveRow",
     ) == null);
-    try std.testing.expect(std.mem.indexOf(
-        u8,
-        execute_source,
-        ".SLTI, .SLTIU => return error.GeneratedRetirementRequired",
-    ) != null);
     try std.testing.expect(std.mem.indexOf(
         u8,
         retirement_source,

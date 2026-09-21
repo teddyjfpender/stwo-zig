@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,28 +17,35 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 EXPORT_DIRECTORY = REPOSITORY_ROOT / "zig-out/team-b-ir"
 
 
-def export_air() -> Path:
-    """Export the production symbolic AIR, or reuse a fresh existing export.
+_session_directory: tempfile.TemporaryDirectory | None = None
+_session_export: Path | None = None
 
-    Reuse is gated on the provenance check: an existing export is only
-    trusted if no production AIR source is newer than it. A stale export is
-    re-derived instead of silently evaluated.
-    """
-    if (EXPORT_DIRECTORY / "load_store.json").is_file():
-        try:
-            witnesses.check_export_provenance(EXPORT_DIRECTORY)
-            return EXPORT_DIRECTORY
-        except witnesses.WitnessError:
-            pass  # Stale or unverifiable: fall through and re-export.
-    subprocess.run(
-        [
-            "zig",
-            "build",
-            "riscv-refinement-ir",
-            f"-Driscv-refinement-ir-dir={EXPORT_DIRECTORY.relative_to(REPOSITORY_ROOT)}",
-        ],
-        cwd=REPOSITORY_ROOT,
-        check=True,
-        timeout=900,
-    )
-    return EXPORT_DIRECTORY
+
+def export_air() -> Path:
+    """Reuse a provenance-checked export or build once into an empty directory."""
+    global _session_directory, _session_export
+    for directory in (_session_export, EXPORT_DIRECTORY):
+        if directory is not None and (directory / "load_store.json").is_file():
+            try:
+                witnesses.check_export_provenance(directory)
+                return directory
+            except witnesses.WitnessError:
+                pass
+    if shutil.which("zig") is None:
+        raise FileNotFoundError("Zig is unavailable")
+    directory = tempfile.TemporaryDirectory(prefix="stwo-team-b-witness-ir-")
+    root = Path(directory.name)
+    try:
+        subprocess.run(
+            [sys.executable, "scripts/zig_serial_build.py", "riscv-refinement-ir",
+             f"-Driscv-refinement-ir-dir={root / 'symbolic'}",
+             f"-Driscv-air-program-ir-dir={root / 'program'}"],
+            cwd=REPOSITORY_ROOT, check=True, timeout=900,
+        )
+        witnesses.check_export_provenance(root / "symbolic")
+    except BaseException:
+        directory.cleanup()
+        raise
+    _session_directory = directory
+    _session_export = root / "symbolic"
+    return _session_export

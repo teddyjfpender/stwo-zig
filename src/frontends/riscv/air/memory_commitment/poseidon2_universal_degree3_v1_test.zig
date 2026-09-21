@@ -137,3 +137,71 @@ test "universal degree3 provider saves padded cells without raising quotient deg
     try std.testing.expectEqual(@as(usize, 1), bounds.items[0].len);
     try std.testing.expectEqual(@as(usize, 303), bounds.items[1].len);
 }
+
+test "universal degree3 verifier-only callbacks preserve point evaluation and reject short masks" {
+    const Prover = @import("poseidon2_universal_component_v1.zig").Component;
+    const relations = relations_mod.Relations.dummy();
+    const native = Prover{ .log_size = 4, .n_rows = 3, .is_first_col_idx = 0, .is_active_col_idx = 0, .main_col_offset = 0, .interaction_col_offset = 0, .relations = &relations, .claims = .{ QM31.one(), QM31.fromU32Unchecked(3, 5, 7, 11) } };
+    try checkVerifierPointCallbacks(native, @import("poseidon2_universal_equations_v1.zig"));
+}
+
+test "wide universal Poseidon verifier preserves retained native callbacks" {
+    const Prover = @import("hash_component.zig").HashComponent;
+    const relations = relations_mod.Relations.dummy();
+    const native = Prover{ .kind = .poseidon2, .poseidon_shell = .universal, .log_size = 4, .n_rows = 3, .is_first_col_idx = 0, .is_active_col_idx = 0, .main_col_offset = 0, .interaction_col_offset = 0, .relations = &relations, .poseidon_claims = .{ QM31.one(), QM31.fromU32Unchecked(3, 5, 7, 11) } };
+    try checkVerifierPointCallbacks(native, @import("poseidon2_wide_equations.zig"));
+}
+
+fn checkVerifierPointCallbacks(native: anytype, comptime Equations: type) !void {
+    const Verifier = @import("poseidon2_degree3_verifier.zig").Component(Equations);
+    try std.testing.expect(!@hasDecl(Verifier, "asProverComponent"));
+    const allocator = std.testing.allocator;
+    var detached: Verifier = undefined;
+    inline for (std.meta.fields(Verifier)) |field| {
+        @field(detached, field.name) = if (comptime std.mem.eql(u8, field.name, "claims") and @hasField(@TypeOf(native), "poseidon_claims")) native.poseidon_claims else @field(native, field.name);
+    }
+    const point = core.circle.SECURE_FIELD_CIRCLE_GEN.mul(29);
+    var masks = try detached.asVerifierComponent().maskPoints(allocator, point, 5);
+    defer masks.deinitDeep(allocator);
+    var native_masks = try native.asVerifierComponent().maskPoints(allocator, point, 5);
+    defer native_masks.deinitDeep(allocator);
+    try std.testing.expectEqualDeep(native_masks.items, masks.items);
+    try std.testing.expectEqual(native.asVerifierComponent().nConstraints(), detached.asVerifierComponent().nConstraints());
+    try std.testing.expectEqual(native.asVerifierComponent().compositionLogSplit(), detached.asVerifierComponent().compositionLogSplit());
+
+    const trees = try allocator.alloc([][]QM31, masks.items.len);
+    var initialized: usize = 0;
+    defer {
+        for (trees[0..initialized]) |tree| {
+            for (tree) |column| allocator.free(column);
+            allocator.free(tree);
+        }
+        allocator.free(trees);
+    }
+    for (masks.items, trees) |points, *tree| {
+        tree.* = try allocator.alloc([]QM31, points.len);
+        var columns: usize = 0;
+        errdefer {
+            for (tree.*[0..columns]) |column| allocator.free(column);
+            allocator.free(tree.*);
+        }
+        for (points, tree.*, 0..) |samples, *column, index| {
+            column.* = try allocator.alloc(QM31, samples.len);
+            for (column.*, 0..) |*value, sample| value.* = QM31.fromBase(M31.fromU64(1 + index * 3 + sample));
+            columns += 1;
+        }
+        initialized += 1;
+    }
+    const values = core.air.components.MaskValues.initOwned(trees);
+    var expected = core.air.accumulation.PointEvaluationAccumulator.init(QM31.fromU32Unchecked(5, 7, 11, 13));
+    var actual = core.air.accumulation.PointEvaluationAccumulator.init(QM31.fromU32Unchecked(5, 7, 11, 13));
+    try native.asVerifierComponent().evaluateConstraintQuotientsAtPoint(point, &values, &expected, 5);
+    try detached.asVerifierComponent().evaluateConstraintQuotientsAtPoint(point, &values, &actual, 5);
+    try std.testing.expectEqualDeep(expected.finalize(), actual.finalize());
+    var short_trees = trees[0..3].*;
+    short_trees[1] = short_trees[1][0 .. short_trees[1].len - 1];
+    const short = core.air.components.MaskValues.initOwned(&short_trees);
+    try std.testing.expectError(error.InvalidProofShape, detached.asVerifierComponent().evaluateConstraintQuotientsAtPoint(point, &short, &actual, 5));
+    detached.log_size = 30;
+    try std.testing.expectError(error.InvalidPoseidonNarrowComponentV1, detached.validate());
+}

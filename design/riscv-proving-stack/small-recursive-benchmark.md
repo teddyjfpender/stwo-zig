@@ -16,6 +16,45 @@ for gate status and measured timings.
 
 ## Current four-segment CPU and Metal tree
 
+The from-source qualification command builds every executable into a new output
+directory, pins the reviewed key/statement inputs, and rejects source changes
+during the run. It requires Zig 0.15.2. Metal additionally requires a physical
+Mac and the full Xcode Metal toolchain; the command builds its own authenticated
+`recursive-framework-v1` bundle.
+
+```sh
+python3 scripts/riscv_recursive_product.py --backend cpu --output zig-out/recursive-cpu-1
+python3 scripts/riscv_recursive_product.py --backend metal --output zig-out/recursive-metal-1
+```
+
+Each command exits all producers before fresh verification and runs malformed
+proof and same-key, same-geometry statement-substitution controls. `product.json`
+records source hashes, build logs, executable pins and the final gate status.
+It returns failure on a failed stage; outputs remain available for diagnosis.
+The profile remains experimental and the Metal route is explicitly hybrid.
+The initial CPU qualification passed 192 cases with all 21 retained artifacts
+unchanged; see [the receipt](../../vectors/reports/recursive-product-20260917/cpu-v1/summary.json).
+
+Selected-lane preparation is now active in production. Its complete
+[CPU](../../vectors/reports/recursive-product-20260917/cpu-selected-v1/summary.json)
+and [hybrid Metal](../../vectors/reports/recursive-product-20260917/metal-selected-v1/summary.json)
+qualification runs each passed 192 cases, with all 21 serialized artifacts
+identical to the baseline and each other. Production sums were 67.43 and 52.30
+seconds respectively; these are single observations, not repeated optimization
+medians. The discarded-lane implementation remains an independent test oracle
+and cannot be selected in a production build. Six row families still generate
+both lanes, and full authority/padded scratch remains.
+
+The real-AOT native-table gate also compares all columns and claims for six
+tables, including selector/pole rejection and recovery; see
+[its receipt](../../vectors/reports/recursive-product-20260917/interaction-aot-v1.json).
+This does not establish producer integration of GPU interactions or strict
+end-to-end Metal coverage. Required repository-wide checks remain unresolved.
+
+### Historical frozen-binary reproduction
+
+The session-binary commands below are historical reproduction instructions.
+
 Run the maintained controller from the repository root. The reviewed seed13
 manifest is `tree-admissions/air-fusion-q193-4.json`, SHA256
 `91a52ebe8c56977c9d589284e2d03bf4bf749b9310272c2a409b14980ce78d6a`.
@@ -484,7 +523,7 @@ and formal CSP promotion are still outstanding.
 ## Shared compact closure and range-column finalization
 
 The small parent now reuses the existing compact exact tuple ledger. The owner
-is consolidated in `recursive_compact_tuple_ledger_v1.zig`; Ethereum consumers
+is consolidated in `frontends/riscv/recursion/compact_tuple_ledger_v1.zig`; Ethereum consumers
 use the same implementation. The ordinary diagnostic ledger used by CSP keeps
 its existing behavior. Both ledgers group non-range tuples by the same canonical
 SHA-256 digest; compact range entries use exact canonical table indices and
@@ -1005,3 +1044,38 @@ The index contains exact build/binary references, A/B commands, five full-tree
 commands and retained proof artifacts. The audit rechecks 180 distinct pins.
 CSP benchmarks were excluded at the user's request. Formal q193 production
 security admission and GPU composition admission remain open.
+
+### Canonical compact-Poseidon identity migration
+
+New parent keys bind the canonical production equation digest, separately from
+source provenance. Retained compact keys admit only the reviewed historical
+identity. Both native admission and recursive composition use the same geometry
+compatibility check. Preparation uses canonical identity by default; an
+independently pinned retained key can select the reviewed legacy identity while
+requiring the entire witness-derived manifest seal to match.
+
+Derive a new four-segment admission with
+`scripts/riscv_recursive_identity_migration.py`. Supply the historical admission
+and its hash, matching parent producer/verifier paths and hashes, the verified
+four-leaf bundle directory, and a new output directory. The tool migrates the
+two intermediate keys, qualifies their proofs against those independent pins,
+and invokes the producer's separate `derive-key` setup command for the root.
+Setup verifies both children and commits fixed columns using the same owner as
+production, then exits with a key and no root proof. Changed child identities
+change constants in root preprocessing, so copying the old root commitment is
+invalid even when all column geometry is unchanged.
+
+The receipt records the final admission digest. Pass that exact digest and the
+output `admission.json` to the complete-proof command using `--admission` and
+`--admission-sha256`, with either backend. All expected public input artifacts,
+PCS parameters and geometry remain unchanged. Intermediate preprocessing is
+preserved; root preprocessing is derived again from the newly admitted child
+keys. Qualification of the complete root remains a separate gate. The default
+complete-proof command retains the historical admission as a compatibility
+regression.
+
+Focused iteration on this boundary:
+
+```sh
+python3 scripts/zig_protocol_test.py src/frontends/riscv/poseidon2_protocol_identity_test_root.zig -O ReleaseSafe --test-filter canonical
+```

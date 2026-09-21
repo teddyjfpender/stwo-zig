@@ -1,0 +1,180 @@
+[
+  {
+    "segments": 1,
+    "backend": "cpu",
+    "production_seconds": 9.750119667,
+    "peak_rss_bytes": 2900459520,
+    "root_proof_bytes": 2481525,
+    "root_verify_ms": 70.576833,
+    "cases": 15,
+    "direct_detached_leaf_verify_ms": 70.576833,
+    "direct_detached_leaf_proof_bytes": 2481525,
+    "root_vs_leaf_verify_ratio": 1.0,
+    "parent_production_seconds": 0.0,
+    "consumer_count_to_amortize_parent_production": null,
+    "root_verifier_peak_rss_bytes": 19529728,
+    "root_memory_run_process_ns": 94813500,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+      "--root",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/1-cpu/leaves/child-0",
+      "2ac5155e9ef983d80be4bb4f19ba1202411f61cba537b2185a996b07d12e7d6c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/207c2bed378d85943bc3dd603ea84d9f035a93752634169140b20650030d2f46.json"
+    ]
+  },
+  {
+    "segments": 1,
+    "backend": "metal",
+    "production_seconds": 9.281063667,
+    "peak_rss_bytes": 2571993088,
+    "root_proof_bytes": 2481525,
+    "root_verify_ms": 85.222875,
+    "cases": 15,
+    "direct_detached_leaf_verify_ms": 85.222875,
+    "direct_detached_leaf_proof_bytes": 2481525,
+    "root_vs_leaf_verify_ratio": 1.0,
+    "parent_production_seconds": 0.0,
+    "consumer_count_to_amortize_parent_production": null,
+    "root_verifier_peak_rss_bytes": 19529728,
+    "root_memory_run_process_ns": 96355625,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+      "--root",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/1-metal/leaves/child-0",
+      "2ac5155e9ef983d80be4bb4f19ba1202411f61cba537b2185a996b07d12e7d6c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/207c2bed378d85943bc3dd603ea84d9f035a93752634169140b20650030d2f46.json"
+    ]
+  },
+  {
+    "segments": 2,
+    "backend": "cpu",
+    "production_seconds": 34.231638,
+    "peak_rss_bytes": 4077158400,
+    "root_proof_bytes": 2418969,
+    "root_verify_ms": 87.0705,
+    "cases": 60,
+    "direct_detached_leaf_verify_ms": 141.403333,
+    "direct_detached_leaf_proof_bytes": 4978455,
+    "root_vs_leaf_verify_ratio": 1.624009658839676,
+    "parent_production_seconds": 14.165535791,
+    "consumer_count_to_amortize_parent_production": 261,
+    "root_verifier_peak_rss_bytes": 16367616,
+    "root_memory_run_process_ns": 81393833,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/2-cpu/parent-1-0",
+      "f1f600a00e36dac7c9202b0a88eb28c525ef98c3c0fcc1af973f2f3623b0abca",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d8a1bce00f246833d7f6c8347f2a28d12c981ce5f36bda7b8aeb52ad841ce535.json"
+    ]
+  },
+  {
+    "segments": 2,
+    "backend": "metal",
+    "production_seconds": 38.672631625,
+    "peak_rss_bytes": 4524769280,
+    "root_proof_bytes": 2418969,
+    "root_verify_ms": 66.6945,
+    "cases": 60,
+    "direct_detached_leaf_verify_ms": 138.794709,
+    "direct_detached_leaf_proof_bytes": 4978455,
+    "root_vs_leaf_verify_ratio": 2.081051795875222,
+    "parent_production_seconds": 8.114939875,
+    "consumer_count_to_amortize_parent_production": 113,
+    "root_verifier_peak_rss_bytes": 16367616,
+    "root_memory_run_process_ns": 79861458,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/2-metal/parent-1-0",
+      "f1f600a00e36dac7c9202b0a88eb28c525ef98c3c0fcc1af973f2f3623b0abca",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d8a1bce00f246833d7f6c8347f2a28d12c981ce5f36bda7b8aeb52ad841ce535.json"
+    ]
+  },
+  {
+    "segments": 4,
+    "backend": "cpu",
+    "production_seconds": 81.911308333,
+    "peak_rss_bytes": 4085792768,
+    "root_proof_bytes": 2287573,
+    "root_verify_ms": 67.59925,
+    "cases": 150,
+    "direct_detached_leaf_verify_ms": 278.296916,
+    "direct_detached_leaf_proof_bytes": 9954693,
+    "root_vs_leaf_verify_ratio": 4.116863959289489,
+    "parent_production_seconds": 43.207071458,
+    "consumer_count_to_amortize_parent_production": 206,
+    "root_verifier_peak_rss_bytes": 16236544,
+    "root_memory_run_process_ns": 80466625,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/4-cpu/parent-2-0",
+      "4a31dd6ac57c7fe3675c3949690aabad9a6ede2c6926df23d330da252c31402d",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/19aafae20285e08bf9c997fb109f48135436eb65a2d45ca81a57a2bd655bb076.json"
+    ]
+  },
+  {
+    "segments": 4,
+    "backend": "metal",
+    "production_seconds": 53.640223792,
+    "peak_rss_bytes": 4535205888,
+    "root_proof_bytes": 2287573,
+    "root_verify_ms": 64.459375,
+    "cases": 150,
+    "direct_detached_leaf_verify_ms": 277.467708,
+    "direct_detached_leaf_proof_bytes": 9954693,
+    "root_vs_leaf_verify_ratio": 4.304536120618606,
+    "parent_production_seconds": 21.578338042,
+    "consumer_count_to_amortize_parent_production": 102,
+    "root_verifier_peak_rss_bytes": 16236544,
+    "root_memory_run_process_ns": 79339042,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/4-metal/parent-2-0",
+      "4a31dd6ac57c7fe3675c3949690aabad9a6ede2c6926df23d330da252c31402d",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/19aafae20285e08bf9c997fb109f48135436eb65a2d45ca81a57a2bd655bb076.json"
+    ]
+  },
+  {
+    "segments": 8,
+    "backend": "cpu",
+    "production_seconds": 167.719067958,
+    "peak_rss_bytes": 4086448128,
+    "root_proof_bytes": 2297319,
+    "root_verify_ms": 69.468917,
+    "cases": 330,
+    "direct_detached_leaf_verify_ms": 589.872708,
+    "direct_detached_leaf_proof_bytes": 19919802,
+    "root_vs_leaf_verify_ratio": 8.491174664490595,
+    "parent_production_seconds": 80.081078999,
+    "consumer_count_to_amortize_parent_production": 154,
+    "root_verifier_peak_rss_bytes": 16252928,
+    "root_memory_run_process_ns": 79194958,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-cpu-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/8-cpu/parent-3-0",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+    ]
+  },
+  {
+    "segments": 8,
+    "backend": "metal",
+    "production_seconds": 151.86572775,
+    "peak_rss_bytes": 4535894016,
+    "root_proof_bytes": 2297319,
+    "root_verify_ms": 68.32125,
+    "cases": 330,
+    "direct_detached_leaf_verify_ms": 658.331293,
+    "direct_detached_leaf_proof_bytes": 19919802,
+    "root_vs_leaf_verify_ratio": 9.635820377993669,
+    "parent_production_seconds": 67.415519083,
+    "consumer_count_to_amortize_parent_production": 115,
+    "root_verifier_peak_rss_bytes": 16252928,
+    "root_memory_run_process_ns": 83677166,
+    "root_memory_run_argv": [
+      "/private/tmp/pr198-product-metal-canonical-surface-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+      "/private/tmp/pr198-canonical-surface-ladder-20260918-v1/8-metal/parent-3-0",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+    ]
+  }
+]

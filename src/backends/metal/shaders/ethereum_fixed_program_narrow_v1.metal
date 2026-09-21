@@ -1,5 +1,6 @@
 // Generated Ethereum fixed-program/narrow-Poseidon profile v1.
-// Regenerate with ethereum_narrow_aot_generator_test.zig.
+// Generator: src/tests/riscv/ethereum_narrow_aot_generator_test.zig
+// Regenerate: STWO_ETHEREUM_NARROW_AOT_GENERATE=<directory> python3 scripts/zig_protocol_test.py src/tests/riscv/ethereum_narrow_aot_generator_test.zig -O ReleaseSafe
 kernel void stwo_zig_base_poly_2dc1124fe834f686e1db5f82f9bf762f(
     device const uint *main_columns [[buffer(0)]],
     device const uint *selector [[buffer(1)]],

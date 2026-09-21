@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "post_format": true,
+  "accounting_bodies_unchanged": true,
+  "column_owner_unchanged": true,
+  "normalization": "Whitespace only; imports pruned and caller aliases rebound."
+}

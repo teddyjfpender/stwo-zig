@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "compact_target_passed": 127,
+  "parent_target_passed": 228,
+  "parent_target_skipped": 1,
+  "source_closure_tests": 32,
+  "inventory_tests": 2,
+  "physical_columns": 303,
+  "ordered_direct_constraints": 288,
+  "typed_materialized_columns": 284,
+  "lookup_events": 4,
+  "interaction_batches": 2,
+  "protocol_identity_unchanged": true,
+  "post_gate_changes": "CLI default admission only; documentation appended afterward"
+}

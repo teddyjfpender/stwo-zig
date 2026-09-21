@@ -1,0 +1,64 @@
+build-recursive-segment-v2-detached-verifier
++- install recursive-segment-v2-detached-verify
+   +- compile exe recursive-segment-v2-detached-verify ReleaseSafe native 1 errors
+recursive_segment_v2_detached_verifier_runner.zig:3:50: error: root source file struct 'mod' has no member named 'recursive_segment_v2_detached_command'
+    return @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_command.main();
+                                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mod.zig:1:1: note: struct declared here
+//! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    callMain [inlined]: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:627:37
+    callMainWithArgs [inlined]: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:587:20
+    main: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:602:28
+    1 reference(s) hidden; use '-freference-trace=4' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build-exe -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine --dep stwo_prover_api --dep interop_postcard -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier_runner.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name recursive-segment-v2-detached-verify --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+build-recursive-segment-v2-concrete-outer-proof
++- install recursive-segment-v2-concrete-outer-proof
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native 1 errors
+recursive_segment_v2_concrete_outer_proof_runner.zig:12:59: error: root source file struct 'mod' has no member named 'recursive_segment_v2_detached_proof'
+const ProofProfile = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_proof.Profile;
+                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mod.zig:1:1: note: struct declared here
+//! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    run__anon_2302: recursive_segment_v2_concrete_outer_proof_runner.zig:54:25
+    main: recursive_segment_v2_concrete_outer_proof_runner.zig:15:12
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build-exe -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name recursive-segment-v2-concrete-outer-proof --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+build-recursive-segment-v2-detached-parent-verifier
++- install recursive-segment-v2-detached-parent-verify
+   +- compile exe recursive-segment-v2-detached-parent-verify ReleaseSafe native 1 errors
+recursive_segment_v2_detached_parent_verifier_runner.zig:3:50: error: root source file struct 'mod' has no member named 'recursive_segment_v2_detached_parent_command'
+    return @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_parent_command.main();
+                                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mod.zig:1:1: note: struct declared here
+//! CPU/SIMD integration for the backend-neutral Sail RISC-V frontend.
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    callMain [inlined]: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:627:37
+    callMainWithArgs [inlined]: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:587:20
+    main: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:602:28
+    1 reference(s) hidden; use '-freference-trace=4' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build-exe -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier_runner.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name recursive-segment-v2-detached-parent-verify --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 3/12 steps succeeded; 3 failed
+build-recursive-segment-v2-detached-verifier transitive failure
++- install recursive-segment-v2-detached-verify transitive failure
+   +- compile exe recursive-segment-v2-detached-verify ReleaseSafe native 1 errors
+build-recursive-segment-v2-detached-parent-verifier transitive failure
++- install recursive-segment-v2-detached-parent-verify transitive failure
+   +- compile exe recursive-segment-v2-detached-parent-verify ReleaseSafe native 1 errors
+build-recursive-segment-v2-concrete-outer-proof transitive failure
++- install recursive-segment-v2-concrete-outer-proof transitive failure
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native 1 errors
+build-recursive-segment-v2-detached-parent-producer success
++- install recursive-segment-v2-detached-parent-prove success
+   +- compile exe recursive-segment-v2-detached-parent-prove ReleaseSafe native success 1m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/17e153de1304757d60506a590a3bf397/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x988f0c90 -Ze2eec875189162d1 --maxrss 25769803776 -j1 build-recursive-segment-v2-detached-verifier build-recursive-segment-v2-detached-parent-verifier build-recursive-segment-v2-concrete-outer-proof build-recursive-segment-v2-detached-parent-producer -Doptimize=ReleaseSafe --prefix /private/tmp/pr198-product-cpu-wire-owner-20260917-v1/cpu --summary all

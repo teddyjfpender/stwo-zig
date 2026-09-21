@@ -1,0 +1,28 @@
+...E..........
+======================================================================
+ERROR: test_detached_pcs_preparation_excludes_integrations_and_concrete_backends (scripts.tests.test_product_closure.RecursionOwnershipTest.test_detached_pcs_preparation_excludes_integrations_and_concrete_backends)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_product_closure.py", line 478, in test_detached_pcs_preparation_excludes_integrations_and_concrete_backends
+    sources = inspect_sources(root, manifest).relative_sources()
+              ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/product_closure/graph.py", line 57, in inspect_sources
+    targets, source_named_edges = resolve_imports(
+                                  ~~~~~~~~~~~~~~~^
+        repository, source, named, manifest.generated_imports
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/product_closure/graph.py", line 111, in resolve_imports
+    require_file(repository, target, source, imported)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/product_closure/graph.py", line 252, in require_file
+    raise ClosureError(
+        f"{source.relative_to(repository)}: unresolved import {imported!r}"
+    )
+scripts.product_closure.graph.ClosureError: src/frontends/riscv/recursion/detached_fri_core_part_00.zig: unresolved import '../air/typed_poseidon2_authority.zig'
+
+----------------------------------------------------------------------
+Ran 14 tests in 1.182s
+
+FAILED (errors=1)

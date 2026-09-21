@@ -1,0 +1,40 @@
+{
+  "moves": {
+    "materialization_cost_direct.zig": "direct_polynomial_graph.zig",
+    "materialization_direct_program.zig": "direct_polynomial_program.zig",
+    "materialization_fixed_direct.zig": "fixed_polynomial_program.zig",
+    "typed_poseidon2_fixed_direct.zig": "typed_poseidon2_fixed_polynomials.zig"
+  },
+  "changed_import_consumers": [
+    "src/frontends/riscv/air/lang/typed_poseidon2_degree5_backend.zig",
+    "src/frontends/riscv/air/lang/materialization_fixed_direct_test.zig",
+    "src/frontends/riscv/air/lang/materialization_direct_benchmark_test.zig",
+    "src/frontends/riscv/air/lang/direct_polynomial_program.zig",
+    "src/frontends/riscv/air/lang/materialization_direct_benchmark.zig",
+    "src/frontends/riscv/air/lang/materialization_fixed_cost_test.zig",
+    "src/frontends/riscv/air/lang/direct_polynomial_graph.zig",
+    "src/frontends/riscv/air/lang/materialization_frontier_projection.zig",
+    "src/frontends/riscv/air/lang/materialization_cost.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_degree5_component.zig",
+    "src/frontends/riscv/air/lang/poseidon_layout_benchmark_protocol_test.zig",
+    "src/frontends/riscv/air/lang/materialization_cost_direct_test.zig",
+    "src/frontends/riscv/air/lang/cost_aware_materializer_test.zig",
+    "src/frontends/riscv/air/lang/materialization_direct_program_test.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_frontier_artifact.zig",
+    "src/frontends/riscv/air/lang/materialization_frontier_projection_test.zig",
+    "src/frontends/riscv/air/lang/materialization_frontier_cost_model.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_degree_bounded_backend.zig",
+    "src/frontends/riscv/air/lang/materialization_frontier_cost_model_test.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_fixed_polynomials.zig",
+    "src/frontends/riscv/air/lang/cost_aware_materializer.zig",
+    "src/frontends/riscv/air/lang/poseidon_layout_benchmark_command.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_degree_bounded_component.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_degree_bounded_candidate.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_degree5_prepared_program.zig",
+    "src/frontends/riscv/air/lang/typed_poseidon2_layout_executor_validate.zig",
+    "src/frontends/riscv/air/lang/materialization_cost_test.zig"
+  ],
+  "bodies_unchanged_after_import_rebinding": true,
+  "production_proposal_authorization_added": false,
+  "focused_test_consumer_added": "frontends/riscv/polynomial_compiler_test_root.zig"
+}

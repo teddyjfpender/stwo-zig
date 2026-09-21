@@ -201,12 +201,17 @@ test "artifact store: concurrent store instances publish one object" {
     const second_thread = try std.Thread.spawn(.{}, publishFromThread, .{&second_context});
     first_thread.join();
     second_thread.join();
-    try std.testing.expect(first_context.failure == null);
-    try std.testing.expect(second_context.failure == null);
+    if (first_context.failure) |err| return err;
+    if (second_context.failure) |err| return err;
     try std.testing.expect(types.BlobRefV1.eql(
         first_context.result.?,
         second_context.result.?,
     ));
+    var first_snapshot = try first.resolveObject(first_context.result.?.sha256);
+    defer first_snapshot.deinit(std.heap.page_allocator);
+    var second_snapshot = try second.resolveObject(second_context.result.?.sha256);
+    defer second_snapshot.deinit(std.heap.page_allocator);
+    try std.testing.expect(first_snapshot.measurement.identity.eql(second_snapshot.measurement.identity));
 }
 
 const ResolveContext = struct {

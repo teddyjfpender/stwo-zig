@@ -4,8 +4,7 @@
 //! Capture identities retain the original order; arbitrary masks are rejected.
 
 const stwo_core = @import("stwo_core");
-const keccak = @import("../air/guest_precompile/keccakf_component.zig");
-const secp = @import("../air/guest_precompile/secp256k1_component.zig");
+const masks = @import("../air/guest_precompile/mask_layout.zig");
 
 const CirclePointQM31 = stwo_core.circle.CirclePointQM31;
 
@@ -31,8 +30,8 @@ pub const Layout = enum(u8) {
             .current => &.{0},
             .current_previous => &.{ 0, -1 },
             .previous_current => &.{ -1, 0 },
-            .secp256k1_main => &secp.MAIN_MASK_OFFSETS,
-            .keccak_state => &keccak.STATE_MASK_OFFSETS,
+            .secp256k1_main => &masks.SECP256K1_MAIN_MASK_OFFSETS,
+            .keccak_state => &masks.KECCAKF_STATE_MASK_OFFSETS,
         };
     }
 

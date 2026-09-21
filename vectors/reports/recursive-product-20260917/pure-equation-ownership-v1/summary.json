@@ -1,0 +1,35 @@
+{
+  "status": "focused_and_complete_cpu_metal_gates_passed",
+  "canonical_digest_unchanged": "e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf",
+  "identity_dependency_sources": 94,
+  "prover_or_witness_dependencies_in_identity": false,
+  "whole_parent_verifier_only": false,
+  "checks": {
+    "native_backend_parity": 6,
+    "identity_and_admission": 11,
+    "ownership": 6,
+    "logup_pair_transition": 2
+  },
+  "last_complete_proof_checkpoint": "../canonical-identity-v2/cross-backend.json",
+  "source_sha256": {
+    "src/frontends/riscv/air/logup.zig": "c95c3adddaae853d8ee46d794542e21ad4e72da0e0c629a6557a7d0eec5b7ffc",
+    "src/frontends/riscv/air/logup_equations.zig": "d48cce8da6fed717e14162cdd349d35ed2b3a885545fc4c68d85b63c476ed558",
+    "src/frontends/riscv/air/lookups/entry.zig": "550d5ca13ce830fe968f6bb250b165019c06b46dae074c4b22fb1456a8c72564",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_matrix.zig": "4ddec37dffa67fcd912a1fda30300264ce9fba4e278e8fce81626490e80e7097",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_air_runtime.zig": "c4452962b1ccae81560b0491a8ab7aa59905e6b2e85d9d1f11ab6f6d585c0644",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_degree3_schedule.zig": "0a124d115c50c07eb7ef6950fbba09e8fa388406ae974baa8b8cae364bc59bb4",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_equations_v1.zig": "9244944d4a81f2e689f6ea8bfcb7a8fdb09ff81665583fc4feeeab83346f6d33",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_degree3_v1.zig": "ad648f8e39aa3cbccb8e20821278ca75ccbdf803c3d9a538d2baf633b8ecae84",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_component_v1.zig": "a42682935f945511f0b7556af6102107bafcf7e2785be1576be2d78cd1de06f2",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_identity_v2.zig": "6c4e318150276d90931b75e49e7265d7bd23760b1efe4c1d7d3b19efc409fce1",
+    "src/frontends/riscv/recursion/air/universal_shared_provider.zig": "b3a00ff303b59538fb6892645802a3eb50b41989536c83fb4ccc224d8bfddfca",
+    "src/frontends/riscv/poseidon2_protocol_identity_test_root.zig": "a4856d83420163acff2313bbbafe9fc77d7679356aefefa3f99ab9867b9032b1",
+    "scripts/tests/test_product_closure.py": "f9f47380df403525781b81b4790407a2ba9f5b1667d365c8f099c3d89da1a01b"
+  },
+  "remaining": [
+    "Separate the remaining lower-level witness dependencies from the parent verifier.",
+    "Run complete proofs at the next ownership integration milestone.",
+    "Refresh formal source provenance after the ownership changes are reviewed as a batch."
+  ],
+  "complete_qualification": "../equation-owners-v1/cross-backend.json"
+}

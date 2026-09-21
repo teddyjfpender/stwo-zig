@@ -6,7 +6,7 @@ const child_command = @import("recursive_segment_v2_detached_command.zig");
 const prepare = @import("recursive_segment_v2_detached_parent_prepare.zig");
 const proof = @import("recursive_segment_v2_detached_parent_proof.zig");
 const command = @import("recursive_segment_v2_detached_parent_command.zig");
-const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
+const protocol = @import("stwo_riscv_frontend").recursion.detached_parent_protocol_v1;
 pub const PROFILE = "tiny-memory-root-v2";
 pub const INTERMEDIATE_PROFILE = "tiny-memory-span-v2";
 pub const CONTINUATION_PROFILE = "tiny-memory-continuation-span-v2";
@@ -19,6 +19,7 @@ pub const ArgumentsV1 = struct {
     memory_profile: enum { initial, continuation } = .initial,
     child_family: @import("recursive_segment_v2_detached_child_transcript.zig").Family = .segment,
     children: [2]child_command.ArgumentsV1,
+    boundary_profile: ?struct { path: []const u8, sha256: [32]u8 } = null,
     parent_key: ?struct { path: []const u8, sha256: [32]u8 } = null,
 };
 
@@ -30,6 +31,8 @@ pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
     var result = ArgumentsV1{ .child_family = if (std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE) or std.mem.eql(u8, args[1], PARENT_SPAN_PROFILE)) .parent else .segment, .memory_profile = if (std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) .continuation else .initial, .publication_mode = if (std.mem.eql(u8, args[1], PROFILE) or std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
     var key_path: ?[]const u8 = null;
     var key_pin: ?[32]u8 = null;
+    var boundary_path: ?[]const u8 = null;
+    var boundary_pin: ?[32]u8 = null;
     var profile_seen = false;
     var index: usize = 9;
     while (index < args.len) : (index += 2) {
@@ -39,6 +42,16 @@ pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
             if (profile_seen) return error.DuplicateParentOption;
             profile_seen = true;
             result.proof_profile = std.meta.stringToEnum(protocol.ProfileV1, value) orelse return error.DetachedParentProfileMismatch;
+        } else if (std.mem.eql(u8, option, "--boundary-profile")) {
+            if (boundary_path != null) return error.DuplicateParentOption;
+            if (value.len == 0 or std.mem.startsWith(u8, value, "--")) return error.ExpectedIndependentBoundaryProfileAndHash;
+            boundary_path = value;
+        } else if (std.mem.eql(u8, option, "--boundary-profile-sha256")) {
+            if (boundary_pin != null) return error.DuplicateParentOption;
+            if (value.len != 64) return error.ExpectedIndependentBoundaryProfileAndHash;
+            var pin: [32]u8 = undefined;
+            _ = try std.fmt.hexToBytes(&pin, value);
+            boundary_pin = pin;
         } else if (std.mem.eql(u8, option, "--parent-key")) {
             if (key_path != null) return error.DuplicateParentOption;
             if (value.len == 0 or std.mem.startsWith(u8, value, "--")) return error.ExpectedIndependentParentKeyAndHash;
@@ -50,6 +63,11 @@ pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
             _ = try std.fmt.hexToBytes(&pin, value);
             key_pin = pin;
         } else return error.UnknownParentOption;
+    }
+    if ((boundary_path == null) != (boundary_pin == null)) return error.ExpectedIndependentBoundaryProfileAndHash;
+    if (boundary_path) |path| {
+        if (result.child_family != .segment) return error.UnexpectedBoundaryProfile;
+        result.boundary_profile = .{ .path = path, .sha256 = boundary_pin.? };
     }
     if ((key_path == null) != (key_pin == null)) return error.ExpectedIndependentParentKeyAndHash;
     if (key_path) |path| result.parent_key = .{ .path = path, .sha256 = key_pin.? };
@@ -103,25 +121,7 @@ fn runInner(comptime Engine: type, allocator: std.mem.Allocator, args: Arguments
     var child_pins: [2][32]u8 = undefined;
     var preparation_ns: u64 = undefined;
     var candidate = blk: {
-        var prepared = child_scope: {
-            if (args.child_family == .parent) {
-                const left = try prepare.loadAdmittedParent(allocator, args.children[0]);
-                defer left.deinit();
-                const right = try prepare.loadAdmittedParent(allocator, args.children[1]);
-                defer right.deinit();
-                try requireChildProfiles(args.proof_profile, left, right);
-                break :child_scope try prepare.prepareParents(allocator, .{ left, right }, args.publication_mode);
-            }
-            const left = try prepare.loadAdmittedChild(allocator, args.children[0]);
-            defer left.deinit();
-            const right = try prepare.loadAdmittedChild(allocator, args.children[1]);
-            defer right.deinit();
-            try requireChildProfiles(args.proof_profile, left, right);
-            break :child_scope try prepare.prepareWithMode(allocator, .{ left, right }, switch (args.memory_profile) {
-                .initial => prepare.TINY_MEMORY_PROFILE_V1,
-                .continuation => prepare.TINY_MEMORY_CONTINUATION_PROFILE_V1,
-            }, args.publication_mode);
-        };
+        var prepared = try prepareChildren(allocator, args, if (admitted_key) |key| key.key() else null);
         // Both verified child owners are already destroyed here. Prepared owns
         // copied logical rows, provider calls, and canonical public root words.
         defer prepared.deinit();
@@ -182,6 +182,14 @@ pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
+    if (args.len > 1 and std.mem.eql(u8, args[1], "derive-key")) {
+        const pin = try deriveKey(allocator, try parseArguments(args[2..]));
+        const receipt = try std.json.Stringify.valueAlloc(allocator, .{ .endpoint = "detached_parent_key_setup", .key_sha256 = pin, .proof_created = false }, .{});
+        defer allocator.free(receipt);
+        try std.fs.File.stdout().writeAll(receipt);
+        try std.fs.File.stdout().writeAll("\n");
+        return;
+    }
     const report = try run(allocator, try parseArguments(args[1..]));
     const json = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(json);
@@ -214,7 +222,79 @@ test "detached parent producer requires explicit profile and independent child a
     const parent_inputs = try parseArguments(&recursive);
     try std.testing.expectEqual(.parent, parent_inputs.child_family);
     try std.testing.expectEqual(.root, parent_inputs.publication_mode);
+    const boundary_args = valid ++ .{ "--boundary-profile", "boundary.json", "--boundary-profile-sha256", pin };
+    const boundary = try parseArguments(&boundary_args);
+    try std.testing.expectEqualStrings("boundary.json", boundary.boundary_profile.?.path);
+    try std.testing.expectError(error.ExpectedIndependentBoundaryProfileAndHash, parseArguments(boundary_args[0 .. boundary_args.len - 2]));
+    try std.testing.expectError(error.DuplicateParentOption, parseArguments(&(boundary_args ++ .{ "--boundary-profile", "other.json" })));
+    try std.testing.expectError(error.UnexpectedBoundaryProfile, parseArguments(&(recursive ++ .{ "--boundary-profile", "boundary.json", "--boundary-profile-sha256", pin })));
+    const allocator = std.testing.allocator;
+    var profile = prepare.TINY_MEMORY_PROFILE_V1;
+    const addresses = [_]u32{ 1048832, 1048960, 1049088, 1049216 };
+    for (&profile.memory) |*memory| memory.* = .{ .entry_addresses = &addresses, .exit_addresses = &addresses };
+    profile.sections[0].counts = .{ 4, 4, 0, 4 };
+    profile.sections[1].counts = .{ 4, 4, 4, 4 };
+    const bytes = try std.json.Stringify.valueAlloc(allocator, profile, .{});
+    defer allocator.free(bytes);
+    const decoded = try decodeBoundaryProfile(allocator, bytes, command.hash(bytes));
+    defer decoded.deinit();
+    try std.testing.expectEqualSlices(u32, &addresses, decoded.value.memory[1].exit_addresses);
+    try std.testing.expectError(error.BoundaryProfilePinMismatch, decodeBoundaryProfile(allocator, bytes, @splat(0)));
+    profile.sections[0].counts[0] = 1;
+    const malformed = try std.json.Stringify.valueAlloc(allocator, profile, .{});
+    defer allocator.free(malformed);
+    try std.testing.expectError(error.InvalidBoundaryMemoryProfile, decodeBoundaryProfile(allocator, malformed, command.hash(malformed)));
     var unsupported = valid;
     unsupported[1] = "unreviewed-profile";
     try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(&unsupported));
+}
+
+fn decodeBoundaryProfile(allocator: std.mem.Allocator, bytes: []const u8, pin: [32]u8) !std.json.Parsed(prepare.ProfileV1) {
+    if (!std.meta.eql(command.hash(bytes), pin)) return error.BoundaryProfilePinMismatch;
+    const parsed = try std.json.parseFromSlice(prepare.ProfileV1, allocator, bytes, .{ .allocate = .alloc_always });
+    errdefer parsed.deinit();
+    for (parsed.value.memory, parsed.value.sections) |memory, sections| try memory.validate(sections);
+    return parsed;
+}
+
+fn prepareChildren(allocator: std.mem.Allocator, args: ArgumentsV1, admitted_key: ?*const protocol.KeyV1) !prepare.Prepared {
+    if (args.child_family == .parent) {
+        const left = try prepare.loadAdmittedParent(allocator, args.children[0]);
+        defer left.deinit();
+        const right = try prepare.loadAdmittedParent(allocator, args.children[1]);
+        defer right.deinit();
+        try requireChildProfiles(args.proof_profile, left, right);
+        return try prepare.prepareParents(allocator, .{ left, right }, args.publication_mode, if (admitted_key) |key| &key.manifest else null);
+    }
+    const left = try prepare.loadAdmittedChild(allocator, args.children[0]);
+    defer left.deinit();
+    const right = try prepare.loadAdmittedChild(allocator, args.children[1]);
+    defer right.deinit();
+    try requireChildProfiles(args.proof_profile, left, right);
+    if (args.boundary_profile) |input| {
+        const bytes = try std.fs.cwd().readFileAlloc(allocator, input.path, command.MAX_INPUT_BYTES);
+        defer allocator.free(bytes);
+        const profile = try decodeBoundaryProfile(allocator, bytes, input.sha256);
+        defer profile.deinit();
+        return prepare.prepareWithMode(allocator, .{ left, right }, profile.value, args.publication_mode, if (admitted_key) |key| &key.manifest else null);
+    }
+    return try prepare.prepareWithMode(allocator, .{ left, right }, switch (args.memory_profile) {
+        .initial => prepare.TINY_MEMORY_PROFILE_V1,
+        .continuation => prepare.TINY_MEMORY_CONTINUATION_PROFILE_V1,
+    }, args.publication_mode, if (admitted_key) |key| &key.manifest else null);
+}
+
+/// A separate setup process derives a key from independently admitted children.
+/// It exits with key bytes only; production later requires the caller's pin.
+pub fn deriveKey(allocator: std.mem.Allocator, args: ArgumentsV1) ![32]u8 {
+    if (args.parent_key != null) return error.KeySetupRequiresNewParentKey;
+    try requireNewOutput(args.output);
+    var prepared = try prepareChildren(allocator, args, null);
+    defer prepared.deinit();
+    const bytes = try proof.deriveKey(allocator, prepared.cohort, prepared.child_key_sha256, prepared.publication_mode, args.proof_profile);
+    defer allocator.free(bytes);
+    var file = try std.fs.cwd().createFile(args.output, .{ .exclusive = true });
+    defer file.close();
+    try file.writeAll(bytes);
+    return command.hash(bytes);
 }

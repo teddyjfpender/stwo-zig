@@ -1,4 +1,4 @@
-//! Independent-prefix interaction generation from admitted framework lookup DAGs.
+//! Framework interaction generation from admitted framework lookup DAGs.
 //! Composition and interaction generation share tuple/numerator lowering. This
 //! emits no AIR definition and never replaces typed padding by a row-count mask.
 const std = @import("std");
@@ -14,7 +14,7 @@ pub const preamble = "#define STWO_ZIG_AMALGAMATED\n" ++
 
 pub fn validate(entry: Entry) !void {
     try polynomial.validate(entry);
-    if (entry.program.layout != .independent_prefix_v1) return error.UnsupportedFrameworkInteractionLayout;
+    if (entry.program.layout != .independent_prefix_v1 and entry.program.layout != .same_row_prefix_v1) return error.UnsupportedFrameworkInteractionLayout;
     // Interaction generation precedes Tree2 commitment; its relation inputs
     // must be supplied witness/profile words, never its own output columns.
     for (entry.program.inputs) |input| switch (input) {
@@ -61,14 +61,14 @@ pub fn emitKernel(allocator: std.mem.Allocator, writer: anytype, name: []const u
         \\ if (row >= row_count) return;
         \\
     , .{name});
-    const selector = program.is_first_input.?;
-    try writer.print(" if (tree0[column_offsets[{}u]+row] != uint(row == 0u)) atomic_fetch_or_explicit(status, 2u, memory_order_relaxed);\n", .{selector});
+    if (program.is_first_input) |selector| try writer.print(" if (tree0[column_offsets[{}u]+row] != uint(row == 0u)) atomic_fetch_or_explicit(status, 2u, memory_order_relaxed);\n", .{selector});
     // All trace reads are already bounded by immutable runtime metadata.
     for (program.inputs, 0..) |input, index| switch (input) {
         .trace_column => |column| try writer.print(" if (tree{}[column_offsets[{}u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);\n", .{ column.tree_index, index }),
         .profile_parameter => {},
     };
     _ = try polynomial.emitLookupTerms(allocator, writer, program);
+    if (program.layout == .same_row_prefix_v1) try writer.writeAll(" RiscvQm31 cumulative={0u,0u,0u,0u};\n");
     for (program.batches, 0..) |batch, index| {
         const first = batch.first_entry;
         const second = first + 1;
@@ -78,7 +78,10 @@ pub fn emitKernel(allocator: std.mem.Allocator, writer: anytype, name: []const u
             try writer.print(" RiscvQm31 n{} = riscv_qm_add(riscv_qm_mul_base(denominator{},l{}),riscv_qm_mul_base(denominator{},l{})), d{} = riscv_qm_mul(denominator{},denominator{});\n", .{ index, second, program.entries[first].numerator, first, program.entries[second].numerator, index, first, second });
         }
         try writer.print(" if ((d{}.a|d{}.b|d{}.c|d{}.d)==0u) atomic_fetch_or_explicit(status,1u,memory_order_relaxed);\n", .{ index, index, index, index });
-        try writer.print(" RiscvQm31 f{} = riscv_qm_mul(n{},framework_interaction_inverse(d{}));\n framework_interaction_store(output,row_count,{}u,row,f{});\n", .{ index, index, index, index, index });
+        try writer.print(" RiscvQm31 f{} = riscv_qm_mul(n{},framework_interaction_inverse(d{}));\n", .{ index, index, index });
+        if (program.layout == .same_row_prefix_v1) {
+            try writer.print(" cumulative=riscv_qm_add(cumulative,f{});\n framework_interaction_store(output,row_count,{}u,row,cumulative);\n", .{ index, index });
+        } else try writer.print(" framework_interaction_store(output,row_count,{}u,row,f{});\n", .{ index, index });
     }
     try writer.writeAll("}\n");
 }

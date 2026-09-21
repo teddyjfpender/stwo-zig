@@ -1,0 +1,6 @@
+1/3 publication_repro.test.publication returns a resolvable cached identity...FAIL (ArtifactStoreCorrupt)
+2/3 publication_repro.test.ingested snapshots retain identity after publisher returns...FAIL (ArtifactStoreCorrupt)
+3/3 publication_repro.test.duplicate publication preserves the first store's cached identity...FAIL (ArtifactStoreCorrupt)
+0 passed; 0 skipped; 3 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/ec10117f6f213c23edccb5d3b6264a73/test --seed=0x28083314

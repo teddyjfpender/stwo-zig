@@ -8,7 +8,6 @@ const std = @import("std");
 
 const trace_source = @embedFile("../../runner/trace.zig");
 const generated_retirement_source = @embedFile("../../runner/generated_retirement.zig");
-const execute_source = @embedFile("../../runner/execute.zig");
 const constraint_program_source =
     @embedFile("../constraint_program.zig") ++
     @embedFile("../constraint_program_constructors.zig");
@@ -19,11 +18,6 @@ test "typed AUIPC execution and AIR are singular production authorities" {
         generated_retirement_source,
         ".auipc => try auipc.retireAtomic",
     );
-    try expectContains(
-        execute_source,
-        ".AUIPC => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".AUIPC => cpu.writeReg");
     try expectContains(
         constraint_program_source,
         ".auipc => constructAuipc(section, columns, is_active)",
@@ -36,15 +30,11 @@ test "typed AUIPC execution and AIR are singular production authorities" {
 }
 
 test "typed BASE_ALU_IMM execution and AIR are singular production authorities" {
+    try expectAbsent(semantics_registry_source, "pub const base_alu_imm =");
     try expectContains(
         generated_retirement_source,
         ".addi, .xori, .ori, .andi => try base_alu_imm.retireAtomic",
     );
-    try expectContains(
-        execute_source,
-        ".ADDI, .XORI, .ORI, .ANDI => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".ADDI => cpu.writeReg");
     try expectContains(
         constraint_program_source,
         ".base_alu_imm => constructBaseAluImm(section, columns, is_active)",
@@ -60,11 +50,6 @@ test "typed BASE_ALU_REG execution witness and AIR are singular production autho
         generated_retirement_source,
         ".add, .sub, .xor, .or_reg, .and_reg => try base_alu_reg.retireAtomic",
     );
-    try expectContains(
-        execute_source,
-        ".ADD, .SUB, .XOR, .OR, .AND => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".ADD => cpu.writeReg");
     try expectContains(
         trace_source,
         ".base_alu_reg => BASE_ALU_REG_AUTHORITY.writeActiveRow",
@@ -90,11 +75,6 @@ test "typed JAL execution witness and AIR are singular production authorities" {
         ".jal => try jal.retireAtomic",
     );
     try expectContains(
-        execute_source,
-        ".JAL => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".JAL => {");
-    try expectContains(
         trace_source,
         ".jal => JAL_AUTHORITY.writeActiveRow",
     );
@@ -118,11 +98,6 @@ test "typed JALR execution witness and AIR are singular production authorities" 
         generated_retirement_source,
         ".jalr => try jalr.retireAtomic",
     );
-    try expectContains(
-        execute_source,
-        ".JALR => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".JALR => {");
     try expectContains(
         trace_source,
         ".jalr => JALR_AUTHORITY.writeActiveRow",
@@ -148,12 +123,6 @@ test "typed LT_IMM execution witness and AIR are singular production authorities
         ".slti, .sltiu => try lt_imm.retireAtomic",
     );
     try expectContains(
-        execute_source,
-        ".SLTI, .SLTIU => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".SLTI => {");
-    try expectAbsent(execute_source, ".SLTIU => {");
-    try expectContains(
         trace_source,
         ".lt_imm => LT_IMM_AUTHORITY.writeActiveRow",
     );
@@ -175,7 +144,6 @@ test "typed LT_IMM execution witness and AIR are singular production authorities
 
 test "typed SHIFTS_IMM execution witness and AIR are singular production authorities" {
     try expectContains(generated_retirement_source, ".slli, .srli, .srai => try shifts_imm.retireAtomic");
-    try expectContains(execute_source, ".SLLI, .SRLI, .SRAI => return error.GeneratedRetirementRequired");
     try expectContains(
         trace_source,
         ".shifts_imm => SHIFTS_IMM_AUTHORITY.writeActiveRow",
@@ -200,7 +168,6 @@ test "typed MULH execution witness and AIR are singular production authorities" 
 
 test "typed LT_REG execution witness and AIR are singular production authorities" {
     try expectContains(generated_retirement_source, ".slt, .sltu => try lt_reg.retireAtomic");
-    try expectContains(execute_source, ".SLL, .SRL, .SRA, .SLT, .SLTU => return error.GeneratedRetirementRequired");
     try expectContains(trace_source, ".lt_reg => LT_REG_AUTHORITY.writeActiveRow");
     try expectContains(constraint_program_source, ".lt_reg => constructTyped(typed_lt_reg_eval, section, columns, is_active)");
     try expectAbsent(semantics_registry_source, "pub const lt_reg =");
@@ -211,12 +178,6 @@ test "typed BRANCH_EQ execution witness and AIR are singular production authorit
         generated_retirement_source,
         ".beq, .bne => try branch_eq.retireAtomic",
     );
-    try expectContains(
-        execute_source,
-        ".BEQ, .BNE => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".BEQ => {");
-    try expectAbsent(execute_source, ".BNE => {");
     try expectContains(
         trace_source,
         ".branch_eq => BRANCH_EQ_AUTHORITY.writeActiveRow",
@@ -242,14 +203,6 @@ test "typed BRANCH_LT execution witness and AIR are singular production authorit
         generated_retirement_source,
         ".blt, .bltu, .bge, .bgeu => try branch_lt.retireAtomic",
     );
-    try expectContains(
-        execute_source,
-        ".BLT, .BLTU, .BGE, .BGEU => return error.GeneratedRetirementRequired",
-    );
-    try expectAbsent(execute_source, ".BLT => {");
-    try expectAbsent(execute_source, ".BLTU => {");
-    try expectAbsent(execute_source, ".BGE => {");
-    try expectAbsent(execute_source, ".BGEU => {");
     try expectContains(
         trace_source,
         ".branch_lt => BRANCH_LT_AUTHORITY.writeActiveRow",

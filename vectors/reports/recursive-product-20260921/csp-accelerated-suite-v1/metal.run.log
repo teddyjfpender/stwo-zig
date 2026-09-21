@@ -1,0 +1,36 @@
+[scope] precompile full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/metal.evidence-e4je6of5
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/16] sha256/128: execute, prove, verify
+  prove=0.442s verify=0.104s proof=816.9KiB rss=1.85GiB
+[2/16] sha256/256: execute, prove, verify
+  prove=0.447s verify=0.105s proof=825.9KiB rss=1.84GiB
+[3/16] sha256/512: execute, prove, verify
+  prove=0.456s verify=0.110s proof=820.1KiB rss=1.87GiB
+[4/16] sha256/1024: execute, prove, verify
+  prove=0.457s verify=0.107s proof=818.2KiB rss=1.89GiB
+[5/16] sha256/2048: execute, prove, verify
+  prove=0.460s verify=0.106s proof=836.4KiB rss=1.91GiB
+[6/16] keccak/128: execute, prove, verify
+  prove=0.415s verify=0.103s proof=820.0KiB rss=1.86GiB
+[7/16] keccak/256: execute, prove, verify
+  prove=0.424s verify=0.104s proof=820.4KiB rss=1.85GiB
+[8/16] keccak/512: execute, prove, verify
+  prove=0.432s verify=0.104s proof=822.2KiB rss=1.86GiB
+[9/16] keccak/1024: execute, prove, verify
+  prove=0.442s verify=0.100s proof=818.4KiB rss=1.92GiB
+[10/16] keccak/2048: execute, prove, verify
+  prove=0.484s verify=0.101s proof=871.9KiB rss=2.00GiB
+[11/16] poseidon2_m31/2: execute, prove, verify
+  prove=0.511s verify=0.101s proof=849.6KiB rss=1.63GiB
+[12/16] poseidon2_m31/4: execute, prove, verify
+  prove=0.539s verify=0.101s proof=870.8KiB rss=1.68GiB
+[13/16] poseidon2_m31/8: execute, prove, verify
+  prove=0.530s verify=0.101s proof=910.6KiB rss=1.77GiB
+[14/16] poseidon2_m31/12: execute, prove, verify
+  prove=0.556s verify=0.107s proof=982.1KiB rss=1.82GiB
+[15/16] poseidon2_m31/16: execute, prove, verify
+  prove=0.590s verify=0.106s proof=1068.8KiB rss=1.91GiB
+[16/16] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.864s verify=0.100s proof=3660.3KiB rss=1.63GiB
+report: /Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/metal.json

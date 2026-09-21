@@ -24,7 +24,7 @@ const Sha256 = std.crypto.hash.sha2.Sha256;
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
 pub const PRODUCTION_ACTIVATION = false;
-pub const MAX_CANONICAL_PROOF_BYTES: usize = 512 * 1024 * 1024;
+pub const MAX_CANONICAL_PROOF_BYTES = frontend.recursion.artifact_limits.MAX_CANONICAL_PROOF_BYTES;
 pub const STATEMENT_ENCODED_BYTE_COUNT: usize = 680;
 pub const ARTIFACT_HEADER_BYTE_COUNT: usize = 8;
 

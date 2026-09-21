@@ -1,0 +1,4 @@
+1/3 publication_repro.test.publication returns a resolvable cached identity...OK
+2/3 publication_repro.test.ingested snapshots retain identity after publisher returns...OK
+3/3 publication_repro.test.duplicate publication preserves the first store's cached identity...OK
+All 3 tests passed.

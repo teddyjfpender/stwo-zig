@@ -737,6 +737,23 @@ def _static_identity(
     }
 
 
+def _formal_bridge_targets(paths: Paths) -> list[str]:
+    """Build every formal import before using its olean in the external project."""
+    targets: set[str] = set()
+    for relative in BRIDGE_SOURCES:
+        for line in (paths.root / relative).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("public import "):
+                modules = line.removeprefix("public import ").split()
+            elif line.startswith("import "):
+                modules = line.removeprefix("import ").split()
+            else:
+                continue
+            targets.update(module for module in modules
+                           if module.startswith("RiscvRefinement."))
+    return sorted(targets)
+
+
 def verify(
     paths: Paths,
     generated_file: Path,
@@ -765,7 +782,7 @@ def verify(
     source_count, source_digest = _source_closure(project)
     _run(["lake", "build", "LeanRV32IM"], project)
     _run(
-        ["lake", "build", "RiscvRefinement.Sail.Generated.Pilot"],
+        ["lake", "build", *_formal_bridge_targets(paths)],
         paths.formal,
         timeout=600,
     )

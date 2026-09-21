@@ -9,7 +9,6 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
 const outer_proof = @import("recursive_segment_v2_outer_proof_test.zig");
@@ -17,16 +16,16 @@ const recording_support = @import("recursive_v3_recording_test_support.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const leaf_outer = integration.recursive_segment_v2_leaf_outer;
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
 const composition_authority =
-    integration.recursive_binary_composition_authority;
-const binary_cohort_mod = integration.recursive_binary_outer_cohort;
-const binary_driver = integration.recursive_binary_outer;
-const outer_cohort = integration.recursive_segment_v2_outer_cohort;
+    @import("recursive_binary_composition_authority.zig");
+const binary_cohort_mod = @import("recursive_binary_outer_cohort.zig");
+const binary_driver = @import("recursive_binary_outer.zig");
+const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
 const outer_admission_v2 =
-    integration.recursive_segment_v2_outer_admission_v2;
-const outer_engine = integration.recursive_segment_v2_outer_engine;
-const temporal_nonfri = integration.recursive_temporal_nonfri_source_v2;
+    @import("recursive_segment_v2_outer_admission_v2.zig");
+const outer_engine = @import("recursive_segment_v2_outer_engine.zig");
+const temporal_nonfri = @import("recursive_temporal_nonfri_source_v2.zig");
 const cohort_protocol = frontend.recursion.segment_outer_cohort_v2;
 const binary_rows = frontend.recursion.binary_fri_outer_source;
 const composition_graph = frontend.recursion.air.composition_circuit;
@@ -76,14 +75,14 @@ pub fn runMemoryProofWithNativeEngine(comptime NativeEngine: type, allocator: st
 }
 
 pub fn checkMemoryWorkload(allocator: std.mem.Allocator) !void {
-    try @import("recursive_segment_v2_memory_workload_test_support.zig").checkWorkload(allocator);
+    try @import("recursive_segment_v2_memory_workload.zig").checkWorkload(allocator);
 }
 
 pub fn checkTwoSegmentWorkload(allocator: std.mem.Allocator) !void {
-    try @import("recursive_segment_v2_two_segment_test_support.zig").checkWorkload(allocator);
+    try @import("recursive_segment_v2_workload.zig").checkWorkload(allocator);
 }
 
-pub const memory_native_steps = @import("recursive_segment_v2_memory_workload_test_support.zig").native_steps;
+pub const memory_native_steps = @import("recursive_segment_v2_memory_workload.zig").native_steps;
 
 pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
     try ingress.checkSizedWorkload(allocator);
@@ -110,7 +109,7 @@ const SizedProofHook = struct {
                 verified.receipt.producer_live_bytes_after_destroy,
             },
         );
-        try integration.recursive_segment_v2_detached_proof.retainIfRequested(allocator, prepared);
+        try @import("recursive_segment_v2_detached_proof.zig").retainIfRequested(allocator, prepared);
     }
 };
 

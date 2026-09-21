@@ -1,0 +1,28 @@
+'RiscvRefinement.Publication.TeamB.LoadStore.loadStoreHoldsOfAccepted' depends on axioms: [propext, Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.lb_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.lh_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.lw_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.lbu_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.lhu_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.sb_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.sh_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.sw_accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'RiscvRefinement.Publication.TeamB.LoadStore.accepted_air_refines' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]

@@ -52,6 +52,7 @@ inductive MulhDomain where
   | rangeCheck20
   | rangeCheck811
   | rangeCheckM31
+  | rangeCheck88
 deriving DecidableEq, Repr
 
 structure MulhLookup where
@@ -114,6 +115,11 @@ def rangeCheckM31Contains : List M31 → Bool
         !(decide (low.toNat = 255) && decide (high.toNat = 127))
   | _ => false
 
+/-- Membership in the two-byte fixed range table. -/
+def rangeCheck88Contains : List M31 → Bool
+  | [low, high] => decide (low.toNat < 256) && decide (high.toNat < 256)
+  | _ => false
+
 /-- One request lands inside the fixed table it names. Requests against the
 three bus relations are not fixed-table requests and impose nothing here. -/
 def MulhCircuit.fixedRequestHolds
@@ -122,6 +128,7 @@ def MulhCircuit.fixedRequestHolds
   | .rangeCheck20 => rangeCheck20Contains (circuit.lookupTuple columns entry)
   | .rangeCheck811 => rangeCheck811Contains (circuit.lookupTuple columns entry)
   | .rangeCheckM31 => rangeCheckM31Contains (circuit.lookupTuple columns entry)
+  | .rangeCheck88 => rangeCheck88Contains (circuit.lookupTuple columns entry)
   | _ => true
 
 /-- Every *live* fixed-table request lands inside its table. A LogUp term whose

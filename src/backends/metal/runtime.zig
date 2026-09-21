@@ -335,6 +335,7 @@ const resident_data_bindings = @import("runtime/resident_data.zig");
 const resident_data = resident_data_bindings.ResidentData(MetalError, Runtime);
 
 pub const ResidentBuffer = resident_data.ResidentBuffer;
+pub const framework_interaction = @import("runtime/framework_interaction.zig");
 pub const Tree = resident_data.Tree;
 
 pub fn compositionLdeOptionsFromEnvironment() MetalError!CompositionLdeOptions {

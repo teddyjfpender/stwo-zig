@@ -881,7 +881,7 @@ pub fn EngineKernelForManifest(
             );
             defer scheme.deinit(allocator);
             replayContext(transcript, .tree0);
-            try support.commitVerifierTreeForManifest(
+            try recursion.verifier_tree.commitVerifierTreeForManifest(
                 ManifestContract,
                 allocator,
                 &scheme,
@@ -891,7 +891,7 @@ pub fn EngineKernelForManifest(
                 transcript,
             );
             replayContext(transcript, .tree1);
-            try support.commitVerifierTreeForManifest(
+            try recursion.verifier_tree.commitVerifierTreeForManifest(
                 ManifestContract,
                 allocator,
                 &scheme,
@@ -948,7 +948,7 @@ pub fn EngineKernelForManifest(
             replayContext(transcript, .boundary);
             try mixFlavorBoundary(transcript, cohort, session, &audited, &generated);
             replayContext(transcript, .tree2);
-            try support.commitVerifierTreeForManifest(
+            try recursion.verifier_tree.commitVerifierTreeForManifest(
                 ManifestContract,
                 allocator,
                 &scheme,
@@ -1462,7 +1462,7 @@ pub fn EngineKernelForManifest(
             var scheme = try VerifierScheme.init(allocator, secure_config);
             defer scheme.deinit(allocator);
             var transcript = Engine.Channel{};
-            try support.commitVerifierTreeForManifest(
+            try recursion.verifier_tree.commitVerifierTreeForManifest(
                 ManifestContract,
                 allocator,
                 &scheme,
@@ -1471,7 +1471,7 @@ pub fn EngineKernelForManifest(
                 commitments[ManifestContract.PREPROCESSED_TREE_INDEX],
                 &transcript,
             );
-            try support.commitVerifierTreeForManifest(
+            try recursion.verifier_tree.commitVerifierTreeForManifest(
                 ManifestContract,
                 allocator,
                 &scheme,
@@ -1515,7 +1515,7 @@ pub fn EngineKernelForManifest(
             );
             try mixFlavorClaims(&transcript, manifest, &claims);
             try mixFlavorBoundary(&transcript, cohort, session, &audited, &generated);
-            try support.commitVerifierTreeForManifest(
+            try recursion.verifier_tree.commitVerifierTreeForManifest(
                 ManifestContract,
                 allocator,
                 &scheme,
@@ -1539,7 +1539,7 @@ pub fn EngineKernelForManifest(
             // replay may copy and advance only this process-local channel.
             const replay_query_prefix = transcript;
 
-            const moved = support.moveOwnedForVerifier(
+            const moved = recursion.verifier_tree.moveOwnedForVerifier(
                 recursion.engine.Proof,
                 &proof,
                 &proof_owned,

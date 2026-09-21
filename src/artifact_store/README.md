@@ -33,8 +33,12 @@ flowchart LR
 ```
 
 The `Store` publishes a temporary file only after the file is synchronized,
-then hard-links it into a digest-sharded namespace and synchronizes the target
-directory. Two processes may race to publish identical content; both converge
+then atomically renames it without replacing an existing digest-sharded object
+and synchronizes the target directory. Linux uses `RENAME_NOREPLACE`; macOS uses
+`RENAME_EXCL`. Kernels or filesystems lacking this operation return
+`AtomicPublicationUnsupported`. No overwrite or hard-link fallback is used.
+Publication leaves the object's identity stable before caching it; temporary
+cleanup cannot invalidate its ctime or race a concurrent reader's measurement. Two processes may race to publish identical content; both converge
 on one raw object. A conflicting pre-existing digest name fails closed.
 `openOrCreate` performs bounded directory setup and lazily opens only requested
 digest paths; it never rehashes the whole workspace at startup. Explicit

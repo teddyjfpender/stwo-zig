@@ -1,0 +1,28 @@
+{
+  "schema": "stwo.shared-tuple-preparation-migration.v1",
+  "status": "focused dependencies and complete CPU/Metal proofs qualified",
+  "owner": "src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig",
+  "removed_owner": "src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1.zig",
+  "tests_passed": 7,
+  "closure_tests_passed": 17,
+  "closure_receipt": "neutral-ledger-closure.json",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig": "662ab914e0f70d5669a49eeaf4f203cb6a7008fbec5661070e3cee84b1edd57f",
+    "src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test.zig": "f7dcf446abdaf3e4fb7b8128509e3984d87b12b6486ab2fac65a10e08a5508ee",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_range_provider_v4.zig": "60be17b216286f8ad89b813df2ccdbaa77decba53630ffb6646a0d5ba6b4cf64",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_initial_input_rows_v1.zig": "6b2e589a06a11cdf76893eb7ca5f8aaa039ef26cb80f38631ab62ba1e8a90021"
+  },
+  "command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-recursive-compact-tuple-ledger",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "remaining": "Parent cohort and shared transaction/preparation migration remains incomplete. This moves the exact tuple preparation owner only.",
+  "cpu_receipt": "cpu-neutral-ledger-v1/summary.json",
+  "metal_receipt": "metal-neutral-ledger-v1/summary.json"
+}

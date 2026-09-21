@@ -1,0 +1,448 @@
+{
+  "all_direct_imports_match_previous_exports": true,
+  "dependencies": [
+    {
+      "name": "binary_global_closure_outer_source",
+      "source": "binary_global_closure_outer_source.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "captured_fri",
+      "source": "captured_fri.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "engine",
+      "source": "engine.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "ethereum_statement_arithmetic_v4",
+      "source": "ethereum_statement_arithmetic_v4.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fixed_profile",
+      "source": "fixed_profile.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fixed_wire",
+      "source": "fixed_wire.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "outer_parent_child_admission",
+      "source": "outer_parent_child_admission.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "poseidon2_channel",
+      "source": "poseidon2_channel.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "protocol",
+      "source": "protocol.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_leaf_authority",
+      "source": "segment_leaf_authority.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_leaf_outer_authority_v2",
+      "source": "segment_leaf_outer_authority_v2.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_leaf_outer_bundle",
+      "source": "segment_leaf_outer_bundle.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_profile",
+      "source": "segment_profile.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_public_native_sum_authority_v2",
+      "source": "segment_public_native_sum_authority_v2.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_public_outer_source",
+      "source": "segment_public_outer_source.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_range_authority",
+      "source": "segment_range_authority.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_shared_poseidon_schedule_v2",
+      "source": "segment_shared_poseidon_schedule_v2.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_statement_outer_source",
+      "source": "segment_statement_outer_source.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_transcript_outer_source",
+      "source": "segment_transcript_outer_source.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_transcript_outer_source_v2",
+      "source": "segment_transcript_outer_source_v2.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_transcript_witness",
+      "source": "segment_transcript_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "span_statement",
+      "source": "span_statement.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "transcript_program",
+      "source": "transcript_program.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "transcript_program_v2",
+      "source": "transcript_program_v2.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "transcript_shape",
+      "source": "transcript_shape.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "vm_air_composition_circuit",
+      "source": "vm_air_composition_circuit.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "vm_composition_preparation",
+      "source": "vm_composition_preparation.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "composition_circuit",
+      "source": "air/composition_circuit.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "control_slice_witness",
+      "source": "air/control_slice_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "framework_interaction",
+      "source": "air/framework_interaction.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_merkle_anchor",
+      "source": "air/fri_merkle_anchor.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_merkle_anchor_witness",
+      "source": "air/fri_merkle_anchor_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_merkle_leaf",
+      "source": "air/fri_merkle_leaf.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_merkle_leaf_witness",
+      "source": "air/fri_merkle_leaf_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_merkle_node",
+      "source": "air/fri_merkle_node.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_merkle_node_witness",
+      "source": "air/fri_merkle_node_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_verifier_circuit",
+      "source": "air/fri_verifier_circuit.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_verifier_control",
+      "source": "air/fri_verifier_control.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_verifier_control_witness",
+      "source": "air/fri_verifier_control_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_verifier_input",
+      "source": "air/fri_verifier_input.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "fri_verifier_input_witness",
+      "source": "air/fri_verifier_input_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "linear_ops",
+      "source": "air/linear_ops.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "linear_ops_witness",
+      "source": "air/linear_ops_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "merkle_path",
+      "source": "air/merkle_path.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "merkle_path_poseidon_bridge",
+      "source": "air/merkle_path_poseidon_bridge.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "merkle_path_witness",
+      "source": "air/merkle_path_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "merkle_root",
+      "source": "air/merkle_root.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "merkle_root_witness",
+      "source": "air/merkle_root_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "pcs_deep_circuit",
+      "source": "air/pcs_deep_circuit.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "pcs_deep_input",
+      "source": "air/pcs_deep_input.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "pcs_deep_input_witness",
+      "source": "air/pcs_deep_input_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "prepared_interaction_generation",
+      "source": "air/prepared_interaction_generation.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "qm31_inv",
+      "source": "air/qm31_inv.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "qm31_inv_witness",
+      "source": "air/qm31_inv_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "qm31_mul_full",
+      "source": "air/qm31_mul_full.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "qm31_mul_full_witness",
+      "source": "air/qm31_mul_full_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "query_bits",
+      "source": "air/query_bits.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "query_bits_witness",
+      "source": "air/query_bits_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "query_mapping",
+      "source": "air/query_mapping.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "query_mapping_witness",
+      "source": "air/query_mapping_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "range_check_8_8_bridge",
+      "source": "air/range_check_8_8_bridge.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "relation_interaction",
+      "source": "air/relation_interaction.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "segment_outer_adapter_manifest_v2",
+      "source": "air/segment_outer_adapter_manifest_v2.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "statement_input_relation",
+      "source": "air/statement_input_relation.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "statement_input_witness",
+      "source": "air/statement_input_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "statement_semantics_input_relation",
+      "source": "air/statement_semantics_input_relation.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "statement_semantics_input_witness",
+      "source": "air/statement_semantics_input_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "trace_merkle",
+      "source": "air/trace_merkle.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "trace_merkle_witness",
+      "source": "air/trace_merkle_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "transcript_payload_relation",
+      "source": "air/transcript_payload_relation.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "transcript_payload_witness",
+      "source": "air/transcript_payload_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_adapter_manifest",
+      "source": "air/universal_adapter_manifest.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_catalog",
+      "source": "air/universal_catalog.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_challenges",
+      "source": "air/universal_challenges.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_manifest",
+      "source": "air/universal_manifest.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_relation_binding",
+      "source": "air/universal_relation_binding.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_roster",
+      "source": "air/universal_roster.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_shared_provider",
+      "source": "air/universal_shared_provider.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "universal_typed_component",
+      "source": "air/universal_typed_component.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "verifier_arithmetic_lowering",
+      "source": "air/verifier_arithmetic_lowering.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "verifier_randomness_relation",
+      "source": "air/verifier_randomness_relation.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "verifier_randomness_witness",
+      "source": "air/verifier_randomness_witness.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "verifier_schedule",
+      "source": "air/verifier_schedule.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "vm_air_composition_control",
+      "source": "air/vm_air_composition_control.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "vm_air_composition_input",
+      "source": "air/vm_air_composition_input.zig",
+      "matches_original_export": true
+    },
+    {
+      "name": "vm_air_composition_input_witness",
+      "source": "air/vm_air_composition_input_witness.zig",
+      "matches_original_export": true
+    }
+  ],
+  "preserved_test_names": [
+    "segment global closure: native SegmentV2 core owner API is compile-complete",
+    "segment global closure: recursion Poseidon2 native leaf segment closure rejects cross-domain cancellation",
+    "segment global closure: recursion Poseidon2 native leaf segment closure receipt mutations and atomicity",
+    "native SegmentV2 core admits only the canonical empty domain audit",
+    "fallible verifier handoff clears caller ownership atomically",
+    "outer verifier Poseidon2 auxiliary custody rejects every partial alias",
+    "outer verifier relation replay rejects checkpoint and identity mutation",
+    "composition diagnostic resolves legacy and universal gate names",
+    "SegmentV2 concrete cohort pins complete ownership and hot publication",
+    "SegmentV2 tuple classifier preserves exact unmatched provenance"
+  ],
+  "all_moved_tests_have_integration_wrappers": true
+}

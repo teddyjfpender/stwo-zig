@@ -1,0 +1,15 @@
+1/10 recursion_poseidon_degree3_test_root.test_0...OK
+2/10 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 Poseidon matches legacy permutation and all relation modes...OK
+3/10 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 Poseidon constrains all permutation columns even in padding...OK
+4/10 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 provider saves padded cells without raising quotient degree...OK
+5/10 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon matches native permutation and exact lookup entries...OK
+6/10 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon constrains every row and rejects invalid padding and modes...OK
+7/10 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon keeps quotient expansion and reduces complete row geometry...OK
+8/10 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon component admission and callbacks compile...OK
+9/10 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon central profile rejects legacy width and parallel rows match serial...OK
+10/10 air.memory_commitment.poseidon2_degree3_component.test.degree3 Poseidon prepared rows match full secure evaluation off-domain...OK
+All 10 tests passed.
+1/3 recursion_poseidon_degree3_test_root.test_0...OK
+2/3 poseidon2_universal_proof_v1_test.test.recursive universal degree3 Poseidon serializes destroys and freshly verifies all modes...OK
+3/3 poseidon2_narrow_proof_v1_test.test.Ethereum narrow degree3 Poseidon serializes destroys and freshly verifies complete component proof...OK
+All 3 tests passed.

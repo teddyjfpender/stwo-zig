@@ -1,0 +1,6 @@
+1/5 recursion_air_core_test_root.test_0...OK
+2/5 recursion.air.query_bits_test.test.R-012 query bits preserves exact Stark-V row-20 geometry and seal...OK
+3/5 recursion.air.query_bits_test.test.R-012 query profile derives exact use counts and canonical lane order...OK
+4/5 recursion.air.query_bits_test.test.R-012 query bit direct writers are padded allocation-free and atomic...OK
+5/5 air.memory_commitment.poseidon2_air.test_0...OK
+All 5 tests passed.

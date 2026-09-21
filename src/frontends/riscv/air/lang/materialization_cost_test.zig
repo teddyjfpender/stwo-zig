@@ -3,7 +3,7 @@ const cost = @import("materialization_cost.zig");
 const ir = @import("ir.zig");
 const protocol_degree = @import("protocol_degree.zig");
 const source = @import("source.zig");
-const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
+const poseidon_fixed = @import("typed_poseidon2_fixed_polynomials.zig");
 const types = @import("types.zig");
 
 test "materialization costs globally share a hand-computed direct DAG" {

@@ -13,7 +13,7 @@ const relations_mod = @import("../../relation_challenges.zig");
 const counter_mod = @import("counter.zig");
 const schema = @import("schema.zig");
 
-pub const N_COLUMNS: usize = 4;
+pub const N_COLUMNS = @import("layout.zig").N_INTERACTION_COLUMNS;
 pub const CHUNK_ROWS: usize = 4096;
 const PARALLEL_CHUNKS_PER_WORKER: usize = 2;
 
@@ -35,64 +35,20 @@ pub const Result = struct {
     }
 };
 
-pub fn tableEntry(
-    kind: schema.Kind,
-    tuple: schema.Tuple,
-    signed_multiplicity: M31,
-) entry.Entry {
-    var values: [schema.MAX_ARITY]QM31 = undefined;
-    for (tuple.slice(), values[0..tuple.len]) |value, *dst| dst.* = QM31.fromBase(value);
-    return tableEntryGeneric(QM31, kind, values[0..tuple.len], QM31.fromBase(signed_multiplicity));
-}
+pub const tableEntry = @import("equations.zig").tableEntry;
 
 /// Single relation authority used by native evaluation and backend export.
-pub fn tableEntryGeneric(comptime S: type, kind: schema.Kind, tuple: []const S, signed_multiplicity: S) entry.Builder(S).Entry {
-    var result = entry.Builder(S).Entry{
-        .domain = schema.domain(kind),
-        .numerator = signed_multiplicity.neg(),
-        .arity = @intCast(tuple.len),
-    };
-    @memcpy(result.values[0..tuple.len], tuple);
-    return result;
-}
+pub const tableEntryGeneric = @import("equations.zig").tableEntryGeneric;
 
-pub fn rowPair(
-    kind: schema.Kind,
-    tuple: schema.Tuple,
-    signed_multiplicity: M31,
-    relations: *const relations_mod.Relations,
-) !logup.RowPair {
-    const relation_entry = tableEntry(kind, tuple, signed_multiplicity);
-    return logup.RowPair.single(relation_entry.numerator, try relation_entry.denominator(relations));
-}
+pub const rowPair = @import("equations.zig").rowPair;
 
 /// Combines a generated table tuple without promoting its base-field values to
 /// secure-field elements. The schema owns the fixed arity, so production table
 /// generation pays one `QM31.mulM31` per coordinate instead of a general
 /// `QM31.mul` while retaining the public `Entry` path as an independent oracle.
-fn denominatorBase(
-    kind: schema.Kind,
-    tuple: schema.Tuple,
-    relations: *const relations_mod.Relations,
-) !QM31 {
-    return denominatorBaseValues(kind, tuple.slice(), relations);
-}
+const denominatorBase = @import("equations.zig").denominatorBase;
 
-fn denominatorBaseValues(
-    kind: schema.Kind,
-    values: []const M31,
-    relations: *const relations_mod.Relations,
-) !QM31 {
-    if (values.len != schema.arity(kind)) return error.InvalidArity;
-    return switch (kind) {
-        .bitwise => relations.bitwise.combineBase(values[0..4].*),
-        .range_check_20 => relations.range_check_20.combineBase(values[0..1].*),
-        .range_check_8_11 => relations.range_check_8_11.combineBase(values[0..2].*),
-        .range_check_8_8_4 => relations.range_check_8_8_4.combineBase(values[0..3].*),
-        .range_check_8_8 => relations.range_check_8_8.combineBase(values[0..2].*),
-        .range_check_m31 => relations.range_check_m31.combineBase(values[0..2].*),
-    };
-}
+const denominatorBaseValues = @import("equations.zig").denominatorBaseValues;
 
 /// Generate one secure singleton cumulative column as four committed M31
 /// columns. Denominators are batch-inverted because tables reach 2^20 rows.
@@ -384,79 +340,14 @@ const TableChunk = struct {
 };
 
 /// Shared on-domain/OODS table AIR identity.
-pub fn evaluate(
-    kind: schema.Kind,
-    tuple: []const QM31,
-    signed_multiplicity: QM31,
-    current: QM31,
-    previous: QM31,
-    is_first: QM31,
-    claim: QM31,
-    relations: *const relations_mod.Relations,
-) !QM31 {
-    return evaluateGeneric(
-        QM31,
-        kind,
-        tuple,
-        signed_multiplicity,
-        current,
-        previous,
-        is_first,
-        claim,
-        relations,
-    );
-}
+pub const evaluate = @import("equations.zig").evaluate;
 
 /// Prepared-domain evaluator for table tuples that remain in the base field.
 /// The LogUp transition is exactly `evaluate`; only relation combination uses
 /// QM31-by-M31 products instead of first promoting every tuple coordinate.
-pub fn evaluateBaseTuple(
-    kind: schema.Kind,
-    tuple: []const M31,
-    signed_multiplicity: M31,
-    current: QM31,
-    previous: QM31,
-    is_first: M31,
-    claim: QM31,
-    relations: *const relations_mod.Relations,
-) !QM31 {
-    return logup.pairConstraint(
-        current,
-        previous,
-        QM31.fromBase(is_first),
-        claim,
-        logup.RowPair.single(
-            QM31.fromBase(signed_multiplicity).neg(),
-            try denominatorBaseValues(kind, tuple, relations),
-        ),
-    );
-}
+pub const evaluateBaseTuple = @import("equations.zig").evaluateBaseTuple;
 
-pub fn evaluateGeneric(
-    comptime S: type,
-    kind: schema.Kind,
-    tuple: []const S,
-    signed_multiplicity: S,
-    current: S,
-    previous: S,
-    is_first: S,
-    claim: S,
-    relations: anytype,
-) !S {
-    if (tuple.len != schema.arity(kind)) return error.InvalidTraceShape;
-    const relation_entry = tableEntryGeneric(S, kind, tuple, signed_multiplicity);
-    return logup.pairConstraintGeneric(
-        S,
-        current,
-        previous,
-        is_first,
-        claim,
-        logup.RowPairFor(S).single(
-            relation_entry.numerator,
-            try relation_entry.denominatorWith(relations),
-        ),
-    );
-}
+pub const evaluateGeneric = @import("equations.zig").evaluateGeneric;
 
 fn allocateColumns(allocator: std.mem.Allocator, len: usize) ![N_COLUMNS][]M31 {
     var result: [N_COLUMNS][]M31 = undefined;

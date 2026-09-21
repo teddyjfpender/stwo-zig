@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "focused_tests": 21,
+  "ownership_tests": 16,
+  "source_transfer_checks": 24,
+  "moved_owners": 5,
+  "removed_private_integration_shims": 2,
+  "named_test_wrappers_preserved": 3,
+  "verifier_only_publication_source_files": 249,
+  "legacy_admission_samples": 2287,
+  "legacy_admission_queried_values": 6381,
+  "legacy_real_proof_and_downstream_recorder_passed": true,
+  "source_patch_sha256": "7a993f329b14e6f8159d5e84f76ad41fedd7c400885fa815d18414aa5933707a"
+}

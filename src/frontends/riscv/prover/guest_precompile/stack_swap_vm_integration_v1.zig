@@ -500,6 +500,12 @@ test "stack-swap private decoder binds the exact declared program tuple" {
     var changed_authority = authority;
     changed_authority.allocation.registry_identity[0] ^= 1;
     try std.testing.expectError(
+        error.InvalidStackSwapProgramAuthority,
+        DeclaredDecodeAuthority.init(changed_authority),
+    );
+    changed_authority = try @TypeOf(authority).create(changed_authority.allocation);
+    try changed_authority.validate();
+    try std.testing.expectError(
         error.StackSwapPrivateRegistryAuthorityMismatch,
         DeclaredDecodeAuthority.init(changed_authority),
     );

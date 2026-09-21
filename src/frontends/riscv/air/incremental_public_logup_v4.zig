@@ -443,10 +443,7 @@ test "incremental public V4 surviving fractions match scalar replacement by doma
     const M31 = @import("stwo_core").fields.m31.M31;
     var fixture = try support.Fixture.init();
     // Include initial/nonfinal, resumed/final and truly empty sparse sections.
-    var empty = fixture.leftSource();
-    empty.memory_words = &.{};
-    empty.entry_memory_clocks = &.{};
-    empty.exit_memory_clocks = &.{};
+    const empty = try fixture.leftSourceWithUntouchedMemory(&.{});
     for ([_]@TypeOf(empty){ fixture.leftSource(), fixture.rightSource(), empty }) |source| {
         const words = try support.encode(std.testing.allocator, &source);
         defer std.testing.allocator.free(words);

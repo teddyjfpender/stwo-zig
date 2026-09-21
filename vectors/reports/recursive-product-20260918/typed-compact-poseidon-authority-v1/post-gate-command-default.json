@@ -1,0 +1,7 @@
+{
+  "changed_files": [
+    "scripts/riscv_recursive_product.py"
+  ],
+  "sha256": "8ced04b15b78847f548dba6fdd757883b2f0c4e8457243b76a21369bcb928aa2",
+  "change": "Default admission now equals the explicit canonical admission used by both passing proof gates; substitution admission unchanged."
+}

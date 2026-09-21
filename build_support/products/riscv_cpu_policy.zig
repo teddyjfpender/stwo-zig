@@ -30,6 +30,7 @@ pub const source_closure = product_policy.SourceClosure{
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
+        .{ .name = "stwo_artifact_store", .source = "src/artifact_store/mod.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
@@ -61,6 +62,7 @@ pub const source_closure = product_policy.SourceClosure{
         "src/products/riscv_cpu/capabilities.zig",
     },
     .allowed_prefixes = &.{
+        "src/artifact_store",
         "src/core",
         "src/backend",
         "src/backends/cpu_scalar",

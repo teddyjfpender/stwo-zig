@@ -1,0 +1,113 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "node": "leaf-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-2-metal-tree-v1/leaves/child-0",
+        "fa485f80b7cc6303a299130836ac4b60db083a33d22074defbc155ad5f2486c8",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed13/child-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 94735375,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[250,72,95,128,183,204,99,3,162,153,19,8,54,172,75,96,219,8,58,51,210,32,116,222,251,193,85,173,95,36,134,200],\"expected_wire_sha256\":[18,229,12,140,158,85,240,217,64,228,57,160,42,174,216,154,84,97,215,108,179,100,58,246,50,55,203,207,4,201,29,243],\"claims_sha256\":[165,98,165,29,251,232,117,1,134,145,237,40,156,132,43,33,158,234,87,226,113,92,189,58,46,66,210,38,240,197,50,246],\"proof_sha256\":[20,87,92,48,234,30,182,222,73,16,196,165,103,141,220,76,161,105,146,193,231,60,65,81,161,45,198,188,154,30,217,112],\"proof_bytes\":2489092,\"request_ns\":84624542,\"verify_ns\":73316625,\"transcript_digest\":[1550256711,1896965169,2124829103,1597932643,1895568337,250294399,2123534702,699077018]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-2-metal-tree-v1/leaves/child-0",
+        "fa485f80b7cc6303a299130836ac4b60db083a33d22074defbc155ad5f2486c8",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/child-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 37074750,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "leaf-1",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-2-metal-tree-v1/leaves/child-1",
+        "2d4a142941c3f3d86791a564f1cd217a293d776f4d626f451665400e8e209ba5",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed13/child-1-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 96231833,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_q193\",\"development_only\":true,\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[45,74,20,41,65,195,243,216,103,145,165,100,241,205,33,122,41,61,119,111,77,98,111,69,22,101,64,14,142,32,155,165],\"expected_wire_sha256\":[213,23,25,11,144,183,215,141,247,228,112,127,78,36,177,139,53,173,25,187,139,4,58,131,117,112,110,24,5,222,206,79],\"claims_sha256\":[203,204,200,42,59,6,232,32,197,3,179,57,95,59,216,134,251,91,238,24,243,160,100,178,188,104,80,16,236,157,95,110],\"proof_sha256\":[100,36,202,67,75,216,72,139,69,197,220,135,61,200,13,216,114,248,179,99,26,189,178,64,17,161,66,182,149,236,125,18],\"proof_bytes\":2489363,\"request_ns\":85582458,\"verify_ns\":74233334,\"transcript_digest\":[1103558886,1039254623,429105955,316379811,888928846,792116682,73594023,855559842]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "leaf-1",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify",
+        "/tmp/pr198-useful-2-metal-tree-v1/leaves/child-1",
+        "2d4a142941c3f3d86791a564f1cd217a293d776f4d626f451665400e8e209ba5",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/child-1-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 37806625,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    },
+    {
+      "node": "parent-1-0",
+      "expected_acceptance": true,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-2-metal-tree-v1/parent-1-0",
+        "f1f600a00e36dac7c9202b0a88eb28c525ef98c3c0fcc1af973f2f3623b0abca",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed13/parent-1-0-expected.json"
+      ],
+      "exit_code": 0,
+      "process_ns": 76700584,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_two_child_parent_q193\",\"development_only\":true,\"publication_mode\":\"root\",\"proof_profile\":\"recursive_q193_v1\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[241,246,0,160,14,54,218,199,201,32,43,10,136,235,40,197,37,239,152,195,192,252,193,175,151,63,47,54,35,176,171,202],\"expected_root_sha256\":[216,161,188,224,15,36,104,51,215,246,200,52,127,42,40,209,44,152,28,229,243,107,218,123,138,235,82,173,132,28,229,53],\"claims_sha256\":[223,255,90,61,20,167,72,29,90,134,149,253,179,168,7,22,79,202,23,102,153,116,157,175,88,116,216,173,47,24,8,5],\"proof_sha256\":[66,163,217,36,119,130,170,82,253,82,31,189,123,26,20,53,175,68,216,244,250,155,74,208,93,137,217,0,73,178,216,57],\"proof_bytes\":2418969,\"request_ns\":66531750,\"verify_ns\":64994459,\"transcript_digest\":[45187939,137319702,1157962218,802313579,94255517,1170270319,1588021561,1672941232]}\n",
+      "stderr": ""
+    },
+    {
+      "node": "parent-1-0",
+      "expected_acceptance": false,
+      "argv": [
+        "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+        "/tmp/pr198-useful-2-metal-tree-v1/parent-1-0",
+        "f1f600a00e36dac7c9202b0a88eb28c525ef98c3c0fcc1af973f2f3623b0abca",
+        "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/parent-1-0-expected.json"
+      ],
+      "exit_code": 1,
+      "process_ns": 23416583,
+      "stdout": "",
+      "stderr": "error: InvalidDetachedInteractionPow\n"
+    }
+  ],
+  "script_sha256": "5d15df57ef2f13e7081d113a4f12db727ffcbc8ddd9dfefc6722f799816edf12",
+  "inputs": {
+    "/private/tmp/pr198-useful-parent-setup-2-v1/admission.json": "e4d4fb4bf6abcdb68845dd427c22fda7b63f7fe4241411115fc80233ff304897",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/tree-inputs.json": "7f71b84882bf732b5556579448baf5f17ca4b917ac8ec6296098f8cb13e19734",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify": "b0b6159a65a2d72e8f80647be579a5ea66c58d28cf963b8f9c2d909b22db4e4d",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify": "5577d71fccf9522e1850bf4975dc233b8661ad8f25723c7a6948be60677f1319",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed13/parent-1-0-boundary.json": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/parent-1-0-boundary.json": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed13/child-0-expected.json": "12e50c8c9e55f0d940e439a02aaed89a5461d76cb3643af63237cbcf04c91df3",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/child-0-expected.json": "2c3bbc505b9b0157bec807cd4e66f2ba027179d1dd1c52b10ea6e38765bf049f",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/leaves/child-0/key.json": "fa485f80b7cc6303a299130836ac4b60db083a33d22074defbc155ad5f2486c8",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/leaves/child-0/claims.json": "a562a51dfbe875018691ed289c842b219eea57e2715cbd3a2e42d226f0c532f6",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/leaves/child-0/proof.bin": "14575c30ea1eb6de4910c4a5678ddc4ca16992c1e73c4151a12dc6bc9a1ed970",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed13/child-1-expected.json": "d517190b90b7d78df7e4707f4e24b18b35ad19bb8b043a8375706e1805dece4f",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/child-1-expected.json": "a149d0281063eda1aa13e78392dc4eb5f5f91a2f7a06b8d5211774ab5d1941c4",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/leaves/child-1/key.json": "2d4a142941c3f3d86791a564f1cd217a293d776f4d626f451665400e8e209ba5",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/leaves/child-1/claims.json": "cbccc82a3b06e820c503b3395f3bd886fb5bee18f3a064b2bc685010ec9d5f6e",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/leaves/child-1/proof.bin": "6424ca434bd8488b45c5dc873dc80dd872f8b3631abdb24011a142b695ec7d12",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed13/parent-1-0-expected.json": "d8a1bce00f246833d7f6c8347f2a28d12c981ce5f36bda7b8aeb52ad841ce535",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-2-seed14/parent-1-0-expected.json": "76eed5c4d1b995a57ac24ff21746c3355cfe89fb7d93a5be0d777365722ca928",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/parent-1-0/key.json": "f1f600a00e36dac7c9202b0a88eb28c525ef98c3c0fcc1af973f2f3623b0abca",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/parent-1-0/claims.json": "dfff5a3d14a7481d5a8695fdb3a807164fca176699749daf5874d8ad2f180805",
+    "/private/tmp/pr198-useful-2-metal-tree-v1/parent-1-0/proof.bin": "42a3d9247782aa52fd521fbd7b1a1435af44d8f4fa9b4ad05d89d90049b2d839"
+  }
+}

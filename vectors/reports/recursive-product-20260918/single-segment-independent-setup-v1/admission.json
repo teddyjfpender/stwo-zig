@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "profile": "recursive_q193_v1",
+  "initial_memory_word": 13,
+  "leaves": [
+    {
+      "key": {
+        "path": "seed13-keys/child-0-key.json",
+        "sha256": "b061a3107ef94b5404af2a486d949e1b4d60e80ed421e498e8d1a2024994fa6e"
+      },
+      "expected": {
+        "path": "../single-segment-foundation-v1/seed13-expected-wire.json",
+        "sha256": "e6af22014c085825b888888230a1450c61bb19f4be823b9bff711a75bc55bf58"
+      }
+    }
+  ],
+  "parents": []
+}

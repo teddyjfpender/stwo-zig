@@ -20,6 +20,7 @@ const admission = recursion.outer_parent_child_admission;
 const captured_fri = recursion.captured_fri;
 const fixed_wire = recursion.fixed_wire;
 const protocol = recursion.protocol;
+const wire_geometry = recursion.segment_outer_wire_geometry_v2;
 
 pub const FORMAT_VERSION: u16 = 2;
 pub const SCHEMA_VERSION: u16 = 1;
@@ -28,6 +29,8 @@ pub const QUERY_COUNT: usize = admission.QUERY_COUNT;
 pub const CLAIM_COUNT: usize = artifact.CLAIM_COUNT;
 pub const StatementWords = @TypeOf(@as(artifact.Publication, undefined).statement_words);
 /// Canonical fixed-wire geometry for the current SegmentV2 outer verifier.
+/// Column/sample counts come from the canonical AIR roster and PCS split;
+/// duplicated historical literals must not become an independent authority.
 ///
 /// This value is protocol authority, not an allocation shape inferred by a
 /// recursive caller.  `deriveDimensions` independently recomputes every
@@ -36,8 +39,8 @@ pub const StatementWords = @TypeOf(@as(artifact.Publication, undefined).statemen
 pub const SEGMENT_V2_OUTER_DIMENSIONS = fixed_wire.Dimensions{
     .commitment_count = TREE_COUNT,
     .claimed_sum_count = CLAIM_COUNT,
-    .sampled_value_count = 2_245,
-    .queried_value_count = 6_255,
+    .sampled_value_count = wire_geometry.SAMPLED_VALUE_COUNT,
+    .queried_value_count = wire_geometry.QUERIED_VALUES_PER_QUERY * QUERY_COUNT,
     .trace_path_count = TREE_COUNT * QUERY_COUNT,
     .fri_layer_count = 16,
     .query_count = QUERY_COUNT,
@@ -238,8 +241,10 @@ pub fn admitVerifiedSegmentV2ChildV2(
 ) Error!*AdmittedSegmentV2ChildV2 {
     try artifact.preflight(capture, publication, witness, manifest);
     const dimensions = try deriveDimensions(capture);
-    if (!std.meta.eql(dimensions, SEGMENT_V2_OUTER_DIMENSIONS))
+    if (!std.meta.eql(dimensions, SEGMENT_V2_OUTER_DIMENSIONS)) {
+        if (@import("builtin").is_test) std.debug.print("SegmentV2 outer admission geometry mismatch: expected={any} actual={any}\n", .{ SEGMENT_V2_OUTER_DIMENSIONS, dimensions });
         return error.DimensionMismatch;
+    }
     try validateCaptureAgainstDimensions(capture, dimensions);
     try replayTranscript(capture, witness, publication);
     const result = try allocator.create(Storage);

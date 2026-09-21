@@ -68,6 +68,7 @@ GENERATOR_PATHS = (
     "scripts/tests/test_riscv_team_b_witnesses.py",
     "formal/riscv-refinement/air-program-node-layout-v1.json",
     "formal/riscv-refinement/team-b-air-semantic-equivalence-v1.json",
+    "formal/riscv-refinement/team-b-load-store-revision-v1.json",
 )
 GENERATOR_GLOBS = (
     "scripts/riscv_refinement_*.py",

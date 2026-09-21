@@ -232,6 +232,19 @@ pub fn fillInteractionInto(
     relations: *const universal.UniversalRelations,
     destination: []const []M31,
 ) !Claims {
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return fillInteractionIntoWithGenerator(owner, workspace, prepared, manifest, relations, destination, &generator);
+}
+
+pub fn fillInteractionIntoWithGenerator(
+    owner: *const Source,
+    workspace: *Workspace,
+    prepared: *const source_v2.PreparedV2,
+    manifest: *const manifest_mod.Manifest,
+    relations: *const universal.UniversalRelations,
+    destination: []const []M31,
+    generator: anytype,
+) !Claims {
     try owner.validateAgainst(prepared, manifest);
     try workspace.validateAgainst(prepared);
     try relations.validate();
@@ -249,7 +262,8 @@ pub fn fillInteractionInto(
         workspace,
         rowIndex(.control),
     );
-    const control_claim = try ControlFramework.generatePreparedInto(
+    const control_claim = try generator.generatePreparedInto(
+        ControlFramework,
         &workspace.control_interaction,
         &owner.owners.control.relation,
         workspace.control_rows,
@@ -262,7 +276,8 @@ pub fn fillInteractionInto(
         workspace,
         rowIndex(.transcript_air),
     );
-    const transcript_air_claim = try TranscriptAirFramework.generatePreparedInto(
+    const transcript_air_claim = try generator.generatePreparedInto(
+        TranscriptAirFramework,
         &workspace.transcript_air_interaction,
         &owner.owners.transcript_air.relation,
         workspace.transcript_air_rows,
@@ -276,7 +291,8 @@ pub fn fillInteractionInto(
         rowIndex(.transcript_binding),
     );
     const transcript_binding_claim =
-        try TranscriptBindingFramework.generatePreparedInto(
+        try generator.generatePreparedInto(
+            TranscriptBindingFramework,
             &workspace.transcript_binding_interaction,
             &owner.owners.transcript_binding.relation,
             workspace.transcript_binding_rows,
@@ -290,7 +306,8 @@ pub fn fillInteractionInto(
         rowIndex(.transcript_state),
     );
     const transcript_state_claim =
-        try TranscriptStateFramework.generatePreparedInto(
+        try generator.generatePreparedInto(
+            TranscriptStateFramework,
             &workspace.transcript_state_interaction,
             &owner.owners.transcript_state.relation,
             workspace.transcript_state_rows,
@@ -303,7 +320,8 @@ pub fn fillInteractionInto(
         workspace,
         rowIndex(.transcript_word),
     );
-    const transcript_word_claim = try TranscriptWordFramework.generatePreparedInto(
+    const transcript_word_claim = try generator.generatePreparedInto(
+        TranscriptWordFramework,
         &workspace.transcript_word_interaction,
         &owner.owners.transcript_word.relation,
         workspace.transcript_word_rows,
@@ -317,7 +335,8 @@ pub fn fillInteractionInto(
         rowIndex(.transcript_payload),
     );
     const transcript_payload_claim =
-        try TranscriptPayloadFramework.generatePreparedInto(
+        try generator.generatePreparedInto(
+            TranscriptPayloadFramework,
             &workspace.transcript_payload_interaction,
             &owner.owners.transcript_payload.relation,
             workspace.transcript_payload_rows,
@@ -330,7 +349,8 @@ pub fn fillInteractionInto(
         workspace,
         rowIndex(.pow_check),
     );
-    const pow_check_claim = try PowCheckFramework.generatePreparedInto(
+    const pow_check_claim = try generator.generatePreparedInto(
+        PowCheckFramework,
         &workspace.pow_check_interaction,
         &owner.owners.pow_check.relation,
         workspace.pow_check_rows,
@@ -343,7 +363,8 @@ pub fn fillInteractionInto(
         workspace,
         rowIndex(.pow_frame),
     );
-    const pow_frame_claim = try PowFrameFramework.generatePreparedInto(
+    const pow_frame_claim = try generator.generatePreparedInto(
+        PowFrameFramework,
         &workspace.pow_frame_interaction,
         &owner.owners.pow_frame.relation,
         workspace.pow_frame_rows,
@@ -357,7 +378,8 @@ pub fn fillInteractionInto(
         rowIndex(.relation_challenge),
     );
     const relation_challenge_claim =
-        try RelationChallengeFramework.generatePreparedInto(
+        try generator.generatePreparedInto(
+            RelationChallengeFramework,
             &workspace.relation_challenge_interaction,
             &owner.owners.relation_challenge.relation,
             workspace.relation_challenge_rows,
@@ -371,7 +393,8 @@ pub fn fillInteractionInto(
         rowIndex(.verifier_randomness),
     );
     const verifier_randomness_claim =
-        try VerifierRandomnessFramework.generatePreparedInto(
+        try generator.generatePreparedInto(
+            VerifierRandomnessFramework,
             &workspace.verifier_randomness_interaction,
             &owner.owners.verifier_randomness.relation,
             workspace.verifier_randomness_rows,

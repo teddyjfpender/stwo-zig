@@ -140,7 +140,7 @@ pub fn materialize(
         row.call_index = felt(descriptor.call_index);
         row.source_pointer = felt(descriptor.source_pointer);
         row.source_length = felt(descriptor.source_length);
-        row.row_index = felt(@intCast(row_index));
+        row.row_index = felt(row_index);
         row.cursor = felt(cursor);
         row.next_cursor = felt(next_cursor);
         row.source_byte = felt(source_byte);

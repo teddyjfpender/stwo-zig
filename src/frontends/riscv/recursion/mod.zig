@@ -24,7 +24,9 @@ pub const binary_pair_authority = @import("binary_pair_authority.zig");
 pub const binary_transcript_outer_source = @import("binary_transcript_outer_source.zig");
 pub const canonical_empty_cohort_v3 = @import("canonical_empty_cohort_v3.zig");
 pub const captured_fri = @import("captured_fri.zig");
+pub const compact_tuple_ledger_v1 = @import("compact_tuple_ledger_v1.zig");
 pub const engine = @import("engine.zig");
+pub const verifier_tree = @import("verifier_tree.zig");
 pub const ethereum_composition_relations_v2 =
     @import("ethereum_composition_relations_v2.zig");
 pub const ethereum_composition_extension_geometry_v2 =
@@ -140,3 +142,78 @@ pub const statement_root_routing_audit = @import("statement_root_routing_audit.z
 pub const ethereum_clock_routing_v1 = @import("ethereum_clock_routing_v1.zig");
 
 pub const ethereum_publication_routing_v1 = @import("ethereum_publication_routing_v1.zig");
+
+pub const detached_parent_verifier_components_v1 = @import("detached_parent_verifier_components_v1.zig");
+pub const detached_parent_components_v1 = @import("detached_parent_components_v1.zig");
+pub const detached_pcs_preparation_v1 = @import("detached_pcs_preparation_v1.zig");
+pub const detached_parent_prepared_v1 = @import("detached_parent_prepared_v1.zig");
+pub const detached_parent_protocol_v1 = @import("detached_parent_protocol_v1.zig");
+pub const detached_claims_v1 = @import("detached_claims_v1.zig");
+pub const detached_payload_v1 = @import("detached_payload_v1.zig");
+
+pub const artifact_limits = @import("artifact_limits.zig");
+pub const detached_proof_preflight = @import("detached_proof_preflight.zig");
+pub const detached_parent_verifier_v1 = @import("detached_parent_verifier_v1.zig");
+
+pub const detached_segment_expected_v1 = @import("detached_segment_expected_v1.zig");
+pub const detached_parent_command_v1 = @import("detached_parent_command_v1.zig");
+
+pub const detached_segment_admission_v1 = @import("detached_segment_admission_v1.zig");
+pub const segment_leaf_parameters_v2 = @import("segment_leaf_parameters_v2.zig");
+pub const detached_segment_definitions_v1 = @import("detached_segment_definitions_v1.zig");
+pub const detached_segment_verifier_components_v1 = @import("detached_segment_verifier_components_v1.zig");
+
+pub const segment_leaf_statement_contract_v2 = @import("segment_leaf_statement_contract_v2.zig");
+pub const detached_segment_public_inputs_v1 = @import("detached_segment_public_inputs_v1.zig");
+
+pub const detached_segment_authority_boundary_v1 = @import("detached_segment_authority_boundary_v1.zig");
+pub const detached_segment_protocol_v1 = @import("detached_segment_protocol_v1.zig");
+pub const detached_segment_verifier_v1 = @import("detached_segment_verifier_v1.zig");
+pub const detached_segment_command_v1 = @import("detached_segment_command_v1.zig");
+
+pub const pcs_transcript_program_v1 = @import("pcs_transcript_program_v1.zig");
+pub const transcript_frame_rows_v1 = @import("transcript_frame_rows_v1.zig");
+
+pub const detached_child_views_v1 = @import("detached_child_views_v1.zig");
+pub const transcript_payload_kind_v1 = @import("transcript_payload_kind_v1.zig");
+pub const detached_prefix_preparation_v1 = @import("detached_prefix_preparation_v1.zig");
+pub const detached_pcs_rows_v1 = @import("detached_pcs_rows_v1.zig");
+
+pub const detached_segment_recording_components_v1 = @import("detached_segment_recording_components_v1.zig");
+pub const detached_section_profile_v1 = @import("detached_section_profile_v1.zig");
+pub const detached_memory_profile_v1 = @import("detached_memory_profile_v1.zig");
+pub const detached_segment_protocol_fixture_v1 = @import("detached_segment_protocol_fixture_v1.zig");
+pub const detached_recording_draws_v1 = @import("detached_recording_draws_v1.zig");
+pub const detached_child_capture_v1 = @import("detached_child_capture_v1.zig");
+pub const detached_native_leaf_preparation_v2 = @import("detached_native_leaf_preparation_v2.zig");
+pub const detached_leaf_noncore_owner_v2 = @import("detached_leaf_noncore_owner_v2.zig");
+pub const detached_composition_preparation_v1 = @import("detached_composition_preparation_v1.zig");
+pub const detached_boundary_preparation_v1 = @import("detached_boundary_preparation_v1.zig");
+pub const detached_parent_statement_preparation_v1 = @import("detached_parent_statement_preparation_v1.zig");
+pub const detached_parent_arithmetic_v1 = @import("detached_parent_arithmetic_v1.zig");
+pub const detached_parent_base_rows_v1 = @import("detached_parent_base_rows_v1.zig");
+pub const transcript_logical_rows_v1 = @import("transcript_logical_rows_v1.zig");
+pub const common_fold_catalog_v3 = @import("common_fold_catalog_v3.zig");
+pub const capture_query_geometry_v1 = @import("capture_query_geometry_v1.zig");
+pub const transcript_row_checks_v1 = @import("transcript_row_checks_v1.zig");
+pub const detached_parent_preparation_v1 = @import("detached_parent_preparation_v1.zig");
+pub const detached_recording_verifier_v1 = @import("detached_recording_verifier_v1.zig");
+
+pub const detached_fri_core_v2 = @import("detached_fri_core_v2.zig");
+
+pub const detached_leaf_cohort_v2 = @import("detached_leaf_cohort_v2.zig");
+pub const detached_leaf_tuple_diagnostic_v2 = @import("detached_leaf_tuple_diagnostic_v2.zig");
+
+pub const transaction_storage_v2 = @import("transaction_storage_v2.zig");
+
+pub const leaf_interaction_generator_v2 = @import("leaf_interaction_generator_v2.zig");
+
+pub const binary_verified_publication = @import("binary_verified_publication.zig");
+pub const segment_verified_publication_v2 = @import("segment_verified_publication_v2.zig");
+pub const segment_verified_artifact_v2 = @import("segment_verified_artifact_v2.zig");
+pub const segment_outer_transaction_support_v2 = @import("segment_outer_transaction_support_v2.zig");
+pub const segment_outer_transaction_v2 = @import("segment_outer_transaction_v2.zig");
+pub const segment_public_wire_boundary_v2 = @import("segment_public_wire_boundary_v2.zig");
+pub const engine_protocol = @import("engine_protocol.zig");
+pub const canonical_proof_identity_v1 = @import("canonical_proof_identity_v1.zig");
+pub const segment_outer_wire_geometry_v2 = @import("segment_outer_wire_geometry_v2.zig");

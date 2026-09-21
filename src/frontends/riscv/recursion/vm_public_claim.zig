@@ -11,7 +11,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const public_data_mod = @import("../air/public_data.zig");
 const channel = @import("poseidon2_channel.zig");
-const claim_witness = @import("air/vm_public_claim_input_witness.zig");
+const claim_layout = @import("vm_public_claim_layout.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
@@ -19,13 +19,13 @@ const m31 = stwo_core.fields.m31;
 pub const VM_PUBLIC_CLAIM_HASH_DOMAIN: u32 = 0x5643;
 pub const PUBLIC_INPUT_HASH_DOMAIN: u32 = 0x5649;
 pub const PUBLIC_OUTPUT_HASH_DOMAIN: u32 = 0x564f;
-pub const FIXED_CLAIM_WORDS: usize = claim_witness.FIXED_CLAIM_WORDS;
-pub const INPUT_SLOT_WORDS: usize = claim_witness.INPUT_SLOT_WORDS;
-pub const OUTPUT_SLOT_WORDS: usize = claim_witness.OUTPUT_SLOT_WORDS;
+pub const FIXED_CLAIM_WORDS: usize = claim_layout.FIXED_CLAIM_WORDS;
+pub const INPUT_SLOT_WORDS: usize = claim_layout.INPUT_SLOT_WORDS;
+pub const OUTPUT_SLOT_WORDS: usize = claim_layout.OUTPUT_SLOT_WORDS;
 pub const DEFAULT_MAX_INPUT_WORDS: u32 = 1024;
 pub const DEFAULT_MAX_OUTPUT_WORDS: u32 = 1025;
 
-pub const Shape = claim_witness.Shape;
+pub const Shape = claim_layout.Shape;
 pub const Digest = channel.Digest;
 
 /// Application-visible public input, without unrelated VM execution state.
@@ -50,7 +50,7 @@ pub const PublicOutputProjection = struct {
     words: []const PublicOutputValue,
 };
 
-pub const Error = public_data_mod.ValidationError || claim_witness.Error ||
+pub const Error = public_data_mod.ValidationError || claim_layout.Error ||
     std.mem.Allocator.Error || error{
     HaltFlagCompletionRequiresClaimV2,
     CompletionMismatch,

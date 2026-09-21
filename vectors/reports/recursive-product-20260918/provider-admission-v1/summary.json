@@ -1,0 +1,47 @@
+{
+  "status": "focused_checks_passed_complete_gate_pending",
+  "shared_admission_runner_witness_prover_dependencies": false,
+  "codec_preimage_bytes": 182,
+  "codec_receipt_bytes": 214,
+  "canonical_receipt_hash_unchanged": true,
+  "checks": {
+    "providers": {
+      "passed": true,
+      "tests_including_wrappers": 8,
+      "log": "pr198-provider-admission-shared.log"
+    },
+    "codec": {
+      "passed": true,
+      "tests_including_wrappers": 6,
+      "log": "pr198-retained-identity-codec.log"
+    },
+    "canonical_and_retained": {
+      "passed": true,
+      "tests_including_wrappers": 5,
+      "log": "pr198-provider-admission-canonical.log"
+    },
+    "ownership": {
+      "passed": true,
+      "tests_including_wrappers": 11,
+      "log": "pr198-provider-admission-ownership-final.log"
+    }
+  },
+  "source_sha256": {
+    "air/lang/typed_poseidon2_identity.zig": "0c8969fae1c8b68b9f82fd4270f3e0bfdccbfe7102252f35b84cc96fff333d7c",
+    "air/lang/typed_poseidon2_identity_codec.zig": "01789d3e1e806209403938974b2499015d4dadc35b297b6d2a3017158870e063",
+    "air/lang/typed_poseidon2_witness.zig": "9f0e48fc91e3af57a51800a485e3f9266212d9285077377e2a2d4f6a43c39a0c",
+    "air/lang/typed_poseidon2_relations.zig": "ee88e6a08d7a7292f9188fc1ba1548627559976ffaf31b158405dd6419487104",
+    "recursion/air/universal_provider_relations.zig": "5bf6ca409b2bfd6f1941b413ded56e162fdf6412f103661555a7ad2ff2ed0dca",
+    "recursion/air/universal_provider_authority.zig": "a19b5ea4d9f094a075cc8e28feefa6f7f4a1fbb46a02177466862078c8754f39",
+    "recursion/air/universal_provider_admission.zig": "17aaa733b8637088059db02ebdc0889e3869b4e7bba0158b31b2ac5e1e1d4d3c",
+    "recursion/air/universal_shared_provider.zig": "a8e1f410a8a3885c14d1702dc8943ec769cf785eb3accfe32d61ade915a4d815",
+    "poseidon2_protocol_identity_test_root.zig": "357020f91ecd23612757fdfe1bcf0c976f2a282736893c07a3147d3a04ac5659"
+  },
+  "full_standalone_verifier_separation_complete": false,
+  "next": [
+    "Assemble a verifier-only parent component collection; reuse definition construction/cleanup rather than duplicate it.",
+    "Switch standalone parent verification and proof preflight to that collection.",
+    "Use pure hasher/proof aliases instead of recursion.engine at the verifier boundary.",
+    "Qualify complete CPU/Metal proofs and retained wide/compact compatibility."
+  ]
+}

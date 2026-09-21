@@ -121,7 +121,7 @@ pub const WitnessV1 = struct {
 };
 
 pub fn compile(input_len: u32) Error!PlanV1 {
-    const block_count = input_len / rate_bytes + 1;
+    const block_count = input_len / @as(u32, rate_bytes) + 1;
     const padded_input_bytes = std.math.mul(
         u64,
         block_count,

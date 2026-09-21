@@ -8,7 +8,7 @@ const cohort_mod = @import("recursive_segment_v2_outer_cohort.zig");
 const leaf = @import("recursive_segment_v2_leaf_outer.zig");
 const transcript = @import("recursive_segment_v2_detached_transcript.zig");
 const verifier = @import("recursive_segment_v2_detached_verifier.zig");
-const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
+const storage = @import("stwo_riscv_frontend").recursion.transaction_storage_v2;
 const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
 const stage_profile = @import("stwo_prover_api").stage_profile;
 pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
@@ -97,13 +97,7 @@ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.Pr
 
 pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, admitted_key: ?*const verifier.KeyV1, profile: Profile) !Candidate {
     const TreeStorage = storage.TreeStorageFor(Engine);
-    // A stronger outer proof cannot repair a weak native child. This check is
-    // before cohort allocation, and the resulting fixed AIR is independently
-    // admitted through the same pinned-key transaction as development.
-    if (profile == .recursive_q193_v1 and
-        (!std.meta.eql(prepared.pcs_config, recursion.protocol.PCS_CONFIG) or
-            prepared.captured_fri.interaction_pow_bits != recursion.protocol.INTERACTION_POW_BITS))
-        return error.DetachedNativeSecurityProfileMismatch;
+    try requireNativeProfile(prepared, profile);
     if (admitted_key) |key| if (key.profile != profile) return error.InvalidSegmentDetachedProfile;
     var timer = try std.time.Timer.start();
     var recorder = stage_profile.Recorder.initWithOptions(allocator, if (Engine == CpuEngine) "cpu" else "device", "detached-recursive-wrapper", .{ .capture_tasks = false });
@@ -131,30 +125,10 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.fixed", "Fixed columns and key admission");
     var preprocessed = try TreeStorage.init(allocator, manifest, 0);
     defer preprocessed.deinit();
-    try cohort.fillPreprocessedInto(manifest, preprocessed.columns);
-    try preprocessed.commit(&scheme, &channel);
-    try Engine.flushPendingCommit(&scheme, allocator, &channel);
-    var roots = try scheme.roots(allocator);
-    defer roots.deinit(allocator);
-    if (roots.items.len != 1) return error.SegmentDetachedPreprocessedCommitmentMismatch;
+    const fixed_root = try commitFixedColumns(Engine, allocator, &cohort, &preprocessed, &scheme, &channel);
     var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
     defer wire_terms.deinit(allocator);
-    for (cohort.core.authority.lowering_plan.public_terms) |term|
-        if (term.active_in == .segment) try wire_terms.append(allocator, term);
-    const candidate_key = verifier.KeyV1{
-        .profile = profile,
-        .pcs_config = profile.pcsConfig(),
-        .manifest = manifest.*,
-        .preprocessed_root = roots.items[0],
-        .parameters = .{
-            .query_reference = cohort.core.authority.query_bits_reference,
-            .poseidon_active_rows = std.math.cast(u32, cohort.core.poseidonCallCount()) orelse return error.ArithmeticOverflow,
-        },
-        .source_manifest = prepared.authority_prepared.source.manifest,
-        .admitted_keys = prepared.authority_prepared.source.verifier_keys,
-        .native_descriptors = .{ .components = prepared.capture.vm_air.component_descs, .infrastructure = prepared.capture.vm_air.infra_descs },
-        .wire_terms = wire_terms.items,
-    };
+    const candidate_key = try fixedKey(allocator, prepared, &cohort, profile, fixed_root, &wire_terms);
     const identity = try candidate_key.identity();
     const key = admitted_key orelse &candidate_key;
     if (!std.meta.eql(identity, try key.identity()))
@@ -181,7 +155,19 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     const providers = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
     var interaction = try TreeStorage.init(allocator, manifest, 2);
     defer interaction.deinit();
-    const generated = try cohort.fillInteractionInto(manifest, &relations, &providers, interaction.columns);
+    const generator = try recursion.leaf_interaction_generator_v2.ForBackend(Engine.Backend).init(allocator, key.parameters, manifest);
+    const device_capable = comptime @hasDecl(Engine.Backend, "supportsFrameworkInteractions");
+    const dispatches_before = if (device_capable) (try Engine.Backend.telemetrySnapshot()).counters.metal_framework_interaction_dispatches else 0;
+    const generated = try cohort.fillInteractionIntoWithGenerator(manifest, &relations, &providers, interaction.columns, &generator);
+    if (comptime device_capable) {
+        if (generator.device) {
+            const dispatches = (try Engine.Backend.telemetrySnapshot()).counters.metal_framework_interaction_dispatches - dispatches_before;
+            // Row 10 remains the authenticated inactive zero-column fast path.
+            const components = recursion.air.segment_leaf_catalog_v2.LOGICAL_ROWS.len - 1;
+            if (dispatches != components * 4) return error.LeafTypedInteractionDispatchMissing;
+            std.debug.print("DETACHED_LEAF_TYPED_DEVICE_INTERACTION components={d} inactive_zero_components=1 dispatches={d}\n", .{ components, dispatches });
+        }
+    }
     var claim_vector = try cohort.claimVector(&generated);
     phase.end();
     phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.closure", "Global lookup closure");
@@ -226,4 +212,66 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
         .prepare_ns = prepare_ns,
         .prove_ns = prove_ns,
     };
+}
+
+fn requireNativeProfile(prepared: *const leaf.PreparedNativeV2LeafOuter, profile: Profile) !void {
+    // A stronger outer proof cannot repair a weak native child. This check is
+    // before cohort allocation, and the resulting fixed AIR is independently
+    // admitted through the same pinned-key transaction as development.
+    if (profile == .recursive_q193_v1 and
+        (!std.meta.eql(prepared.pcs_config, recursion.protocol.PCS_CONFIG) or
+            prepared.captured_fri.interaction_pow_bits != recursion.protocol.INTERACTION_POW_BITS))
+        return error.DetachedNativeSecurityProfileMismatch;
+}
+
+fn commitFixedColumns(comptime Engine: type, allocator: std.mem.Allocator, cohort: *cohort_mod.Cohort, preprocessed: *storage.TreeStorageFor(Engine), scheme: anytype, channel: *Engine.Channel) !recursion.poseidon2_channel.Digest {
+    const manifest = cohort.manifest();
+    try cohort.fillPreprocessedInto(manifest, preprocessed.columns);
+    try preprocessed.commit(scheme, channel);
+    try Engine.flushPendingCommit(scheme, allocator, channel);
+    var roots = try scheme.roots(allocator);
+    defer roots.deinit(allocator);
+    if (roots.items.len != 1) return error.SegmentDetachedPreprocessedCommitmentMismatch;
+    return roots.items[0];
+}
+
+fn fixedKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, cohort: *const cohort_mod.Cohort, profile: Profile, fixed_root: recursion.poseidon2_channel.Digest, wire_terms: *std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm)) !verifier.KeyV1 {
+    std.debug.assert(wire_terms.items.len == 0);
+    for (cohort.core.authority.lowering_plan.public_terms) |term|
+        if (term.active_in == .segment) try wire_terms.append(allocator, term);
+    return verifier.KeyV1{
+        .profile = profile,
+        .pcs_config = profile.pcsConfig(),
+        .manifest = cohort.manifest().*,
+        .preprocessed_root = fixed_root,
+        .parameters = .{
+            .query_reference = cohort.core.authority.query_bits_reference,
+            .poseidon_active_rows = std.math.cast(u32, cohort.core.poseidonCallCount()) orelse return error.ArithmeticOverflow,
+        },
+        .source_manifest = prepared.authority_prepared.source.manifest,
+        .admitted_keys = prepared.authority_prepared.source.verifier_keys,
+        .native_descriptors = .{ .components = prepared.capture.vm_air.component_descs, .infrastructure = prepared.capture.vm_air.infra_descs },
+        .wire_terms = wire_terms.items,
+    };
+}
+
+/// Setup commits only fixed columns and emits key bytes. It creates no outer
+/// proof or main/interaction trace; subsequent production takes an independent pin.
+/// Prepared native inputs and compiler policy remain caller admission obligations.
+pub fn deriveKey(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, profile: Profile) ![]u8 {
+    try requireNativeProfile(prepared, profile);
+    var cohort = try cohort_mod.Cohort.init(allocator, prepared);
+    defer cohort.deinit();
+    var scheme = try CpuEngine.init(allocator, profile.pcsConfig());
+    defer CpuEngine.deinit(&scheme, allocator);
+    scheme.setCoefficientRetentionPolicy(.never);
+    var channel = CpuEngine.Channel{};
+    var preprocessed = try storage.TreeStorageFor(CpuEngine).init(allocator, cohort.manifest(), 0);
+    defer preprocessed.deinit();
+    const root = try commitFixedColumns(CpuEngine, allocator, &cohort, &preprocessed, &scheme, &channel);
+    var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
+    defer wire_terms.deinit(allocator);
+    const key = try fixedKey(allocator, prepared, &cohort, profile, root, &wire_terms);
+    try key.validate();
+    return std.json.Stringify.valueAlloc(allocator, key, .{});
 }

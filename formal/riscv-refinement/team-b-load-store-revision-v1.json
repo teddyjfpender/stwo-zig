@@ -1,0 +1,26 @@
+{
+  "canonical_digest": "8c75af172f7ed8609bc58f300a061813a8aaf4181e73d27e2845b6734052d7c0",
+  "capsule_sha256": "871621748b39592df1811f238345de65b0499cce74fb77fd202baae4dcf74df2",
+  "claim_boundary": {
+    "cross_row_or_multiset_closure": false,
+    "equivalent_to_historical_air": false,
+    "lean_proofs_checked_by_this_receipt": false,
+    "reviewed_capsule_binds_current_export": true,
+    "witness_generation_equivalence": false
+  },
+  "current_geometry": {
+    "column_count": 58,
+    "constraint_count": 71,
+    "lookup_count": 17,
+    "unmodelled_bus_requests": 9
+  },
+  "current_raw_sha256": "d9af9ea593130937565b96891babc7984389743410d5d3f77a5f499e6ff9f1a6",
+  "current_semantic_sha256": "4fe41e9473bc360082680cdb264aa857765a66872f6a34bc433c24f771932a83",
+  "family": "load_store",
+  "historical_receipt_sha256": "c3d0d2d39ba035246b18229a2e436a76590905971913c81cfab314b36ebeca0f",
+  "kind": "stwo-riscv-team-b-load-store-reviewed-revision",
+  "previous_raw_sha256": "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9",
+  "previous_semantic_sha256": "d19899f907d0d5a3ec364963e1f3901e03c2620e3ad203a01bbf2e298775b59f",
+  "reason": "one-gib-load-store-address-bound",
+  "schema_version": 1
+}

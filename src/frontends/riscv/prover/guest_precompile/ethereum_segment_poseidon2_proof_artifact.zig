@@ -618,18 +618,18 @@ test "Poseidon v4 encode diagnostic retains every typed phase and first mismatch
     inline for (std.meta.fields(EncodePhase)) |field| {
         const phase: EncodePhase = @enumFromInt(field.value);
         var diagnostic: ?EncodeDiagnostic = null;
-        _ = encodeFailure(
+        try std.testing.expectEqual(@as(anyerror, error.InvalidProofShape), encodeFailure(
             &diagnostic,
             phase,
             error.InvalidProofShape,
             null,
-        );
-        _ = encodeFailure(
+        ));
+        try std.testing.expectEqual(@as(anyerror, error.InvalidPreflightShape), encodeFailure(
             &diagnostic,
             .shape_unknown,
             error.InvalidPreflightShape,
             null,
-        );
+        ));
         const retained = diagnostic orelse return error.MissingDiagnostic;
         try std.testing.expectEqual(phase, retained.phase);
         try std.testing.expectEqual(error.InvalidProofShape, retained.cause);
@@ -645,12 +645,12 @@ test "Poseidon v4 encode diagnostic retains every typed phase and first mismatch
         .expected = 18,
     };
     var diagnostic: ?EncodeDiagnostic = null;
-    _ = encodeFailure(
+    try std.testing.expectEqual(@as(anyerror, error.InvalidProofShape), encodeFailure(
         &diagnostic,
         .canonical_preflight,
         error.InvalidProofShape,
         preflight,
-    );
+    ));
     try std.testing.expectEqualDeep(
         preflight,
         diagnostic.?.preflight.?,

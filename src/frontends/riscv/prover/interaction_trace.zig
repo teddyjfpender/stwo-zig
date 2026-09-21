@@ -29,32 +29,17 @@
 //! borrows the committed Tree-2 values from the scheme.
 
 const std = @import("std");
-const m31 = @import("stwo_core").fields.m31;
-const prover_pcs = @import("stwo_prover_engine").pcs;
 const work_pool = @import("stwo_prover_engine").work_pool;
 const prover_api = @import("stwo_prover_api");
 const stage_profile = @import("stwo_prover_api").stage_profile;
-const clock_update_interaction = @import("../air/clock_update_interaction.zig");
-const component_order = @import("../air/component_order.zig");
 const guest_interaction = @import("../air/guest_precompile/interaction.zig");
-const guest_components = @import("../air/guest_precompile/component_registry.zig");
 const guest_main_trace = @import("../air/guest_precompile/main_trace.zig");
 const guest_proof_transcript = @import("../air/guest_precompile/proof_transcript.zig");
 const guest_relations = @import("../air/guest_precompile/relation_challenges.zig");
 const guest_statement = @import("../air/guest_precompile/statement.zig");
-const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
-const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
 const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
-const opcode_entries = @import("../air/lookups/opcode_entries.zig");
-const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
-const BaseScalar = @import("../air/lookups/base_scalar.zig").Scalar;
-const memory_interaction = @import("../air/memory_commitment/interaction.zig");
-const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
-const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
-const program_interaction = @import("../air/program/interaction.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
 const proof_transcript = @import("../proof_transcript.zig");
-const trace_mod = @import("../runner/trace.zig");
 const commitment_witness = @import("commitment_witness.zig");
 const lookup_sources = @import("lookup_sources.zig");
 const interaction_production = @import("interaction_trace_plan_execution_production.zig");
@@ -67,7 +52,6 @@ const test_witness_hook = @import("test_witness_hook.zig");
 const tree2_main_source = @import("tree2_main_source.zig");
 const types = @import("types.zig");
 
-const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const CommitmentWitness = commitment_witness.CommitmentWitness;
 const Geometry = statement_geometry.Geometry;
@@ -75,7 +59,6 @@ const ProofWorkspace = proof_workspace.ProofWorkspace;
 const Relations = relation_challenges.Relations;
 const RiscVInteractionClaim = types.RiscVInteractionClaim;
 const RunMode = types.RunMode;
-const OpcodeBaseEntries = opcode_entries.Entries(BaseScalar);
 
 /// Draws the relation challenges that parameterise Tree 2.
 ///
@@ -357,7 +340,8 @@ fn generateAndCommitInternal(
     var columns = try Columns.init(allocator, n_interaction);
     defer columns.deinit(allocator);
 
-    try generateBase(
+    try generation.generateBaseForBackend(
+        Engine.Backend,
         allocator,
         workspace,
         &columns,
@@ -673,7 +657,8 @@ fn generateAndCommitPoseidon2Unprofiled(
     var columns = try Columns.init(allocator, n_interaction);
     defer columns.deinit(allocator);
 
-    try generateBase(
+    try generation.generateBaseForBackend(
+        Engine.Backend,
         allocator,
         workspace,
         &columns,
@@ -836,9 +821,9 @@ const generation_mod = @import("interaction_trace_generation.zig");
 pub const BaseExecutionPolicy = generation_mod.BaseExecutionPolicy;
 pub const GUEST_PROFILED_TREE2_EXECUTION_POLICY: BaseExecutionPolicy = .sequential;
 const generation = generation_mod.Ops(@This());
-const generateBase = generation.generateBase;
-const sequentialBaseWorkCounts = generation.sequentialBaseWorkCounts;
-const guestInteractionWorkCounts = generation.guestInteractionWorkCounts;
+const work_counts = @import("interaction_work_counts.zig");
+const sequentialBaseWorkCounts = work_counts.sequentialBaseWorkCounts;
+const guestInteractionWorkCounts = work_counts.guestInteractionWorkCounts;
 const Columns = generation.Columns;
 const external = @import("interaction_trace_external.zig").Ops(generation);
 pub const ExternalColumns = external.Columns;

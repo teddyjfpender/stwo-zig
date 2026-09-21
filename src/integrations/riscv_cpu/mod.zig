@@ -179,10 +179,6 @@ pub const ethereum_incremental_native_leaf_proof_v3 =
     @import("ethereum_incremental_native_leaf_proof_v3.zig");
 pub const ethereum_incremental_native_leaf_proof_artifact_v3 =
     @import("ethereum_incremental_native_leaf_proof_artifact_v3.zig");
-pub const recursive_binary_composition_authority = @import("recursive_binary_composition_authority.zig");
-pub const recursive_binary_outer = @import("recursive_binary_outer.zig");
-pub const recursive_binary_outer_cohort = @import("recursive_binary_outer_cohort.zig");
-pub const recursive_binary_verified_publication = @import("recursive_binary_verified_publication.zig");
 pub const recursive_fri_outer = @import("recursive_fri_outer.zig");
 pub const recursive_common_wrapper_manifest_v1 =
     @import("recursive_common_wrapper_manifest_v1.zig");
@@ -218,89 +214,6 @@ pub const recursive_pipeline_worker_protocol_v1 =
     @import("recursive_pipeline_worker_protocol_v1.zig");
 pub const recursive_pipeline_worker_v1 =
     @import("recursive_pipeline_worker_v1.zig");
-pub const recursive_segment_v2_leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
-pub const recursive_segment_v2_noncore_owner = @import("recursive_segment_v2_noncore_owner.zig");
-pub const recursive_segment_v2_outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
-pub const recursive_segment_v2_outer_admission_v2 = @import("recursive_segment_v2_outer_admission_v2.zig");
-pub const recursive_segment_v2_outer_engine = @import("recursive_segment_v2_outer_engine.zig");
-pub const recursive_segment_v2_verifier_components = @import("recursive_segment_v2_verifier_components.zig");
-pub const recursive_segment_v2_public_inputs = @import("recursive_segment_v2_public_inputs.zig");
-pub const recursive_segment_v2_detached_transcript = @import("recursive_segment_v2_detached_transcript.zig");
-pub const recursive_segment_v2_detached_verifier = @import("recursive_segment_v2_detached_verifier.zig");
-pub const recursive_segment_v2_detached_proof = @import("recursive_segment_v2_detached_proof.zig");
-pub const recursive_segment_v2_detached_command = @import("recursive_segment_v2_detached_command.zig");
-pub const recursive_segment_v2_detached_child_transcript = @import("recursive_segment_v2_detached_child_transcript.zig");
-pub const recursive_segment_v2_detached_composition = @import("recursive_segment_v2_detached_composition.zig");
-pub const recursive_segment_v2_detached_prefix = @import("recursive_segment_v2_detached_prefix.zig");
-pub const recursive_segment_v2_detached_pcs_rows = @import("recursive_segment_v2_detached_pcs_rows.zig");
-pub const recursive_segment_v2_detached_boundary = @import("recursive_segment_v2_detached_boundary.zig");
-pub const recursive_segment_v2_detached_parent_statement = @import("recursive_segment_v2_detached_parent_statement.zig");
-pub const recursive_segment_v2_tuple_closure_diagnostic = @import("recursive_segment_v2_tuple_closure_diagnostic.zig");
-pub const recursive_segment_v2_verified_artifact = @import("recursive_segment_v2_verified_artifact.zig");
-pub const recursive_segment_v2_verified_publication = @import("recursive_segment_v2_verified_publication.zig");
-pub const recursive_segment_v2_temporal_child_authority = @import("recursive_segment_v2_temporal_child_authority.zig");
-pub const recursive_temporal_pair_authority_v2 = @import("recursive_temporal_pair_authority_v2.zig");
-pub const recursive_temporal_parent_verified_artifact_v1 =
-    @import("recursive_temporal_parent_verified_artifact_v1.zig");
-pub const recursive_temporal_parent_recursive_admission_v1 =
-    @import("recursive_temporal_parent_recursive_admission_v1.zig");
-pub const recursive_temporal_parent_transcript_prefix_v1 =
-    @import("recursive_temporal_parent_transcript_prefix_v1.zig");
-pub const recursive_temporal_parent_pair_authority_v1 =
-    @import("recursive_temporal_parent_pair_authority_v1.zig");
-pub const recursive_temporal_level2_transcript_v1 =
-    @import("recursive_temporal_level2_transcript_v1.zig");
-pub const recursive_temporal_level2_prefix_v1 =
-    @import("recursive_temporal_level2_prefix_v1.zig");
-pub const recursive_temporal_level2_composition_v1 =
-    @import("recursive_temporal_level2_composition_v1.zig");
-pub const recursive_temporal_level2_suffix_v1 =
-    @import("recursive_temporal_level2_suffix_v1.zig");
-pub const recursive_temporal_level2_verifier_input_v1 =
-    @import("recursive_temporal_level2_verifier_input_v1.zig");
-pub const recursive_temporal_level2_cohort_v1 =
-    @import("recursive_temporal_level2_cohort_v1.zig");
-pub const recursive_temporal_verified_node_v1 =
-    @import("recursive_temporal_verified_node_v1.zig");
-pub const recursive_temporal_verified_parent_capture_v1 =
-    @import("recursive_temporal_verified_parent_capture_v1.zig");
-pub const recursive_temporal_child_transcript_authority_v1 =
-    @import("recursive_temporal_child_transcript_authority_v1.zig");
-pub const recursive_temporal_leaf_or_empty_v1 =
-    @import("recursive_temporal_leaf_or_empty_v1.zig");
-pub const recursive_temporal_topology_v1 =
-    @import("recursive_temporal_topology_v1.zig");
-pub const recursive_temporal_ethereum_leaf_descriptor_v1 =
-    @import("recursive_temporal_ethereum_leaf_descriptor_v1.zig");
-pub const recursive_temporal_ethereum_leaf_bridge_v1 =
-    @import("recursive_temporal_ethereum_leaf_bridge_v1.zig");
-pub const recursive_temporal_verified_reducer_v1 =
-    @import("recursive_temporal_verified_reducer_v1.zig");
-pub const recursive_temporal_empty_parent_transcript_v1 =
-    @import("recursive_temporal_empty_parent_transcript_v1.zig");
-pub const recursive_temporal_empty_parent_source_v1 =
-    @import("recursive_temporal_empty_parent_source_v1.zig");
-pub const recursive_temporal_node_profile_v1 =
-    @import("recursive_temporal_node_profile_v1.zig");
-pub const recursive_temporal_proof_security_v1 =
-    @import("recursive_temporal_proof_security_v1.zig");
-pub const recursive_temporal_heterogeneous_pair_v1 =
-    @import("recursive_temporal_heterogeneous_pair_v1.zig");
-pub const recursive_temporal_statement_plan_v1 =
-    @import("recursive_temporal_statement_plan_v1.zig");
-pub const recursive_temporal_profile_plan_transport_v1 =
-    @import("recursive_temporal_profile_plan_transport_v1.zig");
-pub const recursive_temporal_nonfri_source_v2 = @import("recursive_temporal_nonfri_source_v2.zig");
-pub const recursive_temporal_parent_prefix_runtime = @import("recursive_temporal_parent_prefix_runtime.zig");
-pub const recursive_temporal_parent_row35_owner_v1 = @import("recursive_temporal_parent_row35_owner_v1.zig");
-pub const recursive_temporal_parent_manifest_v3 = @import("recursive_temporal_parent_manifest_v3.zig");
-pub const recursive_temporal_parent_row18_source_v3 = @import("recursive_temporal_parent_row18_source_v3.zig");
-pub const recursive_temporal_parent_suffix_v3 = @import("recursive_temporal_parent_suffix_v3.zig");
-pub const recursive_temporal_parent_verifier_input_publication_v3 = @import("recursive_temporal_parent_verifier_input_publication_v3.zig");
-pub const recursive_temporal_parent_cohort_v3 = @import("recursive_temporal_parent_cohort_v3.zig");
-pub const recursive_parent_statement_source = @import("recursive_parent_statement_source.zig");
-pub const recursive_parent_statement_air_source = @import("recursive_parent_statement_air_source.zig");
-pub const recursive_temporal_child_authority = @import("recursive_temporal_child_authority.zig");
 
 comptime {
     prover_mod.assertProverEngine(CpuProverEngine);
@@ -543,9 +456,17 @@ pub fn proveEthereumBlock(
 
 test {
     std.testing.refAllDecls(@This());
+    // Internal detached modules remain in the test inventory without widening the API.
+    _ = @import("recursive_segment_v2_detached_boundary.zig");
+    _ = @import("recursive_segment_v2_detached_child_transcript.zig");
+    _ = @import("recursive_segment_v2_detached_composition.zig");
+    _ = @import("recursive_segment_v2_detached_parent_statement.zig");
+    _ = @import("recursive_segment_v2_detached_pcs_rows.zig");
+    _ = @import("recursive_segment_v2_detached_prefix.zig");
+    _ = @import("recursive_segment_v2_detached_transcript.zig");
+    _ = @import("recursive_segment_v2_public_inputs.zig");
+    _ = @import("recursive_segment_v2_verifier_components.zig");
+
     _ = @import("guest_precompile_proof_test.zig");
     _ = @import("split_pcs_prepare_test.zig");
 }
-
-pub const recursive_segment_v2_detached_parent_producer = @import("recursive_segment_v2_detached_parent_producer.zig");
-pub const recursive_segment_v2_detached_parent_command = @import("recursive_segment_v2_detached_parent_command.zig");

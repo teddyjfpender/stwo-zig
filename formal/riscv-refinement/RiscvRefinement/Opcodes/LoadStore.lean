@@ -131,11 +131,11 @@ end LoadStoreDecode
 
 /-! ## Selector and marker combinatorics
 
-C00/C69 make the eight opcode flags an exact one-hot vector, and C18-C20 pin
+C00/C62 make the eight opcode flags an exact one-hot vector, and C18-C20 pin
 the marker set of a byte or halfword access. These are the finite facts every
 opcode theorem starts from. -/
 
-/-- The one-hot decomposition forced by C00 together with C69. -/
+/-- The one-hot decomposition forced by C00 together with C62. -/
 theorem selector_cases (row : LoadStoreRow) (holds : LoadStoreHolds row) :
     (row.isLb = true ∧ row.isLh = false ∧ row.isLbu = false ∧
         row.isLhu = false ∧ row.isLw = false ∧ row.isSb = false ∧
@@ -315,12 +315,11 @@ theorem base_lt_modulus
   have limb1 := row.rs1Previous.limb1.isLt
   have limb2 := row.rs1Previous.limb2.isLt
   have limb3 := holds.baseHighLimbRange
-  have canonical := holds.baseLimbsCanonical
   simp only [Nat.reducePow] at limb0 limb1 limb2
   simp only [WordBytes.value, m31Modulus]
-  rcases canonical with h | h <;> omega
+  omega
 
-/-- C69 keeps the base register and every signed 12-bit displacement inside
+/-- L07 bounds the base register below 2^30, leaving every signed 12-bit displacement inside
 the canonical M31 range. This is the source-level fix for the former
 high-register aliasing gap; no machine-side address premise is needed. -/
 theorem base_add_4096_lt_modulus
@@ -330,8 +329,7 @@ theorem base_add_4096_lt_modulus
   have limb0 := row.rs1Previous.limb0.isLt
   have limb1 := row.rs1Previous.limb1.isLt
   have limb2 := row.rs1Previous.limb2.isLt
-  have limb3 :
-      row.rs1Previous.limb3.toNat = 0 := congrArg BitVec.toNat holds.baseHighLimbZero
+  have limb3 := holds.baseHighLimbRange
   simp only [Nat.reducePow] at limb0 limb1 limb2
   simp only [WordBytes.value, m31Modulus] at limb3 ⊢
   omega
@@ -394,7 +392,7 @@ theorem effective_address_toNat
   have baseRange := base_lt_modulus row holds
   have offsetRange := shift_amount_lt_four row holds
   have quarterRange := holds.alignedQuarterRange
-  have addressRange : row.alignedAddress < 4194304 := by
+  have addressRange : row.alignedAddress < 1073741824 := by
     simp only [LoadStoreRow.alignedAddress]
     simp only [Nat.reducePow] at quarterRange
     omega

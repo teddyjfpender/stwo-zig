@@ -453,3 +453,10 @@ comptime {
         @compileError("VM public-LogUp V2 relation batching drifted");
     }
 }
+
+// Fixed verifier-owned schedule geometry, also consumed by the writer.
+pub const PUBLIC_TERM_COUNT: usize = @import("verifier_schedule.zig").VM_PUBLIC_LOGUP_FIXED_TERM_COUNT;
+pub const LOGICAL_ROW_COUNT: usize = PUBLIC_TERM_COUNT + 1;
+pub const TRACE_LOG_SIZE: u32 = 7;
+pub const TRACE_ROW_COUNT: usize = @as(usize, 1) << TRACE_LOG_SIZE;
+pub const ACTIVE_RELATION_EVENT_COUNT: usize = LOGICAL_ROW_COUNT + 1;

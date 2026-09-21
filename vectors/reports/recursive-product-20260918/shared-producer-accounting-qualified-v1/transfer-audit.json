@@ -1,0 +1,7 @@
+{
+  "body_identical_after_type_rename": true,
+  "original_body_sha256": "93e5397e9a7da0a17d383e79f80eae3553fc60ed4cd50cfb03002eee4bc42c71",
+  "new_source": "src/prover/tracked_smp_allocator.zig",
+  "algorithm_changed": false,
+  "existing_growth_and_concurrency_test_moved": true
+}

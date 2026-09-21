@@ -2,7 +2,7 @@
 //! The admitted schedule pins each destination node and its exact fan-out.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../../air/lang/mod.zig");
+const lang = @import("../../air/lang/definition.zig");
 const effects = @import("relation_effect.zig");
 const M31 = core.fields.m31.M31;
 const Id = lang.types.ValueId;

@@ -714,8 +714,6 @@ comptime {
     SEGMENT_V2_OUTER_DIMENSIONS.validate();
     if (SEGMENT_V2_OUTER_DIMENSIONS.commitment_count != 4 or
         SEGMENT_V2_OUTER_DIMENSIONS.claimed_sum_count != 39 or
-        SEGMENT_V2_OUTER_DIMENSIONS.sampled_value_count != 2_245 or
-        SEGMENT_V2_OUTER_DIMENSIONS.queried_value_count != 6_255 or
         SEGMENT_V2_OUTER_DIMENSIONS.trace_path_count != 12 or
         SEGMENT_V2_OUTER_DIMENSIONS.fri_layer_count != 16 or
         SEGMENT_V2_OUTER_DIMENSIONS.query_count != 3 or

@@ -1,0 +1,13 @@
+1/11 poseidon2_protocol_identity_test_root.test_0...OK
+2/11 poseidon2_protocol_identity_test_root.test.canonical recursive provider admits new identities and explicit retained compact identities...OK
+3/11 poseidon2_protocol_identity_test_root.test.canonical recursive provider rejects forged identities geometry and borrowed challenge changes...OK
+4/11 poseidon2_protocol_identity_test_root.test.canonical parent preparation preserves independently admitted legacy manifests...OK
+5/11 air.memory_commitment.poseidon2_universal_identity_v2.test.compact Poseidon canonical identity records production equations deterministically...COMPACT_POSEIDON_CANONICAL_V2=e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf
+OK
+6/11 air.memory_commitment.poseidon2_universal_identity_v2.test.canonical relation combination matches native extension-field challenges...OK
+7/11 air.memory_commitment.poseidon2_universal_identity_v2.test.canonical Poseidon identity changes for constraints lookups interactions and geometry...OK
+8/11 air.memory_commitment.poseidon2_universal_identity_v2.test.canonical Poseidon admission requires explicit legacy compatibility...OK
+9/11 recursion.air.relation_interaction_tuple_ledger.test.R-012 canonical tuple hash batches exactly the existing byte stream...OK
+10/11 air.lookups.tables.interaction.test.base table denominator matches canonical entry for every schema...OK
+11/11 air.prepared_parallel.test.prepared parallel failure boundary preserves canonical range priority...OK
+All 11 tests passed.

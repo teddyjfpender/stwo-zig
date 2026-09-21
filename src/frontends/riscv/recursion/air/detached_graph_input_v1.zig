@@ -4,7 +4,7 @@
 //! destination graph. Published words always consume one expected-word tuple.
 const std = @import("std");
 const core = @import("stwo_core");
-const lang = @import("../../air/lang/mod.zig");
+const lang = @import("../../air/lang/definition.zig");
 const effects = @import("relation_effect.zig");
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;

@@ -1,0 +1,22 @@
+{
+  "schema": "stwo.baseline-lookup-prepared-repair.v1",
+  "passed": true,
+  "command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/frontends/riscv",
+    "test-lookup-table-interaction",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "tests_passed": 234,
+  "change": "Prepared base-tuple evaluator preserves InvalidTraceShape for malformed tuple arity; existing prepared parity, stack, allocation and cancellation tests are included in the focused table gate.",
+  "source_sha256": {
+    "src/frontends/riscv/air/lookups/tables/interaction.zig": "7f3c8afba846d83f72ba36e8d469b17018906fea18f2e1d029a5d6857b85ba56",
+    "src/frontends/riscv/lookup_table_interaction_test_root.zig": "32d2b4342343dd120269f2f53cbf013af919228f53ccf8c98783f829be195d9d"
+  },
+  "log_sha256": "1438f50e9ba84df7fa3df0ed6d97b4e378f9f5ef392a987b44b65d561c3367bf",
+  "full_frontend_suite_qualified": false
+}

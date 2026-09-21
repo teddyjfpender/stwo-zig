@@ -1,0 +1,15 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 2s
+1/12 recursion_air_test_root.test_0...OK
+2/12 recursion.segment_statement_outer_source_test.test_0...OK
+3/12 recursion.air.universal_manifest_test.test.R-012 universal manifest closes all 36 rows in exact protocol order...OK
+4/12 recursion.air.universal_manifest_test.test.R-012 universal manifest binds every row size and fixed provider geometry...OK
+5/12 recursion.air.universal_typed_component_test.test.R-012 universal manifest pins roster order offsets claims and transcript...OK
+6/12 recursion.air.universal_typed_component_test.test.R-012 row 29 keeps the pinned cubic quotient budget despite conservative profiling...OK
+7/12 recursion.air.universal_typed_component_test.test.R-012 one compiler-owned adapter factory admits all 34 typed logical rows...OK
+8/12 recursion.air.universal_shared_provider_test.test.R-012 shared providers occupy exact roster slots without duplicate AIR...OK
+9/12 recursion.air.universal_shared_provider_test.test.R-012 shared provider admission rejects challenge geometry and authority drift...OK
+10/12 recursion.air.universal_shared_provider_test.test.R-012 shared provider binding revalidates borrowed authority and component shape...OK
+11/12 recursion.air.universal_shared_provider_test.test.R-012 shared provider rejects malformed cached powers and field limbs...OK
+12/12 recursion.air.universal_shared_provider_test.test.R-012 shared provider receipt preserves high canonical challenge limbs...OK
+All 12 tests passed.

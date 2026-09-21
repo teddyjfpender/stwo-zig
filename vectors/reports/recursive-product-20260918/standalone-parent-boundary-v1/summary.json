@@ -1,0 +1,25 @@
+{
+  "status": "standalone_build_closure_and_replay_passed",
+  "source_count": 242,
+  "source_graph_digest": "c4e7f21b80dacc59e4d2dbff55013a72ffbe43423bc4b46a9c89458a30cf9bf6",
+  "ownership_checks": 12,
+  "transport_tests": 4,
+  "statement_tests_passed": 312,
+  "statement_tests_skipped": 1,
+  "retained_cases": 111,
+  "canonical_cases": 84,
+  "expected_derivations_identical": 3,
+  "build_named_modules": [
+    "stwo_parent_verifier",
+    "stwo_core",
+    "interop_postcard",
+    "stwo_proof_wire"
+  ],
+  "limitations": [
+    "Complete CPU/Metal production qualification predates the latest neutral verifier and command moves.",
+    "This boundary applies to the parent executable; leaf executable ownership remains separate work."
+  ],
+  "build_source_sha256": {
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "ed679db5dc70454b0b07f37fdf9179748b481c0a52b1b6dc367001bcc7da6308"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "stwo.verifier-wire-owner-migration.v1",
+  "status": "focused qualification and complete CPU/Metal tree qualification passed",
+  "transcript_tests_passed": 328,
+  "transcript_tests_skipped": 1,
+  "framework_export_tests_passed": 238,
+  "arithmetic_fusion_tests_passed": 16,
+  "dependency_tests_passed": 20,
+  "fixed_wire_transitive_sources": 109,
+  "whole_verifier_dependency_separation": false,
+  "package_failures_remaining": 12,
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig": "118c622bd54ed0db597606c3d01a74bec3c928f1897b7d52f260e2c539bc55b3",
+    "src/frontends/riscv/recursion/air/fixed_wire_v3.zig": "23ea389347d28f190febe8d3384dac9558db0af144cbbd019be499882dd9fca4",
+    "src/frontends/riscv/recursion/air/verifier_wire_protocol.zig": "d11a8be35ae5898f14d92efa862c04059576cceec5b80196e9b1dfbcd95bc4fc",
+    "src/frontends/riscv/recursion/air/transcript_payload.zig": "b72ef8845cbbe6728fb435c52359352703b4aa0c4d1818aa5db745bb99e77c6e",
+    "src/frontends/riscv/recursion/transcript_program_v2_contract.zig": "eef86581cf0c15b941ada7a617fb95eea14767265600f47c079a7050cac4ba7e",
+    "src/frontends/riscv/recursion/transcript_program_v2_test.zig": "30566d60022d912b1c734dd207ec0e0ea89bc20b80b54fb4333bf8327e4b3c9f",
+    "scripts/tests/test_product_closure.py": "7f2934aff17be6d584ac62b6765026c59d549b7ae5977b06da07f6357e2024ad",
+    "src/integrations/riscv_cpu/mod.zig": "128a0946111a7d77ba4dd886c09c5d3de00e896fdd9de264fdcf65980f57e69c",
+    "src/integrations/riscv_cpu/package.contract.json": "bf816a4dd847860e358027e5d26539283e51c60eeb1e59af530c4fcf10a93905",
+    "src/integrations/riscv_cpu/README.md": "6b95de0c2e1b99b92923284fe84c019fb82e225e64153671fca364ab42ee827a",
+    "src/integrations/riscv_metal/package.contract.json": "088de8adaefbf76ede45b3fd7178596f6a1d7e4ea8611c78085ac54fb0ad0bd2"
+  },
+  "scope": "Extracted unchanged public wire type, mode and verifier input tags. No equations, enum values, transcript ordering, row geometry or admission keys changed.",
+  "failure_log": "wire-owner-build-failure-v1.log",
+  "cpu_receipt": "cpu-backend-test-owner-v1/summary.json",
+  "metal_receipt": "metal-backend-test-owner-v1/summary.json",
+  "full_product_qualification": true
+}

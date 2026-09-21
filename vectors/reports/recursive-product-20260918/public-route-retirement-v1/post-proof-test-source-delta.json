@@ -1,0 +1,26 @@
+{
+  "src/integrations/riscv_cpu/recursive_v3_recording_test_support.zig": {
+    "qualified": "56a201ccfc6b13744cfc1f44f46e9a13663bfa655b78681974995094ec6dc471",
+    "current": "d56ab23fe2cdc42e4a5fb22664b28c5f4f41c632c29214a7de61ccdb86268461"
+  },
+  "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig": {
+    "qualified": "979be3c5d1588cce4fc7177c3485d23f163e7218c8608c13d493aea3b74c56aa",
+    "current": "024677569e7ee5b496b472dca35d684f3a0002eb15f3661e9fe15bdb3996d180"
+  },
+  "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig": {
+    "qualified": "775a9862aa3c3fde724d4ee18d2cb7ccba0fa0ac7a6d19518797ffc1288ac7b7",
+    "current": "a00159d05287fc167d7d38f6a935eb3478cee356f0e055924a074b4fc4b28af5"
+  },
+  "src/integrations/riscv_cpu/recursive_parent_statement_source_test.zig": {
+    "qualified": "6067cebedea3ca9625f34f6623f84c02d5363b61e456c29f55824d9b09d173e1",
+    "current": "9473c1c1eea76c9b51dadeeeeec44c34c7992b6b2d2a135ae30ce9f7df4d60fa"
+  },
+  "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig": {
+    "qualified": "2573e8db42304a083816dec1b991a9a2bd28afa5839895ddfd00aecd47896586",
+    "current": "87b1184e50ce9278ec201f82e90ba8641cf8f9cc770ff0404b0d1dd0ed886aa4"
+  },
+  "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig": {
+    "qualified": "69deca853339473fdb153b2fc2eb7aae6facdc4c561b198dd77f17479570b524",
+    "current": "703df7b329b135b3013a5d70a4b32ecadfaaa78358e091df6dd1928441a0d00e"
+  }
+}

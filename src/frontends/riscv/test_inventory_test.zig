@@ -20,20 +20,8 @@ const INVENTORY = @embedFile("test_inventory.zig");
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{
     .{
-        .path = "recursion_poseidon_degree3_metal_test.zig",
-        .why = "requires Metal backend, Objective-C runtime and admitted AOT bundle; run by python3 scripts/recursive_poseidon_degree3_proof.py --metal --bundle PATH --manifest-sha256 SHA256",
-    },
-    .{
-        .path = "air/memory_commitment/poseidon2_universal_proof_v1_test.zig",
-        .why = "requires CPU backend and proof wire modules; run by python3 scripts/recursive_poseidon_degree3_proof.py",
-    },
-    .{
-        .path = "air/memory_commitment/poseidon2_narrow_proof_v1_test.zig",
-        .why = "requires CPU backend and proof wire modules; run by python3 scripts/recursive_poseidon_degree3_proof.py",
-    },
-    .{
         .path = "recursion_poseidon_degree3_test_root.zig",
-        .why = "backend-bound complete proof root; run by python3 scripts/recursive_poseidon_degree3_proof.py",
+        .why = "backend-neutral semantic root, also consumed by scripts/recursive_poseidon_degree3_proof.py",
     },
     .{
         .path = "poseidon_merkle_test_root.zig",

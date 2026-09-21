@@ -255,7 +255,9 @@ fn relationDomains(comptime family_id: Family) RelationSet {
         // row-local target binding is what makes the composed jump target a
         // bounded value rather than a free field element.
         .jalr => relationSet(base ++ [_]RelationDomain{ .range_check_8_8, .range_check_m31, .range_check_8_8_4 }),
-        .load_store => relationSet(base ++ [_]RelationDomain{.range_check_m31}),
+        // The admitted one-GiB address profile bounds the high eight bits
+        // of the aligned word address through the appended byte-table lookup.
+        .load_store => relationSet(base ++ [_]RelationDomain{ .range_check_m31, .range_check_8_8 }),
         .mul => relationSet(base ++ [_]RelationDomain{.range_check_8_11}),
         .mulh => relationSet(base ++ [_]RelationDomain{ .range_check_8_11, .range_check_m31 }),
         // The quotient-sign witness is bounded through range_check_m31; without

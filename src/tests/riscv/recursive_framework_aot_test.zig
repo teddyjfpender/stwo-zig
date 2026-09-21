@@ -67,8 +67,8 @@ fn appendProvider(comptime Provider: type, source: *std.ArrayList(u8), inventory
     try report.print("],\"lookup_kernel\":\"{s}\"}}", .{name});
 }
 
-fn appendFrameworkKernel(selected: codegen.Entry, source: *std.ArrayList(u8), inventory: *std.ArrayList(u8), names: *std.StringHashMap(void)) ![]u8 {
-    const name = try codegen.kernelName(allocator, selected);
+fn appendFrameworkKernelWith(comptime emitter: type, selected: codegen.Entry, source: *std.ArrayList(u8), inventory: *std.ArrayList(u8), names: *std.StringHashMap(void)) ![]u8 {
+    const name = try emitter.kernelName(allocator, selected);
     errdefer allocator.free(name);
     if (!names.contains(name)) {
         const owned_name = try allocator.dupe(u8, name);
@@ -77,11 +77,15 @@ fn appendFrameworkKernel(selected: codegen.Entry, source: *std.ArrayList(u8), in
             return err;
         };
         const start = source.items.len;
-        try codegen.emitKernel(allocator, source.writer(allocator), name, selected);
+        try emitter.emitKernel(allocator, source.writer(allocator), name, selected);
         const digest = try metal.shaders.declaration_digest.declarationDigestHex(source.items[start..], name);
         try inventory.writer(allocator).print("    .{{ .name = \"{s}\", .declaration_sha256 = \"{s}\" }},\n", .{ name, digest });
     }
     return name;
+}
+
+fn appendFrameworkKernel(selected: codegen.Entry, source: *std.ArrayList(u8), inventory: *std.ArrayList(u8), names: *std.StringHashMap(void)) ![]u8 {
+    return appendFrameworkKernelWith(codegen, selected, source, inventory, names);
 }
 
 fn appendRangeProvider(source: *std.ArrayList(u8), inventory: *std.ArrayList(u8), coverage: *std.ArrayList(u8), names: *std.StringHashMap(void)) !void {
@@ -128,13 +132,15 @@ fn appendNativeTableInteractions(source: *std.ArrayList(u8), inventory: *std.Arr
     const tables = frontend.air.lookups.tables;
     const relations = frontend.air.relation_challenges.Relations.dummy();
     const report = coverage.writer(allocator);
-    try source.appendSlice(allocator, interaction_codegen.scan_source);
     const scan_names = [_][]const u8{
         "stwo_zig_framework_interaction_block_scan_v1",
         "stwo_zig_framework_interaction_scan_blocks_v1",
         "stwo_zig_framework_interaction_finalize_v1",
+        "stwo_zig_framework_interaction_cumulative_block_scan_v1",
+        "stwo_zig_framework_interaction_cumulative_scan_blocks_v1",
+        "stwo_zig_framework_interaction_cumulative_finalize_v1",
     };
-    try report.writeAll(",\n  \"native_table_interaction\": {\"covered_tables\":6,\"total_tables\":6,\"pipeline_integration_complete\":false,\"scan_kernels\":[");
+    try report.writeAll(",\n  \"native_table_interaction\": {\"covered_tables\":6,\"total_tables\":6,\"pipeline_integration_complete\":true,\"scan_kernels\":[");
     for (scan_names, 0..) |name, index| {
         try std.testing.expect(!names.contains(name));
         const owned_name = try allocator.dupe(u8, name);
@@ -156,19 +162,8 @@ fn appendNativeTableInteractions(source: *std.ArrayList(u8), inventory: *std.Arr
         var program = try tables.framework_export.exportProgram(allocator, &component, &counts);
         defer program.deinit();
         const selected = interaction_codegen.Entry{ .program = &program, .tree_column_counts = &counts };
-        const name = try interaction_codegen.kernelName(allocator, selected);
+        const name = try appendFrameworkKernelWith(interaction_codegen, selected, source, inventory, names);
         defer allocator.free(name);
-        if (!names.contains(name)) {
-            const owned_name = try allocator.dupe(u8, name);
-            names.put(owned_name, {}) catch |err| {
-                allocator.free(owned_name);
-                return err;
-            };
-            const start = source.items.len;
-            try interaction_codegen.emitKernel(allocator, source.writer(allocator), name, selected);
-            const digest = try metal.shaders.declaration_digest.declarationDigestHex(source.items[start..], name);
-            try inventory.writer(allocator).print("    .{{ .name = \"{s}\", .declaration_sha256 = \"{s}\" }},\n", .{ name, digest });
-        }
         if (index != 0) try report.writeAll(",");
         try report.print("{{\"kind\":\"{s}\",\"kernel\":\"{s}\"}}", .{ @tagName(kind), name });
     }
@@ -203,7 +198,8 @@ fn generate() !Generated {
     const writer = source.writer(allocator);
     const table = inventory.writer(allocator);
     const report = coverage.writer(allocator);
-    try writer.writeAll("// Generated recursive framework profile v1. Shared field helpers come from core_v2.\n// Regenerate: STWO_RECURSIVE_FRAMEWORK_AOT_GENERATE=<directory> zig build test-riscv-metal-recursive-aot\n");
+    try writer.writeAll("// Generated recursive framework profile v1. Shared field helpers come from core_v2.\n// Generator: src/tests/riscv/recursive_framework_aot_test.zig\n// Regenerate: STWO_RECURSIVE_FRAMEWORK_AOT_GENERATE=<directory> zig build test-riscv-metal-recursive-aot\n");
+    try source.appendSlice(allocator, interaction_codegen.scan_source);
     try table.writeAll("// Generated from the production leaf and parent typed AIR catalogs.\npub const entries = .{\n");
     try report.writeAll("{\n  \"format\": \"recursive-framework-aot-coverage-v1\",\n  \"composition_coverage_scope\": \"detached_recursive_leaf_and_parent\",\n  \"composition_coverage_complete\": true,\n  \"strict_coverage_complete\": false,\n  \"profiles\": [\n");
     inline for (.{ air.segment_leaf_catalog_v2.LOGICAL_ROWS, air.detached_parent_catalog_v1.LOGICAL_ROWS }, .{ "leaf", "parent" }, 0..) |catalog, profile, profile_index| {
@@ -215,25 +211,18 @@ fn generate() !Generated {
             defer definition.deinit();
             const direct = try air.direct_constraint_program.authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
             const relations = try air.universal_relation_binding.Binding(Air).authenticate(&definition);
-            const parameter_start = Air.PHYSICAL_MAIN_COLUMN_COUNT + Air.PREPROCESSED_COLUMN_COUNT;
-            const parameter_count = Air.LOGICAL_INPUT_COUNT - parameter_start;
-            var inputs: [Air.LOGICAL_INPUT_COUNT]backend.TypedPolynomialInputV1 = undefined;
-            for (&inputs, 0..) |*input, index| input.* = if (index < Air.PHYSICAL_MAIN_COLUMN_COUNT)
-                .{ .trace_column = .{ .tree_index = 1, .column_index = @intCast(index) } }
-            else if (index < parameter_start)
-                .{ .trace_column = .{ .tree_index = 0, .column_index = @intCast(index - Air.PHYSICAL_MAIN_COLUMN_COUNT) } }
-            else
-                .{ .profile_parameter = @intCast(index - parameter_start) };
-            var interaction: [Air.INTERACTION_COLUMN_COUNT]backend.TypedPolynomialColumnV1 = undefined;
-            for (&interaction, 0..) |*column, index| column.* = .{ .tree_index = 2, .column_index = @intCast(index) };
             const tree_counts = [_]usize{ Air.PREPROCESSED_COLUMN_COUNT, Air.PHYSICAL_MAIN_COLUMN_COUNT, Air.INTERACTION_COLUMN_COUNT };
-            var program = try air.framework_polynomial_export_v1.exportPrepared(Air, allocator, &direct, &relations, &inputs, &interaction, parameter_count, &tree_counts);
+            var program = try air.framework_polynomial_export_v1.exportLocalPrepared(Air, allocator, &direct, &relations);
             defer program.deinit();
             const selected = codegen.Entry{ .program = &program, .tree_column_counts = &tree_counts };
             const name = try appendFrameworkKernel(selected, &source, &inventory, &names);
             defer allocator.free(name);
             if (entry_index != 0) try report.writeAll(",");
-            try report.print("{{\"row\":{},\"semantic_digest\":\"{s}\",\"kernel\":\"{s}\"}}", .{ @intFromEnum(entry.row), std.fmt.bytesToHex(Air.SEMANTIC_DIGEST, .lower), name });
+            try report.print("{{\"row\":{},\"semantic_digest\":\"{s}\",\"kernel\":\"{s}\"", .{ @intFromEnum(entry.row), std.fmt.bytesToHex(Air.SEMANTIC_DIGEST, .lower), name });
+            const interaction_name = try appendFrameworkKernelWith(interaction_codegen, selected, &source, &inventory, &names);
+            defer allocator.free(interaction_name);
+            try report.print(",\"interaction_kernel\":\"{s}\"", .{interaction_name});
+            try report.writeAll("}");
         }
         try report.writeAll("]");
         try appendProvider(if (profile_index == 0) LegacyPoseidon else memory.poseidon2_universal_backend_v1, &source, &inventory, &coverage, &names);

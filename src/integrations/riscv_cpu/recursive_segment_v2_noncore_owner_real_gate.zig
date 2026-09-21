@@ -7,11 +7,10 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
-const subject = integration.recursive_segment_v2_noncore_owner;
-const core_outer = integration.recursive_fri_outer;
-const leaf_outer = integration.recursive_segment_v2_leaf_outer;
+const subject = @import("recursive_segment_v2_noncore_owner.zig");
+const core_outer = @import("recursive_fri_outer.zig");
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const recursion = frontend.recursion;
