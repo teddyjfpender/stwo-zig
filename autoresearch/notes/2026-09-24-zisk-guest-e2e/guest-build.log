@@ -1,0 +1,14 @@
+    Updating crates.io index
+     Locking 10 packages to latest Rust 1.96.0 compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling cfg-if v1.0.5
+   Compiling generic-array v0.14.7
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling sha256-chain-guest v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-guest-e2e/guest-stwo)
+    Finished `release` profile [optimized] target(s) in 3.68s

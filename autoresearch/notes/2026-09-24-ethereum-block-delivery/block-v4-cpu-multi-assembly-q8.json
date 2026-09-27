@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-25",
+  "scope": "CPU bounded two-segment Ethereum-SHA core assembly from genuine consecutive guest segments; sparse zero-opcode second segment; file-backed sorted-memory proof staging; fresh v4 core verification",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic"},
+  "verification": {"fresh_core": true, "recursive_root": false, "tests_passed": 8},
+  "segments": 2,
+  "memory_events": 108,
+  "external_events": 103,
+  "memory_instances": 1,
+  "staged_and_execution_payload_bytes": 2362693,
+  "assembly_and_core_verify_elapsed_ns": 7978903708,
+  "tracked_peak_bytes": null,
+  "fixture_limits": [
+    "The two-segment fixture has empty public input and output payloads and precompile calls in both segments.",
+    "Execution owners, prepared traces, and proof bytes are retained across both segments; this is a bounded small-batch path, not a constant-memory mainnet measurement.",
+    "The callback only fresh-verifies the v4 core in this run; it does not create recursive leaf, parent, or outer proofs."
+  ]
+}

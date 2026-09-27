@@ -1,0 +1,225 @@
+{
+  "label": "balanced",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "workers": 16,
+  "worker_limit_gib": 48,
+  "samples_per_case": 1,
+  "opening_storage_change_preserves_16_tx_proof_bytes": true,
+  "results": [
+    {
+      "transactions": 1,
+      "verified": true,
+      "process_wall_seconds": 31.008378625003388,
+      "peak_process_footprint_bytes": 17203199648,
+      "peak_process_footprint_gib": 16.021728187799454,
+      "worker_peak_bytes": 17206642811,
+      "worker_peak_gib": 16.024934883229434,
+      "preparation_retained_bytes": 4178337420,
+      "parent_proving_seconds": 13.5433355,
+      "leaf_proving_seconds": 5.004209166,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 2097152,
+          "fixed_rows": 2097152,
+          "fixed_columns": 16,
+          "retained_bytes": 822085552
+        },
+        {
+          "index": 20,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 2097152,
+          "fixed_rows": 2097152,
+          "fixed_columns": 16,
+          "retained_bytes": 822085552
+        },
+        {
+          "index": 21,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 2097152,
+          "fixed_rows": 2097152,
+          "fixed_columns": 16,
+          "retained_bytes": 822085552
+        },
+        {
+          "index": 22,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 1048576,
+          "fixed_rows": 681384,
+          "fixed_columns": 16,
+          "retained_bytes": 387543472
+        }
+      ],
+      "hash_partition_seconds": 0.33001825,
+      "proof_bytes": 969548,
+      "cycles": 12419
+    },
+    {
+      "transactions": 16,
+      "verified": true,
+      "process_wall_seconds": 52.62520116701489,
+      "peak_process_footprint_bytes": 24862155952,
+      "peak_process_footprint_gib": 23.154687091708183,
+      "worker_peak_bytes": 24815798895,
+      "worker_peak_gib": 23.111513718031347,
+      "preparation_retained_bytes": 5894248296,
+      "parent_proving_seconds": 21.6131295,
+      "leaf_proving_seconds": 7.143094416,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 4194304,
+          "fixed_rows": 4194304,
+          "fixed_columns": 16,
+          "retained_bytes": 1644169136
+        },
+        {
+          "index": 20,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 4194304,
+          "fixed_rows": 4194304,
+          "fixed_columns": 16,
+          "retained_bytes": 1644169136
+        },
+        {
+          "index": 21,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 2097152,
+          "fixed_rows": 2097152,
+          "fixed_columns": 16,
+          "retained_bytes": 822085552
+        },
+        {
+          "index": 22,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 32768,
+          "fixed_rows": 21128,
+          "fixed_columns": 16,
+          "retained_bytes": 12102064
+        }
+      ],
+      "hash_partition_seconds": 0.511609458,
+      "proof_bytes": 1021568,
+      "cycles": 140708
+    },
+    {
+      "transactions": 32,
+      "verified": true,
+      "process_wall_seconds": 73.96093737499905,
+      "peak_process_footprint_bytes": 33489983096,
+      "peak_process_footprint_gib": 31.189977280795574,
+      "worker_peak_bytes": 32516226741,
+      "worker_peak_gib": 30.28309600520879,
+      "preparation_retained_bytes": 7856729664,
+      "parent_proving_seconds": 27.7618095,
+      "leaf_proving_seconds": 13.518833375,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 4194304,
+          "fixed_rows": 4194304,
+          "fixed_columns": 16,
+          "retained_bytes": 1644169136
+        },
+        {
+          "index": 20,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 4194304,
+          "fixed_rows": 4194304,
+          "fixed_columns": 16,
+          "retained_bytes": 1644169136
+        },
+        {
+          "index": 21,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 4194304,
+          "fixed_rows": 4194304,
+          "fixed_columns": 16,
+          "retained_bytes": 1644169136
+        },
+        {
+          "index": 22,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 2097152,
+          "fixed_rows": 1945896,
+          "fixed_columns": 16,
+          "retained_bytes": 812405168
+        }
+      ],
+      "hash_partition_seconds": 0.676764917,
+      "proof_bytes": 1030800,
+      "cycles": 286847
+    },
+    {
+      "transactions": 64,
+      "verified": true,
+      "process_wall_seconds": 143.30734254102572,
+      "peak_process_footprint_bytes": 59507346704,
+      "peak_process_footprint_gib": 55.42053534090519,
+      "worker_peak_bytes": 51383616801,
+      "worker_peak_gib": 47.85472229216248,
+      "preparation_retained_bytes": 12024903672,
+      "parent_proving_seconds": 63.3835745,
+      "leaf_proving_seconds": 16.763597083,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 8388608,
+          "fixed_rows": 8388608,
+          "fixed_columns": 16,
+          "retained_bytes": 3288336304
+        },
+        {
+          "index": 20,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 8388608,
+          "fixed_rows": 8388608,
+          "fixed_columns": 16,
+          "retained_bytes": 3288336304
+        },
+        {
+          "index": 21,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 4194304,
+          "fixed_rows": 4194304,
+          "fixed_columns": 16,
+          "retained_bytes": 1644169136
+        },
+        {
+          "index": 22,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 2097152,
+          "fixed_rows": 1173120,
+          "fixed_columns": 16,
+          "retained_bytes": 762947504
+        }
+      ],
+      "hash_partition_seconds": 1.321648708,
+      "proof_bytes": 1063113,
+      "cycles": 561079
+    }
+  ]
+}

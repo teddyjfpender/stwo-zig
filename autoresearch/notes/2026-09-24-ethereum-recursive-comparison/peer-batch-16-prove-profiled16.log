@@ -1,0 +1,645 @@
+    Emulator Running in emulator mode
+ Proving Key /tmp/stwo-zisk-guest-e2e-20260924/provingKey
+   SNARK Key /Users/theodorepender/.zisk/provingKeySnark
+
+2026-09-24T18:25:23.608928Z proofman_common::proof_ctx INFO: Creating proof context
+2026-09-24T18:25:23.608997Z proofman_common::global_info DEBUG: ··· Loading GlobalInfo JSON /tmp/stwo-zisk-guest-e2e-20260924/provingKey
+2026-09-24T18:25:23.609372Z proofman_common::proof_ctx INFO: Using hash function: blake3
+2026-09-24T18:25:23.612797Z proofman::proofman INFO: >>> INITIALIZING_PROOFMAN
+2026-09-24T18:25:25.219782Z proofman_common::setup_ctx DEBUG: Recursive buffer requirement: compressor 14.92 GB, recursive1 10.12 GB, recursive2 10.12 GB, vadcop_final 10.12 GB, vadcop_final_compressed 0.00 Bytes
+2026-09-24T18:25:25.219884Z proofman_common::proof_ctx INFO: Max prover buffer size: 24.87 GB
+2026-09-24T18:25:25.219890Z proofman_common::proof_ctx INFO: Max prover recursive buffer size: 14.92 GB
+2026-09-24T18:25:25.219893Z proofman_common::proof_ctx INFO: Max prover recursive1/recursive2 buffer size: 10.12 GB (recursive2 map 9.12 GB + compact witness tail 1.00 GB)
+2026-09-24T18:25:25.235041Z proofman::proofman INFO: >>> LOADING_FIXED_POLS
+2026-09-24T18:25:25.235052Z proofman::proofman INFO: <<< LOADING_FIXED_POLS (0ms)
+2026-09-24T18:25:25.235065Z proofman::proofman INFO: <<< INITIALIZING_PROOFMAN (1622ms)
+2026-09-24T18:25:25.235085Z proofman::proofman INFO: >>> INIT_PROOFMAN
+2026-09-24T18:25:25.235103Z proofman::proofman INFO: <<< INIT_PROOFMAN (0ms)
+2026-09-24T18:25:25.424930Z proofman_common::memory_handler INFO: MemoryHandler::Total memory for basic traces: 4.88 GB
+2026-09-24T18:25:25.424992Z proofman_common::utils INFO: Node has 18 cores
+2026-09-24T18:25:25.424998Z proofman_common::utils INFO: Using 16 threads per process based on RAYON_NUM_THREADS environment variable
+2026-09-24T18:25:25.555297Z proofman_common::memory_handler INFO: MemoryHandlerRecursive::Total memory for recursive traces: 3.22 GB = 2 x trace 1.61 GB
+2026-09-24T18:25:25.555351Z proofman_common::memory_handler INFO: SignalValuesPool: 1 x 485.22 MB = 485.22 MB
+2026-09-24T18:25:25.555356Z proofman_common::memory_handler INFO: MemoryHandlerRecursive::circom solve threads per recursive witness: 8
+2026-09-24T18:25:26.693635Z proofman::proofman INFO: Using 4 threads per witness computation
+ETH_AUTH_SETUP_COMPLETE seconds=3.18752525
+2026-09-24T18:25:26.756336Z proofman_common::proof_ctx INFO: Initializing publics custom_commits
+2026-09-24T18:25:26.760662Z proofman::proofman INFO: >>> EXECUTE
+2026-09-24T18:25:26.764061Z zisk_executor::executor INFO: >>> COMPUTE_MINIMAL_TRACE
+2026-09-24T18:25:26.779287Z zisk_executor::execution::rust INFO: >>> COUNT
+2026-09-24T18:25:26.798103Z zisk_executor::execution::rust INFO: <<< COUNT (18ms)
+2026-09-24T18:25:26.798112Z zisk_executor::executor INFO: <<< COMPUTE_MINIMAL_TRACE (34ms)
+2026-09-24T18:25:26.798125Z zisk_executor::plan INFO: >>> PLAN_MAIN
+2026-09-24T18:25:26.798129Z zisk_executor::plan INFO: <<< PLAN_MAIN (0ms)
+2026-09-24T18:25:26.798135Z zisk_executor::plan INFO: >>> PLAN_SECONDARY
+2026-09-24T18:25:26.799473Z zisk_sm_mem_common::mem_align_planner DEBUG: ··· MemAlign instances: read_byte_large=0 read_byte=0 write_byte=0 byte_large=0 byte=0 full_large=0 full=1
+2026-09-24T18:25:26.799499Z zisk_sm_binary::binary_planner DEBUG: ··· Binary instances: add_hi_large=0 add_hi=0 add_large=0 add=0 basic_large=0 basic=0 ext_large=0 ext=1
+2026-09-24T18:25:26.799582Z zisk_executor::plan INFO: <<< PLAN_SECONDARY (1ms)
+2026-09-24T18:25:26.799586Z zisk_executor::plan INFO: >>> WAIT_PLAN_MEM_CPP
+2026-09-24T18:25:26.799590Z zisk_executor::plan INFO: <<< WAIT_PLAN_MEM_CPP (0ms)
+2026-09-24T18:25:26.799593Z zisk_executor::executor INFO: >>> WAIT_ASM_RH
+2026-09-24T18:25:26.799595Z zisk_executor::executor INFO: <<< WAIT_ASM_RH (0ms)
+2026-09-24T18:25:26.800199Z proofman::utils INFO: --- TOTAL PROOF INSTANCES SUMMARY ------------------------
+2026-09-24T18:25:26.800208Z proofman::utils INFO:     ► 16 Air instances found:
+2026-09-24T18:25:26.800213Z proofman::utils INFO:       Air Group [Zisk]
+2026-09-24T18:25:26.800224Z proofman::utils INFO:       · 1 x Air [ArithEq] (90 x 2^20)
+2026-09-24T18:25:26.800226Z proofman::utils INFO:       · 1 x Air [Binary] (60 x 2^22)
+2026-09-24T18:25:26.800229Z proofman::utils INFO:       · 1 x Air [BinaryExtension] (58 x 2^22)
+2026-09-24T18:25:26.800231Z proofman::utils INFO:       · 1 x Air [Dma] (63 x 2^21)
+2026-09-24T18:25:26.800233Z proofman::utils INFO:       · 1 x Air [Dma64Aligned] (77 x 2^21)
+2026-09-24T18:25:26.800235Z proofman::utils INFO:       · 1 x Air [DmaPrePost] (104 x 2^21)
+2026-09-24T18:25:26.800236Z proofman::utils INFO:       · 1 x Air [DmaUnaligned] (42 x 2^21)
+2026-09-24T18:25:26.800238Z proofman::utils INFO:       · 1 x Air [InputData] (29 x 2^22)
+2026-09-24T18:25:26.800239Z proofman::utils INFO:       · 1 x Air [Keccakf] (643 x 2^20)
+2026-09-24T18:25:26.800240Z proofman::utils INFO:       · 1 x Air [Main] (245 x 2^22)
+2026-09-24T18:25:26.800242Z proofman::utils INFO:       · 1 x Air [Mem] (91 x 2^22)
+2026-09-24T18:25:26.800243Z proofman::utils INFO:       · 1 x Air [MemAlign] (50 x 2^21)
+2026-09-24T18:25:26.800245Z proofman::utils INFO:       · 1 x Air [Rom] (28 x 2^22)
+2026-09-24T18:25:26.800246Z proofman::utils INFO:       · 1 x Air [RomData] (22 x 2^22)
+2026-09-24T18:25:26.800248Z proofman::utils INFO:       · 1 x Air [VirtualTableZisk0] (39 x 2^21)
+2026-09-24T18:25:26.800250Z proofman::utils INFO:       · 1 x Air [VirtualTableZisk1] (64 x 2^21)
+2026-09-24T18:25:26.800251Z proofman::utils INFO: --- TOTAL PROVER MEMORY USAGE ----------------------------
+2026-09-24T18:25:26.800255Z proofman::utils INFO:       · ArithEq: 2.48 GB per each of 1 instance | Witness : 360.00 MB
+2026-09-24T18:25:26.800257Z proofman::utils INFO:       · Binary: 6.59 GB per each of 1 instance | Witness : 1.22 GB
+2026-09-24T18:25:26.800259Z proofman::utils INFO:       · BinaryExtension: 5.94 GB per each of 1 instance | Witness : 1.06 GB
+2026-09-24T18:25:26.800261Z proofman::utils INFO:       · Dma: 3.27 GB per each of 1 instance | Witness : 576.00 MB
+2026-09-24T18:25:26.800262Z proofman::utils INFO:       · Dma64Aligned: 4.41 GB per each of 1 instance | Witness : 560.00 MB
+2026-09-24T18:25:26.800264Z proofman::utils INFO:       · DmaPrePost: 5.41 GB per each of 1 instance | Witness : 1.03 GB
+2026-09-24T18:25:26.800265Z proofman::utils INFO:       · DmaUnaligned: 2.37 GB per each of 1 instance | Witness : 384.00 MB
+2026-09-24T18:25:26.800267Z proofman::utils INFO:       · InputData: 3.92 GB per each of 1 instance | Witness : 288.00 MB
+2026-09-24T18:25:26.800269Z proofman::utils INFO:       · Keccakf: 17.82 GB per each of 1 instance | Witness : 3.54 GB
+2026-09-24T18:25:26.800270Z proofman::utils INFO:       · Main: 24.25 GB per each of 1 instance | Witness : 4.75 GB
+2026-09-24T18:25:26.800272Z proofman::utils INFO:       · Mem: 9.41 GB per each of 1 instance | Witness : 1.62 GB
+2026-09-24T18:25:26.800274Z proofman::utils INFO:       · MemAlign: 2.75 GB per each of 1 instance | Witness : 512.00 MB
+2026-09-24T18:25:26.800275Z proofman::utils INFO:       · Rom: 3.11 GB per each of 1 instance | Witness : 32.00 MB
+2026-09-24T18:25:26.800277Z proofman::utils INFO:       · RomData: 3.48 GB per each of 1 instance | Witness : 320.00 MB
+2026-09-24T18:25:26.800278Z proofman::utils INFO:       · VirtualTableZisk0: 2.52 GB per each of 1 instance | Witness : 192.00 MB
+2026-09-24T18:25:26.800280Z proofman::utils INFO:       · VirtualTableZisk1: 4.00 GB per each of 1 instance | Witness : 352.00 MB
+2026-09-24T18:25:26.800281Z proofman::utils INFO:       Total memory required by proofman: 24.87 GB
+2026-09-24T18:25:26.800283Z proofman::utils INFO: ----------------------------------------------------------
+2026-09-24T18:25:26.800284Z proofman::utils INFO:       Extra memory tables (CPU): 544.00 MB
+2026-09-24T18:25:26.800286Z proofman::utils INFO: ----------------------------------------------------------
+2026-09-24T18:25:26.800295Z proofman::proofman INFO: <<< EXECUTE (39ms)
+2026-09-24T18:25:26.800307Z proofman::proofman DEBUG: Initializing publics custom_commits
+2026-09-24T18:25:26.800324Z proofman::proofman INFO: >>> CALCULATING_CONTRIBUTIONS
+2026-09-24T18:25:26.800326Z proofman::proofman DEBUG: >>> CALCULATING_INNER_CONTRIBUTIONS
+2026-09-24T18:25:26.800328Z proofman::proofman DEBUG: >>> PREPARING_CONTRIBUTIONS
+2026-09-24T18:25:26.800330Z proofman::proofman DEBUG: <<< PREPARING_CONTRIBUTIONS (0ms)
+2026-09-24T18:25:26.800333Z proofman::proofman DEBUG: >>> CALCULATING_WITNESS
+2026-09-24T18:25:26.800385Z proofman::proofman DEBUG: >>> GENERATING_WC_0 [0:1]
+2026-09-24T18:25:26.800398Z proofman::proofman DEBUG: >>> PREPARING_WC_0 [0:1]
+2026-09-24T18:25:26.802008Z proofman::proofman DEBUG: <<< PREPARING_WC_0 [0:1] (1ms) [waited 0ms]
+2026-09-24T18:25:26.802013Z proofman::proofman DEBUG: >>> COMPUTING_WC_0 [0:1]
+2026-09-24T18:25:26.802042Z zisk_sm_rom::rom_instance DEBUG: ··· Creating Rom instance [4194304 rows]
+2026-09-24T18:25:26.802276Z proofman::proofman DEBUG: <<< COMPUTING_WC_0 [0:1] (0ms) [waited 0ms]
+2026-09-24T18:25:26.802287Z proofman::proofman DEBUG: <<< GENERATING_WC_0 [0:1] (1ms) [waited 0ms]
+2026-09-24T18:25:26.802272Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_0 [0:1]
+2026-09-24T18:25:26.802345Z proofman::proofman DEBUG: >>> GENERATING_WC_1 [0:0]
+2026-09-24T18:25:26.802356Z proofman::proofman DEBUG: >>> PREPARING_WC_1 [0:0]
+2026-09-24T18:25:26.802374Z proofman::proofman DEBUG: <<< PREPARING_WC_1 [0:0] (0ms) [waited 0ms]
+2026-09-24T18:25:26.802377Z proofman::proofman DEBUG: >>> COMPUTING_WC_1 [0:0]
+2026-09-24T18:25:26.802407Z zisk_sm_main::main_sm DEBUG: ··· Creating Main segment #0 [114192 / 16777216 steps filled 0.68%]
+2026-09-24T18:25:26.828990Z proofman::proofman DEBUG: <<< COMPUTING_WC_1 [0:0] (26ms) [waited 0ms]
+2026-09-24T18:25:26.829005Z proofman::proofman DEBUG: <<< GENERATING_WC_1 [0:0] (26ms) [waited 0ms]
+2026-09-24T18:25:26.829072Z proofman::proofman DEBUG: >>> GENERATING_WC_12 [0:36]
+2026-09-24T18:25:26.829089Z proofman::proofman DEBUG: >>> PREPARING_WC_12 [0:36]
+2026-09-24T18:25:26.830302Z proofman::proofman DEBUG: <<< PREPARING_WC_12 [0:36] (1ms) [waited 0ms]
+2026-09-24T18:25:26.830311Z proofman::proofman DEBUG: >>> COMPUTING_WC_12 [0:36]
+2026-09-24T18:25:27.588211Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_0 [0:1] (785ms)
+2026-09-24T18:25:27.588241Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_1 [0:0]
+2026-09-24T18:25:31.254029Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_1 [0:0] (3665ms)
+2026-09-24T18:25:31.263868Z zisk_precomp_keccakf::keccakf DEBUG: ··· Creating Keccakf instance [6380 / 1048576 rows filled 0.61%]
+2026-09-24T18:25:31.271599Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_12 [0:36]
+2026-09-24T18:25:31.271606Z proofman::proofman DEBUG: <<< COMPUTING_WC_12 [0:36] (17ms) [waited 4423ms]
+2026-09-24T18:25:31.271635Z proofman::proofman DEBUG: <<< GENERATING_WC_12 [0:36] (18ms) [waited 4423ms]
+2026-09-24T18:25:31.271752Z proofman::proofman DEBUG: >>> GENERATING_WC_6 [0:13]
+2026-09-24T18:25:31.271794Z proofman::proofman DEBUG: >>> PREPARING_WC_6 [0:13]
+2026-09-24T18:25:31.273754Z proofman::proofman DEBUG: <<< PREPARING_WC_6 [0:13] (1ms) [waited 0ms]
+2026-09-24T18:25:31.273768Z proofman::proofman DEBUG: >>> COMPUTING_WC_6 [0:13]
+2026-09-24T18:25:33.791008Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_12 [0:36] (2519ms)
+2026-09-24T18:25:33.791395Z zisk_sm_binary::binary_basic DEBUG: ··· Creating Binary instance [28915 / 4194304 slots filled 0.69%]
+2026-09-24T18:25:33.801194Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_6 [0:13]
+2026-09-24T18:25:33.801202Z proofman::proofman DEBUG: <<< COMPUTING_WC_6 [0:13] (9ms) [waited 2517ms]
+2026-09-24T18:25:33.801231Z proofman::proofman DEBUG: <<< GENERATING_WC_6 [0:13] (11ms) [waited 2517ms]
+2026-09-24T18:25:33.801333Z proofman::proofman DEBUG: >>> GENERATING_WC_7 [0:22]
+2026-09-24T18:25:33.801345Z proofman::proofman DEBUG: >>> PREPARING_WC_7 [0:22]
+2026-09-24T18:25:33.802756Z proofman::proofman DEBUG: <<< PREPARING_WC_7 [0:22] (1ms) [waited 0ms]
+2026-09-24T18:25:33.802761Z proofman::proofman DEBUG: >>> COMPUTING_WC_7 [0:22]
+2026-09-24T18:25:34.912046Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_6 [0:13] (1110ms)
+2026-09-24T18:25:34.913383Z zisk_sm_binary::binary_extension DEBUG: ··· Creating Binary Extension instance [9453 / 4194304 slots filled 0.23%]
+2026-09-24T18:25:34.920700Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_7 [0:22]
+2026-09-24T18:25:34.920715Z proofman::proofman DEBUG: <<< COMPUTING_WC_7 [0:22] (7ms) [waited 1110ms]
+2026-09-24T18:25:34.920743Z proofman::proofman DEBUG: <<< GENERATING_WC_7 [0:22] (8ms) [waited 1110ms]
+2026-09-24T18:25:34.920844Z proofman::proofman DEBUG: >>> GENERATING_WC_9 [0:50]
+2026-09-24T18:25:34.920858Z proofman::proofman DEBUG: >>> PREPARING_WC_9 [0:50]
+2026-09-24T18:25:34.922363Z proofman::proofman DEBUG: <<< PREPARING_WC_9 [0:50] (1ms) [waited 0ms]
+2026-09-24T18:25:34.922370Z proofman::proofman DEBUG: >>> COMPUTING_WC_9 [0:50]
+2026-09-24T18:25:35.928372Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_7 [0:22] (1007ms)
+2026-09-24T18:25:35.931888Z zisk_precomp_dma::dma_common DEBUG: ··· Creating DmaPrePost instance [2433 / 2097152 rows filled 0.12%]
+2026-09-24T18:25:35.933576Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_9 [0:50]
+2026-09-24T18:25:35.933577Z proofman::proofman DEBUG: <<< COMPUTING_WC_9 [0:50] (4ms) [waited 1006ms]
+2026-09-24T18:25:35.933603Z proofman::proofman DEBUG: <<< GENERATING_WC_9 [0:50] (6ms) [waited 1006ms]
+2026-09-24T18:25:35.933767Z proofman::proofman DEBUG: >>> GENERATING_WC_13 [0:25]
+2026-09-24T18:25:35.933814Z proofman::proofman DEBUG: >>> PREPARING_WC_13 [0:25]
+2026-09-24T18:25:35.935167Z proofman::proofman DEBUG: <<< PREPARING_WC_13 [0:25] (1ms) [waited 0ms]
+2026-09-24T18:25:35.935175Z proofman::proofman DEBUG: >>> COMPUTING_WC_13 [0:25]
+2026-09-24T18:25:36.882303Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_9 [0:50] (948ms)
+2026-09-24T18:25:36.883178Z zisk_precomp_arith_eq::arith_eq DEBUG: ··· Creating ArithEqTrace instance [69344 / 1048576 rows filled 6.61%]
+2026-09-24T18:25:36.951659Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_13 [0:25]
+2026-09-24T18:25:36.951663Z proofman::proofman DEBUG: <<< COMPUTING_WC_13 [0:25] (68ms) [waited 947ms]
+2026-09-24T18:25:36.951693Z proofman::proofman DEBUG: <<< GENERATING_WC_13 [0:25] (70ms) [waited 947ms]
+2026-09-24T18:25:36.951816Z proofman::proofman DEBUG: >>> GENERATING_WC_11 [0:43]
+2026-09-24T18:25:36.951858Z proofman::proofman DEBUG: >>> PREPARING_WC_11 [0:43]
+2026-09-24T18:25:36.953246Z proofman::proofman DEBUG: <<< PREPARING_WC_11 [0:43] (1ms) [waited 0ms]
+2026-09-24T18:25:36.953263Z proofman::proofman DEBUG: >>> COMPUTING_WC_11 [0:43]
+2026-09-24T18:25:37.285543Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_13 [0:25] (333ms)
+2026-09-24T18:25:37.287249Z zisk_precomp_dma::dma_common DEBUG: ··· Creating Dma64Aligned instance [3150 / 2097152 rows filled 0.15%]
+2026-09-24T18:25:37.299545Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_11 [0:43]
+2026-09-24T18:25:37.299552Z proofman::proofman DEBUG: <<< COMPUTING_WC_11 [0:43] (13ms) [waited 332ms]
+2026-09-24T18:25:37.299580Z proofman::proofman DEBUG: <<< GENERATING_WC_11 [0:43] (15ms) [waited 332ms]
+2026-09-24T18:25:37.299716Z proofman::proofman DEBUG: >>> GENERATING_WC_8 [0:42]
+2026-09-24T18:25:37.299778Z proofman::proofman DEBUG: >>> PREPARING_WC_8 [0:42]
+2026-09-24T18:25:37.301252Z proofman::proofman DEBUG: <<< PREPARING_WC_8 [0:42] (1ms) [waited 0ms]
+2026-09-24T18:25:37.301262Z proofman::proofman DEBUG: >>> COMPUTING_WC_8 [0:42]
+2026-09-24T18:25:37.820624Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_11 [0:43] (521ms)
+2026-09-24T18:25:37.822278Z zisk_precomp_dma::dma_common DEBUG: ··· Creating Dma instance [2445 / 2097152 rows filled 0.12%]
+2026-09-24T18:25:37.826530Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_8 [0:42]
+2026-09-24T18:25:37.826538Z proofman::proofman DEBUG: <<< COMPUTING_WC_8 [0:42] (5ms) [waited 519ms]
+2026-09-24T18:25:37.826566Z proofman::proofman DEBUG: <<< GENERATING_WC_8 [0:42] (7ms) [waited 519ms]
+2026-09-24T18:25:37.826659Z proofman::proofman DEBUG: >>> GENERATING_WC_5 [0:5]
+2026-09-24T18:25:37.826675Z proofman::proofman DEBUG: >>> PREPARING_WC_5 [0:5]
+2026-09-24T18:25:37.828186Z proofman::proofman DEBUG: <<< PREPARING_WC_5 [0:5] (1ms) [waited 0ms]
+2026-09-24T18:25:37.828195Z proofman::proofman DEBUG: >>> COMPUTING_WC_5 [0:5]
+2026-09-24T18:25:38.363234Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_8 [0:42] (536ms)
+2026-09-24T18:25:38.364317Z zisk_sm_mem::mem_align_sm DEBUG: ··· Creating Mem Align instance [4245 / 2097152 rows filled 0.20%]
+2026-09-24T18:25:38.369000Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_5 [0:5]
+2026-09-24T18:25:38.369005Z proofman::proofman DEBUG: <<< COMPUTING_WC_5 [0:5] (4ms) [waited 536ms]
+2026-09-24T18:25:38.369044Z proofman::proofman DEBUG: <<< GENERATING_WC_5 [0:5] (6ms) [waited 536ms]
+2026-09-24T18:25:38.369157Z proofman::proofman DEBUG: >>> GENERATING_WC_10 [0:49]
+2026-09-24T18:25:38.369172Z proofman::proofman DEBUG: >>> PREPARING_WC_10 [0:49]
+2026-09-24T18:25:38.370498Z proofman::proofman DEBUG: <<< PREPARING_WC_10 [0:49] (1ms) [waited 0ms]
+2026-09-24T18:25:38.370507Z proofman::proofman DEBUG: >>> COMPUTING_WC_10 [0:49]
+2026-09-24T18:25:38.829642Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_5 [0:5] (460ms)
+2026-09-24T18:25:38.831074Z zisk_precomp_dma::dma_common DEBUG: ··· Creating DmaUnaligned instance [1116 / 2097152 rows filled 0.05%]
+2026-09-24T18:25:38.838827Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_10 [0:49]
+2026-09-24T18:25:38.838831Z proofman::proofman DEBUG: <<< COMPUTING_WC_10 [0:49] (8ms) [waited 459ms]
+2026-09-24T18:25:38.838865Z proofman::proofman DEBUG: <<< GENERATING_WC_10 [0:49] (10ms) [waited 459ms]
+2026-09-24T18:25:38.838979Z proofman::proofman DEBUG: >>> GENERATING_WC_2 [0:2]
+2026-09-24T18:25:38.838999Z proofman::proofman DEBUG: >>> PREPARING_WC_2 [0:2]
+2026-09-24T18:25:38.860920Z proofman::proofman DEBUG: <<< PREPARING_WC_2 [0:2] (21ms) [waited 0ms]
+2026-09-24T18:25:38.860945Z proofman::proofman DEBUG: >>> COMPUTING_WC_2 [0:2]
+2026-09-24T18:25:39.230364Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_10 [0:49] (391ms)
+2026-09-24T18:25:39.257024Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_2 [0:2]
+2026-09-24T18:25:39.257030Z proofman::proofman DEBUG: <<< COMPUTING_WC_2 [0:2] (25ms) [waited 370ms]
+2026-09-24T18:25:39.257056Z proofman::proofman DEBUG: <<< GENERATING_WC_2 [0:2] (47ms) [waited 370ms]
+2026-09-24T18:25:39.257193Z proofman::proofman DEBUG: >>> GENERATING_WC_4 [0:3]
+2026-09-24T18:25:39.257246Z proofman::proofman DEBUG: >>> PREPARING_WC_4 [0:3]
+2026-09-24T18:25:39.258700Z proofman::proofman DEBUG: <<< PREPARING_WC_4 [0:3] (1ms) [waited 0ms]
+2026-09-24T18:25:39.258707Z proofman::proofman DEBUG: >>> COMPUTING_WC_4 [0:3]
+2026-09-24T18:25:40.765198Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_2 [0:2] (1508ms)
+2026-09-24T18:25:40.767518Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_4 [0:3]
+2026-09-24T18:25:40.767518Z proofman::proofman DEBUG: <<< COMPUTING_WC_4 [0:3] (2ms) [waited 1506ms]
+2026-09-24T18:25:40.767551Z proofman::proofman DEBUG: <<< GENERATING_WC_4 [0:3] (3ms) [waited 1506ms]
+2026-09-24T18:25:40.767678Z proofman::proofman DEBUG: >>> GENERATING_WC_3 [0:4]
+2026-09-24T18:25:40.767723Z proofman::proofman DEBUG: >>> PREPARING_WC_3 [0:4]
+2026-09-24T18:25:40.769344Z proofman::proofman DEBUG: <<< PREPARING_WC_3 [0:4] (1ms) [waited 0ms]
+2026-09-24T18:25:40.769354Z proofman::proofman DEBUG: >>> COMPUTING_WC_3 [0:4]
+2026-09-24T18:25:41.212618Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_4 [0:3] (445ms)
+2026-09-24T18:25:41.216185Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_3 [0:4]
+2026-09-24T18:25:41.216191Z proofman::proofman DEBUG: <<< COMPUTING_WC_3 [0:4] (2ms) [waited 444ms]
+2026-09-24T18:25:41.216220Z proofman::proofman DEBUG: <<< GENERATING_WC_3 [0:4] (3ms) [waited 444ms]
+2026-09-24T18:25:41.216301Z proofman::proofman DEBUG: <<< CALCULATING_WITNESS (14415ms)
+2026-09-24T18:25:41.216335Z proofman::proofman DEBUG: >>> CALCULATING_TABLES
+2026-09-24T18:25:41.252314Z proofman::proofman DEBUG: <<< CALCULATING_TABLES (35ms)
+2026-09-24T18:25:41.687967Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_3 [0:4] (471ms)
+2026-09-24T18:25:41.688003Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_14 [0:52]
+2026-09-24T18:25:41.998027Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_14 [0:52] (310ms)
+2026-09-24T18:25:41.998053Z proofman::proofman DEBUG: >>> GET_CONTRIBUTION_AIR_15 [0:53]
+2026-09-24T18:25:42.420074Z proofman::proofman DEBUG: <<< GET_CONTRIBUTION_AIR_15 [0:53] (422ms)
+2026-09-24T18:25:42.420243Z proofman::proofman DEBUG: <<< CALCULATING_INNER_CONTRIBUTIONS (15619ms)
+2026-09-24T18:25:42.420252Z proofman::challenge_accumulation DEBUG: >>> CALCULATE_INTERNAL_CONTRIBUTION
+2026-09-24T18:25:42.420452Z proofman::challenge_accumulation DEBUG: <<< CALCULATE_INTERNAL_CONTRIBUTION (0ms)
+2026-09-24T18:25:42.420461Z proofman::proofman INFO: <<< CALCULATING_CONTRIBUTIONS (15619ms)
+2026-09-24T18:25:42.420472Z proofman::proofman DEBUG: Worker contribution received: worker_index=0, airgroup_id=0, challenge(first 10)=[10218009459429103007, 18001065599434795929, 11588418908100863423, 2457794310884002277, 11577713053041458945, 3195492767175915079, 18371197653554700258, 3513049427754590506, 13672638784552429919, 4461962233610449600]
+2026-09-24T18:25:42.420486Z proofman::proofman INFO: ··· Global challenge: [957044831039488486, 630821735661605028, 6846812320654674989]
+2026-09-24T18:25:42.420491Z proofman::proofman INFO: >>> GENERATING_PROOFS
+2026-09-24T18:25:42.420495Z proofman::proofman INFO: >>> GENERATING_INNER_PROOFS
+2026-09-24T18:25:42.420499Z proofman::proofman INFO: ··· Witness reuse: 12 traces reclaimed, 12 re-armed for the proofs phase, 1 duplicate dispatches refused, 0 recomputed over a live trace
+2026-09-24T18:25:42.420547Z proofman::proofman DEBUG: >>> CALCULATING_WITNESS
+2026-09-24T18:25:42.420560Z proofman::proofman DEBUG: >>> GEN_PROOF_15 [0:53]
+2026-09-24T18:25:42.420617Z proofman::proofman DEBUG: >>> GENERATING_WC_12 [0:36]
+2026-09-24T18:25:42.420639Z proofman::proofman DEBUG: >>> PREPARING_WC_12 [0:36]
+2026-09-24T18:25:42.422156Z proofman::proofman DEBUG: <<< PREPARING_WC_12 [0:36] (1ms) [waited 0ms]
+2026-09-24T18:25:42.422170Z proofman::proofman DEBUG: >>> COMPUTING_WC_12 [0:36]
+2026-09-24T18:25:45.011543Z proofman::proofman DEBUG: <<< GEN_PROOF_15 [0:53] (2590ms)
+2026-09-24T18:25:45.011647Z proofman::proofman DEBUG: >>> GEN_PROOF_3 [0:4]
+2026-09-24T18:25:45.011590Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_15 [0:53]
+2026-09-24T18:25:45.011775Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:25:45.011783Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (0ms)
+2026-09-24T18:25:45.011798Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:25:45.027675Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (15ms)
+2026-09-24T18:25:45.027701Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_15 [0:53] (16ms) [waited 0ms]
+2026-09-24T18:25:47.246588Z proofman::proofman DEBUG: <<< GEN_PROOF_3 [0:4] (2234ms)
+2026-09-24T18:25:47.246593Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_3 [0:4]
+2026-09-24T18:25:47.246976Z proofman::proofman DEBUG: >>> GEN_PROOF_14 [0:52]
+2026-09-24T18:25:47.247310Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:25:47.247325Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (0ms)
+2026-09-24T18:25:47.247336Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:25:47.255912Z zisk_precomp_keccakf::keccakf DEBUG: ··· Creating Keccakf instance [6380 / 1048576 rows filled 0.61%]
+2026-09-24T18:25:47.267797Z proofman::proofman DEBUG: <<< COMPUTING_WC_12 [0:36] (20ms) [waited 4824ms]
+2026-09-24T18:25:47.267873Z proofman::proofman DEBUG: <<< GENERATING_WC_12 [0:36] (22ms) [waited 4824ms]
+2026-09-24T18:25:47.268042Z proofman::proofman DEBUG: >>> GENERATING_WC_1 [0:0]
+2026-09-24T18:25:47.268101Z proofman::proofman DEBUG: >>> PREPARING_WC_1 [0:0]
+2026-09-24T18:25:47.268150Z proofman::proofman DEBUG: <<< PREPARING_WC_1 [0:0] (0ms) [waited 0ms]
+2026-09-24T18:25:47.268160Z proofman::proofman DEBUG: >>> COMPUTING_WC_1 [0:0]
+2026-09-24T18:25:47.271346Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (24ms)
+2026-09-24T18:25:47.271388Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_3 [0:4] (24ms) [waited 0ms]
+2026-09-24T18:25:49.236913Z proofman::proofman DEBUG: <<< GEN_PROOF_14 [0:52] (1989ms)
+2026-09-24T18:25:49.236943Z proofman::proofman DEBUG: >>> GEN_PROOF_0 [0:1]
+2026-09-24T18:25:49.236919Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_14 [0:52]
+2026-09-24T18:25:49.237083Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:25:52.051360Z proofman::proofman DEBUG: <<< GEN_PROOF_0 [0:1] (2814ms)
+2026-09-24T18:25:52.060211Z proofman::proofman DEBUG: >>> GEN_PROOF_12 [0:36]
+2026-09-24T18:26:11.494006Z proofman::proofman DEBUG: <<< GEN_PROOF_12 [0:36] (19433ms)
+2026-09-24T18:26:11.494053Z zisk_sm_main::main_sm DEBUG: ··· Creating Main segment #0 [114192 / 16777216 steps filled 0.68%]
+2026-09-24T18:26:11.494071Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:53]
+2026-09-24T18:26:11.530205Z proofman::proofman DEBUG: <<< COMPUTING_WC_1 [0:0] (36ms) [waited 24225ms]
+2026-09-24T18:26:11.530250Z proofman::proofman DEBUG: <<< GENERATING_WC_1 [0:0] (36ms) [waited 24225ms]
+2026-09-24T18:26:11.530352Z proofman::proofman DEBUG: >>> GENERATING_WC_2 [0:2]
+2026-09-24T18:26:11.530379Z proofman::proofman DEBUG: >>> PREPARING_WC_2 [0:2]
+2026-09-24T18:26:11.551652Z proofman::proofman DEBUG: <<< PREPARING_WC_2 [0:2] (21ms) [waited 0ms]
+2026-09-24T18:26:11.551674Z proofman::proofman DEBUG: >>> COMPUTING_WC_2 [0:2]
+2026-09-24T18:26:21.109983Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:53] (9615ms)
+2026-09-24T18:26:21.110039Z proofman::proofman DEBUG: >>> GEN_PROOF_1 [0:0]
+2026-09-24T18:26:21.110046Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (31872ms)
+2026-09-24T18:26:21.110062Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:26:21.124015Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (13ms)
+2026-09-24T18:26:21.124054Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_14 [0:52] (14ms) [waited 31872ms]
+2026-09-24T18:26:21.124070Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_0 [0:1]
+2026-09-24T18:26:21.124202Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:26:46.942236Z proofman::proofman DEBUG: <<< GEN_PROOF_1 [0:0] (25831ms)
+2026-09-24T18:26:46.942294Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:4]
+2026-09-24T18:26:46.982690Z proofman::proofman DEBUG: <<< COMPUTING_WC_2 [0:2] (40ms) [waited 35390ms]
+2026-09-24T18:26:46.982734Z proofman::proofman DEBUG: <<< GENERATING_WC_2 [0:2] (61ms) [waited 35390ms]
+2026-09-24T18:26:46.982849Z proofman::proofman DEBUG: >>> GENERATING_WC_6 [0:13]
+2026-09-24T18:26:46.982876Z proofman::proofman DEBUG: >>> PREPARING_WC_6 [0:13]
+2026-09-24T18:26:46.985256Z proofman::proofman DEBUG: <<< PREPARING_WC_6 [0:13] (2ms) [waited 0ms]
+2026-09-24T18:26:46.985287Z proofman::proofman DEBUG: >>> COMPUTING_WC_6 [0:13]
+2026-09-24T18:26:56.409530Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:4] (9467ms)
+2026-09-24T18:26:56.409573Z proofman::proofman DEBUG: >>> GEN_PROOF_2 [0:2]
+2026-09-24T18:26:56.409580Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (35284ms)
+2026-09-24T18:26:56.409604Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:26:56.424529Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (14ms)
+2026-09-24T18:26:56.424562Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_0 [0:1] (15ms) [waited 35284ms]
+2026-09-24T18:26:56.424578Z proofman::recursion DEBUG: >>> GENERATING_COMPRESSOR_WITNESS_12 [0:36]
+2026-09-24T18:26:56.424737Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Compressor
+2026-09-24T18:27:02.238716Z proofman::proofman DEBUG: <<< GEN_PROOF_2 [0:2] (5829ms)
+2026-09-24T18:27:02.238759Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:52]
+2026-09-24T18:27:02.238760Z zisk_sm_binary::binary_basic DEBUG: ··· Creating Binary instance [28915 / 4194304 slots filled 0.69%]
+2026-09-24T18:27:02.264481Z proofman::proofman DEBUG: <<< COMPUTING_WC_6 [0:13] (25ms) [waited 15253ms]
+2026-09-24T18:27:02.264511Z proofman::proofman DEBUG: <<< GENERATING_WC_6 [0:13] (28ms) [waited 15253ms]
+2026-09-24T18:27:02.264618Z proofman::proofman DEBUG: >>> GENERATING_WC_7 [0:22]
+2026-09-24T18:27:02.264650Z proofman::proofman DEBUG: >>> PREPARING_WC_7 [0:22]
+2026-09-24T18:27:02.266581Z proofman::proofman DEBUG: <<< PREPARING_WC_7 [0:22] (1ms) [waited 0ms]
+2026-09-24T18:27:02.266608Z proofman::proofman DEBUG: >>> COMPUTING_WC_7 [0:22]
+2026-09-24T18:27:11.626275Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:52] (9387ms)
+2026-09-24T18:27:11.626317Z proofman::proofman DEBUG: >>> GEN_PROOF_6 [0:13]
+2026-09-24T18:27:11.626324Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Compressor (15201ms)
+2026-09-24T18:27:11.626341Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Compressor
+2026-09-24T18:27:11.690115Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Compressor (63ms)
+2026-09-24T18:27:11.690175Z proofman::recursion DEBUG: <<< GENERATING_COMPRESSOR_WITNESS_12 [0:36] (64ms) [waited 15201ms]
+2026-09-24T18:27:11.690203Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_1 [0:0]
+2026-09-24T18:27:11.690562Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:27:15.583360Z proofman::proofman DEBUG: <<< GEN_PROOF_6 [0:13] (3956ms)
+2026-09-24T18:27:15.583418Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:1]
+2026-09-24T18:27:15.583420Z zisk_sm_binary::binary_extension DEBUG: ··· Creating Binary Extension instance [9453 / 4194304 slots filled 0.23%]
+2026-09-24T18:27:15.602804Z proofman::proofman DEBUG: <<< COMPUTING_WC_7 [0:22] (22ms) [waited 13313ms]
+2026-09-24T18:27:15.602854Z proofman::proofman DEBUG: <<< GENERATING_WC_7 [0:22] (24ms) [waited 13313ms]
+2026-09-24T18:27:15.602984Z proofman::proofman DEBUG: >>> GENERATING_WC_9 [0:50]
+2026-09-24T18:27:15.603062Z proofman::proofman DEBUG: >>> PREPARING_WC_9 [0:50]
+2026-09-24T18:27:15.604933Z proofman::proofman DEBUG: <<< PREPARING_WC_9 [0:50] (1ms) [waited 0ms]
+2026-09-24T18:27:15.604963Z proofman::proofman DEBUG: >>> COMPUTING_WC_9 [0:50]
+2026-09-24T18:27:24.988264Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:1] (9404ms)
+2026-09-24T18:27:24.988317Z proofman::proofman DEBUG: >>> GEN_PROOF_7 [0:22]
+2026-09-24T18:27:24.988324Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (13297ms)
+2026-09-24T18:27:24.988341Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:27:25.004984Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (16ms)
+2026-09-24T18:27:25.005028Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_1 [0:0] (17ms) [waited 13297ms]
+2026-09-24T18:27:25.005052Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:27:25.005225Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:27:29.096359Z proofman::proofman DEBUG: <<< GEN_PROOF_7 [0:22] (4107ms)
+2026-09-24T18:27:29.096415Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Compressor [0:36]
+2026-09-24T18:27:29.102115Z zisk_precomp_dma::dma_common DEBUG: ··· Creating DmaPrePost instance [2433 / 2097152 rows filled 0.12%]
+2026-09-24T18:27:29.103449Z proofman::proofman DEBUG: <<< COMPUTING_WC_9 [0:50] (7ms) [waited 13491ms]
+2026-09-24T18:27:29.103487Z proofman::proofman DEBUG: <<< GENERATING_WC_9 [0:50] (9ms) [waited 13491ms]
+2026-09-24T18:27:29.103588Z proofman::proofman DEBUG: >>> GENERATING_WC_8 [0:42]
+2026-09-24T18:27:29.103617Z proofman::proofman DEBUG: >>> PREPARING_WC_8 [0:42]
+2026-09-24T18:27:29.105257Z proofman::proofman DEBUG: <<< PREPARING_WC_8 [0:42] (1ms) [waited 0ms]
+2026-09-24T18:27:29.105285Z proofman::proofman DEBUG: >>> COMPUTING_WC_8 [0:42]
+2026-09-24T18:27:39.252625Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Compressor [0:36] (10156ms)
+2026-09-24T18:27:39.252663Z proofman::proofman DEBUG: >>> GEN_PROOF_9 [0:50]
+2026-09-24T18:27:39.252669Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (14247ms)
+2026-09-24T18:27:39.252696Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:27:39.278843Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (26ms)
+2026-09-24T18:27:39.278890Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (26ms) [waited 14247ms]
+2026-09-24T18:27:39.278908Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_2 [0:2]
+2026-09-24T18:27:39.279107Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:27:42.807112Z proofman::proofman DEBUG: <<< GEN_PROOF_9 [0:50] (3554ms)
+2026-09-24T18:27:42.807169Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:0]
+2026-09-24T18:27:42.813215Z zisk_precomp_dma::dma_common DEBUG: ··· Creating Dma instance [2445 / 2097152 rows filled 0.12%]
+2026-09-24T18:27:42.825683Z proofman::proofman DEBUG: <<< COMPUTING_WC_8 [0:42] (18ms) [waited 13701ms]
+2026-09-24T18:27:42.825727Z proofman::proofman DEBUG: <<< GENERATING_WC_8 [0:42] (20ms) [waited 13701ms]
+2026-09-24T18:27:42.825862Z proofman::proofman DEBUG: >>> GENERATING_WC_11 [0:43]
+2026-09-24T18:27:42.825903Z proofman::proofman DEBUG: >>> PREPARING_WC_11 [0:43]
+2026-09-24T18:27:42.827706Z proofman::proofman DEBUG: <<< PREPARING_WC_11 [0:43] (1ms) [waited 0ms]
+2026-09-24T18:27:42.827722Z proofman::proofman DEBUG: >>> COMPUTING_WC_11 [0:43]
+2026-09-24T18:27:52.183573Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:0] (9376ms)
+2026-09-24T18:27:52.183833Z proofman::proofman DEBUG: >>> GEN_PROOF_8 [0:42]
+2026-09-24T18:27:52.183839Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (12904ms)
+2026-09-24T18:27:52.183869Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:27:52.199800Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (15ms)
+2026-09-24T18:27:52.199832Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_2 [0:2] (16ms) [waited 12904ms]
+2026-09-24T18:27:52.199853Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_6 [0:13]
+2026-09-24T18:27:52.200105Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:27:54.382528Z proofman::proofman DEBUG: <<< GEN_PROOF_8 [0:42] (2198ms)
+2026-09-24T18:27:54.382572Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:2]
+2026-09-24T18:27:54.386615Z zisk_precomp_dma::dma_common DEBUG: ··· Creating Dma64Aligned instance [3150 / 2097152 rows filled 0.15%]
+2026-09-24T18:27:54.399544Z proofman::proofman DEBUG: <<< COMPUTING_WC_11 [0:43] (16ms) [waited 11554ms]
+2026-09-24T18:27:54.399580Z proofman::proofman DEBUG: <<< GENERATING_WC_11 [0:43] (18ms) [waited 11554ms]
+2026-09-24T18:27:54.399702Z proofman::proofman DEBUG: >>> GENERATING_WC_5 [0:5]
+2026-09-24T18:27:54.399735Z proofman::proofman DEBUG: >>> PREPARING_WC_5 [0:5]
+2026-09-24T18:27:54.401283Z proofman::proofman DEBUG: <<< PREPARING_WC_5 [0:5] (1ms) [waited 0ms]
+2026-09-24T18:27:54.401309Z proofman::proofman DEBUG: >>> COMPUTING_WC_5 [0:5]
+2026-09-24T18:28:03.714095Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:2] (9331ms)
+2026-09-24T18:28:03.714204Z proofman::proofman DEBUG: >>> GEN_PROOF_11 [0:43]
+2026-09-24T18:28:03.714210Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (11513ms)
+2026-09-24T18:28:03.714230Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:28:03.729498Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (15ms)
+2026-09-24T18:28:03.729539Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_6 [0:13] (15ms) [waited 11513ms]
+2026-09-24T18:28:03.729561Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:28:03.729780Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:28:06.579046Z proofman::proofman DEBUG: <<< GEN_PROOF_11 [0:43] (2864ms)
+2026-09-24T18:28:06.579098Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:13]
+2026-09-24T18:28:06.579100Z zisk_sm_mem::mem_align_sm DEBUG: ··· Creating Mem Align instance [4245 / 2097152 rows filled 0.20%]
+2026-09-24T18:28:06.586271Z proofman::proofman DEBUG: <<< COMPUTING_WC_5 [0:5] (7ms) [waited 12177ms]
+2026-09-24T18:28:06.586327Z proofman::proofman DEBUG: <<< GENERATING_WC_5 [0:5] (8ms) [waited 12177ms]
+2026-09-24T18:28:06.586438Z proofman::proofman DEBUG: >>> GENERATING_WC_10 [0:49]
+2026-09-24T18:28:06.586466Z proofman::proofman DEBUG: >>> PREPARING_WC_10 [0:49]
+2026-09-24T18:28:06.587976Z proofman::proofman DEBUG: <<< PREPARING_WC_10 [0:49] (1ms) [waited 0ms]
+2026-09-24T18:28:06.588007Z proofman::proofman DEBUG: >>> COMPUTING_WC_10 [0:49]
+2026-09-24T18:28:15.947609Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:13] (9368ms)
+2026-09-24T18:28:15.947653Z proofman::proofman DEBUG: >>> GEN_PROOF_5 [0:5]
+2026-09-24T18:28:15.947658Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (12217ms)
+2026-09-24T18:28:15.947678Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:28:15.969709Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (22ms)
+2026-09-24T18:28:15.969805Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (22ms) [waited 12217ms]
+2026-09-24T18:28:15.969826Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_7 [0:22]
+2026-09-24T18:28:15.969963Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:28:17.749651Z proofman::proofman DEBUG: <<< GEN_PROOF_5 [0:5] (1801ms)
+2026-09-24T18:28:17.749704Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:28:17.752258Z zisk_precomp_dma::dma_common DEBUG: ··· Creating DmaUnaligned instance [1116 / 2097152 rows filled 0.05%]
+2026-09-24T18:28:17.760916Z proofman::proofman DEBUG: <<< COMPUTING_WC_10 [0:49] (11ms) [waited 11161ms]
+2026-09-24T18:28:17.760959Z proofman::proofman DEBUG: <<< GENERATING_WC_10 [0:49] (12ms) [waited 11161ms]
+2026-09-24T18:28:17.761108Z proofman::proofman DEBUG: >>> GENERATING_WC_13 [0:25]
+2026-09-24T18:28:17.761169Z proofman::proofman DEBUG: >>> PREPARING_WC_13 [0:25]
+2026-09-24T18:28:17.771547Z proofman::proofman DEBUG: <<< PREPARING_WC_13 [0:25] (10ms) [waited 0ms]
+2026-09-24T18:28:17.771573Z proofman::proofman DEBUG: >>> COMPUTING_WC_13 [0:25]
+2026-09-24T18:28:27.288269Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9538ms)
+2026-09-24T18:28:27.288315Z proofman::proofman DEBUG: >>> GEN_PROOF_10 [0:49]
+2026-09-24T18:28:27.288321Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (11318ms)
+2026-09-24T18:28:27.288341Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:28:27.302748Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (14ms)
+2026-09-24T18:28:27.303216Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_7 [0:22] (15ms) [waited 11318ms]
+2026-09-24T18:28:27.303242Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_12 [0:36]
+2026-09-24T18:28:27.303474Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:28:29.204653Z proofman::proofman DEBUG: <<< GEN_PROOF_10 [0:49] (1916ms)
+2026-09-24T18:28:29.204699Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:28:29.204702Z zisk_precomp_arith_eq::arith_eq DEBUG: ··· Creating ArithEqTrace instance [69344 / 1048576 rows filled 6.61%]
+2026-09-24T18:28:29.287916Z proofman::proofman DEBUG: <<< COMPUTING_WC_13 [0:25] (83ms) [waited 11432ms]
+2026-09-24T18:28:29.287961Z proofman::proofman DEBUG: <<< GENERATING_WC_13 [0:25] (93ms) [waited 11432ms]
+2026-09-24T18:28:29.288083Z proofman::proofman DEBUG: >>> GENERATING_WC_4 [0:3]
+2026-09-24T18:28:29.288122Z proofman::proofman DEBUG: >>> PREPARING_WC_4 [0:3]
+2026-09-24T18:28:29.289666Z proofman::proofman DEBUG: <<< PREPARING_WC_4 [0:3] (1ms) [waited 0ms]
+2026-09-24T18:28:29.289695Z proofman::proofman DEBUG: >>> COMPUTING_WC_4 [0:3]
+2026-09-24T18:28:38.703135Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9498ms)
+2026-09-24T18:28:38.705738Z proofman::proofman DEBUG: >>> GEN_PROOF_13 [0:25]
+2026-09-24T18:28:38.705745Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (11402ms)
+2026-09-24T18:28:38.705773Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:28:38.731119Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (25ms)
+2026-09-24T18:28:38.731162Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_12 [0:36] (25ms) [waited 11402ms]
+2026-09-24T18:28:38.731178Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_9 [0:50]
+2026-09-24T18:28:38.731414Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:28:47.057786Z proofman::proofman DEBUG: <<< GEN_PROOF_13 [0:25] (8351ms)
+2026-09-24T18:28:47.058050Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:22]
+2026-09-24T18:28:47.062507Z proofman::proofman DEBUG: <<< COMPUTING_WC_4 [0:3] (4ms) [waited 17768ms]
+2026-09-24T18:28:47.062546Z proofman::proofman DEBUG: <<< GENERATING_WC_4 [0:3] (6ms) [waited 17768ms]
+2026-09-24T18:28:47.062619Z proofman::proofman DEBUG: <<< CALCULATING_WITNESS (184639ms)
+2026-09-24T18:28:56.534610Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:22] (9476ms)
+2026-09-24T18:28:56.534651Z proofman::proofman DEBUG: >>> GEN_PROOF_4 [0:3]
+2026-09-24T18:28:56.534657Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (17802ms)
+2026-09-24T18:28:56.534675Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:28:56.549646Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (14ms)
+2026-09-24T18:28:56.549693Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_9 [0:50] (15ms) [waited 17802ms]
+2026-09-24T18:28:56.549736Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_8 [0:42]
+2026-09-24T18:28:56.550024Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:28:59.141813Z proofman::proofman DEBUG: <<< GEN_PROOF_4 [0:3] (2607ms)
+2026-09-24T18:28:59.141864Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:36]
+2026-09-24T18:29:08.673640Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:36] (9531ms)
+2026-09-24T18:29:08.673800Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (12123ms)
+2026-09-24T18:29:08.673803Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:50]
+2026-09-24T18:29:08.673826Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:29:08.701134Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (27ms)
+2026-09-24T18:29:08.701184Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_8 [0:42] (27ms) [waited 12123ms]
+2026-09-24T18:29:08.701204Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:29:08.701386Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:29:18.130553Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:50] (9456ms)
+2026-09-24T18:29:18.133179Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:42]
+2026-09-24T18:29:18.133185Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (9431ms)
+2026-09-24T18:29:18.133219Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:29:18.172936Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (39ms)
+2026-09-24T18:29:18.172970Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (39ms) [waited 9431ms]
+2026-09-24T18:29:18.172990Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_11 [0:43]
+2026-09-24T18:29:18.173124Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:29:27.563601Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:42] (9430ms)
+2026-09-24T18:29:27.563648Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (9390ms)
+2026-09-24T18:29:27.563668Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:29:27.563653Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:29:27.589929Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (26ms)
+2026-09-24T18:29:27.589975Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_11 [0:43] (26ms) [waited 9390ms]
+2026-09-24T18:29:27.589991Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_5 [0:5]
+2026-09-24T18:29:27.590229Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:29:37.155656Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9591ms)
+2026-09-24T18:29:37.155722Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (9565ms)
+2026-09-24T18:29:37.155732Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:43]
+2026-09-24T18:29:37.155740Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:29:37.182016Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (26ms)
+2026-09-24T18:29:37.182055Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_5 [0:5] (26ms) [waited 9565ms]
+2026-09-24T18:29:37.182071Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:29:37.182279Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:29:46.681029Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:43] (9525ms)
+2026-09-24T18:29:46.681326Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (9498ms)
+2026-09-24T18:29:46.681326Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:5]
+2026-09-24T18:29:46.681352Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:29:46.720047Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (38ms)
+2026-09-24T18:29:46.720079Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (38ms) [waited 9498ms]
+2026-09-24T18:29:46.720098Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_10 [0:49]
+2026-09-24T18:29:46.720338Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:29:56.302448Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:5] (9620ms)
+2026-09-24T18:29:56.302552Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (9582ms)
+2026-09-24T18:29:56.302563Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:29:56.302581Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:29:56.328725Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (26ms)
+2026-09-24T18:29:56.328782Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_10 [0:49] (26ms) [waited 9582ms]
+2026-09-24T18:30:05.781490Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9478ms)
+2026-09-24T18:30:05.781550Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:49]
+2026-09-24T18:30:05.781550Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_13 [0:25]
+2026-09-24T18:30:05.781737Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:30:05.781746Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (0ms)
+2026-09-24T18:30:05.781753Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:30:05.810451Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (28ms)
+2026-09-24T18:30:05.810503Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_13 [0:25] (28ms) [waited 0ms]
+2026-09-24T18:30:05.810522Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:30:05.810750Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:30:15.278941Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:49] (9497ms)
+2026-09-24T18:30:15.279000Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:25]
+2026-09-24T18:30:15.278998Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (9468ms)
+2026-09-24T18:30:15.279026Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:30:15.317728Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (38ms)
+2026-09-24T18:30:15.317769Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (39ms) [waited 9468ms]
+2026-09-24T18:30:15.317789Z proofman::recursion DEBUG: >>> GENERATING_RECURSIVE1_WITNESS_4 [0:3]
+2026-09-24T18:30:15.318012Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive1
+2026-09-24T18:30:24.785649Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:25] (9506ms)
+2026-09-24T18:30:24.785716Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:30:24.785715Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive1 (9467ms)
+2026-09-24T18:30:24.785742Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive1
+2026-09-24T18:30:24.811716Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive1 (25ms)
+2026-09-24T18:30:24.811764Z proofman::recursion DEBUG: <<< GENERATING_RECURSIVE1_WITNESS_4 [0:3] (26ms) [waited 9467ms]
+2026-09-24T18:30:24.811783Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:30:24.811985Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:30:34.276104Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9490ms)
+2026-09-24T18:30:34.276147Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (9464ms)
+2026-09-24T18:30:34.276162Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:30:34.276150Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive1 [0:3]
+2026-09-24T18:30:34.313947Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (37ms)
+2026-09-24T18:30:34.313984Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (38ms) [waited 9464ms]
+2026-09-24T18:30:34.313999Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:30:34.314184Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:30:43.780139Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive1 [0:3] (9503ms)
+2026-09-24T18:30:43.780392Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (9466ms)
+2026-09-24T18:30:43.780406Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:30:43.780394Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:30:43.819564Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (39ms)
+2026-09-24T18:30:43.819617Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (39ms) [waited 9466ms]
+2026-09-24T18:30:53.279069Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9498ms)
+2026-09-24T18:30:53.279341Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:30:53.279348Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:30:53.279563Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:30:53.279573Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:30:53.279580Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:30:53.317793Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (38ms)
+2026-09-24T18:30:53.317840Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (38ms) [waited 0ms]
+2026-09-24T18:31:02.732630Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9453ms)
+2026-09-24T18:31:02.732687Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:31:02.732692Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:31:02.732913Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:31:02.732923Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:31:02.732933Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:31:02.773061Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (40ms)
+2026-09-24T18:31:02.773105Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (40ms) [waited 0ms]
+2026-09-24T18:31:12.314765Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9581ms)
+2026-09-24T18:31:12.314834Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:31:12.314839Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:31:12.315072Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:31:12.315083Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:31:12.315091Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:31:12.353669Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (38ms)
+2026-09-24T18:31:12.353712Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (38ms) [waited 0ms]
+2026-09-24T18:31:21.742943Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9427ms)
+2026-09-24T18:31:21.743009Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:31:21.743015Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:31:21.743249Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:31:21.743259Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:31:21.743268Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:31:21.783965Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (40ms)
+2026-09-24T18:31:21.784010Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (41ms) [waited 0ms]
+2026-09-24T18:31:31.184219Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9441ms)
+2026-09-24T18:31:31.184273Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:31:31.184282Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:31:31.184504Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:31:31.184514Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:31:31.184521Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:31:31.223436Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (38ms)
+2026-09-24T18:31:31.223490Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (39ms) [waited 0ms]
+2026-09-24T18:31:40.618411Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9433ms)
+2026-09-24T18:31:40.618465Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:31:40.618470Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:31:40.618681Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:31:40.618690Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:31:40.618697Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:31:40.657210Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (38ms)
+2026-09-24T18:31:40.657261Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (38ms) [waited 0ms]
+2026-09-24T18:31:50.117643Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9499ms)
+2026-09-24T18:31:50.117714Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:31:50.117724Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:31:50.117925Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:31:50.117935Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:31:50.117943Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:31:50.156313Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (38ms)
+2026-09-24T18:31:50.156364Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (38ms) [waited 0ms]
+2026-09-24T18:31:59.799843Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9681ms)
+2026-09-24T18:31:59.799899Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:32:09.527987Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9727ms)
+2026-09-24T18:32:09.528054Z proofman::recursion DEBUG: >>> GENERATE_WITNESS_AGGREGATION
+2026-09-24T18:32:09.528287Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_Recursive2
+2026-09-24T18:32:09.528296Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_Recursive2 (0ms)
+2026-09-24T18:32:09.528303Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_Recursive2
+2026-09-24T18:32:09.550734Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_Recursive2 (22ms)
+2026-09-24T18:32:09.550764Z proofman::recursion DEBUG: <<< GENERATE_WITNESS_AGGREGATION (22ms) [waited 0ms]
+2026-09-24T18:32:09.550800Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_Recursive2 [0:0]
+2026-09-24T18:32:19.251098Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_Recursive2 [0:0] (9700ms)
+2026-09-24T18:32:19.253397Z proofman::proofman INFO: <<< GENERATING_INNER_PROOFS (396827ms)
+2026-09-24T18:32:19.253424Z proofman_common::memory_handler DEBUG: Pool 'basic-trace' (1 buffers): 24 acquisitions blocked, 198.471s total
+2026-09-24T18:32:19.253435Z proofman_common::memory_handler DEBUG: Pool 'recursive-trace' (2 buffers): 21 acquisitions blocked, 284.520s total
+2026-09-24T18:32:19.253443Z proofman::proofman DEBUG: >>> GET_OUTER_RANK
+2026-09-24T18:32:19.253449Z proofman::proofman DEBUG: <<< GET_OUTER_RANK (0ms)
+2026-09-24T18:32:19.253455Z proofman::proofman DEBUG: >>> GENERATING_WORKER_RMA_COMPRESSED_PROOFS
+2026-09-24T18:32:19.253616Z proofman::proofman DEBUG: <<< GENERATING_WORKER_RMA_COMPRESSED_PROOFS (0ms)
+2026-09-24T18:32:19.253765Z proofman::recursion INFO: >>> GENERATE_VADCOP_FINAL_PROOF
+2026-09-24T18:32:19.253892Z proofman::recursion DEBUG: >>> GENERATE_VADCOP_FINAL_PROOF_WITNESS
+2026-09-24T18:32:19.253900Z proofman::recursion DEBUG: >>> POOL_WAIT_WITNESS_VadcopFinal
+2026-09-24T18:32:19.253905Z proofman::recursion DEBUG: <<< POOL_WAIT_WITNESS_VadcopFinal (0ms)
+2026-09-24T18:32:19.253913Z proofman::recursion DEBUG: >>> CIRCOM_WITNESS_VadcopFinal
+2026-09-24T18:32:19.280321Z proofman::recursion DEBUG: <<< CIRCOM_WITNESS_VadcopFinal (26ms)
+2026-09-24T18:32:19.280359Z proofman::recursion DEBUG: <<< GENERATE_VADCOP_FINAL_PROOF_WITNESS (26ms)
+2026-09-24T18:32:19.280375Z proofman::recursion DEBUG: >>> GEN_RECURSIVE_PROOF_VadcopFinal [0:0]
+2026-09-24T18:32:28.231549Z proofman::recursion DEBUG: <<< GEN_RECURSIVE_PROOF_VadcopFinal [0:0] (8951ms)
+2026-09-24T18:32:28.231584Z proofman::recursion INFO: <<< GENERATE_VADCOP_FINAL_PROOF (8977ms)
+2026-09-24T18:32:28.232187Z proofman::proofman INFO: >>> VERIFYING_VADCOP_FINAL_PROOF
+2026-09-24T18:32:28.292692Z proofman::proofman INFO: <<< VERIFYING_VADCOP_FINAL_PROOF (60ms)
+2026-09-24T18:32:28.292725Z proofman::proofman INFO: ··· ✓ Vadcop Final proof was verified
+2026-09-24T18:32:28.292810Z proofman_common::global_info DEBUG: ··· Loading GlobalInfo JSON /tmp/stwo-zisk-guest-e2e-20260924/provingKey
+2026-09-24T18:32:28.309102Z proofman_verifier::verifier DEBUG: Verifying proof
+2026-09-24T18:32:28.310051Z proofman_verifier::verifier DEBUG: Verifying Quotient polynomial
+2026-09-24T18:32:28.310417Z proofman_verifier::verifier DEBUG: Quotient polynomial verification passed
+2026-09-24T18:32:28.310423Z proofman_verifier::verifier DEBUG: Verifying final polynomial
+2026-09-24T18:32:28.310432Z proofman_verifier::verifier DEBUG: Final polynomial verification passed
+2026-09-24T18:32:28.310436Z proofman_verifier::verifier DEBUG: Proof verification succeeded
+{"setup_seconds":3.18752525,"prove_seconds":421.531265958,"verify_seconds":0.016942542,"steps":114192,"output_bytes":[1,0,0,0,16,0,0,0,88,253,113,147,201,192,214,231,23,128,253,71,35,178,64,206,223,80,89,50,35,59,174,29,142,119,144,194,37,169,162,182,189,5,117,206,37,122,144,67,213,123,91,96,116,4,42,140,134,238,51,119,68,170,106,230,32,192,131,111,129,27,145,64],"proof_bytes":831536,"verified":true,"aggregation":true,"backend":"cpu-emu-native-precompiles"}
+      425.31 real      6463.05 user        25.79 sys
+         48576888832  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3348472  page reclaims
+               55790  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   1  messages sent
+                   0  messages received
+                   0  signals received
+                1026  voluntary context switches
+             3707964  involuntary context switches
+     103981559144188  instructions retired
+      23330971034578  cycles elapsed
+         48573009176  peak memory footprint

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-page-roster-batch-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 17.61123595800018,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 8,
+  "test_summary": [
+    "All 8 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-roster-batch-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-page-roster-batch-focused-v1",
+    "bytes": 22830240,
+    "sha256": "08ba0fd4f48aeb714191ef7bc75622b5668b82fbd14401ef0889e6c5d9b7ed1b"
+  }
+}

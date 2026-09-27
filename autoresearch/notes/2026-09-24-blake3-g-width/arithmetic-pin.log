@@ -1,0 +1,17 @@
+test-blake3-packed
++- BLAKE3 packed guard
+   +- run test 0/3 passed, 3 failed
+error: 'recursion.air.blake3_g_packed_test.test.BLAKE3 compact G matches typed bit reference and canonical lookup schemas' failed: PACKED_DIGEST 9c571892e3c6acfb17302af37b1f60a59860379e9befe708563faff6a0505fa7
+error: 'recursion.air.blake3_g_packed_test.test.BLAKE3 compact G rejects coordinate mutations and requires lookup bounds' failed: PACKED_DIGEST 9c571892e3c6acfb17302af37b1f60a59860379e9befe708563faff6a0505fa7
+error: 'recursion.air.blake3_g_packed_test.test.BLAKE3 compact G covers all seven rounds of a native compression trace' failed: PACKED_DIGEST 9c571892e3c6acfb17302af37b1f60a59860379e9befe708563faff6a0505fa7
+error: while executing test 'recursion.air.blake3_g_packed_test.test.BLAKE3 compact G covers all seven rounds of a native compression trace', the following test command failed:
+./.zig-cache/o/bda156e5475d7e9a45135de55c4f4b7c/test --cache-dir=./.zig-cache --seed=0x1680ac38 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/3 tests passed; 3 failed
+test-blake3-packed transitive failure
++- BLAKE3 packed guard transitive failure
+   +- run test 0/3 passed, 3 failed
+      +- compile test ReleaseSafe native success 4s MaxRSS:489M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ff568004319f1a92376d4a4223dcb6d9/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x1680ac38 -Za17de27237b4a56e --maxrss 25769803776 -j1 test-blake3-packed -Doptimize=ReleaseSafe --summary all

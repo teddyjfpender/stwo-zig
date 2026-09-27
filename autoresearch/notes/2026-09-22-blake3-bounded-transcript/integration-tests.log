@@ -1,0 +1,19 @@
+
+Build Summary: 16/16 steps succeeded; 5/5 tests passed
+test-blake3-bounded-transcript success
++- BLAKE3 bounded transcript guard success
+   +- run test 1 passed 5s MaxRSS:503M
+      +- compile test ReleaseSafe native success 25s MaxRSS:1G
+test-blake3-query-batch success
++- BLAKE3 query batch guard success
+   +- run test 1 passed 556ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 3s MaxRSS:454M
+test-blake3-transcript-sequence success
++- BLAKE3 transcript sequence guard success
+   +- run test 2 passed 4s MaxRSS:394M
+      +- compile test ReleaseSafe native success 22s MaxRSS:1G
+test-blake3-combined-fri success
++- BLAKE3 combined FRI guard success
+   +- run test 1 passed 31s MaxRSS:6G
+      +- compile test ReleaseSafe native success 40s MaxRSS:2G
+

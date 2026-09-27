@@ -1,0 +1,5 @@
+1/4 block_v5_joined_request_lane_test_root.test.joined request lane reuses one thread and preserves caller-owned results across failures...OK
+2/4 block_v5_joined_request_lane_test_root.test.joined request lane busy shutdown and second request cannot release an in-flight borrow...OK
+3/4 block_v5_joined_request_lane_test_root.test.joined request lane rejects callback reentrancy without deadlocking the worker...OK
+4/4 block_v5_joined_request_lane_test_root.test.joined request lane never starts for empty work and cannot restart after joined shutdown...OK
+All 4 tests passed.

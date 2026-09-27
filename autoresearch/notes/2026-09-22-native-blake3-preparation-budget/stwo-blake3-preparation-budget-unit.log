@@ -1,0 +1,5 @@
+1/4 host_budget_allocator.test.host budget allocator admits the exact live-byte boundary...OK
+2/4 host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+3/4 host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+4/4 host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+All 4 tests passed.

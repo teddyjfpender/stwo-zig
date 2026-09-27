@@ -1,0 +1,81 @@
+{
+  "status": "qualified_nonproving_actual_exact_roster_publisher",
+  "authored_candidate": "memory-source-page-publisher-source-candidate-v1.json",
+  "evidence": {
+    "memory-source-page-publisher-focused-v1": {
+      "source_candidate": "memory-source-page-publisher-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 40.7309355410398,
+      "changed_source_pins": [
+        "src/frontends/riscv/recursion/air/block_v5_memory_source_page_statement_v1.zig"
+      ],
+      "qualified": false,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 12,
+      "test_summary": [
+        "All 12 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-publisher-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-publisher-focused-v1",
+        "bytes": 55952912,
+        "sha256": "58263e3f3e9f324121f9699715b43371e902e3ec75916d674db84513192b2a61"
+      }
+    },
+    "memory-source-page-publisher-focused-v2": {
+      "source_candidate": "memory-source-page-publisher-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 40.5271587499883,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 12,
+      "test_summary": [
+        "All 12 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-publisher-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-publisher-focused-v2",
+        "bytes": 55952912,
+        "sha256": "e638c1b9f752b61a07c7e4840cfa07a15d49ad9584d68a14674c9dec7876a2d9"
+      }
+    }
+  },
+  "tests_passed": 12,
+  "authored_behavioral_checks": 4,
+  "literal_source_pins": 1817,
+  "scope": [
+    "Actual opted-in Controller uses Job.publishAll instead of repeated single-page publication",
+    "Exact raw and fold roster publishers wrap original private proving and fresh verification kernels with full context entry/exit guards",
+    "Original public single prove/verify/encode/decode retain complete context checking",
+    "Original per-page independent replay/fixed roots/core/table/graph/claims/strict codec/PCS/FRI checks preserved",
+    "Producer proof and PCS page freed before fresh decode/verification; public fold inventory retained separately",
+    "Job failure poisons partial publication and callback observations remain provisional until batch completion",
+    "Proposal-only encode/decode APIs return original unverified proofs/bytes; no verification receipts minted",
+    "Durable JobLoader decodeProposal is under unchanged genuine Join kind-roster entry/exit checks"
+  ],
+  "work_count": {
+    "publication_old_full_context_scans": "5 * total_pages",
+    "publication_new_full_context_scans": 4,
+    "successful_join_full_context_scans": 5,
+    "not_a_performance_measurement": true
+  },
+  "rejected_attempt": "v1 all12 tests passed but qualification rejected one changed source pin; v2 rerun uses frozen complete production closure",
+  "not_qualified": [
+    "Positive genuine PAGE proof publication and complete bundle proof execution",
+    "Standalone durable policy/Driver detached replacement",
+    "Final global recursive closure or canonical activation",
+    "End-to-end speed or process/device peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

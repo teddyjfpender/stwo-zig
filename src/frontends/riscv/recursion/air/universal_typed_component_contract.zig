@@ -42,7 +42,7 @@ pub fn sourceNeedsExtension(
     eval_log_size: u32,
 ) !bool {
     try poly.validate();
-    if (poly.log_size == eval_log_size) return false;
+    if (poly.log_size == eval_log_size and poly.values.len != 0) return false;
     if (poly.coefficients) |coefficients| {
         if (coefficients.logSize() != trace_log_size)
             return error.InvalidProofShape;
@@ -67,7 +67,7 @@ pub fn evaluationValues(
     owned_buffers: [][]M31,
     owned_initialized: *usize,
 ) ![]const M31 {
-    if (poly.log_size == eval_log_size) return poly.values;
+    if (poly.log_size == eval_log_size and poly.values.len != 0) return poly.values;
     if (owned_initialized.* >= owned_buffers.len)
         return error.InvalidProofShape;
     const values = if (poly.coefficients) |coefficients| blk: {

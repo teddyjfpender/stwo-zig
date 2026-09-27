@@ -1,0 +1,245 @@
+{
+  "version": 3,
+  "status": "source_candidate_unqualified_revision3",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_crypto_v1.zig",
+      "sha256": "2874910940db0025294b87ec90a49041fa3e3558680c636a56f568701cddcbd2",
+      "bytes": 11507
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_equations_v1.zig",
+      "sha256": "d1611f6d0909bcbf868c086add3f9fc036f1fac86840eabdf18a7294e6f20b43",
+      "bytes": 24288
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_auth_protocol_v1.zig",
+      "sha256": "3ad74ff12dbdae745180f9d7873685b1fd3fbfb7bfba08887ac151acc0ea5b3b",
+      "bytes": 6678
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_circuit_v1.zig",
+      "sha256": "f8eedd4b7f72bea27040ccb8bc3206087b5e2a48fab46a306c26670ca229c42f",
+      "bytes": 10525
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_stream_v1.zig",
+      "sha256": "fbb558f68ef9ab4675798e64f993574e8e702519aabc2838e7244444947cf312",
+      "bytes": 11857
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_auth_test_v1.zig",
+      "sha256": "0bf661ee14804ab655fc145b71fc0f735b24ec647a50def7a2bfcc6b2c6c883e",
+      "bytes": 20687
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_auth_test_root.zig",
+      "sha256": "815bc057f34edeb576fc554da6303fef3160c0e61deaf950a2b21166e5d039da",
+      "bytes": 233
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_auth_codegen.zig",
+      "sha256": "57796c4d8ca05a529d65753aef150b344dc77ac30404205065c2ed3ae221e9ad",
+      "bytes": 1294
+    }
+  ],
+  "dependencies_not_owned": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_initial_sources_v1.zig",
+      "sha256": "009840797a275e5bda57fdde35a8fccdedb92975c24e5a348f8453734a755a7e",
+      "bytes": 8978
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_rw_endpoint_sources_v1.zig",
+      "sha256": "36cf8e6a4c4d51a85eda0d29efe4a16a029f5140d2d87227762c82fb7871a584",
+      "bytes": 8973
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a",
+      "bytes": 19174
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "sha256": "c3c1327f544317c7850adb8c9b467a14e33a1f95db965fcafbcce8cefa42ecb3",
+      "bytes": 5072
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_universal_channel_v1.zig",
+      "sha256": "a329b614455b5fce931a8ef45fd161d707207ce809cc6dd354a79433b8d44ae2",
+      "bytes": 572
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/blake3_state_tree.zig",
+      "sha256": "0dd721ae3c6cd3382af3dac3ef547c40e38da91b8b7f23dd07c6d19fb578cfa5",
+      "bytes": 9807
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/byte_tree_topology.zig",
+      "sha256": "ce28442b53dac9c61484976fbc9ab7e44a7ffeafd9e5f45ad13a5a5a1d6bcd39",
+      "bytes": 1436
+    },
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/sha256_compression.zig",
+      "sha256": "3286fa739a01d89834f791dfc1cb0b0a96f6e1223a50eec8587cd07856cbc515",
+      "bytes": 5951
+    },
+    {
+      "path": "src/frontends/riscv/air/relation_challenges.zig",
+      "sha256": "c041011ea1f1b05a5e843c309b0bf4054ee83de141593d1cb843dbb70cdecd61",
+      "bytes": 10225
+    },
+    {
+      "path": "src/frontends/riscv/air/block/memory_transition.zig",
+      "sha256": "ae7a000a3fc5c385e742ebc5babae61de1eb75311706ba2d09f11a6fa684b795",
+      "bytes": 4742
+    },
+    {
+      "path": "src/frontends/riscv/runner/memory_state.zig",
+      "sha256": "cee865df94ce8ce8a665418b0f3b796d9dbac7a6a84cf0aaa4259103a18fb91b",
+      "bytes": 22327
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_challenges.zig",
+      "sha256": "ae2943f6e296639dccf727a402c46478b5516edc4577d5657b8f68610018390f",
+      "bytes": 12066
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_compression_plan.zig",
+      "sha256": "1128c84585974ab54a35e7becc929fb7a5be76f5b2ed93aab0b1f282e6e11246",
+      "bytes": 1766
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder.zig",
+      "sha256": "393ac0d6b085c909aff81ca3dfc5b06dc5bb427a7d75fc45023d443cacea656d",
+      "bytes": 3485
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig",
+      "sha256": "7d561b47a36994ae68161030193418a11ac36bcb6c2b7fd69703849c0fb25f00",
+      "bytes": 20181
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder_support.zig",
+      "sha256": "f28f5b571191a5ed79f4bb76ef28ee5a1d08d5dc3a4ee0937c96f2b32aed4066",
+      "bytes": 7673
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder_record_component.zig",
+      "sha256": "f1c13a1b5524269ad194bbb6d21d428461941c7aae6d7f672372b6737afda970",
+      "bytes": 20232
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_circuit.zig",
+      "sha256": "46f85487869a8c6784da78f1380b1091e95ff8eb155015a4e1ef88ff3d18d9c8",
+      "bytes": 4241
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "sha256": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+      "bytes": 16483
+    },
+    {
+      "path": "src/core/fields/qm31.zig",
+      "sha256": "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
+      "bytes": 12722
+    },
+    {
+      "path": "src/core/crypto/blake3_compression.zig",
+      "sha256": "a19dce49effa9116a58ea2b6116fc9994f36a10e29484e4281cb8f2eda66a0e4",
+      "bytes": 3431
+    }
+  ],
+  "tests": [
+    "source auth crypto: full SHA padding and BLAKE3 tree frames match independent kernels",
+    "source auth stream: complete image retains untouched word and authenticates full u64 endpoint",
+    "source auth metadata: canonical census identity caps and RAM-only classification fail closed",
+    "source auth symbolic: endpoint byte clock bit claims and chunk admission are constrained",
+    "source auth symbolic SHA: full pinned digest and canonical raw tail use actual compression equations",
+    "source auth fault: every record graph allocation failure releases partial owner",
+    "source auth zero: empty files still hash and both image roots close without fake tree chunks",
+    "source auth mutations: pinned SHA and strict predecessor are equation authority",
+    "source auth crypto operations: carry rotate arbitrary SHA chaining and compression match exact kernel",
+    "source auth crypto frames: independent full-width tree leaf and node digests",
+    "source auth root",
+    "source auth bodies: actual sealed admission and challenge circuit construction retained"
+  ],
+  "allowed_scope": "Source equations, candidate witnesses, bounded streaming schedules, nonproving scalar/symbolic/fault/body fixtures. No cryptographic source receipt or canonical activation.",
+  "validation_performed": [
+    "zig fmt (parser/format only)",
+    "local relative-import existence audit",
+    "source-level ownership and equation review"
+  ],
+  "validation_not_performed": [
+    "compiler",
+    "test execution",
+    "PCS/STARK/FRI/recursive proof",
+    "guest/segment execution",
+    "device execution",
+    "benchmark"
+  ],
+  "root_only_command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/block_v5_memory_source_auth_test_root.zig -OReleaseFast -mcpu=native --test-filter \"source auth \"",
+  "counts": {
+    "authored_behavioral_checks": 10,
+    "body_retention_checks": 1,
+    "root_import_checks": 1,
+    "private_bit_inputs_per_chunk": 1728,
+    "challenge_inputs_per_chunk": 22,
+    "claim_inputs_per_chunk": 11,
+    "chunk_id_inputs": 32,
+    "circuit_inputs_per_chunk": 1793
+  },
+  "closure": {
+    "streams": 5,
+    "source_buses": [
+      "canonical_file_bytes",
+      "nonzero_public_input_words",
+      "initial_image_insertions",
+      "first_touch_values",
+      "final_values_and_full_u64_clocks",
+      "tree_path_routing",
+      "complete_root_chain",
+      "strict_record_ordering",
+      "SHA_chaining"
+    ],
+    "external_buses": [
+      "word_initial_arity5",
+      "word_endpoint_arity9"
+    ]
+  },
+  "work_formula": {
+    "sha_chunks": "sum_s(floor(L_s/64)+1), including mandatory padding chunk",
+    "records": "I+J+2U",
+    "edits": "E=I+J+U",
+    "tree_chunks": "32E = leaf + 30 nodes + root per edit",
+    "total_chunks": "sum_s(floor(L_s/64)+1) + I+J+2U + 32E",
+    "blake3_compressions": "122E (two leaf compressions + 30*four node compressions per edit)",
+    "fixture": {
+      "I": 1,
+      "J": 1,
+      "U": 1,
+      "chunks": 105,
+      "blake3_compressions": 366
+    }
+  },
+  "limits": {
+    "records_per_stream": 10000000,
+    "bytes_per_stream": 160000000,
+    "nodes_per_chunk": 1000000,
+    "owned_heap_bytes_per_chunk": 134217728,
+    "hard_heap_tracking": true,
+    "whole_image_or_file_owner": false
+  },
+  "pending": [
+    "A versioned source first-round commitment before source challenges, including all private routing/state witness cells",
+    "Actual source arithmetic STARK/recursive leaf and independently pinned graph/public binding",
+    "Fresh typed chunk proof receiver using independent kindAt census",
+    "Heterogeneous aggregate that proves every chunk exactly once and binds closure inputs to fresh chunk sums",
+    "Bind final initial/endpoint sums to the existing freshly verified sorted-RAM buses",
+    "Durable source transport/schema/sealed roster entry and CoveragePlan typed activation",
+    "Scalable hash/source AIR or authenticated batching; bit-circuit work is substantial and unmeasured"
+  ],
+  "previous_candidate": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-auth-equations-source-candidate-v2.json",
+  "revision_reason": "Behavioral v1 gate passed6/10, failed independent SHA parity and dependent SHA/stream/zero checks. Preserve failed evidence. Use carry-before-output and descending SHA state publication; add exact add/rotate/arbitrary-chaining compression fixture to localize. Cause/fix remains unqualified until root gate. Independent BLAKE3 frame filter added so a SHA failure cannot skip leaf/node hash parity.",
+  "failed_evidence": "memory-source-auth-focused-v1.log"
+}

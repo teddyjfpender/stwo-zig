@@ -1,0 +1,12 @@
+{
+  "transcript_g": 62328,
+  "payload_and_subtree_g": 807520,
+  "ancestor_g": 2304960,
+  "actual_g": 3174808,
+  "shared_candidate_g": 2124248,
+  "live_row_reduction": 0.33090505000617365,
+  "next_domain_rows": 2097152,
+  "additional_rows_to_remove_for_next_domain": 27096,
+  "current_padded_rows": 4194304,
+  "candidate_padded_rows": 4194304
+}

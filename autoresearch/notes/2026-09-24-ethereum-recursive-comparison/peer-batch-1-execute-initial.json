@@ -1,0 +1,165 @@
+{
+  "steps": 7428,
+  "execution_ms": 8,
+  "plan": [
+    {
+      "airgroup_id": 0,
+      "air_id": 0,
+      "name": "Main",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 1,
+      "name": "Rom",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 2,
+      "name": "Mem",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 3,
+      "name": "InputData",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 4,
+      "name": "RomData",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 5,
+      "name": "MemAlign",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 13,
+      "name": "Binary",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 22,
+      "name": "BinaryExtension",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 25,
+      "name": "ArithEq",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 36,
+      "name": "Keccakf",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 42,
+      "name": "Dma",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 43,
+      "name": "Dma64Aligned",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 49,
+      "name": "DmaUnaligned",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 50,
+      "name": "DmaPrePost",
+      "count": 1
+    }
+  ],
+  "output_bytes": [
+    1,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    173,
+    64,
+    246,
+    167,
+    222,
+    158,
+    133,
+    164,
+    40,
+    70,
+    120,
+    248,
+    14,
+    103,
+    133,
+    55,
+    165,
+    165,
+    74,
+    94,
+    139,
+    156,
+    147,
+    118,
+    44,
+    167,
+    197,
+    203,
+    196,
+    212,
+    244,
+    76,
+    177,
+    182,
+    223,
+    116,
+    165,
+    188,
+    163,
+    98,
+    79,
+    245,
+    85,
+    253,
+    77,
+    77,
+    193,
+    22,
+    80,
+    68,
+    33,
+    168,
+    226,
+    251,
+    44,
+    105,
+    248,
+    221,
+    142,
+    87,
+    6,
+    56,
+    174,
+    250
+  ],
+  "execution_only": true
+}

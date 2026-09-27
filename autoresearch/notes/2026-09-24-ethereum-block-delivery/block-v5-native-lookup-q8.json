@@ -1,0 +1,25 @@
+{
+  "schema": "block-v5-native-lookup-qualification-v1",
+  "date": "2026-09-26",
+  "command": "zig build test-block-v5-native-lookup test-block-v5-source-seal -Doptimize=ReleaseFast",
+  "exit_code": 0,
+  "security": { "queries": 8, "pow_bits": 0, "canonical_benchmark": false },
+  "qualified": {
+    "tables": 6,
+    "fresh_stark_verification": true,
+    "signed_multiplicities": true,
+    "independent_plan_wire_binding": true,
+    "bounded_canonical_wire": true,
+    "per_group_receipt_delivery": true,
+    "counter_replay_mutation_rejected": true,
+    "shape_bound_exceeded_rejected": true,
+    "exact_unpadded_group_planning": true,
+    "fixed_basis_reuse": true,
+    "fixed_tree_shared_owner_and_root_parity": true
+  },
+  "not_qualified_by_this_run": [
+    "same_native_root_table_consumer_projection",
+    "complete_block_closure",
+    "canonical_q70_pow26_performance"
+  ]
+}

@@ -1,0 +1,6 @@
+1/5 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: independently derived public inputs reject census endpoint schedule and claim substitution...OK
+2/5 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: all six original mixed-domain CPU equations and masks equal symbolic recurrence and split quotient...OK
+3/5 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: full equation graph allocation failures release arena owner and recorder...OK
+4/5 air.lookups.tables.mod.test_0...OK
+5/5 air.lookups.tables.source_ingest.test_0...OK
+All 5 tests passed.

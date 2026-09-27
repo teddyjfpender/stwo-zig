@@ -1,0 +1,7 @@
+src/frontends/riscv/prover/block_v5_memory_source_page_recursive_test_v1.zig:78:73: error: expected type '*prover.block_v5_packed_hash_setup_v1.ForAirs(.{ recursion.air.blake3_g_call, recursion.air.blake3_xor_call })', found '*const prover.block_v5_packed_hash_setup_v1.ForAirs(.{ recursion.air.blake3_g_call, recursion.air.blake3_xor_call })'
+        return .{ .a = a, .graph = graph, .fixed = fixed, .core_setup = core_setup, .arithmetic_setup = arithmetic_setup, .owner = owner, .frame = try Frame.ForKind(.fold).init(a, component_claims, semantic, geometry, owner), .relations = relations };
+                                                                        ^~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_page_recursive_test_v1.zig:78:73: note: cast discards const qualifier
+referenced by:
+    test.source PAGE recursion: genuine original main cell mutation changes authenticated symbolic quotient: src/frontends/riscv/prover/block_v5_memory_source_page_recursive_test_v1.zig:322:35
+    test_0: src/frontends/riscv/block_v5_memory_source_page_recursive_test_root.zig:2:17

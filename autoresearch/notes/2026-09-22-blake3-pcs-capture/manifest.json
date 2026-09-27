@@ -1,0 +1,10 @@
+{
+  "README.md": "96056b35dd06b210fe36355d265c40ef9f068f50395dccb5ac4de9750aac3faf",
+  "sources/autoresearch/notes/20260922-blake3-pcs-capture-problem-match.md": "490d8cd232c222165feac2a0d99bd2dc2fd20c179657a80319a1f6f2d89906f0",
+  "sources/src/core/fri/query_capture.zig": "7326dc59e00308f8e1ca5c0efe9bdcc7d75ccb45c9d172235977ff44ba620e34",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "9a90298e3e5d638c29eca4ea2768b6ee301f74042d4b201ac9dc6166273546df",
+  "sources/src/frontends/riscv/recursion/air/blake3_fri_path_opening.zig": "8b652b7715e0713f9f9794476cb590ccad168d2b495d8c9473fc2db69cdaa2d5",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_capture_test.zig": "bd982282d960c571b4285a534c52ee96f1a0934d878ecb60b94735aebd83fefe",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "bcb65982546f0cccd8b3430ff32b8ddf57246149bf0199079ad6b177ebb1aded",
+  "tests.log": "06d77bdde44b5de553345c755fc02bde509c7264bf0c85551f8f9e803ea7a54a"
+}

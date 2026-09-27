@@ -1,0 +1,39 @@
+test-blake3-native-parent-aot
++- run test stderr
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+PARENT_PLAN_LIFECYCLE abandoned=true consumed=true emission_failures=4 allocations=167173
+BLAKE3_NATIVE_QUERY_FUSION groups=8610 removed_scalars=34440
+BLAKE3_NATIVE_FUSION dot4=19037 fma=59337 arithmetic_rows=170472
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=28 gpu_ms=118.04587501683272
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.1514999971259385
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.5060833538882434
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.7825416687410325
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=2 gpu_ms=0.20387498079799116
+CANONICAL_PARENT_WORKERS count=8 host_cpus=18
+NATIVE_PARENT_DEVICE_WORK host_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK resident_merkle_commits=23
+NATIVE_PARENT_DEVICE_WORK metal_quotient_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_proof_of_work_dispatches=55
+NATIVE_PARENT_DEVICE_WORK metal_framework_polynomial_dispatches=5
+NATIVE_PARENT_DEVICE_WORK metal_streaming_leaf_dispatches=1088
+NATIVE_PARENT_DEVICE_WORK metal_framework_interaction_dispatches=20
+NATIVE_PARENT_DEVICE_WORK metal_sampled_value_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_circle_transform_dispatches=2
+NATIVE_PARENT_DEVICE_WORK metal_circle_lde_dispatches=74
+NATIVE_PARENT_DEVICE_WORK metal_fri_circle_fold_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_fri_fold_commit_epochs=1
+NATIVE_PARENT_DEVICE_WORK cpu_streaming_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK cpu_composition_components=17
+NATIVE_PARENT_DEVICE_WORK metal_commit_source_uploads=74
+NATIVE_PARENT_METAL dispatches=1271 fallbacks=2
+CANONICAL_PARENT_MEMORY peak_bytes=10469247533 limit_bytes=25769803776
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=839853 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=39872 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=469544 independently_verified=true
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-blake3-native-parent-aot success
++- run test 7 passed 20s MaxRSS:18G
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+

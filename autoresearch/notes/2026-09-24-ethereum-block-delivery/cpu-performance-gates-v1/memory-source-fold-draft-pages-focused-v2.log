@@ -1,0 +1,12 @@
+1/11 block_v5_memory_source_fold_draft_pages_test_root.test.source fold draft pages root...OK
+2/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: dense original cursor two-pass replay and same-inode original Store interoperability...OK
+3/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: empty image exact capacity boundaries and teardown preserve promoted originals...OK
+4/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: fail-closed limits source failure and exclusive collisions roll back only new drafts...OK
+5/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: exact plan and pin order single-reader lifetime and no promotion before replay...OK
+6/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: independently admitted census row capacity and every per-page tuple stay exact...OK
+7/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: header enum image bool ordinal payload length and pin tampering poison replay...OK
+8/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: promotion rechecks payload and preserves destination collisions...OK
+9/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: every owner metadata and original load allocation failure releases files and owners...OK
+10/11 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: retained aggregate budget outlives coordinator and replay has no heap allocations...OK
+11/11 block_v5_memory_source_fold_draft_pages_codegen.test.source fold draft pages bodies: original record publication load and bounded draft replay...OK
+All 11 tests passed.

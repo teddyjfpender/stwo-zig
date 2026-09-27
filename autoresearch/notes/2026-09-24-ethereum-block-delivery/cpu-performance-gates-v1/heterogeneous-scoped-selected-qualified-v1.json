@@ -1,0 +1,54 @@
+{
+  "status": "qualified_nonproving_source",
+  "mode": "selected",
+  "results": {
+    "heterogeneous-scoped-selected-semantic-v1": {
+      "source_candidate": "heterogeneous-scoped-selected-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.207472374953795,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/heterogeneous-scoped-selected-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "heterogeneous-scoped-selected-focused-v1": {
+      "source_candidate": "heterogeneous-scoped-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 102.44397954200394,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/heterogeneous-scoped-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-heterogeneous-scoped-selected-focused-v1",
+        "bytes": 11546736,
+        "sha256": "eaba238143cabafc960c32825e7043e48afcee60967eeafd1fb6e64327dc25d7"
+      }
+    }
+  },
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "scope": "Compact scoped routing, byte-lifted claim equations, exact independent semantic selectors, ownership and mutation rejection; original producer and receiver bodies compiled but not invoked.",
+  "open": [
+    "Complete source and public/global compensation authority",
+    "Canonical driver activation",
+    "Successful recursive proof and end-to-end timing",
+    "Full-u64 clock span representation; current fold safely rejects cycles >= 2^30"
+  ]
+}

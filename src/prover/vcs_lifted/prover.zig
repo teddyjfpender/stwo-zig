@@ -211,6 +211,16 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return buildTreeFromOwnedLeaves(allocator, layer_alloc, leaves, log_size);
         }
 
+        /// Consumes already-hashed leaves produced by an admitted backend.
+        /// Parent construction and layer ownership remain shared with host proving.
+        pub fn fromOwnedLeaves(allocator: std.mem.Allocator, layer_allocator: std.mem.Allocator, leaves: []H.Hash) !Self {
+            if (leaves.len == 0 or !std.math.isPowerOfTwo(leaves.len)) {
+                layer_allocator.free(leaves);
+                return error.InvalidColumnSize;
+            }
+            return buildTreeFromOwnedLeaves(allocator, layer_allocator, leaves, @intCast(std.math.log2_int(usize, leaves.len)));
+        }
+
         fn buildTreeFromOwnedLeaves(
             allocator: std.mem.Allocator,
             layer_alloc: std.mem.Allocator,
@@ -357,8 +367,9 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 for (layers_bottom_up.items) |layer| layer_alloc.free(layer);
             }
 
-            // Choose leaf-building strategy based on domain size.  For large
-            // domains, use the row-batch path to keep the transient hasher
+            // Four-leaf implementations use the bounded batch path at every
+            // size; its scalar tail also handles two-leaf domains. For other
+            // hashers, large domains use it to keep the transient hasher
             // array bounded (saves ~(N - batch_size) * sizeof(H) peak RAM,
             // e.g. >100 MiB for 2^20 leaves with Blake2s).
             try layers_bottom_up.ensureUnusedCapacity(allocator, 1);
@@ -366,7 +377,8 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 if (sorted.len > 0) {
                     const max_col_log_size = sorted[sorted.len - 1].log_size;
                     const total_leaves = @as(usize, 1) << @intCast(max_col_log_size);
-                    if (total_leaves >= batched_leaf_threshold) {
+                    const four_way_leaves = comptime @hasDecl(H, "leafSeed") and @hasDecl(H, "hashPackedLeavesWithSeed4");
+                    if (four_way_leaves or total_leaves >= batched_leaf_threshold) {
                         const batch_size = leafBatchSizeOverride(allocator) orelse default_leaf_batch_size;
                         break :blk try LeafOps.buildBatched(allocator, layer_alloc, sorted, batch_size);
                     }
@@ -448,13 +460,66 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return .{ .layers = out_layers, .layer_allocator = layer_alloc };
         }
 
+        /// Keep the upper tree and reconstruct at most sixteen leaves per
+        /// requested lower node. Columns already outlive decommitment; retaining
+        /// every leaf digest duplicates gigabytes on large proof domains.
+        /// No commitment, transcript or decommitment format changes.
+        pub fn compactForQueries(self: *Self) void {
+            if (self.maxLogSize() < 20) return;
+            self.pruneBottomLayers(4);
+        }
+
+        pub fn pruneBottomLayers(self: *Self, count: usize) void {
+            const first = self.layers.len - @min(count, self.layers.len - 1);
+            for (self.layers[first..]) |*layer| {
+                self.layer_allocator.free(layer.*);
+                layer.* = &.{};
+            }
+        }
+
+        const QueryReader = struct {
+            tree: Self,
+            columns: []const ColumnRef,
+            pub fn maxLogSize(self: @This()) u32 {
+                return self.tree.maxLogSize();
+            }
+            fn node(self: @This(), layer: u32, index: usize) H.Hash {
+                if (self.tree.layers[layer].len != 0) return self.tree.layers[layer][index];
+                if (layer == self.maxLogSize()) {
+                    var hash = H.defaultWithInitialState();
+                    for (self.columns) |column| {
+                        const shift: std.math.Log2Int(usize) = @intCast(self.maxLogSize() - column.log_size + 1);
+                        const at = ((index >> shift) << 1) + (index & 1);
+                        hash.updateLeaf(column.values[at..][0..1]);
+                    }
+                    return hash.finalize();
+                }
+                return H.hashChildren(.{ .left = self.node(layer + 1, index * 2), .right = self.node(layer + 1, index * 2 + 1) });
+            }
+            pub fn readHashes(self: @This(), allocator: std.mem.Allocator, layer: u32, indices: []const u32) ![]H.Hash {
+                if (layer > self.maxLogSize()) return error.InvalidColumnSize;
+                const out = try allocator.alloc(H.Hash, indices.len);
+                errdefer allocator.free(out);
+                for (indices, out) |index, *destination| {
+                    if (index >= @as(usize, 1) << @intCast(layer)) return error.InvalidColumnSize;
+                    destination.* = self.node(layer, index);
+                }
+                return out;
+            }
+        };
+
         pub fn decommit(
             self: Self,
             allocator: std.mem.Allocator,
             query_positions: []const usize,
             columns: []const []const M31,
         ) !DecommitmentResult {
-            return decommit_mod.decommit(H, self, allocator, query_positions, columns);
+            if (self.layers[self.layers.len - 1].len != 0)
+                return decommit_mod.decommit(H, self, allocator, query_positions, columns);
+            const sorted = try sortColumnsByLogSizeAsc(allocator, columns);
+            defer allocator.free(sorted);
+            if (sorted.len == 0 or sorted[sorted.len - 1].log_size != self.maxLogSize()) return error.InvalidColumnSize;
+            return decommit_mod.decommit(H, QueryReader{ .tree = self, .columns = sorted }, allocator, query_positions, columns);
         }
 
         pub fn maxLogSize(self: Self) u32 {
@@ -467,6 +532,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
             layer_log_size: u32,
             indices: []const u32,
         ) ![]H.Hash {
+            if (layer_log_size > self.maxLogSize() or self.layers[layer_log_size].len == 0) return error.InvalidColumnSize;
             const layer = self.layers[layer_log_size];
             const out = try allocator.alloc(H.Hash, indices.len);
             for (indices, out) |index, *destination| destination.* = layer[index];
@@ -494,6 +560,10 @@ pub fn MerkleProverLifted(comptime H: type) type {
         /// `builtin.is_test` keeps structural tests close to their assertions
         /// without making these internals callable from production builds.
         pub const testing = if (builtin.is_test) struct {
+            pub fn hashLazyLeafRange(column: *const SecureColumnByCoords, leaves: []H.Hash, start: usize, end: usize) void {
+                Self.hashLazyLeafRange(&.{ .column = column, .leaves = leaves, .start = start, .end = end });
+            }
+
             pub fn commitWithWorkerOverride(
                 allocator: std.mem.Allocator,
                 columns: []const []const M31,

@@ -1,0 +1,6 @@
+src/frontends/riscv/recursion/air/block_v5_memory_recursive_join_graph_v1.zig:48:31: error: capture shadows declaration of 'word'
+        for (&symbols, 0..) |*word, limb| word.* = try self.word(kind, child, coordinate + @as(u32, @intCast(limb)));
+                              ^~~~
+src/frontends/riscv/recursion/air/block_v5_memory_recursive_join_graph_v1.zig:36:5: note: declared here
+    fn word(self: *@This(), kind: @FieldType(Public.Wire, "kind"), child: u32, coordinate: u32) ![4]R.Scalar {
+    ^~

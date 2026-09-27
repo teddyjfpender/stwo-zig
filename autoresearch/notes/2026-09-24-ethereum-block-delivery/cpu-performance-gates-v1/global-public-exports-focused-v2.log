@@ -1,0 +1,18 @@
+1/17 block_v5_global_public_export_test_root.test_0...OK
+2/17 block_v5_global_public_export_test_root.test.global public export body: actual parent stage cache and fresh receiver bodies retained...OK
+3/17 prover.block_v5_global_public_export_test_v1.test.global public export: original B5PD framing preserves full words and borrows shared input...OK
+4/17 prover.block_v5_global_public_export_test_v1.test.global public export: canonical decoder cycles input and zero clock mutations reject...OK
+5/17 prover.block_v5_global_public_export_test_v1.test.global public export: metadata and word caps precede clone and exhaustively roll back...OK
+6/17 prover.block_v5_global_public_export_test_v1.test.global public export: exact native register and terminal tuples preserve high bytes and signs...OK
+7/17 prover.block_v5_global_public_export_test_v1.test.global public export: full u64 byte carry rejects wrap gaps and reordered windows...OK
+8/17 prover.block_v5_global_public_export_test_v1.test.global public export: original scalar oracle and symbolic inverse graph reject byte substitution...OK
+9/17 prover.block_v5_global_public_export_test_v1.test.global public export: symbolic construction keeps original allocation error and exact cleanup...OK
+10/17 prover.block_v5_global_public_export_test_v1.test.global public export: complete source authority remains unavailable...OK
+11/17 prover.block_execution_external_trace_v2.test_0...OK
+12/17 air.lookups.tables.mod.test_0...OK
+13/17 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+14/17 air.semantic_eval.test_0...OK
+15/17 prover.block_execution_external_access_bridge_v2.test_0...OK
+16/17 air.memory_commitment.poseidon2_air.test_0...OK
+17/17 air.lookups.tables.source_ingest.test_0...OK
+All 17 tests passed.

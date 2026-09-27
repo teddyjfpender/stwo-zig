@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 3/3 tests passed
+test-blake3-draw success
++- BLAKE3 ordered draw guard success
+   +- run test 2 passed 511ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 4s MaxRSS:512M
+test-blake3-challenge-proof success
++- BLAKE3 challenge proof guard success
+   +- run test 1 passed 6s MaxRSS:347M
+      +- compile test ReleaseSafe native success 20s MaxRSS:1G
+

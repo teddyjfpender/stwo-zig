@@ -1,0 +1,383 @@
+{
+  "Main": {
+    "nBits": 22,
+    "nBitsExt": 23,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "Rom": {
+    "nBits": 22,
+    "nBitsExt": 23,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "Mem": {
+    "nBits": 22,
+    "nBitsExt": 23,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "InputData": {
+    "nBits": 22,
+    "nBitsExt": 23,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "RomData": {
+    "nBits": 22,
+    "nBitsExt": 23,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "MemAlign": {
+    "nBits": 21,
+    "nBitsExt": 22,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 22
+      },
+      {
+        "nBits": 18
+      },
+      {
+        "nBits": 14
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "Binary": {
+    "nBits": 22,
+    "nBitsExt": 23,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "BinaryExtension": {
+    "nBits": 22,
+    "nBitsExt": 23,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "ArithEq": {
+    "nBits": 20,
+    "nBitsExt": 21,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 21
+      },
+      {
+        "nBits": 17
+      },
+      {
+        "nBits": 13
+      },
+      {
+        "nBits": 9
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "Keccakf": {
+    "nBits": 20,
+    "nBitsExt": 21,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 21
+      },
+      {
+        "nBits": 17
+      },
+      {
+        "nBits": 13
+      },
+      {
+        "nBits": 9
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "Dma": {
+    "nBits": 21,
+    "nBitsExt": 22,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 22
+      },
+      {
+        "nBits": 18
+      },
+      {
+        "nBits": 14
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "Dma64Aligned": {
+    "nBits": 21,
+    "nBitsExt": 22,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 22
+      },
+      {
+        "nBits": 18
+      },
+      {
+        "nBits": 14
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "DmaUnaligned": {
+    "nBits": 21,
+    "nBitsExt": 22,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 22
+      },
+      {
+        "nBits": 18
+      },
+      {
+        "nBits": 14
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "DmaPrePost": {
+    "nBits": 21,
+    "nBitsExt": 22,
+    "nQueries": 211,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 22
+      },
+      {
+        "nBits": 18
+      },
+      {
+        "nBits": 14
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ]
+  },
+  "vadcop_final": {
+    "nBits": 19,
+    "nBitsExt": 21,
+    "nQueries": 106,
+    "powBits": 24,
+    "steps": [
+      {
+        "nBits": 21
+      },
+      {
+        "nBits": 17
+      },
+      {
+        "nBits": 13
+      },
+      {
+        "nBits": 10
+      },
+      {
+        "nBits": 7
+      }
+    ]
+  }
+}

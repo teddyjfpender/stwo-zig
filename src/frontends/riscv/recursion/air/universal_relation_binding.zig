@@ -12,11 +12,20 @@ const types = @import("../../air/lang/types.zig");
 
 pub fn Binding(comptime Air: type) type {
     return struct {
-        pub const Runtime = compiler.Runtime(
+        pub const Runtime = if (@hasDecl(Air, "PROGRAM_BOUND_PC_INPUTS")) compiler.RuntimeWithMachineInputs(
             Air.LOGICAL_INPUT_COUNT,
             Air.RELATION_EVENT_COUNT,
             Air.LOOKUP_BATCH_SIZE,
-        );
+            Air.PHYSICAL_MAIN_COLUMN_COUNT,
+            if (@hasDecl(Air, "FIXED_ADDRESS_INPUTS")) Air.FIXED_ADDRESS_INPUTS else &.{},
+            Air.PROGRAM_BOUND_PC_INPUTS,
+        ) else if (@hasDecl(Air, "FIXED_ADDRESS_INPUTS")) compiler.RuntimeWithFixedAddresses(
+            Air.LOGICAL_INPUT_COUNT,
+            Air.RELATION_EVENT_COUNT,
+            Air.LOOKUP_BATCH_SIZE,
+            Air.PHYSICAL_MAIN_COLUMN_COUNT,
+            Air.FIXED_ADDRESS_INPUTS,
+        ) else compiler.Runtime(Air.LOGICAL_INPUT_COUNT, Air.RELATION_EVENT_COUNT, Air.LOOKUP_BATCH_SIZE);
         pub const Plan = Runtime.Plan;
         pub const Row = Runtime.Row;
         pub const Entry = compiler.Entry;

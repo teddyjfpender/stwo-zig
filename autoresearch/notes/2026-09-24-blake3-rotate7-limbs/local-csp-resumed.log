@@ -1,0 +1,20 @@
+cpu-ecdsa_secp256k1-32 0.715774 verified
+cpu-ecdsa_secp256k1_bad_signature 10.852153 verified
+metal-sha256-128 0.949233 verified
+metal-sha256-256 0.986743 verified
+metal-sha256-512 1.027794 verified
+metal-sha256-1024 1.064012 verified
+metal-sha256-2048 1.587823 verified
+metal-keccak-128 1.474446 verified
+metal-keccak-256 1.524815 verified
+metal-keccak-512 1.559536 verified
+metal-keccak-1024 1.686181 verified
+metal-keccak-2048 1.82071 verified
+metal-poseidon2_m31-2 0.394154 verified
+metal-poseidon2_m31-4 0.504163 verified
+metal-poseidon2_m31-8 0.617456 verified
+metal-poseidon2_m31-12 0.727847 verified
+metal-poseidon2_m31-16 0.83837 verified
+metal-ecdsa_secp256k1-32 0.495651 verified
+metal-ecdsa_secp256k1_bad_signature 8.248589 verified
+Qualified 32 positives and 2 negative proofs; all independently verified.

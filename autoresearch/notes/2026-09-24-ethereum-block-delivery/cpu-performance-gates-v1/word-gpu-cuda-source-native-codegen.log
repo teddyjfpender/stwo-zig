@@ -1,0 +1,26 @@
+{
+  "output": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/word-gpu-aot-cuda-source-v1",
+  "version": 1,
+  "target": "cuda",
+  "source_manifest_sha256": "1c201be2c30d198d75ddccbca1eda76344db70f9e98f6b87005e7e6cb5bd3e19",
+  "exporter_sha256": "4bf569491b7031a21d5c50f8a08e90a0d90096032292069f0f08951d071d1176",
+  "zig_version": "0.15.2",
+  "device_compiled": false,
+  "device_executed": false,
+  "stark_proved": false,
+  "performance_measured": false,
+  "zig_bridge_compiled": true,
+  "objective_c_runtime_syntax_checked": false,
+  "build_sources": {
+    "src/block_v5_word_gpu_aot_export.zig": "a4a0804567dd9612dcf68ce3df11346457ff83b7fa2d516996e947d4b1191b9e",
+    "src/block_v5_word_cuda_runtime_codegen.zig": "801cfe6c85388c915a690580fb745ff8050c25f817bd5469f96ed838f33cf6d5",
+    "scripts/riscv_word_gpu_aot.py": "341750e1a182ce04612acd4170e621b8afbb032e7c9cb38d39849ac75f9f0bc9",
+    "src/backends/cuda/runtime/secure_polynomial_v1.zig": "6b7689833646ae4e834fc3896312db89fffc774d9d639b863117b65018727775",
+    "src/backends/cuda/aot/secure_polynomial_registry_v1.zig": "892ff6581442a56a0711378ee395a4fffa9637d8fc804439e9bc977d0a40600e",
+    "src/backends/cuda/secure_polynomial_codegen_v1.zig": "7801cdd3dbe37e9b36a56fbad694b3577385c55a3b2ecd0d1bd7640646ff2097",
+    "src/backends/cuda/secure_polynomial_resident_codegen_v1.zig": "0d9764ab2f930e1d8c175c66b9b9bb6c092c4d19872373ce8c2cdf04553a3e8f",
+    "src/backends/cuda/native/secure_polynomial_resident_v1.cuh": "b014db1cb0f3363fc9aec60bb9de1480eeb9b2f64a7c90c7b79cfc286441333b",
+    "src/frontends/riscv/prover/block_v5_word_gpu_witness_v1.zig": "a3875391daef00fced29e6668a50b18bcadf81f454831f41e50f8ad2737ce3e7"
+  },
+  "bridge_object_sha256": "f74279355538bc1201a14af732bb9985d8119260fc0519b4c7dfdc9a92c3af1e"
+}

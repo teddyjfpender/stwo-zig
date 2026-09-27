@@ -1,0 +1,17 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "global-join-recursion-semantic-v3-result.json",
+  "focused": "global-join-recursion-focused-v1-result.json",
+  "checks": 16,
+  "named_checks": 9,
+  "scope": "Scoped native/caller/provider/state/register and original byte-partition equations, auxiliary sign, original public-byte graph, true parent arithmetic cohorts, exact execution/window/provider census, allocation rollback and retained original parent publication bodies.",
+  "pending": [
+    "independently derived complete semantic mapping",
+    "terminal, window and memory-source authority",
+    "complete all-family closure",
+    "successful cryptographic proof and block performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

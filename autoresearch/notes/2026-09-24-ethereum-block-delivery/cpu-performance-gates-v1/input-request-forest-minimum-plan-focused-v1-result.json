@@ -1,0 +1,22 @@
+{
+  "source_candidate": "input-request-forest-minimum-plan-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 18.309895332960878,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 19,
+  "test_summary": [
+    "All 19 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-minimum-plan-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-input-request-forest-minimum-plan-focused-v1",
+    "bytes": 35297080,
+    "sha256": "3083cb88f01deba182bdf7e1239aaf4860b3e0c655e05859de8ae6722a3728f4"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "scope": "source audit only; no GPU execution or CUDA port qualification",
+  "proofman_revision": "d485fac207679076958b502554fb595568c2f954",
+  "zisk_revision": "5c5f81c96929abed88894473ec6060b1b545b5c5",
+  "cumetal_research_revision": "e74b377942f9d2db0f2dde14c5a1b51a9c678692",
+  "inspected_proofman_files_clean_at_revision": true,
+  "sha256": {
+    "/tmp/stwo-recursion-peer-research-20260921/pil2-proofman/pil2-stark/src/goldilocks/src/stream_commit.cu": "eaf1f736ce66dd8f36198b122114cf9d6c130a47d048f61d9e61c4641308bfb8",
+    "/tmp/stwo-recursion-peer-research-20260921/pil2-proofman/pil2-stark/src/goldilocks/src/stream_commit.cuh": "e4b4e92c3e0c02a63b5028b4cc39408650ddc77be3a301b320e44f6a018815ed",
+    "/tmp/stwo-cuda-metal-20260924/README.md": "32c8dd51b38f219d131305f44b3de3cf5faa9ef97b682dac10ace1099e618b94",
+    "src/backends/cuda/cumetal/frontend_support.json": "88a06e98c9def6a6d060cdfa8e64b67d9685ecc789213a8f472a6eef579d3a20",
+    "src/backends/metal/runtime/blake3_streaming_leaves.zig": "eef00a04ac9859512b8d13d161833e185c9888181779e69f86e662f219c91d51",
+    "autoresearch/benchmarks/guest_runtime/ethereum/src/main.rs": "44805ae38648881da64ee6e1800bc50e73c8d1ceb32f4cb7c2478ffcdbdd15ef",
+    "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.lock": "e784acad28e4dd4892bf20df9078d6b28c29b7174c72afdf7fdc7135a0f91f0c",
+    "/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/revm-precompile-42.0.1/src/interface.rs": "7a5407d06171637195c021caa6184623a2c9314b35b02ca853284bb803d50b01"
+  },
+  "reports": [
+    "GPU-READINESS.md",
+    "PRECOMPILE-INVENTORY.md"
+  ]
+}

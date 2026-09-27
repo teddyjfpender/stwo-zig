@@ -1,0 +1,66 @@
+{
+  "2": {
+    "samples": 2,
+    "wall_median_seconds": 21.607291146501666,
+    "parent_stage_median_seconds": 8.7408885,
+    "peak_rss_bytes": 20880343040,
+    "peak_physical_footprint_bytes": 27759260176,
+    "tracked_peak_bytes": 11993422982,
+    "stage_medians_seconds": {
+      "parent.validation": 0.0127455,
+      "parent.main_setup": 1.615463,
+      "parent.main_commit": 2.217613,
+      "parent.interaction_generation": 0.881549,
+      "parent.interaction_commit": 2.0972885,
+      "parent.core": 1.9162295
+    }
+  },
+  "4": {
+    "samples": 2,
+    "wall_median_seconds": 19.17178914550459,
+    "parent_stage_median_seconds": 6.5065290000000005,
+    "peak_rss_bytes": 20887191552,
+    "peak_physical_footprint_bytes": 27759489696,
+    "tracked_peak_bytes": 11993422998,
+    "stage_medians_seconds": {
+      "parent.validation": 0.0130145,
+      "parent.main_setup": 0.811191,
+      "parent.main_commit": 1.199223,
+      "parent.interaction_generation": 0.864967,
+      "parent.interaction_commit": 1.252195,
+      "parent.core": 2.3659385
+    }
+  },
+  "8": {
+    "samples": 2,
+    "wall_median_seconds": 18.42743722900923,
+    "parent_stage_median_seconds": 5.7810615,
+    "peak_rss_bytes": 20887240704,
+    "peak_physical_footprint_bytes": 27759505984,
+    "tracked_peak_bytes": 11993423030,
+    "stage_medians_seconds": {
+      "parent.validation": 0.0129615,
+      "parent.main_setup": 0.4428935,
+      "parent.main_commit": 1.0486495,
+      "parent.interaction_generation": 0.8132515,
+      "parent.interaction_commit": 1.0851250000000001,
+      "parent.core": 2.3781805
+    }
+  },
+  "16": {
+    "samples": 2,
+    "wall_median_seconds": 20.318191124504665,
+    "parent_stage_median_seconds": 7.516071,
+    "peak_rss_bytes": 20887683072,
+    "peak_physical_footprint_bytes": 27759948448,
+    "tracked_peak_bytes": 11993423094,
+    "stage_medians_seconds": {
+      "parent.validation": 0.013656999999999999,
+      "parent.main_setup": 0.300846,
+      "parent.main_commit": 1.1554395,
+      "parent.interaction_generation": 1.2946235000000001,
+      "parent.interaction_commit": 1.47805,
+      "parent.core": 3.2734550000000002
+    }
+  }
+}

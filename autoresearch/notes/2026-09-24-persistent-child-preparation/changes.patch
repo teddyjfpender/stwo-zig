@@ -1,0 +1,172 @@
+--- a/src/frontends/riscv/recursion/blake3_parent_pipeline.zig
++++ b/src/frontends/riscv/recursion/blake3_parent_pipeline.zig
+@@ -5,6 +5,7 @@
+ pub const MAX_JOBS = 64;
+ pub const PREPARATION_STACK_BYTES = 8 * 1024 * 1024;
+ pub const Sizing = struct {
++    preparation_workers: usize = 1,
+     preparation_bytes: usize,
+     worker_bytes: usize,
+     queued_bytes: usize,
+@@ -14,23 +15,27 @@
+     cpu_tokens: usize,
+     reserved_bytes: usize,
+     worker_count: usize,
++    preparation_workers: usize,
+ };
+ pub fn admit(comptime Adapter: type, policy: anytype, sizing: Sizing, count: usize) !Admission {
+     try policy.validate();
+     if (count == 0 or count > MAX_JOBS or sizing.preparation_bytes == 0 or sizing.worker_bytes == 0 or sizing.queued_bytes == 0) return error.InvalidParentPipelineLimits;
++    if (sizing.preparation_workers == 0 or sizing.preparation_workers > 2) return error.InvalidParentPipelineLimits;
++    if (sizing.preparation_workers > 1 and !@hasDecl(Adapter, "prepareWithPool")) return error.UnsupportedParallelParentPreparation;
+     const workers = try policy.engineWorkerCount();
+-    const cpu = try std.math.add(usize, workers, 1);
++    const cpu = try std.math.add(usize, workers, sizing.preparation_workers);
+     if (cpu > policy.total_cpu_tokens or cpu > policy.cpu_tokens_per_node) return error.ParentPipelineCpuBudgetExceeded;
+     var bytes = try std.math.add(usize, sizing.preparation_bytes, sizing.worker_bytes);
+     bytes = try std.math.add(usize, bytes, try std.math.mul(usize, 2, sizing.queued_bytes));
+     bytes = try std.math.add(usize, bytes, sizing.external_reserved_bytes);
+     bytes = try std.math.add(usize, bytes, PREPARATION_STACK_BYTES);
+     bytes = try std.math.add(usize, bytes, try std.math.mul(usize, workers - 1, engine.work_pool.WORKER_STACK_SIZE));
++    bytes = try std.math.add(usize, bytes, try std.math.mul(usize, sizing.preparation_workers - 1, engine.work_pool.WORKER_STACK_SIZE));
+     const controls = @sizeOf(Adapter.Worker) + 4 * @sizeOf(engine.host_budget_allocator.SharedHostBudget) + 2 * @sizeOf(Adapter.Prepared) + 4096;
+     bytes = try std.math.add(usize, bytes, controls);
+     bytes = try std.math.add(usize, bytes, try std.math.mul(usize, count, @sizeOf(artifact.Owned) + @sizeOf(Spans)));
+     if (bytes > policy.total_rss_bytes or bytes > policy.rss_bytes_per_node) return error.ParentPipelineMemoryBudgetExceeded;
+-    return .{ .cpu_tokens = cpu, .reserved_bytes = bytes, .worker_count = workers };
++    return .{ .cpu_tokens = cpu, .reserved_bytes = bytes, .worker_count = workers, .preparation_workers = sizing.preparation_workers };
+ }
+ 
+ pub const Interval = struct { start: u64 = 0, end: u64 = 0 };
+@@ -84,6 +89,7 @@
+         queue: *Handoff,
+         epoch: std.time.Instant,
+         limit: usize,
++        preparation_workers: usize,
+         failure: ?anyerror = null,
+         cancelled: std.atomic.Value(bool) = .init(false),
+         fn execute(self: *@This()) void {
+@@ -94,21 +100,21 @@
+         }
+         fn produce(self: *@This()) !void {
+             var pool: engine.work_pool.WorkPool = undefined;
+-            try pool.initInPlaceWithOptions(.{ .worker_count = 1, .backing_allocator = self.allocator });
++            try pool.initInPlaceWithOptions(.{ .worker_count = self.preparation_workers, .backing_allocator = self.allocator });
+             defer pool.deinit();
+             var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+             defer binding.deinit();
+             for (self.jobs, self.spans) |job, *span| {
+                 if (self.cancelled.load(.acquire)) return;
+                 span.preparation.start = (try std.time.Instant.now()).since(self.epoch);
+-                var owned: ?Adapter.Prepared = try Adapter.prepare(self.allocator, job, self.limit);
++                var owned: ?Adapter.Prepared = if (@hasDecl(Adapter, "prepareWithPool")) try Adapter.prepareWithPool(self.allocator, job, self.limit, &pool) else try Adapter.prepare(self.allocator, job, self.limit);
+                 defer if (owned) |*value| value.deinit();
+                 span.preparation.end = (try std.time.Instant.now()).since(self.epoch);
+                 try self.queue.send(&owned);
+             }
+         }
+     };
+-    var producer = Producer{ .allocator = a, .jobs = jobs, .spans = spans, .queue = &queue, .epoch = epoch, .limit = sizing.preparation_bytes };
++    var producer = Producer{ .allocator = a, .jobs = jobs, .spans = spans, .queue = &queue, .epoch = epoch, .limit = sizing.preparation_bytes, .preparation_workers = admission.preparation_workers };
+     const thread = try std.Thread.spawn(.{ .stack_size = PREPARATION_STACK_BYTES }, Producer.execute, .{&producer});
+     var joined = false;
+     defer if (!joined) {
+--- a/src/frontends/riscv/recursion/blake3_tree_pipeline.zig
++++ b/src/frontends/riscv/recursion/blake3_tree_pipeline.zig
+@@ -28,10 +28,13 @@
+     }
+ };
+ pub fn prepareBounded(a: std.mem.Allocator, job: TreeJob, limit: usize) !Prepared {
++    return prepareBoundedWithPool(a, job, limit, null);
++}
++pub fn prepareBoundedWithPool(a: std.mem.Allocator, job: TreeJob, limit: usize, pool: ?*@import("stwo_prover_engine").work_pool.WorkPool) !Prepared {
+     try job.admission.validate();
+     const budget = try Budget.create(a, limit);
+     errdefer budget.destroy();
+-    var fold = tree.preparePair(budget.allocator(), job.left, job.right, job.capacity) catch |err| {
++    var fold = tree.preparePairWithPool(budget.allocator(), job.left, job.right, job.capacity, pool) catch |err| {
+         if (err == error.OutOfMemory and budget.snapshot().exceeded) return error.PreparationHostBudgetExceeded;
+         return err;
+     };
+@@ -50,6 +53,9 @@
+             pub fn prepare(a: std.mem.Allocator, job: TreeJob, limit: usize) !@import("blake3_tree_pipeline.zig").Prepared {
+                 return prepareBounded(a, job, limit);
+             }
++            pub fn prepareWithPool(a: std.mem.Allocator, job: TreeJob, limit: usize, pool: *@import("stwo_prover_engine").work_pool.WorkPool) !@import("blake3_tree_pipeline.zig").Prepared {
++                return prepareBoundedWithPool(a, job, limit, pool);
++            }
+             pub fn prove(worker: *Self.Worker, prepared: *const @import("blake3_tree_pipeline.zig").Prepared, job: TreeJob) !artifact.Owned {
+                 if (!std.meta.eql(prepared.fold.prepared.context, job.admission.key.context)) return error.ParentPipelineKeyMismatch;
+                 return worker.proveAdmitted(&prepared.fold.prepared.rows, job.admission);
+--- a/src/frontends/riscv/prover/blake3_tree_pipeline_test_support.zig
++++ b/src/frontends/riscv/prover/blake3_tree_pipeline_test_support.zig
+@@ -11,12 +11,23 @@
+     const expected = try key.identity();
+     const admitted = try api.protocol.Admission.init(key, expected);
+     const job = pipeline.Job{ .left = left, .right = right, .admission = admitted, .capacity = 2 };
+-    const policy = TestPolicy{ .total_cpu_tokens = 3, .cpu_tokens_per_node = 3, .proof_worker_count = 2, .total_rss_bytes = 32 * GiB, .rss_bytes_per_node = 32 * GiB };
+-    const sizing = pipeline.Sizing{ .preparation_bytes = 8 * GiB, .worker_bytes = 8 * GiB, .queued_bytes = 2 * GiB, .external_reserved_bytes = 4 * GiB };
++    const policy = TestPolicy{ .total_cpu_tokens = 4, .cpu_tokens_per_node = 4, .proof_worker_count = 2, .total_rss_bytes = 32 * GiB, .rss_bytes_per_node = 32 * GiB };
++    const sizing = pipeline.Sizing{ .preparation_workers = 2, .preparation_bytes = 8 * GiB, .worker_bytes = 8 * GiB, .queued_bytes = 2 * GiB, .external_reserved_bytes = 4 * GiB };
++    var serial = sizing;
++    serial.preparation_workers = 1;
++    const serial_admission = try Pipeline.admit(&policy, serial, 2);
++    const parallel_admission = try Pipeline.admit(&policy, sizing, 2);
++    try std.testing.expectEqual(serial_admission.cpu_tokens + 1, parallel_admission.cpu_tokens);
++    try std.testing.expectEqual(serial_admission.reserved_bytes + @import("stwo_prover_engine").work_pool.WORKER_STACK_SIZE, parallel_admission.reserved_bytes);
++    var invalid = sizing;
++    invalid.preparation_workers = 0;
++    try std.testing.expectError(error.InvalidParentPipelineLimits, Pipeline.admit(&policy, invalid, 2));
++    invalid.preparation_workers = 3;
++    try std.testing.expectError(error.InvalidParentPipelineLimits, Pipeline.admit(&policy, invalid, 2));
+     var excessive = sizing;
+     excessive.external_reserved_bytes = 32 * GiB;
+     try std.testing.expectError(error.ParentPipelineMemoryBudgetExceeded, Pipeline.admit(&policy, excessive, 2));
+-    const cpu_limited = TestPolicy{ .total_cpu_tokens = 2, .cpu_tokens_per_node = 2, .proof_worker_count = 2, .total_rss_bytes = 32 * GiB, .rss_bytes_per_node = 32 * GiB };
++    const cpu_limited = TestPolicy{ .total_cpu_tokens = 3, .cpu_tokens_per_node = 3, .proof_worker_count = 2, .total_rss_bytes = 32 * GiB, .rss_bytes_per_node = 32 * GiB };
+     try std.testing.expectError(error.ParentPipelineCpuBudgetExceeded, Pipeline.admit(&cpu_limited, sizing, 2));
+     const worker = try Pipeline.Worker.init(a, &folded.prepared.rows, admitted, .{ .worker_count = 2, .host_byte_limit = sizing.worker_bytes, .retained_scratch_limit = 64 * 1024 * 1024 });
+     var alive = true;
+@@ -41,6 +52,7 @@
+     defer report.deinit();
+     try std.testing.expectEqual(@as(usize, 2), report.outputs.len);
+     try std.testing.expect(report.overlapNs() > 0);
++    try std.testing.expectEqual(@as(usize, 2), report.admission.preparation_workers);
+     try std.testing.expectEqual(original_plan, worker.plan);
+     try std.testing.expectEqual(columns, worker.plan.fixed_commitment.columns.ptr);
+     try std.testing.expect(worker.workspace.arena.queryCapacity() <= worker.workspace.retained_limit);
+@@ -64,7 +76,7 @@
+     errdefer result.deinit();
+     try std.testing.expect(result.verified.allocation_budget != null);
+     _ = try result.root();
+-    std.debug.print("BLAKE3_TREE_PIPELINE verified=true jobs=2 cpu_tokens={d} reserved_bytes={d} overlap_ns={d} worker_peak_bytes={d} worker_limit_bytes={d} root_artifact_bytes={d} plan_reused=true outputs_outlive_worker=true\n", .{ report.admission.cpu_tokens, report.admission.reserved_bytes, report.overlapNs(), usage.peak_live_bytes, usage.limit, bytes.len });
++    std.debug.print("BLAKE3_TREE_PIPELINE verified=true jobs=2 preparation_workers=2 cpu_tokens={d} reserved_bytes={d} overlap_ns={d} worker_peak_bytes={d} worker_limit_bytes={d} root_artifact_bytes={d} plan_reused=true outputs_outlive_worker=true\n", .{ report.admission.cpu_tokens, report.admission.reserved_bytes, report.overlapNs(), usage.peak_live_bytes, usage.limit, bytes.len });
+     return result;
+ }
+ 
+--- a/build_support/products/riscv_cpu.zig
++++ b/build_support/products/riscv_cpu.zig
+@@ -246,6 +246,13 @@
+         .minimum = 6,
+     }}));
+     context.b.step(
++        "test-riscv-blake3-tree-pipeline",
++        "Qualify bounded persistent preparation and proving on a native four-leaf tree",
++    ).dependOn(test_filter.addSuites(context.b, &.{.{
++        .tests = riscv_cpu_tests.addFocusedTestRoot(test_context, "src/frontends/riscv/blake3_aggregation_test_root.zig", &.{"BLAKE3 adjacent segments form a four-leaf tree"}),
++        .minimum = 1,
++    }}));
++    context.b.step(
+         "test-riscv-blake3-aggregation",
+         "Prove adjacent BLAKE3 execution segments and their recursive aggregate",
+     ).dependOn(test_filter.addSuites(context.b, &.{.{
+--- a/build_support/products/catalog.zig
++++ b/build_support/products/catalog.zig
+@@ -142,6 +142,7 @@
+     .{ .name = "riscv-memory-provider-shard-log18", .description = "Compile the research log18 provider benchmark boundary without running it", .scope = .riscv_cpu },
+     .{ .name = "test-riscv-recursion-poseidon-leaf", .description = "Prove and verify one RISC-V leaf under the recursion Poseidon2 protocol", .scope = .riscv_cpu },
+     .{ .name = "test-riscv-statement-wire", .description = "Check shared statement metadata and guest artifact compatibility", .scope = .riscv_cpu },
++    .{ .name = "test-riscv-blake3-tree-pipeline", .description = "Qualify bounded persistent preparation and proving on a native four-leaf tree", .scope = .riscv_cpu },
+     .{ .name = "test-riscv-blake3-aggregation", .description = "Prove adjacent BLAKE3 execution segments and their recursive aggregate", .scope = .riscv_cpu },
+     .{ .name = "test-riscv-blake3-ethereum-canonical-aggregation", .description = "Prove full-width Ethereum segments and their aggregate at 70 queries and 26 PoW bits", .scope = .riscv_cpu },
+     .{ .name = "test-riscv-blake3-canonical-chain", .description = "Prove a BLAKE3 execution leaf and parent at 70 queries and 26 PoW bits", .scope = .riscv_cpu },

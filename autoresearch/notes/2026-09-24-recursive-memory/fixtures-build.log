@@ -1,0 +1,48 @@
+   Compiling zeroize v1.9.0
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling libc v0.2.189
+   Compiling const-oid v0.9.6
+   Compiling subtle v2.6.1
+   Compiling cfg-if v1.0.5
+   Compiling base16ct v0.2.0
+   Compiling zmij v1.0.23
+   Compiling crunchy v0.2.4
+   Compiling serde_core v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling tiny-keccak v2.0.2
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling once_cell v1.21.4
+   Compiling eth-auth-common v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/common)
+   Compiling der v0.7.10
+   Compiling generic-array v0.14.9
+   Compiling spki v0.7.3
+   Compiling pkcs8 v0.10.2
+   Compiling crypto-common v0.1.6
+   Compiling block-buffer v0.10.4
+   Compiling sec1 v0.7.3
+   Compiling digest v0.10.7
+   Compiling hmac v0.12.1
+   Compiling rfc6979 v0.4.0
+   Compiling getrandom v0.2.17
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling rand_core v0.6.4
+   Compiling ff v0.13.1
+   Compiling crypto-bigint v0.5.5
+   Compiling signature v2.2.0
+   Compiling group v0.13.0
+   Compiling elliptic-curve v0.13.8
+   Compiling ecdsa v0.16.9
+   Compiling k256 v0.13.4
+   Compiling eth-auth-fixtures v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixture-host)
+    Finished `release` profile [optimized] target(s) in 4.37s
+     Running `target/release/eth-auth-fixtures /Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures`
+qualified batch=1 bytes=126 truncation/rejection checks passed
+qualified batch=2 bytes=264 truncation/rejection checks passed
+qualified batch=4 bytes=540 truncation/rejection checks passed
+qualified batch=8 bytes=1092 truncation/rejection checks passed
+qualified batch=16 bytes=2196 truncation/rejection checks passed
+qualified batch=32 bytes=4404 truncation/rejection checks passed
+qualified batch=64 bytes=8819 truncation/rejection checks passed

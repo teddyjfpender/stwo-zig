@@ -44,6 +44,7 @@ pub fn polynomials(scheme: anytype, allocator: std.mem.Allocator) !TreeVec([]con
 pub fn trace(scheme: anytype, allocator: std.mem.Allocator) !component_prover.Trace {
     return .{
         .polys = try polynomials(scheme, allocator),
+        .partition_coefficient_composition = scheme.compact_polynomial_storage,
         .quotient_values_allocator = scheme.quotient_values_allocator,
     };
 }

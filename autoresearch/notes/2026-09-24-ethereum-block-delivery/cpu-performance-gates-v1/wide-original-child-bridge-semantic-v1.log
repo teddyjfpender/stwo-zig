@@ -1,0 +1,21 @@
+src/frontends/riscv/recursion/air/block_v5_wide_native_public_graph_v1.zig:64:45: error: capture 'expected' shadows local variable from outer scope
+        for (checked, self.values) |actual, expected| if (!actual.eql(expected)) return error.MutatedWideNativeGraph;
+                                            ^~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_wide_native_public_graph_v1.zig:57:13: note: previous declaration here
+        var expected = try prepare(self.allocator, public);
+            ^~~~~~~~
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:368:107: error: expected type 'recursion.block_v5_pc_clock_span_v1.Span', found '?recursion.block_v5_pc_clock_span_v1.Span'
+            if (subtype == .native_v3 or subtype == .capacity_v1) if (!std.meta.eql(source.span.?, checked.pc_clock_span)) return error.UntrustedWideOriginalFreshSpan;
+                                                                                                   ~~~~~~~^~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:368:107: note: cannot convert optional to payload type
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:368:107: note: consider using '.?', 'orelse', or 'if'
+src/frontends/riscv/recursion/block_v5_pc_clock_span_v1.zig:9:18: note: struct declared here
+pub const Span = struct {
+                 ^~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/meta.zig:707:27: note: parameter type declared here
+pub fn eql(a: anytype, b: @TypeOf(a)) bool {
+                          ^~~~~~~~~~
+referenced by:
+    stwo_wide_original_bridge_body_gate: src/frontends/riscv/block_v5_wide_original_bridge_codegen_v1.zig:25:30
+    stwo_wide_original_bridge_body_gate: src/frontends/riscv/block_v5_wide_original_bridge_codegen_v1.zig:22:5
+    1 reference(s) hidden; use '-freference-trace=3' to see all references

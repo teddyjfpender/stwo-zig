@@ -1,0 +1,14 @@
+src/frontends/riscv/prover/block_v5_cpu_driver_common_v1.zig:157:121: error: expected type '*prover.block_v5_cpu_bundle_store_impl_v1.ForCapacity(false).Store', found '*prover.block_v5_cpu_bundle_store_impl_v1.ForCapacity(true).Store'
+                try self.collected.globals.memory.proveWithStore(self.a, Sorted.fromReplay(&self.collected.replay), self.store, self.assembly.seal_pins, self.assembly.entries, self.assembly.sealed, self.families.boundary());
+                                                                                                                    ~~~~^~~~~~
+src/frontends/riscv/prover/block_v5_cpu_driver_common_v1.zig:157:121: note: pointer type child 'prover.block_v5_cpu_bundle_store_impl_v1.ForCapacity(true).Store' cannot cast into pointer type child 'prover.block_v5_cpu_bundle_store_impl_v1.ForCapacity(false).Store'
+src/frontends/riscv/prover/block_v5_cpu_bundle_store_impl_v1.zig:127:27: note: struct declared here (2 times)
+        pub const Store = struct {
+                          ^~~~~~
+src/frontends/riscv/prover/block_v5_sorted_memory_replay_v1.zig:74:101: note: parameter type declared here
+        pub fn proveWithStore(self: *const Self, a: std.mem.Allocator, source: SortedSource, store: *@import("block_v5_cpu_bundle_store_v1.zig").Store, pins: Seal.Pins, entries: []const Seal.Entry, sealed: Seal.Sealed, boundary: ?Boundary) !void {
+                                                                                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    run: src/frontends/riscv/prover/block_v5_cpu_driver_common_v1.zig:280:125
+    run: src/frontends/riscv/block_v5_cpu_capacity_driver_codegen.zig:13:30
+    6 reference(s) hidden; use '-freference-trace=8' to see all references

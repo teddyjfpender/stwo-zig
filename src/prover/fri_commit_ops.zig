@@ -117,11 +117,12 @@ pub fn CommitOps(
             column: secure_column.SecureColumnByCoords,
             fold_step: u32,
         ) !FirstLayerProver {
-            const committed = try commitSecureColumnForFold(
+            var committed = try commitSecureColumnForFold(
                 allocator,
                 column,
                 fold_step,
             );
+            if (comptime @hasDecl(B.MerkleTree(H), "compactForQueries")) committed.merkle_tree.compactForQueries();
             MC.mixRoot(channel, committed.merkle_tree.root());
             return .{
                 .domain = domain,
@@ -139,13 +140,15 @@ pub fn CommitOps(
             fold_step: u32,
             work_audit: ?*ProtocolWorkAudit,
         ) !FirstLayerProver {
-            var column = if (comptime @hasDecl(B, "allocateSecureColumn"))
+            var column = if (comptime @hasDecl(B, "allocateSecureColumnWithAllocator"))
+                try B.allocateSecureColumnWithAllocator(allocator, provider.domain_size)
+            else if (comptime @hasDecl(B, "allocateSecureColumn"))
                 try B.allocateSecureColumn(provider.domain_size)
             else
                 try SecureColumnByCoords.uninitialized(allocator, provider.domain_size);
             errdefer column.deinit(allocator);
 
-            const committed = if (comptime @hasDecl(B, "commitLazyMerkle")) blk: {
+            var committed = if (comptime @hasDecl(B, "commitLazyMerkle")) blk: {
                 if (!shouldPack(column.len(), fold_step)) {
                     break :blk FoldCommitment{
                         .merkle_tree = try B.commitLazyMerkle(H, allocator, provider, &column),
@@ -173,6 +176,7 @@ pub fn CommitOps(
                     fold_step,
                 );
             };
+            if (comptime @hasDecl(B.MerkleTree(H), "compactForQueries")) committed.merkle_tree.compactForQueries();
             MC.mixRoot(channel, committed.merkle_tree.root());
             if (work_audit) |audit| {
                 const used_lazy_merkle = @hasDecl(B, "commitLazyMerkle") and
@@ -261,7 +265,9 @@ pub fn CommitOps(
                 }
             }
 
-            var layer_evaluation = if (comptime @hasDecl(B, "allocateLineEvaluation"))
+            var layer_evaluation = if (comptime @hasDecl(B, "allocateLineEvaluationWithAllocator"))
+                try B.allocateLineEvaluationWithAllocator(allocator, circle_fold_domain)
+            else if (comptime @hasDecl(B, "allocateLineEvaluation"))
                 try B.allocateLineEvaluation(circle_fold_domain)
             else
                 try prover_line.LineEvaluation.newZero(allocator, circle_fold_domain);
@@ -279,7 +285,9 @@ pub fn CommitOps(
                 first_layer.column.columns[2],
                 first_layer.column.columns[3],
             };
-            if (work_audit) |audit| {
+            if (comptime @hasDecl(B, "foldCircleResidentIntoLine")) {
+                try B.foldCircleResidentIntoLine(allocator, first_layer.column, &layer_evaluation, first_layer.domain, folding_alpha, if (work_audit) |audit| &audit.fold_executions else null);
+            } else if (work_audit) |audit| {
                 if (comptime @hasDecl(B, "foldCircleIntoLineWithReceipt")) {
                     try B.foldCircleIntoLineWithReceipt(
                         allocator,
@@ -506,6 +514,8 @@ pub fn CommitOps(
             while (layer_evaluation.len() > config.lastLayerDomainSize()) {
                 var secure_values = pending_column orelse if (comptime @hasDecl(B, "secureColumnForMerkle"))
                     try B.secureColumnForMerkle(allocator, layer_evaluation)
+                else if (comptime @hasDecl(B, "secureColumnFromLineWithAllocator"))
+                    try B.secureColumnFromLineWithAllocator(allocator, layer_evaluation)
                 else if (comptime @hasDecl(B, "secureColumnFromLine"))
                     try B.secureColumnFromLine(layer_evaluation)
                 else
@@ -533,6 +543,7 @@ pub fn CommitOps(
                 pending_tree = null;
                 errdefer if (!layer_appended) committed.deinit(allocator);
 
+                if (comptime @hasDecl(B.MerkleTree(H), "compactForQueries")) committed.merkle_tree.compactForQueries();
                 MC.mixRoot(channel, committed.merkle_tree.root());
                 const fold_alpha = channel.drawSecureFelt();
 

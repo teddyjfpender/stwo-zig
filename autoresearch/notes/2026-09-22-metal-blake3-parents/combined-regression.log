@@ -1,0 +1,26 @@
+test-proof-of-work
++- run test stderr
+BLAKE3_METAL_POW bits=8 nonce=354 dispatches=1
+BLAKE3_METAL_POW bits=12 nonce=5017 dispatches=1
+BLAKE3_METAL_POW bits=21 nonce=2021245 dispatches=2
+BLAKE3_METAL_POW bits=26 nonce=63024448 dispatches=61
+test-blake3-parent-chain
++- run test stderr
+BLAKE3_METAL_PARENT depth=1 reuse=0 gpu_ms=0.02916666562668979
+BLAKE3_METAL_PARENT depth=1 reuse=1 gpu_ms=0.02870833850465715
+BLAKE3_METAL_PARENT depth=5 reuse=0 gpu_ms=0.07320832810364664
+BLAKE3_METAL_PARENT depth=5 reuse=1 gpu_ms=0.07391667168121785
+BLAKE3_METAL_PARENT depth=11 reuse=0 gpu_ms=0.15520832675974816
+BLAKE3_METAL_PARENT depth=11 reuse=1 gpu_ms=0.2973749942611903
+
+Build Summary: 9/9 steps succeeded; 11/11 tests passed
+test-blake3-parent-chain success
++- run test 2 passed 471ms MaxRSS:50M
+   +- compile test ReleaseSafe native success 3s MaxRSS:383M
+test-shader-authority success
++- run test 6 passed 585ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 3s MaxRSS:328M
+test-proof-of-work success
++- run test 3 passed 13s MaxRSS:58M
+   +- compile test ReleaseSafe native success 7s MaxRSS:482M
+

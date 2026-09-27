@@ -1,0 +1,43 @@
+{
+  "status": "focused-nonproving-source-qualification-only",
+  "authoritative_source_snapshot": "native-bottom-recursive-fixed-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "native-bottom-recursive-fixed-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 29.09374675003346,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 15,
+    "test_summary": [
+      "All 15 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-bottom-recursive-fixed-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-native-bottom-recursive-fixed-focused-v2",
+      "bytes": 45351568,
+      "sha256": "609f71c8f3183ed194ebf86672f1acdb3c2f2b345ba1ab26db15b70318da249f"
+    }
+  },
+  "source_pin_count": 1915,
+  "behavioral_checks": 9,
+  "scope": [
+    "Genuine original RAM/range and raw/fold PAGE native shapes and symbolic composition DEEP/FRI compilers",
+    "Original PAGE live/static masks and equation recording share one body",
+    "Original full PAGE masks/graph identity parity, custody, mutations and new allocation rollback",
+    "Native fixed-only arithmetic pieces are partial; complete setup still fails closed"
+  ],
+  "remaining": [
+    "Exact native external-input arithmetic roster parity",
+    "Transcript/path/public-source/context/key assembly",
+    "Positive complete proof and time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

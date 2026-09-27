@@ -1,0 +1,40 @@
+[sha256-guest-qualification] another build holds /tmp/stwo-zig-build.lock; waiting
+[sha256-guest-qualification] acquired after 1853s
+     Locking 10 packages to latest Rust 1.96.0 compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling generic-array v0.14.7
+   Compiling libc v0.2.189
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling cfg-if v1.0.5
+   Compiling stwo-sha256-precompile-guest-tests v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/benchmarks/guest_runtime/sha256_precompile_tests)
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+    Finished `release` profile [optimized] target(s) in 2.34s
+     Running unittests src/lib.rs (target/release/deps/stwo_sha256_precompile_guest_tests-81b766a9b67201d0)
+
+running 3 tests
+test tests::instruction_is_the_exact_two_register_compression_abi ... ok
+test tests::all_padding_and_alignment_boundaries ... ok
+test tests::standard_messages_and_large_input ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests stwo_sha256_precompile_guest_tests
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling compiler_builtins v0.1.160 (/Users/theodorepender/.rustup/toolchains/nightly-2026-08-08-aarch64-apple-darwin/lib/rustlib/src/rust/library/compiler-builtins/compiler-builtins)
+   Compiling core v0.0.0 (/Users/theodorepender/.rustup/toolchains/nightly-2026-08-08-aarch64-apple-darwin/lib/rustlib/src/rust/library/core)
+   Compiling stwo-sha256-precompile-guest-tests v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/benchmarks/guest_runtime/sha256_precompile_tests)
+    Finished `release` profile [optimized] target(s) in 4.71s
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_guest.py", line 28, in <module>
+    raise RuntimeError(f"Expected one current assembly artifact, got {len(emitted)}")
+RuntimeError: Expected one current assembly artifact, got 0

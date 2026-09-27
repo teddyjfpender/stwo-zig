@@ -1,0 +1,25 @@
+1/16 block_v5_requester_memory_fixed_assembly_test_root_v1.test_0...OK
+2/16 block_v5_requester_memory_fixed_assembly_test_root_v1.test.FINAL22 fixed assembly: actual complete family expected-key and original lower producer fresh bodies retained...OK
+3/16 block_v5_requester_memory_fixed_assembly_test_root_v1.test.FINAL22 fixed assembly: explicit legacy source recipe retained...OK
+4/16 prover.block_v5_requester_memory_fixed_assembly_test_v1.test.FINAL22 fixed assembly: exact original context child ordering graph and closure channels...OK
+5/16 prover.block_v5_requester_memory_fixed_assembly_test_v1.test.FINAL22 fixed assembly: original transition sign scalar symbolic parity and changed memory rejects...FAIL (UnsatisfiedCircuit)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:379:43: 0x100ab7f3f in evaluateInto (root)
+            if (!values[output].isZero()) return error.UnsatisfiedCircuit;
+                                          ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_requester_memory_fixed_assembly_test_v1.zig:119:5: 0x102804bb7 in test.FINAL22 fixed assembly: original transition sign scalar symbolic parity and changed memory rejects (root)
+    try circuit.evaluateInto(&.{ value, value.neg().add(Q.one()) }, values);
+    ^
+6/16 prover.block_v5_requester_memory_fixed_assembly_test_v1.test.FINAL22 fixed assembly: closed suppliers exact original signed Boundary tails identity and empty external schedule...OK
+7/16 prover.block_v5_requester_memory_fixed_assembly_test_v1.test.FINAL22 fixed assembly: bounded two-child namespace and closure OOM release upstream outside injection...OK
+8/16 prover.block_v5_requester_memory_fixed_assembly_test_v1.test.FINAL22 fixed assembly: genuine fixed graph tuple schedule matches original source lowering...OK
+9/16 prover.block_v5_requester_memory_fixed_assembly_test_v1.test.FINAL22 fixed assembly: lower capture-free missing port and initial guards cannot grant authority...OK
+10/16 prover.block_v5_requester_memory_fixed_assembly_test_v1.test.FINAL22 fixed assembly: real nested backing budget stays live beyond creator release...OK
+11/16 prover.block_execution_external_trace_v2.test_0...OK
+12/16 air.lookups.tables.mod.test_0...OK
+13/16 air.semantic_eval.test_0...OK
+14/16 prover.block_execution_external_access_bridge_v2.test_0...OK
+15/16 air.memory_commitment.poseidon2_air.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+15 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-requester-memory-fixed-assembly-legacy-focused-v2 --seed=0xf924771d

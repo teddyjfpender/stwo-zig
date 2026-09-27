@@ -1,0 +1,5 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 39s
+1/2 prover.blake3_program_validation_cache.test.program validation cache admits exact content and rejects mutations...OK
+2/2 prover.blake3_program_validation_cache.test.program validation cache eviction preserves validation...OK
+All 2 tests passed.

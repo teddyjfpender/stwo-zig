@@ -1,0 +1,53 @@
+src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig:34:34: error: ambiguous reference
+            pub fn deinit(self: *Assembly) void {
+                                 ^~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig:20:13: note: declared here
+        pub const Assembly = struct {
+        ~~~~^~~~~
+src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig:157:5: note: also declared here
+pub const Assembly = Legacy.Assembly;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig:47:128: error: ambiguous reference
+        pub fn assemble(a: std.mem.Allocator, collected: *Collect.Collected, policy: Driver.InputPolicy, max_entries: usize) !*Assembly {
+                                                                                                                               ^~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig:20:13: note: declared here
+        pub const Assembly = struct {
+        ~~~~^~~~~
+src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig:157:5: note: also declared here
+pub const Assembly = Legacy.Assembly;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:58:34: error: ambiguous reference
+            pub fn deinit(self: *Collected) void {
+                                 ^~~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:41:13: note: declared here
+        pub const Collected = struct {
+        ~~~~^~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:279:5: note: also declared here
+pub const Collected = Legacy.Collected;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:76:151: error: ambiguous reference
+        pub fn collect(a: std.mem.Allocator, dir: std.fs.Dir, source: *Runner.Source, policy: Driver.InputPolicy, config: core.pcs.PcsConfig, limits: Limits) !*Collected {
+                                                                                                                                                      ^~~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:28:13: note: declared here
+        pub const Limits = struct {
+        ~~~~^~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:278:5: note: also declared here
+pub const Limits = Legacy.Limits;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:243:169: error: ambiguous reference
+        fn collectPhysical(a: std.mem.Allocator, owner: *@import("blake3_execution_trace.zig").Owner, config: core.pcs.PcsConfig, index: u32, first_cycle: u64, limits: Limits, reuse: *FixedReuse) !NativeRoots.Proposal {
+                                                                                                                                                                        ^~~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:28:13: note: declared here
+        pub const Limits = struct {
+        ~~~~^~~~~
+src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:278:5: note: also declared here
+pub const Limits = Legacy.Limits;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 24, in <module>
+    subprocess.run([z,'test',*filter_args,*runner_args,'-O' + args.optimize,'-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','--dep','stwo_backend_contracts','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig',*runner_modules],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'capacity collection:', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '--dep', 'stwo_backend_contracts', '-Mroot=src/frontends/riscv/block_v5_cpu_capacity_collection_unit_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

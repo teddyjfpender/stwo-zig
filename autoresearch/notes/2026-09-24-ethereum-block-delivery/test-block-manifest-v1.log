@@ -1,0 +1,6 @@
+1/5 block_commitment_manifest.test.block manifest binds exact three-instance coverage without dummy leaves...OK
+2/5 block_commitment_manifest.test.block manifest refuses omissions reordering duplicate receipts and foreign fixed roots...OK
+3/5 block_component_plan.test.component instances cover arbitrary counts without power-of-two rounding...OK
+4/5 block_component_plan.test.component families size independently and inactive precompiles allocate nothing...OK
+5/5 block_component_plan.test.component planner rejects unsupported capacity and duplicate families...OK
+All 5 tests passed.

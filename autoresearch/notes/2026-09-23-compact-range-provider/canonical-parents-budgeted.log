@@ -1,0 +1,35 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test 9/10 passed, 1 failed
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=9520 removed_scalars=38080
+BLAKE3_NATIVE_FUSION dot4=19973 fma=59595 arithmetic_rows=172288
+CANONICAL_PARENT_MEMORY peak_bytes=15001575082 limit_bytes=25769803776
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=850599 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40712 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=494897 independently_verified=true
+error: 'prover.compact_extension_test.test.compact range provider extension canonical recursive parents verify' failed: BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=17570 removed_scalars=70280
+BLAKE3_NATIVE_FUSION dot4=793003 fma=138769 arithmetic_rows=1369210
+COMPACT_EXTENSION_PARENT_ERROR ScopedPoolAlreadyBound
+error: while executing test 'diagnostics.mod.test_0', the following test command failed:
+./.zig-cache/products/riscv_cpu/o/361ac36d8b4c0f50dbcf4cc61e8691aa/test --cache-dir=./.zig-cache/products/riscv_cpu --seed=0x9b3baf0c --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 9/10 tests passed; 1 failed
+test-riscv-statement-codecs transitive failure
++- riscv test suite guard transitive failure
+   +- run test 9/10 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/c1b579a760efa999b930954cf0337832/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_cpu /Users/theodorepender/.cache/zig --seed 0x9b3baf0c -Zedbc2d5a6b72d394 test-riscv-statement-codecs -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 -Driscv-test-filter=canonical recursive parent -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=4cc35c3cf6b33289abade6e39a54d53e292a5db69df4cc185ab81438ff52dfec
+test-riscv-statement-codecs
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build test-riscv-statement-codecs --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 "-Driscv-test-filter=canonical recursive parent" -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=4cc35c3cf6b33289abade6e39a54d53e292a5db69df4cc185ab81438ff52dfec
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv-statement-codecs transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/851e45bb6fc1dbcb58ceb175863ab8de/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x64406dd0 -Z401d6e8cc09a8a8e --maxrss 25769803776 -j1 test-riscv-statement-codecs -Driscv-test-filter=canonical recursive parent -Doptimize=ReleaseFast --summary all

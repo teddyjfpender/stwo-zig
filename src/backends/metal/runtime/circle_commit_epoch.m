@@ -34,14 +34,18 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
     if (runtime_ptr == NULL || source_columns == NULL || base_columns == NULL ||
         extended_words == NULL || inverse_twiddles == NULL || forward_twiddles == NULL ||
         leaf_seed == NULL || node_seed == NULL ||
-        !(column_count == 8u || (column_count >= 64u && column_count <= 256u)) ||
+        !(column_count == 1u || column_count == 8u || column_count == 24u || column_count == 54u || (column_count >= 64u && column_count <= 256u)) ||
         coefficients_ready > 1u ||
-        base_log_size < 16u || extended_log_size != base_log_size + 1u ||
+        base_log_size < 12u || extended_log_size != base_log_size + 1u ||
         extended_log_size >= 31u ||
         (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u) ||
-        !stwo_zig_valid_commitment_hash_family_v1(hash_family)) {
+        (!stwo_zig_valid_commitment_hash_family_v1(hash_family) && hash_family!=StwoZigCommitmentHashFamilyBlake3V1)) {
         write_error(error_message, error_message_len, @"Combined Metal commitment shape is unsupported");
         return NULL;
+    }
+    if(hash_family==StwoZigCommitmentHashFamilyBlake3V1) {
+        if(domain_prefix_bytes!=0u) return NULL;
+        for(uint32_t i=0;i<8u;++i) if(leaf_seed[i]!=0u || node_seed[i]!=0u) return NULL;
     }
     if (trace_recipe != NULL) {
         if (coefficients_ready != 0u) {

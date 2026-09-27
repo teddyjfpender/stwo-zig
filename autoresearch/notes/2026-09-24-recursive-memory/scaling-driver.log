@@ -1,0 +1,65 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-32.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-32.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-32-prove-expanded-io.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-32-prove-expanded-io.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 1800,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "bd19400b4d770b53892ad629e852b55ca6dee7910046938f9363c34fbca71ffb",
+    "eth-auth-stwo-expanded.elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "fixtures/batch-32.input": "c2eeb9bf4fa100b05d53a90d0bf5c061d278b7d676c2af1f40e0e4caab096a5e",
+    "fixtures/batch-32.expected": "ddb041867e24fcf4be7fbdf97252b8c4ab5b4c1f540d322859f825e702ee794c"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 2636.06M  free = 1459.94M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 102.69003683401388,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 2508.00M  free = 1588.00M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "output_checked": true
+}
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-64.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-64.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-64-prove-expanded-io.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-64-prove-expanded-io.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 1800,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "bd19400b4d770b53892ad629e852b55ca6dee7910046938f9363c34fbca71ffb",
+    "eth-auth-stwo-expanded.elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "fixtures/batch-64.input": "e48f448a2910a8fa81999b4faec99f38dff86e180fe578857c74fd08a4b205a8",
+    "fixtures/batch-64.expected": "e9ee0be037b223d0a2a120bd035c98ef50b10d8cc52e59eafccaca63906d76f1"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 2508.00M  free = 1588.00M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "exit_code": 1,
+  "process_wall_seconds": 63.92730570799904,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 2468.00M  free = 1628.00M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n"
+}
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', 'autoresearch/notes/2026-09-24-recursive-memory/run.py', 'local', 'batch-64', 'prove', 'expanded-io']' returned non-zero exit status 1.

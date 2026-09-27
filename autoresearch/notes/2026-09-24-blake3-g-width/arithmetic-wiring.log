@@ -1,0 +1,34 @@
+test-blake3-wiring
++- BLAKE3 wiring guard
+   +- run test 0/3 passed, 3 failed
+error: 'recursion.air.blake3_wiring_test.test.BLAKE3 call components pin semantics and authenticate relation plans' failed: CALL_DIGEST 878a0938353a5e45fc932363ddb324721a1797de85a52a36aa5d64b918713ee5
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+A5 2A C4 5D 34 19 72 54  38 C1 10 05 CA 58 47 E9  .*.]4.rT8....XG.
+2A C7 37 31 D6 36 88 04  38 9B D4 DA D8 6B 49 45  *.71.6..8....kIE
+
+============= instead found this: ==============  len: 32 (0x20)
+
+87 8A 09 38 35 3A 5E 45  FC 93 23 63 DD B3 24 72  ..␉85:^E..#c..$r
+1A 17 97 DE 85 A5 2A 36  AA 5D 64 B9 18 71 3E E5  ......*6.]d..q>.
+
+================================================
+error: 'recursion.air.blake3_wiring_test.test.BLAKE3 fixed compression wire graph closes and rejects endpoint substitutions' failed
+error: 'recursion.air.blake3_wiring_test.test.BLAKE3 ordered call construction releases partial allocations' failed
+error: while executing test 'recursion.air.blake3_wiring_test.test.BLAKE3 ordered call construction releases partial allocations', the following test command failed:
+./.zig-cache/o/08a09824c96d0589da8dfd799601fd67/test --cache-dir=./.zig-cache --seed=0x647aa825 --listen=-
+
+Build Summary: 5/8 steps succeeded; 1 failed; 3/6 tests passed; 3 failed
+test-blake3-packed success
++- BLAKE3 packed guard success
+   +- run test 3 passed 702ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 4s MaxRSS:487M
+test-blake3-wiring transitive failure
++- BLAKE3 wiring guard transitive failure
+   +- run test 0/3 passed, 3 failed
+      +- compile test ReleaseSafe native success 4s MaxRSS:502M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ff568004319f1a92376d4a4223dcb6d9/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x647aa825 -Z242938467b4bdf3c --maxrss 25769803776 -j1 test-blake3-packed test-blake3-wiring -Doptimize=ReleaseSafe --summary all

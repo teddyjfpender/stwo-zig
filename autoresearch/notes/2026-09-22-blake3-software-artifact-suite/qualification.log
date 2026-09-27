@@ -1,0 +1,21 @@
+1/20 riscv_artifact.test.RISC-V artifact header rejects legacy and unknown schemas explicitly...OK
+2/20 riscv_artifact.test.RISC-V artifact routing preserves explicit legacy rejection...OK
+3/20 riscv_artifact.test.artifact classification owns non-RISC-V fallback bytes across replacement...OK
+4/20 riscv_artifact.test_0...OK
+5/20 riscv_artifact.test.RISC-V artifact suite admission binds version and mode before decoding...OK
+6/20 riscv_artifact.preflight.test.preflight routing rejects duplicate security headers without typed allocation...OK
+7/20 riscv_artifact.preflight.test.preflight rejects unknown nested fields and oversized arrays...OK
+8/20 riscv_artifact.preflight.test.preflight admits the registry-derived DIV interaction width...OK
+9/20 atomic_file.test.atomic file: publish is exclusive and leaves no partial output...OK
+10/20 riscv_artifact.validation_test.test.schema v4 accepts completion-bound indexed claims and exact PCS profiles...OK
+11/20 riscv_artifact.validation_test.test.schema v4 rejects non-canonical component order...OK
+12/20 riscv_artifact.validation_test.test.schema v4 rejects padded and misindexed claim arrays...OK
+13/20 riscv_artifact.validation_test.test.statement digest binds shard and exact claim geometry...OK
+14/20 riscv_artifact.validation_test.test.schema v4 validates build provenance and current segment geometry...OK
+15/20 riscv_artifact.validation_test.test.schema v4 rejects an input digest unrelated to canonical public bytes...OK
+16/20 riscv_artifact.validation_test.test.fixed-memory preflight accepts the canonical typed artifact...OK
+17/20 riscv_artifact.validation_test.test.schema v4 rejects public data that production preflight rejects...OK
+18/20 riscv_artifact.validation_test.test.schema v4 accepts strict access subclocks beyond the instruction clock...OK
+19/20 riscv_artifact.validation_test.test.schema v4 admits every declared backend and rejects the rest...OK
+20/20 riscv_artifact.validation_test.test.schema v5 preserves structural validation and rejects mixed suite headers...OK
+All 20 tests passed.

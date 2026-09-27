@@ -1,0 +1,5 @@
+control-first wall 24.026 parent stages 10.957
+candidate-first wall 19.953 parent stages 7.364
+candidate-last wall 20.116 parent stages 7.413
+control-last wall 23.804 parent stages 11.071
+{"control": {"samples": 2, "wall_median_seconds": 23.914989020500798, "parent_stage_median_seconds": 11.014085999999999, "peak_rss_bytes": 20886093824, "peak_physical_footprint_bytes": 27381543104, "stage_medians_seconds": {"parent.validation": 0.0128845, "parent.main_setup": 1.5597664999999998, "parent.main_commit": 1.770734, "parent.interaction_generation": 0.734266, "parent.interaction_commit": 1.6773235, "parent.core": 5.2591114999999995}}, "candidate": {"samples": 2, "wall_median_seconds": 20.03462497900182, "parent_stage_median_seconds": 7.3887155, "peak_rss_bytes": 20883980288, "peak_physical_footprint_bytes": 27759407632, "stage_medians_seconds": {"parent.validation": 0.0129975, "parent.main_setup": 1.5696745, "parent.main_commit": 1.7871394999999999, "parent.interaction_generation": 0.739251, "parent.interaction_commit": 1.6827315, "parent.core": 1.5969215}}}

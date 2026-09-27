@@ -103,10 +103,13 @@ pub fn Methods(comptime Self: type) type {
             point: CirclePointQM31,
             max_log_degree_bound: u32,
         ) !core_air_components.MaskPoints {
-            if (max_log_degree_bound < schema.logSize(self.kind)) return error.InvalidProofShape;
+            return staticMaskPoints(self.kind, allocator, point, max_log_degree_bound);
+        }
+        pub fn staticMaskPoints(kind: schema.Kind, allocator: std.mem.Allocator, point: CirclePointQM31, max_log_degree_bound: u32) !core_air_components.MaskPoints {
+            if (max_log_degree_bound < schema.logSize(kind)) return error.InvalidProofShape;
             const preprocessed = try currentPointColumns(
                 allocator,
-                1 + schema.arity(self.kind),
+                1 + schema.arity(kind),
                 point,
             );
             errdefer freePointColumns(allocator, preprocessed);

@@ -1,0 +1,46 @@
+stwo-zig-riscv-cpu
++- install stwo-zig-riscv-cpu
+   +- compile exe stwo-zig-riscv-cpu ReleaseFast native 2 errors
+src/integrations/riscv_cpu/proof_adapter/guest_profile.zig:258:15: error: expected type 'proof.StarkProof(vcs_lifted.blake3_merkle.MerkleHasher)', found 'proof.StarkProof(vcs_lifted.blake2_merkle.Blake2sMerkleHasherProtocolGeneric(false,.domain_prefixed))'
+        output.proof,
+        ~~~~~~^~~~~~
+src/core/proof.zig:23:12: note: struct declared here (2 times)
+    return struct {
+           ^~~~~~
+src/frontends/riscv/prover/guest_precompile/verifier.zig:52:40: note: parameter type declared here
+    proof_in: base_types.ProofForEngine(Engine),
+              ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+referenced by:
+    run__anon_56773: src/integrations/riscv_cpu/proof_adapter/guest_profile.zig:57:27
+    runIfSelected__anon_56768: src/integrations/riscv_cpu/proof_adapter/profile_router.zig:22:33
+    9 reference(s) hidden; use '-freference-trace=11' to see all references
+src/integrations/riscv_cpu/proof_adapter/guest_profile.zig:258:15: error: expected type 'proof.StarkProof(vcs_lifted.blake3_merkle.MerkleHasher)', found 'proof.StarkProof(vcs_lifted.blake2_merkle.Blake2sMerkleHasherProtocolGeneric(false,.domain_prefixed))'
+        output.proof,
+        ~~~~~~^~~~~~
+src/core/proof.zig:23:12: note: struct declared here (2 times)
+    return struct {
+           ^~~~~~
+src/frontends/riscv/prover/guest_precompile/verifier.zig:52:40: note: parameter type declared here
+    proof_in: base_types.ProofForEngine(Engine),
+              ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build-exe -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo --dep stwo_riscv_cpu=stwo --dep riscv_adapter --dep riscv_cpu_capabilities --dep riscv_shared_app --dep riscv_shared_cli --dep riscv_shared_registry --dep output_transaction --dep build_identity --dep product_identity -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/products/riscv_cpu/main.zig -OReleaseFast -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseFast --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseFast --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_proof_wire --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_riscv_cpu_integration -Mstwo=/Users/theodorepender/code/cryptography/stwo-zig/src/stwo_riscv_cpu.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo --dep riscv_cpu_capabilities --dep build_identity=build_identity0 -Mriscv_adapter=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/proof_adapter.zig -OReleaseFast -Mriscv_cpu_capabilities=/Users/theodorepender/code/cryptography/stwo-zig/src/products/riscv_cpu/capabilities.zig -OReleaseFast -Mriscv_shared_app=/Users/theodorepender/code/cryptography/stwo-zig/src/products/riscv_shared/app.zig -OReleaseFast -Mriscv_shared_cli=/Users/theodorepender/code/cryptography/stwo-zig/src/products/riscv_shared/cli.zig -OReleaseFast -Mriscv_shared_registry=/Users/theodorepender/code/cryptography/stwo-zig/src/products/riscv_shared/registry.zig -OReleaseFast -Moutput_transaction=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/output_transaction.zig -Mbuild_identity=.zig-cache/products/riscv_cpu/c/83d084963f3179fd927abc3d9ddd06dd/options.zig -Mproduct_identity=.zig-cache/products/riscv_cpu/c/e087b353151147ec357e2bc5646e39e0/options.zig -OReleaseFast --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseFast --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseFast --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -Mbuild_identity0=.zig-cache/products/riscv_cpu/c/83d084963f3179fd927abc3d9ddd06dd/options.zig --cache-dir .zig-cache/products/riscv_cpu --global-cache-dir /Users/theodorepender/.cache/zig --name stwo-zig-riscv-cpu --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 3/6 steps succeeded; 1 failed
+stwo-zig-riscv-cpu transitive failure
++- install stwo-zig-riscv-cpu transitive failure
+   +- compile exe stwo-zig-riscv-cpu ReleaseFast native 2 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/9c8bc0da98e7fc7b1e7f7bf641b50c17/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_cpu /Users/theodorepender/.cache/zig --seed 0xd5fd705e -Z2d7eef212de363c0 stwo-zig-riscv-cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=77eef5412c88335e2ed3fe3fcf30606bcbc4127a5e81a3f1488f9ada0b85b93b
+stwo-zig-riscv-cpu
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build stwo-zig-riscv-cpu --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=77eef5412c88335e2ed3fe3fcf30606bcbc4127a5e81a3f1488f9ada0b85b93b
+
+Build Summary: 0/2 steps succeeded; 1 failed
+stwo-zig-riscv-cpu transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/4b953a98f8a34eccb3e170f2f682e01b/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x92a6557f -Z62f5e94bcce511dd --maxrss 25769803776 -j1 stwo-zig-riscv-cpu -Doptimize=ReleaseFast --summary all

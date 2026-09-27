@@ -132,6 +132,7 @@ pub fn ComponentForManifest(
         pub const traceLogDegreeBounds = VerifierMethods.traceLogDegreeBounds;
 
         pub const maskPoints = VerifierMethods.maskPoints;
+        pub const staticMaskPoints = VerifierMethods.staticMaskPoints;
 
         /// Allocation-free row kernel used by admission and differential
         /// tests. `current` is the same-row cumulative value of every secure
@@ -217,6 +218,17 @@ pub fn ComponentForManifest(
                 };
                 owned_count += @intFromBool(needs_extension);
             }
+            var use_cosets = trace.partition_coefficient_composition and eval_log_size > self.log_size;
+            var compact_source = false;
+            for (sources) |source| {
+                compact_source = compact_source or source.values.len == 0;
+                if (source.coefficients) |coefficients| {
+                    use_cosets = use_cosets and coefficients.logSize() == self.log_size;
+                } else use_cosets = false;
+            }
+            use_cosets = use_cosets and compact_source;
+            if (use_cosets) owned_count = SOURCE_COUNT;
+            const partition_size = if (use_cosets) @as(usize, 1) << @intCast(self.log_size) else eval_size;
             const values_allocator = trace.quotient_values_allocator orelse allocator;
             const owned_buffers = try allocator.alloc([]M31, owned_count);
             var owned_initialized: usize = 0;
@@ -226,7 +238,17 @@ pub fn ComponentForManifest(
                 allocator.free(owned_buffers);
             }
             var evaluations: [SOURCE_COUNT][]const M31 = undefined;
-            {
+            if (use_cosets) {
+                // Only the final secure interaction has a previous-row mask.
+                // Keep its four columns across the whole domain; all others
+                // need just the current conjugate coset.
+                for (owned_buffers, &evaluations, 0..) |*buffer, *evaluation, i| {
+                    const full = LOGUP_COUNT != 0 and i >= SOURCE_COUNT - 4;
+                    buffer.* = try values_allocator.alloc(M31, if (full) eval_size else partition_size);
+                    owned_initialized += 1;
+                    evaluation.* = buffer.*;
+                }
+            } else {
                 var twiddles: ?prover_twiddles.TwiddleTree([]M31) = if (owned_count != 0)
                     try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset)
                 else
@@ -257,6 +279,19 @@ pub fn ComponentForManifest(
                     );
                 }
             }
+            var full_transform: ?prover_twiddles.TwiddleTree([]M31) = null;
+            var coset_transforms: [DENOMINATOR_COUNT]?prover_twiddles.TwiddleTree([]M31) = @splat(null);
+            errdefer {
+                if (full_transform) |*transform| prover_twiddles.deinitM31(allocator, transform);
+                for (&coset_transforms) |*transform| if (transform.*) |*owned| prover_twiddles.deinitM31(allocator, owned);
+            }
+            if (use_cosets) {
+                if (LOGUP_COUNT != 0) full_transform = try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset);
+                for (&coset_transforms, 0..) |*transform, part| {
+                    const domain = try prover_circle.coset_partition.domain(eval_domain, eval_log_size - self.log_size, part);
+                    transform.* = try prover_twiddles.precomputeM31(allocator, domain.half_coset);
+                }
+            }
             const denominator_inverse = try quotientDenominators(
                 DENOMINATOR_COUNT,
                 self.log_size,
@@ -281,18 +316,30 @@ pub fn ComponentForManifest(
                 .values_allocator = values_allocator,
                 .denominator_inverse = denominator_inverse,
                 .column_accumulator = accumulator_columns[0],
-                .eval_size = eval_size,
+                .eval_size = partition_size,
+                .total_eval_size = eval_size,
+                .coset_sources = if (use_cosets) sources else null,
+                .full_transform = full_transform,
+                .coset_transforms = coset_transforms,
                 .direct_store = accumulator_columns[0].next_fresh_index == 0,
             };
+            var resources = try preparedResources(eval_size, owned_count, @sizeOf(PreparedDomainState));
+            if (use_cosets) {
+                // Declare the actual retained buffers and transforms; run is
+                // allocation-free and its child waves share the admitted lease.
+                var resident = try std.math.add(usize, @sizeOf(PreparedDomainState), owned_buffers.len * @sizeOf([]M31));
+                for (owned_buffers) |buffer| resident = try std.math.add(usize, resident, try std.math.mul(usize, buffer.len, @sizeOf(M31)));
+                if (full_transform) |transform| resident = try std.math.add(usize, resident, (transform.twiddles.len + transform.itwiddles.len) * @sizeOf(M31));
+                for (coset_transforms) |transform| if (transform) |owned| {
+                    resident = try std.math.add(usize, resident, (owned.twiddles.len + owned.itwiddles.len) * @sizeOf(M31));
+                };
+                resources.shared_resident_bytes = resident;
+            }
             return .{
                 .context = state,
                 .vtable = &PreparedDomainState.vtable,
                 .task_class = if (eval_size >= PARALLEL_DOMAIN_ROWS) .pool_exclusive else .leaf,
-                .resources = try preparedResources(
-                    eval_size,
-                    owned_count,
-                    @sizeOf(PreparedDomainState),
-                ),
+                .resources = resources,
             };
         }
 
@@ -312,8 +359,9 @@ pub fn ComponentForManifest(
             for (row_start..row_end) |row_index| {
                 if ((row_index & (PreparedDomainState.CANCELLATION_POLL_ROWS - 1)) == 0 and
                     (cancellation.isCancelled() or state.failure_boundary.shouldCancel(range_index))) return false;
+                const global_row = state.row_offset + row_index;
                 const previous_row = utils.previousBitReversedCircleDomainIndex(
-                    row_index,
+                    global_row,
                     self.log_size,
                     self.maxConstraintLogDegreeBound(),
                 );
@@ -347,7 +395,10 @@ pub fn ComponentForManifest(
                     else
                         secureAt(evaluations[base - 4 .. base], row_index);
                     const previous_value = if (batch + 1 == LOGUP_COUNT)
-                        secureAt(evaluations[base .. base + 4], previous_row)
+                        if (state.coset_sources != null)
+                            secureAt(state.owned_buffers[base .. base + 4], previous_row)
+                        else
+                            secureAt(evaluations[base .. base + 4], previous_row)
                     else
                         QM31.zero();
                     const shift = if (batch + 1 == LOGUP_COUNT)
@@ -366,12 +417,12 @@ pub fn ComponentForManifest(
                         powers.len - 1 - constraint
                     ].mul(root));
                 }
-                const contribution = folded.mulM31(state.denominator_inverse[row_index >> denominator_shift]);
+                const contribution = folded.mulM31(state.denominator_inverse[global_row >> denominator_shift]);
                 const output = state.column_accumulator.col;
                 if (state.direct_store) {
-                    output.set(row_index, contribution);
+                    output.set(global_row, contribution);
                 } else {
-                    output.set(row_index, output.at(row_index).add(contribution));
+                    output.set(global_row, output.at(global_row).add(contribution));
                 }
             }
             return true;
@@ -395,6 +446,11 @@ pub fn ComponentForManifest(
             denominator_inverse: [DENOMINATOR_COUNT]M31,
             column_accumulator: prover_air_accumulation.ColumnAccumulator,
             eval_size: usize,
+            total_eval_size: usize,
+            row_offset: usize = 0,
+            coset_sources: ?[SOURCE_COUNT]prover_component.Poly = null,
+            full_transform: ?prover_twiddles.TwiddleTree([]M31) = null,
+            coset_transforms: [DENOMINATOR_COUNT]?prover_twiddles.TwiddleTree([]M31) = @splat(null),
             direct_store: bool,
             failure_boundary: prepared_parallel.FailureBoundary = .{},
             range_workers: [work_pool.MAX_WORKERS]RangeWorker = undefined,
@@ -409,9 +465,39 @@ pub fn ComponentForManifest(
                 task_context: *prover_task_graph.TaskContext,
             ) anyerror!void {
                 const self: *PreparedDomainState = @ptrCast(@alignCast(context));
+                if (self.coset_sources) |sources| {
+                    const full_domain = canonic.CanonicCoset.new(self.component.maxConstraintLogDegreeBound()).circleDomain();
+                    const log_parts = self.component.maxConstraintLogDegreeBound() - self.component.log_size;
+                    const current_count = SOURCE_COUNT - (if (LOGUP_COUNT != 0) @as(usize, 4) else 0);
+                    const expand = @import("stwo_prover_engine").air.coefficient_cosets.fill;
+                    // Full-domain rotation columns are expanded once, under the
+                    // same bounded lease as the subsequent per-coset FFTs.
+                    if (self.full_transform) |transform| try expand(sources[current_count..], self.owned_buffers[current_count..], full_domain, .{
+                        .root_coset = transform.root_coset,
+                        .twiddles = transform.twiddles,
+                        .itwiddles = transform.itwiddles,
+                    }, task_context);
+                    for (0..@as(usize, 1) << @intCast(log_parts)) |part| {
+                        if (task_context.cancellation.isCancelled()) return;
+                        const domain = try prover_circle.coset_partition.domain(full_domain, log_parts, part);
+                        const transform = self.coset_transforms[part].?;
+                        try expand(sources[0..current_count], self.owned_buffers[0..current_count], domain, .{
+                            .root_coset = transform.root_coset,
+                            .twiddles = transform.twiddles,
+                            .itwiddles = transform.itwiddles,
+                        }, task_context);
+                        self.row_offset = part * self.eval_size;
+                        for (self.owned_buffers, &self.evaluations, 0..) |buffer, *evaluation, i| {
+                            evaluation.* = if (i >= current_count) buffer[self.row_offset..][0..self.eval_size] else buffer;
+                        }
+                        try self.runRanges(task_context);
+                    }
+                } else try self.runRanges(task_context);
+                self.column_accumulator.next_fresh_index = if (self.direct_store) self.total_eval_size else null;
+            }
+
+            fn runRanges(self: *PreparedDomainState, task_context: *prover_task_graph.TaskContext) !void {
                 const count = self.prepareRanges(task_context.cancellation, task_context.worker_budget.count);
-                // Keep the same prepared state alive until every submitted
-                // child joins, including partial-submission failures.
                 defer task_context.joinChildren();
                 for (self.range_workers[1..count]) |*worker| {
                     try task_context.spawnChild(RangeWorker.run, .{worker});
@@ -454,6 +540,8 @@ pub fn ComponentForManifest(
             fn deinitErased(context: *anyopaque) void {
                 const self: *PreparedDomainState = @ptrCast(@alignCast(context));
                 const allocator = self.allocator;
+                if (self.full_transform) |*transform| prover_twiddles.deinitM31(allocator, transform);
+                for (&self.coset_transforms) |*transform| if (transform.*) |*owned| prover_twiddles.deinitM31(allocator, owned);
                 for (self.owned_buffers) |values| self.values_allocator.free(values);
                 allocator.free(self.owned_buffers);
                 allocator.destroy(self);

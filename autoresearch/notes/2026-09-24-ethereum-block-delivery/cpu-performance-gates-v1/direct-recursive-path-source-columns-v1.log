@@ -1,0 +1,33 @@
+1/32 block_v5_recursive_path_source_columns_test_root.test_0...OK
+2/32 recursion.air.blake3_path_source_columns_test.test.direct path sources preserve packing byte readonly adapter sentinel schedule and release tuple roster...OK
+3/32 recursion.air.blake3_path_source_columns_test.test.direct path sources release every failed routing emission and owner transfer...OK
+4/32 recursion.air.blake3_path_source_columns_test.test.projected query packing shares repeated logs and preserves multi chunk affine links...OK
+5/32 recursion.air.blake3_path_source_columns_test.test.upstream fixed recipe mismatch and missing indexed rows never publish...OK
+6/32 recursion.air.blake3_path_source_columns_test.test.direct root nonce and joint main source schedule preserves tails rejects source swaps and releases failures...OK
+7/32 recursion.air.blake3_path_source_columns_test.test.direct public coordinates and sixteen sum limbs preserve canonical encodings and release every failed allocation...OK
+8/32 recursion.air.blake3_path_source_columns_test.test.direct path and public source canonical captured bodies compile...OK
+9/32 block_v5_recursive_pcs_source_columns_test_root.test_0...OK
+10/32 recursion.air.blake3_pcs_source_columns_test.test.PCS direct source columns preserve answer query fanout and opening inventory...OK
+11/32 recursion.air.blake3_pcs_source_columns_test.test.PCS direct source columns release every failed constructor and fanout allocation...OK
+12/32 recursion.air.blake3_pcs_source_columns_test.test.PCS direct source columns reject changed missing duplicate and wrong lane openings...OK
+13/32 recursion.air.blake3_pcs_source_columns_test.test.PCS direct source columns reject transcript query swap and fanout overflow atomically...OK
+14/32 recursion.air.blake3_pcs_source_columns_test.test.PCS direct source columns canonical captured FRI and opening bodies compile...OK
+15/32 block_v5_recursive_upstream_columns_test_root.test_0...OK
+16/32 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns preserve native execution claim challenge and terminal schedules...OK
+17/32 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns release every failed preparer allocation...OK
+18/32 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns reject duplicate missing out of bounds and late indexed emission...OK
+19/32 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns reject changed native claim sample and transcript exports...OK
+20/32 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns reject changed execution claim challenge terminal and mixed source mode...OK
+21/32 block_v5_recursive_scalar_columns_test_root.test_0...OK
+22/32 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream sample columns preserve exact source and pack schedules...OK
+23/32 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream sample owners release every allocation failure...OK
+24/32 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream samples reject duplicate missing and changed secure inputs...OK
+25/32 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar canonical payload preparation body codegen...OK
+26/32 recursion.air.blake3_direct_source_columns_test.test.direct PCS public source cohorts match legacy scattered columns and transfer ownership...OK
+27/32 recursion.air.blake3_direct_source_columns_test.test.direct source columns preserve fixed admission and fail incomplete geometry before transfer...OK
+28/32 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory matches legacy rows and rejects source custody mutations without leaks...OK
+29/32 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory cleans up every failing allocation...OK
+30/32 recursion.air.native_pcs_fusion_rows.test.native query fusion admission rejects altered missing and duplicate sources...OK
+31/32 block_v5_recursive_parent_codegen_test_root.test.direct recursive assembled parent bodies compile with bounded phase scratch...OK
+32/32 air.memory_commitment.poseidon2_air.test_0...OK
+All 32 tests passed.

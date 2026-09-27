@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-25",
+  "scope": "CPU two-pass streaming block-v4 producer on a two-segment Ethereum-SHA guest with four-byte public input/output, zero external calls in first segment, Keccak in terminal segment; staged files reopened for fresh v4 core verification",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic"},
+  "verification": {
+    "pass_one_and_two_exact_roster_match": true,
+    "bounded_and_streaming_first_round_digest_equal": true,
+    "bounded_and_streaming_source_seal_equal": true,
+    "fresh_core_from_staged_files": true,
+    "incremental_receiver_used": false,
+    "recursive_root": false,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "staged_payload_bytes": 2010498,
+  "streaming_production_elapsed_ns": 7441938834,
+  "fresh_receiver_elapsed_ns": null,
+  "tracked_streaming_peak_bytes": null,
+  "limits": [
+    "The streaming production timer stops before the callback performs fresh core verification; it is not an end-to-end time.",
+    "The test callback reconstructs both prepared verifiers from fixture witnesses and uses the existing all-wire core receiver. A private one-leaf-at-a-time receiver is under construction.",
+    "The public initial nonzero image and first-touch roster remain verifier-visible files; the producer does not claim private witness mode.",
+    "This is a two-segment q8 diagnostic fixture, not a canonical-security or mainnet block measurement."
+  ],
+  "command_filter": "crosses real IO with a zero-call first leaf"
+}

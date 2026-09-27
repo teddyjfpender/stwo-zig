@@ -1,0 +1,8 @@
+{
+  "README.md": "36c547d092c20493eb06246a53beec6145a387cb663f7414bc44e02cf30806c3",
+  "sources/autoresearch/notes/20260922-blake3-all-absorption-problem-match.md": "011a85ac3407ec1896321fd9c2827d97f21bc424bba8dd7bba9ebff8088a7c52",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "995262d71a8950a33fb407ab29667760910942f063d2037571057b2880a75a08",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig": "d5c6596d3c1b1998c182b93296832d56937216277c14d47847d276e0dd40531d",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "29f83cb5ffaa77850e8de30e0a34bf6baef83f25c3b2843d9469897b578c7340",
+  "tests.log": "526db9a64c7b72bd72937496e402d4394f9a018a9d32ce5dbd2436a39f414d80"
+}

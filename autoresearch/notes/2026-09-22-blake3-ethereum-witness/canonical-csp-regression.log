@@ -1,0 +1,11 @@
+test-blake3-csp-ecdsa
++- BLAKE3 canonical CSP ECDSA guard
+   +- run test stderr
+CSP_ECDSA_GUEST backend=cpu suite=blake3 queries=70 pow_bits=26 execution_ns=832166 proving_ns=1442694542 verify_ns=229014833 cycles=1828 proof_bytes=3748258
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-blake3-csp-ecdsa success
++- BLAKE3 canonical CSP ECDSA guard success
+   +- run test 1 passed 1s MaxRSS:1G
+      +- compile test ReleaseSafe native cached 80ms MaxRSS:36M
+

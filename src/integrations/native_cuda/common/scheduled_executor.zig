@@ -8,10 +8,8 @@ const proof_ir = @import("stwo_backend_contracts").proof_program;
 pub fn ExecutorFor(comptime Adapter: type) type {
     comptime assertAdapter(Adapter);
     return struct {
-        pub fn executeNode(
-            transaction: anytype,
-            prepared: *Adapter.PreparedPlan,
-            geometry: Adapter.Geometry,
+        pub fn admitNode(
+            prepared: *const Adapter.PreparedPlan,
             scheduled: execution_plan.ScheduledNode,
         ) !void {
             const program = Adapter.program(prepared);
@@ -20,10 +18,21 @@ pub fn ExecutorFor(comptime Adapter: type) type {
             const expected = program.nodes[scheduled.node_id];
             if (expected.id != scheduled.node_id or
                 expected.kind != scheduled.kind or
-                @intFromEnum(expected.stage) != @intFromEnum(scheduled.stage))
+                @intFromEnum(expected.stage) != @intFromEnum(scheduled.stage) or
+                expected.dependencies.count != scheduled.dependency_count or
+                scheduled.stream_index != 0 or
+                (scheduled.graph_candidate and !expected.graph_candidate))
             {
                 return error.InvalidKernelDescriptor;
             }
+        }
+        pub fn executeNode(
+            transaction: anytype,
+            prepared: *Adapter.PreparedPlan,
+            geometry: Adapter.Geometry,
+            scheduled: execution_plan.ScheduledNode,
+        ) !void {
+            try admitNode(prepared, scheduled);
             switch (scheduled.kind) {
                 .trace_generation => try Adapter.traceGeneration(
                     transaction,
@@ -229,4 +238,26 @@ test "structural dispatcher covers every proof operation and rejects drift" {
         ),
     );
     try std.testing.expectEqual(calls_before, Adapter.calls);
+    // These are metadata-only checks: no adapter operation may run after drift.
+    const valid: execution_plan.ScheduledNode = .{
+        .node_id = 0,
+        .kind = .trace_generation,
+        .stage = .trace_generation,
+        .stream_index = 0,
+        .graph_region = 0,
+        .graph_candidate = false,
+        .dependency_count = 0,
+    };
+    try Executor.admitNode(&prepared, valid);
+    for (0..3) |field| {
+        var changed = valid;
+        switch (field) {
+            0 => changed.stream_index = 1,
+            1 => changed.dependency_count = 1,
+            2 => changed.graph_candidate = true,
+            else => unreachable,
+        }
+        try std.testing.expectError(error.InvalidKernelDescriptor, Executor.executeNode(&transaction, &prepared, .{}, changed));
+        try std.testing.expectEqual(calls_before, Adapter.calls);
+    }
 }

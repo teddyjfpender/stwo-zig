@@ -1,14 +1,16 @@
-//! One proof-owned Metal epoch for evaluation-form sampled values.
+//! Proof-owned Metal evaluation of resident or explicitly staged host columns.
 //!
 //! Plans are collision-safe and deduplicated across all commitment trees by
 //! exact `(domain log, normalized point)` equality.  Host column pointers are
 //! used only as lookup keys into the concrete borrowed tree's resident map;
-//! the Objective-C boundary rejects uploads, cross-tree matches, and partial
-//! output rosters.
+//! the resident boundary rejects uploads and cross-tree matches. Explicit null
+//! handles select bounded host staging with the same exact output roster.
 
 const std = @import("std");
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
+const dispatch_ffi = @import("sampled_dispatch_bindings_v1.zig");
+const dispatch_budget = @import("sampled_dispatch_budget_v1.zig");
 const circle = @import("stwo_core").circle;
 const constraints = @import("stwo_core").constraints;
 const m31 = @import("stwo_core").fields.m31;
@@ -27,6 +29,7 @@ const Runtime = runtime.Runtime;
 pub const SampledBarycentricEvaluationResult = struct {
     gpu_ms: f64,
     execution: work_profile.SampledBarycentricExecution,
+    allocation: dispatch_budget.Receipt = .{},
 };
 
 const PointUseV1 = struct {
@@ -56,7 +59,7 @@ const DomainConstantsV1 = struct {
 
 const PreparedEpochV1 = struct {
     allocator: std.mem.Allocator,
-    resident_trees: []*anyopaque,
+    resident_trees: []?*anyopaque,
     columns: [][*]const u32,
     column_lengths: []usize,
     output_indices: []u32,
@@ -81,6 +84,13 @@ pub fn evaluateBarycentricTreePlans(
     allocator: std.mem.Allocator,
     tree_plans: anytype,
 ) (MetalError || std.mem.Allocator.Error)!SampledBarycentricEvaluationResult {
+    // Bind the owner before prepared/output heap allocation, retaining it until
+    // those arrays are destroyed. Shared allocators always admit strictly.
+    var dispatch = dispatch_budget.Scope.init(allocator, .explicit_unbudgeted) catch |err| return switch (err) {
+        error.OutOfMemory => error.OutOfMemory,
+        else => MetalError.PolynomialEvaluationFailed,
+    };
+    defer dispatch.deinit();
     var prepared = prepareEpoch(allocator, tree_plans) catch |err| switch (err) {
         error.OutOfMemory => return error.OutOfMemory,
         else => return MetalError.PolynomialEvaluationFailed,
@@ -98,7 +108,11 @@ pub fn evaluateBarycentricTreePlans(
     var ffi_receipt: ffi.SampledBarycentricReceiptV1 = undefined;
     var gpu_ms: f64 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
-    if (!ffi.stwo_zig_metal_eval_barycentric_resident_v1(
+    var host_columns = false;
+    for (prepared.resident_trees) |tree| host_columns = host_columns or tree == null;
+    var allocation_receipt: dispatch_budget.Receipt = .{};
+    const evaluate = if (host_columns) &dispatch_ffi.stwo_zig_metal_eval_barycentric_host_v1_budgeted_v2 else &dispatch_ffi.stwo_zig_metal_eval_barycentric_resident_v1_budgeted_v2;
+    const success = evaluate(
         self.handle,
         prepared.resident_trees.ptr,
         @intCast(prepared.resident_trees.len),
@@ -116,14 +130,21 @@ pub fn evaluateBarycentricTreePlans(
         &gpu_ms,
         &message,
         message.len,
-    )) {
+        &dispatch,
+        dispatch_budget.Scope.callback,
+        &allocation_receipt,
+    );
+    dispatch.finish(success, allocation_receipt) catch |err| {
         std.log.err(
             "Metal resident barycentric evaluation failed: {s}",
             .{std.mem.sliceTo(&message, 0)},
         );
-        return MetalError.PolynomialEvaluationFailed;
-    }
-    validateFfiReceipt(prepared.execution, ffi_receipt) catch
+        return switch (err) {
+            error.OutOfMemory => error.OutOfMemory,
+            else => MetalError.PolynomialEvaluationFailed,
+        };
+    };
+    validateFfiReceipt(prepared.execution, ffi_receipt, host_columns) catch
         return MetalError.PolynomialEvaluationFailed;
 
     var output_cursor: usize = 0;
@@ -145,7 +166,7 @@ pub fn evaluateBarycentricTreePlans(
     if (output_cursor != @as(usize, prepared.output_count))
         return MetalError.PolynomialEvaluationFailed;
 
-    return .{ .gpu_ms = gpu_ms, .execution = prepared.execution };
+    return .{ .gpu_ms = gpu_ms, .execution = prepared.execution, .allocation = dispatch.receipt };
 }
 
 fn prepareEpoch(
@@ -283,7 +304,7 @@ fn prepareEpoch(
         }
     }
 
-    const resident_trees = try allocator.alloc(*anyopaque, tree_plans.len);
+    const resident_trees = try allocator.alloc(?*anyopaque, tree_plans.len);
     errdefer allocator.free(resident_trees);
     for (tree_plans, resident_trees) |tree_plan, *resident|
         resident.* = tree_plan.resident_tree;
@@ -579,9 +600,11 @@ fn outputIndex(tree_base: u32, column_base: u32, point_index: usize) !u32 {
 fn validateFfiReceipt(
     execution: work_profile.SampledBarycentricExecution,
     receipt: ffi.SampledBarycentricReceiptV1,
+    host_columns: bool,
 ) !void {
-    if (receipt.schema_version != 1 or receipt.command_buffers != 1 or
-        receipt.wait_count != 1 or receipt.reserved != 0 or
+    if (receipt.schema_version != 1 or receipt.command_buffers == 0 or
+        (!host_columns and receipt.command_buffers != 1) or
+        receipt.wait_count != receipt.command_buffers or receipt.reserved != 0 or
         receipt.unique_point_count != execution.point_plan_count or
         receipt.unique_domain_count != execution.domain_plan_count or
         receipt.resident_column_evaluations != execution.evaluation_task_count or

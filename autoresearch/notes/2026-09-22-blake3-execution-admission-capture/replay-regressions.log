@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 3/3 tests passed
+test-blake3-native-recorder success
++- BLAKE3 native recorder guard success
+   +- run test 1 passed 673ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 3s MaxRSS:425M
+test-blake3-transcript-plan success
++- BLAKE3 transcript plan guard success
+   +- run test 2 passed 8s MaxRSS:10M
+      +- compile test ReleaseSafe native success 4s MaxRSS:543M
+

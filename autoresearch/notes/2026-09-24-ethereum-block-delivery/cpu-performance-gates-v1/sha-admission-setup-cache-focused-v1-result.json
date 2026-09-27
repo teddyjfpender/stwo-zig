@@ -1,0 +1,22 @@
+{
+  "source_candidate": "sha-admission-setup-cache-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 5.2852265409892425,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 6,
+  "test_summary": [
+    "All 6 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/sha-admission-setup-cache-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-sha-admission-setup-cache-focused-v1",
+    "bytes": 549968,
+    "sha256": "beb38563ea25f45a8cd2cb3677545247d34e9eedaf33c8c548ecc25fa1e2a006"
+  }
+}

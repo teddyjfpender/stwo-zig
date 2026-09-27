@@ -1,0 +1,91 @@
+{
+  "status": "qualified_nonproving_original_input_tail_provider_and_bounded_consumer",
+  "authored_candidate": "input-tail-provider-source-candidate-v3.json",
+  "evidence": {
+    "input-tail-provider-semantic-v1": {
+      "source_candidate": "input-tail-provider-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.985658666002564,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-tail-provider-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "input-tail-provider-focused-v1": {
+      "source_candidate": "input-tail-provider-focused-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 15.840896916983183,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 13,
+      "test_summary": [
+        "11 passed; 0 skipped; 2 failed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-tail-provider-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-input-tail-provider-focused-v1",
+        "bytes": 29647144,
+        "sha256": "269d94cd6c754759438891becf4563c0f5a44a724fa99427259af23af2f57b14"
+      }
+    },
+    "input-tail-provider-focused-v2": {
+      "source_candidate": "input-tail-provider-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 14.935206540976651,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-tail-provider-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-input-tail-provider-focused-v2",
+        "bytes": 29647768,
+        "sha256": "925ad02a6d8c4872f788af244a19412f6b65211479c8390f763543d51319c53b"
+      }
+    }
+  },
+  "tests_passed": 14,
+  "source_snapshot": "input-tail-provider-focused-v2-source.json",
+  "literal_dependency_pins": 1729,
+  "scope": [
+    "Original full hash DAG CV coordinates, original absolute counters, seven-round message uses plus exact public export",
+    "Bounded consumer independent original Frame.words and unchanged B5PD scalar oracle; fixed routing and exact byte multiset",
+    "Mutation, conservation and allocator failure tests; explicit backing-owner leases survive original owner release",
+    "Real provider publication/fresh receiver/nested capture and bounded column producer bodies retained, never proof-invoked"
+  ],
+  "repairs": [
+    "Fixture expected one CV read corrected to independently counted seven original DAG message reads",
+    "Mutation targets actual affine destination byte rather than an inactive constant-header source slot",
+    "Added genuine nonempty-frontier export-weight and bound-byte conservation mutations"
+  ],
+  "not_qualified": [
+    "Actual STARK creation and fresh proof verification",
+    "Distinct bounded-window v2 grammar activation and exact common-ancestor consumer links",
+    "Removal of repeated host normalization on active native/public route",
+    "Complete global/source/public recursive closure",
+    "Canonical block proof or speed/peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

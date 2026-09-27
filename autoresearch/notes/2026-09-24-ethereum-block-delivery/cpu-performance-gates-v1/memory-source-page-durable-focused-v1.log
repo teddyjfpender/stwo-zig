@@ -1,0 +1,14 @@
+1/13 block_v5_memory_source_page_durable_test_root.test.source PAGE durable root...OK
+2/13 block_v5_memory_source_page_durable_test_root.test.source PAGE durable bodies: actual policy exporter reader original inventory and complete detached receiver...OK
+3/13 prover.block_v5_memory_source_page_durable_test_v1.test.source PAGE durable: policy pin format count and arithmetic caps reject before independent Globals or allocation...OK
+4/13 prover.block_v5_memory_source_page_durable_test_v1.test.source PAGE durable: exact hash framing strict unknown fields and every parser allocation fault...OK
+5/13 prover.block_v5_memory_source_page_durable_test_v1.test.source PAGE durable: original mutable input fold recipes full clocks and every descriptor allocation fault...OK
+6/13 prover.block_v5_memory_source_page_durable_test_v1.test.source PAGE durable: failed session and live descriptors cannot satisfy exact consumption or retry...OK
+7/13 prover.block_v5_memory_source_page_durable_test_v1.test.source PAGE durable: owned loader caps reject before any metadata or file capability is read...OK
+8/13 air.semantic_eval.test_0...OK
+9/13 air.memory_commitment.poseidon2_air.test_0...OK
+10/13 prover.block_execution_external_trace_v2.test_0...OK
+11/13 prover.block_execution_external_access_bridge_v2.test_0...OK
+12/13 air.lookups.tables.mod.test_0...OK
+13/13 air.lookups.tables.source_ingest.test_0...OK
+All 13 tests passed.

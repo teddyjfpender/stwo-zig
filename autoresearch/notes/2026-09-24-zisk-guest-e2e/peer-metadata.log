@@ -1,0 +1,6 @@
+error: failed to select a version for the requirement `clap = "^4"` (locked to 4.6.7)
+candidate versions found which didn't match: 4.6.6, 4.6.4, 4.6.2, ...
+location searched: crates.io index
+required by package `cargo-zisk v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/cli)`
+note: offline mode (via `--offline`) can sometimes cause surprising resolution failures
+help: if this error is too confusing you may wish to retry without `--offline`

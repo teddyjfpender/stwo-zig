@@ -1,0 +1,10 @@
+{
+  "control": {
+    "source": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-persistent-pipeline-lease/canonical-parent-test",
+    "sha256": "56a66f55ce056a912164cf0b0ae27f9f7137ff8e16d7e11a541734f51dd0e4b4"
+  },
+  "candidate": {
+    "source": "/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/2e28aec4d0ebde8a6e33951ccc7a1535/test",
+    "sha256": "9cde05f90e56fded59acaa07793966f99aba29c02b5ca9698db4760d2edf4c63"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "scope": "One ordinary lightweight native-v3 execution: full ROM, same-root program and table/state/auxiliary-clock projections, one exact six-table provider group; no complete block authority",
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "log_blowup_factor": 1
+  },
+  "command": "zig test -OReleaseFast -lc -mcpu=native --test-filter 'block-v5' --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_cpu_backend -Mroot=src/frontends/riscv/block_v5_program_native_v3_test_root.zig -Mstwo_core=src/core/mod.zig --dep stwo_core -Mstwo_backend_contracts=src/backend/mod.zig --dep stwo_core --dep stwo_backend_contracts -Mstwo_prover_api=src/prover_api/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep interop_postcard -Mstwo_prover_engine=src/prover/mod.zig --dep stwo_core --dep stwo_proof_wire -Mstwo_riscv_frontend=src/frontends/riscv/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Minterop_postcard=src/interop/postcard.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig -Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+  "result": {
+    "passed": 14,
+    "failed": 0,
+    "allocator_teardown": "std.testing.allocator clean",
+    "rom_fetches": 3,
+    "native_lookup_groups": 1,
+    "per_leaf_pc_clock_closed": true,
+    "output": "BLOCK_V5_V3_ROM_TABLE native3=true shared_prefix=true rom_fetches=3 native_tables_closed=true per_leaf_pc_clock_closed=true complete=false"
+  },
+  "checks": [
+    "Native-v3 PublicAdmission with no old Plan/hash-custody allocation",
+    "Program/projection fixed/main immutable tree leases",
+    "Fresh program/native/catalog/ROM verification",
+    "Six typed table consumer partitions derived from shipped opcode and clock entries",
+    "Per-group six-way provider closure, cross-group opposite residual rejection",
+    "Per-leaf registers_state plus public PC/clock compensation closes",
+    "Auxiliary clock memory partition authenticated separately and remains open for final subtraction",
+    "Provider max-demand mutation rejected by independent shape bounds",
+    "Plan-free first-round exact u64 census equals actual complete ROM counts",
+    "B5NEART3 actual native round-trip and fresh verify; wrong instance ID and trailing bytes rejected"
+  ],
+  "complete_block_verified": false,
+  "remaining": [
+    "Sparse family11 caller state companion",
+    "Private hook joins and native plus packed byte provider bounds",
+    "Packed memory transition/register/RW endpoint join",
+    "Global final arithmetic residual",
+    "Genuine native-v5 exact recursive forest"
+  ]
+}

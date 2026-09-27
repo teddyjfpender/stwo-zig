@@ -79,6 +79,7 @@ fn ConfiguredSegmentResultForPolicy(
         .rv32im_zkvm_poseidon2_v1 => result_mod.Poseidon2SegmentResult,
         .rv32im_zkvm_keccakf_v1 => result_mod.KeccakfSegmentResult,
         .rv32im_zkvm_ethereum_v1 => result_mod.EthereumSegmentResult,
+        .rv32im_zkvm_ethereum_sha_v1 => result_mod.EthereumShaSegmentResult,
     };
 }
 
@@ -96,6 +97,7 @@ fn ConfiguredRunResultForPolicy(
         .rv32im_zkvm_poseidon2_v1 => result_mod.Poseidon2RunResult,
         .rv32im_zkvm_keccakf_v1 => result_mod.KeccakfRunResult,
         .rv32im_zkvm_ethereum_v1 => result_mod.EthereumRunResult,
+        .rv32im_zkvm_ethereum_sha_v1 => result_mod.EthereumShaRunResult,
     };
 }
 
@@ -167,8 +169,10 @@ fn ExecutionSessionWithPolicy(
         host: ?HostInterface,
         stop_on_halt_flag: bool,
         strict_completion: bool,
+        require_current_output_accesses: bool,
         trace_retention: TraceRetention,
         clock_frame: SegmentClockFrame,
+        x0_local_custody_version: u32,
         retirement_observer: ?RetirementObserverV1,
         pre_retirement_boundary_observer: ?PreRetirementBoundaryObserverV1,
         input: ?[]u8,
@@ -268,6 +272,11 @@ fn ExecutionSessionWithPolicy(
             {
                 return error.LeafLocalClockRequiresSegmentOwnedContinuation;
             }
+            if (options.x0_local_custody_version > 1 or
+                (options.x0_local_custody_version == 1 and
+                    (options.clock_frame != .leaf_local or
+                        (profile != .rv32im_zkvm_v1 and profile != .rv32im_zkvm_ethereum_v1 and profile != .rv32im_zkvm_ethereum_sha_v1))))
+                return error.InvalidX0LocalCustodySession;
             var mem = try Memory.initFallible(allocator);
             errdefer mem.deinit();
             const elf_info = try elf_loader.loadElfForProfile(elf_bytes, &mem, profile);
@@ -296,8 +305,10 @@ fn ExecutionSessionWithPolicy(
                 .host = options.host,
                 .stop_on_halt_flag = options.stop_on_halt_flag,
                 .strict_completion = options.strict_completion,
+                .require_current_output_accesses = options.require_current_output_accesses,
                 .trace_retention = options.trace_retention,
                 .clock_frame = options.clock_frame,
+                .x0_local_custody_version = options.x0_local_custody_version,
                 .retirement_observer = options.retirement_observer,
                 .pre_retirement_boundary_observer = options.pre_retirement_boundary_observer,
                 .input = owned_input,
@@ -439,6 +450,11 @@ fn ExecutionSessionWithPolicy(
                     .calls = segment.calls,
                     .execution_rows = segment.execution_rows,
                 };
+                segment = undefined;
+                return result;
+            } else if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
+                errdefer segment.deinit();
+                const result = result_mod.EthereumShaRunResult{ .base = segmentToRunResult(&segment.base), .extension = segment.extension };
                 segment = undefined;
                 return result;
             } else if (comptime profile == .rv32im_zkvm_ethereum_v1) {
@@ -634,7 +650,7 @@ fn ExecutionSessionWithPolicy(
                     &self.memory,
                     &chain_tracker,
                     self.elf_info,
-                    self.strict_completion,
+                    self.strict_completion and self.require_current_output_accesses,
                 )
             else
                 CapturedOutput.empty();
@@ -804,12 +820,14 @@ fn ExecutionSessionWithPolicy(
                 };
             } else if (comptime profile == .rv32im_zkvm_ethereum_v1) {
                 return result_mod.freezeEthereumSegment(base_result, &extension);
+            } else if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
+                return try result_mod.freezeEthereumShaSegment(base_result, &extension);
             }
             return base_result;
         }
 
         fn seedTracker(self: *const Self) !state_chain.StateChainTracker {
-            var tracker = state_chain.StateChainTracker.init(self.allocator);
+            var tracker = if (self.x0_local_custody_version == 1) state_chain.StateChainTracker.initLocalZero(self.allocator) else state_chain.StateChainTracker.init(self.allocator);
             errdefer tracker.deinit();
             if (self.clock_frame == .leaf_local) return tracker;
             tracker.reg_last_clk = self.register_clocks;

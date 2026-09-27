@@ -1,0 +1,97 @@
+{
+  "schema": "source-candidate-v1",
+  "status": "source-only-unqualified",
+  "owned_sources_frozen": true,
+  "root": "src/frontends/riscv/block_v5_range16_recursive_cache_unit_test_root.zig",
+  "filter": "range cache:",
+  "authored_tests": 6,
+  "command_for_root_only": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_range16_recursive_cache_unit_test_root.zig 'range cache:'",
+  "executed_here": [
+    "zig fmt only; no compiler, tests or proofs"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "e86cb5279c1640301ad8d5d70f3ac2a518af85978042f75a7b12160aba345cad"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_stage_v1.zig",
+      "sha256": "9b9efe24ad3f11bdb3881b2dae434b3ea6fc089e57eb6f18edcfb89fee34520e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_cache_test_v1.zig",
+      "sha256": "9a23a28fc69df1726b8648b85fd12757f3be8f5376c9fcc2d92f525b9d5f34e4"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_range16_recursive_cache_unit_test_root.zig",
+      "sha256": "d5e68fcd5a841eafe04715ee44bc3b3a400515fc7ff0cccf59c5122b917b40ea"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_range16_recursive_public_bus_v1.zig",
+      "sha256": "d889a96be8bcf3d9c9c8b4b698853d340e869a62698859c4a00ef1e27cb67da5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_range16_parent_protocol_v1.zig",
+      "sha256": "de6e11b0c5e5ef83418fe5dddffdc02b828bb7117068cd41130033acbfe7f238"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_range16_recursive_leaf_v1.zig",
+      "sha256": "8dc82d7155822d27ccc8560551b405beb5d622eb5349c5636fae91bb9c4f2e4e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_admission_v1.zig",
+      "sha256": "07e13e99a5e75cbfd9b6b2d72ad701d775af83fed0bb543266f9dcb1eb2dd44f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_capture_v1.zig",
+      "sha256": "93b7c74b90b600e06a382db53bbe82a40da0d2b6b8e49a57d4a03d0a3e46f84e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_worker.zig",
+      "sha256": "90a4a0e9cf02e1ab9d0a43bbf1aa481dfb55df609582d97d3c0fd95771b07870"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "sha256": "3337806d63a144479ae8e3432fd38c875ccf980bd3dee6f3d69e39033f1f86d2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_joined_request_lane_v1.zig",
+      "sha256": "42af08e4c79b7e23bd4a2e6b286c41586839dae44d7e853c443da853178b3a40"
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "sha256": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d"
+    }
+  ],
+  "api": {
+    "generic": "block_v5_native_recursive_setup_cache_v1.ForModules(Backend,Bus,Protocol)",
+    "range": "block_v5_native_recursive_setup_cache_v1.ForRangeBackend(Backend)",
+    "stage": "block_v5_range16_recursive_stage_v1.ForBackend(B).Options.cache:?*SetupCache = null",
+    "prove": "Cache.provePreparedConsuming(*Bus.Prepared)!Proved{key,key_id,proof}",
+    "metadata": "Cache.matchingAdmission(profile,key,key_id,owned_schedule,*const Prepared)!?Protocol.Admission; fixed rows still require real plan validation"
+  },
+  "scope": [
+    "one exact cache implementation for legacy native, capacity native and independently typed providers",
+    "profile/context/exact wire schedule then actual plan fixed digest/length/log/inventory gate",
+    "all current public values reauthenticated and replaced in worker plan on every same-key proof",
+    "one entry; old worker destroyed before miss setup; unchanged aggregate host cap, nested worker cap, joined coordinator lane and borrowed pool binding",
+    "cold path still derives real key and initializes real Plan; both paths consume rows at the existing last-interaction-reader boundary",
+    "shared encoding/fresh Range Leaf.verify/publication tail; owned bytes and schedules; zero fake receipts"
+  ],
+  "fixture_scope": [
+    "distinct typed provider authority and changing seals/plans/roots/sums/counts/shard metadata",
+    "exact wire/context/profile/key ID substitution rejection",
+    "actual Plan.validateRows across every cohort, fixed mutation and column/log/length mutations, exhaustive source allocation failures",
+    "configured cache cap admission and exhaustive initialization failures, with no worker entry",
+    "consuming locked-request rejection releases rows but preserves routing/context; exhaustive allocation failures; no request thread starts",
+    "profile mismatch before proof dereference/publication; actual generic warm/cold/acquire/deinit bodies retained without invocation"
+  ],
+  "remaining": [
+    "root serialized pure metadata/lifetime/body qualification; these fixtures do not execute any commitment, worker proof or successful cache hit",
+    "actual two-instance fresh cached proof parity/publication under independently pinned provider policies remains separately unqualified",
+    "RAM and ROM stage adapters belong to their agents and may specialize the same factory; no stage or canonical Driver default changed here",
+    "heap budget is routed allocation authority, not an RSS bound; preparation, encoding, proof verification, thread stacks and framework overhead keep existing scopes"
+  ]
+}

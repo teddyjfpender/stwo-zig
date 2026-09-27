@@ -1,0 +1,21 @@
+{
+  "source_candidate": "cuda-scheduled-admission-body-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 0.6391398339765146,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "object_only": true,
+  "tests_run": false,
+  "discovered_tests": 0,
+  "test_summary": [],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cuda-scheduled-admission-body-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cuda-scheduled-admission-body-v1.o",
+    "bytes": 2875880,
+    "sha256": "432792fe5b90da01b8faec546a9871abf4c51812b3de0ce3e9ad9aef1d27f20c"
+  }
+}

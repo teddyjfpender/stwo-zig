@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-1.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-1.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-batch-1-prove-single16.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-batch-1-prove-single16.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 900,
+  "hardware_track": "same-host CPU; no CUDA",
+  "sha256": {
+    "local-host": "31aaaad819aaf960512de23084206ce62e1467d09dafd0739b3bdab06e6602fa",
+    "guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo": "988e26742a18c9d7fd2c073a0fa3b40fa80eeb14d30a1a7eb60486abad478e0a",
+    "fixtures/batch-1.input": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d",
+    "fixtures/batch-1.expected": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138"
+  },
+  "swap_before": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:30 remaining present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 52.67899362501339,
+  "swap_after": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:39 remaining present: true\n",
+  "output_checked": true
+}

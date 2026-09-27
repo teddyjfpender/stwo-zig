@@ -1,6 +1,9 @@
 //! Circle transforms, LDE dispatch, and recurrence composition.
 
 const std = @import("std");
+const admission_v1 = @import("external_allocation_admission_v1.zig");
+const fri_error = @import("fri_error_v1.zig");
+const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
 const telemetry = @import("../telemetry.zig");
@@ -368,6 +371,15 @@ fn transformCircleConfigured(
     var source_binding: u32 = 0;
     var gpu_ms: f64 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
+    const page_size = std.heap.pageSize();
+    var contiguous = true;
+    for (pointers, 0..) |pointer, index| contiguous = contiguous and pointer == pointers[0] + index * expected_len;
+    const aliases_values = resident != null or (log_size >= 19 and contiguous and @intFromPtr(pointers[0]) % page_size == 0 and expected_bytes % page_size == 0);
+    const copies = if (aliases_values) @as(usize, 0) else expected_bytes;
+    const routing = if (log_size >= 19) std.math.mul(usize, columns.len, 4) catch return MetalError.CircleTransformFailed else 0;
+    const external_bytes = std.math.add(usize, copies, std.math.add(usize, std.mem.sliceAsBytes(twiddles).len, routing) catch return MetalError.CircleTransformFailed) catch return MetalError.CircleTransformFailed;
+    var reservation = if (Budget.fromAllocator(allocator)) |owner| try owner.reserveExternal(external_bytes) else Budget.ExternalReservation.unbudgeted(external_bytes);
+    defer reservation.deinit();
     if (!ffi.stwo_zig_metal_circle_transform(
         self.handle,
         if (resident) |source| source.handle else null,
@@ -438,7 +450,15 @@ pub fn transformCircleResident(
     return gpu_ms;
 }
 
-pub fn beginCircleLdeBatch(self: *Runtime) MetalError!CircleLdeBatch {
+pub fn beginCircleLdeBatch(self: *Runtime) (MetalError || std.mem.Allocator.Error)!CircleLdeBatch {
+    var batch = try beginCircleLdeBatchWithAllocator(self, std.heap.c_allocator);
+    batch.ordinary_compatibility = true;
+    return batch;
+}
+
+pub fn beginCircleLdeBatchWithAllocator(self: *Runtime, a: std.mem.Allocator) (MetalError || std.mem.Allocator.Error)!CircleLdeBatch {
+    var admission = admission_v1.Scope.init(a, .explicit_unbudgeted) catch |err| return fri_error.translate(err);
+    errdefer admission.deinit();
     var message: [1024]u8 = [_]u8{0} ** 1024;
     const handle = ffi.stwo_zig_metal_circle_lde_batch_create(
         self.handle,
@@ -448,18 +468,22 @@ pub fn beginCircleLdeBatch(self: *Runtime) MetalError!CircleLdeBatch {
         std.log.err("Metal circle LDE batch creation failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.CircleTransformFailed;
     };
-    return .{ .handle = handle };
+    return .{ .handle = handle, .runtime_handle = self.handle, .admission = admission };
 }
 
 pub fn destroyCircleLdeBatch(_: *Runtime, batch: *CircleLdeBatch) void {
+    // Cancel unsubmitted work / destroy completed command buffers BEFORE
+    // releasing private-copy charges or their original allocator lease.
     ffi.stwo_zig_metal_circle_lde_batch_destroy(batch.handle);
+    batch.admission.deinit();
     batch.* = undefined;
 }
 
 pub fn finishCircleLdeBatch(
-    _: *Runtime,
+    self: *Runtime,
     batch: *CircleLdeBatch,
 ) MetalError!CircleLdeBatchStats {
+    if (batch.runtime_handle != self.handle or batch.failed) return MetalError.CircleTransformFailed;
     var encoded_operations: u64 = 0;
     var gpu_milliseconds: f64 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
@@ -470,9 +494,11 @@ pub fn finishCircleLdeBatch(
         &message,
         message.len,
     )) {
+        batch.failed = true;
         std.log.err("Metal circle LDE batch completion failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.CircleTransformFailed;
     }
+    batch.admission.releaseAfterJoin() catch return MetalError.CircleTransformFailed;
     return .{
         .encoded_operations = encoded_operations,
         .gpu_milliseconds = gpu_milliseconds,
@@ -571,6 +597,21 @@ fn transformCircleLdeIntoConfigured(
         extended_len,
         extended_columns.len,
     );
+    var standalone = admission_v1.Scope.init(allocator, .explicit_unbudgeted) catch |err| return fri_error.translate(err);
+    defer standalone.deinit();
+    const admission: *admission_v1.Scope = if (batch) |active| blk: {
+        if (active.runtime_handle != self.handle or active.failed) return MetalError.CircleTransformFailed;
+        if (active.ordinary_compatibility)
+            active.admission.validateOrdinaryCompatibility(allocator) catch |err| return fri_error.translate(err)
+        else
+            active.admission.validateAllocator(allocator) catch |err| return fri_error.translate(err);
+        break :blk &active.admission;
+    } else &standalone;
+    // An enqueue may partially encode before a later allocation fails. Never
+    // submit that unfinished operation; owner destruction cancels the batch.
+    errdefer if (batch) |active| {
+        active.failed = true;
+    };
     const base_ptrs = try allocator.alloc([*]u32, base_columns.len);
     defer allocator.free(base_ptrs);
     const source_ptrs = try allocator.alloc([*]const u32, source_columns.len);
@@ -608,8 +649,10 @@ fn transformCircleLdeIntoConfigured(
         var forward_skipped_layers: u32 = 0;
         var dispatch_gpu_ms: f64 = 0;
         var message: [1024]u8 = [_]u8{0} ** 1024;
+        const prior_private_bytes = admission.reservation.bytes;
+        var queued_operation: u32 = 0;
         const succeeded = if (batch) |active|
-            ffi.stwo_zig_metal_circle_lde_batch_enqueue(
+            ffi.stwo_zig_metal_circle_lde_batch_enqueue_budgeted_v1(
                 self.handle,
                 active.handle,
                 source_ptrs[dispatch.first_column..].ptr,
@@ -624,6 +667,9 @@ fn transformCircleLdeIntoConfigured(
                 inverse_words.ptr,
                 forward_words.ptr,
                 scale_factor,
+                admission,
+                admission_v1.Scope.callback,
+                &queued_operation,
                 &source_binding,
                 &normalization_batch_count,
                 &forward_skipped_layers,
@@ -632,7 +678,7 @@ fn transformCircleLdeIntoConfigured(
                 message.len,
             )
         else
-            ffi.stwo_zig_metal_circle_lde(
+            ffi.stwo_zig_metal_circle_lde_budgeted_v1(
                 self.handle,
                 source_ptrs[dispatch.first_column..].ptr,
                 base_ptrs[dispatch.first_column..].ptr,
@@ -646,6 +692,9 @@ fn transformCircleLdeIntoConfigured(
                 inverse_words.ptr,
                 forward_words.ptr,
                 scale_factor,
+                admission,
+                admission_v1.Scope.callback,
+                &queued_operation,
                 &source_binding,
                 &normalization_batch_count,
                 &forward_skipped_layers,
@@ -654,6 +703,7 @@ fn transformCircleLdeIntoConfigured(
                 message.len,
             );
         if (!succeeded) {
+            if (admission.failure) |err| return fri_error.translate(err);
             std.log.err(
                 "Metal circle LDE failed for columns {}..{} of {} " ++
                     "(base log {}, extended log {}, local words {}): {s}",
@@ -669,6 +719,10 @@ fn transformCircleLdeIntoConfigured(
             );
             return MetalError.CircleTransformFailed;
         }
+        if (queued_operation > 1 or (batch == null and queued_operation != 0)) return MetalError.CircleTransformFailed;
+        // A non-alias group executes synchronously even inside a batch. Its
+        // destroyed scratch must not accumulate across subsequent groups.
+        if (queued_operation == 0) admission.releaseJoined(admission.reservation.bytes - prior_private_bytes) catch |err| return fri_error.translate(err);
         telemetry.recordCommitSourceBinding(source_binding);
         // Every device dispatch executed the same logical transform branch.
         // The work receipt retains one normalization batch because `scale_factor`

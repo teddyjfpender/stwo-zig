@@ -38,6 +38,13 @@ ABI_SCHEMAS = {
     "native_blake_exact_interaction_v1": 20,
     "native_blake_exact_trace_v2": 21,
     "cairo_eval_part_v1": 22,
+    "secure_polynomial_equations_v1": 23,
+    "secure_polynomial_fractions_v1": 24,
+    "secure_range_inverse_v1": 25,
+    "secure_scan_v1": 26,
+    "secure_mean_v1": 27,
+    "secure_word_witness_v4": 28,
+    "secure_range_witness_v4": 29,
 }
 DIGEST_RE = re.compile(r"[0-9a-f]{64}")
 

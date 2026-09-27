@@ -1,0 +1,5 @@
+1/4 balanced_schedule.test.balanced execution schedule covers every cycle with nonempty binary leaves...OK
+2/4 balanced_schedule.test.balanced execution schedule rejects impossible and overflowing geometry...OK
+3/4 balanced_schedule.test.terminal publication scheduling preserves bounds and exact coverage...OK
+4/4 balanced_schedule.test.explicit work budgets preserve all cycles and terminal publication...OK
+All 4 tests passed.

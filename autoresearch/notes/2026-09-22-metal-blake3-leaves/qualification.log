@@ -1,0 +1,30 @@
+test-blake3-leaves
++- run test
+   +- compile test ReleaseSafe native 1 errors
+runtime/prepared_execution.zig:277:13: error: use of undeclared identifier 'hash_domain'
+    family: hash_domain.FamilyV1,
+            ^~~~~~~~~~~
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -cflags -fobjc-arc -fblocks -- /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/runtime.m -lobjc -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/blake3_leaf_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -framework Foundation -framework Metal -lc --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+test-blake3-parent-chain
++- run test
+   +- compile test ReleaseSafe native 1 errors
+runtime/prepared_execution.zig:277:13: error: use of undeclared identifier 'hash_domain'
+    family: hash_domain.FamilyV1,
+            ^~~~~~~~~~~
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -cflags -fobjc-arc -fblocks -- /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/runtime.m -lobjc -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/blake3_parent_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -framework Foundation -framework Metal -lc --test-filter "Metal BLAKE3 resident parent chains preserve every layer and arena guards" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 3/9 steps succeeded; 2 failed; 6/6 tests passed
+test-blake3-leaves transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+test-blake3-parent-chain transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+test-shader-authority success
++- run test 6 passed 602ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 3s MaxRSS:321M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/9eeecd2202d9e8bbaef33b77d97b734c/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x65be4b12 -Z99ab536dd009ad77 --maxrss 25769803776 -j1 test-blake3-leaves test-blake3-parent-chain test-shader-authority -Doptimize=ReleaseSafe --summary all

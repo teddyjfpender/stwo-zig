@@ -1,0 +1,23 @@
+{
+  "source_candidate": "global-readonly-collection-focused-v4-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 69.52160575002199,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "object_only": false,
+  "tests_run": true,
+  "discovered_tests": 41,
+  "test_summary": [
+    "All 41 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-readonly-collection-focused-v4.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-global-readonly-collection-focused-v4",
+    "bytes": 119087152,
+    "sha256": "7a0bb9922737df035c3af40fa13b2643ff5aed18ac13d6ebaa3f33ea838ae19f"
+  }
+}

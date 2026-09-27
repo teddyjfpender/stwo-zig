@@ -1,0 +1,16 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_median_seconds": 24.314602083512,
+    "pipeline_median_seconds": 13.748530562500001,
+    "seed_live_path_median_seconds": 2.428775409,
+    "peak_physical_footprint_bytes": 32767738656
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_median_seconds": 21.339799395980663,
+    "pipeline_median_seconds": 11.6789638955,
+    "seed_live_path_median_seconds": 1.5943147675,
+    "peak_physical_footprint_bytes": 32498221472
+  }
+}

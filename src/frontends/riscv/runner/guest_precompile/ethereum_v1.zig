@@ -26,8 +26,24 @@ pub fn executeWithRecordedClock(
     trace: *Trace,
     extension: *session_state.Ethereum,
 ) !void {
+    return executeWithAggregateRecordedClock(profile, inst_word, execution_clock, cpu, memory, layout, tracker, trace, extension, try extension.externalCounts());
+}
+
+/// The enclosing combined session supplies counts across every precompile tape.
+/// The selected transaction authenticates these against the trace authority.
+pub fn executeWithAggregateRecordedClock(
+    profile: ExecutionProfile,
+    inst_word: u32,
+    execution_clock: u32,
+    cpu: *Cpu,
+    memory: *Memory,
+    layout: MemoryLayout,
+    tracker: *StateChainTracker,
+    trace: *Trace,
+    extension: *session_state.Ethereum,
+    counts: session_state.ExternalCounts,
+) !void {
     const decoded = try custom0.decode(profile, inst_word);
-    const counts = try extension.externalCounts();
     switch (decoded.opcode) {
         .keccakf_1600_permute_in_place_v1 => try keccakf_v1.executeWithAggregateRecordedClock(
             profile,
@@ -59,6 +75,6 @@ pub fn executeWithRecordedClock(
             &extension.signer_recovery_calls,
             &extension.signer_recovery_rows,
         ),
-        .poseidon2_m31_permute_in_place_v1 => return error.InvalidPrecompileEncoding,
+        .poseidon2_m31_permute_in_place_v1, .sha256_compress_v1 => return error.InvalidPrecompileEncoding,
     }
 }

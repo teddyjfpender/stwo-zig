@@ -1,0 +1,20 @@
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_pcs_ports_v1.zig:203:19: error: incompatible types: 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_4609' and 'u32'
+            if (q >= n or links.fri_derived[fg.profile().fold_widths.len * n * 2 + q] != binding.node_id) return error.InvalidParentQueryLink;
+                ~~^~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_pcs_ports_v1.zig:203:17: note: type 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_4609' here
+            if (q >= n or links.fri_derived[fg.profile().fold_widths.len * n * 2 + q] != binding.node_id) return error.InvalidParentQueryLink;
+                ^
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_pcs_ports_v1.zig:203:22: note: type 'u32' here
+            if (q >= n or links.fri_derived[fg.profile().fold_widths.len * n * 2 + q] != binding.node_id) return error.InvalidParentQueryLink;
+                     ^
+referenced by:
+    init: src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_pcs_ports_v1.zig:96:29
+    init: src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:93:41
+    5 reference(s) hidden; use '-freference-trace=7' to see all references
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:180:89: error: expected type 'u32', found 'usize'
+                const uses = try std.math.add(u32, reads, pieces.shape.config.fri_config.n_queries);
+                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:180:89: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/math.zig:567:39: note: parameter type declared here
+pub fn add(comptime T: type, a: T, b: T) (error{Overflow}!T) {
+                                      ^

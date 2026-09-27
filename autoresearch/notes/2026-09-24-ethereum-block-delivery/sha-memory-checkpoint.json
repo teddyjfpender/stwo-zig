@@ -1,0 +1,13 @@
+{
+  "source_archive": "sha-memory-source.tar.gz",
+  "source_sha256": "a40253832c30c73816027863b9cde4af38f2a513c42868476bc93ac4095e9249",
+  "tests": [
+    "test-sha-provider-1.log",
+    "test-sha-memory-12.log"
+  ],
+  "sha_standalone_compression_stark_verified": true,
+  "sha_vm_proof_verified": false,
+  "production_dispatch_active": false,
+  "next": "Extend shared universal component compilation for typed program-bound PC and closed machine-derived expressions, then qualify caller STARK and integrate profile, session tape, leaf roster and guest provider.",
+  "post_test_changes": "zig fmt only"
+}

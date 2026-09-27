@@ -1,0 +1,110 @@
+{
+  "status": "qualified_nonproving_actual_page_source_native_caller_transition",
+  "authored_candidate": "memory-source-page-transition-source-candidate-v1.json",
+  "evidence": {
+    "memory-source-page-transition-semantic-v1": {
+      "source_candidate": "memory-source-page-transition-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 7.062996040971484,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-transition-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-transition-focused-v1": {
+      "source_candidate": "memory-source-page-transition-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 38.228299834008794,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-transition-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-transition-focused-v1",
+        "bytes": 50456464,
+        "sha256": "638be109ee3bc6c50614ca86446225a261b886f5e0bde9b29ec51d649071a67f"
+      }
+    },
+    "memory-source-page-transition-selected-focused-v1": {
+      "source_candidate": "memory-source-page-transition-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 38.186412875016686,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-transition-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-transition-selected-focused-v1",
+        "bytes": 50489576,
+        "sha256": "3ba01e9cce7a2f3f48b99f0994e4525fe98b41bf3fb0f51827d9061a5bead310"
+      }
+    }
+  },
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_transition_receiver_v1.zig",
+      "sha256": "9cb452ef831eb3fbe80f45d964be2312774c22ab50c8b5204c9ca3dbfc979d7e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_join_impl_v1.zig",
+      "sha256": "608a06f9711d0d1d894dd05429ae22b36438ffa26c993c8f36ee8ac72be7e46f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_join_owner_v1.zig",
+      "sha256": "a9b5427289973fcaea5aab65861b6cf57b159af2b03f4f6ce10d1105df79a2dc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_unified_page_proof_v1.zig",
+      "sha256": "ad426b49a465fd4303c4e3415e5c36032e76807ab1fc5722d0e10ba579071582"
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "sha256": "b65da8b9ae02c8a6c8af58051eba681c411223700ec88a052c1f6c58d239301d"
+    }
+  ],
+  "tests_passed_per_recipe": 14,
+  "authored_behavioral_checks": 6,
+  "literal_dependency_pins_per_recipe": 1769,
+  "scope": [
+    "Internally consumes original fresh PAGE/lane/range receiver before original native/caller/fused/ROM hook loop",
+    "Unchanged Memory.admitPins extracted and reused by both canonical old init and actual new wrapper",
+    "Exact pinned source/lane/seal/root/limit and ordinary+all-RW caller event census guards",
+    "Original private hook order, missing/duplicate/census/sign rejection and owned-output allocation rollback",
+    "Actual new receiver and original proof verifiers are retained, never proof-invoked",
+    "Shared immutable setup leases and nested descriptor-release seam compiled through actual receiver"
+  ],
+  "root_delta": "PAGE join and transition nested allocator control uses qualified createRetainingParent",
+  "not_qualified": [
+    "Actual full fresh proof execution",
+    "Standalone new detached policy/manifest transport and replacing repeated old verifier work",
+    "All provider/state/register/accounting/public and final recursive source authority",
+    "Canonical block proof or performance/peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

@@ -1,0 +1,40 @@
+Proving partitioned batch 64
+[ethereum-auth-local-prove] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-local-prove] acquired after 41s
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-64.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-64.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-64-prove-partitioned.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-64-prove-partitioned.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 1800,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "0293b05bdf58dac53aadef471514717e1ab4436ec822b3bea26b6f2b83402fad",
+    "eth-auth-stwo-expanded.elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "fixtures/batch-64.input": "e48f448a2910a8fa81999b4faec99f38dff86e180fe578857c74fd08a4b205a8",
+    "fixtures/batch-64.expected": "e9ee0be037b223d0a2a120bd035c98ef50b10d8cc52e59eafccaca63906d76f1"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 2460.00M  free = 1636.00M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "exit_code": 1,
+  "process_wall_seconds": 130.96529158300837,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 2464.56M  free = 1631.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n"
+}
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/run_partitioned.py", line 6, in <module>
+    subprocess.run([sys.executable,str(H/'run.py'),'local','batch-'+str(size),'prove','partitioned'],check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', '/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/run.py', 'local', 'batch-64', 'prove', 'partitioned']' returned non-zero exit status 1.

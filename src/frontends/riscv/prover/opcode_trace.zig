@@ -12,9 +12,12 @@ const source_ingest = @import("../air/lookups/tables/source_ingest.zig");
 const semantic_eval = @import("../air/semantic_eval.zig");
 const statement_mod = @import("../air/statement.zig");
 const trace = @import("../runner/trace.zig");
+const local_zero = @import("../air/x0_native_envelope_v1.zig");
+const runtime_program = @import("../air/extract/runtime_program.zig");
+const LookupProgram = @import("stwo_prover_engine").air.component_prover.OwnedLookupPolynomialProgram;
 
 const MAX_COMPONENTS = statement_mod.MAX_COMPONENTS;
-const MAX_OPCODE_SHARD_ROWS: usize = 1 << 16;
+pub const MAX_OPCODE_SHARD_ROWS: usize = 1 << 16;
 
 /// Transitional host-derived columns removed by the exact lookup integration.
 pub const LEGACY_BUS_COLUMNS: u32 = 5;
@@ -88,7 +91,7 @@ pub const Columns = struct {
     pub fn deinit(
         self: *Columns,
         allocator: std.mem.Allocator,
-        statement: statement_mod.RiscVStatement,
+        statement: anytype,
     ) void {
         self.discardLookupCounters(allocator);
         for (0..statement.n_components) |component_index| {
@@ -106,8 +109,9 @@ pub const Columns = struct {
 pub fn generate(
     allocator: std.mem.Allocator,
     exec_trace: *const trace.Trace,
-    statement: statement_mod.RiscVStatement,
+    statement: anytype,
 ) !Columns {
+    const use_local_zero = localZeroEnabled(statement);
     // Run the filter once, up front, and carry its result.
     //
     // Both loops below classify every row, and both used to do it through a
@@ -156,7 +160,8 @@ pub fn generate(
         family_component_counts[family_index] += 1;
         log_sizes[component_index] = desc.log_size;
         domain_sizes[component_index] = @as(usize, 1) << @intCast(desc.log_size);
-        n_cols[component_index] = trace.nColumnsForFamily(desc.family);
+        n_cols[component_index] = if (use_local_zero) try local_zero.mainColumnCount(desc.family) else trace.nColumnsForFamily(desc.family);
+        if (desc.n_columns != n_cols[component_index]) return error.InvalidOpcodeColumnRecipe;
 
         partial_component = component_index;
         partial_cols = 0;
@@ -187,6 +192,14 @@ pub fn generate(
     }
     defer deinitPlacements(allocator, &placements);
 
+    // One tiny source DAG per present family is borrowed by all row workers.
+    // No matrices, records, selector values or challenge material are cached.
+    var old_programs: [trace.N_FAMILIES]?LookupProgram = @splat(null);
+    defer for (&old_programs) |*program| if (program.*) |*value| value.deinit();
+    if (use_local_zero) for (0..trace.N_FAMILIES) |index| {
+        if (family_component_counts[index] != 0) old_programs[index] = try runtime_program.buildLookups(allocator, @enumFromInt(index));
+    };
+
     const FillWork = struct {
         rows: []const trace.TraceRow,
         proof_opcodes: []const trace.ProofOpcode,
@@ -197,7 +210,24 @@ pub fn generate(
         first_component: *const [trace.N_FAMILIES]usize,
         family_component_counts: *const [trace.N_FAMILIES]usize,
         lookup_counters: *lookup_counter.Set,
+        use_local_zero: bool,
+        old_programs: *const [trace.N_FAMILIES]?LookupProgram,
         err: ?anyerror = null,
+
+        fn fillLocalZero(work: *@This(), family: trace.OpcodeFamily, component_index: usize, physical: usize) !void {
+            const columns = &work.result.components[component_index];
+            const old_width = trace.nColumnsForFamily(family);
+            var cells: [trace.MAX_FAMILY_COLUMNS]M31 = undefined;
+            for (columns.columns[0..old_width], cells[0..old_width]) |column, *cell| cell.* = column[physical];
+            try local_zero.normalizePredecessors(family, cells[0..old_width], &work.old_programs[@intFromEnum(family)].?);
+            try local_zero.fillHints(family, cells[0..old_width], cells[old_width..columns.n_columns]);
+            var lifted: [trace.MAX_FAMILY_COLUMNS]QM31 = undefined;
+            for (columns.columns[0..columns.n_columns], cells[0..columns.n_columns], lifted[0..columns.n_columns]) |column, cell, *value| {
+                column[physical] = cell;
+                value.* = QM31.fromBase(cell);
+            }
+            try work.lookup_counters.registerList(try local_zero.Builder(QM31).lookups(family, lifted[0..columns.n_columns]));
+        }
 
         fn run(work: *@This()) void {
             var offsets = work.family_offsets;
@@ -222,7 +252,12 @@ pub fn generate(
                     row,
                     family,
                 );
-                source_ingest.registerGeneratedCommittedRow(
+                if (work.use_local_zero) {
+                    work.fillLocalZero(family, component_index, physical_row) catch |err| {
+                        work.err = err;
+                        return;
+                    };
+                } else source_ingest.registerGeneratedCommittedRow(
                     family,
                     &work.result.components[component_index].columns,
                     physical_row,
@@ -286,6 +321,8 @@ pub fn generate(
             .first_component = &first_component,
             .family_component_counts = &family_component_counts,
             .lookup_counters = &worker_counters[worker],
+            .use_local_zero = use_local_zero,
+            .old_programs = &old_programs,
         };
     }
     if (worker_count > 1) {
@@ -330,6 +367,14 @@ pub fn generate(
     return result;
 }
 
+fn localZeroEnabled(statement: anytype) bool {
+    const T = switch (@typeInfo(@TypeOf(statement))) {
+        .pointer => |pointer| pointer.child,
+        else => @TypeOf(statement),
+    };
+    return if (@hasDecl(T, "localZeroCustody")) statement.localZeroCustody() else false;
+}
+
 fn directSemanticAuditEnabled() bool {
     return directSemanticAuditEnabledFor(
         builtin.mode,
@@ -349,7 +394,7 @@ fn directSemanticAuditEnabledFor(
 /// and constraint diagnostic without accepting anything the proof would not.
 pub fn validateDirectSemantics(
     allocator: std.mem.Allocator,
-    statement: statement_mod.RiscVStatement,
+    statement: anytype,
     columns: *const Columns,
 ) !void {
     for (0..statement.n_components) |component_index| {
@@ -371,11 +416,12 @@ pub fn validateDirectSemantics(
                 QM31.one()
             else
                 QM31.zero();
-            var evaluation: semantic_eval.Evaluation = undefined;
-            try semantic_eval.evaluateInto(
+            var evaluation: semantic_eval.Eval(QM31).RecipeEvaluation = undefined;
+            try semantic_eval.Eval(QM31).evaluateForRecipeInto(
                 desc.family,
                 sampled[0..component.n_columns],
                 is_active,
+                localZeroEnabled(statement),
                 &evaluation,
             );
             for (evaluation.values[0..evaluation.len], 0..) |value, constraint| {

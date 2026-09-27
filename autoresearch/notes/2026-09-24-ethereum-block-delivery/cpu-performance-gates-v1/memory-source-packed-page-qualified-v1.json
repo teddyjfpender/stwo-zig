@@ -1,0 +1,82 @@
+{
+  "status": "qualified_nonproving_packed_sha_page_snapshot",
+  "source_candidate": "memory-source-packed-page-source-candidate-v1.json",
+  "evidence": {
+    "memory-source-packed-page-semantic-v1": {
+      "source_candidate": "memory-source-packed-page-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 1.7179192089824937,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-packed-page-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-packed-page-semantic-v2": {
+      "source_candidate": "memory-source-packed-page-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.0040435409755446,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-packed-page-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-packed-page-focused-v1": {
+      "source_candidate": "memory-source-packed-page-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 172.72142004198395,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-packed-page-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-packed-page-focused-v1",
+        "bytes": 3166304,
+        "sha256": "80c9854da707c59b19e3bef60103a4e84bd93aa5afeecee74aa06cd38d7fa7e2"
+      }
+    }
+  },
+  "tests_passed": 22,
+  "scope": [
+    "Original SHA padding edges, scalar/SIMD constraints, degree and full-row/table parity",
+    "Six-root compact SHA durable replay, compact operand framing and original endpoint coordinates",
+    "Original direct column regeneration and seven-tree component masks with allocation rollback",
+    "Actual PAGE producer/fresh receiver and eight-tree codec bodies retained but not invoked"
+  ],
+  "repairs": [
+    "Fixture wire helper shadowing and immutable channel declaration",
+    "Packed QM31 constant broadcasting and symbolic branch quota",
+    "Checked u32 interaction-count conversion and runtime usize column width"
+  ],
+  "snapshot_note": "Immutable focused snapshot precedes subsequent additive cached Stage and ComponentOwner setup overloads; their separate gate must qualify those later edits.",
+  "not_qualified": [
+    "Unified raw/fold PAGE source, route and hash authority",
+    "Complete source/global closure or canonical CPU driver activation",
+    "A genuine PAGE STARK or complete block proof"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

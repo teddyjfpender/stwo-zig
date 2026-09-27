@@ -1,0 +1,14 @@
+{
+  "README.md": "2ce9b9cc4b213d24fef9200bbd166dd48181e408cc36f0652806f1d8f26f6463",
+  "routing-review-tests.log": "af3cb36cc8dd6f4dacb2fc4f56498c80fb63d5cbb124ec246725df7cc9aa139d",
+  "sources/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig": "e590f48a5032ff43c0038464cdf0f0050a81156deab254f5554d4bbe8c84ed86",
+  "sources/src/frontends/riscv/recursion/air/blake3_challenge_links.zig": "4945154711b5873f1d0f052c0817073d4111d8f7093715a100c7d413c18325ba",
+  "sources/src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig": "b747c227b1c18f3622fd787822649fa837a649a696562b71896b7abb70d30fac",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness.zig": "7d8160d821d74481cc6d7c86f888d2fa8a4ac94c19459c2ffaaf37b7b19f9887",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_transcript.zig": "2f61453484d788806f6859f5093b2a57239772f58d3f139e0c8832d7cc839d6b",
+  "sources/src/frontends/riscv/recursion/air/blake3_routed_transcript_test.zig": "55368458ceaa6928ec41916a89468cce113d8eee7b0c377a5a0a4a8b964bad11",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig": "8bffbb74b8c83c39b31c4702f37e39b44e474e2ea825aaade3ee5d29ef6257c5",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "3615de7d68d117a4c53c3f3a4fb4242a8762e99122895bd7aa1db1bee7939f9d",
+  "sources/src/frontends/riscv/recursion/air/qm31_pack_wire_test.zig": "fb159dd8c372bac738b0a8e565e1cee3940a588b5717f55fa9da0af076707648",
+  "tests.log": "aecade8cc8afdced8cb616ceea8b8da344d35d09a76394e95527cd3de01fda67"
+}

@@ -1,0 +1,26 @@
+{
+  "scope": "public RW/register first-touch fallback; no STARK or complete-block authority",
+  "execution_profile": "rv32im_zkvm_ethereum_sha_v1",
+  "root_source": "fresh ELF/input EthereumShaExecutionSession.startSegment(1), entry continuation snapshot",
+  "source_seal": "v3 direct-bound roster digest; benchmark-only base/first-round/shard digests, not a production batch statement",
+  "session_ns": 250318583,
+  "verify_ns": 226370750,
+  "peak_tracked_bytes": 118930376,
+  "initial_rw_root": "cb0bcd7aae4d11ed72c29bdab5a89e1c2a042810f885df62aaa9b21b653216bc",
+  "sealed_roster_digest": "cd608622d95e8d060bd3fb40c56f31f9f64bf8307d91b0722b8eefe5bd65ba5d",
+  "image_words": 666708,
+  "first_touches": 3142932,
+  "rw_first_touches": 3142901,
+  "rw_zero_first_touches": 2484479,
+  "register_first_touches": 31,
+  "program_first_touches": 0,
+  "rw_claim_m31_limbs": [47976851, 943338211, 1415680211, 677202883],
+  "register_claim_m31_limbs": [1959058891, 987237393, 1668409337, 1567454061],
+  "sha256": {
+    "benchmark_binary": "38c5fa74a04a2c40cd194985b2acee4054381b173c43a1b4db416208e33d8326",
+    "elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "input": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "public_nonzero_image": "ab21b3927537722ef78a1f50402a34565d55a7709bc0360b96ebfdca62aaace7",
+    "public_first_touches": "576ac9b5fa22dc9b3c202657b447ebbd3c67f6de9b5f274973dea8df9711fa68"
+  }
+}

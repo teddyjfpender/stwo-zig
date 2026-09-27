@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-unified-page-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 20.85449720802717,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 20,
+  "test_summary": [
+    "All 20 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-unified-page-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-unified-page-focused-v1",
+    "bytes": 26506160,
+    "sha256": "cf26ab35b305f033d2754e685d63744253aa31710d2b058f8bf9ce0359cc0691"
+  }
+}

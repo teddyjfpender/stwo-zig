@@ -1,0 +1,12 @@
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:171:19: error: local constant shadows declaration of 'base'
+            const base = self.admitted;
+                  ^~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:332:1: note: declared here
+const base = Base;
+^~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:190:19: error: local constant shadows declaration of 'base'
+            const base = if (subtype == .capacity_fused_v1) prepared.native else prepared;
+                  ^~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:332:1: note: declared here
+const base = Base;
+^~~~~~~~~~~~~~~~~

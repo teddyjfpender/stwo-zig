@@ -107,18 +107,22 @@ pub const Geometry = struct {
 };
 
 /// Canonical offsets assigned by the ordered manifest builder.
-pub const Placement = struct {
-    geometry: Geometry,
-    preprocessed_offset: u32,
-    main_offset: u32,
-    interaction_offset: u32,
-    constraint_offset: u32,
-    claimed_sum_index: u8,
-
-    pub fn eql(self: Placement, other: Placement) bool {
-        return std.meta.eql(self, other);
-    }
-};
+// Legacy sealed manifests retain their exact u8 encoding. Runtime assemblies
+// may append components after hundreds of native execution shards.
+pub const Placement = PlacementFor(u8);
+pub fn PlacementFor(comptime Index: type) type {
+    return struct {
+        geometry: Geometry,
+        preprocessed_offset: u32,
+        main_offset: u32,
+        interaction_offset: u32,
+        constraint_offset: u32,
+        claimed_sum_index: Index,
+        pub fn eql(self: @This(), other: @This()) bool {
+            return std.meta.eql(self, other);
+        }
+    };
+}
 
 pub const Manifest = struct {
     format_version: u16,

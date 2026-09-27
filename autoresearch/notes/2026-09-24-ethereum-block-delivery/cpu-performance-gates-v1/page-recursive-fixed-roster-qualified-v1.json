@@ -1,0 +1,45 @@
+{
+  "status": "focused-nonproving-original-page-full-fixed-family-only",
+  "authoritative_source_snapshot": "page-recursive-fixed-roster-focused-v1-source.json",
+  "successful_attempt": {
+    "source_candidate": "page-recursive-fixed-roster-focused-v1-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 37.097832790983375,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 18,
+    "test_summary": [
+      "All 18 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/page-recursive-fixed-roster-focused-v1.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-page-recursive-fixed-roster-focused-v1",
+      "bytes": 37545120,
+      "sha256": "b4da4368732fd2b244be79939e03df331d92bc236cb6d34b94b7634942f9cc76"
+    }
+  },
+  "source_pin_count": 1929,
+  "behavioral_groups": 10,
+  "scope": [
+    "Actual original raw/fold independent public/private suppliers, ten-tree PCS and complete append/fusion/partition roster",
+    "Exact original context and family expected-key constructors retained without invocation",
+    "One shared original live/fixed fused bus routing emitter preserves live public-value equality checks",
+    "Shared private source emitter keeps native PAGE eight initial roots external and universal47 draw grammar",
+    "Five full roster/schedule/source/limit/OOM/lifetime groups plus five original prefix/framing groups; actual default/native/caller live bodies retained"
+  ],
+  "remaining": [
+    "Actual original full PAGE fixed/live expected commitment parity and positive proof",
+    "Independent PAGE forest and memory/global catalogue setup and canonical activation",
+    "Standalone complete-block acceptance and end-to-end time/process peak memory"
+  ],
+  "segments_run": false,
+  "pcs_commitment_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

@@ -1,0 +1,32 @@
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:131:148: error: expected type 'u32', found 'usize'
+                    const normal = try Norm.Normalized.initWithWords(a, &admission, values.statement.felts, values.statement.component_claim_first - A.CLAIM_COUNT, values.statement.words, original.normalization);
+                                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:131:148: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_normalizer_v1.zig:57:106: note: parameter type declared here
+    pub fn initWithWords(a: std.mem.Allocator, admission: anytype, claim_frame: []const Q, claim_offset: u32, target_words: ?[]const u32, limits: Limits) !Normalized {
+                                                                                                         ^~~
+referenced by:
+    stwo_source_page_forest_body_gate: src/frontends/riscv/block_v5_memory_source_page_forest_codegen_v1.zig:13:86
+    stwo_source_page_forest_body_gate: src/frontends/riscv/block_v5_memory_source_page_forest_codegen_v1.zig:12:5
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:181:158: error: expected type 'u32', found 'usize'
+                    try value.normal.requireWithWords(self.allocator, &admission, value.values.statement.felts, value.values.statement.component_claim_first - A.CLAIM_COUNT, value.values.statement.words, value.policy.normalization);
+                                                                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:181:158: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_normalizer_v1.zig:84:134: note: parameter type declared here
+    pub fn requireWithWords(self: *const Normalized, a: std.mem.Allocator, admission: anytype, claim_frame: []const Q, claim_offset: u32, target_words: ?[]const u32, limits: Limits) !void {
+                                                                                                                                     ^~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_leaf_v1.zig:86:126: error: expected type 'u32', found 'usize'
+            fresh.normalized = try Norm.Normalized.initWithWords(a, &authority_value, stmt.felts, stmt.component_claim_first - Algebra.CLAIM_COUNT, stmt.words, policy.normalization);
+                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_leaf_v1.zig:86:126: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_normalizer_v1.zig:57:106: note: parameter type declared here
+    pub fn initWithWords(a: std.mem.Allocator, admission: anytype, claim_frame: []const Q, claim_offset: u32, target_words: ?[]const u32, limits: Limits) !Normalized {
+                                                                                                         ^~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_leaf_v1.zig:86:126: error: expected type 'u32', found 'usize'
+            fresh.normalized = try Norm.Normalized.initWithWords(a, &authority_value, stmt.felts, stmt.component_claim_first - Algebra.CLAIM_COUNT, stmt.words, policy.normalization);
+                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_leaf_v1.zig:86:126: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_normalizer_v1.zig:57:106: note: parameter type declared here
+    pub fn initWithWords(a: std.mem.Allocator, admission: anytype, claim_frame: []const Q, claim_offset: u32, target_words: ?[]const u32, limits: Limits) !Normalized {
+                                                                                                         ^~~

@@ -71,13 +71,27 @@ pub fn degrees(comptime Air: type, direct: anytype, plan: anytype, parameters: ?
         const first = plan.events[batch.first];
         var d1: u32 = 0;
         for (first.value_slots[0..first.arity]) |slot| d1 = @max(d1, slots[slot].degree);
-        const n1 = slots[first.numerator_slot].degree;
+        var n1 = slots[first.numerator_slot].degree;
         var d2: u32 = 0;
         var n2: u32 = 0;
         if (batch.second) |index| {
             const second = plan.events[index];
             for (second.value_slots[0..second.arity]) |slot| d2 = @max(d2, slots[slot].degree);
             n2 = slots[second.numerator_slot].degree;
+        }
+        if (batch.third) |index| {
+            const entry = plan.events[index];
+            var d: u32 = 0;
+            for (entry.value_slots[0..entry.arity]) |slot| d = @max(d, slots[slot].degree);
+            n1 = @max(n1 + d, slots[entry.numerator_slot].degree + d1);
+            d1 += d;
+        }
+        if (batch.fourth) |index| {
+            const entry = plan.events[index];
+            var d: u32 = 0;
+            for (entry.value_slots[0..entry.arity]) |slot| d = @max(d, slots[slot].degree);
+            n2 = @max(n2 + d, slots[entry.numerator_slot].degree + d2);
+            d2 += d;
         }
         // (current - previous - previous_column + shift) * d1 * d2
         // - n1*d2 - n2*d1. Interaction columns have degree one.

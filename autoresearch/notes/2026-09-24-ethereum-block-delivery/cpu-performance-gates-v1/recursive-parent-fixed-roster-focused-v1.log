@@ -1,0 +1,16 @@
+1/15 block_v5_recursive_parent_fixed_roster_test_root_v1.test_0...OK
+2/15 block_v5_recursive_parent_fixed_roster_test_root_v1.test.recursive fixed roster: actual full fixed roster and original live bodies retained...OK
+3/15 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: original full projection fixed-column parity and endpoints...OK
+4/15 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: original fused arithmetic complete fixed tails and cleanup...OK
+5/15 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: count admission rollback and original allocator release...OK
+6/15 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: G partition exact original geometry at physical boundaries...OK
+7/15 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: stable arithmetic plan outlives original budget owner...OK
+8/15 recursion.air.native_pcs_fusion_rows.test.native query fusion admission rejects altered missing and duplicate sources...OK
+9/15 recursion.air.native_pcs_fusion_rows.test.recursive fixed roster: original native PCS matcher parity mutation and allocation rollback...OK
+10/15 air.semantic_eval.test_0...OK
+11/15 recursion.air.blake3_g_partition.test.G partition preserves logical rows and padding across domain boundaries...OK
+12/15 recursion.air.blake3_g_partition.test.G partition allocation failures leave source rows usable...OK
+13/15 air.memory_commitment.poseidon2_air.test_0...OK
+14/15 air.lookups.tables.mod.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

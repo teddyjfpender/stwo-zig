@@ -1,0 +1,6 @@
+1/5 block_v5_memory_source_fold_spool_test_root.test.source fold spool root...OK
+2/5 prover.block_v5_memory_source_fold_spool_test_v1.test.source fold spool: original dense full tree crosses buffers with exact canonical operation parity...OK
+3/5 prover.block_v5_memory_source_fold_spool_test_v1.test.source fold spool: caps identity order footer hash and truncation are distinct fail-closed guards...OK
+4/5 prover.block_v5_memory_source_fold_spool_test_v1.test.source fold spool: Job rejects stale census admission and file cap before ownership or stream access...OK
+5/5 block_v5_memory_source_fold_spool_codegen.test.source fold spool bodies: real original collect stream and Job typed commit path...OK
+All 5 tests passed.

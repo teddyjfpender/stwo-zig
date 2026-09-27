@@ -1,0 +1,15 @@
+1/14 block_v5_requester_summary_test_root.test_0...OK
+2/14 block_v5_requester_summary_test_root.test.requester summary: actual static producer fresh receiver source and planner bodies retained without invocation...OK
+3/14 prover.block_v5_requester_summary_test_v1.test.requester summary: static exact family selection retains original arithmetic fused ROM six-table and excludes RAM range...OK
+4/14 prover.block_v5_requester_summary_test_v1.test.requester summary: odd and large exact rosters use bounded four-child parents without verifying excluded descendants...OK
+5/14 prover.block_v5_requester_summary_test_v1.test.requester summary: every selected-cohort and exact routing allocation failure releases both owners...OK
+6/14 prover.block_v5_requester_summary_test_v1.test.requester summary: original four-limb equations retain packed requests and reject every source or output mutation...OK
+7/14 prover.block_v5_requester_summary_test_v1.test.requester summary: static recipe changes plan and owner key context while preserving legacy identity...OK
+8/14 prover.block_v5_requester_summary_test_v1.test.requester summary: genuine memory port framing preserves all original configuration fields and exact transition ordinal under faults...OK
+9/14 prover.block_execution_external_trace_v2.test_0...OK
+10/14 air.lookups.tables.mod.test_0...OK
+11/14 air.semantic_eval.test_0...OK
+12/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/14 air.memory_commitment.poseidon2_air.test_0...OK
+14/14 air.lookups.tables.source_ingest.test_0...OK
+All 14 tests passed.

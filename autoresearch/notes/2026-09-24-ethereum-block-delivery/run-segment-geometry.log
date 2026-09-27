@@ -1,0 +1,7 @@
+[ethereum-segment-geometry] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-segment-geometry] acquired after 110s
+128-entry False 0
+256-entry False 0
+512-entry True 0
+512-evm-recovery True 0
+512-terminal False 0

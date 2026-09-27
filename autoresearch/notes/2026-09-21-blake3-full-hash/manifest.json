@@ -1,0 +1,20 @@
+{
+  "README.md": "1e4fe369da139dcbaa801e521ac023ba757c45f8a066d13df44f64743e6715ed",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/autoresearch/notes/20260921-blake3-hash-graph-problem-match.md": "10979f348bd44ed39d6f1fbe30d84fd1b2a6bf5cc161919df96e8acd16f1c1fb",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "81580bdeac31e2bc0f9033f539c49c3f402840275a70eb95d3f3369deb164a86",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "6a53033a0399a3220f46e0ecc937271aaf4283f492c09b14ec3a01abb1a315df",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "9154e1ea75aaa5a3c9b78fb3dd6cdbc454bee8f31116aa2c483365125a94226b",
+  "sources/src/frontends/riscv/recursion/air/blake3_boundary.zig": "16b4312851fd77a44e77be6feaa75d6437b1ef5bbbca1e6ad4ad87bff7099b81",
+  "sources/src/frontends/riscv/recursion/air/blake3_committed_test.zig": "66d8046edb789bae671f475c0b0187d5244f174d0ab34eda836a8cf3764863a0",
+  "sources/src/frontends/riscv/recursion/air/blake3_compression_plan.zig": "1128c84585974ab54a35e7becc929fb7a5be76f5b2ed93aab0b1f282e6e11246",
+  "sources/src/frontends/riscv/recursion/air/blake3_g_call.zig": "46cd090b6ac36afad6081798ec830cc87bf4d95d5b279b94a0056102de796314",
+  "sources/src/frontends/riscv/recursion/air/blake3_hash_plan.zig": "1da33f23ce1f860fd4c0495b66b38b7f7e10d6386e405785b8f4f425eed83005",
+  "sources/src/frontends/riscv/recursion/air/blake3_hash_test.zig": "5c57cbc2e3e3912b04f7d70d2be1ca1b19c216da5163a3c58ac42d36b7fc6c3c",
+  "sources/src/frontends/riscv/recursion/air/blake3_hash_witness.zig": "17cd14b60f2c05f5b593e234f931479666fd665245079ae990c079a54cb41d54",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_fixture.zig": "0497d4e1def4025157a8cd291f57b58320963e2be937cfd03bbb0d47bb586679",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "55c196e0294dde6bb0659caeec5e95c504083115c9339eacbec444fe31e5a9de",
+  "sources/src/frontends/riscv/recursion/air/blake3_xor_call.zig": "5528c51c4589201f9bf84cc3c0d5317512906486a21542ded48aa4568ff1f836",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "fddba79f1a633abe74a97ccfede5e92e9baae3396770cf173b135fd6a2063aeb",
+  "tests.log": "65acd026c628c96930d1bd7cd017d2a3f2cc39452fa1424336dfd9fc5ba520e5"
+}

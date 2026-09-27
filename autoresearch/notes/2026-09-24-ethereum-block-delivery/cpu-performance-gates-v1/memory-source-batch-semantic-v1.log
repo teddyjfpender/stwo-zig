@@ -1,0 +1,35 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:288:35: error: destination type 'u8' has more bits than source type 'u6'
+        self.block_len += @as(u8, @truncate(take));
+                                  ^~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:288:35: note: destination type has 8 bits
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:288:45: note: operand type has 6 bits
+        self.block_len += @as(u8, @truncate(take));
+                                            ^~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:316:38: note: called at comptime here
+            input = self.fillBlockBuf(input);
+                    ~~~~~~~~~~~~~~~~~^~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:454:36: note: called at comptime here
+            self.chunk_state.update(input[0..take]);
+            ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+src/core/vcs/blake3_hash.zig:23:26: note: called at comptime here
+        self.state.update(data);
+        ~~~~~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/air/memory_commitment/blake3_state_tree.zig:23:20: note: called at comptime here
+        sink.update(&domain);
+        ~~~~~~~~~~~^~~~~~~~~
+src/frontends/riscv/air/memory_commitment/blake3_state_tree.zig:85:19: note: called at comptime here
+        self.write(&hasher);
+        ~~~~~~~~~~^~~~~~~~~
+src/frontends/riscv/air/memory_commitment/blake3_state_tree.zig:107:78: note: called at comptime here
+        return (Frame{ .leaf = .{ .kind = self.kind, .value = value } }).hash();
+               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+src/frontends/riscv/air/memory_commitment/blake3_state_tree.zig:94:41: note: called at comptime here
+        self.defaults[DEPTH] = self.leaf(0);
+                               ~~~~~~~~~^~~
+src/frontends/riscv/prover/block_v5_memory_source_batch_defaults_v1.zig:7:36: note: called at comptime here
+    break :blk Tree.TreeHasher.init(.memory);
+               ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+referenced by:
+    compute__anon_30926: src/frontends/riscv/recursion/air/block_v5_memory_source_batch_equations_v1.zig:231:46
+    propose__anon_30857: src/frontends/riscv/prover/block_v5_memory_source_batch_circuit_v1.zig:31:33
+    4 reference(s) hidden; use '-freference-trace=6' to see all references

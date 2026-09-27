@@ -1,0 +1,8 @@
+{
+  "README.md": "d1053abe7aa6421330d0d3c191350ce73af65b032fff34cc134aa8461e310e37",
+  "sources/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig": "b4c81a673b4dd21fbd615181fa5b3532ad24e2e9ba53b031335530441152ca07",
+  "sources/src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig": "dceaae28b75fa0d4ba26a9044822af041c2cf372d2e6a823a9a3979077d7a845",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_transcript.zig": "56a4a8945a4609f6056e2ba3e8f04541999d77cf8eff16d464072603a80a8ff3",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig": "7982499dbb41c873e1523b75344d8708e49dbaf6634a65a4c1842fbaf1d47deb",
+  "tests.log": "7bcf5cb18626ba532a60b9fc62db310d55cbdb8271a5db1639cbdfc3f38be6cc"
+}

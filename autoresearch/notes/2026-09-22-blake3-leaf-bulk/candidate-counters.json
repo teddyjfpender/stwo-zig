@@ -1,0 +1,82 @@
+{
+ "rounds": 5,
+ "iterations": 1000,
+ "ops_per_call": 32,
+ "imports": {
+  "core": "/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig"
+ },
+ "ns_per_op": 925.125,
+ "ns_per_op_min": 902.9635,
+ "instructions_per_op": 21713.41,
+ "cycles_per_op": 4160.953,
+ "ipc": 5.218,
+ "energy_nj_median_round": 0,
+ "peak_footprint_bytes": 1114400,
+ "raw_rounds": [
+  {
+   "iterations": 1000,
+   "ops_per_call": 32,
+   "wall_ns": 45966458,
+   "ns_per_op": 1436.4518,
+   "instructions": 694812711,
+   "cycles": 132927530,
+   "ipc": 5.227,
+   "instructions_per_op": 21712.897,
+   "cycles_per_op": 4153.985,
+   "energy_nj": 0,
+   "peak_footprint_bytes": 1114400
+  },
+  {
+   "iterations": 1000,
+   "ops_per_call": 32,
+   "wall_ns": 33848209,
+   "ns_per_op": 1057.7565,
+   "instructions": 694829108,
+   "cycles": 133150481,
+   "ipc": 5.218,
+   "instructions_per_op": 21713.41,
+   "cycles_per_op": 4160.953,
+   "energy_nj": 0,
+   "peak_footprint_bytes": 1114400
+  },
+  {
+   "iterations": 1000,
+   "ops_per_call": 32,
+   "wall_ns": 29604000,
+   "ns_per_op": 925.125,
+   "instructions": 694846024,
+   "cycles": 133266863,
+   "ipc": 5.214,
+   "instructions_per_op": 21713.938,
+   "cycles_per_op": 4164.589,
+   "energy_nj": 0,
+   "peak_footprint_bytes": 1114400
+  },
+  {
+   "iterations": 1000,
+   "ops_per_call": 32,
+   "wall_ns": 28894833,
+   "ns_per_op": 902.9635,
+   "instructions": 694766769,
+   "cycles": 132676279,
+   "ipc": 5.237,
+   "instructions_per_op": 21711.462,
+   "cycles_per_op": 4146.134,
+   "energy_nj": 0,
+   "peak_footprint_bytes": 1114400
+  },
+  {
+   "iterations": 1000,
+   "ops_per_call": 32,
+   "wall_ns": 29275375,
+   "ns_per_op": 914.8555,
+   "instructions": 694845873,
+   "cycles": 133317080,
+   "ipc": 5.212,
+   "instructions_per_op": 21713.934,
+   "cycles_per_op": 4166.159,
+   "energy_nj": 0,
+   "peak_footprint_bytes": 1114400
+  }
+ ]
+}

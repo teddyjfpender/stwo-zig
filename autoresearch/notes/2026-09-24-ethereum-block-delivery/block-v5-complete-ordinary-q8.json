@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-26",
+  "kind": "focused_architecture_qualification",
+  "command": "zig build test-block-v5-global -Doptimize=ReleaseFast --summary all",
+  "exit_code": 0,
+  "security": { "fri_queries": 8, "pow_bits": 0 },
+  "backend": "CPU",
+  "scope": {
+    "guest": "one real ADDI execution",
+    "native_protocol": "v3",
+    "executions": 1,
+    "lookup_groups": 1,
+    "packed_memory_events": 2,
+    "byte_requests": 28,
+    "rom": "fresh proof with independent declared program",
+    "rw_endpoints": "complete initial and final sources",
+    "register_endpoints": "global sorted-memory closure",
+    "recursion": "fresh reusable native leaf and genuine one-child exact outer"
+  },
+  "verified": [
+    "fresh native and ROM proofs",
+    "six-table shared-root projection and provider closure",
+    "packed sorted36 and range16 proofs",
+    "PC/clock, memory, register and final accounting closure",
+    "exact recursive outer with policies rebuilt from independent base pins",
+    "actual complete detached bundle with leaf/outer files and pinned manifest",
+    "early weaker leaf, parent, outer and child-verifier config rejection",
+    "altered independent recursive key rejected before global proof consumption",
+    "concrete bounded native/caller warm-hook producer bodies compile",
+    "wrong expected source seal rejected",
+    "altered provider demand rejected"
+  ],
+  "not_qualified": [
+    "complete precompile bundle",
+    "Ethereum block",
+    "q70/PoW26 whole-chain security",
+    "detached OpenV2 production pipeline",
+    "isolated proving time or memory"
+  ],
+  "followup": "Frozen-tree requalification passed, including all three actual receive modes and new config, child-config and key negatives. Larger caller global closure and canonical security remain pending."
+}

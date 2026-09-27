@@ -1,0 +1,22 @@
+{
+  "source_candidate": "word-native-fixed-roster-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 3.7915830410202034,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 5,
+  "test_summary": [
+    "All 5 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-native-fixed-roster-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-word-native-fixed-roster-focused-v2",
+    "bytes": 5736208,
+    "sha256": "da69f63fdfcd87fe91cfaaa39afaca2ea97cc6f781c483f5b3ef35225d92e2c0"
+  }
+}

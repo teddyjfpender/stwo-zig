@@ -140,6 +140,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             channel: anytype,
         ) (std.mem.Allocator.Error || verifier_types.VerificationError)!void {
             return self.verifyValuesImpl(
+                true,
                 allocator,
                 sampled_points,
                 proof_in,
@@ -161,6 +162,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             capture: *QueryCapture,
         ) (std.mem.Allocator.Error || verifier_types.VerificationError)!void {
             return self.verifyValuesImpl(
+                true,
                 allocator,
                 sampled_points,
                 proof_in,
@@ -183,6 +185,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             capture: *VerifiedProofCapture(H),
         ) (std.mem.Allocator.Error || verifier_types.VerificationError)!void {
             return self.verifyValuesImpl(
+                true,
                 allocator,
                 sampled_points,
                 proof_in,
@@ -193,8 +196,23 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             );
         }
 
+        /// The input proof is never consumed or retained. Sample points are
+        /// still consumed, and all successful capture vectors are owned.
+        pub fn verifyValuesWithBorrowedProofCapture(
+            self: *const Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            proof: *const CommitmentSchemeProof,
+            channel: anytype,
+            challenges: ProofCaptureChallenges,
+            capture: *VerifiedProofCapture(H),
+        ) (std.mem.Allocator.Error || verifier_types.VerificationError)!void {
+            return self.verifyValuesImpl(false, allocator, sampled_points, proof.*, channel, null, capture, challenges);
+        }
+
         fn verifyValuesImpl(
             self: *const Self,
+            comptime owns_proof: bool,
             allocator: std.mem.Allocator,
             sampled_points: TreeVec([][]CirclePointQM31),
             proof_in: CommitmentSchemeProof,
@@ -207,7 +225,7 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
             defer sampled_points_owned.deinitDeep(allocator);
 
             var proof = proof_in;
-            defer cleanupProof(&proof, allocator);
+            defer if (owns_proof) cleanupProof(&proof, allocator);
 
             if (self.trees.items.len == 0) return verifier_types.VerificationError.EmptyTrees;
             if (proof.decommitments.items.len != self.trees.items.len) return verifier_types.VerificationError.ShapeMismatch;
@@ -323,7 +341,8 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                         proof.decommitments.items[i],
                         &trace_paths.?[i],
                     ) catch |err| {
-                        std.log.err("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
+                        if (err != error.OutOfMemory)
+                            std.log.err("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
                         return err;
                     };
                     trace_paths_initialized += 1;
@@ -337,7 +356,8 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                         proof.queried_values.items[i],
                         proof.decommitments.items[i],
                     ) catch |err| {
-                        std.log.err("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
+                        if (err != error.OutOfMemory)
+                            std.log.err("PCS Merkle verification failed for tree {d}: {s}", .{ i, @errorName(err) });
                         return err;
                     };
                 }
@@ -365,13 +385,15 @@ pub fn CommitmentSchemeVerifier(comptime H: type, comptime MC: type) type {
                     query_capture.raw,
                     &fri_capture,
                 ) catch |err| {
-                    std.log.err("FRI verification failed: {s}", .{@errorName(err)});
+                    if (err != error.OutOfMemory)
+                        std.log.err("FRI verification failed: {s}", .{@errorName(err)});
                     return err;
                 };
                 fri_capture_owned = true;
             } else {
                 fri_verifier.decommit(allocator, fri_answers) catch |err| {
-                    std.log.err("FRI verification failed: {s}", .{@errorName(err)});
+                    if (err != error.OutOfMemory)
+                        std.log.err("FRI verification failed: {s}", .{@errorName(err)});
                     return err;
                 };
             }

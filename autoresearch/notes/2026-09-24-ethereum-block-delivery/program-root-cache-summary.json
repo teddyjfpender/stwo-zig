@@ -1,0 +1,22 @@
+{
+  "scope": "Real first32768-cycle Ethereum block leaf; q70/PoW26; same binary, single observations",
+  "identical_proof_bytes": true,
+  "results": [
+    {
+      "cached": false,
+      "wall_seconds": 16.57382570800837,
+      "witness_seconds": 3.717421625,
+      "prove_seconds": 9.332803334,
+      "tracked_peak_bytes": 9870675414,
+      "process_peak_bytes": 9763955520
+    },
+    {
+      "cached": true,
+      "wall_seconds": 15.450445500027854,
+      "witness_seconds": 3.255720959,
+      "prove_seconds": 9.25397175,
+      "tracked_peak_bytes": 9870675414,
+      "process_peak_bytes": 9763791536
+    }
+  ]
+}

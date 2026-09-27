@@ -1,0 +1,252 @@
+--- a/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
+@@ -109,6 +109,13 @@
+     openings: @import("air/blake3_native_openings.zig").Prepared,
+     hash_columns: @import("blake3_native_hash_columns.zig").Owner,
+     pub fn init(a: std.mem.Allocator, admitted: anytype, capture: anytype, expected: [32]u8, capacity: u32) !*State {
++        var planned = try plan(a, admitted, capture, expected, capacity);
++        defer planned.deinit();
++        return planned.emit();
++    }
++    /// Borrow the admitted capture until emission or destruction. No final hash
++    /// columns are allocated before the complete child layout is available.
++    pub fn plan(a: std.mem.Allocator, admitted: anytype, capture: anytype, expected: [32]u8, capacity: u32) !Planned {
+         var profile = PreparationProfile.init();
+         try capture.validate(admitted, expected);
+         profile.lap("validate");
+@@ -131,8 +138,7 @@
+         profile.lap("fri");
+         var planned = if (parent_child) try @import("air/blake3_parent_transcript.zig").planReplay(a, admitted, capture, capacity) else try @import("air/blake3_execution_transcript.zig").planReplay(a, admitted, capture, expected, capacity);
+         profile.lap("transcript_plan");
+-        var owns_plan = true;
+-        defer if (owns_plan) planned.deinit();
++        errdefer planned.deinit();
+         self.payloads = try @import("air/blake3_execution_payloads.zig").prepare(a, &self.composition, &planned, &self.deep, 1500, 1502, 5_000_012);
+         errdefer self.payloads.deinit();
+         profile.lap("payloads");
+@@ -149,11 +155,67 @@
+         errdefer self.roots.deinit();
+         profile.lap("roots");
+         const layout = try @import("blake3_native_hash_layout.zig").Layout.init(a, try planned.hashCounts(), proof);
++        self.context = .{ .child_key_id = expected, .child_config = config, .graph_ids = .{ self.composition.circuit.identity_digest, self.deep.graph.graph().identity_digest, self.fri.graph.graph().identity_digest }, .transcript_plan_id = planned.plan.id };
++        if (parent_child) {
++            self.context.statement_identity = admitted.key.context.statement_identity;
++            self.context.span_binding_id = admitted.key.context.span_binding_id;
++        }
++        return .{ .state = self, .transcript = planned, .layout = layout, .proof = proof };
++    }
++    pub fn sources(self: *const State) source_mod.Sources {
++        return .{ .composition = &self.composition, .transcript = &self.transcript, .deep = &self.deep, .fri = &self.fri, .payloads = &self.payloads, .challenges = &self.challenges, .terminal = &self.terminal, .queries = &self.queries, .openings = &self.openings, .roots = &self.roots, .paths = &self.paths };
++    }
++    /// Column ownership moves only after the complete row assembly succeeds.
++    pub fn finish(self: *State) !Prepared {
++        return .{ .rows = try rows_mod.prepareWithHashColumns(self.sources(), &self.hash_columns), .context = self.context };
++    }
++    pub fn deinit(self: *State) void {
++        self.openings.deinit();
++        self.paths.deinit();
++        self.transcript.deinit();
++        self.hash_columns.deinit();
++        self.deinitPlanning();
++    }
++    fn deinitPlanning(self: *State) void {
++        self.roots.deinit();
++        self.queries.deinit();
++        self.terminal.deinit();
++        self.challenges.deinit();
++        self.payloads.deinit();
++        self.fri.deinit();
++        self.deep.deinit();
++        self.composition.deinit();
++        self.allocator.destroy(self);
++    }
++};
++
++/// Owns authenticated planning state while the capture remains borrowed.
++/// Emission consumes this owner on success or error; deinit is idempotent.
++/// Separating these phases lets an aggregate learn both layouts before emission.
++pub const Planned = struct {
++    state: ?*State,
++    transcript: ?@import("air/blake3_native_transcript.zig").Planned,
++    layout: @import("blake3_native_hash_layout.zig").Layout,
++    proof: *const core.verifier.ProofCapture(@import("blake3_engine_protocol.zig").Hasher),
++    pub fn deinit(self: *Planned) void {
++        if (self.transcript) |*transcript| transcript.deinit();
++        if (self.state) |state| state.deinitPlanning();
++        self.transcript = null;
++        self.state = null;
++    }
++    pub fn emit(owner: *Planned) !*State {
++        const self = owner.state orelse return error.ConsumedParentPlan;
++        defer owner.deinit();
++        const a = self.allocator;
++        const layout = owner.layout;
++        const proof = owner.proof;
++        const planned = if (owner.transcript) |*value| value else return error.ConsumedParentPlan;
++        var profile = PreparationProfile.init();
+         self.hash_columns = try @import("blake3_native_hash_columns.zig").Owner.init(a, layout);
+         errdefer self.hash_columns.deinit();
+         profile.lap("hash_columns");
+         self.transcript = try planned.emitMainColumns(a, try self.hash_columns.transcript());
+-        owns_plan = false;
++        owner.transcript = null;
+         errdefer self.transcript.deinit();
+         profile.lap("transcript");
+         self.paths = try @import("air/blake3_stark_paths.zig").prepareMainColumns(a, proof, &self.deep.graph, &self.fri.graph, &self.queries.links, try self.hash_columns.paths());
+@@ -165,34 +227,8 @@
+         self.openings = try @import("air/blake3_native_openings.zig").prepare(a, &self.paths, &self.deep, &self.fri);
+         errdefer self.openings.deinit();
+         profile.lap("openings");
+-        self.context = .{ .child_key_id = expected, .child_config = config, .graph_ids = .{ self.composition.circuit.identity_digest, self.deep.graph.graph().identity_digest, self.fri.graph.graph().identity_digest }, .transcript_plan_id = self.transcript.plan.id };
+-        if (parent_child) {
+-            self.context.statement_identity = admitted.key.context.statement_identity;
+-            self.context.span_binding_id = admitted.key.context.span_binding_id;
+-        }
+         if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_FUSION_CENSUS")) try rows_mod.fusionCensus(a, self.sources());
++        owner.state = null;
+         return self;
+     }
+-    pub fn sources(self: *const State) source_mod.Sources {
+-        return .{ .composition = &self.composition, .transcript = &self.transcript, .deep = &self.deep, .fri = &self.fri, .payloads = &self.payloads, .challenges = &self.challenges, .terminal = &self.terminal, .queries = &self.queries, .openings = &self.openings, .roots = &self.roots, .paths = &self.paths };
+-    }
+-    /// Column ownership moves only after the complete row assembly succeeds.
+-    pub fn finish(self: *State) !Prepared {
+-        return .{ .rows = try rows_mod.prepareWithHashColumns(self.sources(), &self.hash_columns), .context = self.context };
+-    }
+-    pub fn deinit(self: *State) void {
+-        self.openings.deinit();
+-        self.paths.deinit();
+-        self.transcript.deinit();
+-        self.hash_columns.deinit();
+-        self.roots.deinit();
+-        self.queries.deinit();
+-        self.terminal.deinit();
+-        self.challenges.deinit();
+-        self.payloads.deinit();
+-        self.fri.deinit();
+-        self.deep.deinit();
+-        self.composition.deinit();
+-        self.allocator.destroy(self);
+-    }
+-};
++};
+--- a/src/frontends/riscv/recursion/blake3_execution_tree.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_tree.zig
+@@ -58,7 +58,22 @@
+         .{ .a = a, .node = left, .capacity = capacity },
+         .{ .a = a, .node = right, .capacity = capacity },
+     };
+-    defer for (&jobs) |*job| if (job.owned) |*owned| owned.deinit();
++    defer for (&jobs) |*job| {
++        if (job.owned) |*owned| owned.deinit();
++        if (job.planned) |*planned| planned.deinit();
++    };
++    // Complete both authenticated layouts before either child allocates its
++    // final hash columns. Both waves reuse the same bounded pool policy.
++    try runWave(&jobs, pool);
++    for (&jobs) |*job| job.emitting = true;
++    try runWave(&jobs, pool);
++    var l = jobs[0].owned.?;
++    var r = jobs[1].owned.?;
++    jobs[0].owned = null;
++    jobs[1].owned = null;
++    return aggregate.prepareOwned(a, &l, &r, .{ left.statement, right.statement });
++}
++fn runWave(jobs: *[2]Preparation, pool: ?*@import("stwo_prover_engine").work_pool.WorkPool) !void {
+     if (pool) |workers| {
+         const pools = @import("stwo_prover_engine").work_pool;
+         var lease = try workers.acquire(try pools.WorkerBudget.init(@min(2, workers.workerCount())));
+@@ -71,23 +86,32 @@
+             // or releasing its lease, borrowed captures, allocator or witnesses.
+             done.wait();
+             lease.completeWave();
+-        } else for (&jobs) |*job| job.run();
+-    } else for (&jobs) |*job| job.run();
++        } else for (jobs) |*job| job.run();
++    } else for (jobs) |*job| job.run();
+     for (jobs) |job| if (job.failure) |err| return err;
+-    var l = jobs[0].owned.?;
+-    var r = jobs[1].owned.?;
+-    jobs[0].owned = null;
+-    jobs[1].owned = null;
+-    return aggregate.prepareOwned(a, &l, &r, .{ left.statement, right.statement });
+ }
+ const Preparation = struct {
+     a: std.mem.Allocator,
+     node: *const Node,
+     capacity: u32,
+     owned: ?parent.Prepared = null,
++    planned: ?parent.Planned = null,
++    emitting: bool = false,
+     failure: ?anyerror = null,
+     fn run(self: *Preparation) void {
+-        self.owned = parent.prepare(self.a, &self.node.admission, &self.node.verified, self.node.admission.expected_id, self.capacity) catch |err| {
++        if (!self.emitting) {
++            self.planned = parent.State.plan(self.a, &self.node.admission, &self.node.verified, self.node.admission.expected_id, self.capacity) catch |err| {
++                self.failure = err;
++                return;
++            };
++            return;
++        }
++        const state = self.planned.?.emit() catch |err| {
++            self.failure = err;
++            return;
++        };
++        defer state.deinit();
++        self.owned = state.finish() catch |err| {
+             self.failure = err;
+             return;
+         };
+--- a/src/frontends/riscv/prover/compact_range_execution_test.zig
++++ b/src/frontends/riscv/prover/compact_range_execution_test.zig
+@@ -180,6 +180,8 @@
+     try std.testing.expectError(error.InvalidExecutionCapture, captured.validate(prepared, prepared.id));
+     captured.compact_claims[0] = captured.compact_claims[0].sub(core.fields.qm31.QM31.one());
+     if (recurse) {
++        if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_PLAN_LIFECYCLE"))
++            try @import("blake3_parent_plan_test_support.zig").check(a, prepared, &captured, prepared.id);
+         var parent = try @import("../recursion/blake3_execution_parent_preparation.zig").prepare(a, prepared, &captured, prepared.id, 2);
+         defer parent.deinit();
+         if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_PIPELINE")) {
+--- /dev/null
++++ b/src/frontends/riscv/prover/blake3_parent_plan_test_support.zig
+@@ -0,0 +1,39 @@
++//! Ownership checks at the planning/emission boundary, using one verified child.
++const std = @import("std");
++const parent = @import("../recursion/blake3_execution_parent_preparation.zig");
++
++pub fn check(a: std.mem.Allocator, admitted: anytype, capture: anytype, expected: [32]u8) !void {
++    var tracking = std.testing.FailingAllocator.init(a, .{});
++    var discarded = try parent.State.plan(tracking.allocator(), admitted, capture, expected, 2);
++    discarded.deinit();
++    discarded.deinit();
++    try std.testing.expectEqual(tracking.allocated_bytes, tracking.freed_bytes);
++    try std.testing.expectError(error.ConsumedParentPlan, discarded.emit());
++
++    var successful = try parent.State.plan(tracking.allocator(), admitted, capture, expected, 2);
++    const begin = tracking.alloc_index;
++    const layout = successful.layout;
++    const state = try successful.emit();
++    const allocations = tracking.alloc_index - begin;
++    defer successful.deinit();
++    try std.testing.expect(successful.state == null and successful.transcript == null);
++    try std.testing.expectEqualDeep(layout, state.hash_columns.layout);
++    try std.testing.expectError(error.ConsumedParentPlan, successful.emit());
++    state.deinit();
++    try std.testing.expectEqual(tracking.allocated_bytes, tracking.freed_bytes);
++    try std.testing.expect(allocations > 3);
++
++    // Cover initial storage, partial storage, interior emission and the final
++    // allocation after planning ownership has moved into the live transcript.
++    for ([_]usize{ 0, 2, allocations / 2, allocations - 1 }) |offset| {
++        var failing = std.testing.FailingAllocator.init(a, .{});
++        var plan = try parent.State.plan(failing.allocator(), admitted, capture, expected, 2);
++        defer plan.deinit();
++        failing.fail_index = failing.alloc_index + offset;
++        failing.resize_fail_index = failing.resize_index;
++        try std.testing.expectError(error.OutOfMemory, plan.emit());
++        try std.testing.expect(plan.state == null and plan.transcript == null);
++        try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
++    }
++    std.debug.print("PARENT_PLAN_LIFECYCLE abandoned=true consumed=true emission_failures=4 allocations={d}\n", .{allocations});
++}

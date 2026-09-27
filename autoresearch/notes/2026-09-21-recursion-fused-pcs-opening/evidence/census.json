@@ -1,0 +1,14 @@
+{
+  "graph_nodes": 1367063,
+  "queried_inputs": 375771,
+  "single_use_queried_inputs": 351067,
+  "shared_queried_inputs": 24704,
+  "opening4_groups": 105869,
+  "eligible_groups": 83376,
+  "removable_input_rows": 333504,
+  "logical_fields_removed": 8921232,
+  "fixture_pcs_input_rows": 391028,
+  "removable_input_fraction": 0.8528903301042381,
+  "logical_bytes_removed_per_child": 35684928,
+  "scope": "derived row/layout opportunity from one admitted parent PCS graph; no production fusion or speedup yet"
+}

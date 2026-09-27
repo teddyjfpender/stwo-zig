@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-recursive-publication-selected-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 141.95631616702303,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 19,
+  "test_summary": [
+    "All 19 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-publication-selected-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-recursive-publication-selected-focused-v1",
+    "bytes": 83079848,
+    "sha256": "c0c9cc8e5e130262f0c10c1162a1457834af764ad67aebac9ecef7925e1888da"
+  }
+}

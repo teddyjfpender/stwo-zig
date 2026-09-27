@@ -1,0 +1,14 @@
+1/13 block_v5_capacity_bundle_unit_test_root.test_0...OK
+2/13 prover.block_v5_capacity_bundle_unit_test_v1.test.capacity bundle typed stack metadata and manifest reject legacy relabel...OK
+3/13 prover.block_v5_capacity_bundle_unit_test_v1.test.capacity bundle literal native publication consumes only success and reloads genuine wire type...OK
+4/13 prover.block_v5_capacity_bundle_unit_test_v1.test.capacity bundle literal fused four and five tree source counts roots caps are independent...OK
+5/13 prover.block_v5_capacity_bundle_unit_test_v1.test.capacity bundle metadata and policy resource caps precede decoded authority...OK
+6/13 prover.block_v5_capacity_bundle_unit_test_v1.test.capacity bundle both fresh detached consumers and policy store bodies retained never invoked...OK
+7/13 prover.block_v5_capacity_bundle_unit_test_v1.test.capacity bundle fused policy all allocation failures release derived inventories...OK
+8/13 air.lookups.tables.mod.test_0...OK
+9/13 air.memory_commitment.poseidon2_air.test_0...OK
+10/13 air.semantic_eval.test_0...OK
+11/13 prover.block_execution_external_trace_v2.test_0...OK
+12/13 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/13 air.lookups.tables.source_ingest.test_0...OK
+All 13 tests passed.

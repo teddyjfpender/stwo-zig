@@ -1,0 +1,6 @@
+1/4 prover.block_v5_x0_caller_unit_test.test.block-v5 x0 caller authentic Keccak and signer events preserve RW retirement and signed table census...OK
+2/4 prover.block_v5_x0_caller_unit_test.test.block-v5 x0 caller quotient numerators are algebraic at nonboolean points...OK
+3/4 prover.block_v5_x0_caller_unit_test.test.block-v5 x0 caller SHA typed recipe binds local equations and exact original effect roster...SHA_CALLER_LOCAL_ZERO constraints=97 events=189 digest=512c30efdf23c16a4a22a5635e92a764bde2331c1282b08fdd25d42e0e04d914
+OK
+4/4 air.guest_precompile.x0_caller_envelope_v1.test.block-v5 x0 caller pointer equations reject source clock and hint mutation for every caller...OK
+All 4 tests passed.

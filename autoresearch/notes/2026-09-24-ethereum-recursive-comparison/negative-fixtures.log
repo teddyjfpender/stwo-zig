@@ -1,0 +1,11 @@
+[ethereum-auth-fixtures] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-fixtures] acquired after 62s
+   Compiling eth-auth-common v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/common)
+   Compiling eth-auth-fixtures v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixture-host)
+    Finished `release` profile [optimized] target(s) in 0.99s
+     Running `target/release/eth-auth-fixtures /Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures`
+qualified batch=1 bytes=126 truncation/rejection checks passed
+qualified batch=2 bytes=264 truncation/rejection checks passed
+qualified batch=4 bytes=540 truncation/rejection checks passed
+qualified batch=8 bytes=1092 truncation/rejection checks passed
+qualified batch=16 bytes=2196 truncation/rejection checks passed

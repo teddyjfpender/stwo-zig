@@ -1,0 +1,153 @@
+{
+  "profile": "diagnostic Keccak typed shard, 3 queries, PoW 0, blowup log 1; not canonical CSP",
+  "power_before": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t91%; discharging; 14:06 remaining present: true\n",
+  "power_after": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t91%; discharging; 14:06 remaining present: true\n",
+  "samples": [
+    {
+      "arm": "after",
+      "witness_ms": 2.131,
+      "prove_production_ms": 50.38,
+      "verify_ms": 4.431,
+      "total_ms": 54.811,
+      "stages_ms": [
+        2.131,
+        6.212,
+        3.942,
+        2.853,
+        4.884,
+        30.358,
+        4.431
+      ]
+    },
+    {
+      "arm": "before",
+      "witness_ms": 10.542,
+      "prove_production_ms": 56.088,
+      "verify_ms": 4.215,
+      "total_ms": 60.303,
+      "stages_ms": [
+        10.542,
+        6.027,
+        3.347,
+        3.057,
+        4.348,
+        28.767,
+        4.215
+      ]
+    },
+    {
+      "arm": "before",
+      "witness_ms": 5.4,
+      "prove_production_ms": 38.166,
+      "verify_ms": 3.497,
+      "total_ms": 41.663,
+      "stages_ms": [
+        5.4,
+        3.537,
+        2.128,
+        1.985,
+        2.951,
+        22.165,
+        3.497
+      ]
+    },
+    {
+      "arm": "after",
+      "witness_ms": 0.623,
+      "prove_production_ms": 30.750999999999998,
+      "verify_ms": 3.379,
+      "total_ms": 34.129999999999995,
+      "stages_ms": [
+        0.623,
+        3.081,
+        1.855,
+        1.795,
+        2.712,
+        20.685,
+        3.379
+      ]
+    },
+    {
+      "arm": "before",
+      "witness_ms": 4.4,
+      "prove_production_ms": 34.069,
+      "verify_ms": 3.376,
+      "total_ms": 37.445,
+      "stages_ms": [
+        4.4,
+        2.992,
+        1.872,
+        1.732,
+        2.644,
+        20.429,
+        3.376
+      ]
+    },
+    {
+      "arm": "after",
+      "witness_ms": 0.609,
+      "prove_production_ms": 30.044999999999998,
+      "verify_ms": 3.414,
+      "total_ms": 33.458999999999996,
+      "stages_ms": [
+        0.609,
+        3.0,
+        1.84,
+        1.689,
+        2.6,
+        20.307,
+        3.414
+      ]
+    },
+    {
+      "arm": "after",
+      "witness_ms": 0.604,
+      "prove_production_ms": 30.206000000000003,
+      "verify_ms": 3.352,
+      "total_ms": 33.558,
+      "stages_ms": [
+        0.604,
+        2.986,
+        1.869,
+        1.736,
+        2.603,
+        20.408,
+        3.352
+      ]
+    },
+    {
+      "arm": "before",
+      "witness_ms": 4.402,
+      "prove_production_ms": 33.964,
+      "verify_ms": 3.399,
+      "total_ms": 37.363,
+      "stages_ms": [
+        4.402,
+        3.005,
+        1.86,
+        1.714,
+        2.631,
+        20.352,
+        3.399
+      ]
+    }
+  ],
+  "median": {
+    "before": {
+      "witness_ms": 4.901,
+      "prove_production_ms": 36.1175,
+      "verify_ms": 3.448,
+      "total_ms": 39.554
+    },
+    "after": {
+      "witness_ms": 0.616,
+      "prove_production_ms": 30.4785,
+      "verify_ms": 3.3965,
+      "total_ms": 33.843999999999994
+    }
+  },
+  "binaries": {
+    "before": "18e627ac3875fc0c2421a1d182543b7c861e34e29420554f40b282f50bb5c66a",
+    "after": "d363c88b763d640c7b9349dcc648afe671489de4ca12a4e780d2c266ff7c2982"
+  }
+}

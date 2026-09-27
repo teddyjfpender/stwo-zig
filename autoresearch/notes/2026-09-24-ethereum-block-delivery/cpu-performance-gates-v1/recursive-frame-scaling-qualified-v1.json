@@ -1,0 +1,47 @@
+{
+  "status": "focused-nonproving-framing-qualification-only",
+  "authoritative_source_snapshot": "recursive-frame-scaling-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "recursive-frame-scaling-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1.5771464999997988,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 5,
+    "test_summary": [
+      "All 5 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-frame-scaling-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-recursive-frame-scaling-focused-v2",
+      "bytes": 1661288,
+      "sha256": "999baee06ea4f34dd7ac4e159932c157776b79d49c1de786996ff9e0355da27e"
+    }
+  },
+  "source_pin_count": 1849,
+  "behavioral_checks": 4,
+  "fix": "PUBLIC21 aggregate recording no longer rejects >32 roots solely due to unused native root-offset tracking inventory",
+  "scope": [
+    "Shared original Builder retains words/field/operation boundaries and actual root count",
+    "Native offset tracking defaults true and preserves original32root cap/offsets",
+    "PUBLIC21 Source.record explicitly disables native-only offset tracking",
+    "Exact original channel digests and transition coordinates for32/67/4096 window-sized root streams",
+    "Original word/felt/step limits and exhaustive new recording allocation rollback remain enforced"
+  ],
+  "remaining": [
+    "Genuine PUBLIC21 multi-window proof and actual-source graph runtime qualification",
+    "Full global/source/fixed key closure and canonical default activation",
+    "End-to-end time/process peak memory"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

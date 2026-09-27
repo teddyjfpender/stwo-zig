@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-25",
+  "scope": "Two-segment CPU block-v4 real public-I/O diagnostic fixture: staged two-pass producer, two custody-free recursive leaves, dyadic parent, exact outer root, and fresh one-segment-at-a-time complete receiver",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic"},
+  "verification": {
+    "fresh_incremental_core": true,
+    "recursive_leaves_and_exact_root": true,
+    "wrong_outer_key_rejected": true,
+    "wrong_forest_digest_rejected": true,
+    "receiver_allocator_live_bytes_after_teardown": 0,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "public_initial_image_bytes": 2040,
+  "public_first_touch_bytes": 590,
+  "staged_core_payload_bytes": 2010498,
+  "recursive_proof_bytes": {"leaf": [150056, 149579], "dyadic": 140292, "outer": 135976},
+  "staged_producer_elapsed_ns": 7627362292,
+  "recursive_proof_generation_elapsed_ns": 33908112959,
+  "fresh_complete_receiver_elapsed_ns": 5179903917,
+  "receiver_allocator_peak_bytes": 356753638,
+  "limits": [
+    "The receiver allocator peak excludes staged proof-byte buffers loaded through the producer-owned sink; it is not total process peak.",
+    "The receiver reconstructs native verifier shape with a third pinned guest replay. This is bounded but not yet succinct.",
+    "Recursive proof generation in this fixture still uses the bounded in-memory assembler, not the staged leaf producer.",
+    "The test derives outer and forest expected pins from generated proofs; production must receive those pins independently before opening proof files.",
+    "Public initial image and first-touch roster are verifier-visible. This is q8 diagnostic security, not a canonical or mainnet block measurement."
+  ],
+  "command_filter": "block-v4 streaming diagnostic complete receiver crosses real IO and sparse external roster"
+}

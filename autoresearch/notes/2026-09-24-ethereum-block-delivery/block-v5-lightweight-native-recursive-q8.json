@@ -1,0 +1,48 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "status": "passed",
+  "tests_passed": 8,
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "test": "block-v5 lightweight native v3 proves reusable recursion without perleaf custody",
+  "native_template_protocol_version": 3,
+  "states": 2,
+  "perleaf_commitment_plan": false,
+  "perleaf_memory_schedule": false,
+  "custody_witness": false,
+  "public_compensation": "registers_state PC/clock only",
+  "native_stark_equations_fresh_recursive_verified": true,
+  "recursive_key_reused": true,
+  "recursive_fixed_rows": 51644,
+  "recursive_proof_bytes": [
+    128792,
+    126041
+  ],
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "allocator_teardown": "std.testing.allocator clean",
+  "complete_block_authority": false,
+  "global_relations_still_open": [
+    "program",
+    "ordinary universal memory",
+    "global lookup",
+    "precompile",
+    "RW/register/public endpoints"
+  ],
+  "scope": "Two actual lightweight native-v3 STARKs and actual recursive verifier proofs with changing independent public admissions under equal geometry. Other family entries are placeholders; no provider or complete-block proof is claimed.",
+  "limitations": [
+    "Native active selectors remain exact-count dependent; catalog supports varying geometry, capacity-only native template is not implemented.",
+    "PC/clock descriptor is conditional on complete global relation closure; full register/RW endpoints require global providers.",
+    "Intermediate PC/clock parent fold is not included in this gate."
+  ],
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_lightweight_native_test_root.zig 'block-v5 lightweight native v3 proves reusable recursion without perleaf custody'",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_native_execution_proof_v3.zig": "54e006f364cac7bec0494dba26a649507599f32039db0145406b21383f6dabe5",
+    "src/frontends/riscv/prover/block_v5_native_components_v3.zig": "4ee4a64ed8769809f2fcbe72230a836feba418a4976ad72fce7191049240bee4",
+    "src/frontends/riscv/prover/block_v5_lightweight_native_proof_test.zig": "22596f4b06c4c0b8aa36628608846c9aa5a5e12acc96eb75d3bf6ca8b4f74bc1",
+    "src/frontends/riscv/recursion/block_v5_recursive_public_bus_v1.zig": "1f726d01af61c2b36fb574ed21cd8234440462efe40cfbffcb6273c6610e2af0"
+  }
+}

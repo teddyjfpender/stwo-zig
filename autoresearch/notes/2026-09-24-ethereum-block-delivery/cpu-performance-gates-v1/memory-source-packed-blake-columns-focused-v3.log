@@ -1,0 +1,5 @@
+1/4 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: original shared changed and default leaf geometry...OK
+2/4 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: bounded ordinal circuit compression and cell admission...OK
+3/4 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: actual regeneration and retained allocator cleanup bodies...OK
+4/4 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: regenerated matrices counters and captures match original row projection...OK
+All 4 tests passed.

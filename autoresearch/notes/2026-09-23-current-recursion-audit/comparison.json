@@ -1,0 +1,40 @@
+{
+  "workers": 2,
+  "queries": 70,
+  "pow_bits": 26,
+  "samples_per_arm": 1,
+  "stages": [
+    {
+      "stage": "parent.validation",
+      "monolithic_seconds": 0.013436,
+      "streaming_seconds": 0.013289
+    },
+    {
+      "stage": "parent.main_setup",
+      "monolithic_seconds": 5.099573,
+      "streaming_seconds": 5.103233
+    },
+    {
+      "stage": "parent.main_commit",
+      "monolithic_seconds": 18.785233,
+      "streaming_seconds": 6.856149
+    },
+    {
+      "stage": "parent.interaction_generation",
+      "monolithic_seconds": 6.291506,
+      "streaming_seconds": 6.280878
+    },
+    {
+      "stage": "parent.interaction_commit",
+      "monolithic_seconds": 7.34033,
+      "streaming_seconds": 7.32509
+    },
+    {
+      "stage": "parent.core",
+      "monolithic_seconds": 22.142115,
+      "streaming_seconds": 21.911008
+    }
+  ],
+  "monolithic_profiled_seconds": 59.672193,
+  "streaming_profiled_seconds": 47.489647
+}

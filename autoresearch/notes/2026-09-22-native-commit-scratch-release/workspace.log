@@ -1,0 +1,4 @@
+1/3 blake3_native_parent_workspace.test.native parent workspace bounds retention and rejects overlapping leases...OK
+2/3 blake3_native_parent_workspace.test.native parent workspace allocation failure releases lease and permits recovery...OK
+3/3 blake3_native_parent_workspace.test.native parent scratch release preserves lease and supports another stage...OK
+All 3 tests passed.

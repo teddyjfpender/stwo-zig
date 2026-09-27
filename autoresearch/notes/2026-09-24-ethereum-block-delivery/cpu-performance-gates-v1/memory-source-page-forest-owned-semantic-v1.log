@@ -1,0 +1,19 @@
+src/frontends/riscv/prover/block_v5_memory_source_page_leaf_catalogue_v1.zig:79:27: error: expected type '*fs.Dir', found '*const fs.Dir'
+        errdefer owned_dir.close();
+                 ~~~~~~~~~^~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_page_leaf_catalogue_v1.zig:79:27: note: cast discards const qualifier
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/fs/Dir.zig:806:20: note: parameter type declared here
+pub fn close(self: *Dir) void {
+                   ^~~~
+referenced by:
+    stwo_source_page_forest_owned_body_gate: src/frontends/riscv/block_v5_memory_source_page_forest_owned_codegen_v1.zig:18:40
+    stwo_source_page_forest_owned_body_gate: src/frontends/riscv/block_v5_memory_source_page_forest_owned_codegen_v1.zig:17:5
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+src/frontends/riscv/recursion/air/block_v5_open_parent_composition_v2.zig:113:11: error: unable to resolve comptime value
+    for (.{ schema.Kind.bitwise, schema.Kind.range_check_8_8 }, owner.table_pp, 0..) |kind, pp_offset, table_index| {
+         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_open_parent_composition_v2.zig:113:11: note: tuple field index must be comptime-known
+src/frontends/riscv/recursion/block_v5_recursive_parent_shape_v1.zig:42:15: error: unable to resolve comptime value
+        for (.{ tables.Kind.bitwise, tables.Kind.range_check_8_8 }) |kind| maximum = @max(maximum, tables.logSize(kind));
+             ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_shape_v1.zig:42:15: note: tuple field index must be comptime-known

@@ -1,0 +1,4 @@
+1/3 block_component_plan.test.component instances cover arbitrary counts without power-of-two rounding...OK
+2/3 block_component_plan.test.component families size independently and inactive precompiles allocate nothing...OK
+3/3 block_component_plan.test.component planner rejects unsupported capacity and duplicate families...OK
+All 3 tests passed.

@@ -1,0 +1,16 @@
+1/15 block_v5_memory_source_page_recursive_test_root.test_0...OK
+2/15 block_v5_memory_source_page_recursive_test_root.test.source PAGE recursion: actual original capture publisher and fresh leaf bodies are retained...OK
+3/15 block_v5_memory_source_page_recursive_test_root.test.source PAGE recursion: legacy product recipe remains independently selected...OK
+4/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: exact suffix roots preserve original4/5/10 commitment slots...OK
+5/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: static prefix cannot widen legacy recorder admission...OK
+6/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: resource policy rejects before undefined original source and proof authority...OK
+7/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: owned failures consume original vectors and borrowed failures preserve them...OK
+8/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: genuine original graph owner admits exact metadata and independent log clones...OK
+9/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: original union masks reject shifted point count and extended log mutations...OK
+10/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: all original fold quotient equations masks parameters and normalized claims match symbolic recorder...OK
+11/15 prover.block_v5_memory_source_page_recursive_test_v1.test.source PAGE recursion: genuine original main cell mutation changes authenticated symbolic quotient...OK
+12/15 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+13/15 air.lookups.tables.mod.test_0...OK
+14/15 air.memory_commitment.poseidon2_air.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

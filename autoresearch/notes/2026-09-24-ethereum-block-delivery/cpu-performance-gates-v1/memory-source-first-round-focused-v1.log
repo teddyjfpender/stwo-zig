@@ -1,0 +1,9 @@
+1/8 block_v5_memory_source_first_test_root.test.source first root...OK
+2/8 prover.block_v5_memory_source_first_test_v1.test.source first metadata: exact census tail roster source identity and configured caps...OK
+3/8 prover.block_v5_memory_source_first_test_v1.test.source first transcript: full source roster precedes internal draws while word draws remain exact...OK
+4/8 prover.block_v5_memory_source_first_test_v1.test.source first draw allocations: every challenge allocation failure propagates without leaks...OK
+5/8 prover.block_v5_memory_source_first_test_v1.test.source first columns: all private graph inputs exact circle placement full clocks and canonical tail...OK
+6/8 prover.block_v5_memory_source_first_test_v1.test.source first allocations: every column-owner allocation failure cleans up...OK
+7/8 prover.block_v5_memory_source_first_test_v1.test.source first collection phase: empty files require all five real SHA chunks and no synthetic absence...OK
+8/8 block_v5_memory_source_first_codegen.test.source first bodies: actual bounded commitment fixed reconstruction and original-tree lease retained...OK
+All 8 tests passed.

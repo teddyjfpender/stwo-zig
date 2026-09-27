@@ -1,0 +1,15 @@
+
+Build Summary: 12/12 steps succeeded; 25/25 tests passed
+test-pcs-owned-source success
++- run test 5 passed 639ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 5s MaxRSS:441M
+test-pcs-borrowed-streaming success
++- run test 3 passed 569ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 10s MaxRSS:745M
+test-pcs-shared-commitment success
++- run test 3 passed 497ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 4s MaxRSS:355M
+test-pcs-retained-columns success
++- run test 14 passed 619ms MaxRSS:4M
+   +- compile test ReleaseSafe native success 10s MaxRSS:772M
+

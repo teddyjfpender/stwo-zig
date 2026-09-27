@@ -1,0 +1,12 @@
+1/11 block_v5_recursive_parent_shape_test_root_v1.test_0...OK
+2/11 block_v5_recursive_parent_shape_test_root_v1.test.recursive shape: retain original live and independent fixed-only compiler bodies without execution...OK
+3/11 prover.block_v5_recursive_parent_shape_test_v1.test.recursive shape: exact original component columns masks degrees and independently rebuilt seal...OK
+4/11 prover.block_v5_recursive_parent_shape_test_v1.test.recursive shape: all metadata geometry construction allocations roll back...OK
+5/11 prover.block_v5_recursive_parent_shape_test_v1.test.recursive shape: no verifier authority and exact resource admission...OK
+6/11 prover.block_v5_recursive_parent_shape_test_v1.test.recursive shape: retained geometry owner survives original budget release...OK
+7/11 prover.block_v5_recursive_parent_shape_test_v1.test.recursive shape: bounded fixed transcript matches exact original native operation oracle...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 air.memory_commitment.poseidon2_air.test_0...OK
+10/11 air.lookups.tables.mod.test_0...OK
+11/11 air.lookups.tables.source_ingest.test_0...OK
+All 11 tests passed.

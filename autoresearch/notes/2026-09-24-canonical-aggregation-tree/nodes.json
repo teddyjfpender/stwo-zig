@@ -1,0 +1,23 @@
+[
+  {
+    "verified": "true",
+    "height": "1",
+    "artifact_bytes": "918746",
+    "queries": "70",
+    "pow_bits": "26"
+  },
+  {
+    "verified": "true",
+    "height": "1",
+    "artifact_bytes": "911657",
+    "queries": "70",
+    "pow_bits": "26"
+  },
+  {
+    "verified": "true",
+    "height": "2",
+    "artifact_bytes": "904156",
+    "queries": "70",
+    "pow_bits": "26"
+  }
+]

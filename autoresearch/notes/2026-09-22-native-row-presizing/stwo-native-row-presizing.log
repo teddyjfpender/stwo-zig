@@ -1,0 +1,55 @@
+test-blake3-native-arithmetic-census
++- native arithmetic census guard
+   +- run test stderr
+V2_NATIVE_PROOF_SUITE suite=blake3.experimental.v1 queries=1 pow_bits=0
+V2_BLAKE3_NATIVE_COMPOSITION nodes=13929 challenge_links=104 outputs=29
+V2_BLAKE3_NATIVE_PAYLOADS secure_values=733 scalar_routes=2932
+V2_BLAKE3_NATIVE_DEEP nodes=16069 outputs=34 shared_sample_scalars=2820
+V2_BLAKE3_NATIVE_FRI nodes=3684 outputs=94 answer_routes=4
+V2_BLAKE3_NATIVE_PCS_CHALLENGES routes=88 oods_shared=4
+V2_BLAKE3_NATIVE_TERMINAL encoded_coefficients=1
+V2_BLAKE3_NATIVE_QUERIES queries=1 scalar_rows=104
+V2_BLAKE3_NATIVE_PATHS g_rows=39816 select_rows=2352 opening_sources=781
+V2_BLAKE3_NATIVE_OPENINGS scalar_producers=781
+V2_BLAKE3_NATIVE_ROOT_NONCE private_words=188 key_words=8
+V2_BLAKE3_NATIVE_PUBLIC_BOUNDARY nodes=4351 inputs=1332 outputs=21
+V2_BLAKE3_NATIVE_PUBLIC_LINKS challenges=32 aggregate_inputs=116 zero_outputs=4
+V2_BLAKE3_NATIVE_PUBLIC_SOURCES public_rows=1280 private_sum_rows=16 covered_inputs=1332
+BLAKE3_ARITHMETIC_CENSUS lane=1500 nodes=13929 multiply=5336 linear=5268 inverse=9 dot4=64 fma=3464 removable_rows=3912
+BLAKE3_ARITHMETIC_CENSUS lane=1502 nodes=16069 multiply=5641 linear=6850 inverse=11 dot4=574 fma=904 removable_rows=4922
+BLAKE3_ARITHMETIC_CENSUS lane=1504 nodes=3684 multiply=1975 linear=1284 inverse=20 dot4=45 fma=891 removable_rows=1206
+BLAKE3_ARITHMETIC_CENSUS lane=1506 nodes=4351 multiply=1011 linear=1752 inverse=219 dot4=94 fma=584 removable_rows=1242
+BLAKE3_ARITHMETIC_CENSUS lane=1508 nodes=228 multiply=0 linear=112 inverse=0 dot4=0 fma=0 removable_rows=0
+BLAKE3_PCS_QUERY_FUSION_CENSUS nodes=16069 query_inputs=621 single_use=537 shared=84 dot4=574 eligible=134 scope=arithmetic_graph_only native_routing_admitted=false
+BLAKE3_ARITHMETIC_CENSUS total_rows=29488 removable_rows=11282 removed_relation_events=22564 scope=graph_match_census
+BLAKE3_NATIVE_QUERY_FUSION groups=134 removed_scalars=536
+BLAKE3_NATIVE_FUSION dot4=777 fma=5843 arithmetic_rows=18206
+NATIVE_ROW_CAPACITY air=0 rows=86464 row_bytes=560 live_bytes=96839680 capacity_bytes=96839680
+NATIVE_ROW_CAPACITY air=1 rows=24704 row_bytes=72 live_bytes=3557376 capacity_bytes=3557376
+NATIVE_ROW_CAPACITY air=2 rows=27585 row_bytes=48 live_bytes=2648160 capacity_bytes=3932256
+NATIVE_ROW_CAPACITY air=3 rows=10855 row_bytes=108 live_bytes=2344680 capacity_bytes=2621376
+NATIVE_ROW_CAPACITY air=4 rows=259 row_bytes=128 live_bytes=66304 capacity_bytes=80384
+NATIVE_ROW_CAPACITY air=5 rows=6315 row_bytes=204 live_bytes=2576520 capacity_bytes=3300720
+NATIVE_ROW_CAPACITY air=6 rows=105 row_bytes=344 live_bytes=72240 capacity_bytes=95632
+NATIVE_ROW_CAPACITY air=7 rows=17543 row_bytes=228 live_bytes=7999608 capacity_bytes=7999608
+NATIVE_ROW_CAPACITY air=8 rows=3 row_bytes=72 live_bytes=432 capacity_bytes=576
+NATIVE_ROW_CAPACITY air=9 rows=2540 row_bytes=32 live_bytes=162560 capacity_bytes=219904
+NATIVE_ROW_CAPACITY air=10 rows=1396 row_bytes=132 live_bytes=368544 capacity_bytes=421608
+NATIVE_ROW_CAPACITY air=11 rows=805 row_bytes=48 live_bytes=77280 capacity_bytes=101952
+NATIVE_ROW_CAPACITY air=12 rows=6557 row_bytes=28 live_bytes=367192 capacity_bytes=433496
+NATIVE_ROW_CAPACITY air=13 rows=2352 row_bytes=116 live_bytes=545664 capacity_bytes=555872
+NATIVE_ROW_CAPACITY air=14 rows=105 row_bytes=136 live_bytes=28560 capacity_bytes=37808
+NATIVE_ROW_CAPACITY air=15 rows=106 row_bytes=132 live_bytes=27984 capacity_bytes=36696
+NATIVE_ROW_CAPACITY air=16 rows=621 row_bytes=100 live_bytes=124200 capacity_bytes=141800
+NATIVE_ROW_CAPACITY air=17 rows=621 row_bytes=44 live_bytes=54648 capacity_bytes=62216
+NATIVE_ROW_CAPACITY air=18 rows=643 row_bytes=216 live_bytes=277776 capacity_bytes=306288
+NATIVE_ROW_CAPACITY air=19 rows=134 row_bytes=168 live_bytes=45024 capacity_bytes=46704
+NATIVE_ROW_CAPACITY total_live=118184432 current_buffers=120791952 arena_before_finalize=254204293
+NATIVE_ROW_CAPACITY arena_after_finalize=254204293
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-blake3-native-arithmetic-census success
++- native arithmetic census guard success
+   +- run test 1 passed 10s MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

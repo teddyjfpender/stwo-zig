@@ -48,7 +48,15 @@ pub fn evaluateArena(
                 at(values, selection.when_false)
             else
                 at(values, selection.when_true),
-            .hint_output, .call_output, .machine_derived => return error.UnsupportedNode,
+            .machine_derived => |derived| switch (derived) {
+                .register_address => |address| at(values, address.index),
+                .aligned_word_address => |address| at(values, address.word_index).mul(M31.fromCanonical(4)),
+                .instruction_next_pc => |next| at(values, next.current).add(M31.fromCanonical(4)),
+                .instruction_next_clock => |next| at(values, next.current).add(M31.one()),
+                .access_clock => |clock| at(values, clock.instruction_clock).sub(M31.one()).mul(M31.fromCanonical(4)).add(M31.fromCanonical(@intFromEnum(clock.phase))),
+                .strict_clock_gap => |gap| at(values, gap.current_clock).sub(at(values, gap.previous_clock)).sub(M31.one()),
+            },
+            .hint_output, .call_output => return error.UnsupportedNode,
         };
     }
     if (input_index != input_values.len) return error.UnmappedInput;

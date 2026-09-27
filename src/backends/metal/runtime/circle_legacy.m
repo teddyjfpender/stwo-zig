@@ -274,6 +274,17 @@ bool stwo_zig_metal_circle_lde_batch_finish(
     }
 }
 
+static id<MTLBuffer> stwo_circle_lde_owned_buffer_v1(
+    id<MTLDevice> device, const void *source, NSUInteger bytes,
+    MTLResourceOptions options, void *budget_context,
+    StwoZigExternalBudgetAdmitV1 budget_admit
+) {
+    if (budget_admit != NULL && !budget_admit(budget_context, (size_t)bytes)) return nil;
+    return source == NULL
+        ? [device newBufferWithLength:bytes options:options]
+        : [device newBufferWithBytes:source length:bytes options:options];
+}
+
 static bool circle_lde_impl(
     void *runtime_ptr,
     void *batch_ptr,
@@ -289,6 +300,9 @@ static bool circle_lde_impl(
     const uint32_t *inverse_twiddles,
     const uint32_t *forward_twiddles,
     uint32_t scale_factor,
+    void *budget_context,
+    StwoZigExternalBudgetAdmitV1 budget_admit,
+    uint32_t *queued_operation,
     uint32_t *source_binding,
     uint32_t *normalization_batch_count,
     uint32_t *forward_skipped_layers,
@@ -296,6 +310,7 @@ static bool circle_lde_impl(
     char *error_message,
     size_t error_message_len
 ) {
+    if (queued_operation != NULL) *queued_operation = 0u;
     if (source_binding != NULL) *source_binding = 0u;
     if (normalization_batch_count != NULL) *normalization_batch_count = 0u;
     if (forward_skipped_layers != NULL) *forward_skipped_layers = 0u;
@@ -347,7 +362,7 @@ static bool circle_lde_impl(
                                                 length:base_bytes
                                                options:MTLResourceStorageModeShared
                                            deallocator:nil]
-            : [runtime.device newBufferWithLength:base_bytes options:MTLResourceStorageModeShared];
+            : stwo_circle_lde_owned_buffer_v1(runtime.device, NULL, base_bytes, MTLResourceStorageModeShared, budget_context, budget_admit);
         size_t extended_bytes = extended_word_count * sizeof(uint32_t);
         bool direct_extended = ((uintptr_t)extended_words % page_size) == 0u &&
             (extended_bytes % page_size) == 0u;
@@ -356,11 +371,11 @@ static bool circle_lde_impl(
                                                 length:extended_bytes
                                                options:MTLResourceStorageModeShared
                                            deallocator:nil]
-            : [runtime.device newBufferWithLength:extended_bytes options:MTLResourceStorageModeShared];
-        id<MTLBuffer> inverse_buffer = [runtime.device newBufferWithBytes:inverse_twiddles length:(NSUInteger)base_pairs * sizeof(uint32_t) options:MTLResourceStorageModeShared];
-        id<MTLBuffer> forward_buffer = [runtime.device newBufferWithBytes:forward_twiddles length:(NSUInteger)extended_pairs * sizeof(uint32_t) options:MTLResourceStorageModeShared];
-        id<MTLBuffer> base_offsets = [runtime.device newBufferWithLength:(NSUInteger)column_count * sizeof(uint32_t) options:MTLResourceStorageModeShared];
-        id<MTLBuffer> extended_offsets = [runtime.device newBufferWithLength:(NSUInteger)column_count * sizeof(uint32_t) options:MTLResourceStorageModeShared];
+            : stwo_circle_lde_owned_buffer_v1(runtime.device, NULL, extended_bytes, MTLResourceStorageModeShared, budget_context, budget_admit);
+        id<MTLBuffer> inverse_buffer = stwo_circle_lde_owned_buffer_v1(runtime.device, inverse_twiddles, (NSUInteger)base_pairs * sizeof(uint32_t), MTLResourceStorageModeShared, budget_context, budget_admit);
+        id<MTLBuffer> forward_buffer = stwo_circle_lde_owned_buffer_v1(runtime.device, forward_twiddles, (NSUInteger)extended_pairs * sizeof(uint32_t), MTLResourceStorageModeShared, budget_context, budget_admit);
+        id<MTLBuffer> base_offsets = stwo_circle_lde_owned_buffer_v1(runtime.device, NULL, (NSUInteger)column_count * sizeof(uint32_t), MTLResourceStorageModeShared, budget_context, budget_admit);
+        id<MTLBuffer> extended_offsets = stwo_circle_lde_owned_buffer_v1(runtime.device, NULL, (NSUInteger)column_count * sizeof(uint32_t), MTLResourceStorageModeShared, budget_context, budget_admit);
         if (coefficients == nil || extended == nil || inverse_buffer == nil || forward_buffer == nil ||
             base_offsets == nil || extended_offsets == nil) {
             write_error(error_message, error_message_len, @"Metal circle LDE allocation failed");
@@ -411,10 +426,11 @@ static bool circle_lde_impl(
                                                         length:run_bytes
                                                        options:MTLResourceStorageModeShared
                                                    deallocator:nil]
-                    : [runtime.device newBufferWithBytes:source_columns[run_start]
-                                                  length:run_bytes
-                                                 options:MTLResourceStorageModeShared];
+                    : stwo_circle_lde_owned_buffer_v1(runtime.device, source_columns[run_start], run_bytes,
+                                                      MTLResourceStorageModeShared, budget_context, budget_admit);
                 if (source == nil) {
+                    if (fused_upload) [fused_upload_encoder endEncoding];
+                    else [upload endEncoding];
                     write_error(error_message, error_message_len, @"Metal circle source allocation failed");
                     return false;
                 }
@@ -623,14 +639,15 @@ static bool circle_lde_impl(
         // commitment-owned command buffer and submit/fence it exactly once.
         if (batched_direct) {
             batch.encodedOperations += 1u;
+            if (queued_operation != NULL) *queued_operation = 1u;
             if (normalization_batch_count != NULL) *normalization_batch_count = 1u;
             if (forward_skipped_layers != NULL) *forward_skipped_layers = fuse_top_two != 0u ? 1u : 0u;
             return true;
         }
         [command commit];
         [command waitUntilCompleted];
-        if (command.status == MTLCommandBufferStatusError) {
-            write_error(error_message, error_message_len, command.error.localizedDescription ?: @"Metal circle LDE failed");
+        if (command.status != MTLCommandBufferStatusCompleted) {
+            write_error(error_message, error_message_len, command.error.localizedDescription ?: @"Metal circle LDE did not complete");
             return false;
         }
         if (!direct_base || !direct_extended) {
@@ -678,7 +695,7 @@ bool stwo_zig_metal_circle_lde(
         runtime_ptr, NULL, source_columns, base_columns, extended_words,
         extended_word_count, extended_start, extended_stride, column_count,
         base_log_size, extended_log_size, inverse_twiddles, forward_twiddles,
-        scale_factor, source_binding, normalization_batch_count,
+        scale_factor, NULL, NULL, NULL, source_binding, normalization_batch_count,
         forward_skipped_layers, gpu_milliseconds, error_message,
         error_message_len);
 }
@@ -710,7 +727,75 @@ bool stwo_zig_metal_circle_lde_batch_enqueue(
         runtime_ptr, batch_ptr, source_columns, base_columns, extended_words,
         extended_word_count, extended_start, extended_stride, column_count,
         base_log_size, extended_log_size, inverse_twiddles, forward_twiddles,
-        scale_factor, source_binding, normalization_batch_count,
+        scale_factor, NULL, NULL, NULL, source_binding, normalization_batch_count,
+        forward_skipped_layers, gpu_milliseconds, error_message,
+        error_message_len);
+}
+
+bool stwo_zig_metal_circle_lde_budgeted_v1(
+    void *runtime_ptr,
+    const uint32_t *const *source_columns,
+    uint32_t *const *base_columns,
+    uint32_t *extended_words,
+    size_t extended_word_count,
+    uint32_t extended_start,
+    uint32_t extended_stride,
+    uint32_t column_count,
+    uint32_t base_log_size,
+    uint32_t extended_log_size,
+    const uint32_t *inverse_twiddles,
+    const uint32_t *forward_twiddles,
+    uint32_t scale_factor,
+    void *budget_context,
+    StwoZigExternalBudgetAdmitV1 budget_admit,
+    uint32_t *queued_operation,
+    uint32_t *source_binding,
+    uint32_t *normalization_batch_count,
+    uint32_t *forward_skipped_layers,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len
+) {
+    return circle_lde_impl(
+        runtime_ptr, NULL, source_columns, base_columns, extended_words,
+        extended_word_count, extended_start, extended_stride, column_count,
+        base_log_size, extended_log_size, inverse_twiddles, forward_twiddles,
+        scale_factor, budget_context, budget_admit, queued_operation, source_binding, normalization_batch_count,
+        forward_skipped_layers, gpu_milliseconds, error_message,
+        error_message_len);
+}
+
+bool stwo_zig_metal_circle_lde_batch_enqueue_budgeted_v1(
+    void *runtime_ptr,
+    void *batch_ptr,
+    const uint32_t *const *source_columns,
+    uint32_t *const *base_columns,
+    uint32_t *extended_words,
+    size_t extended_word_count,
+    uint32_t extended_start,
+    uint32_t extended_stride,
+    uint32_t column_count,
+    uint32_t base_log_size,
+    uint32_t extended_log_size,
+    const uint32_t *inverse_twiddles,
+    const uint32_t *forward_twiddles,
+    uint32_t scale_factor,
+    void *budget_context,
+    StwoZigExternalBudgetAdmitV1 budget_admit,
+    uint32_t *queued_operation,
+    uint32_t *source_binding,
+    uint32_t *normalization_batch_count,
+    uint32_t *forward_skipped_layers,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len
+) {
+    if (batch_ptr == NULL) return false;
+    return circle_lde_impl(
+        runtime_ptr, batch_ptr, source_columns, base_columns, extended_words,
+        extended_word_count, extended_start, extended_stride, column_count,
+        base_log_size, extended_log_size, inverse_twiddles, forward_twiddles,
+        scale_factor, budget_context, budget_admit, queued_operation, source_binding, normalization_batch_count,
         forward_skipped_layers, gpu_milliseconds, error_message,
         error_message_len);
 }

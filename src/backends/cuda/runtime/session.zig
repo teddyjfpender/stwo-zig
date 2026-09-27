@@ -43,6 +43,12 @@ pub fn SessionForProvider(
         const Self = @This();
         pub const FinishVerdict = Verdict;
         pub const execution_provider = provider;
+        pub const supports_selected_construction = provider == .nvidia_cuda and
+            @hasDecl(Api, "stwo_exec_context_create_options") and
+            @hasDecl(Api, "stwo_cuda_execution_provider") and
+            @hasDecl(AotApi, "stwo_native_aot_loader_create") and
+            @hasDecl(Api, "stwo_exec_context_destroy") and
+            @hasDecl(AotApi, "stwo_native_aot_loader_destroy");
 
         context: Context,
         device: types.DeviceSnapshot,
@@ -57,8 +63,109 @@ pub fn SessionForProvider(
         active_execution_key: ?[32]u8 = null,
         completed_proofs: u64 = 0,
         state: enum { idle, open, proved, closed } = .idle,
+        teardown_pending: bool = false,
 
-        pub fn open(accepted_sms: []const u32) runtime_error.Error!Self {
+        pub const Selection = struct {
+            device_ordinal: u32,
+            device_uuid: [16]u8,
+
+            pub fn validate(self: Selection, accepted_sms: []const u32) runtime_error.Error!void {
+                if (self.device_ordinal == std.math.maxInt(u32) or std.mem.allEqual(u8, &self.device_uuid, 0)) return error.InvalidDeviceOrdinal;
+                if (accepted_sms.len == 0) return error.DeviceArchitectureMismatch;
+            }
+
+            /// Metadata admission only. A session is constructed separately
+            /// from genuine selected Context and original AOT loader calls.
+            pub fn requireObserved(self: Selection, accepted_sms: []const u32, device: types.DeviceSnapshot, platform: types.PlatformSnapshot) runtime_error.Error!void {
+                try self.validate(accepted_sms);
+                try validateObserved(accepted_sms, self, device, platform);
+            }
+        };
+
+        pub const OpeningOwner = struct {
+            context: Context.Construction,
+            aot_loader: ?*anyopaque = null,
+            owner_thread_id: std.Thread.Id,
+            selected: Selection,
+
+            pub fn hasResources(self: *const OpeningOwner) bool {
+                return self.aot_loader != null or switch (self.context) {
+                    .ready => |owner| owner.handle != null,
+                    .failed => |failure| failure.teardown != null,
+                    .released => false,
+                };
+            }
+
+            pub fn requireOwner(self: *const OpeningOwner) runtime_error.Error!void {
+                if (self.owner_thread_id == 0 or self.owner_thread_id != std.Thread.getCurrentId()) return error.ThreadOwnershipViolation;
+            }
+
+            pub fn deinit(self: *OpeningOwner) runtime_error.Error!void {
+                try self.requireOwner();
+                if (self.aot_loader) |loader| {
+                    if (comptime @hasDecl(AotApi, "stwo_native_aot_loader_destroy")) {
+                        try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
+                        self.aot_loader = null;
+                    } else return error.InvalidState;
+                }
+                if (comptime @hasDecl(Api, "stwo_exec_context_destroy")) {
+                    try self.context.deinit();
+                } else if (self.hasResources()) return error.InvalidState;
+            }
+        };
+
+        pub const Construction = union(enum) {
+            ready: Self,
+            failed: struct { cause: runtime_error.Error, cleanup: ?OpeningOwner = null },
+            released: void,
+
+            pub fn hasResources(self: *const Construction) bool {
+                return switch (self.*) {
+                    .ready => |owner| owner.context.handle != null or owner.aot_loader != null,
+                    .failed => |failure| if (failure.cleanup) |*cleanup| cleanup.hasResources() else false,
+                    .released => false,
+                };
+            }
+
+            pub fn deinit(self: *Construction) runtime_error.Error!void {
+                switch (self.*) {
+                    .ready => |*owner| {
+                        if (comptime supports_selected_construction) {
+                            try owner.abort();
+                            self.* = .released;
+                        } else return error.InvalidState;
+                    },
+                    .failed => |*failure| if (failure.cleanup) |*cleanup| {
+                        try cleanup.deinit();
+                        failure.cleanup = null;
+                    },
+                    .released => {},
+                }
+            }
+        };
+
+        const Admission = struct {
+            device: types.DeviceSnapshot,
+            platform: types.PlatformSnapshot,
+            build_identity: [32]u8,
+            aot_entries: usize,
+        };
+
+        fn validateDevice(accepted_sms: []const u32, selected: ?Selection, device: types.DeviceSnapshot) runtime_error.Error!void {
+            if (device.count == 0) return error.DeviceUnavailable;
+            if (device.current >= device.count) return error.InvalidDeviceOrdinal;
+            if (selected) |expected| if (device.current != expected.device_ordinal) return error.InvalidDeviceOrdinal;
+            const sm = device_admission.sm(device) catch return error.InvalidDeviceArchitecture;
+            if (!device_admission.contains(accepted_sms, sm)) return error.DeviceArchitectureMismatch;
+        }
+
+        fn validateObserved(accepted_sms: []const u32, selected: ?Selection, device: types.DeviceSnapshot, platform: types.PlatformSnapshot) runtime_error.Error!void {
+            try validateDevice(accepted_sms, selected, device);
+            if (!platform.isSane() or platform.device_ordinal != device.current) return error.InvalidDeviceOrdinal;
+            if (selected) |expected| if (!std.mem.eql(u8, &platform.uuid, &expected.device_uuid)) return error.InvalidDeviceOrdinal;
+        }
+
+        fn admitCurrent(accepted_sms: []const u32, selected: ?Selection) runtime_error.Error!Admission {
             if (Api.stwo_cuda_execution_provider() != @intFromEnum(provider))
                 return error.ExecutionProviderMismatch;
             var device = types.DeviceSnapshot{};
@@ -68,16 +175,12 @@ pub fn SessionForProvider(
                 &device.sm_major,
                 &device.sm_minor,
             ));
-            if (device.count == 0) return error.DeviceUnavailable;
-            if (device.current >= device.count) return error.InvalidDeviceOrdinal;
-            const sm = device_admission.sm(device) catch
-                return error.InvalidDeviceArchitecture;
-            if (!device_admission.contains(accepted_sms, sm))
-                return error.DeviceArchitectureMismatch;
+            // Preserve original device/architecture rejection before probing
+            // platform metadata. The selected path adds exact ordinal/UUID pins.
+            try validateDevice(accepted_sms, selected, device);
             var platform = types.PlatformSnapshot{};
             try runtime_error.check(Api.stwo_cuda_platform_snapshot(&platform));
-            if (!platform.isSane() or platform.device_ordinal != device.current)
-                return error.InvalidDeviceOrdinal;
+            try validateObserved(accepted_sms, selected, device, platform);
 
             var build_identity = [_]u8{0} ** 32;
             try runtime_error.check(Api.stwo_static_cuda_module_build_identity(
@@ -88,27 +191,74 @@ pub fn SessionForProvider(
             const aot_entries = Api.stwo_zig_cuda_aot_entry_count();
             if (aot_entries == 0) return error.AotPackAbsent;
 
+            return .{ .device = device, .platform = platform, .build_identity = build_identity, .aot_entries = aot_entries };
+        }
+
+        pub fn open(accepted_sms: []const u32) runtime_error.Error!Self {
+            const admitted = try admitCurrent(accepted_sms, null);
             var context = try Context.open();
             errdefer context.close() catch {};
             var aot_loader: ?*anyopaque = null;
-            try runtime_error.check(AotApi.stwo_native_aot_loader_create(
-                context.handle.?,
-                &aot_loader,
-            ));
+            try runtime_error.check(AotApi.stwo_native_aot_loader_create(context.handle.?, &aot_loader));
             return .{
                 .context = context,
-                .device = device,
-                .platform = platform,
-                .build_identity = build_identity,
-                .aot_entries = aot_entries,
+                .device = admitted.device,
+                .platform = admitted.platform,
+                .build_identity = admitted.build_identity,
+                .aot_entries = admitted.aot_entries,
                 .aot_loader = aot_loader orelse return error.AotPackAbsent,
                 .owner_thread_id = std.Thread.getCurrentId(),
             };
         }
 
+        /// Independent selected-device pins; one physical proof lane only.
+        /// Cleanup ownership is returned even after repeated native failure.
+        pub fn openSelected(accepted_sms: []const u32, selected: Selection) Construction {
+            selected.validate(accepted_sms) catch |err| return .{ .failed = .{ .cause = err } };
+            if (comptime provider != .nvidia_cuda) return .{ .failed = .{ .cause = error.ExecutionProviderMismatch } };
+            if (comptime supports_selected_construction) {
+                return openSelectedWithApis(accepted_sms, selected);
+            } else return .{ .failed = .{ .cause = error.InvalidState } };
+        }
+
+        fn failedOpening(cause: runtime_error.Error, opening: OpeningOwner) Construction {
+            return .{ .failed = .{ .cause = cause, .cleanup = if (opening.hasResources()) opening else null } };
+        }
+
+        fn openSelectedWithApis(accepted_sms: []const u32, selected: Selection) Construction {
+            if (Api.stwo_cuda_execution_provider() != @intFromEnum(provider)) return .{ .failed = .{ .cause = error.ExecutionProviderMismatch } };
+            var opening = OpeningOwner{
+                .context = Context.openOptions(.{ .device_ordinal = selected.device_ordinal, .lane_count = 1, .dependency_capacity = 0 }),
+                .owner_thread_id = std.Thread.getCurrentId(),
+                .selected = selected,
+            };
+            switch (opening.context) {
+                .failed => |failure| return failedOpening(failure.cause, opening),
+                .released => return failedOpening(error.InvalidState, opening),
+                .ready => |*context| {
+                    if (context.device != selected.device_ordinal or context.lane_count != 1 or context.identity == 0 or context.teardown_pending or context.owner_thread_id != opening.owner_thread_id) return failedOpening(error.InvalidDeviceOrdinal, opening);
+                    const admitted = admitCurrent(accepted_sms, selected) catch |err| return failedOpening(err, opening);
+                    runtime_error.check(AotApi.stwo_native_aot_loader_create(context.handle.?, &opening.aot_loader)) catch |err| return failedOpening(err, opening);
+                    const loader = opening.aot_loader orelse return failedOpening(error.AotPackAbsent, opening);
+                    const result = Self{
+                        .context = context.*,
+                        .device = admitted.device,
+                        .platform = admitted.platform,
+                        .build_identity = admitted.build_identity,
+                        .aot_entries = admitted.aot_entries,
+                        .aot_loader = loader,
+                        .owner_thread_id = opening.owner_thread_id,
+                    };
+                    opening.context = .released;
+                    opening.aot_loader = null;
+                    return .{ .ready = result };
+                },
+            }
+        }
+
         pub fn beginProof(self: *Self) runtime_error.Error!void {
             try self.requireOwner();
-            if (self.state != .idle or self.active_execution_key != null)
+            if (self.state != .idle or self.teardown_pending or self.active_execution_key != null)
                 return error.InvalidState;
             try self.context.beginProof();
             self.state = .open;
@@ -118,10 +268,14 @@ pub fn SessionForProvider(
         /// facts without granting access to CUDA handles or mutating LRU age.
         pub fn isReady(self: *const Self) bool {
             return self.owner_thread_id == std.Thread.getCurrentId() and
-                self.state == .idle and
+                self.state == .idle and !self.teardown_pending and
                 self.active_execution_key == null and
                 self.context.active_stage == null and
                 self.context.synchronized;
+        }
+
+        pub fn isClosed(self: *const Self) bool {
+            return self.owner_thread_id == std.Thread.getCurrentId() and self.state == .closed and self.context.handle == null and self.aot_loader == null;
         }
 
         pub fn executionLaneCount(self: *const Self) u32 {
@@ -132,7 +286,7 @@ pub fn SessionForProvider(
             self: *const Self,
             cache_key: [32]u8,
         ) bool {
-            return self.state == .idle and
+            return self.state == .idle and !self.teardown_pending and
                 self.execution_cache.contains(cache_key);
         }
 
@@ -145,7 +299,7 @@ pub fn SessionForProvider(
             owned_plan: arena_module.Plan,
         ) runtime_error.Error!void {
             try self.requireOwner();
-            if (self.state != .idle) return error.InvalidState;
+            if (self.state != .idle or self.teardown_pending) return error.InvalidState;
             try self.execution_cache.prepare(
                 &self.context,
                 allocator,
@@ -228,6 +382,17 @@ pub fn SessionForProvider(
             if (!self.context.stagesComplete())
                 return error.KernelPathUnused;
             self.state = .proved;
+        }
+
+        /// Dispatch admission for the physically owned coordination stream.
+        /// Additional planned lanes stay rejected until handles, dependency
+        /// events and AOT/graph routing are actually admitted end to end.
+        pub fn admitScheduledNode(self: *const Self, stage: telemetry.Stage, stream_index: u8) runtime_error.Error!void {
+            try self.requireOwner();
+            if (self.state != .open) return error.InvalidState;
+            if (self.context.handle == null) return error.ContextClosed;
+            if (self.context.active_stage != stage) return error.StageOrderViolation;
+            if (self.context.lane_count != 1 or stream_index != 0 or stream_index >= self.context.lane_count) return error.InvalidExecutionLaneCount;
         }
 
         pub fn beginStage(
@@ -515,13 +680,7 @@ pub fn SessionForProvider(
             const verdict = try self.collectVerdict();
             try self.releaseActiveExecution();
             self.state = .idle;
-            try self.releasePreparedExecution();
-            try self.releaseCachedFunctions();
-            const loader = self.aot_loader orelse return error.InvalidState;
-            try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
-            self.aot_loader = null;
-            try self.context.close();
-            self.state = .closed;
+            try self.close();
             return verdict;
         }
 
@@ -539,11 +698,13 @@ pub fn SessionForProvider(
         pub fn close(self: *Self) runtime_error.Error!void {
             try self.requireOwner();
             if (self.state != .idle) return error.InvalidState;
+            self.teardown_pending = true;
             try self.releasePreparedExecution();
             try self.releaseCachedFunctions();
-            const loader = self.aot_loader orelse return error.InvalidState;
-            try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
-            self.aot_loader = null;
+            if (self.aot_loader) |loader| {
+                try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
+                self.aot_loader = null;
+            }
             try self.context.close();
             self.state = .closed;
         }
@@ -551,33 +712,20 @@ pub fn SessionForProvider(
         pub fn abort(self: *Self) runtime_error.Error!void {
             try self.requireOwner();
             if (self.state == .closed) return error.InvalidState;
-            var first_error: ?runtime_error.Error = null;
             if (self.state != .idle) {
-                self.context.abortProof() catch |err| {
-                    first_error = err;
-                };
-                self.releaseActiveExecution() catch |err| {
-                    if (first_error == null) first_error = err;
-                };
+                try self.context.abortProof();
+                try self.releaseActiveExecution();
                 self.state = .idle;
             }
-            self.releasePreparedExecution() catch |err| {
-                if (first_error == null) first_error = err;
-            };
-            self.releaseCachedFunctions() catch |err| {
-                if (first_error == null) first_error = err;
-            };
+            self.teardown_pending = true;
+            try self.releasePreparedExecution();
+            try self.releaseCachedFunctions();
             if (self.aot_loader) |loader| {
-                runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader)) catch |err| {
-                    if (first_error == null) first_error = err;
-                };
+                try runtime_error.check(AotApi.stwo_native_aot_loader_destroy(loader));
                 self.aot_loader = null;
             }
-            self.context.abort() catch |err| {
-                if (first_error == null) first_error = err;
-            };
+            try self.context.abort();
             self.state = .closed;
-            if (first_error) |err| return err;
         }
 
         fn requireOwner(self: *const Self) runtime_error.Error!void {

@@ -1,0 +1,26 @@
+{
+  "qualification": "commitment-stage and manifest building blocks only",
+  "full_block_verified": false,
+  "shared_manifest_in_production": false,
+  "source_sha256": {
+    "src/frontends/riscv/prover/blake3_extension_proof.zig": "c3c12bd15c753a1744442389be0c31252c49f4a5767b20a8fffe6eaea529122b",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_proof_test.zig": "d585d3f3b6f5b5d41395e4c40eb5545ca0558273aeccb324b6e2776d3810aa7a",
+    "src/frontends/riscv/prover/block_component_plan.zig": "f2398a9e0e0eb9a7f24e4b3d0c003d9e4b6646a55cbd61f27244bf6a49a45a5f",
+    "src/frontends/riscv/prover/block_commitment_manifest.zig": "659069e706125b06e9885a5db48132589f235261be55c950bcdfd3f12002669e"
+  },
+  "checks": [
+    {
+      "log": "test-first-round-pcs-v2.log",
+      "tests": 9,
+      "passed": true,
+      "security": "q70/PoW26",
+      "scope": "ordinary and compact native production leaves, fresh verification, capture replay, root drift rejection"
+    },
+    {
+      "log": "test-block-manifest-v1.log",
+      "tests": 5,
+      "passed": true,
+      "scope": "manifest and planner unit tests, ReleaseSafe"
+    }
+  ]
+}

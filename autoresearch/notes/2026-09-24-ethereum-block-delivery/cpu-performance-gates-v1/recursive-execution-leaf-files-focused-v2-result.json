@@ -1,0 +1,22 @@
+{
+  "source_candidate": "recursive-execution-leaf-files-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 67.20885608397657,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 11,
+  "test_summary": [
+    "All 11 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-execution-leaf-files-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-recursive-execution-leaf-files-focused-v2",
+    "bytes": 5481328,
+    "sha256": "dfd475923fb9c58126795c963f1e7699175572a2c930ac7e3d57ca3e994ef80e"
+  }
+}

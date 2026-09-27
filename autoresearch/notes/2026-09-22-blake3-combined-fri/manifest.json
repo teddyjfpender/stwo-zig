@@ -1,0 +1,13 @@
+{
+  "README.md": "6d19158aae45359ee9813acd1d3650d86bf4bd93bb1f7a9481705f6b68142efe",
+  "sources/autoresearch/notes/20260922-blake3-combined-fri-problem-match.md": "285b4c3196aa20e91418a5645ab0a9ad0a08ceab52ba3a0577e002e41069a768",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "f062ebf947caaed39ee5aebb6a0104ea400851ba224b87dba2faf7ea286bfec1",
+  "sources/src/frontends/riscv/recursion/air/blake3_boundary.zig": "19d691e513d0385221a2abf668e523643224e27682ec3bb354f63a4afa915afe",
+  "sources/src/frontends/riscv/recursion/air/blake3_combined_fri_test.zig": "c9a287d73572914886d1ff0e185ae17a171bf3d66b4d53b751c3f5f7c088191b",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "a449d5b620ceed55204b8bb143bd07fd98a8bf36663608b772a12e28b03ba68b",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "5991a9361d0d9e88b67f30d5beb0b279ba35eb69da987929a84fc7ac625269c4",
+  "sources/src/frontends/riscv/recursion/air/fri_hash_wire_plan.zig": "98a96f0f9ba90c138de2e2bc71d08b3d361db68886035c9ef2a08315678e2572",
+  "sources/src/frontends/riscv/recursion/fri_arithmetic_capture.zig": "ff25cfb1b928a2b154aece95d0cff05ebe000745f78bb5bcd36ef3ac40a32818",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "3cbf776b5d7da7da8d4003dd3c5135ec5352588f167a04ea1ff0d4edaa8f0471",
+  "tests.log": "b949daa1791c5093462239dcd637b57b75db70809a28b71ee2ce68d95d28d0da"
+}

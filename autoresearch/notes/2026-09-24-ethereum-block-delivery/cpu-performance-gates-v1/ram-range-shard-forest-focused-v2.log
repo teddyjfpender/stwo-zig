@@ -1,0 +1,17 @@
+1/16 block_v5_ram_range_forest_test_root.test.RAM range forest qualification imports...OK
+2/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: minimum ordered fanin4 topology for empty and carry edges...OK
+3/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: independent shards preserve u64 aggregate request census...OK
+4/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: every topology allocation failure rolls back ownership...OK
+5/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: topology resource and original ordinal failures are strict...OK
+6/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: all17 requester planes propagate and close only in own shard...OK
+7/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: final PAGE signs and transition stay exact and open...OK
+8/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: scalar symbolic original shard conservation parity...OK
+9/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: every symbolic shard allocation failure releases ownership...OK
+10/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: no external descendant supplier or complete block authority...OK
+11/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: actual original child node and final fresh producer bodies retained only...OK
+12/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: original admissions graph and immutable local recipe identity...OK
+13/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: every original admission and node graph allocation failure releases owners...OK
+14/16 air.memory_commitment.poseidon2_air.test_0...OK
+15/16 air.lookups.tables.mod.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+All 16 tests passed.

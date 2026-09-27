@@ -1,0 +1,24 @@
+{
+  "status": "qualified-focused-transport-only",
+  "result": "memory-source-fold-full-page-transport-focused-v1-result.json",
+  "result_sha256": "fb877fd96f98c882f501cc8feafbb56d8ebd7a0ac4212495cdc74fb73448da5d",
+  "source": "memory-source-fold-full-page-transport-focused-v1-source.json",
+  "source_sha256": "01c2009d71b37b3ad029e83a342fa8d91d38b6b9ff858012465837c0f346e3fb",
+  "scope": "Original full4096-record PAGE replay/promotion byte equality, original loader and corruption checks; no proof acceptance or end-to-end speed claim.",
+  "observed": {
+    "page_records": 4096,
+    "small_buffer_records": 64,
+    "full_buffer_records": 4096,
+    "replay_payload_preadAll_requests": [
+      64,
+      1
+    ],
+    "promotion_payload_preadAll_requests": [
+      64,
+      1
+    ]
+  },
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

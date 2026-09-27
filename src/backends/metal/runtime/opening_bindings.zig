@@ -79,6 +79,64 @@ pub extern fn stwo_zig_metal_fri_line_cascade(
     error_message: [*]u8,
     error_message_len: usize,
 ) bool;
+pub extern fn stwo_zig_metal_fri_line_cascade_v2(
+    runtime: *anyopaque,
+    source: *anyopaque,
+    source_count: u32,
+    circle_source: ?*anyopaque,
+    circle_alpha: ?*const [4]u32,
+    prior_channel_buffer: ?*anyopaque,
+    prior_state_word_offset: u32,
+    prior_alpha_word_offset: u32,
+    inverse_x: ?[*]const u32,
+    inverse_x_count: u32,
+    domain_initial_index: u32,
+    domain_step_size: u32,
+    coordinates: [*]const *anyopaque,
+    final_destination: *anyopaque,
+    layer_count: u32,
+    leaf_seed: *const [8]u32,
+    node_seed: *const [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+    channel_state: [*]u32,
+    trees: [*]?*anyopaque,
+    inverse_generation_mask: ?*u32,
+    stats: *CommandEpochStats,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_fri_line_cascade_budgeted_v1(
+    runtime: *anyopaque,
+    source: *anyopaque,
+    source_count: u32,
+    circle_source: ?*anyopaque,
+    circle_alpha: ?*const [4]u32,
+    prior_channel_buffer: ?*anyopaque,
+    prior_state_word_offset: u32,
+    prior_alpha_word_offset: u32,
+    inverse_x: ?[*]const u32,
+    inverse_x_count: u32,
+    domain_initial_index: u32,
+    domain_step_size: u32,
+    coordinates: [*]const *anyopaque,
+    final_destination: *anyopaque,
+    layer_count: u32,
+    leaf_seed: *const [8]u32,
+    node_seed: *const [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+    channel_state: [*]u32,
+    trees: [*]?*anyopaque,
+    inverse_generation_mask: ?*u32,
+    circle_inverse: ?*anyopaque,
+    line_inverse: *anyopaque,
+    generate_circle: bool,
+    generate_line: bool,
+    stats: *CommandEpochStats,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_fri_fold_prepare(
     runtime: *anyopaque,
     source_offset_words: u32,
@@ -169,6 +227,21 @@ pub extern fn stwo_zig_metal_fri_tree_prepare(
     leaf_seed: *const [8]u32,
     node_seed: *const [8]u32,
     domain_prefix_bytes: u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_fri_tree_prepare_v2(
+    runtime: *anyopaque,
+    evaluation_base: u32,
+    coordinate_stride: u32,
+    evaluation_size: u32,
+    log_rows_per_leaf: u32,
+    layer_offsets: [*]const u32,
+    layer_count: u32,
+    leaf_seed: *const [8]u32,
+    node_seed: *const [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;
@@ -438,14 +511,26 @@ pub extern fn stwo_zig_metal_decommit_assemble_trace(
 
 test "opening bindings retain canonical shared ABI parameter types" {
     const fold_commit = @typeInfo(@TypeOf(stwo_zig_metal_fri_fold_line_and_commit)).@"fn";
-    try std.testing.expectEqual(@as(usize, 15), fold_commit.params.len);
-    try std.testing.expect(fold_commit.params[12].type.? == *CommandEpochStats);
+    try std.testing.expectEqual(@as(usize, 16), fold_commit.params.len);
+    try std.testing.expect(fold_commit.params[12].type.? == u32);
+    try std.testing.expect(fold_commit.params[13].type.? == *CommandEpochStats);
     try std.testing.expect(fold_commit.return_type.? == ?*anyopaque);
 
     const cascade = @typeInfo(@TypeOf(stwo_zig_metal_fri_line_cascade)).@"fn";
-    try std.testing.expectEqual(@as(usize, 19), cascade.params.len);
-    try std.testing.expect(cascade.params[16].type.? == *CommandEpochStats);
+    try std.testing.expectEqual(@as(usize, 24), cascade.params.len);
+    try std.testing.expect(cascade.params[21].type.? == *CommandEpochStats);
     try std.testing.expect(cascade.return_type.? == bool);
+
+    const tree = @typeInfo(@TypeOf(stwo_zig_metal_fri_tree_prepare_v2)).@"fn";
+    try std.testing.expectEqual(@as(usize, 13), tree.params.len);
+    try std.testing.expect(tree.params[10].type.? == u32);
+    try std.testing.expect(tree.params[11].type.? == [*]u8);
+
+    const cascade_v2 = @typeInfo(@TypeOf(stwo_zig_metal_fri_line_cascade_v2)).@"fn";
+    try std.testing.expectEqual(@as(usize, 25), cascade_v2.params.len);
+    try std.testing.expect(cascade_v2.params[18].type.? == u32);
+    try std.testing.expect(cascade_v2.params[19].type.? == [*]u32);
+    try std.testing.expect(cascade_v2.params[22].type.? == *CommandEpochStats);
 
     const quotient = @typeInfo(@TypeOf(stwo_zig_metal_quotient_coefficients_resident)).@"fn";
     try std.testing.expect(quotient.params[2].type.? == [*]const QuotientCoefficientTerm);

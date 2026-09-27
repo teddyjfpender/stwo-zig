@@ -1,0 +1,19 @@
+{
+  "verified": true,
+  "recursive": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 38037,
+  "keccak_calls": 22,
+  "recovery_calls": 4,
+  "segments": 1,
+  "execution_ns": 2934833,
+  "witness_admission_ns": 918506750,
+  "leaf_and_recursion_preparation_ns": 15245850542,
+  "parent_proving_ns": 32644933458,
+  "final_verification_ns": 8916875,
+  "total_ns": 54168943375,
+  "proof_bytes": 893090,
+  "worker_peak_bytes": 29648180891,
+  "output": "0100000004000000df6f878c7e101db0d1bc8470887a2567bb4c21067f9d0f2d5bd019ea33eec5aedddc02ec3c7c6460c87e7569454e683bc74c9ad09bd0d82493a0913eada9ac61"
+}

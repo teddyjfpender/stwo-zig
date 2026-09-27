@@ -1,0 +1,61 @@
+{
+  "status": "qualified_nonproving_actual_bodies_and_focused_contracts",
+  "evidence": {
+    "input-request-policy-owner-semantic-v1": {
+      "source_candidate": "input-request-policy-owner-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 3.9975319580407813,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-policy-owner-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "input-request-policy-owner-focused-v1": {
+      "source_candidate": "input-request-policy-owner-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 18.815620250010397,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 17,
+      "test_summary": [
+        "All 17 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-policy-owner-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-input-request-policy-owner-focused-v1",
+        "bytes": 36320288,
+        "sha256": "ce5c5247f106a4a2f344735bf409c394ce5eadac1ed4aa6d87ea30a3542d4977"
+      }
+    }
+  },
+  "scope": [
+    "Actual original capacity Prepared/shapes/entries/catalog/coverage/schedule deep reconstruction and stable owner bodies compile and are retained, never proof-invoked",
+    "Shared expected job/input alias retained once; output arrays and original full clocks copied, original coverage arrays owned",
+    "WM/v2 and node keys/schedules derived through actual original fresh captures and original verifier Rows.prepare in publish/reconstruct bodies",
+    "Typed CPU selection publishes or independently reconstructs stored original files; Built transfers actual checked last root plus durable owner, avoiding another publisher final root verification",
+    "17/17 focused checks pass with1886 unchanged literal pins, including schedule mutation/sign/use/part and copy/coverage/allocation/cancellation/resource/lifetime contracts",
+    "Minimum-count Plan derives actual Specs/file array sizes; no fixed rounded node count"
+  ],
+  "not_qualified": [
+    "Positive complete Snapshot and actual proof publishing/reconstruction execution",
+    "Canonical caller provides original policy/file loaders; active Driver hookup not yet selected",
+    "Compact closed-node protocol preventing inherited descendant child_term schedule expansion",
+    "Final source/global/provider/accounting/scoped compensation and self-contained block proof authority"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_claim": null
+}

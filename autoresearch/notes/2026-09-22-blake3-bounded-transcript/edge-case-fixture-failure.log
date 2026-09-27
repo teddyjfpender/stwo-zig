@@ -1,0 +1,15 @@
+test-blake3-bounded-transcript
++- BLAKE3 bounded transcript guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.blake3_transcript_sequence_test.test.BLAKE3 bounded transcript proves retries counter chaining resets and raw queries' failed
+error: while executing test 'recursion.air.blake3_transcript_sequence_test.test.BLAKE3 bounded transcript proves retries counter chaining resets and raw queries', the following test command failed:
+./.zig-cache/o/326b8a2ee1915cc06db73c7f21749c7d/test --cache-dir=./.zig-cache --seed=0x897ee2d7 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-blake3-bounded-transcript transitive failure
++- BLAKE3 bounded transcript guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 25s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/31cc6b85da15f63c813941dffb895e61/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x897ee2d7 -Z9cfbf55ed1189cf9 --maxrss 25769803776 -j1 test-blake3-bounded-transcript -Doptimize=ReleaseSafe --summary all

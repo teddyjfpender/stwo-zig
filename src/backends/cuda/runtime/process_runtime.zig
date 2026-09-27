@@ -25,6 +25,66 @@ pub fn ProcessOwnedRuntimeFor(comptime Session: type) type {
 
         pub const ProofSession = Session;
 
+        /// Selected construction owns the same single process registry lease
+        /// through partial context/AOT cleanup. It does not enable concurrency.
+        pub const Construction = if (@hasDecl(Session, "Construction")) union(enum) {
+            ready: Self,
+            failed: struct {
+                cause: runtime_error.Error,
+                session: ?Session.Construction = null,
+                owns_registry: bool = false,
+                owner_thread_id: std.Thread.Id = 0,
+            },
+            released: void,
+
+            pub fn deinit(self: *Construction) runtime_error.Error!void {
+                switch (self.*) {
+                    .ready => |*runtime| {
+                        if (comptime Session.supports_selected_construction) {
+                            try runtime.abort();
+                            self.* = .released;
+                        } else return error.InvalidState;
+                    },
+                    .failed => |*failure| {
+                        if (failure.owns_registry and (failure.owner_thread_id == 0 or failure.owner_thread_id != std.Thread.getCurrentId())) return error.ThreadOwnershipViolation;
+                        if (failure.session) |*session| {
+                            try session.deinit();
+                            failure.session = null;
+                        }
+                        if (failure.owns_registry) {
+                            releaseRegistry();
+                            failure.owns_registry = false;
+                        }
+                    },
+                    .released => {},
+                }
+            }
+        } else void;
+
+        pub fn openSelected(accepted_sms: []const u32, selected: if (@hasDecl(Session, "Selection")) Session.Selection else void) Construction {
+            selected.validate(accepted_sms) catch |err| return .{ .failed = .{ .cause = err } };
+            if (!acquireRegistry()) return .{ .failed = .{ .cause = error.InvalidState } };
+            var session = Session.openSelected(accepted_sms, selected);
+            switch (session) {
+                .ready => |*owner| {
+                    const result = Self{ .inner = .{ .session = owner.* } };
+                    session = .released;
+                    return .{ .ready = result };
+                },
+                .failed => |failure| {
+                    if (!session.hasResources()) {
+                        releaseRegistry();
+                        return .{ .failed = .{ .cause = failure.cause } };
+                    }
+                    return .{ .failed = .{ .cause = failure.cause, .session = session, .owns_registry = true, .owner_thread_id = std.Thread.getCurrentId() } };
+                },
+                .released => {
+                    releaseRegistry();
+                    return .{ .failed = .{ .cause = error.InvalidState } };
+                },
+            }
+        }
+
         pub fn open(accepted_sms: []const u32) runtime_error.Error!Self {
             if (!acquireRegistry()) return error.InvalidState;
             errdefer releaseRegistry();
@@ -81,10 +141,9 @@ pub fn ProcessOwnedRuntimeFor(comptime Session: type) type {
 
         pub fn abort(self: *Self) runtime_error.Error!void {
             if (!self.owns_registry) return error.InvalidState;
-            const result = self.inner.abort();
+            try self.inner.abort();
             self.owns_registry = false;
             releaseRegistry();
-            return result;
         }
 
         fn acquireRegistry() bool {
@@ -165,15 +224,26 @@ pub fn RuntimeFor(comptime Session: type) type {
 
         pub fn close(self: *Self) runtime_error.Error!void {
             if (self.state != .ready) return error.InvalidState;
+            if (comptime @hasDecl(Session, "isClosed")) {
+                if (self.session.isClosed()) {
+                    self.state = .closed;
+                    return;
+                }
+            }
             try self.session.close();
             self.state = .closed;
         }
 
         pub fn abort(self: *Self) runtime_error.Error!void {
             if (self.state != .ready) return error.InvalidState;
-            const result = self.session.abort();
+            if (comptime @hasDecl(Session, "isClosed")) {
+                if (self.session.isClosed()) {
+                    self.state = .closed;
+                    return;
+                }
+            }
+            try self.session.abort();
             self.state = .closed;
-            return result;
         }
     };
 }

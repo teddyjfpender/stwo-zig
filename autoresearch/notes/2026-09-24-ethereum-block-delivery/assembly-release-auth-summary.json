@@ -1,0 +1,44 @@
+{
+  "scope": "CPU transaction authentication with precompiles, one execution leaf and one native recursive parent; default coefficient residency; not a full Ethereum block",
+  "results": [
+    {
+      "transactions": 16,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 44330640250,
+      "parent_ns": 17470674958,
+      "worker_peak_bytes": 9965452848,
+      "process_peak_bytes": 10334906856,
+      "proof_bytes": 983171,
+      "proof_byte_identical": true,
+      "proof_sha256": "b50fcc72e9b1a2948738305faf10efc5b8cf5216071d017b58cbcdcc3dd5560d"
+    },
+    {
+      "transactions": 32,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 49465014875,
+      "parent_ns": 19243710042,
+      "worker_peak_bytes": 10290216976,
+      "process_peak_bytes": 10747423928,
+      "proof_bytes": 971396,
+      "proof_byte_identical": true,
+      "proof_sha256": "a63a40b760f6c7bc0246960461e73d9d23fbf381355279de4ef35cf7e8edd2e6"
+    },
+    {
+      "transactions": 64,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 52796996416,
+      "parent_ns": 18420731709,
+      "worker_peak_bytes": 10290216976,
+      "process_peak_bytes": 10584910936,
+      "proof_bytes": 982493,
+      "proof_byte_identical": true,
+      "proof_sha256": "6dd0479d95488cf6339a997d9a2554cf0c3c702a7e01c4a675af4dbf087ab10b"
+    }
+  ]
+}

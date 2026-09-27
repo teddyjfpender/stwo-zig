@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "passed": true,
+  "test_count": 6,
+  "named_behavior_checks": 5,
+  "scope": "Successful literal four-leaf constant-polynomial PCS with genuine Merkle/DEEP/FRI verification: borrowed/owned captures and transcript parity, retained capture after poisoning/freeing original vectors, every verifier allocation failure and transactional publication; early/late rejection ownership and genuine multi-step FRI workspace allocation-failure cleanup. No STARK/FRI prover, child/recursive/segment generation, driver or device invocation. Native/leaf callback integration is outside this gate.",
+  "pcs_success_verified": true,
+  "owned_pcs_success_regression_qualified": true,
+  "stark_proved": false,
+  "segment_executed": false,
+  "native_callback_qualified": false,
+  "success_stark_capture_qualified": false,
+  "log_sha256": "64755c7f4df272e4376f8ed716044ce608c6ddd8ec7c0cd4bf1c4c7b742c1d23",
+  "source_sha256": {
+    "src/borrowed_proof_capture_test_root.zig": "123b4a43f5498a3fab0d854a6071a735841f77e33dc3c9ea61942cb0f600d586",
+    "src/core/borrowed_proof_capture_test.zig": "61e59d4a40cda67d078cf87c5e8780d7df47a9113b877a5bebb1d301af7b8999",
+    "src/core/borrowed_pcs_capture_success_test.zig": "1ad70803ed4d5e6f4bae3c3929152d289de47bfedb91ff980411f87d641d3bcc",
+    "src/core/verifier.zig": "8b8fb3ff311cf89679fc7c2be0c0e1183cc9a6b14961e31c5f064acf74a577b7",
+    "src/core/pcs/verifier.zig": "45e0afef0ca8ecaaa2d7a91c37592422352be90da5a38f848232ccb431271385",
+    "src/core/fri.zig": "d29bbe504390142d870198d2efd5bb9a307961307219d9716f5ae9b8c2f15ff8",
+    "src/core/fri/folding.zig": "69c0ca7854fbaf49699c02e01705b0fb53fd62968f4811158531354554045ac7"
+  }
+}

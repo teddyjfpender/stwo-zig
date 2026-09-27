@@ -73,6 +73,7 @@ pub const StateChainTracker = struct {
     /// Clock gap-filling records for register accesses.
     clock_updates_reg: std.ArrayList(ClockUpdate),
     allocator: std.mem.Allocator,
+    x0_local_custody_version: u32 = 0,
 
     pub fn init(allocator: std.mem.Allocator) StateChainTracker {
         return .{
@@ -84,6 +85,14 @@ pub const StateChainTracker = struct {
             .clock_updates_reg = .{},
             .allocator = allocator,
         };
+    }
+
+    /// Explicit host collection recipe. Local native/caller AIR remains the
+    /// independent verifier authority for every elided architectural x0 access.
+    pub fn initLocalZero(allocator: std.mem.Allocator) StateChainTracker {
+        var result = init(allocator);
+        result.x0_local_custody_version = 1;
+        return result;
     }
 
     pub fn deinit(self: *StateChainTracker) void {
@@ -114,6 +123,10 @@ pub const StateChainTracker = struct {
         previous: u32,
         next: u32,
     ) !void {
+        if (self.x0_local_custody_version == 1 and reg == 0) {
+            if (previous != 0 or next != 0 or self.reg_last_clk[0] != 0) return error.NonzeroX0CustodyTransition;
+            return;
+        }
         const prev_clk = self.reg_last_clk[reg];
         const effective_prev_clk = try self.fillClockGap(
             0,
@@ -195,6 +208,12 @@ pub const StateChainTracker = struct {
         previous: u32,
         next: u32,
     ) void {
+        if (self.x0_local_custody_version == 1 and reg == 0) {
+            // This infallible publication follows already validated CPU
+            // retirement. Keep its invariant enforced in optimized builds.
+            if (previous != 0 or next != 0 or self.reg_last_clk[0] != 0) @panic("nonzero local-zero register transition");
+            return;
+        }
         const effective_prev_clk = self.fillClockGapAssumeCapacity(
             0,
             @as(u32, reg),

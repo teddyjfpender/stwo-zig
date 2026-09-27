@@ -1,0 +1,134 @@
+{
+  "schema": "block-v5-capacity-shared-store-qualified-v1",
+  "status": "shared_family_kernel_ownership_and_actual_body_qualified",
+  "checks": {
+    "passed": 21,
+    "named": 14,
+    "imports": 7,
+    "exit_code": 0
+  },
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-shared-store-v1.log",
+    "sha256": "66e757d963e788bef936bf73658bdddf95c1dc7f5fa117bca9871c564da0e14c"
+  },
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/air/extract/model.zig",
+      "sha256": "cd2174e0d94e4175ef65f2394762189ca15c7ad90c03eb24c304eabb07329ffe"
+    },
+    {
+      "path": "src/frontends/riscv/air/extract/runtime_program.zig",
+      "sha256": "cf7d3c19422a6d0bc1703f8639d41261d07d38f60cc642f4f32a76cf38818123"
+    },
+    {
+      "path": "src/frontends/riscv/air/extract/symbolic.zig",
+      "sha256": "c8f54255347ad49034d88f5299ab5e51c5cc3dfab89b3f84e2326e223e43ccce"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_capacity_artifact_store_test_root.zig",
+      "sha256": "8ba24edc7d1003cc991b6334bb939d1fbc515979e42932443a1e347d16dea8dc"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig",
+      "sha256": "fe70d48bfc92082f17e8f525db8ce27ffd95788107758e57eff70e5537a18d55"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_artifact_files_v1.zig",
+      "sha256": "041d2cb4d4e5a4653c23264ce2268c50b778a51165b4e7b039bae582a758bef8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_artifact_store_common_v1.zig",
+      "sha256": "cfa9f55aedf696e52febbfe81319bba7537cbde83f22c5fda95ff72bd91de550"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_artifact_receiver_v1.zig",
+      "sha256": "eb831721fd09287d8e64b523f5ad76d47ce0fe9782e021963539035db27f0614"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_codec_v1.zig",
+      "sha256": "a08a06388b23be13e4f9e00634a0962644b3acd79ab19166b7bff811b25ed14d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_artifact_receiver_v1.zig",
+      "sha256": "60322f075d296e377c47f28f6b9ec6ebd0ebd16833b0a9b3e11d217d4bf390c8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig",
+      "sha256": "49b178f03bd131e2257620c2b59ca36b0dc4f68439fcec2cfa8f7a5879cab825"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_component_v1.zig",
+      "sha256": "9423bf824a75147c8e8ec0fa76f2378ef527ce3ae7552750e8bc0fc9e687cf17"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_extraction_test_v1.zig",
+      "sha256": "78126c97c4ebbfb22d0f50465a3adccd31af685302b23581fc953301aad2834b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_proof_v1.zig",
+      "sha256": "ddcc163caf00edc7af6c544f9805e16d9af067db375819ff8dc0d977ebfd6007"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_receiver_v1.zig",
+      "sha256": "3f2c33700dec25dea98a2b32b5a7ad30c02ef17fb49499904003d0d034587d22"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig",
+      "sha256": "922e24feb49c0493e2d811b5d6adfdfeb7b1723163214d37917920afdbcfcdfe"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_stage_v1.zig",
+      "sha256": "f69b231137dec365bcc31b6141bbfe87a4ea00e926239caca2bbf845c20f0a07"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_store_v1.zig",
+      "sha256": "54f5e30e81aff456b9df346e72a129c03449de3f9cca710dcc37f38ebdfbea7f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_fixture_v1.zig",
+      "sha256": "3776d4827590450c7d46a31552fe492112deb3a43211d70f1e103c04562f59a3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_test_v1.zig",
+      "sha256": "eddfac7488ce4c861a0d4d1dfc8bd2f195d0e311c6c6d70541d8f4bf861310c6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_unit_test.zig",
+      "sha256": "09791542998f2a612610bd30981ca9d3e7dc7dcc1bf92324c5ee23cb54d8f472"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_store_test.zig",
+      "sha256": "16d127c30660cfb41f0dd633ccd6488123555f6d69128ba4536db4bd46266a35"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_store_v1.zig",
+      "sha256": "ab5fda8073d7b86b43c99ea7a0cef29cff7b12b3b61fe57a37c259b7ed824ddf"
+    }
+  ],
+  "baseline_receipts": [
+    {
+      "path": "native-capacity-store-qualified-v1.json",
+      "sha256": "eed9dd6f0822a7712bb4fbbe25bf1d598d1161498f89d06987f5250bf5d10d66"
+    },
+    {
+      "path": "native-capacity-fused-qualified-v1.json",
+      "sha256": "aafc758529385f6f24e32692659210efe3546b5bbb4610a766d761b6cda14b32"
+    }
+  ],
+  "command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_capacity_artifact_store_test_root.zig",
+    "capacity store",
+    "capacity fused wire",
+    "capacity fused store",
+    "capacity fused artifact"
+  ],
+  "scope": "One shared bounded durable B5CT/B5CF store and manifest kernel, distinct typed family codecs/policies/fresh verifiers/grammars/errors/paths. Literal publication/deep decoding, fail-retaining ownership, caps/independent authority/one-shot file loads and allocation rollback pass. Actual native fresh-capture, fused fresh-joint and old ROM I/O bodies compile without invocation.",
+  "stark_proved": false,
+  "segments_executed": false,
+  "device_executed": false,
+  "canonical_enabled": false,
+  "resource_limitation": "Logical caps are not measured whole-process RSS; callbacks must join before Store.deinit and decoded/proof allocation owners match Store allocator."
+}

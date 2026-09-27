@@ -1,0 +1,42 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-geometry-work-schedules",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+    "4194304",
+    "all",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/work-schedule-qualification-v1/schedule-256.json"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 343.32546562497737,
+  "summary": {
+    "kind": "summary",
+    "proof_verified": false,
+    "segments_checked": 256,
+    "cycles": 139214856,
+    "all_commitment_traces_fit": true,
+    "maximum_commitment_rows": [
+      14639520,
+      4182720,
+      5209226,
+      2636658,
+      216096,
+      85976,
+      85976,
+      818809
+    ],
+    "maximum_hash_log": 25,
+    "sizing_peak_bytes": 1075098065,
+    "sizing_ns": 342802488750
+  },
+  "every_commitment_component_at_most_log24": true,
+  "proof_verified": false,
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-geometry-work-schedules": "97a81092ad4473da090d237fc9a8b5d6aaf56a083a2f4cd654b309a8105b059a",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/work-schedule-qualification-v1/schedule-256.json": "1694c7df6f8508d9365a654bd4e489934b0b0007210aca7ff2c718f5e8910a0b"
+  }
+}

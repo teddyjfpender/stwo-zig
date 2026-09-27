@@ -1,0 +1,43 @@
+{
+  "scope": "Complete one-transaction guest; real recursive trees; not a full block proof",
+  "memory_first_default": true,
+  "default_policy_preserves_original_proof_bytes": true,
+  "results": [
+    {
+      "stem": "stream-auth1-canonical-2048",
+      "segments": 16,
+      "queries": 70,
+      "pow_bits": 26,
+      "tracked_peak_bytes": 20927931793,
+      "process_peak_bytes": 16465062096,
+      "flow_seconds": 618.470395333,
+      "wall_seconds": 618.5070495420368,
+      "paired_execution_leaves": false,
+      "proof_sha256": "1e505e87f1844a706c707fad552919f2eb28267d9667235a756410dae27a8fc3"
+    },
+    {
+      "stem": "stream-paired-auth1-canonical-16384",
+      "segments": 2,
+      "queries": 70,
+      "pow_bits": 26,
+      "tracked_peak_bytes": 32770932443,
+      "process_peak_bytes": 31800142536,
+      "flow_seconds": 59.116455917,
+      "wall_seconds": 59.815846292010974,
+      "paired_execution_leaves": true,
+      "proof_sha256": "0ea1c46b403b85c407b7d1442dbd13b7a5b81a1380dd3736edcf17a7c2061976"
+    },
+    {
+      "stem": "stream-policy-auth1-canonical-16384",
+      "segments": 2,
+      "queries": 70,
+      "pow_bits": 26,
+      "tracked_peak_bytes": 21227052479,
+      "process_peak_bytes": 16679239664,
+      "flow_seconds": 69.064124375,
+      "wall_seconds": 69.73671279195696,
+      "paired_execution_leaves": false,
+      "proof_sha256": "6aed839486673a5d1eb516935d4a76254421c3d691fe0d1c778dfe4a48d756be"
+    }
+  ]
+}

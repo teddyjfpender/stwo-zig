@@ -1,0 +1,6 @@
+1/5 block_v5_ram_lanes_gpu_test_root.test.RAM GPU typed all117 OOD equations and271 inputs retain exact canonical mask order...OK
+2/5 block_v5_ram_lanes_gpu_test_root.test.RAM GPU23 fraction planes match actual centered CPU prefixes including odd padding...OK
+3/5 block_v5_ram_lanes_gpu_test_root.test.RAM GPU ingress caps and no-copy alignment fail closed and protocol powers partition exactly...OK
+4/5 block_v5_ram_lanes_gpu_test_root.test.RAM GPU borrowed PCS source rejects changed coefficient extent or evaluation identity...OK
+5/5 backends.metal.runtime.test_0...OK
+All 5 tests passed.

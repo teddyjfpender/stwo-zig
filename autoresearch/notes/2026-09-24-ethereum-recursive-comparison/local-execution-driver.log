@@ -1,0 +1,29 @@
+[ethereum-auth-local-execute] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-local-execute] acquired after 89s
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-1.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-1.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-batch-1-execute-initial.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-batch-1-execute-initial.json",
+    "execute"
+  ],
+  "side": "local",
+  "mode": "execute",
+  "requested_workers": 4,
+  "timeout_seconds": 900,
+  "hardware_track": "same-host CPU; no CUDA",
+  "sha256": {
+    "local-host": "d6c8df09cba335f117e6accf701f4bf4fa2ba5e3287a91b8b37040535fe52206",
+    "guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo": "988e26742a18c9d7fd2c073a0fa3b40fa80eeb14d30a1a7eb60486abad478e0a",
+    "fixtures/batch-1.input": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d",
+    "fixtures/batch-1.expected": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138"
+  },
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t67%; charging; 1:48 remaining present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 0.5077361660078168,
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t67%; charging; 1:48 remaining present: true\n",
+  "output_checked": true
+}

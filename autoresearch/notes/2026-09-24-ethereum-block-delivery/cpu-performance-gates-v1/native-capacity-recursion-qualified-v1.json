@@ -1,0 +1,234 @@
+{
+  "schema": "native-capacity-recursion-qualified-v1",
+  "status": "focused_equations_policy_ownership_and_actual_body_qualified",
+  "canonical_enabled": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "tests_run_by_agent": false,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_admission_v1.zig",
+      "sha256": "a5468978cde896e3800f97053aa217c874d092e5debbfacdd6f82ff4b79d2da8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_stage_v1.zig",
+      "sha256": "e12e61843fcc7ea805e44811097dd841cbb1c136601ab25c16589be65108da6f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_test.zig",
+      "sha256": "0f13445f2ade8a228478ad4626fb620a2919ee6d9ecfb02c789eb25f9a5aeafa"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_recursive_test_root.zig",
+      "sha256": "1193b514f1d232226e64c0172139ffe3f0307de05f979544b4446d2b4dd120b4"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_recursive_codegen.zig",
+      "sha256": "699b1db99977ffcae1cec76398968a7cc604e17400d6d4c1f3c3c275ddc291ae"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_composition_v1.zig",
+      "sha256": "d4c2351974dd8d41ca9422ea7f622760d56d6644c0bbe6f0bd177ea3c6293876"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_deep_v1.zig",
+      "sha256": "fa3170b134ea9cc3313b5a8dcbf85727552ccd1f9339263516e40599be72de81"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_transcript_v1.zig",
+      "sha256": "f097003823a099378ffbd401ffc8f840b9745fe3fd11795c7dfb33f13c949a2a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_roots_v1.zig",
+      "sha256": "2b4c9374b566cea7bdb475d8002959b4766cc54a76b522cf3fff64a3fba79d0c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_capacity_recursive_public_bus_v1.zig",
+      "sha256": "17e69f22ff0b6bbe8944ec9a7887b6ad1c641cd265a13c09bef0f6a07dcfd05f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_capacity_parent_protocol_v1.zig",
+      "sha256": "e83ade7614aa09536011499083cba7b982906d4d7447bd0c7016b42b082a5f04"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_capacity_recursive_leaf_v1.zig",
+      "sha256": "a4321a9ee6b720f9dab72a2b3cc87d0e08c7f439d328daac6c36257951ff0b4e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "44adfb57e72821c4653d9e8d893d577ec3f97970c9e2dd228943a4036b48dda4"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "9c312db9a8ca9c70a5d45b5abbe3baceb83739ec6e97390e4d4f5aa00b228cb9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_open_child_frames_v2.zig",
+      "sha256": "1fc54c82680bfb2e513fc17d2b1d9159379e64163147e494f2119ca751588ef1"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-native-capacity-recursion-v1.md",
+      "sha256": "ded71a72bcbfa030071beeba97675fb401131055365606538c2512caec53205b"
+    }
+  ],
+  "read_only_dependency_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_proof_v1.zig",
+      "sha256": "ceb314f427074c4fe75b4036dad22e5bbb6b8e7077e645824c7d9c874c883046"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_protocol_v1.zig",
+      "sha256": "3d808a44a298b2c32ea56a2b859ff512845ad3df7e54d233b478ba913ca7f530"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_catalog_v1.zig",
+      "sha256": "e0a1cac303dcd4679cf4399653f5ece37409b387daf2d61d5be5e419f4b739d4"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_component_v1.zig",
+      "sha256": "5f0c71823b68b74129b42d2f77570e43890e13560a3e87ed17246444ef986a33"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_activity_v1.zig",
+      "sha256": "5ef2239c494076adc81c38113faeb7517a859109d7b02a277eea362694bc6b56"
+    }
+  ],
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "capacity recursion:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_native_capacity_recursive_test_root.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-native-capacity-recursive-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_native_capacity_recursive_codegen.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "scope": "Genuine capacity composite/DEEP/transcript/root/public-bus recursion, distinct leaf producer/receiver and bounded same implementation cache specialization; NativeV3 exact forest default retained. Proof and forest qualification still required.",
+  "fixture_revision": 3,
+  "fixture_revision_note": "Allocation harness preserves Builder.failure original OOM instead of testing a poisoned constant or returning generic graph failure. Successful and mutation parity assertions unchanged.",
+  "tests_passed": 10,
+  "named_tests": 7,
+  "tests_run_by_root": true,
+  "body_compiled": true,
+  "body_exit_code": 0,
+  "body_export": "stwo_capacity_recursive_body_gate",
+  "body_invoked": false,
+  "recursive_proof_executed": false,
+  "segments_executed": false,
+  "performance_measured": false,
+  "evidence": [
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-recursion-production-v3.log",
+      "sha256": "1a12b0ff768dc81f8b7d1a0889fe36cdf71f5918c45c82b1e653d1b9f946ae59",
+      "bytes": 1371
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-recursion-body-v1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/block-v5-native-capacity-recursive-body.o",
+      "sha256": "8f6a23915d5aa3c587c14631c4e03015b19ddcd000c6019686c2de6fb07e869f",
+      "bytes": 54925040
+    }
+  ],
+  "remaining": [
+    "Capacity exact-forest typed adapter and producer/receiver integration",
+    "Canonical block driver and global family recursion closure",
+    "Genuine fresh recursive proof and complete block performance qualification"
+  ]
+}

@@ -1,0 +1,6 @@
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_owner_v1.zig:122:29: error: capture shadows declaration of 'source'
+        for (self.leaves) |*source| source.deinit();
+                            ^~~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_owner_v1.zig:158:9: note: declared here
+    pub fn source(self: *const Owner, ref: Cohorts.Ref) !Source.Source {
+    ~~~~^~

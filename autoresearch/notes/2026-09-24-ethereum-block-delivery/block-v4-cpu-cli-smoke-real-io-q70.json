@@ -1,0 +1,62 @@
+{
+  "date": "2026-09-25",
+  "scope": "Installed block-v4 CPU CLI smoke: one real public-I/O and Keccak Ethereum-SHA segment, candidate proposal, staged producer, then separate detached verifier process",
+  "security": {"fri_queries": 70, "pow_bits": 26, "profile": "csp_q70_pow26"},
+  "fixture": {
+    "writer": "stwo-ethereum-block-v4-smoke-fixture",
+    "segments": 1,
+    "exact_schedule": [9],
+    "public_input_bytes": 4,
+    "elf_sha256": "0b9923d0066e0229e2f608b04b59fe758aca62b7fa4f79ab821b51dd72bd57ac",
+    "schedule_sha256": "16390873ae6b6a173fc894a873bab02283debbd320b5f0758849d01afa6ee8b6"
+  },
+  "candidate_proposal": {
+    "tool": "stwo-ethereum-block-v4-candidate-roster",
+    "elapsed_ns": 86689375,
+    "process_elapsed_seconds": 0.51,
+    "tracked_peak_bytes": 186232979,
+    "process_peak_rss_bytes": 179060736,
+    "manifest_sha256": "e75eb46a7b1034c9fc5805608b7c182a2274624173dd28b05ec7998eeb2915fe"
+  },
+  "producer": {
+    "tool": "stwo-ethereum-block-v4-cpu-produce",
+    "complete_block_verified": false,
+    "elapsed_ns": 87392288167,
+    "process_elapsed_seconds": 87.89,
+    "core_producer_ns": 28580843250,
+    "core_and_recursive_leaf_ns": 48086863791,
+    "forest_ns": 13302792,
+    "outer_ns": 10708938041,
+    "tracked_peak_bytes": 14088974608,
+    "process_peak_rss_bytes": 14243479552,
+    "staged_core_payload_bytes": 6525770,
+    "leaf_proof_count": 1,
+    "dyadic_proof_count": 0,
+    "bundle_sha256": "75baab8e972bc03d1a1b7a361fdcd5bdb2f1d2fb3edd06984eeee32ad6e084b9",
+    "proposed_final_manifest_sha256": "50ef9d385fbf762761d396f7390b59619f2d15b1b9fe1cf73d2cc27fb3aaafec",
+    "proposed_recursion_policy_sha256": "4178f8483a2542c88d1670cfb3b2a8a7a41c2351e4cb640748e5831699a9ee26"
+  },
+  "detached_verifier": {
+    "tool": "stwo-ethereum-block-v4-cpu-verify",
+    "complete_block_verified": true,
+    "fresh_verification_ns": 529522250,
+    "process_elapsed_seconds": 0.97,
+    "tracked_peak_bytes": 519110118,
+    "process_peak_rss_bytes": 524484608,
+    "altered_bundle_sha_rejected": "ChangedBlockV4BundleManifest"
+  },
+  "post_audit_reopen": {
+    "scope": "Same hash-pinned q70 bundle reopened after detached streaming allocations were moved off the no-free arena; no proof was regenerated",
+    "complete_block_verified": true,
+    "detached_receiver_ns": 579847583,
+    "total_ns": 582865958,
+    "tracked_peak_bytes": 518456046,
+    "peak_rss_bytes": 523190272,
+    "focused_bundle_manifest_tests_passed": 5
+  },
+  "pin_scope": "The smoke driver recomputed SHA-256 from proposal files and supplied those digests as separate CLI arguments. This tests the detached process boundary and hash enforcement; production authority still requires an independent party to select and pin candidate, final, recursion-policy, and bundle digests.",
+  "limits": [
+    "The fixture is one nine-cycle segment, not a mainnet block or a throughput extrapolation.",
+    "The 14.24 GB producer RSS includes canonical recursive proof generation and does not isolate each stage's peak."
+  ]
+}

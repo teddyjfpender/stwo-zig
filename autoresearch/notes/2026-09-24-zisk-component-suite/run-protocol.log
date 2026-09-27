@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-component-suite/run_protocol.py", line 22, in <module>
+    power=subprocess.check_output(["pmset","-g","batt"],text=True) if qualify_only else ac();rng=random.Random(198);checks=0
+                                                                                        ~~^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-component-suite/run_protocol.py", line 16, in ac
+    if "'AC Power'" not in s:raise RuntimeError(s)
+                             ^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Now drawing from 'Battery Power'
+ -InternalBattery-0 (id=35192931)	99%; discharging; 17:03 remaining present: true
+

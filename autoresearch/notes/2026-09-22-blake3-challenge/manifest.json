@@ -1,0 +1,15 @@
+{
+  "README.md": "105364fb5eb9f0e795bbb487c358b3ffbf030bb3266dc3460fd89f2bcd8d0b18",
+  "proof.log": "6797146ba18eaec7947cd3cf4682458aaabc97530ddfaa7e9a75a1f5c712ce87",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/autoresearch/notes/20260922-blake3-challenge-block-problem-match.md": "ae845feace528a1a46fcc80453904db48daf220056fc861ee9d6ceec61cf3940",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "e6ac22f71208b8e66cff82c4aa8d87d25945774023ab5bcdb3d66c5a892c6429",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "bab1e21207427cf3568ba34cefb55a5ab9a6bc77167f33490b6ae728a9091a1d",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "32bd812c5f75b1a8c9ba9a8bf23fe25bbdbd66d56b273106a89d99c0d005bc71",
+  "sources/src/frontends/riscv/recursion/air/blake3_boundary.zig": "ef3f934fb0f2dd87c3141ffb7dbb706eb4cd1a7a31730a21fec2f7fc4258b6ba",
+  "sources/src/frontends/riscv/recursion/air/blake3_challenge_block.zig": "c099221e1690d62814b514fa9e21bb65cc47d4cb4a0c8f685b5ab0ec5f3a8168",
+  "sources/src/frontends/riscv/recursion/air/blake3_challenge_block_test.zig": "e6ded8b15e2d46e9172b5ae8b65dc2b41b8faaa74de8e6e60eb6f021e8a064ec",
+  "sources/src/frontends/riscv/recursion/air/blake3_challenge_committed_test.zig": "0315fc18d0490c631487d6680e104a30f1b840c49284ab385f00ac4ec84863bc",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "6f38d5961efca6bbdbb4274c6dc59243cc92ffcec3ff31a39b2df9a47f74b162",
+  "tests.log": "fe25a3a03c1cd366548861ff52add8233fe7c2c84533000f7596029d3768071a"
+}

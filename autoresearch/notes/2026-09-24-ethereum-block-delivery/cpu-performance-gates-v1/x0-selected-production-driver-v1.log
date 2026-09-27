@@ -1,0 +1,45 @@
+src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig:238:27: error: local constant shadows declaration of 'trusted'
+                    const trusted = try frontier.finish(s, selected, .{ @splat(0), @splat(0) }, null);
+                          ^~~~~~~
+src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig:57:5: note: declared here
+pub fn trusted(a: std.mem.Allocator, s: Statement) !Prepared {
+~~~~^~
+src/frontends/riscv/recursion/air/blake3_query_witness.zig:130:26: error: invalid left-hand side to assignment
+        if (!count_only) for (0..8) |i| @import("blake3_hash_metadata.zig").xorUse(hash.rows.xor_rows, hash.hash_metadata, plan.xor.len - 16 + i).* = M31.fromCanonical(if (i < count) 1 else 0);
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/blake3_transcript_witness.zig:109:19: error: local constant shadows declaration of 'trusted'
+            const trusted = try expected.nonhash_fixed.?.rows(slot);
+                  ^~~~~~~
+src/frontends/riscv/recursion/air/blake3_transcript_witness.zig:131:5: note: declared here
+pub fn trusted(a: std.mem.Allocator, namespace: u32, operations: []const Operation) !Prepared {
+~~~~^~
+src/frontends/riscv/prover/block_v5_word_memory_join_v1.zig:96:84: error: no field named 'statement' in struct 'prover.block_v5_word_memory_join_v1.ExtensionPin'
+                for (pins.extensions) |extension| try plan.requireCaller(extension.statement);
+                                                                                   ^~~~~~~~~
+src/frontends/riscv/prover/block_v5_word_memory_join_v1.zig:24:26: note: struct declared here
+pub const ExtensionPin = struct { public: programs.ExtensionPin, witness_root: [32]u8 };
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    verifyFresh: src/frontends/riscv/prover/block_v5_global_receiver_v1.zig:265:50
+    verifyWithTransport__anon_110069: src/frontends/riscv/prover/block_v5_global_receiver_v1.zig:229:40
+    5 reference(s) hidden; use '-freference-trace=7' to see all references
+src/frontends/riscv/prover/block_v5_x0_selected_production_unit_test.zig:17:42: error: root source file struct 'test_runner' has no member named 'BLOCK_V5_EXECUTION_RECIPE'
+    try std.testing.expectEqual(@as(u32, @field(@import("root"), "BLOCK_V5_EXECUTION_RECIPE")), @intFromEnum(recipe));
+                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:1:1: note: struct declared here
+//! Default test runner for unit tests.
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/blake3_hash_witness.zig:199:24: error: 'write' is not marked 'pub'
+    const result = sink.write(kind, index, row);
+                   ~~~~^~~~~~
+src/frontends/riscv/recursion/air/blake3_frame_nonhash_v1.zig:17:5: note: declared here
+    fn write(self: *@This(), comptime kind: usize, index: usize, row: anytype) !void {
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 15, in <module>
+    subprocess.run([z,'test',*filter_args,'-O' + args.optimize,'-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','--dep','stwo_backend_contracts','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig'],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'block-v5 selected production', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '--dep', 'stwo_backend_contracts', '-Mroot=src/frontends/riscv/block_v5_x0_selected_production_unit_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

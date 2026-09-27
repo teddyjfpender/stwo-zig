@@ -1,0 +1,23 @@
+1/22 block_v5_memory_source_packed_page_test_root.test.source packed page root imports...OK
+2/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page SHA: original four-core emission exact padding edges and arbitrary chaining match independent SHA...OK
+3/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page SHA semantics: exact Source9 byte input and chain sums match original bit-crypto oracle...OK
+4/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page SHA AIR: exact first and second captures padding digest and wire ID mutations fail...OK
+5/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page SHA SIMD: scalar and packed equations agree on nonzero off-domain masks...OK
+6/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page SHA degree: every direct equation and paired wire plane remains within exact degree3 recipe...OK
+7/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page SHA core closure: actual four original AIRs exact byte and bitwise membership cancel every connector wire...OK
+8/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page raw: independent census fixed recipes ABI magic and bit owner retain zero tail...OK
+9/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page raw replay: distinct bounded codec exact original cells and tampered SHA rejection...OK
+10/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page raw faults: all page owner and loaded proposal allocations unwind...OK
+11/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page core replay: direct original matrices and ALL padding counters match full legacy rows...OK
+12/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page core faults: every graph direct column table and capture allocation unwinds...OK
+13/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page kernel admission: exact six-root geometry calls wire closure mode and limits fail closed...OK
+14/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page kernel masks: exact seven-tree column inventory no duplicated fixed main or prefix columns...OK
+15/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page kernel owner faults: every typed component and remapped mask allocation unwinds...OK
+16/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page compact operands: exact record stream predecessor full clock and canonical dropped cells...OK
+17/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page compact storage: exact cap unused private cells and omitted row tail fail before publication...OK
+18/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page compact buffers: multiple IO buffers split operands exactly and preserve all original private cells...OK
+19/22 prover.block_v5_memory_source_packed_page_test_v1.test.source packed page compact buffer faults: every multi-buffer source and replay owner allocation unwinds...OK
+20/22 block_v5_memory_source_packed_page_codegen.test.source packed page bodies: actual distinct raw commitments immutable leases streamed recommit and five-tree SHA equations retained...OK
+21/22 block_v5_memory_source_packed_page_codegen.test.source packed page genuine kernel bodies: six-tree commit replay lease one PAGE FRI original CPU receiver and strict eight-tree codec retained...OK
+22/22 air.memory_commitment.poseidon2_air.test_0...OK
+All 22 tests passed.

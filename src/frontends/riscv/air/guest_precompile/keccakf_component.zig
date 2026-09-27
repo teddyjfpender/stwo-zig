@@ -37,6 +37,8 @@ pub const direct_constraint_count = row_evaluation.direct_constraint_count;
 pub const interaction_constraint_count = row_evaluation.interaction_constraint_count;
 pub const constraint_count = direct_constraint_count + interaction_constraint_count;
 pub const prepared_row_stack_bytes: usize = 512 * 1024;
+const maximum_main_column_count = main_column_count + 2;
+const maximum_prepared_source_count = preprocessed_column_count + maximum_main_column_count + interaction_column_count;
 const prepared_source_count = preprocessed_column_count + main_column_count +
     interaction_column_count;
 
@@ -118,9 +120,12 @@ pub const Placement = struct {
     interaction_offset: usize,
 
     pub fn validate(self: Placement) InitError!void {
+        return self.validateForRecipe(false);
+    }
+    pub fn validateForRecipe(self: Placement, local_zero: bool) InitError!void {
         _ = checkedEnd(self.preprocessed_offset, preprocessed_column_count) catch
             return error.InvalidPlacement;
-        _ = checkedEnd(self.main_offset, main_column_count) catch
+        _ = checkedEnd(self.main_offset, main_column_count + @as(usize, if (local_zero) 2 else 0)) catch
             return error.InvalidPlacement;
         _ = checkedEnd(self.interaction_offset, interaction_column_count) catch
             return error.InvalidPlacement;
@@ -138,6 +143,11 @@ pub const KeccakShardComponent = struct {
     claim: Claim,
     placement: Placement,
     relations: *const relations_mod.Relations,
+    local_zero_custody: bool = false,
+
+    pub fn mainColumnCount(self: *const @This()) usize {
+        return main_column_count + @as(usize, if (self.local_zero_custody) 2 else 0);
+    }
 
     const Adapter = core_air_derive.ComponentAdapter(
         @This(),
@@ -171,9 +181,13 @@ pub const KeccakShardComponent = struct {
     }
 
     pub fn initWithMaximumLogSize(claim: Claim, placement: Placement, relations: *const relations_mod.Relations, admitted_maximum_log_size: u32) InitError!KeccakShardComponent {
+        return initForRecipe(claim, placement, relations, admitted_maximum_log_size, false);
+    }
+
+    pub fn initForRecipe(claim: Claim, placement: Placement, relations: *const relations_mod.Relations, admitted_maximum_log_size: u32, local_zero: bool) InitError!KeccakShardComponent {
         try claim.validateWithMaximumLogSize(admitted_maximum_log_size);
-        try placement.validate();
-        return .{ .claim = claim, .placement = placement, .relations = relations };
+        try placement.validateForRecipe(local_zero);
+        return .{ .claim = claim, .placement = placement, .relations = relations, .local_zero_custody = local_zero };
     }
 
     pub fn asProverComponent(self: *const @This()) prover_component.ComponentProver {
@@ -186,16 +200,16 @@ pub const KeccakShardComponent = struct {
         return Adapter.asVerifierComponent(self);
     }
 
-    pub fn nConstraints(_: *const @This()) usize {
-        return constraint_count;
+    pub fn nConstraints(self: *const @This()) usize {
+        return row_evaluation.constraintCount(self.local_zero_custody);
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
         return self.claim.log_size + 1;
     }
 
-    pub fn constraintDegreeBound(_: *const @This(), index: usize) !u8 {
-        if (index >= constraint_count) return error.InvalidProofShape;
+    pub fn constraintDegreeBound(self: *const @This(), index: usize) !u8 {
+        if (index >= self.nConstraints()) return error.InvalidProofShape;
         return 3;
     }
 
@@ -207,7 +221,7 @@ pub const KeccakShardComponent = struct {
         const preprocessed = try allocator.alloc(u32, preprocessed_column_count);
         errdefer allocator.free(preprocessed);
         @memset(preprocessed, log_size);
-        const main = try allocator.alloc(u32, main_column_count);
+        const main = try allocator.alloc(u32, self.mainColumnCount());
         errdefer allocator.free(main);
         @memset(main, log_size);
         const secure = try allocator.alloc(u32, interaction_column_count);
@@ -232,7 +246,7 @@ pub const KeccakShardComponent = struct {
             &.{point},
         );
         errdefer freePointColumns(allocator, preprocessed);
-        const main = try allocator.alloc([]CirclePointQM31, main_column_count);
+        const main = try allocator.alloc([]CirclePointQM31, self.mainColumnCount());
         var main_initialized: usize = 0;
         errdefer {
             for (main[0..main_initialized]) |column| allocator.free(column);
@@ -297,8 +311,8 @@ pub const KeccakShardComponent = struct {
             .denominator_inv = denominator_inv,
         };
         const reader = PointInteractionReader{ .sampled = &sampled, .claim = &self.claim };
-        try row_evaluation.evaluateGeneric(QM31, .{
-            .main = &sampled.main,
+        try row_evaluation.evaluateGenericForRecipe(QM31, .{
+            .main = sampled.main[0..self.mainColumnCount()],
             .previous_io = &sampled.previous_io,
             .state_minus_two = &sampled.state_minus_two,
             .state_minus_one = &sampled.state_minus_one,
@@ -307,7 +321,7 @@ pub const KeccakShardComponent = struct {
             .state_plus_twenty_seven = &sampled.state_plus_twenty_seven,
             .selectors = &sampled.selectors,
             .second_active = sampled.second_active,
-        }, self.relations, &reader, &sink);
+        }, self.relations, &reader, &sink, self.local_zero_custody);
     }
 
     pub fn evaluateConstraintQuotientsOnDomain(
@@ -353,7 +367,7 @@ pub const KeccakShardComponent = struct {
             self.placement.preprocessed_offset,
             preprocessed_column_count,
         );
-        const main_end = try checkedEnd(self.placement.main_offset, main_column_count);
+        const main_end = try checkedEnd(self.placement.main_offset, self.mainColumnCount());
         const interaction_end = try checkedEnd(
             self.placement.interaction_offset,
             interaction_column_count,
@@ -378,7 +392,7 @@ pub const KeccakShardComponent = struct {
             owned_count = try checkedAdd(owned_count, 1);
         };
 
-        var evaluations: [prepared_source_count][]const M31 = undefined;
+        var evaluations: [maximum_prepared_source_count][]const M31 = undefined;
         const owned_buffers = try allocator.alloc([]M31, owned_count);
         var owned_initialized: usize = 0;
         errdefer {
@@ -397,7 +411,7 @@ pub const KeccakShardComponent = struct {
             );
             source += 1;
         };
-        std.debug.assert(source == evaluations.len);
+        std.debug.assert(source == preprocessed_column_count + self.mainColumnCount() + interaction_column_count);
         if (owned_buffers.len != 0) {
             var twiddles = try prover_twiddles.precomputeM31(
                 allocator,
@@ -429,7 +443,7 @@ pub const KeccakShardComponent = struct {
         );
         const accumulators = try accumulator.columns(
             allocator,
-            &.{.{ .log_size = eval_log_size, .n_cols = constraint_count }},
+            &.{.{ .log_size = eval_log_size, .n_cols = self.nConstraints() }},
         );
         defer allocator.free(accumulators);
         const state = try allocator.create(PreparedDomainState);
@@ -456,7 +470,7 @@ const PointSample = struct {
     is_first: QM31,
     selectors: [witness.row_count]QM31,
     second_active: QM31,
-    main: [main_column_count]QM31,
+    main: [maximum_main_column_count]QM31,
     previous_io: [2 * relations_mod.io_arity]QM31,
     state_minus_two: [witness.state_cell_count]QM31,
     state_minus_one: [witness.state_cell_count]QM31,
@@ -476,7 +490,7 @@ fn samplePoint(
     const secure = mask.items[2];
     const p = component.placement;
     const preprocessed_end = try checkedEnd(p.preprocessed_offset, preprocessed_column_count);
-    const main_end = try checkedEnd(p.main_offset, main_column_count);
+    const main_end = try checkedEnd(p.main_offset, component.mainColumnCount());
     const interaction_end = try checkedEnd(p.interaction_offset, interaction_column_count);
     if (preprocessed.len < preprocessed_end or main_mask.len < main_end or
         secure.len < interaction_end)
@@ -493,7 +507,7 @@ fn samplePoint(
         preprocessed[p.preprocessed_offset + trace_mod.Layout.second_active],
         0,
     );
-    for (&result.main, 0..) |*value, column| value.* =
+    for (result.main[0..component.mainColumnCount()], 0..) |*value, column| value.* =
         try pointAt(main_mask[p.main_offset + column], 0);
     for (&result.previous_io, 0..) |*value, field| value.* =
         try pointAt(main_mask[p.main_offset + trace_mod.Layout.io_a + field], 1);
@@ -571,7 +585,7 @@ const PointSink = struct {
 const PreparedDomainState = struct {
     allocator: std.mem.Allocator,
     component: *const KeccakShardComponent,
-    evaluations: [prepared_source_count][]const M31,
+    evaluations: [maximum_prepared_source_count][]const M31,
     owned_buffers: [][]M31,
     denominator_inv: [2]M31,
     column_accumulator: prover_air_accumulation.ColumnAccumulator,
@@ -598,7 +612,7 @@ const PreparedDomainState = struct {
 
     fn run(self: *@This(), task_context: *prover_task_graph.TaskContext) !void {
         const main_start = preprocessed_column_count;
-        const interaction_start = main_start + main_column_count;
+        const interaction_start = main_start + self.component.mainColumnCount();
         const powers = self.column_accumulator.random_coeff_powers;
         const shift: std.math.Log2Int(usize) = @intCast(self.component.claim.log_size);
         for (0..self.eval_size) |row| {
@@ -633,8 +647,8 @@ const PreparedDomainState = struct {
                 self.eval_log_size,
                 27,
             );
-            var main: [main_column_count]M31 = undefined;
-            for (&main, 0..) |*value, column| value.* =
+            var main: [maximum_main_column_count]M31 = undefined;
+            for (main[0..self.component.mainColumnCount()], 0..) |*value, column| value.* =
                 self.evaluations[main_start + column][row];
             var previous_io: [2 * relations_mod.io_arity]M31 = undefined;
             for (&previous_io, 0..) |*value, field| value.* = self.evaluations[
@@ -668,8 +682,8 @@ const PreparedDomainState = struct {
                 .previous_row = previous_row,
                 .claim = &self.component.claim,
             };
-            try row_evaluation.evaluateGeneric(M31, .{
-                .main = &main,
+            try row_evaluation.evaluateGenericForRecipe(M31, .{
+                .main = main[0..self.component.mainColumnCount()],
                 .previous_io = &previous_io,
                 .state_minus_two = &minus_two,
                 .state_minus_one = &minus_one,
@@ -678,8 +692,8 @@ const PreparedDomainState = struct {
                 .state_plus_twenty_seven = &plus_twenty_seven,
                 .selectors = &selectors,
                 .second_active = second_active,
-            }, self.component.relations, &reader, &sink);
-            std.debug.assert(sink.index == constraint_count);
+            }, self.component.relations, &reader, &sink, self.component.local_zero_custody);
+            std.debug.assert(sink.index == self.component.nConstraints());
             self.column_accumulator.accumulate(
                 row,
                 sink.folded.mulM31(self.denominator_inv[row >> shift]),

@@ -3,6 +3,8 @@
 const std = @import("std");
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
+const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
+const resident_budget = @import("resident_budget_v1.zig");
 
 const M31 = @import("stwo_core").fields.m31.M31;
 const MetalError = runtime.MetalError;
@@ -109,14 +111,14 @@ pub fn transformCircleLdeAndCommitPreparedForHash(
     deferred_recipe: ?[7]u32,
     coefficients_ready: bool,
 ) (MetalError || std.mem.Allocator.Error)!LdeCommitResult {
-    const supported_column_count = source_columns.len == 8 or
+    const supported_column_count = source_columns.len == 1 or source_columns.len == 24 or source_columns.len == 54 or source_columns.len == 8 or
         (source_columns.len >= 64 and source_columns.len <= 256);
     if (!supported_column_count or source_columns.len != base_columns.len or
-        base_columns.len != extended_columns.len or base_log_size < 16 or
+        base_columns.len != extended_columns.len or base_log_size < 12 or
         extended_log_size != base_log_size + 1 or extended_log_size >= 31 or
         extended_start > std.math.maxInt(u32) or extended_stride > std.math.maxInt(u32) or
         source_columns.len > std.math.maxInt(u32) or
-        (hash_family != 1 and hash_family != 2))
+        (hash_family != 1 and hash_family != 2 and hash_family != 3))
         return MetalError.CircleTransformFailed;
     const base_len = @as(usize, 1) << @intCast(base_log_size);
     const extended_len = @as(usize, 1) << @intCast(extended_log_size);
@@ -172,6 +174,21 @@ pub fn transformCircleLdeAndCommitPreparedForHash(
         recipe_storage = recipe;
         break :blk &recipe_storage;
     } else null;
+    const page_size = std.heap.pageSize();
+    const inverse_bytes = std.mem.sliceAsBytes(inverse_twiddles).len;
+    const forward_bytes = std.mem.sliceAsBytes(forward_twiddles).len;
+    var source_copy_bytes: usize = 0;
+    for (source_columns, base_columns) |source, base| {
+        if (source.ptr != base.ptr) {
+            const bytes = resident_budget.copiedBytes(@intFromPtr(source.ptr), std.mem.sliceAsBytes(source).len, page_size) catch return MetalError.CircleTransformFailed;
+            source_copy_bytes = std.math.add(usize, source_copy_bytes, bytes) catch return MetalError.CircleTransformFailed;
+        }
+    }
+    const extent = resident_budget.commitment(extended_log_size, source_columns.len, resident_budget.copiedBytes(@intFromPtr(inverse_twiddles.ptr), inverse_bytes, page_size) catch return MetalError.CircleTransformFailed, resident_budget.copiedBytes(@intFromPtr(forward_twiddles.ptr), forward_bytes, page_size) catch return MetalError.CircleTransformFailed, source_copy_bytes) catch return MetalError.CircleTransformFailed;
+    // Canonical strict entry requires this actual shared allocator upstream.
+    // Legacy callers can still use their explicit unbudgeted allocator path.
+    var reservation = if (Budget.fromAllocator(allocator)) |owner| try owner.reserveExternal(extent.peak_bytes) else Budget.ExternalReservation.unbudgeted(extent.peak_bytes);
+    defer reservation.deinit();
     const tree_handle = ffi.stwo_zig_metal_circle_lde_merkle_commit(
         self.handle,
         source_ptrs.ptr,
@@ -202,12 +219,16 @@ pub fn transformCircleLdeAndCommitPreparedForHash(
         std.log.debug("Metal combined LDE/Merkle declined: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.CommitmentFailed;
     };
+    // FFI is synchronous and its autorelease pool has released command scratch.
+    // Shrink cannot grow or fail for this still-active owned token.
+    reservation.resize(extent.retained_bytes) catch unreachable;
     return .{
         .gpu_ms = gpu_ms,
         .tree = .{
             .handle = tree_handle,
             .runtime_handle = self.handle,
             .log_size = extended_log_size,
+            .external_reservation = reservation.take(),
         },
         .work = .{
             .normalization_batch_count = normalization_batch_count,

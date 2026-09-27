@@ -1,0 +1,6 @@
+1/5 block_v5_parent_fixed_key_test_root.test_0...OK
+2/5 block_v5_parent_fixed_key_test_root.test.parent fixed key: installed original and fixed-only CPU key bodies retained without commitment invocation...OK
+3/5 prover.block_v5_parent_fixed_key_test_v1.test.parent fixed key: original exact row logs include zero one nonpower counts and joined G partitions...OK
+4/5 prover.block_v5_parent_fixed_key_test_v1.test.parent fixed key: original key domain ceiling rejects before reading impossible borrowed storage...OK
+5/5 prover.block_v5_parent_fixed_key_test_v1.test.parent fixed key: actual shared derivation rejects invalid context before allocator use...OK
+All 5 tests passed.

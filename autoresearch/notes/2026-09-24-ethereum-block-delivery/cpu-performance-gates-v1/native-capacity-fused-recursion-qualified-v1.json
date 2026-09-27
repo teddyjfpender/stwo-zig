@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "status": "qualified_at_stated_scope",
+  "scope": "19 nonproving checks plus LLVM generation of actual capture/publication/cache/receiver bodies; original quotient/transcript parity, shifted physical Keccak DEEP, 4/5-root layouts, ownership/OOM/extents, shared native/caller fused bus/protocol implementation",
+  "attempt": "native-fused-recursion-focused-v2-result.json",
+  "source_candidate": "native-fused-recursion-focused-v2-source.json",
+  "current_source_pins_match": true,
+  "binary": {
+    "path": "/tmp/block-v5-native-fused-recursion-focused-v2",
+    "bytes": 9267624,
+    "sha256": "5d6d371b7a1c13ccf41c4cc5ad18b30aca35811c17914440ba4663cb180e4b7a"
+  },
+  "pending": [
+    "fresh fused and recursive STARK proof qualification",
+    "paired native arithmetic companion in heterogeneous parent",
+    "complete global/source cryptographic closure",
+    "canonical complete-block measurement"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_measurement": false
+}

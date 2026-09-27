@@ -1,0 +1,511 @@
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded alloy-primitives v1.7.2
+  Downloaded zstd-safe v7.3.0
+  Downloaded zstd-sys v2.1.0+zstd.1.5.7
+  Downloaded alloy-sol-macro v1.7.2
+  Downloaded alloy-sol-macro-input v1.7.2
+  Downloaded alloy-sol-macro-expander v1.7.2
+  Downloaded syn-solidity v1.7.2
+  Downloaded alloy-sol-types v1.7.2
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.24
+   Compiling syn v2.0.119
+   Compiling syn v3.0.5
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling zeroize v1.9.0
+   Compiling generic-array v0.14.9
+   Compiling libc v0.2.189
+   Compiling const-oid v0.9.6
+   Compiling subtle v2.6.1
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.6
+   Compiling digest v0.10.7
+   Compiling rand_core v0.6.4
+   Compiling cfg-if v1.0.4
+   Compiling der v0.7.10
+   Compiling base16ct v0.2.0
+   Compiling paste v1.0.15
+   Compiling serdect v0.2.0
+   Compiling cpufeatures v0.2.17
+   Compiling spki v0.7.3
+   Compiling ff v0.13.1
+   Compiling hybrid-array v0.4.14
+   Compiling foldhash v0.2.0
+   Compiling allocator-api2 v0.2.21
+   Compiling group v0.13.0
+   Compiling hashbrown v0.17.1
+   Compiling pkcs8 v0.10.2
+   Compiling sha2 v0.10.9
+   Compiling sec1 v0.7.3
+   Compiling crypto-bigint v0.5.5
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling elliptic-curve v0.13.8
+   Compiling hmac v0.12.1
+   Compiling digest v0.11.3
+   Compiling rfc6979 v0.4.0
+   Compiling cpufeatures v0.3.1
+   Compiling bytes v1.12.1
+   Compiling signature v2.2.0
+   Compiling alloy-rlp-derive v0.3.16
+   Compiling unicode-segmentation v1.13.3
+   Compiling arrayvec v0.7.8
+   Compiling alloy-rlp v0.3.16
+   Compiling convert_case v0.10.0
+   Compiling ecdsa v0.16.9
+   Compiling unicode-xid v0.2.6
+   Compiling ruint-macro v1.2.1
+   Compiling equivalent v1.0.2
+   Compiling ruint v1.20.0
+   Compiling derive_more-impl v2.1.1
+   Compiling keccak v0.2.2
+   Compiling itoa v1.0.18
+   Compiling sha3 v0.11.0
+   Compiling indexmap v2.14.2
+   Compiling k256 v0.13.4
+   Compiling derive_more v2.1.1
+   Compiling const-hex v1.19.1
+   Compiling alloy-primitives v1.7.2
+   Compiling portable-atomic v1.15.0
+   Compiling thiserror v2.0.20
+   Compiling thiserror-impl v2.0.20
+   Compiling critical-section v1.2.0
+   Compiling once_cell v1.21.4
+   Compiling autocfg v1.5.1
+   Compiling num-traits v0.2.19
+   Compiling ident_case v1.0.1
+   Compiling strsim v0.11.1
+   Compiling either v1.18.0
+   Compiling darling_core v0.23.0
+   Compiling smallvec v1.16.0
+   Compiling auto_impl v1.3.0
+   Compiling base64 v0.22.1
+   Compiling darling_macro v0.23.0
+   Compiling darling v0.23.0
+   Compiling alloy-eip7928 v0.4.8
+   Compiling serde_with_macros v3.22.0
+   Compiling serde_with v3.22.0
+   Compiling radium v0.7.0
+   Compiling tap v1.0.1
+   Compiling zerocopy v0.8.56
+   Compiling wyz v0.5.1
+   Compiling funty v2.0.0
+   Compiling bitvec v1.1.1
+   Compiling alloy-eip7702 v0.6.3
+   Compiling num-integer v0.1.47
+   Compiling revm-primitives v42.0.0
+   Compiling alloy-eip2930 v0.2.4
+   Compiling revm-bytecode v42.0.0
+   Compiling nonmax v0.5.5
+   Compiling bitflags v2.13.1
+   Compiling revm-state v42.0.0
+   Compiling num-bigint v0.4.8
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.3.1
+   Compiling crc-catalog v2.5.0
+   Compiling pin-project-lite v0.2.17
+   Compiling zmij v1.0.23
+   Compiling crc v3.4.0
+   Compiling rand v0.8.8
+   Compiling tracing-attributes v0.1.31
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling serde_json v1.0.151
+   Compiling tracing-core v0.1.36
+   Compiling tracing v0.1.44
+   Compiling enum-ordinalize v4.4.2
+   Compiling ark-std v0.6.0
+   Compiling alloy-eip2124 v0.2.0
+   Compiling ark-serialize-derive v0.6.0
+   Compiling ahash v0.8.12
+   Compiling memchr v2.8.3
+   Compiling ark-serialize v0.6.0
+   Compiling ark-ff-macros v0.6.0
+   Compiling educe v0.6.0
+   Compiling nybbles v0.4.8
+   Compiling ark-ff-asm v0.6.0
+   Compiling alloy-trie v0.9.5
+   Compiling ark-ff v0.6.0
+   Compiling alloy-serde v2.4.1
+   Compiling revm-database-interface v42.0.0
+   Compiling synstructure v0.13.2
+   Compiling alloy-eips v2.4.1
+   Compiling itertools v0.14.0
+   Compiling zerofrom-derive v0.1.7
+   Compiling ark-poly v0.6.0
+   Compiling revm-context-interface v42.0.0
+   Compiling ark-ec v0.6.0
+   Compiling num-rational v0.4.2
+   Compiling num-iter v0.1.46
+   Compiling alloy-tx-macros v2.4.1
+   Compiling num-complex v0.4.6
+   Compiling heck v0.5.0
+   Compiling num v0.4.3
+   Compiling zerofrom v0.1.8
+   Compiling alloy-consensus v2.4.1
+   Compiling yoke-derive v0.8.2
+   Compiling primeorder v0.13.6
+   Compiling stable_deref_trait v1.2.1
+   Compiling hex v0.4.3
+   Compiling aurora-engine-modexp v1.2.0
+   Compiling yoke v0.8.3
+   Compiling p256 v0.13.2
+   Compiling ark-bn254 v0.6.0
+   Compiling ark-bls12-381 v0.6.0
+   Compiling sha2 v0.11.0
+   Compiling ripemd v0.2.0
+   Compiling derive-where v1.6.1
+   Compiling arrayref v0.3.9
+   Compiling revm-precompile v42.0.1
+   Compiling revm-context v42.0.0
+   Compiling revm-interpreter v42.0.0
+   Compiling alloy-genesis v2.4.1
+   Compiling zerovec-derive v0.11.6
+   Compiling zerovec v0.11.8
+   Compiling reth-primitives-traits v0.6.0
+   Compiling revm-handler v42.0.1
+   Compiling displaydoc v0.2.7
+   Compiling revm-inspector v42.0.1
+   Compiling revm-database v42.0.0
+   Compiling rustversion v1.0.23
+   Compiling revm v42.0.1
+   Compiling siphasher v1.0.3
+   Compiling phf_shared v0.14.0
+   Compiling tinystr v0.8.4
+   Compiling syn-solidity v1.7.2
+   Compiling num_enum_derive v0.7.6
+   Compiling macro-string v0.2.0
+   Compiling proc-macro-error-attr3 v3.0.1
+   Compiling litemap v0.8.3
+   Compiling dunce v1.0.5
+   Compiling writeable v0.6.4
+   Compiling icu_locale_core v2.3.0
+   Compiling alloy-sol-macro-input v1.7.2
+   Compiling proc-macro-error3 v3.0.1
+   Compiling num_enum v0.7.6
+   Compiling phf v0.14.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling icu_normalizer_data v2.3.0
+   Compiling utf8_iter v1.0.4
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_collections v2.3.0
+   Compiling alloy-chains v0.2.37
+   Compiling icu_provider v2.3.1
+   Compiling alloy-sol-macro-expander v1.7.2
+   Compiling reth-trie-common v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling dyn-clone v1.0.20
+   Compiling alloy-hardforks v0.4.8
+   Compiling alloy-sol-macro v1.7.2
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling alloy-sol-types v1.7.2
+   Compiling strum_macros v0.27.2
+   Compiling strum v0.27.2
+   Compiling alloy-evm v0.38.0
+   Compiling idna_adapter v1.2.2
+   Compiling percent-encoding v2.3.2
+   Compiling form_urlencoded v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling reth-ethereum-primitives v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling fixed-map-derive v0.9.5
+   Compiling modular-bitfield-impl v0.13.1
+   Compiling static_assertions v1.1.0
+   Compiling fixed-map v0.9.5
+   Compiling modular-bitfield v0.13.1
+   Compiling reth-execution-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-network-peers v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-ethereum-forks v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-stages-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-codecs-derive v0.6.0
+   Compiling reth-static-file-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-chainspec v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-codecs v0.6.0
+   Compiling reth-prune-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-storage-errors v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling alloy-rpc-types-engine v2.4.1
+   Compiling libssz-merkle v0.3.0
+   Compiling reth-db-models v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling futures-task v0.3.34
+   Compiling futures-core v0.3.34
+   Compiling futures-util v0.3.34
+   Compiling reth-storage-api v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-execution-errors v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-consensus v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling libssz v0.3.0
+   Compiling fixed-cache v0.1.10
+   Compiling reth-evm v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-consensus-common v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling zeth-mpt v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling alloy-rpc-types-debug v2.4.1
+   Compiling tries v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling reth-ethereum-consensus v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling libssz-types v0.3.0
+   Compiling libssz-derive v0.3.0
+   Compiling stateless-validator-common v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling stateless v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling reth-evm-ethereum v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-payload-validator v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling ere-platform-core v0.16.2 (https://github.com/eth-act/ere?rev=8961a4e7ac5c9ca2dc6a2fc848452f23a186b1aa#8961a4e7)
+   Compiling stateless-validator-reth v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling stwo-ethereum-host-validation v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/benchmarks/guest_runtime/host_validation)
+    Finished `release` profile [optimized] target(s) in 1m 11s
+host_validation_verified=true output_bytes=43 elapsed_ms=27 rv32_execution_verified=false
+    Updating crates.io index
+   Compiling compiler_builtins v0.1.160 (/Users/theodorepender/.rustup/toolchains/nightly-2026-08-08-aarch64-apple-darwin/lib/rustlib/src/rust/library/compiler-builtins/compiler-builtins)
+   Compiling core v0.0.0 (/Users/theodorepender/.rustup/toolchains/nightly-2026-08-08-aarch64-apple-darwin/lib/rustlib/src/rust/library/core)
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling syn v2.0.119
+   Compiling alloc v0.0.0 (/Users/theodorepender/.rustup/toolchains/nightly-2026-08-08-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc)
+   Compiling syn v3.0.5
+   Compiling serde_core v1.0.229
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling serde v1.0.229
+   Compiling serde_derive v1.0.229
+   Compiling zeroize v1.9.0
+   Compiling generic-array v0.14.9
+   Compiling const-oid v0.9.6
+   Compiling subtle v2.6.1
+   Compiling crypto-common v0.1.6
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling rand_core v0.6.4
+   Compiling cfg-if v1.0.4
+   Compiling der v0.7.10
+   Compiling base16ct v0.2.0
+   Compiling paste v1.0.15
+   Compiling spki v0.7.3
+   Compiling serdect v0.2.0
+   Compiling ff v0.13.1
+   Compiling hybrid-array v0.4.14
+   Compiling allocator-api2 v0.2.21
+   Compiling foldhash v0.2.0
+   Compiling hashbrown v0.17.1
+   Compiling group v0.13.0
+   Compiling sec1 v0.7.3
+   Compiling pkcs8 v0.10.2
+   Compiling sha2 v0.10.9
+   Compiling crypto-bigint v0.5.5
+   Compiling crypto-common v0.2.2
+   Compiling elliptic-curve v0.13.8
+   Compiling block-buffer v0.12.1
+   Compiling hmac v0.12.1
+   Compiling rfc6979 v0.4.0
+   Compiling digest v0.11.3
+   Compiling bytes v1.12.1
+   Compiling signature v2.2.0
+   Compiling arrayvec v0.7.8
+   Compiling alloy-rlp-derive v0.3.16
+   Compiling unicode-segmentation v1.13.3
+   Compiling alloy-rlp v0.3.16
+   Compiling convert_case v0.10.0
+   Compiling ecdsa v0.16.9
+   Compiling equivalent v1.0.2
+   Compiling ruint-macro v1.2.1
+   Compiling unicode-xid v0.2.6
+   Compiling ruint v1.20.0
+   Compiling derive_more-impl v2.1.1
+   Compiling keccak v0.2.2
+   Compiling itoa v1.0.18
+   Compiling sha3 v0.11.0
+   Compiling indexmap v2.14.2
+   Compiling k256 v0.13.4
+   Compiling const-hex v1.19.1
+   Compiling derive_more v2.1.1
+   Compiling thiserror v2.0.20
+   Compiling alloy-primitives v1.6.1
+   Compiling thiserror-impl v2.0.20
+   Compiling autocfg v1.5.1
+   Compiling num-traits v0.2.19
+   Compiling portable-atomic v1.15.0
+   Compiling ident_case v1.0.1
+   Compiling strsim v0.11.1
+   Compiling darling_core v0.23.0
+   Compiling critical-section v1.2.0
+   Compiling once_cell v1.21.4
+   Compiling either v1.18.0
+   Compiling darling_macro v0.23.0
+   Compiling darling v0.23.0
+   Compiling smallvec v1.16.0
+   Compiling base64 v0.22.1
+   Compiling auto_impl v1.3.0
+   Compiling serde_with_macros v3.22.0
+   Compiling alloy-eip7928 v0.4.8
+   Compiling serde_with v3.22.0
+   Compiling radium v0.7.0
+   Compiling tap v1.0.1
+   Compiling wyz v0.5.1
+   Compiling funty v2.0.0
+   Compiling zerocopy v0.8.56
+   Compiling bitvec v1.1.1
+   Compiling alloy-eip7702 v0.6.3
+   Compiling num-integer v0.1.47
+   Compiling revm-primitives v42.0.0
+   Compiling alloy-eip2930 v0.2.4
+   Compiling revm-bytecode v42.0.0
+   Compiling nonmax v0.5.5
+   Compiling bitflags v2.13.1
+   Compiling revm-state v42.0.0
+   Compiling num-bigint v0.4.8
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.3.1
+   Compiling pin-project-lite v0.2.17
+   Compiling crc-catalog v2.5.0
+   Compiling zmij v1.0.23
+   Compiling crc v3.4.0
+   Compiling rand v0.8.8
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling tracing-core v0.1.36
+   Compiling tracing-attributes v0.1.31
+   Compiling serde_json v1.0.151
+   Compiling tracing v0.1.44
+   Compiling enum-ordinalize v4.4.2
+   Compiling ark-std v0.6.0
+   Compiling alloy-eip2124 v0.2.0
+   Compiling memchr v2.8.3
+   Compiling ark-serialize-derive v0.6.0
+   Compiling libc v0.2.189
+   Compiling ark-serialize v0.6.0
+   Compiling ark-ff-macros v0.6.0
+   Compiling educe v0.6.0
+   Compiling nybbles v0.4.8
+   Compiling ark-ff-asm v0.6.0
+   Compiling alloy-trie v0.9.5
+   Compiling ark-ff v0.6.0
+   Compiling alloy-serde v2.4.1
+   Compiling revm-database-interface v42.0.0
+   Compiling fnv v1.0.7
+   Compiling synstructure v0.13.2
+   Compiling alloy-eips v2.4.1
+   Compiling itertools v0.14.0
+   Compiling ark-poly v0.6.0
+   Compiling ark-ec v0.6.0
+   Compiling zerofrom-derive v0.1.7
+   Compiling revm-context-interface v42.0.0
+   Compiling num-rational v0.4.2
+   Compiling num-iter v0.1.46
+   Compiling num-complex v0.4.6
+   Compiling alloy-tx-macros v2.4.1
+   Compiling heck v0.5.0
+   Compiling num v0.4.3
+   Compiling zerofrom v0.1.8
+   Compiling alloy-consensus v2.4.1
+   Compiling yoke-derive v0.8.2
+   Compiling primeorder v0.13.6
+   Compiling hex v0.4.3
+   Compiling stable_deref_trait v1.2.1
+   Compiling yoke v0.8.3
+   Compiling aurora-engine-modexp v1.2.0
+   Compiling p256 v0.13.2
+   Compiling ark-bls12-381 v0.6.0
+   Compiling ark-bn254 v0.6.0
+   Compiling sha2 v0.11.0
+   Compiling ripemd v0.2.0
+   Compiling arrayref v0.3.9
+   Compiling derive-where v1.6.1
+   Compiling revm-precompile v42.0.1
+   Compiling revm-context v42.0.0
+   Compiling revm-interpreter v42.0.0
+   Compiling alloy-genesis v2.4.1
+   Compiling zerovec-derive v0.11.6
+   Compiling zerovec v0.11.8
+   Compiling reth-primitives-traits v0.6.0
+   Compiling revm-handler v42.0.1
+   Compiling displaydoc v0.2.7
+   Compiling revm-inspector v42.0.1
+   Compiling revm-database v42.0.0
+   Compiling rustversion v1.0.23
+   Compiling revm v42.0.1
+   Compiling cpufeatures v0.3.1
+   Compiling siphasher v1.0.3
+   Compiling phf_shared v0.14.0
+   Compiling tinystr v0.8.4
+   Compiling syn-solidity v1.7.2
+   Compiling writeable v0.6.4
+   Compiling litemap v0.8.3
+   Compiling num_enum_derive v0.7.6
+   Compiling macro-string v0.2.0
+   Compiling proc-macro-error-attr3 v3.0.1
+   Compiling dunce v1.0.5
+   Compiling alloy-sol-macro-input v1.7.2
+   Compiling proc-macro-error3 v3.0.1
+   Compiling num_enum v0.7.6
+   Compiling icu_locale_core v2.3.0
+   Compiling phf v0.14.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling utf8_iter v1.0.4
+   Compiling icu_properties_data v2.3.0
+   Compiling icu_normalizer_data v2.3.0
+   Compiling icu_collections v2.3.0
+   Compiling alloy-sol-macro-expander v1.7.2
+   Compiling icu_provider v2.3.1
+   Compiling alloy-chains v0.2.37
+   Compiling reth-trie-common v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling dyn-clone v1.0.20
+   Compiling alloy-hardforks v0.4.8
+   Compiling alloy-sol-macro v1.7.2
+   Compiling icu_properties v2.3.0
+   Compiling icu_normalizer v2.3.0
+   Compiling alloy-sol-types v1.6.1
+   Compiling strum_macros v0.27.2
+   Compiling strum v0.27.2
+   Compiling alloy-evm v0.38.0
+   Compiling idna_adapter v1.2.2
+   Compiling percent-encoding v2.3.2
+   Compiling form_urlencoded v1.2.2
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling reth-ethereum-primitives v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling static_assertions v1.1.0
+   Compiling modular-bitfield-impl v0.13.1
+   Compiling fixed-map-derive v0.9.5
+   Compiling modular-bitfield v0.13.1
+   Compiling fixed-map v0.9.5
+   Compiling reth-execution-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-network-peers v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-ethereum-forks v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-stages-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-codecs-derive v0.6.0
+   Compiling reth-static-file-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-chainspec v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-codecs v0.6.0
+   Compiling reth-prune-types v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling cpufeatures v0.2.17
+   Compiling reth-storage-errors v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling alloy-rpc-types-engine v2.4.1
+   Compiling libssz-merkle v0.3.0
+   Compiling reth-db-models v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling futures-task v0.3.34
+   Compiling futures-core v0.3.34
+   Compiling reth-storage-api v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling futures-util v0.3.34
+   Compiling reth-execution-errors v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-consensus v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling libssz v0.3.0
+   Compiling fixed-cache v0.1.10
+   Compiling reth-evm v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-consensus-common v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling zeth-mpt v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling alloy-rpc-types-debug v2.4.1
+   Compiling reth-ethereum-consensus v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling tries v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling libssz-types v0.3.0
+   Compiling libssz-derive v0.3.0
+   Compiling stateless v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling stateless-validator-common v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+   Compiling reth-evm-ethereum v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling reth-payload-validator v2.5.0 (https://github.com/paradigmxyz/reth?rev=3d270d933daeeb90c5735d81ff7f80c00322d6de#3d270d93)
+   Compiling ere-platform-core v0.16.2 (https://github.com/eth-act/ere?rev=8961a4e7ac5c9ca2dc6a2fc848452f23a186b1aa#8961a4e7)
+   Compiling stwo-ethereum-guest v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum)
+   Compiling stateless-validator-reth v0.1.0 (https://github.com/paradigmxyz/stateless.git?rev=a134a621bad7229ff7f980e42dfca8e22d101491#a134a621)
+    Finished `release` profile [optimized] target(s) in 1m 05s

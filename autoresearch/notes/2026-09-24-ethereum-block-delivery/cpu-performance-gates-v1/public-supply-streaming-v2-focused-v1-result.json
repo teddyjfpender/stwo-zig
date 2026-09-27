@@ -1,0 +1,22 @@
+{
+  "source_candidate": "public-supply-streaming-v2-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.184578042011708,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 7,
+  "test_summary": [
+    "All 7 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/public-supply-streaming-v2-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-public-supply-streaming-v2-focused-v1",
+    "bytes": 1580640,
+    "sha256": "9df5ed589a28d42485b23d95243b3c9120d45414382f99427def61ba88a209fa"
+  }
+}

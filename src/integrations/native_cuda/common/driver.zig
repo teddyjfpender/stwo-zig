@@ -118,6 +118,7 @@ pub fn DriverFor(comptime Transaction: type, comptime Executor: type) type {
 
             for (prepared.schedule()) |scheduled| {
                 try transaction.beginStage(scheduled.stage);
+                try Executor.admitNode(transaction, prepared, geometry, scheduled);
                 const use_graph = mode == .graphs and
                     prepared.graphsEnabled() and
                     scheduled.graph_candidate;
@@ -190,6 +191,7 @@ fn assertExecutor(comptime Executor: type) void {
         "planTarget",
         "validatePrepared",
         "ingress",
+        "admitNode",
         "executeNode",
     }) |name| {
         if (!@hasDecl(Executor, name))
@@ -228,23 +230,32 @@ test "generic driver admits before execution and aborts failed transactions" {
 
     const Transaction = struct {
         const GraphSession = struct {
+            var cached = false;
+            var lookups: usize = 0;
+            var launches: usize = 0;
+            var captures: usize = 0;
             pub fn hasStageGraph(
                 _: *@This(),
                 _: [32]u8,
                 _: telemetry.Stage,
             ) !bool {
-                return false;
+                lookups += 1;
+                return cached;
             }
             pub fn launchStageGraph(
                 _: *@This(),
                 _: [32]u8,
                 _: telemetry.Stage,
-            ) !void {}
+            ) !void {
+                launches += 1;
+            }
             pub fn beginStageGraphCapture(
                 _: *@This(),
                 _: [32]u8,
                 _: telemetry.Stage,
-            ) !void {}
+            ) !void {
+                captures += 1;
+            }
             pub fn finishStageGraphCaptureAndLaunch(
                 _: *@This(),
                 _: [32]u8,
@@ -301,6 +312,8 @@ test "generic driver admits before execution and aborts failed transactions" {
         pub const BundleDescriptor = struct {};
         var execute_fail = false;
         var execute_calls: usize = 0;
+        var admissions: usize = 0;
+        var graphs_enabled = false;
 
         pub const PreparedPlan = struct {
             arena_plan: arena.Plan,
@@ -340,7 +353,7 @@ test "generic driver admits before execution and aborts failed transactions" {
                 return [_]u8{7} ** 32;
             }
             pub fn graphsEnabled(_: *const @This()) bool {
-                return false;
+                return graphs_enabled;
             }
             pub fn frontendReceipt(
                 _: *const @This(),
@@ -393,6 +406,10 @@ test "generic driver admits before execution and aborts failed transactions" {
             _: *PreparedPlan,
             _: Geometry,
         ) !void {}
+        pub fn admitNode(_: *Transaction, _: *PreparedPlan, _: Geometry, scheduled: execution_plan.ScheduledNode) !void {
+            admissions += 1;
+            if (scheduled.node_id != 0 or scheduled.kind != .pow or scheduled.stage != .pow or scheduled.stream_index != 0 or scheduled.dependency_count != 0 or scheduled.graph_candidate != graphs_enabled or scheduled.graph_region != 0) return error.InvalidKernelDescriptor;
+        }
         pub fn executeNode(
             _: *Transaction,
             _: *PreparedPlan,
@@ -457,4 +474,54 @@ test "generic driver admits before execution and aborts failed transactions" {
     );
     try std.testing.expectEqual(@as(usize, 1), Transaction.aborts);
     try std.testing.expectEqual(@as(usize, 1), Transaction.final_reads);
+    // This host-only driver fixture proves admission ordering, not CUDA work.
+    Executor.execute_fail = false;
+    Executor.graphs_enabled = true;
+    var prepared = try driver.prepare(&runtime, .{});
+    defer prepared.deinit(std.testing.allocator);
+    prepared.scheduled[0].graph_candidate = true;
+    const Graph = Transaction.GraphSession;
+    Graph.cached = false;
+    Graph.lookups = 0;
+    Graph.captures = 0;
+    Graph.launches = 0;
+    Executor.admissions = 0;
+    _ = try driver.runPreparedRetained(&runtime, .{}, &prepared);
+    try std.testing.expectEqual(@as(usize, 1), Graph.captures);
+    Graph.cached = true;
+    _ = try driver.runPreparedRetained(&runtime, .{}, &prepared);
+    try std.testing.expectEqual(@as(usize, 1), Graph.launches);
+    _ = try driver.runPreparedRetainedDirect(&runtime, .{}, &prepared);
+    try std.testing.expectEqual(@as(usize, 3), Executor.admissions);
+
+    const valid = prepared.scheduled[0];
+    const calls_before = Executor.execute_calls;
+    const reads_before = Transaction.final_reads;
+    const lookups_before = Graph.lookups;
+    const aborts_before = Transaction.aborts;
+    for (0..3) |path| {
+        Graph.cached = path == 2;
+        for (0..4) |field| {
+            prepared.scheduled[0] = valid;
+            switch (field) {
+                0 => prepared.scheduled[0].stream_index = 1,
+                1 => prepared.scheduled[0].dependency_count = 1,
+                2 => prepared.scheduled[0].graph_candidate = false,
+                3 => prepared.scheduled[0].graph_region = 1,
+                else => unreachable,
+            }
+            if (path == 0) {
+                try std.testing.expectError(error.InvalidKernelDescriptor, driver.runPreparedRetainedDirect(&runtime, .{}, &prepared));
+            } else {
+                try std.testing.expectError(error.InvalidKernelDescriptor, driver.runPreparedRetained(&runtime, .{}, &prepared));
+            }
+            try std.testing.expectEqual(calls_before, Executor.execute_calls);
+            try std.testing.expectEqual(reads_before, Transaction.final_reads);
+            try std.testing.expectEqual(lookups_before, Graph.lookups);
+            try std.testing.expectEqual(@as(usize, 1), Graph.captures);
+            try std.testing.expectEqual(@as(usize, 1), Graph.launches);
+        }
+    }
+    try std.testing.expectEqual(aborts_before + 12, Transaction.aborts);
+    Executor.graphs_enabled = false;
 }

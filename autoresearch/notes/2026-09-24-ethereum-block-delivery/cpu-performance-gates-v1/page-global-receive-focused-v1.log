@@ -1,0 +1,17 @@
+1/16 block_v5_page_global_receive_test_root.test_0...OK
+2/16 prover.block_v5_page_global_receive_test_v1.test.PAGE global receive: actual public input length and digest remain independently bound...OK
+3/16 prover.block_v5_page_global_receive_test_v1.test.PAGE global receive: legacy memory rejected before source owner allocator or proofs...OK
+4/16 prover.block_v5_page_global_receive_test_v1.test.PAGE global receive: real source selected original global accounting and detached forest bodies retained...OK
+5/16 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: independently pinned memory roots layout limits and exact roster reject changes...OK
+6/16 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: source proposals cannot change independently expected census plans or roots...OK
+7/16 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: genuine caller shape census includes ALL RW and ordinary overflow rejects...OK
+8/16 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: original hook accumulator rejects missing duplicate census and wrong transition sign...OK
+9/16 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: resource limits reject before undefined original proof authorities...OK
+10/16 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: retained output allocation lease tears down on every allocation failure...OK
+11/16 air.semantic_eval.test_0...OK
+12/16 prover.block_execution_external_trace_v2.test_0...OK
+13/16 prover.block_execution_external_access_bridge_v2.test_0...OK
+14/16 air.lookups.tables.mod.test_0...OK
+15/16 air.memory_commitment.poseidon2_air.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+All 16 tests passed.

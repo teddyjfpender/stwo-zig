@@ -1,0 +1,43 @@
+{
+  "scope": "isolated sampled windows; warm-up execution is not proved; not a block root",
+  "queries": 70,
+  "pow_bits": 26,
+  "results": [
+    {
+      "position": 0,
+      "global_first_cycle": 1,
+      "cycles": 32768,
+      "process_peak_bytes": 9764119168,
+      "tracked_peak_bytes": 9870675414,
+      "wall_seconds": 43.79089166695485,
+      "proof_sha256": "7a24a6c2d46f840e6147c45ca233d3ad31d9b3324048b3f9d4843de816d3d8c7"
+    },
+    {
+      "position": 1,
+      "global_first_cycle": 262145,
+      "cycles": 32768,
+      "process_peak_bytes": 9761366776,
+      "tracked_peak_bytes": 9857629391,
+      "wall_seconds": 44.40329449996352,
+      "proof_sha256": "48d7b01b8d265e17edf27fba882adc1e22f50518bd5cd29442b45924a97ecddc"
+    },
+    {
+      "position": 15,
+      "global_first_cycle": 3932161,
+      "cycles": 32768,
+      "process_peak_bytes": 9803113784,
+      "tracked_peak_bytes": 9900365788,
+      "wall_seconds": 46.05399845802458,
+      "proof_sha256": "1c1d4b5cd2fbb4ac4960c77811181006d28e9fbd565d57d510dfe422d0899aeb"
+    },
+    {
+      "position": 63,
+      "global_first_cycle": 16515073,
+      "cycles": 32768,
+      "process_peak_bytes": 1339526720,
+      "tracked_peak_bytes": 1415731749,
+      "wall_seconds": 38.75532820797525,
+      "proof_sha256": "2918acfca3f7c2558b5e1df6eee38b64dc240234c6c4b2728a411669dd4e9cc4"
+    }
+  ]
+}

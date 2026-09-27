@@ -72,7 +72,7 @@ const QuotientFriConfig = struct {
     final_destination: *anyopaque,
     domain_initial_index: u32,
     domain_step_size: u32,
-    channel_state: *[10]u32,
+    channel_state: [*]u32,
 };
 
 const QuotientComputeResult = struct {
@@ -183,8 +183,7 @@ pub fn computeQuotientsAndCommitForHash(
     domain_prefix_bytes: u32,
     hash_family: u32,
 ) (MetalError || std.mem.Allocator.Error)!QuotientCommitResult {
-    if (!validDomainPrefixBytes(domain_prefix_bytes) or
-        (hash_family != 1 and hash_family != 2)) return MetalError.QuotientFailed;
+    if (!protocol_mode.validDirectCommitmentParameters(hash_family, domain_prefix_bytes, leaf_seed, node_seed)) return MetalError.QuotientFailed;
     const storage = out.resident_storage orelse return MetalError.QuotientFailed;
     const result = try computeQuotientsConfigured(
         self,
@@ -247,8 +246,7 @@ pub fn computeQuotientsAndCommitWithReceiptForHash(
     domain_prefix_bytes: u32,
     hash_family: u32,
 ) (MetalError || std.mem.Allocator.Error)!QuotientCommitExecutionResult {
-    if (!validDomainPrefixBytes(domain_prefix_bytes) or
-        (hash_family != 1 and hash_family != 2)) return MetalError.QuotientFailed;
+    if (!protocol_mode.validDirectCommitmentParameters(hash_family, domain_prefix_bytes, leaf_seed, node_seed)) return MetalError.QuotientFailed;
     const storage = out.resident_storage orelse return MetalError.QuotientFailed;
     const result = try computeQuotientsConfigured(
         self,
@@ -273,6 +271,7 @@ pub fn computeQuotientsAndCommitWithReceiptForHash(
 
 pub fn computeQuotientsAndCommitFri(
     self: *Runtime,
+    comptime blake3: bool,
     allocator: std.mem.Allocator,
     provider: anytype,
     out: anytype,
@@ -281,7 +280,7 @@ pub fn computeQuotientsAndCommitFri(
     final_destination: *anyopaque,
     fri_domain_initial_index: u32,
     fri_domain_step_size: u32,
-    channel_state: *[10]u32,
+    channel_state: *[if (blake3) 11 else 10]u32,
     leaf_seed: [8]u32,
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
@@ -299,6 +298,7 @@ pub fn computeQuotientsAndCommitFri(
             .leaf_seed = leaf_seed,
             .node_seed = node_seed,
             .domain_prefix_bytes = domain_prefix_bytes,
+            .hash_family = if (blake3) 3 else 1,
             .fri = .{
                 .line_output = line_output,
                 .coordinates = coordinates,
@@ -319,6 +319,7 @@ pub fn computeQuotientsAndCommitFri(
 
 pub fn computeQuotientsAndCommitFriWithReceipt(
     self: *Runtime,
+    comptime blake3: bool,
     allocator: std.mem.Allocator,
     provider: anytype,
     out: anytype,
@@ -327,7 +328,7 @@ pub fn computeQuotientsAndCommitFriWithReceipt(
     final_destination: *anyopaque,
     fri_domain_initial_index: u32,
     fri_domain_step_size: u32,
-    channel_state: *[10]u32,
+    channel_state: *[if (blake3) 11 else 10]u32,
     leaf_seed: [8]u32,
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
@@ -345,6 +346,7 @@ pub fn computeQuotientsAndCommitFriWithReceipt(
             .leaf_seed = leaf_seed,
             .node_seed = node_seed,
             .domain_prefix_bytes = domain_prefix_bytes,
+            .hash_family = if (blake3) 3 else 1,
             .fri = .{
                 .line_output = line_output,
                 .coordinates = coordinates,
@@ -372,6 +374,10 @@ fn computeQuotientsConfigured(
     commitment: ?QuotientCommitConfig,
     comptime capture_work: bool,
 ) (MetalError || std.mem.Allocator.Error)!QuotientComputeResult {
+    const quotient_budget = @import("quotient_allocation_budget_v1.zig");
+    var allocation_scope = quotient_budget.Scope.init(allocator) catch |err| return @import("fri_error_v1.zig").translate(err);
+    defer allocation_scope.deinit();
+    var retained_external_bytes: usize = 0;
     var total_timer = try std.time.Timer.start();
     const raw_views = provider.raw_columns.len != 0;
     const view_count = if (raw_views)
@@ -515,6 +521,37 @@ fn computeQuotientsConfigured(
         null;
     defer if (fri_tree_handles) |handles| allocator.free(handles);
     if (fri_tree_handles) |handles| @memset(handles, null);
+    const arena_owner = @import("fri_reservation_owner_v1.zig");
+    const inverse_cache = @import("fri_inverse_cache_v1.zig");
+    var fri_arena: ?arena_owner.Ref = null;
+    defer if (fri_arena) |*arena| arena.deinit();
+    var fri_inverses: ?inverse_cache.Transaction = null;
+    defer if (fri_inverses) |*inverses| inverses.abort();
+    var fri_retained_bytes: usize = 0;
+    var expected_inverse_mask: u32 = 0;
+    if (fri_config) |config| {
+        const allocation_policy = @import("fri_allocation_policy_v1.zig");
+        const binding = allocation_policy.Binding.init(allocator, allocation_policy.ordinaryMetal(allocator)) catch |err| return @import("fri_error_v1.zig").translate(err);
+        const extent = @import("fri_budget_v1.zig").cascade(row_count / 2, config.coordinates.len) catch |err| return @import("fri_error_v1.zig").translate(err);
+        var reservation = binding.reserve(extent.peak_bytes) catch |err| return @import("fri_error_v1.zig").translate(err);
+        defer reservation.deinit();
+        var acquired_arena = arena_owner.Owner.createWithPolicy(allocator, &reservation, binding.policy) catch |err| return @import("fri_error_v1.zig").translate(err);
+        fri_arena = acquired_arena.take();
+        fri_retained_bytes = extent.retained_bytes;
+        const line_key = inverse_cache.Key{ .runtime = @intFromPtr(self.handle), .count = @intCast(row_count / 2), .layers = @intCast(config.coordinates.len), .initial = config.domain_initial_index, .step = config.domain_step_size, .kind = .line };
+        var circle_key = line_key;
+        circle_key.kind = .circle;
+        circle_key.layers = 1;
+        var acquired_inverses = inverse_cache.beginWithPolicy(allocator, self, .{ circle_key, line_key }, binding.policy) catch |err| return @import("fri_error_v1.zig").translate(err);
+        fri_inverses = acquired_inverses.take();
+        expected_inverse_mask = @as(u32, @intFromBool(fri_inverses.?.needsGeneration(.circle))) | (@as(u32, @intFromBool(fri_inverses.?.needsGeneration(.line))) << 1);
+    }
+    // Handles can be published before a later receipt check fails. Dispose
+    // every raw or typed owner exactly once on all early returns.
+    var adopted_fri_handles: usize = 0;
+    defer if (fri_tree_handles) |handles| for (handles[adopted_fri_handles..]) |handle| if (handle) |value| @import("resident_data.zig").stwo_zig_metal_tree_destroy(value);
+    var keep_initial_tree = false;
+    defer if (!keep_initial_tree) if (tree_handle) |handle| @import("resident_data.zig").stwo_zig_metal_tree_destroy(handle);
     var fri_stats: CommandEpochStats = undefined;
     var fri_inverse_generation_mask: u32 = 0;
     var quotient_work_receipt: ffi.QuotientWorkReceipt = undefined;
@@ -567,15 +604,24 @@ fn computeQuotientsConfigured(
         if (fri_tree_handles) |handles| handles.ptr else null,
         if (fri_config != null) &fri_inverse_generation_mask else null,
         if (fri_config != null) &fri_stats else null,
+        if (fri_inverses) |*inverses| inverses.handle(.circle) else null,
+        if (fri_inverses) |*inverses| inverses.handle(.line) else null,
+        if (fri_inverses) |*inverses| inverses.needsGeneration(.circle) else false,
+        if (fri_inverses) |*inverses| inverses.needsGeneration(.line) else false,
         if (capture_work) &quotient_work_receipt else null,
         if (internal_parity) |*context| @ptrCast(context) else null,
         if (internal_parity != null) quotient_internal_parity.ContextV1.observer else null,
+        @ptrCast(&allocation_scope),
+        quotient_budget.Scope.callback,
+        allocation_scope.retainsDomainCache(),
+        &retained_external_bytes,
         &tree_handle,
         &gpu_ms,
         &message,
         message.len,
     );
     if (!quotient_ok) {
+        if (allocation_scope.failure) |err| return if (err == error.OutOfMemory) error.OutOfMemory else MetalError.QuotientFailed;
         if (internal_parity) |*context| context.printFailure();
         std.log.err("Metal quotient failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.QuotientFailed;
@@ -652,8 +698,11 @@ fn computeQuotientsConfigured(
         execution.validate() catch return MetalError.QuotientFailed;
         break :blk execution;
     } else null;
+    allocation_scope.finish(row_count, tree_handle != null, retained_external_bytes) catch return MetalError.QuotientFailed;
     var fri_result: ?FriLineCascadeResult = null;
     if (fri_config) |config| {
+        if (fri_inverse_generation_mask != expected_inverse_mask) return MetalError.QuotientFailed;
+        fri_arena.?.owner.?.reservation.resize(fri_retained_bytes) catch |err| return @import("fri_error_v1.zig").translate(err);
         const trees = try allocator.alloc(Tree, config.coordinates.len);
         var initialized_trees: usize = 0;
         errdefer {
@@ -661,6 +710,8 @@ fn computeQuotientsConfigured(
             allocator.free(trees);
         }
         for (trees, fri_tree_handles.?, 0..) |*tree, handle, stage| {
+            var arena_ref = fri_arena.?.retain() catch |err| return @import("fri_error_v1.zig").translate(err);
+            errdefer arena_ref.deinit();
             tree.* = .{
                 .handle = handle orelse return MetalError.CommitmentFailed,
                 .runtime_handle = self.handle,
@@ -668,9 +719,12 @@ fn computeQuotientsConfigured(
                     u32,
                     @as(u32, @intCast(row_count >> @intCast(stage + 1))),
                 ),
+                .shared_external_reservation = arena_ref.take(),
             };
             initialized_trees += 1;
+            adopted_fri_handles += 1;
         }
+        if (fri_inverses) |*inverses| inverses.complete() catch |err| return @import("fri_error_v1.zig").translate(err);
         fri_result = .{
             .stats = fri_stats,
             .trees = trees,
@@ -686,12 +740,14 @@ fn computeQuotientsConfigured(
             @as(f64, @floatFromInt(dispatch_and_copy_ns)) / std.time.ns_per_ms,
         },
     );
+    keep_initial_tree = true;
     return .{
         .gpu_ms = gpu_ms,
         .tree = if (tree_handle) |handle| .{
             .handle = handle,
             .runtime_handle = self.handle,
             .log_size = provider.lifting_log_size,
+            .external_reservation = allocation_scope.take() catch unreachable,
         } else null,
         .fri = fri_result,
         .execution = quotient_execution,
@@ -716,6 +772,7 @@ pub const transformCircleResidentBatch = circle_transform_ops.transformCircleRes
 pub const transformCircleResident = circle_transform_ops.transformCircleResident;
 pub const transformCircleLdeInto = circle_transform_ops.transformCircleLdeInto;
 pub const beginCircleLdeBatch = circle_transform_ops.beginCircleLdeBatch;
+pub const beginCircleLdeBatchWithAllocator = circle_transform_ops.beginCircleLdeBatchWithAllocator;
 pub const destroyCircleLdeBatch = circle_transform_ops.destroyCircleLdeBatch;
 pub const finishCircleLdeBatch = circle_transform_ops.finishCircleLdeBatch;
 pub const transformCircleLdeIntoBatch = circle_transform_ops.transformCircleLdeIntoBatch;

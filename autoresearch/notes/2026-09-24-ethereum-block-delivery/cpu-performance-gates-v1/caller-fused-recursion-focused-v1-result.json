@@ -1,0 +1,20 @@
+{
+  "exit_code": 1,
+  "elapsed_seconds": 104.36613399995258,
+  "source_candidate": "caller-fused-recursion-focused-v1-source.json",
+  "changed_source_pins": [],
+  "qualified": false,
+  "tests_run": true,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-fused-recursion-focused-v1.log",
+  "test_summary": [
+    "11 passed; 0 skipped; 1 failed."
+  ],
+  "binary": {
+    "path": "/tmp/block-v5-caller-fused-recursion-focused-v1",
+    "bytes": 10723688,
+    "sha256": "1fd095a3e2588f9159270ddcb053c719b81cbcdb39e9c591b11a59b7b4f696f7"
+  }
+}

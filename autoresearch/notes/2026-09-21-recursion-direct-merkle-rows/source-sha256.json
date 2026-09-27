@@ -1,0 +1,13 @@
+{
+  "src/frontends/riscv/recursion/air/witness_row_sink.zig": "823277ec912d897a47dd8d158617961c1d0a0463e9a62b87d0e5c561342139f7",
+  "src/frontends/riscv/recursion/air/trace_merkle_witness_preprocessed.zig": "f0a23acec17b3cb54048b1bd37cf4fa98f80111f285ebe2f1e605691e32df946",
+  "src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_preprocessed.zig": "b1106fe2e622836f3b9c1eea0cae0dc621dd3599e32ba8d953e3795a5326e8ac",
+  "src/frontends/riscv/recursion/air/fri_merkle_node_witness.zig": "2b1cb6a841dc8d143913e9209649f2478c8ae560308a169c3f20b8635d472f22",
+  "src/frontends/riscv/recursion/air/fri_merkle_anchor_witness.zig": "294a93bd5ff46e136ee89d5664d73b254e9e8cf4273b39a6b5d1c8efd980044f",
+  "src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig": "4668a71bbce874dbc9a8675025e05f4410bf76346d9f8cfb8f82e7ccddea1e47",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_capture_test.zig": "9c6ab197f035f58ec239f00e3518362dda069c8cf19455e0efffa595d62b5150",
+  "autoresearch/benchmarks/recursion/parent_pair.py": "76945e8b4177008f5686a71e1930a51b70deea315dc39376b2c29aeb4bdbf7ab",
+  "autoresearch/benchmarks/recursion/tree_replay.py": "138b61e45a3c853c5867123c80437bc261acb28f1cf573e22543b6591f0fe0b0",
+  "scripts/recursive_proof_scheduler.py": "cf38d9da2b6f9eba4dfa9880625dceb7ed0434a9afa1d9aec36b9d273b4b7197",
+  "scripts/recursive_proof_worker_pool.py": "1bd52523940e4f22fbbfd3f2db757c0deac24f4643fa4c7242cac8ae2e3f6c5a"
+}

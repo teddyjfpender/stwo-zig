@@ -1,0 +1,1070 @@
+Analysis of sampling test (pid 57199) every 1 millisecond
+Process:         test [57199]
+Path:            /Users/USER/*/test
+Load Address:    0x102080000
+Identifier:      test
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  build [56717]
+Target Type:     live task
+
+Date/Time:       2026-09-23 10:59:43.013 +0400
+Launch Time:     2026-09-23 10:48:53.166 +0400
+OS Version:      macOS 26.7 (25G229)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         11.0G
+Physical footprint (peak):  30.3G
+Idle exit:                  untracked
+----
+
+Call graph:
+    548 Thread_2482503   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 548 start  (in dyld) + 6992  [0x1865684e4]
+    +   548 main  (in test) + 288  [0x102080888]  start.zig:602
+    +     548 test_runner.main  (in test) + 9288  [0x102082dcc]  test_runner.zig:64
+    +       548 test_runner.mainServer  (in test) + 1276  [0x1020842d8]  test_runner.zig:130
+    +         548 prover.blake3_ethereum_segment_test.check__anon_21203  (in test) + 11972  [0x102323508]  blake3_ethereum_segment_test.zig:84
+    +           548 prover.blake3_segment_parent.ForProfile(mod.CpuBackend,true).preparePairWithPool  (in test) + 496  [0x10229674c]  blake3_segment_parent.zig:57
+    +             519 prover.blake3_segment_parent.ForProfile(mod.CpuBackend,true).proveAdmitted  (in test) + 92  [0x1022926b0]  blake3_segment_parent.zig:89
+    +             ! 477 prover.blake3_ethereum_proof.ForBackend(mod.CpuBackend).prove  (in test) + 34944  [0x10228e868]  blake3_ethereum_proof.zig:109
+    +             ! : 475 prove.proveExComponentsWithRecorder__anon_58729  (in test) + 18364  [0x102284854]  prove.zig:633
+    +             ! : | 148 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 31656  [0x10227fad0]  scheme.zig:312
+    +             ! : | + 147 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).deinit  (in test) + 172  [0x1021fa640]  scheme.zig:140
+    +             ! : | + ! 69 pcs.commitment_tree.CommitmentTreeProverForBackend(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 576  [0x1021dc4bc]  commitment_tree.zig:313
+    +             ! : | + ! : 69 _platform_memset  (in libsystem_platform.dylib) + 72,80  [0x18693d0d8,0x18693d0e0]
+    +             ! : | + ! 50 pcs.commitment_tree.CommitmentTreeProverForBackend(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 604  [0x1021dc4d8]  commitment_tree.zig:313
+    +             ! : | + ! : 31 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + ! : | 6 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | + ! : | + 4 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : | + ! 4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | + 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | +   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | +     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | +       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 5 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | + ! : | + 3 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | + ! 3 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | + !   3 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | + !     3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | + 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : | +   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | + ! : | + 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | + ! 2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | + !   2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | + !     2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : | +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+    +             ! : | + ! : | + 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | + ! 2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | + !   2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | + !     2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : | +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! : | + ! : | + 3 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | +   3 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | +     3 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | +       3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             ! : | + ! : | + 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | + ! 2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | + !   2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | + !     2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : | +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             ! : | + ! : | + 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : | + ! 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : | + ! 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             ! : | + ! : | + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : | +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : | +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : | +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : | 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             ! : | + ! : |   1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : |     1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : |       1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : |         1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : 19 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2016  [0x10208537c]  debug_allocator.zig:867
+    +             ! : | + ! :   19 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).freeLarge  (in test) + 180  [0x10208f0a0]  debug_allocator.zig:690
+    +             ! : | + ! :     19 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | + ! :       19 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | + ! 26 pcs.commitment_tree.CommitmentTreeProverForBackend(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 244  [0x1021dc370]  commitment_tree.zig:308
+    +             ! : | + ! : 16 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 140  [0x1021d9d20]  prover.zig:73
+    +             ! : | + ! : | 16 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | + ! : 10 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 168  [0x1021d9d3c]  prover.zig:73
+    +             ! : | + ! :   10 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | + ! :     10 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | + ! 1 pcs.commitment_tree.CommitmentTreeProverForBackend(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 800  [0x1021dc59c]  commitment_tree.zig:0
+    +             ! : | + ! : 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2016  [0x10208537c]  debug_allocator.zig:867
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).freeLarge  (in test) + 180  [0x10208f0a0]  debug_allocator.zig:690
+    +             ! : | + ! :     1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | + ! :       1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | + ! 1 pcs.commitment_tree.CommitmentTreeProverForBackend(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 432  [0x1021dc42c]  commitment_tree.zig:311
+    +             ! : | + !   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2016  [0x10208537c]  debug_allocator.zig:867
+    +             ! : | + !     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).freeLarge  (in test) + 180  [0x10208f0a0]  debug_allocator.zig:690
+    +             ! : | + !       1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | + !         1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | + 1 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).deinit  (in test) + 540  [0x1021fa7b0]  scheme.zig:142
+    +             ! : | +   1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | 66 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 3428  [0x102278c8c]  scheme.zig:312
+    +             ! : | + 41 fri_commit_ops.CommitOps(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel,fri.FriProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel)).commitInnerLayers__anon_62668  (in test) + 7144  [0x102273118]  fri_commit_ops.zig:528
+    +             ! : | + ! 41 fri_commit_ops.CommitOps(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel,fri.FriProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel)).commitSecureColumnForFold  (in test) + 628  [0x10226f78c]  fri_commit_ops.zig:747
+    +             ! : | + !   26 mod.CpuBackend.commitMerkle__anon_47685  (in test) + 6520  [0x1021d34d0]  mod.zig:482
+    +             ! : | + !   : 21 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildUpperLayersSubtree  (in test) + 2068  [0x1021d1870]  layers.zig:246
+    +             ! : | + !   : | 21 Thread.ResetEvent.FutexImpl.waitUntilSet  (in test) + 92  [0x1020b3650]  ResetEvent.zig:124
+    +             ! : | + !   : |   21 Thread.Futex.Deadline.wait  (in test) + 208  [0x1020b3870]  Futex.zig:1045
+    +             ! : | + !   : |     21 Thread.Futex.wait  (in test) + 16  [0x10209a784]  Futex.zig:32
+    +             ! : | + !   : |       21 Thread.Futex.DarwinImpl.wait  (in test) + 68  [0x1020a770c]  Futex.zig:205
+    +             ! : | + !   : |         21 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x1868fdc98]
+    +             ! : | + !   : 3 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildUpperLayersSubtree  (in test) + 1848  [0x1021d1794]  layers.zig:246
+    +             ! : | + !   : | 3 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).hashSeededRange  (in test) + 184  [0x1021d59c8]  layers.zig:372
+    +             ! : | + !   : |   2 channel.blake3_frame.Frame.hash  (in test) + 204  [0x1023599a4]  blake3_frame.zig:112
+    +             ! : | + !   : |   + 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    +             ! : | + !   : |   1 channel.blake3_frame.Frame.hash  (in test) + 188  [0x102359994]  blake3_frame.zig:112
+    +             ! : | + !   : |     1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x18693d11c]
+    +             ! : | + !   : 1 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildUpperLayersSubtree  (in test) + 1244  [0x1021d1538]  layers.zig:246
+    +             ! : | + !   : | 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | + !   : |   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             ! : | + !   : |     1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   : |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 1 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildUpperLayersSubtree  (in test) + 836  [0x1021d13a0]  layers.zig:256
+    +             ! : | + !   :   1 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).hashSeededRange  (in test) + 184  [0x1021d59c8]  layers.zig:372
+    +             ! : | + !   :     1 channel.blake3_frame.Frame.hash  (in test) + 204  [0x1023599a4]  blake3_frame.zig:112
+    +             ! : | + !   :       1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    +             ! : | + !   10 mod.CpuBackend.commitMerkle__anon_47685  (in test) + 6084  [0x1021d331c]  mod.zig:482
+    +             ! : | + !   : 7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 752  [0x1021d018c]  leaves.zig:175
+    +             ! : | + !   : | 7 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +             ! : | + !   : |   7 crypto.blake3.CompressGeneric.compress  (in test) + 928,224,...  [0x10252d830,0x10252d570,...]  blake3.zig:193
+    +             ! : | + !   : 1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 136  [0x1021cff24]  leaves.zig:124
+    +             ! : | + !   : | 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    +             ! : | + !   : 1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 136  [0x1021cff24]  leaves.zig:124
+    +             ! : | + !   : 1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 472  [0x1021d0074]  leaves.zig:160
+    +             ! : | + !   :   1 crypto.blake3.Blake3.update  (in test) + 52  [0x1022a1b20]  blake3.zig:0
+    +             ! : | + !   1 mod.CpuBackend.commitMerkle__anon_47685  (in test) + 3668  [0x1021d29ac]  mod.zig:482
+    +             ! : | + !   : 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | + !   1 mod.CpuBackend.commitMerkle__anon_47685  (in test) + 4712  [0x1021d2dc0]  mod.zig:482
+    +             ! : | + !   : 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | + !   1 mod.CpuBackend.commitMerkle__anon_47685  (in test) + 4880  [0x1021d2e68]  mod.zig:482
+    +             ! : | + !   : 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 728  [0x1020849bc]  debug_allocator.zig:737
+    +             ! : | + !   :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | + !   :     1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   :       1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   :         1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   :           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   1 mod.CpuBackend.commitMerkle__anon_47685  (in test) + 4900  [0x1021d2e7c]  mod.zig:482
+    +             ! : | + !   : 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | + !   1 mod.CpuBackend.commitMerkle__anon_47685  (in test) + 6028  [0x1021d32e4]  mod.zig:482
+    +             ! : | + !     1 Thread.Futex.wake  (in test) + 56  [0x1020ac494]  Futex.zig:66
+    +             ! : | + !       1 __ulock_wake  (in libsystem_kernel.dylib) + 8  [0x1868f1bcc]
+    +             ! : | + 24 fri_commit_ops.CommitOps(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel,fri.FriProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel)).commitInnerLayers__anon_62668  (in test) + 7896  [0x102273408]  fri_commit_ops.zig:666
+    +             ! : | + ! 21 mod.CpuBackend.foldLineN__anon_62931  (in test) + 1792,728,...  [0x1022710b8,0x102270c90,...]  mod.zig:425
+    +             ! : | + ! 3 mod.CpuBackend.foldLineN__anon_62931  (in test) + 388  [0x102270b3c]  mod.zig:425
+    +             ! : | + !   3 fri.folding.fillBitReversedCosetCoordinate__anon_62964  (in test) + 180  [0x102270730]  folding.zig:328
+    +             ! : | + !     3 circle.CosetPointIterator.next  (in test) + 144,128  [0x1023576c0,0x1023576b0]  circle.zig:400
+    +             ! : | + 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2016  [0x10208537c]  debug_allocator.zig:867
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).freeLarge  (in test) + 180  [0x10208f0a0]  debug_allocator.zig:690
+    +             ! : | +     1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | +       1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | 40 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 10832  [0x10227a978]  scheme.zig:312
+    +             ! : | + 38 crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+    +             ! : | + ! 38 crypto.blake3.CompressGeneric.compress  (in test) + 928,604,...  [0x10252d830,0x10252d6ec,...]  blake3.zig:193
+    +             ! : | + 1 crypto.blake3.Blake3.update  (in test) + 600  [0x1022a1d44]  blake3.zig:454
+    +             ! : | + 1 crypto.blake3.CompressGeneric.compress  (in test) + 1092  [0x10252d8d4]  blake3.zig:199
+    +             ! : | 39 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 25072  [0x10227e118]  scheme.zig:312
+    +             ! : | + 34 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 436  [0x102275314]  prover.zig:457
+    +             ! : | + ! 34 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | + !   8 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | + !   : 4 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   : | 4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 4 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   :   4 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   :     4 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   :       4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   4 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+    +             ! : | + !   : 4 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   :   4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             ! : | + !   : 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   : | 2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   : |   2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   : |     2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   :   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! : | + !   : 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   : | 2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   : |   2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   : |     2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   :   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             ! : | + !   : 3 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   :   3 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   :     3 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   :       3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             ! : | + !   : 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   : | 2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   : |   2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   : |     2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   :   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             ! : | + !   : 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   : | 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   :   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   :     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   :       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   : | 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   :   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   :     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   :       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | + !   : 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   :   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   :     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   :       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !   : | 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   : 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !   :   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !   :     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !   :       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + !   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             ! : | + !     1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + 2 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 1772  [0x10227584c]  prover.zig:457
+    +             ! : | + 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 456  [0x102275328]  prover.zig:457
+    +             ! : | + ! 1 _platform_memset  (in libsystem_platform.dylib) + 108  [0x18693d0fc]
+    +             ! : | + 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 2980  [0x102275d04]  prover.zig:457
+    +             ! : | + ! 1 array_list.Aligned(vcs_lifted.verifier.MerkleDecommitmentLiftedAux(vcs_lifted.blake3_merkle.MerkleHasher).NodeValue,null).append  (in test) + 540  [0x102275098]  array_list.zig:894
+    +             ! : | + !   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2304  [0x10208549c]  debug_allocator.zig:957
+    +             ! : | + !     1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | + !       1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | + 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 3804  [0x10227603c]  prover.zig:457
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | +       1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +         1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +           1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +             1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | 36 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 10860  [0x10227a994]  scheme.zig:312
+    +             ! : | + 34 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +             ! : | + ! 34 crypto.blake3.CompressGeneric.compress  (in test) + 928,268,...  [0x10252d830,0x10252d59c,...]  blake3.zig:193
+    +             ! : | + 2 crypto.blake3.Blake3.final  (in test) + 496,632  [0x1022a307c,0x1022a3104]  blake3.zig:475
+    +             ! : | 35 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 25368  [0x10227e240]  scheme.zig:312
+    +             ! : | + 35 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | +   10 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | +   ! 7 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 7 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 3 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   3 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     3 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   5 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             ! : | +   ! 3 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   ! : 3 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   ! :   3 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   ! :     3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   !   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   4 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | +   ! 3 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   !   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             ! : | +     1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +       1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +         1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | 34 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 25592  [0x10227e320]  scheme.zig:312
+    +             ! : | + 34 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | +   7 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | +   ! 4 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   ! : 4 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   ! :   4 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   ! :     4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 3 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   !   3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   6 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             ! : | +   ! 3 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 3 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   3 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     3 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   6 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             ! : | +   ! 4 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   ! : 4 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   ! :   4 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   ! :     4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   !   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   4 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+    +             ! : | +   ! 3 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   4 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             ! : | +   ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   ! : 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   !   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   !   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! : | +   ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +   !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +   !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             ! : | +     1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +       1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +         1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | 33 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 31644  [0x10227fac4]  scheme.zig:312
+    +             ! : | + 33 pcs.utils.TreeVec([][]circle.CirclePoint(fields.qm31.QM31)).deinitDeep  (in test) + 244  [0x1021f3110]  utils.zig:34
+    +             ! : | +   33 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | +     6 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             ! : | +     ! 4 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     ! : 4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +     !   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +     !     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +     !       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     5 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | +     ! 4 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +     ! : 4 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +     ! :   4 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +     ! :     4 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     !   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     5 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             ! : | +     ! 3 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +     ! : 3 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +     ! :   3 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +     ! :     3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     !   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     4 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     ! : 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +     !   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +     !     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +     !       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     4 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     ! : 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +     !   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +     !     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +     !       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     ! : 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     ! 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +     !   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +     !     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +     !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             ! : | +     ! 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     !   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             ! : | +     ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     !   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+    +             ! : | +     ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     !   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | +     ! 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +     !   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! : | +       1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +         1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +           1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +             1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | 17 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 11872  [0x10227ad88]  scheme.zig:312
+    +             ! : | + 15 fri_decommit.decommitLayerExtendedWithRetainedPacking__anon_124302  (in test) + 3332  [0x1024ede38]  fri_decommit.zig:163
+    +             ! : | + ! 7 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 3028  [0x102275d34]  prover.zig:457
+    +             ! : | + ! : 3 array_list.Aligned(vcs_lifted.verifier.MerkleDecommitmentLiftedAux(vcs_lifted.blake3_merkle.MerkleHasher).NodeValue,null).append  (in test) + 540  [0x102275098]  array_list.zig:894
+    +             ! : | + ! : | 3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + ! : |   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             ! : | + ! : |   + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : |   + ! 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : |   + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : |   +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : |   +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : |   +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : |   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | + ! : |     1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : 2 array_list.Aligned(vcs_lifted.verifier.MerkleDecommitmentLiftedAux(vcs_lifted.blake3_merkle.MerkleHasher).NodeValue,null).append  (in test) + 144  [0x102274f0c]  array_list.zig:894
+    +             ! : | + ! : | 2 mem.Allocator.remap__anon_127336  (in test) + 168  [0x1024fbd10]  Allocator.zig:356
+    +             ! : | + ! : |   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).remap  (in test) + 168  [0x102084b6c]  debug_allocator.zig:850
+    +             ! : | + ! : |     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).resizeSmall  (in test) + 2296  [0x10208eea8]  debug_allocator.zig:1045
+    +             ! : | + ! : |       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             ! : | + ! : |       + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : |       +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : |       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! : | + ! : |         1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! : |           1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! : |             1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! : |               1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : 2 array_list.Aligned(vcs_lifted.verifier.MerkleDecommitmentLiftedAux(vcs_lifted.blake3_merkle.MerkleHasher).NodeValue,null).append  (in test) + 372  [0x102274ff0]  array_list.zig:894
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | + ! :   + 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | + ! :   +   1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! :   +     1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 588  [0x102084930]  debug_allocator.zig:801
+    +             ! : | + ! :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! : | + ! :       1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! :         1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! :           1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! :             1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! 2 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 2980  [0x102275d04]  prover.zig:457
+    +             ! : | + ! : 1 array_list.Aligned(vcs_lifted.verifier.MerkleDecommitmentLiftedAux(vcs_lifted.blake3_merkle.MerkleHasher).NodeValue,null).append  (in test) + 372  [0x102274ff0]  array_list.zig:894
+    +             ! : | + ! : | 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | + ! : |   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | + ! : |     1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! : |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! : 1 array_list.Aligned(vcs_lifted.verifier.MerkleDecommitmentLiftedAux(vcs_lifted.blake3_merkle.MerkleHasher).NodeValue,null).append  (in test) + 540  [0x102275098]  array_list.zig:894
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + ! :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | + ! :       1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! :         1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 964  [0x102275524]  prover.zig:457
+    +             ! : | + ! : 1 array_list.Aligned(usize,null).ensureTotalCapacity  (in test) + 432  [0x1020e2d0c]  array_list.zig:1207
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + ! :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             ! : | + ! :       1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! :         1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 2680  [0x102275bd8]  prover.zig:457
+    +             ! : | + ! : 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             ! : | + ! :     1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! :       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 2864  [0x102275c90]  prover.zig:457
+    +             ! : | + ! : 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             ! : | + ! :     1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + ! :       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 4132  [0x102276184]  prover.zig:457
+    +             ! : | + ! : 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             ! : | + ! :     1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! :       1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! :         1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! :           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 4208  [0x1022761d0]  prover.zig:457
+    +             ! : | + ! : 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + ! :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | + ! :     1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + ! :       1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + ! :         1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + ! :           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + ! 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 4300  [0x10227622c]  prover.zig:457
+    +             ! : | + !   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + !     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : | + !       1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | + !         1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + 1 fri_decommit.decommitLayerExtendedWithRetainedPacking__anon_124302  (in test) + 5636  [0x1024ee738]  fri_decommit.zig:170
+    +             ! : | + ! 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | + !   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | + !     1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | + !       1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | + !         1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | + !           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | + 1 fri_decommit.decommitLayerExtendedWithRetainedPacking__anon_124302  (in test) + 5488  [0x1024ee6a4]  fri_decommit.zig:175
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! : | +       1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! : | +         1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! : | +           1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! : | +             1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | 12 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 10796  [0x10227a954]  scheme.zig:312
+    +             ! : | + 12 _platform_memmove  (in libsystem_platform.dylib) + 180,12  [0x18693d414,0x18693d36c]
+    +             ! : | 5 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 20320  [0x10227ce88]  scheme.zig:312
+    +             ! : | + 4 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 140  [0x1021d9d20]  prover.zig:73
+    +             ! : | + ! 4 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | + 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 168  [0x1021d9d3c]  prover.zig:73
+    +             ! : | +   1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | +     1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | 5 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 20892  [0x10227d0c4]  scheme.zig:312
+    +             ! : | + 4 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 140  [0x1021d9d20]  prover.zig:73
+    +             ! : | + ! 4 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | + 1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 168  [0x1021d9d3c]  prover.zig:73
+    +             ! : | +   1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | +     1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | 2 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 11556  [0x10227ac4c]  scheme.zig:312
+    +             ! : | + 2 fri_decommit.decommitLayerExtendedWithRetainedPacking__anon_124302  (in test) + 3332  [0x1024ede38]  fri_decommit.zig:163
+    +             ! : | +   1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 3424  [0x102275ec0]  prover.zig:457
+    +             ! : | +   ! 1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             ! : | +   !   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             ! : | +   !     1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +   !       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | +   1 vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake3_merkle.MerkleHasher).decommit  (in test) + 4208  [0x1022761d0]  prover.zig:457
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : | +       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             ! : | +         1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : | +           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : | 1 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 20596  [0x10227cf9c]  scheme.zig:312
+    +             ! : | + 1 secure_column.SecureColumnByCoords.deinit  (in test) + 504  [0x10226fba4]  secure_column.zig:0
+    +             ! : | +   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2016  [0x10208537c]  debug_allocator.zig:867
+    +             ! : | +     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).freeLarge  (in test) + 180  [0x10208f0a0]  debug_allocator.zig:690
+    +             ! : | +       1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! : | +         1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! : | 1 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 20792  [0x10227d060]  scheme.zig:312
+    +             ! : | + 1 secure_column.SecureColumnByCoords.deinit  (in test) + 136  [0x10226fa34]  secure_column.zig:51
+    +             ! : | +   1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! : | 1 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel).proveValuesWithRecorderAndPhase__anon_59534  (in test) + 26116  [0x10227e52c]  scheme.zig:312
+    +             ! : |   1 pcs.utils.TreeVec([]usize).deinitDeep  (in test) + 188  [0x102277cac]  utils.zig:34
+    +             ! : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! : |       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! : |         1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! : |           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! : 2 prove.proveExComponentsWithRecorder__anon_58729  (in test) + 18628  [0x10228495c]  prove.zig:667
+    +             ! :   2 air.component_prover.ComponentProvers.ComponentsView.evalCompositionPolynomialAtPointWithWorkCapture  (in test) + 116  [0x102280038]  component_prover.zig:524
+    +             ! :     1 air.derive.ComponentAdapter(air.guest_precompile.keccakf_component.KeccakShardComponent,air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).evaluateConstraintQuotientsAtPoint  (in test) + 1260  [0x1024accf8]  derive.zig:108
+    +             ! :     + 1 air.guest_precompile.keccakf_row.evaluateGeneric__anon_253303  (in test) + 120  [0x1026640d4]  keccakf_row.zig:34
+    +             ! :     +   1 air.guest_precompile.keccakf_direct.evaluateGeneric__anon_253312  (in test) + 14752  [0x102669f20]  keccakf_direct.zig:97
+    +             ! :     +     1 air.guest_precompile.keccakf_component.PointSink.add  (in test) + 748  [0x10266e624]  keccakf_component.zig:567
+    +             ! :     1 air.derive.ComponentAdapter(air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.Product(.base)),air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).evaluateConstraintQuotientsAtPoint  (in test) + 1028  [0x1024ae2b8]  derive.zig:108
+    +             ! :       1 air.guest_precompile.secp256k1_component_config.appendByteRanges__anon_266496  (in test) + 336  [0x1026d7258]  secp256k1_component_config.zig:446
+    +             ! 16 prover.blake3_ethereum_proof.ForBackend(mod.CpuBackend).prove  (in test) + 35492  [0x10228ea8c]  blake3_ethereum_proof.zig:87
+    +             ! : 16 _platform_memset  (in libsystem_platform.dylib) + 72  [0x18693d0d8]
+    +             ! 15 prover.blake3_ethereum_proof.ForBackend(mod.CpuBackend).prove  (in test) + 35396  [0x10228ea2c]  blake3_ethereum_proof.zig:89
+    +             ! : 15 prover.guest_precompile.ethereum_interaction.Generated.deinit  (in test) + 160  [0x10228ef98]  ethereum_interaction.zig:371
+    +             ! :   15 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+    +             ! :     4 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             ! :     | 3 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! :     | + 3 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! :     |   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! :     |     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! :     |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     3 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             ! :     | 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! :     | + 2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! :     |   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! :     |     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! :     |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! :     | + 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! :     |   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! :     |     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! :     |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! :     | + 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! :     |   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! :     |     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! :     |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! :     |   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             ! :     |   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             ! :     |     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             ! :     |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             ! :     | 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! :     |   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             ! :       1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             ! :         1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             ! 10 prover.blake3_ethereum_proof.ForBackend(mod.CpuBackend).prove  (in test) + 35520  [0x10228eaa8]  blake3_ethereum_proof.zig:87
+    +             ! : 10 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2016  [0x10208537c]  debug_allocator.zig:867
+    +             ! :   10 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).freeLarge  (in test) + 180  [0x10208f0a0]  debug_allocator.zig:690
+    +             ! :     10 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             ! :       10 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             ! 1 prover.blake3_ethereum_proof.ForBackend(mod.CpuBackend).prove  (in test) + 35024  [0x10228e8b8]  blake3_ethereum_proof.zig:109
+    +             !   1 pcs.mod.CommitmentSchemeProofAux(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 312  [0x102285f3c]  mod.zig:99
+    +             !     1 fri.FriLayerProofAux(vcs_lifted.blake3_merkle.MerkleHasher).deinit  (in test) + 180  [0x1024f044c]  fri.zig:726
+    +             !       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2304  [0x10208549c]  debug_allocator.zig:957
+    +             !         1 posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+    +             !           1 __munmap  (in libsystem_kernel.dylib) + 8  [0x1868f3728]
+    +             28 prover.blake3_segment_parent.ForProfile(mod.CpuBackend,true).proveAdmitted  (in test) + 4440  [0x1022937ac]  blake3_segment_parent.zig:90
+    +             ! 28 verifier.verifyWithProofCapture__anon_63937  (in test) + 804  [0x102291aac]  verifier.zig:85
+    +             !   28 air.components.Components.maskPoints  (in test) + 168  [0x1021f32a0]  components.zig:163
+    +             !     16 air.derive.ComponentAdapter(air.guest_precompile.keccakf_component.KeccakShardComponent,air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).maskPoints  (in test) + 68  [0x1024ac53c]  derive.zig:91
+    +             !     : 10 air.guest_precompile.keccakf_component.KeccakShardComponent.maskPoints  (in test) + 944  [0x102386a9c]  keccakf_component.zig:256
+    +             !     : | 10 air.guest_precompile.keccakf_component.pointColumns  (in test) + 180  [0x1023865a0]  keccakf_component.zig:723
+    +             !     : |   10 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     : |     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+    +             !     : |     + 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     : |     +   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             !     : |     + 2 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     : |     +   2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             !     : |     + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     : |     +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             !     : |     + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     : |     +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     : |     +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     : |     +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+    +             !     : |     + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     : |     +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     : |     +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     : |     +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             !     : |     + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     : |     +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     : |     +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     : |     +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             !     : |     + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     : |     +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             !     : |       1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     : |         1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     : |           1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     : |             1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : 6 air.guest_precompile.keccakf_component.KeccakShardComponent.maskPoints  (in test) + 644  [0x102386970]  keccakf_component.zig:253
+    +             !     :   6 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     :     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+    +             !     :     + 2 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :     +   2 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :     +     2 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :     +       2 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             !     :     + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     :     +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             !     :     + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :     +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :     +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             !     :     + 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :     +   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :     +     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :     +       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+    +             !     :       1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     :         1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     4 air.derive.ComponentAdapter(air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.Product(.base)),air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).maskPoints  (in test) + 68  [0x1024ade74]  derive.zig:91
+    +             !     : 2 air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.Product(.base)).maskPoints  (in test) + 268  [0x102389bb0]  secp256k1_component.zig:183
+    +             !     : | 2 air.guest_precompile.secp256k1_component.pointColumns  (in test) + 180  [0x102389958]  secp256k1_component.zig:542
+    +             !     : |   2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             !     : |     + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     : |     +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : |     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             !     : |       1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     : |         1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     : |           1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     : |             1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     : 2 air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.Product(.base)).maskPoints  (in test) + 336  [0x102389bf4]  secp256k1_component.zig:185
+    +             !     :   2 air.guest_precompile.secp256k1_component.pointColumns  (in test) + 180  [0x102389958]  secp256k1_component.zig:542
+    +             !     :     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+    +             !     :       + 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     :       +   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             !     :         1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     :           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     2 air.derive.ComponentAdapter(air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.Linear(.base)),air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).maskPoints  (in test) + 68  [0x1024aec98]  derive.zig:91
+    +             !     : 2 air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.Linear(.base)).maskPoints  (in test) + 268  [0x102389e58]  secp256k1_component.zig:183
+    +             !     :   2 air.guest_precompile.secp256k1_component.pointColumns  (in test) + 180  [0x102389958]  secp256k1_component.zig:542
+    +             !     :     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+    +             !     :       | 1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     :       |   1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+    +             !     :         1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !     :           1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     2 air.derive.ComponentAdapter(air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.basic("secp256k1_point"[0..15],air.guest_precompile.secp256k1_point_direct,523,416,12,0,air.guest_precompile.secp256k1_component_config.Point__struct_37429)),air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).maskPoints  (in test) + 68  [0x1024afeb0]  derive.zig:91
+    +             !     : 2 air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.basic("secp256k1_point"[0..15],air.guest_precompile.secp256k1_point_direct,523,416,12,0,air.guest_precompile.secp256k1_component_config.Point__struct_37429)).maskPoints  (in test) + 268  [0x10238a100]  secp256k1_component.zig:183
+    +             !     :   2 air.guest_precompile.secp256k1_component.pointColumns  (in test) + 180  [0x102389958]  secp256k1_component.zig:542
+    +             !     :     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+    +             !     :       | 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :       |   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :       |     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :       |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             !     :         1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :           1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :             1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :               1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     2 air.derive.ComponentAdapter(air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.basic("secp256k1_scalar_program"[0..24],air.guest_precompile.secp256k1_scalar_direct,1124,1134,7,32,air.guest_precompile.secp256k1_component_config.ScalarProgram__struct_37511)),air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).maskPoints  (in test) + 68  [0x1024b2420]  derive.zig:91
+    +             !     : 2 air.guest_precompile.secp256k1_component.Component(air.guest_precompile.secp256k1_component_config.basic("secp256k1_scalar_program"[0..24],air.guest_precompile.secp256k1_scalar_direct,1124,1134,7,32,air.guest_precompile.secp256k1_component_config.ScalarProgram__struct_37511)).maskPoints  (in test) + 268  [0x10238a650]  secp256k1_component.zig:183
+    +             !     :   2 air.guest_precompile.secp256k1_component.pointColumns  (in test) + 180  [0x102389958]  secp256k1_component.zig:542
+    +             !     :     2 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             !     :       | 1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :       |   1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :       |     1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :       |       1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     :       1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+    +             !     :         1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :           1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :             1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :               1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     1 air.derive.ComponentAdapter(air.semantic_component.SemanticComponent,air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).maskPoints  (in test) + 212  [0x102580fac]  derive.zig:91
+    +             !     : 1 air.semantic_component.currentPointColumns  (in test) + 244  [0x1026b8f68]  semantic_component.zig:651
+    +             !     :   1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !     :     1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+    +             !     :       1 debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+    +             !     :         1 debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+    +             !     :           1 debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+    +             !     :             1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             !     1 air.derive.ComponentAdapter(recursion.air.universal_typed_component_component_for_manifest.ComponentForManifest(recursion.air.blake3_xor_call,recursion.air.universal_relation_binding.Binding(recursion.air.blake3_xor_call),recursion.air.blake3_component_roster.WithExtras(.{ recursion.air.blake3_byte_route, recursion.air.blake3_private_word, recursion.air.blake3_input_bridge, recursion.air.blake3_memory_boundary, recursion.air.blake3_program_boundary, recursion.air.qm31_pack_wire, recursion.air.blake3_field_bytes })),air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).maskPoints  (in test) + 68  [0x1024c9f60]  derive.zig:91
+    +             !       1 recursion.air.universal_typed_verifier_component.Methods(recursion.air.universal_typed_component_component_for_manifest.ComponentForManifest(recursion.air.blake3_xor_call,recursion.air.universal_relation_binding.Binding(recursion.air.blake3_xor_call),recursion.air.blake3_component_roster.WithExtras(.{ recursion.air.blake3_byte_route, recursion.air.blake3_private_word, recursion.air.blake3_input_bridge, recursion.air.blake3_memory_boundary, recursion.air.blake3_program_boundary, recursion.air.qm31_pack_wire, recursion.air.blake3_field_bytes })),recursion.air.blake3_xor_call,recursion.air.universal_relation_binding.Binding(recursion.air.blake3_xor_call),recursion.air.blake3_component_roster.WithExtras(.{ recursion.air.blake3_byte_route, recursion.air.blake3_private_word, recursion.air.blake3_input_bridge, recursion.air.blake3_memory_boundary, recursion.air.blake3_program_boundary, recursion.air.qm31_pack_wire, recursion.air.blake3_field_bytes })).maskPoints  (in test) + 180  [0x1025cedc8]  universal_typed_verifier_component.zig:236
+    +             !         1 air.component_point_support.currentPointColumns  (in test) + 232  [0x1026591a0]  component_point_support.zig:44
+    +             !           1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+    +             !             1 heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+    +             !               1 debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+    +             !                 1 __msync  (in libsystem_kernel.dylib) + 8  [0x1868f63bc]
+    +             1 prover.blake3_segment_parent.ForProfile(mod.CpuBackend,true).proveAdmitted  (in test) + 2692  [0x1022930d8]  blake3_segment_parent.zig:90
+    +               1 prover.guest_precompile.ethereum_transcript.Relations.drawAfterBase__anon_56112  (in test) + 456  [0x102200594]  ethereum_transcript.zig:29
+    +                 1 prover.guest_precompile.ethereum_transcript.Relations.fromDraws  (in test) + 108  [0x1021de130]  ethereum_transcript.zig:37
+    +                   1 air.relation_challenges.RelationElements(109).init  (in test) + 512  [0x1021de664]  relation_challenges.zig:39
+    548 Thread_2482516
+    + 548 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   548 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     425 Thread.PosixThreadImpl.spawn__anon_76178.Instance.entryFn  (in test) + 224  [0x10232c9c8]  Thread.zig:781
+    +     ! 425 Thread.Condition.wait  (in test) + 12  [0x10264c970]  Condition.zig:72
+    +     !   425 Thread.Condition.FutexImpl.wait  (in test) + 116  [0x1026b7ecc]  Condition.zig:226
+    +     !     425 Thread.Futex.Deadline.wait  (in test) + 208  [0x1020b3870]  Futex.zig:1045
+    +     !       425 Thread.Futex.wait  (in test) + 16  [0x10209a784]  Futex.zig:32
+    +     !         425 Thread.Futex.DarwinImpl.wait  (in test) + 68  [0x1020a770c]  Futex.zig:205
+    +     !           425 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x1868fdc98]
+    +     123 Thread.PosixThreadImpl.spawn__anon_76178.Instance.entryFn  (in test) + 184  [0x10232c9a0]  Thread.zig:781
+    +       50 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 164  [0x10268877c]  Pool.zig:118
+    +       : 46 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +       : | 46 crypto.blake3.CompressGeneric.compress  (in test) + 836,660,...  [0x10252d7d4,0x10252d724,...]  blake3.zig:193
+    +       : 4 crypto.blake3.Blake3.final  (in test) + 672,588,...  [0x1022a312c,0x1022a30d8,...]  blake3.zig:475
+    +       28 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 144  [0x102688768]  Pool.zig:118
+    +       : 27 crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+    +       : | 21 crypto.blake3.CompressGeneric.compress  (in test) + 660,836,...  [0x10252d724,0x10252d7d4,...]  blake3.zig:193
+    +       : | 2 crypto.blake3.CompressGeneric.compress  (in test) + 380,996  [0x10252d60c,0x10252d874]  blake3.zig:0
+    +       : | 2 crypto.blake3.CompressGeneric.compress  (in test) + 1012,1068  [0x10252d884,0x10252d8bc]  blake3.zig:199
+    +       : | 1 crypto.blake3.CompressGeneric.compress  (in test) + 8  [0x10252d498]  blake3.zig:173
+    +       : | 1 crypto.blake3.CompressGeneric.compress  (in test) + 116  [0x10252d504]  blake3.zig:181
+    +       : 1 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+    +       :   1 _platform_memmove  (in libsystem_platform.dylib) + 428  [0x18693d50c]
+    +       25 Thread.Pool.spawnWg__anon_84132.Closure.runFn  (in test) + 156  [0x1024a42c0]  Pool.zig:118
+    +       : 25 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).hashSeededRange  (in test) + 184  [0x1021d59c8]  layers.zig:372
+    +       :   11 channel.blake3_frame.Frame.hash  (in test) + 360  [0x102359a40]  blake3_frame.zig:113
+    +       :   | 9 crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+    +       :   | + 9 crypto.blake3.CompressGeneric.compress  (in test) + 140,488,...  [0x10252d51c,0x10252d678,...]  blake3.zig:193
+    +       :   | 1 crypto.blake3.Blake3.update  (in test) + 820  [0x1022a1e20]  blake3.zig:0
+    +       :   | 1 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+    +       :   |   1 _platform_memmove  (in libsystem_platform.dylib) + 428  [0x18693d50c]
+    +       :   11 channel.blake3_frame.Frame.hash  (in test) + 380  [0x102359a54]  blake3_frame.zig:114
+    +       :   | 10 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +       :   | + 10 crypto.blake3.CompressGeneric.compress  (in test) + 928,140,...  [0x10252d830,0x10252d51c,...]  blake3.zig:193
+    +       :   | 1 crypto.blake3.CompressGeneric.compress  (in test) + 1092  [0x10252d8d4]  blake3.zig:199
+    +       :   1 channel.blake3_frame.Frame.hash  (in test) + 188  [0x102359994]  blake3_frame.zig:112
+    +       :   | 1 _platform_memset  (in libsystem_platform.dylib) + 140  [0x18693d11c]
+    +       :   1 channel.blake3_frame.Frame.hash  (in test) + 204  [0x1023599a4]  blake3_frame.zig:112
+    +       :   | 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    +       :   1 channel.blake3_frame.Frame.hash  (in test) + 152  [0x102359970]  blake3_frame.zig:112
+    +       10 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 124  [0x102688754]  Pool.zig:118
+    +       : 10 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    +       10 Thread.Pool.spawnWg__anon_84050.Closure.runFn  (in test) + 32  [0x1024a40e4]  Pool.zig:118
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 136  [0x1021cff24]  leaves.zig:124
+    +         | 4 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 472  [0x1021d0074]  leaves.zig:160
+    +         | 1 crypto.blake3.Blake3.update  (in test) + 36  [0x1022a1b10]  blake3.zig:439
+    +         | 1 crypto.blake3.Blake3.update  (in test) + 552  [0x1022a1d14]  blake3.zig:453
+    +         | 1 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+    +         | + 1 _platform_memmove  (in libsystem_platform.dylib) + 428  [0x18693d50c]
+    +         | 1 crypto.blake3.Blake3.update  (in test) + 716  [0x1022a1db8]  blake3.zig:454
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 752  [0x1021d018c]  leaves.zig:175
+    +           2 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +             2 crypto.blake3.CompressGeneric.compress  (in test) + 688,692  [0x10252d740,0x10252d744]  blake3.zig:193
+    548 Thread_2482517
+    + 548 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   548 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     427 Thread.PosixThreadImpl.spawn__anon_76178.Instance.entryFn  (in test) + 224  [0x10232c9c8]  Thread.zig:781
+    +     ! 427 Thread.Condition.wait  (in test) + 12  [0x10264c970]  Condition.zig:72
+    +     !   426 Thread.Condition.FutexImpl.wait  (in test) + 116  [0x1026b7ecc]  Condition.zig:226
+    +     !   : 426 Thread.Futex.Deadline.wait  (in test) + 208  [0x1020b3870]  Futex.zig:1045
+    +     !   :   426 Thread.Futex.wait  (in test) + 16  [0x10209a784]  Futex.zig:32
+    +     !   :     426 Thread.Futex.DarwinImpl.wait  (in test) + 68  [0x1020a770c]  Futex.zig:205
+    +     !   :       426 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x1868fdc98]
+    +     !   1 Thread.Condition.FutexImpl.wait  (in test) + 292  [0x1026b7f7c]  Condition.zig:221
+    +     !     1 _os_unfair_lock_lock_slow  (in libsystem_platform.dylib) + 172  [0x18693b3c0]
+    +     !       1 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x1868fdc98]
+    +     121 Thread.PosixThreadImpl.spawn__anon_76178.Instance.entryFn  (in test) + 184  [0x10232c9a0]  Thread.zig:781
+    +       43 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 144  [0x102688768]  Pool.zig:118
+    +       : 38 crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+    +       : | 37 crypto.blake3.CompressGeneric.compress  (in test) + 928,604,...  [0x10252d830,0x10252d6ec,...]  blake3.zig:193
+    +       : | 1 crypto.blake3.CompressGeneric.compress  (in test) + 44  [0x10252d4bc]  blake3.zig:175
+    +       : 3 crypto.blake3.Blake3.update  (in test) + 600,772,...  [0x1022a1d44,0x1022a1df0,...]  blake3.zig:454
+    +       : 2 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+    +       :   1 DYLD-STUB$$memcpy  (in test) + 4  [0x1027761e0]
+    +       :   1 _platform_memmove  (in libsystem_platform.dylib) + 0  [0x18693d360]
+    +       31 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 164  [0x10268877c]  Pool.zig:118
+    +       : 27 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +       : | 27 crypto.blake3.CompressGeneric.compress  (in test) + 928,268,...  [0x10252d830,0x10252d59c,...]  blake3.zig:193
+    +       : 3 crypto.blake3.Blake3.final  (in test) + 756,588  [0x1022a3180,0x1022a30d8]  blake3.zig:475
+    +       : 1 crypto.blake3.CompressGeneric.compress  (in test) + 1092  [0x10252d8d4]  blake3.zig:199
+    +       23 Thread.Pool.spawnWg__anon_84132.Closure.runFn  (in test) + 156  [0x1024a42c0]  Pool.zig:118
+    +       : 23 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).hashSeededRange  (in test) + 184  [0x1021d59c8]  layers.zig:372
+    +       :   10 channel.blake3_frame.Frame.hash  (in test) + 380  [0x102359a54]  blake3_frame.zig:114
+    +       :   | 10 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +       :   |   10 crypto.blake3.CompressGeneric.compress  (in test) + 928,268,...  [0x10252d830,0x10252d59c,...]  blake3.zig:193
+    +       :   8 channel.blake3_frame.Frame.hash  (in test) + 360  [0x102359a40]  blake3_frame.zig:113
+    +       :   | 8 crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+    +       :   |   8 crypto.blake3.CompressGeneric.compress  (in test) + 900,140,...  [0x10252d814,0x10252d51c,...]  blake3.zig:193
+    +       :   3 channel.blake3_frame.Frame.hash  (in test) + 188  [0x102359994]  blake3_frame.zig:112
+    +       :   | 3 _platform_memset  (in libsystem_platform.dylib) + 140  [0x18693d11c]
+    +       :   1 channel.blake3_frame.Frame.hash  (in test) + 148  [0x10235996c]  blake3_frame.zig:112
+    +       :   1 channel.blake3_frame.Frame.hash  (in test) + 732  [0x102359bb4]  blake3_frame.zig:113
+    +       :     1 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+    +       13 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 124  [0x102688754]  Pool.zig:118
+    +       : 13 _platform_memmove  (in libsystem_platform.dylib) + 180,196,...  [0x18693d414,0x18693d424,...]
+    +       10 Thread.Pool.spawnWg__anon_84050.Closure.runFn  (in test) + 32  [0x1024a40e4]  Pool.zig:118
+    +       : 5 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 752  [0x1021d018c]  leaves.zig:175
+    +       : | 5 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+    +       : |   5 crypto.blake3.CompressGeneric.compress  (in test) + 320,424,...  [0x10252d5d0,0x10252d638,...]  blake3.zig:193
+    +       : 2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 136  [0x1021cff24]  leaves.zig:124
+    +       : | 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    +       : 2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 472  [0x1021d0074]  leaves.zig:160
+    +       : | 1 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+    +       : | + 1 _platform_memmove  (in libsystem_platform.dylib) + 452  [0x18693d524]
+    +       : | 1 crypto.blake3.Blake3.update  (in test) + 736  [0x1022a1dcc]  blake3.zig:454
+    +       : 1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 360  [0x1021d0004]  leaves.zig:145
+    +       1 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 72  [0x102688720]  Pool.zig:118
+    548 Thread_2482518
+      548 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+        548 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+          426 Thread.PosixThreadImpl.spawn__anon_76178.Instance.entryFn  (in test) + 224  [0x10232c9c8]  Thread.zig:781
+          ! 426 Thread.Condition.wait  (in test) + 12  [0x10264c970]  Condition.zig:72
+          !   426 Thread.Condition.FutexImpl.wait  (in test) + 116  [0x1026b7ecc]  Condition.zig:226
+          !     426 Thread.Futex.Deadline.wait  (in test) + 208  [0x1020b3870]  Futex.zig:1045
+          !       426 Thread.Futex.wait  (in test) + 16  [0x10209a784]  Futex.zig:32
+          !         426 Thread.Futex.DarwinImpl.wait  (in test) + 68  [0x1020a770c]  Futex.zig:205
+          !           426 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x1868fdc98]
+          122 Thread.PosixThreadImpl.spawn__anon_76178.Instance.entryFn  (in test) + 184  [0x10232c9a0]  Thread.zig:781
+            44 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 144  [0x102688768]  Pool.zig:118
+            : 41 crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+            : | 41 crypto.blake3.CompressGeneric.compress  (in test) + 928,872,...  [0x10252d830,0x10252d7f8,...]  blake3.zig:193
+            : 1 crypto.blake3.Blake3.update  (in test) + 24  [0x1022a1b04]  blake3.zig:439
+            : 1 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+            : | 1 _platform_memmove  (in libsystem_platform.dylib) + 460  [0x18693d52c]
+            : 1 crypto.blake3.Blake3.update  (in test) + 700  [0x1022a1da8]  blake3.zig:454
+            32 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 164  [0x10268877c]  Pool.zig:118
+            : 29 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+            : | 29 crypto.blake3.CompressGeneric.compress  (in test) + 928,308,...  [0x10252d830,0x10252d5c4,...]  blake3.zig:193
+            : 3 crypto.blake3.Blake3.final  (in test) + 500,632,...  [0x1022a3080,0x1022a3104,...]  blake3.zig:475
+            24 Thread.Pool.spawnWg__anon_84132.Closure.runFn  (in test) + 156  [0x1024a42c0]  Pool.zig:118
+            : 24 vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).hashSeededRange  (in test) + 184  [0x1021d59c8]  layers.zig:372
+            :   8 channel.blake3_frame.Frame.hash  (in test) + 380  [0x102359a54]  blake3_frame.zig:114
+            :   | 6 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+            :   | + 6 crypto.blake3.CompressGeneric.compress  (in test) + 224,576,...  [0x10252d570,0x10252d6d0,...]  blake3.zig:193
+            :   | 1 crypto.blake3.Blake3.final  (in test) + 588  [0x1022a30d8]  blake3.zig:475
+            :   | 1 crypto.blake3.CompressGeneric.compress  (in test) + 1092  [0x10252d8d4]  blake3.zig:199
+            :   7 channel.blake3_frame.Frame.hash  (in test) + 188  [0x102359994]  blake3_frame.zig:112
+            :   | 7 _platform_memset  (in libsystem_platform.dylib) + 140,160  [0x18693d11c,0x18693d130]
+            :   5 channel.blake3_frame.Frame.hash  (in test) + 360  [0x102359a40]  blake3_frame.zig:113
+            :   | 5 crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+            :   |   4 crypto.blake3.CompressGeneric.compress  (in test) + 340,712,...  [0x10252d5e4,0x10252d758,...]  blake3.zig:193
+            :   |   1 crypto.blake3.CompressGeneric.compress  (in test) + 68  [0x10252d4d4]  blake3.zig:0
+            :   2 channel.blake3_frame.Frame.hash  (in test) + 204  [0x1023599a4]  blake3_frame.zig:112
+            :   | 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+            :   2 channel.blake3_frame.Frame.hash  (in test) + 92  [0x102359934]  blake3_frame.zig:112
+            11 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 124  [0x102688754]  Pool.zig:118
+            : 11 _platform_memmove  (in libsystem_platform.dylib) + 180,188,...  [0x18693d414,0x18693d41c,...]
+            10 Thread.Pool.spawnWg__anon_84050.Closure.runFn  (in test) + 32  [0x1024a40e4]  Pool.zig:118
+            : 6 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 752  [0x1021d018c]  leaves.zig:175
+            : | 6 crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+            : |   6 crypto.blake3.CompressGeneric.compress  (in test) + 192,576,...  [0x10252d550,0x10252d6d0,...]  blake3.zig:193
+            : 3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 136  [0x1021cff24]  leaves.zig:124
+            : | 3 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+            : 1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in test) + 472  [0x1021d0074]  leaves.zig:160
+            :   1 crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+            :     1 _platform_memmove  (in libsystem_platform.dylib) + 0  [0x18693d360]
+            1 Thread.Pool.spawnWg__anon_150754.Closure.runFn  (in test) + 124  [0x102688754]  Pool.zig:118
+
+Total number in stack (recursive counted multiple, when >=5):
+        146       __msync  (in libsystem_kernel.dylib) + 0  [0x1868f63b4]
+        75       debug.StackIterator.next_internal  (in test) + 2036  [0x102091204]  debug.zig:954
+        72       debug.MemoryAccessor.load__anon_11451  (in test) + 56  [0x10209e548]  MemoryAccessor.zig:89
+        72       debug.StackIterator.next_internal  (in test) + 2260  [0x1020912e4]  debug.zig:962
+        71       debug.MemoryAccessor.isValidMemory  (in test) + 28  [0x1020ac500]  MemoryAccessor.zig:124
+        19       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x18693d360]
+        18       crypto.blake3.CompressGeneric.compress  (in test) + 0  [0x10252d490]  blake3.zig:193
+        17       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).alloc  (in test) + 288  [0x102084804]  debug_allocator.zig:764
+        15       _platform_memset  (in libsystem_platform.dylib) + 0  [0x18693d090]
+        15       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 336  [0x10209af2c]  debug_allocator.zig:515
+        15       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2132  [0x1020853f0]  debug_allocator.zig:934
+        12       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 204  [0x10209aea8]  debug_allocator.zig:515
+        11       __munmap  (in libsystem_kernel.dylib) + 0  [0x1868f3720]
+        11       crypto.blake3.Blake3.final  (in test) + 492  [0x1022a3078]  blake3.zig:475
+        11       posix.munmap  (in test) + 12  [0x1026b8e34]  posix.zig:4872
+        10       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 160  [0x10209ae7c]  debug_allocator.zig:515
+        10       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 512  [0x10209afdc]  debug_allocator.zig:515
+        10       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 600  [0x10209b034]  debug_allocator.zig:515
+        10       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 688  [0x10209b08c]  debug_allocator.zig:515
+        9       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 776  [0x10209b0e4]  debug_allocator.zig:515
+        9       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 864  [0x10209b13c]  debug_allocator.zig:515
+        9       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 952  [0x10209b194]  debug_allocator.zig:515
+        8       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 248  [0x10209aed4]  debug_allocator.zig:515
+        7       crypto.blake3.Blake3.update  (in test) + 652  [0x1022a1d78]  blake3.zig:454
+        7       crypto.blake3.Blake3.update  (in test) + 772  [0x1022a1df0]  blake3.zig:454
+        7       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).collectStackTrace  (in test) + 424  [0x10209af84]  debug_allocator.zig:515
+        6       crypto.blake3.Blake3.update  (in test) + 0  [0x1022a1aec]  blake3.zig:454
+        6       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).free  (in test) + 2016  [0x10208537c]  debug_allocator.zig:867
+        6       heap.debug_allocator.DebugAllocator(.{ .stack_trace_frames = 10, .enable_memory_limit = false, .safety = true, .thread_safe = true, .MutexType = null, .never_unmap = false, .retain_metadata = false, .verbose_log = false, .backing_allocator_zeroes = true, .resize_stack_traces = true, .canary = 2824291834806075834, .page_size = 131072 }).freeLarge  (in test) + 180  [0x10208f0a0]  debug_allocator.zig:690
+        5       __ulock_wait2  (in libsystem_kernel.dylib) + 0  [0x1868fdc90]
+        5       air.guest_precompile.secp256k1_component.pointColumns  (in test) + 180  [0x102389958]  secp256k1_component.zig:542
+        5       crypto.blake3.Blake3.final  (in test) + 0  [0x1022a2e8c]  blake3.zig:475
+        5       crypto.blake3.CompressGeneric.compress  (in test) + 0  [0x10252d490]  blake3.zig:199
+        5       vcs_lifted.layers.Operations(vcs_lifted.blake3_merkle.MerkleHasher).hashSeededRange  (in test) + 184  [0x1021d59c8]  layers.zig:372
+
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait2  (in libsystem_kernel.dylib)        1299
+        crypto.blake3.CompressGeneric.compress  (in test)        352
+        __msync  (in libsystem_kernel.dylib)        232
+        _platform_memset  (in libsystem_platform.dylib)        127
+        _platform_memmove  (in libsystem_platform.dylib)        69
+        __munmap  (in libsystem_kernel.dylib)        47
+        mod.CpuBackend.foldLineN__anon_62931  (in test)        21
+        crypto.blake3.Blake3.final  (in test)        13
+        crypto.blake3.Blake3.update  (in test)        13
+
+Binary Images:
+       0x102080000 -        0x102916157 +test (0) <408A7CBA-5620-3DB3-AD1A-3CDD03E92982> /Users/*/test
+       0x1864c0000 -        0x186512b4b  libobjc.A.dylib (951.7) <1D62B376-2303-376A-B993-9432A2004EB6> /usr/lib/libobjc.A.dylib
+       0x186513000 -        0x186547d58  libdyld.dylib (1387) <70073E6E-4CDD-314F-BBDF-EC7FF6CE2DFC> /usr/lib/system/libdyld.dylib
+       0x186548000 -        0x1865fb4ff  dyld (1.0.0 - 1387) <0263B88E-0B22-3B33-BBC0-483BE879B513> /usr/lib/dyld
+       0x1865fc000 -        0x1865ff228  libsystem_blocks.dylib (96) <B33F1440-9364-38E4-AF85-8A21BFF24324> /usr/lib/system/libsystem_blocks.dylib
+       0x186600000 -        0x18665455f  libxpc.dylib (3102.160.5) <E26A36A6-4B8F-321C-AE17-54353F9EEE84> /usr/lib/system/libxpc.dylib
+       0x186655000 -        0x1866759ff  libsystem_trace.dylib (1861.160.4) <314A8A89-4715-32B9-ABC2-B3087149C8B7> /usr/lib/system/libsystem_trace.dylib
+       0x186676000 -        0x1867245f7  libcorecrypto.dylib (1922.160.10) <057A41E9-2A2E-39CD-B198-387734EED870> /usr/lib/system/libcorecrypto.dylib
+       0x186725000 -        0x186775257  libsystem_malloc.dylib (812.160.5) <B7ED74D2-5A24-3F39-9296-EE5688FF4B63> /usr/lib/system/libsystem_malloc.dylib
+       0x186776000 -        0x1867bd23f  libdispatch.dylib (1542.160.2) <80E75F3F-333F-38A8-A3DD-6279FCDB771B> /usr/lib/system/libdispatch.dylib
+       0x1867be000 -        0x1867c0ffb  libsystem_featureflags.dylib (103) <5725BCFE-07F3-3629-9B44-551A435E2DE2> /usr/lib/system/libsystem_featureflags.dylib
+       0x1867c1000 -        0x1868421e7  libsystem_c.dylib (1752.160.4) <3498CA79-EF40-3587-AD44-75187CEE7D95> /usr/lib/system/libsystem_c.dylib
+       0x186843000 -        0x1868d3ae7  libc++.1.dylib (2100.43) <32327062-C3A2-389E-ABFE-68A9942422E3> /usr/lib/libc++.1.dylib
+       0x1868d4000 -        0x1868ee75f  libc++abi.dylib (2100.43) <CCDE1614-20B7-354C-B201-99C5C4CC589D> /usr/lib/libc++abi.dylib
+       0x1868ef000 -        0x18692c2f7  libsystem_kernel.dylib (12377.161.15.700.19) <EE805B14-29F2-360D-9A2C-3221A1211833> /usr/lib/system/libsystem_kernel.dylib
+       0x18692d000 -        0x186939b3b  libsystem_pthread.dylib (539.100.4) <A58BEABD-7AC0-35F8-BCFF-E4FFBD79E938> /usr/lib/system/libsystem_pthread.dylib
+       0x18693a000 -        0x186942963  libsystem_platform.dylib (375.120.2) <3AF14164-15FE-3623-9EE3-46DE29FD5B5A> /usr/lib/system/libsystem_platform.dylib
+       0x186943000 -        0x1869726eb  libsystem_info.dylib (600) <0037F576-2C50-36F0-9F36-6CB7A049D5B1> /usr/lib/system/libsystem_info.dylib
+       0x18a913000 -        0x18a91ce5f  libsystem_darwin.dylib (1752.160.4) <B808D04B-2798-36C9-96F6-35534BDFCF11> /usr/lib/system/libsystem_darwin.dylib
+       0x18ad7e000 -        0x18ad901b6  libsystem_notify.dylib (348.160.3) <922BDCF4-CD33-3EEB-BC56-9DCAE54F8F65> /usr/lib/system/libsystem_notify.dylib
+       0x18d04f000 -        0x18d069f7b  libsystem_networkextension.dylib (2226.161.1.700.2) <83F224A4-40C4-3106-A97B-788D1D961DCB> /usr/lib/system/libsystem_networkextension.dylib
+       0x18d0ec000 -        0x18d103fdf  libsystem_asl.dylib (406) <FF6BE113-1093-3D23-8A55-E0A5B327CA8E> /usr/lib/system/libsystem_asl.dylib
+       0x18eca5000 -        0x18ecad387  libsystem_symptoms.dylib (2169.160.3.701.1) <7F0D4E31-268A-3EBB-8A2C-30CCC771A5A5> /usr/lib/system/libsystem_symptoms.dylib
+       0x192f4a000 -        0x192f82373  libsystem_containermanager.dylib (725.160.3.701.2) <118BC21E-B17D-32A2-9B65-16256131974F> /usr/lib/system/libsystem_containermanager.dylib
+       0x19435c000 -        0x1943605d7  libsystem_configuration.dylib (1405.160.3.701.3) <7725D903-1D37-33E7-82AF-2260661C81A8> /usr/lib/system/libsystem_configuration.dylib
+       0x194361000 -        0x19436799f  libsystem_sandbox.dylib (2680.160.6.700.3) <7B54AAA3-EB32-3853-8F0E-EB956EC957A1> /usr/lib/system/libsystem_sandbox.dylib
+       0x1959bc000 -        0x1959bf1fb  libquarantine.dylib (196.160.2.700.3) <45146171-F0C1-3104-AE01-6AAD841A70B5> /usr/lib/system/libquarantine.dylib
+       0x19615b000 -        0x196161d03  libsystem_coreservices.dylib (191.5.1) <BF51842C-BC69-3725-9EB2-7A52804963F8> /usr/lib/system/libsystem_coreservices.dylib
+       0x1966ea000 -        0x196727a77  libsystem_m.dylib (3312.100.1) <A2858495-5B01-3D11-955D-FF6F25E88A6E> /usr/lib/system/libsystem_m.dylib
+       0x196729000 -        0x19672c527  libmacho.dylib (1387) <95DEC6C1-4480-3303-8A52-9AFC3D8C9219> /usr/lib/system/libmacho.dylib
+       0x196746000 -        0x1967533a7  libcommonCrypto.dylib (600035) <EBA6E4D0-4DD2-33BB-BF95-48A58591AAAD> /usr/lib/system/libcommonCrypto.dylib
+       0x196754000 -        0x19675dca3  libunwind.dylib (2100.2) <201827AE-90B0-38B1-9729-50455B607293> /usr/lib/system/libunwind.dylib
+       0x196766000 -        0x196770c1f  libcopyfile.dylib (240.160.2.702.1) <BA7266A8-BF4B-32BF-A323-F4B2EBCDC0B0> /usr/lib/system/libcopyfile.dylib
+       0x196771000 -        0x196774987  libcompiler_rt.dylib (103.3) <9EE26D98-97BF-3BE0-B6BE-425284AB2D24> /usr/lib/system/libcompiler_rt.dylib
+       0x196775000 -        0x19677978b  libsystem_collections.dylib (1752.160.4) <34CEFA68-1E15-32F2-A5B1-97C0170A77C5> /usr/lib/system/libsystem_collections.dylib
+       0x19677a000 -        0x19677d4cf  libsystem_secinit.dylib (168.100.7) <B6B286B6-6E08-3578-8AFC-E4C55697C760> /usr/lib/system/libsystem_secinit.dylib
+       0x19677e000 -        0x196780bf7  libremovefile.dylib (85.100.6) <33530415-3DB6-3556-A59A-24C22681D632> /usr/lib/system/libremovefile.dylib
+       0x196781000 -        0x196781f27  libkeymgr.dylib (31) <AD45B9EE-CE2B-3E1F-B96B-15F7F9FA3712> /usr/lib/system/libkeymgr.dylib
+       0x196782000 -        0x19678ae3f  libsystem_dnssd.dylib (2881.160.4.700.1) <71833E65-58B3-3C06-A4F3-D69D476CCC3C> /usr/lib/system/libsystem_dnssd.dylib
+       0x19678b000 -        0x19679009b  libcache.dylib (95) <A13AF0DC-5928-38BE-97FF-E04C29EF96AF> /usr/lib/system/libcache.dylib
+       0x196791000 -        0x196792ce3  libSystem.B.dylib (1356) <E9E4C9A6-16BB-392C-96AA-07797764E2A1> /usr/lib/libSystem.B.dylib
+       0x28a469000 -        0x28a470349  libRosetta.dylib (367.9) <3DBB2990-262D-3776-8FAC-B88C0373DCF0> /usr/lib/libRosetta.dylib
+       0x28c07c000 -        0x28c07fa4b  libsystem_darwindirectory.dylib (122) <6246210A-5279-391D-8F58-E62A87CAB309> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x28c080000 -        0x28c08a39b  libsystem_eligibility.dylib (319.160.17) <85C0486B-60BE-3E10-ABBF-DD74341B7376> /usr/lib/system/libsystem_eligibility.dylib
+       0x28c08b000 -        0x28c09288b  libsystem_sanitizers.dylib (26.1) <A8C4F7FC-3443-35F7-B306-068D06237ED0> /usr/lib/system/libsystem_sanitizers.dylib
+       0x28c093000 -        0x28c093bbf  libsystem_trial.dylib (474.2.18.2.1) <83FF8DEB-1153-35BA-99C3-2AEF9B7559CD> /usr/lib/system/libsystem_trial.dylib

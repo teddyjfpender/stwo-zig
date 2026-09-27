@@ -1,0 +1,72 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "memory-source-batch-semantic-v3-result.json",
+  "focused": "memory-source-batch-focused-v2-result.json",
+  "checks": 17,
+  "scope": "Bounded simultaneous initial/final tree fold; exact original roots and mutable touched input semantics; original indexed source/coordinate/hash joins; actual packed BLAKE3 G/XOR framing, schedule and wire constraints; canonical default heights; graph mutation and complete allocation unwind fixtures.",
+  "source_revisions": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_fold_v1.zig",
+      "sha256": "8abc55dee84cd3c1ae172b12d27478b6a6f814d26210f840f2d680560e6583a0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_protocol_v1.zig",
+      "sha256": "13d28dcf5e5585b81764906e36ac718185566bf6f5995962bdd5298e59ae6d64"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_batch_equations_v1.zig",
+      "sha256": "ddc71eb54aeaf2592326963ae80826fdfdb7c39d99920dda89e35841576c524e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig",
+      "sha256": "2fab7990e85af24a0f77bacbdc14a9144087c9f021bb30914d96ab476ce37bfe"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_records_v1.zig",
+      "sha256": "ae8614779edc9c730c85b604e0184abe5fe51980d706db0fffedfeb63c61d95f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_circuit_v1.zig",
+      "sha256": "aeaafc368be380d11547eda270871777eca859d9e03f93ded08885c32ac01856"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_hash_circuit_v1.zig",
+      "sha256": "94cc6f8b8e95cce706c6e3d53ee80677e0096beffcfb21f943b7854996ce9f2a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_defaults_v1.zig",
+      "sha256": "8c6b9afdd3041d799630b2a5d6531ee087c2d7b4773ba637b47d17a0687d7242"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_test_v1.zig",
+      "sha256": "cdb423e9feac9167619f76e281ee2381f21340d416fa1c369ec4445b7f50042b"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_batch_codegen.zig",
+      "sha256": "e8ce50bfc9ec80399b95a4eecf2a35eb3907633b084cb0ad0af524300862c889"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_batch_test_root.zig",
+      "sha256": "9447fb5004d92f4e757e3fbf2c8b35162e0ac12699c18d2fe47d4f3efe10e8a9"
+    }
+  ],
+  "work_count_evidence": {
+    "kind": "dense_fixture_hash_compression_count_only",
+    "original_per_edit_oracle": "122 * 263",
+    "new_bound": "new_compressions * 16 < 122 * 263",
+    "end_to_end_speedup_measured": false
+  },
+  "corrections": [
+    "Initialize the standard-library BLAKE3 default tree once at runtime to avoid Zig0.15 comptime truncation.",
+    "Allocation-failure fixtures propagate OOM from mutation evaluation rather than converting it to an unexpected assertion error; successful mutation acceptance still fails."
+  ],
+  "pending": [
+    "Exact Source9 SHA/page proof and PCS/FRI/fresh receiver integration",
+    "Challenge epoch compliance across source and arithmetic rosters",
+    "Recursive source/global closure and canonical driver activation",
+    "Successful complete proof and end-to-end timing/peak-memory measurements"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

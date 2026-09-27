@@ -29,6 +29,7 @@ const entry = @import("entry.zig");
 const opcode_entries = @import("opcode_entries.zig");
 const opcode_interaction = @import("opcode_interaction.zig");
 const runtime_program = @import("../extract/runtime_program.zig");
+const local_zero = @import("../x0_native_envelope_v1.zig");
 const selected_batching = @import("../lang/lookup_batch_execution.zig");
 const batch_planner = @import("../lang/lookup_batch_planner.zig");
 const physical_v2 = @import("../lang/lookup_physical_manifest_v2.zig");
@@ -121,6 +122,12 @@ pub const OpcodeLookupComponent = struct {
             relations,
             claims,
         );
+    }
+
+    pub fn initLocalZero(family: trace.OpcodeFamily, log_size: u32, is_first_col_idx: usize, main_col_offset: usize, interaction_col_offset: usize, relations: *const relations_mod.Relations, claims: []const QM31) !OpcodeLookupComponent {
+        var result = try init(family, log_size, is_first_col_idx, main_col_offset, interaction_col_offset, relations, claims);
+        result.mask_binding = try row_window.ComponentMaskBinding.initLocalZero(family);
+        return result;
     }
 
     /// Research-only candidate constructor. The selected plan deliberately
@@ -348,7 +355,7 @@ pub const OpcodeLookupComponent = struct {
         if (self.batching == .compatibility) {
             component.backend_composition_capability = .{
                 .lookup_polynomial_v1 = .{
-                    .program_id = (@as(u64, 2) << 32) | @intFromEnum(self.family),
+                    .program_id = (@as(u64, if (self.mask_binding.local_zero) 8 else 2) << 32) | @intFromEnum(self.family),
                     .trace_log_size = self.log_size,
                     .selector_tree_index = 0,
                     .selector_column = self.is_first_col_idx,
@@ -408,10 +415,7 @@ pub const OpcodeLookupComponent = struct {
         const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
         return switch (self.batching) {
             .compatibility => blk: {
-                var program = try runtime_program.buildLookups(
-                    allocator,
-                    self.family,
-                );
+                var program = if (self.mask_binding.local_zero) try local_zero.lookupProgram(allocator, self.family) else try runtime_program.buildLookups(allocator, self.family);
                 defer program.deinit();
                 break :blk try composition_work_support.lookupProgramProfile(
                     allocator,
@@ -448,7 +452,7 @@ pub const OpcodeLookupComponent = struct {
         allocator: std.mem.Allocator,
     ) !prover_component.OwnedLookupPolynomialProgram {
         const self: *const OpcodeLookupComponent = @ptrCast(@alignCast(ctx));
-        return runtime_program.buildLookups(allocator, self.family);
+        return if (self.mask_binding.local_zero) local_zero.lookupProgram(allocator, self.family) else runtime_program.buildLookups(allocator, self.family);
     }
 
     fn exportRuntimeProgramV2(
@@ -547,12 +551,13 @@ pub const OpcodeLookupComponent = struct {
             @as(usize, self.mask_binding.preprocessed_current_columns) !=
                 authority.preprocessed.columns or
             @as(usize, self.mask_binding.borrowed_main_current_columns) !=
-                authority.main.columns)
+                (if (self.mask_binding.local_zero) try local_zero.mainColumnCount(self.family) else authority.main.columns))
         {
             return error.InvalidWindowDigest;
         }
 
         var result = authority;
+        if (self.mask_binding.local_zero) result.main.columns = try local_zero.mainColumnCount(self.family);
         switch (self.mask_binding.mode) {
             .compatibility => {
                 if (self.batching != .compatibility or
@@ -572,7 +577,7 @@ pub const OpcodeLookupComponent = struct {
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
-        return self.log_size + 1;
+        return self.log_size + @as(u32, if (self.mask_binding.local_zero) 2 else 1);
     }
 
     pub fn traceLogDegreeBounds(

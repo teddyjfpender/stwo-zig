@@ -1,0 +1,22 @@
+{
+  "source_candidate": "caller-admission-ownership-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 118.28585187497083,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 21,
+  "test_summary": [
+    "All 21 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-admission-ownership-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-caller-admission-ownership-focused-v2",
+    "bytes": 12642160,
+    "sha256": "500fa8f600ce13802df0f904e53f931d6419ce135abb78ef276a0c10f379615e"
+  }
+}

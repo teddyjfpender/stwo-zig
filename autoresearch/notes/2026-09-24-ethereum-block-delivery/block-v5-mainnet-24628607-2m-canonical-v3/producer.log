@@ -1,0 +1,84 @@
+BLOCK_V5_PREFLIGHT started=true segment_cycle_budget=2097152
+BLOCK_V5_PREFLIGHT complete=true guest_cycles=139214856 segments=67 preflight_ms=42238
+BLOCK_V5_COLLECT segment=1/67 cycles=2077834 memory_events=5028065
+BLOCK_V5_COLLECT segment=17/67 cycles=35323178 memory_events=89781134
+BLOCK_V5_COLLECT segment=33/67 cycles=68568522 memory_events=174627069
+BLOCK_V5_COLLECT segment=49/67 cycles=101813862 memory_events=260921246
+BLOCK_V5_COLLECT segment=65/67 cycles=135059190 memory_events=346222830
+BLOCK_V5_COLLECT segment=67/67 cycles=139214856 memory_events=356303914
+BLOCK_V5_COLLECT sorted_events=356303914 lookup_groups=14 global_roots_started=true
+BLOCK_V5_DRIVER collected=true segments=67 memory_instances=85 base_files=622 collection_ms=1650976
+BLOCK_V5_PROVE sidecars_started=1/67
+BLOCK_V5_PROVE sidecars_published=1/67 elapsed_ms=80664
+BLOCK_V5_PROVE native_published=1/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=31640 removed_scalars=126560
+BLAKE3_NATIVE_FUSION dot4=111780 fma=77674 arithmetic_rows=332435
+BLOCK_V5_PROVE native_and_recursive_leaf=1/67 leaf_ms=21837
+BLOCK_V5_PROVE sidecars_started=2/67
+BLOCK_V5_PROVE sidecars_published=2/67 elapsed_ms=79597
+BLOCK_V5_PROVE native_published=2/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=31290 removed_scalars=125160
+BLAKE3_NATIVE_FUSION dot4=111056 fma=76459 arithmetic_rows=329235
+BLOCK_V5_PROVE native_and_recursive_leaf=2/67 leaf_ms=21461
+BLOCK_V5_PROVE sidecars_started=3/67
+BLOCK_V5_PROVE sidecars_published=3/67 elapsed_ms=82430
+BLOCK_V5_PROVE native_published=3/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=32200 removed_scalars=128800
+BLAKE3_NATIVE_FUSION dot4=113796 fma=77776 arithmetic_rows=335431
+BLOCK_V5_PROVE native_and_recursive_leaf=3/67 leaf_ms=21535
+BLOCK_V5_PROVE sidecars_started=4/67
+BLOCK_V5_PROVE sidecars_published=4/67 elapsed_ms=79315
+BLOCK_V5_PROVE native_published=4/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=32200 removed_scalars=128800
+BLAKE3_NATIVE_FUSION dot4=113796 fma=77776 arithmetic_rows=335392
+BLOCK_V5_PROVE native_and_recursive_leaf=4/67 leaf_ms=22358
+BLOCK_V5_PROVE sidecars_started=5/67
+BLOCK_V5_PROVE sidecars_published=5/67 elapsed_ms=78359
+BLOCK_V5_PROVE native_published=5/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=32760 removed_scalars=131040
+BLAKE3_NATIVE_FUSION dot4=115386 fma=78431 arithmetic_rows=338750
+BLOCK_V5_PROVE native_and_recursive_leaf=5/67 leaf_ms=21336
+BLOCK_V5_PROVE sidecars_started=6/67
+BLOCK_V5_PROVE sidecars_published=6/67 elapsed_ms=80302
+BLOCK_V5_PROVE native_published=6/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=31360 removed_scalars=125440
+BLAKE3_NATIVE_FUSION dot4=111728 fma=58280 arithmetic_rows=291031
+BLOCK_V5_PROVE native_and_recursive_leaf=6/67 leaf_ms=17636
+BLOCK_V5_PROVE sidecars_started=7/67
+BLOCK_V5_PROVE sidecars_published=7/67 elapsed_ms=79767
+BLOCK_V5_PROVE native_published=7/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=31500 removed_scalars=126000
+BLAKE3_NATIVE_FUSION dot4=112736 fma=58442 arithmetic_rows=292696
+BLOCK_V5_PROVE native_and_recursive_leaf=7/67 leaf_ms=17854
+BLOCK_V5_PROVE sidecars_started=8/67
+BLOCK_V5_PROVE sidecars_published=8/67 elapsed_ms=80737
+BLOCK_V5_PROVE native_published=8/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=31360 removed_scalars=125440
+BLAKE3_NATIVE_FUSION dot4=112877 fma=58656 arithmetic_rows=293136
+BLOCK_V5_PROVE native_and_recursive_leaf=8/67 leaf_ms=18011
+BLOCK_V5_PROVE sidecars_started=9/67
+BLOCK_V5_PROVE sidecars_published=9/67 elapsed_ms=80193
+BLOCK_V5_PROVE native_published=9/67 recursive_leaf_started=true
+BLAKE3_NATIVE_QUERY_FUSION groups=32060 removed_scalars=128240
+BLAKE3_NATIVE_FUSION dot4=115331 fma=58762 arithmetic_rows=296722
+BLOCK_V5_PROVE native_and_recursive_leaf=9/67 leaf_ms=17614
+BLOCK_V5_PROVE sidecars_started=10/67
+time: command terminated abnormally
+     2758.73 real      4982.46 user       109.53 sys
+         10183507968  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           121599353  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                7779  voluntary context switches
+             1562282  involuntary context switches
+      68122610776752  instructions retired
+      21697530125175  cycles elapsed
+         10193809104  peak memory footprint

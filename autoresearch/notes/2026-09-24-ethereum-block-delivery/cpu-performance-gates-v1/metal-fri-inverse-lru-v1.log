@@ -1,0 +1,19 @@
+1/18 metal_fri_inverse_lease_test_root.test.FRI leases: same-key readers overlap and drain is busy until both finish...OK
+2/18 metal_fri_inverse_lease_test_root.test.FRI leases: replacement cannot mutate or release an older live reader...OK
+3/18 metal_fri_inverse_lease_test_root.test.FRI leases: private racing proposals publish only successful checked work...OK
+4/18 metal_fri_inverse_lease_test_root.test.FRI leases: concurrent duplicate generation is charged and safely deduplicated...OK
+5/18 metal_fri_inverse_lease_test_root.test.FRI leases: all key fields are admitted and factory rollback preserves existing readers...OK
+6/18 metal_fri_inverse_lease_test_root.test.FRI leases: bounded reader admission and original owner release preserve lifetime...OK
+7/18 metal_fri_inverse_lease_test_root.test.FRI leases: checked completions overlap on the same admitted inverse buffer...OK
+8/18 metal_fri_inverse_lease_test_root.test.FRI leases: a full immutable entry set cannot evict active domains...OK
+9/18 metal_fri_inverse_lease_test_root.test.FRI leases: factory OOM releases only private reservations and borrowed readers...OK
+10/18 metal_fri_inverse_lease_test_root.test.FRI leases: cold resource factories can overlap before private publication...OK
+11/18 metal_fri_inverse_lease_test_root.test.FRI leases: changing layer count or step requires a distinct inverse...OK
+12/18 metal_fri_inverse_lease_test_root.test.FRI LRU: alternating actual circle and line geometries reuse admitted resources...OK
+13/18 metal_fri_inverse_lease_test_root.test.FRI LRU: ninth geometry evicts least recently used idle entry...OK
+14/18 metal_fri_inverse_lease_test_root.test.FRI LRU: pressure eviction is explicit while live readers survive failed factories...OK
+15/18 metal_fri_inverse_lease_test_root.test.FRI LRU: reservation pressure can reclaim idle bytes for valid larger work...OK
+16/18 metal_fri_inverse_lease_test_root.test.FRI LRU: oversized idle inverses remain private without weakening proof admission...OK
+17/18 metal_fri_inverse_lease_test_root.test.FRI LRU: large fused circle and line pair fits intentional idle ceilings...OK
+18/18 metal_fri_inverse_lease_test_root.test.FRI LRU: pressure publication on another thread preserves a live reader...OK
+All 18 tests passed.

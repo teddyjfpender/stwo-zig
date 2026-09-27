@@ -50,7 +50,8 @@ const Context = struct {
     relations: *const relations_mod.Relations,
 
     pub fn rowPairsAt(self: Context, logical_row: usize) [batch_count]logup.RowPair {
-        const main = readMain(self.trace, logical_row);
+        var main: [trace_mod.Layout.main_columns + 2]M31 = undefined;
+        for (main[0..self.trace.mainColumnCount()], 0..) |*value, column| value.* = self.trace.mainAt(column, logical_row);
         const next = readState(
             self.trace,
             (logical_row + 1) % self.trace.domainSize(),
@@ -60,12 +61,14 @@ const Context = struct {
             (logical_row + 27) % self.trace.domainSize(),
         );
         const selectors = readSelectors(self.trace, logical_row);
-        return plan.rowPairsBase(
-            &main,
+        return plan.rowPairsGenericForRecipe(
+            M31,
+            main[0..self.trace.mainColumnCount()],
             &next,
             &caller_output,
             &selectors,
             self.relations,
+            self.trace.x0_local_custody_version == 1,
         ) catch unreachable;
     }
 };

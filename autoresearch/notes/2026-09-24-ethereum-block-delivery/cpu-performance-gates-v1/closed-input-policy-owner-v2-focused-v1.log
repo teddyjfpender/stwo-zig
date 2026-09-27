@@ -1,0 +1,15 @@
+1/14 block_v5_closed_input_request_policy_test_root_v2.test_0...OK
+2/14 block_v5_closed_input_request_policy_test_root_v2.test.closed input policy: retain real version5 durable owner CPU publish reconstruct fresh root bodies...OK
+3/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: exact native window and minimum node file census...OK
+4/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: every range census allocation failure rolls back...OK
+5/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: future node slots are owned empty and explicitly unadmitted...OK
+6/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: every future slot allocation failure rolls back...OK
+7/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: public window and node files have separate version5 namespace...OK
+8/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: empty external grammar cannot carry a descendant schedule...OK
+9/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: retained metadata budget survives original owner release and rejects caps...OK
+10/14 prover.block_v5_closed_input_request_policy_test_v2.test.closed input policy: unfinished owner fails before accessing any original authority...OK
+11/14 air.semantic_eval.test_0...OK
+12/14 air.memory_commitment.poseidon2_air.test_0...OK
+13/14 air.lookups.tables.mod.test_0...OK
+14/14 air.lookups.tables.source_ingest.test_0...OK
+All 14 tests passed.

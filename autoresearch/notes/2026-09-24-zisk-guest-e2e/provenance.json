@@ -1,0 +1,20 @@
+{
+  "artifact_sha256": {
+    "/tmp/stwo-zisk-guest-e2e-20260924/rust-toolchain.tar.gz": "6d9f248d098bd34016e8b39e3fa6d8a6dc25f7538d0d73b7ab219d6feaf397ae",
+    "/tmp/stwo-zisk-guest-e2e-20260924/protoc.zip": "4aeea0a34b0992847b03a8489a8dbedf3746de01109b74cc2ce9b6888a901ed9",
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/cargo-zisk": "213007582916b4efc2c3f862fedd552046e76a9669f6008d66934e96d675ff82",
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/cargo-zisk-dev": "9b9778e207473b4671f68a9f20c9124b5059f60cba50f154632ae9959ef284ef",
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-large-guest-benchmark": "d3cd03b2d405648a63b8a013fefaeb05bddd97ccff2b87f03a69a4c16e590849",
+    "zig-out/bin/stwo-zig-riscv-cpu": "fff84e83f931c50ae9bc4c0320dc97395097d4e676b545dcc941e8420b562d44"
+  },
+  "rust_toolchain_tag": "zisk-4.0.0",
+  "rust_toolchain_tag_commit": "ae4928fa0d3c7e4be46e8e8db185ac07436c0aa9",
+  "peer_source": "5c5f81c96929abed88894473ec6060b1b545b5c5",
+  "local_head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "retained_final_artifacts": {
+    "local-cli": "fff84e83f931c50ae9bc4c0320dc97395097d4e676b545dcc941e8420b562d44",
+    "local-guest.elf": "17be70b3f9e3a4ec5607278cae2535320230b51cb9b47dc4b1c2e3c5ba00c38c",
+    "peer-host-bound": "efa687a5a5c910492ce25a4612ff52b9e941d16bb49e98eb52c9995c562a2b43",
+    "peer-guest-bound.elf": "d4ef1f67b51b4d21bdc51e05b46fb46523006079412bd86dacaf4e3c97091b53"
+  }
+}

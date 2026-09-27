@@ -1,0 +1,14 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/Thread.zig:698:45: error: comptime call of extern function
+                assert(c.pthread_threadid_np(null, &thread_id) == 0);
+                       ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/Thread.zig:375:29: note: called at comptime from here
+    return Impl.getCurrentId();
+           ~~~~~~~~~~~~~~~~~^~
+src/backends/cuda/runtime/context.zig:28:65: note: called at comptime from here
+        owner_thread_id: std.Thread.Id = std.Thread.getCurrentId(),
+                                         ~~~~~~~~~~~~~~~~~~~~~~~^~
+src/backends/cuda/runtime/context.zig:28:65: note: struct field default value must be comptime-known
+referenced by:
+    Context: src/backends/cuda/runtime/context.zig:14:12
+    context: src/backends/cuda/runtime/context_lanes_test_v1.zig:8:50
+    2 reference(s) hidden; use '-freference-trace=4' to see all references

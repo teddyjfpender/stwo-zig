@@ -1,0 +1,86 @@
+{
+  "timed_proofs": 48,
+  "fresh_verifications": 16,
+  "rows": [
+    {
+      "case": "metal-ecdsa_secp256k1-32",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 0.974179729,
+        "composition_median_seconds": 0.30365149999999996,
+        "historical_prove_mean_seconds": 0.8225775765,
+        "peak_process_bytes": 1629456544,
+        "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 0.7354104795,
+        "composition_median_seconds": 0.06518950000000001,
+        "historical_prove_mean_seconds": 0.5777529164999999,
+        "peak_process_bytes": 1869089096,
+        "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+      },
+      "total_speedup": 1.3246747988447722
+    },
+    {
+      "case": "metal-sha256-128",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 1.90521275,
+        "composition_median_seconds": 0.27214700000000003,
+        "historical_prove_mean_seconds": 1.4356810346666666,
+        "peak_process_bytes": 4630941440,
+        "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 1.768018729,
+        "composition_median_seconds": 0.1327225,
+        "historical_prove_mean_seconds": 1.3061733128333333,
+        "peak_process_bytes": 4866363064,
+        "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+      },
+      "total_speedup": 1.0775976061506982
+    },
+    {
+      "case": "metal-sha256-2048",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 3.254150271,
+        "composition_median_seconds": 0.6035900000000001,
+        "historical_prove_mean_seconds": 2.625980972333333,
+        "peak_process_bytes": 8392709928,
+        "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 2.907798625,
+        "composition_median_seconds": 0.2556265,
+        "historical_prove_mean_seconds": 2.2807829375,
+        "peak_process_bytes": 8631490296,
+        "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+      },
+      "total_speedup": 1.1191112902462426
+    },
+    {
+      "case": "metal-keccak-128",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 3.1705604585,
+        "composition_median_seconds": 0.57333,
+        "historical_prove_mean_seconds": 2.581476701,
+        "peak_process_bytes": 8126830016,
+        "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 2.85082375,
+        "composition_median_seconds": 0.25941400000000003,
+        "historical_prove_mean_seconds": 2.254965958666667,
+        "peak_process_bytes": 8363676976,
+        "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+      },
+      "total_speedup": 1.1121559017810203
+    }
+  ]
+}

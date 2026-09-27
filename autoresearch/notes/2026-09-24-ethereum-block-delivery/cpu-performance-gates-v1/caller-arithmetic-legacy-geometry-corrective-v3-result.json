@@ -1,0 +1,22 @@
+{
+  "source_candidate": "caller-arithmetic-legacy-geometry-corrective-v3-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 23.360501707997173,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 3,
+  "test_summary": [
+    "All 3 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-arithmetic-legacy-geometry-corrective-v3.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-caller-arithmetic-legacy-geometry-corrective-v3",
+    "bytes": 2042632,
+    "sha256": "79e87d38080e6de1670846b5bfb17fdbdaef684e13648a2fb7c8909f081f11af"
+  }
+}

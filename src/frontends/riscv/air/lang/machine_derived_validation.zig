@@ -4,6 +4,7 @@ const expr = @import("expr.zig");
 const ir = @import("ir.zig");
 const range_refinement = @import("range_refinement.zig");
 const types = @import("types.zig");
+const relation = @import("relation.zig");
 
 pub const Error = error{
     OrphanedMachineDerived,
@@ -211,6 +212,7 @@ fn allowedEffectUse(
     field_index: usize,
     value: types.ValueId,
 ) bool {
+    if (componentAddressUse(arena, effect_index, field_index, value)) return true;
     for (groups.items[0..groups.len]) |group| {
         if (value == group.address and
             (effect_index == group.first_effect or
@@ -264,6 +266,43 @@ fn allowedEffectUse(
         .instruction_next_clock => |next| field_index == 1 and next.current == before[1],
         else => false,
     };
+}
+
+/// A pinned component may own multiple parallel memory words at one machine
+/// phase. Its author proves address bounds and clock equations. The closed
+/// address projection may occur only in an adjacent consume/emit/range triple,
+/// never in arbitrary expressions or unrelated component tuples.
+fn componentAddressUse(arena: *const ir.Arena, index: usize, field: usize, value: types.ValueId) bool {
+    if (field != 1) return false;
+    const derived = get(arena, value) orelse return false;
+    switch (derived) {
+        .register_address, .aligned_word_address => {},
+        else => return false,
+    }
+    const all = arena.effectsView();
+    const effect = all[index];
+    const bound = effect.binding orelse return false;
+    if (effect.kind != .component_call or bound.schema != relation.id(.memory_access)) return false;
+    const start = switch (bound.role) {
+        .consume => index,
+        .emit => if (index > 0) index - 1 else return false,
+        else => return false,
+    };
+    if (start + 2 >= all.len) return false;
+    const before = all[start];
+    const after = all[start + 1];
+    const range = all[start + 2];
+    const bb = before.binding orelse return false;
+    const ab = after.binding orelse return false;
+    const rb = range.binding orelse return false;
+    if (before.kind != .component_call or after.kind != .component_call or range.kind != .component_call or
+        bb.schema != relation.id(.memory_access) or ab.schema != bb.schema or
+        bb.role != .consume or ab.role != .emit or rb.schema != relation.id(.range_check_20) or rb.role != .request or
+        before.liveness == null or before.liveness != after.liveness or before.liveness != range.liveness) return false;
+    const b = before.values.slice(arena.effectValuesView()) orelse return false;
+    const a = after.values.slice(arena.effectValuesView()) orelse return false;
+    const r = range.values.slice(arena.effectValuesView()) orelse return false;
+    return b.len == 7 and a.len == 7 and r.len == 1 and b[0] == a[0] and b[1] == value and a[1] == value;
 }
 
 fn isControlTarget(arena: *const ir.Arena, value: types.ValueId) bool {

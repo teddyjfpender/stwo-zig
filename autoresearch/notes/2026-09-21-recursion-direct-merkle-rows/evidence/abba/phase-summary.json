@@ -1,0 +1,22 @@
+{
+  "baseline": {
+    "median_rss_bytes": 4392353792.0,
+    "phase_medians_seconds": {
+      "capture_ns": 0.43719847850000004,
+      "authority_ns": 0.9431289789999999,
+      "rows_ns": 0.6528367915,
+      "source_projection_ns": 0.873019021,
+      "typed_ns": 0.186882458
+    }
+  },
+  "candidate": {
+    "median_rss_bytes": 4392206336.0,
+    "phase_medians_seconds": {
+      "capture_ns": 0.43761649999999996,
+      "authority_ns": 0.9357990835000001,
+      "rows_ns": 0.532217229,
+      "source_projection_ns": 0.8592268755000001,
+      "typed_ns": 0.18500397899999999
+    }
+  }
+}

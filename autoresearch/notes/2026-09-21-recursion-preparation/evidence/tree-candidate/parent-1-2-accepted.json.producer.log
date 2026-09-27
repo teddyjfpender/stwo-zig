@@ -1,0 +1,78 @@
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=5087916 transcript_ns=154625 pcs_ns=1047348542 boundary_ns=37880292 composition_ns=11974583
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1102514833
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=5132541 transcript_ns=153625 pcs_ns=1034672042 boundary_ns=37824792 composition_ns=11863458
+DETACHED_PARENT_CHILD lane=2 preparation_ns=2192192583
+riscv_detached_arithmetic_fusion lane=501 dot4_rows=418 multiply_add_rows=9540
+riscv_detached_arithmetic_fusion lane=511 dot4_rows=5440 multiply_add_rows=53629
+riscv_detached_arithmetic_fusion lane=412 dot4_rows=117569 multiply_add_rows=33156
+riscv_detached_arithmetic_fusion lane=402 dot4_rows=5404 multiply_add_rows=93044
+riscv_detached_arithmetic_fusion lane=502 dot4_rows=418 multiply_add_rows=9540
+riscv_detached_arithmetic_fusion lane=512 dot4_rows=5440 multiply_add_rows=53629
+riscv_detached_arithmetic_fusion lane=413 dot4_rows=117569 multiply_add_rows=33156
+riscv_detached_arithmetic_fusion lane=403 dot4_rows=5404 multiply_add_rows=93044
+riscv_detached_arithmetic_fusion lane=521 dot4_rows=2746 multiply_add_rows=3708
+DETACHED_PARENT_ROW row=0 rows=6382 logical_bytes=306336
+DETACHED_PARENT_ROW row=1 rows=3006 logical_bytes=577152
+DETACHED_PARENT_ROW row=2 rows=3006 logical_bytes=444888
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=22368 logical_bytes=1699968
+DETACHED_PARENT_ROW row=5 rows=20748 logical_bytes=1742832
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=51169 logical_bytes=4707548
+DETACHED_PARENT_ROW row=12 rows=1304 logical_bytes=516384
+DETACHED_PARENT_ROW row=13 rows=125260 logical_bytes=5010400
+DETACHED_PARENT_ROW row=14 rows=260408 logical_bytes=56248128
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=103834 logical_bytes=36134232
+DETACHED_PARENT_ROW row=24 rows=853232 logical_bytes=88736128
+DETACHED_PARENT_ROW row=25 rows=20844 logical_bytes=7837344
+DETACHED_PARENT_ROW row=26 rows=5018 logical_bytes=843024
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=128974 logical_bytes=15476880
+DETACHED_PARENT_ROW row=30 rows=755849 logical_bytes=81631692
+DETACHED_PARENT_ROW row=31 rows=67074 logical_bytes=8585472
+DETACHED_PARENT_ROW row=32 rows=305528 logical_bytes=62327712
+DETACHED_PARENT_ROW row=33 rows=46706 logical_bytes=8593904
+DETACHED_PARENT_PREPARATION rows_bytes=384633656 providers=180712 graph_ns=2539258333 snapshot_pending=true
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=2 gpu_ms=0.06025000038789585
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.10400000246590935
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=7 gpu_ms=0.12395833255141042
+METAL_FRAMEWORK_INTERACTION rows=256 batches=6 gpu_ms=0.10150000161956996
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.05329166742740199
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.05441666507977061
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.038124999264255166
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.03179166742484085
+METAL_FRAMEWORK_INTERACTION rows=128 batches=9 gpu_ms=0.11987499965471216
+METAL_FRAMEWORK_INTERACTION rows=128 batches=5 gpu_ms=0.08974999946076423
+METAL_FRAMEWORK_INTERACTION rows=16 batches=3 gpu_ms=0.05075000080978498
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=3 gpu_ms=0.1329166661889758
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=17 gpu_ms=0.24179166575777344
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=1 gpu_ms=0.14129166811471805
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.9898333337332588
+METAL_FRAMEWORK_INTERACTION rows=512 batches=17 gpu_ms=0.22400000307243317
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.07612500121467747
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.06737500007147901
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=7 gpu_ms=1.1521249980432913
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.3500833340222016
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=7 gpu_ms=0.37850000080652535
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=3 gpu_ms=0.10087500049849041
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.055374999647028744
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.04833333150600083
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=5 gpu_ms=0.3299999989394564
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.7783333314582705
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=1 gpu_ms=0.17095833391067572
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.7306250008696225
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=2 gpu_ms=0.18854166410164908
+DETACHED_PARENT_TYPED_DEVICE_INTERACTION components=29 dispatches=116
+info: resident framework composition: components=30 groups=14 gpu_ms=8.406
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 6.801 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.437 ms GPU
+DETACHED_PARENT_METAL dispatches=238 poseidon_commits=9 cpu_fallbacks=0 host_composition_components=0 pow_dispatches=2 runtime_released=true manifest_sha256=d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899 profile=recursive_framework_v1 framework_dispatches=30
+{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-memory-continuation-span-v2","publication_mode":"intermediate","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":true,"child_key_sha256":[[26,40,151,217,103,51,157,216,202,134,188,215,146,53,228,30,109,5,177,252,252,93,194,95,63,255,93,92,190,101,40,130],[229,13,201,184,118,64,88,63,239,117,116,229,84,53,3,67,217,15,66,124,237,228,94,178,142,182,20,22,171,36,204,138]],"artifacts":{"key_sha256":[41,193,207,68,23,141,135,22,37,12,92,143,251,21,211,209,253,25,38,150,63,17,14,244,149,112,255,134,7,115,154,121],"claims_sha256":[137,53,199,42,190,192,86,41,22,174,73,53,148,184,135,79,24,232,193,66,198,28,63,200,8,134,187,220,20,87,54,250],"proof_sha256":[96,189,234,15,235,111,232,64,119,178,0,175,109,66,79,224,31,99,2,238,174,114,123,68,21,48,201,221,125,200,37,222],"proof_bytes":2412980},"candidate_root_words_sha256":[110,173,94,97,59,162,181,172,52,10,237,9,212,205,11,41,67,228,71,172,231,115,115,216,250,76,220,208,63,29,85,135],"circuit_identity":[235,148,44,244,99,179,16,93,13,50,33,50,56,17,23,186,29,221,209,78,96,125,139,209,176,8,92,71,107,166,158,39],"preparation_ns":2731886833,"key_preparation_ns":369473917,"proof_ns":2532701125,"request_ns":5844256917}

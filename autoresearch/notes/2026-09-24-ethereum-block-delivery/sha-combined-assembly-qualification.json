@@ -1,0 +1,19 @@
+{
+  "base_qualification": "sha-combined-witness-qualification.json",
+  "archive": "sha-combined-assembly-source.tar.gz",
+  "archive_sha256": "87a533eceaa7364e2f101f9e994ead09f0a1a8fd1a9ee9dae338e331bf84f6b3",
+  "source_sha256": {
+    "src/frontends/riscv/prover/guest_precompile/ethereum_assembly.zig": "be0d100bb82e57223a6851dff6937df087cd8139b79e88020cf5a1487a990bdf",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_assembly.zig": "5ad6f27a157d80572e5cd6bd5f203c800611ddc7838df79c5eac82559089903d",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_types.zig": "6b4fb3fe27e457011f8bc701c7e678f341b9c3aa17e2ed7d3aeee1fae51bd44c",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_claim_wire.zig": "8d07586018ff8987965e97b203954886797e0e701fcaa980aad8ae0802674cfc",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_columns.zig": "5acf0a4186dee8197890f23e9f72508808938445eaddd27bf42cec0e7dc85fbb",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_witness_test.zig": "6b2fd7f1a8a864edb2d059c9f00c1129ef5fc649c6dba051afb014d31667a5bf"
+  },
+  "test_log": "test-sha-combined-assembly-2.log",
+  "test_log_sha256": "39618972fc7e56de79f4643dad61e59e7f81a745d3633f67d692f45029e9dfe7",
+  "tests_passed": 12,
+  "combined_sha_leaf_stark_verified": false,
+  "combined_sha_recursive_root_verified": false,
+  "full_ethereum_block_root_verified": false
+}

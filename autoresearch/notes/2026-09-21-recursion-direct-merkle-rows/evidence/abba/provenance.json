@@ -1,0 +1,19 @@
+{
+  "scope": "local advisory complete-parent ABBA, not a judged board result",
+  "receipt": "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-3-0-accepted.json",
+  "receipt_sha256": "f8fb192189264297613b7507815b25cc9c8b053297fe44a4ecc7d6fada607a45",
+  "binary_sha256": {
+    "baseline": "c965b16fbe002f7042163b8b9d2323ea86342080dd3a6b37ebf066fe1fd172b0",
+    "candidate": "9a6a952d4f3818ed112d4dfc08bf3e8462cf95e96e5f816fc767978367a5f587"
+  },
+  "verifier_sha256": "382d3585ebbe93abdfdd7cf77505792043378ab3add971d1b3b52b0863f6d53b",
+  "expected_artifacts": {
+    "key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+    "proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb"
+  },
+  "rounds": 3,
+  "environment": {
+    "STWO_RISCV_RECURSIVE_PARENT_PROFILE": "1"
+  }
+}

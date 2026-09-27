@@ -1,0 +1,62 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_HASH_CENSUS kind=trace index=0 openings=70 depth=21 payload_g=39200 ancestor_g=164640 unique_payloads=70 unique_ancestors=1059 shared_candidate_g=157808
+BLAKE3_HASH_CENSUS kind=trace index=1 openings=70 depth=21 payload_g=274400 ancestor_g=164640 unique_payloads=70 unique_ancestors=1059 shared_candidate_g=393008
+BLAKE3_HASH_CENSUS kind=trace index=2 openings=70 depth=21 payload_g=176400 ancestor_g=164640 unique_payloads=70 unique_ancestors=1059 shared_candidate_g=295008
+BLAKE3_HASH_CENSUS kind=trace index=3 openings=70 depth=21 payload_g=3920 ancestor_g=164640 unique_payloads=70 unique_ancestors=1059 shared_candidate_g=122528
+BLAKE3_HASH_CENSUS kind=fri index=0 openings=70 depth=20 payload_g=15680 ancestor_g=156800 unique_payloads=70 unique_ancestors=989 shared_candidate_g=126448
+BLAKE3_HASH_CENSUS kind=fri index=1 openings=70 depth=19 payload_g=15680 ancestor_g=148960 unique_payloads=70 unique_ancestors=919 shared_candidate_g=118608
+BLAKE3_HASH_CENSUS kind=fri index=2 openings=70 depth=18 payload_g=15680 ancestor_g=141120 unique_payloads=70 unique_ancestors=849 shared_candidate_g=110768
+BLAKE3_HASH_CENSUS kind=fri index=3 openings=70 depth=17 payload_g=15680 ancestor_g=133280 unique_payloads=70 unique_ancestors=779 shared_candidate_g=102928
+BLAKE3_HASH_CENSUS kind=fri index=4 openings=70 depth=16 payload_g=15680 ancestor_g=125440 unique_payloads=70 unique_ancestors=709 shared_candidate_g=95088
+BLAKE3_HASH_CENSUS kind=fri index=5 openings=70 depth=15 payload_g=15680 ancestor_g=117600 unique_payloads=70 unique_ancestors=639 shared_candidate_g=87248
+BLAKE3_HASH_CENSUS kind=fri index=6 openings=70 depth=14 payload_g=15680 ancestor_g=109760 unique_payloads=70 unique_ancestors=569 shared_candidate_g=79408
+BLAKE3_HASH_CENSUS kind=fri index=7 openings=70 depth=13 payload_g=15680 ancestor_g=101920 unique_payloads=70 unique_ancestors=499 shared_candidate_g=71568
+BLAKE3_HASH_CENSUS kind=fri index=8 openings=70 depth=12 payload_g=15680 ancestor_g=94080 unique_payloads=70 unique_ancestors=429 shared_candidate_g=63728
+BLAKE3_HASH_CENSUS kind=fri index=9 openings=70 depth=11 payload_g=15680 ancestor_g=86240 unique_payloads=69 unique_ancestors=360 shared_candidate_g=55776
+BLAKE3_HASH_CENSUS kind=fri index=10 openings=70 depth=10 payload_g=15680 ancestor_g=78400 unique_payloads=68 unique_ancestors=292 shared_candidate_g=47936
+BLAKE3_HASH_CENSUS kind=fri index=11 openings=70 depth=9 payload_g=15680 ancestor_g=70560 unique_payloads=67 unique_ancestors=225 shared_candidate_g=40208
+BLAKE3_HASH_CENSUS kind=fri index=12 openings=70 depth=8 payload_g=15680 ancestor_g=62720 unique_payloads=61 unique_ancestors=164 shared_candidate_g=32032
+BLAKE3_HASH_CENSUS kind=fri index=13 openings=70 depth=7 payload_g=15680 ancestor_g=54880 unique_payloads=57 unique_ancestors=107 shared_candidate_g=24752
+BLAKE3_HASH_CENSUS kind=fri index=14 openings=70 depth=6 payload_g=15680 ancestor_g=47040 unique_payloads=45 unique_ancestors=62 shared_candidate_g=17024
+BLAKE3_HASH_CENSUS kind=fri index=15 openings=70 depth=5 payload_g=15680 ancestor_g=39200 unique_payloads=31 unique_ancestors=31 shared_candidate_g=10416
+BLAKE3_HASH_CENSUS kind=fri index=16 openings=70 depth=4 payload_g=15680 ancestor_g=31360 unique_payloads=16 unique_ancestors=15 shared_candidate_g=5264
+BLAKE3_HASH_CENSUS kind=fri index=17 openings=70 depth=3 payload_g=15680 ancestor_g=23520 unique_payloads=8 unique_ancestors=7 shared_candidate_g=2576
+BLAKE3_HASH_CENSUS kind=fri index=18 openings=70 depth=2 payload_g=15680 ancestor_g=15680 unique_payloads=4 unique_ancestors=3 shared_candidate_g=1232
+BLAKE3_HASH_CENSUS kind=fri index=19 openings=70 depth=1 payload_g=15680 ancestor_g=7840 unique_payloads=2 unique_ancestors=1 shared_candidate_g=560
+BLAKE3_HASH_CENSUS_TOTAL transcript_g=62328 payload_and_subtree_g=807520 ancestor_g=2304960 actual_g=3174808 shared_candidate_g=2124248 candidate_only=true
+BLAKE3_ARITHMETIC_CENSUS lane=1500 nodes=20355 multiply=10002 linear=7492 inverse=53 dot4=96 fma=4256 removable_rows=4928
+BLAKE3_ARITHMETIC_CENSUS lane=1502 nodes=602873 multiply=230541 linear=228727 inverse=1052 dot4=49808 fma=12836 removable_rows=361492
+BLAKE3_ARITHMETIC_CENSUS lane=1504 nodes=236076 multiply=132523 linear=85464 inverse=1400 dot4=3150 fma=58023 removable_rows=80073
+BLAKE3_PCS_QUERY_FUSION_CENSUS nodes=602873 query_inputs=130620 single_use=98140 shared=32480 dot4=49808 eligible=23870 scope=pre_lowering_graph_candidates
+BLAKE3_ARITHMETIC_CENSUS total_rows=697254 removable_rows=446493 removed_relation_events=892986 scope=graph_match_census
+BLAKE3_NATIVE_QUERY_FUSION groups=23870 removed_scalars=95480
+BLAKE3_NATIVE_FUSION dot4=53054 fma=75115 arithmetic_rows=250761
+BLAKE3_PARENT_ROW_CENSUS air=0 type=recursion.air.blake3_g_call live=3174808 padded=4194304 main_columns=124 preprocessed_columns=16 interaction_columns=132 main_bytes=2080374784
+BLAKE3_PARENT_ROW_CENSUS air=1 type=recursion.air.blake3_xor_call live=907088 padded=1048576 main_columns=12 preprocessed_columns=6 interaction_columns=16 main_bytes=50331648
+BLAKE3_PARENT_ROW_CENSUS air=2 type=recursion.air.blake3_boundary live=891276 padded=1048576 main_columns=4 preprocessed_columns=8 interaction_columns=4 main_bytes=16777216
+BLAKE3_PARENT_ROW_CENSUS air=3 type=recursion.air.qm31_mul_add_v1 live=160850 padded=262144 main_columns=17 preprocessed_columns=10 interaction_columns=8 main_bytes=17825792
+BLAKE3_PARENT_ROW_CENSUS air=4 type=recursion.air.qm31_inv live=2505 padded=4096 main_columns=14 preprocessed_columns=15 interaction_columns=4 main_bytes=229376
+BLAKE3_PARENT_ROW_CENSUS air=5 type=recursion.air.linear_ops live=34352 padded=65536 main_columns=21 preprocessed_columns=27 interaction_columns=8 main_bytes=5505024
+BLAKE3_PARENT_ROW_CENSUS air=6 type=recursion.air.blake3_challenge_block live=142 padded=256 main_columns=71 preprocessed_columns=15 interaction_columns=68 main_bytes=72704
+BLAKE3_PARENT_ROW_CENSUS air=7 type=recursion.air.blake3_byte_route live=699617 padded=1048576 main_columns=12 preprocessed_columns=45 interaction_columns=8 main_bytes=50331648
+BLAKE3_PARENT_ROW_CENSUS air=8 type=recursion.air.blake3_query_mask live=71 padded=128 main_columns=8 preprocessed_columns=10 interaction_columns=12 main_bytes=4096
+BLAKE3_PARENT_ROW_CENSUS air=9 type=recursion.air.blake3_private_word live=164826 padded=262144 main_columns=4 preprocessed_columns=4 interaction_columns=8 main_bytes=4194304
+BLAKE3_PARENT_ROW_CENSUS air=10 type=recursion.air.blake3_field_bytes live=135939 padded=262144 main_columns=24 preprocessed_columns=9 interaction_columns=36 main_bytes=25165824
+BLAKE3_PARENT_ROW_CENSUS air=11 type=recursion.air.qm31_pack_wire live=8461 padded=16384 main_columns=4 preprocessed_columns=8 interaction_columns=12 main_bytes=262144
+BLAKE3_PARENT_ROW_CENSUS air=12 type=recursion.air.scalar_wire_source live=64540 padded=65536 main_columns=1 preprocessed_columns=6 interaction_columns=4 main_bytes=262144
+BLAKE3_PARENT_ROW_CENSUS air=13 type=recursion.air.blake3_path_select live=164640 padded=262144 main_columns=17 preprocessed_columns=12 interaction_columns=12 main_bytes=17825792
+BLAKE3_PARENT_ROW_CENSUS air=14 type=recursion.air.blake3_retry_control live=142 padded=256 main_columns=12 preprocessed_columns=22 interaction_columns=40 main_bytes=12288
+BLAKE3_PARENT_ROW_CENSUS air=15 type=recursion.air.blake3_counter_step live=151 padded=256 main_columns=24 preprocessed_columns=9 interaction_columns=28 main_bytes=24576
+BLAKE3_PARENT_ROW_CENSUS air=16 type=recursion.air.readonly_consistency live=130620 padded=131072 main_columns=19 preprocessed_columns=6 interaction_columns=20 main_bytes=9961472
+BLAKE3_PARENT_ROW_CENSUS air=17 type=recursion.air.readonly_input live=130620 padded=131072 main_columns=5 preprocessed_columns=6 interaction_columns=8 main_bytes=2621440
+BLAKE3_PARENT_ROW_CENSUS air=18 type=recursion.air.detached_opening_accumulate4_v1 live=29184 padded=32768 main_columns=41 preprocessed_columns=13 interaction_columns=20 main_bytes=5373952
+BLAKE3_PARENT_ROW_CENSUS air=19 type=recursion.air.native_pcs_opening4_v1 live=23870 padded=32768 main_columns=29 preprocessed_columns=13 interaction_columns=20 main_bytes=3801088
+BLAKE3_PARENT_ROW_CENSUS_TOTAL child_queries=70 child_pow_bits=26 graph_preparation_ns=36044172375 row_layout_ns=335408625 main_bytes=2290957312 retained_bytes=2707426052 parent_proved=false
+BLAKE3_GUEST_POSEIDON_PROOF verified=true queries=70 pow_bits=26 artifact_bytes=976328 witness_released=true fresh_key=true capture_mutations_rejected=true outer_artifact_verified=true source_and_pin_mutations_rejected=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:8G
+

@@ -1,0 +1,117 @@
+{
+  "BLAKE3_HASH_METADATA": [
+    {
+      "g_rows": "2070768",
+      "xor_rows": "591648",
+      "full_row_bytes": "1102831872",
+      "compact_bytes": "146728704",
+      "removed_bytes": "956103168"
+    },
+    {
+      "g_rows": "2070768",
+      "xor_rows": "591648",
+      "full_row_bytes": "1102831872",
+      "compact_bytes": "146728704",
+      "removed_bytes": "956103168"
+    },
+    {
+      "g_rows": "2062088",
+      "xor_rows": "589168",
+      "full_row_bytes": "1098209152",
+      "compact_bytes": "146113664",
+      "removed_bytes": "952095488"
+    },
+    {
+      "g_rows": "2105040",
+      "xor_rows": "601440",
+      "full_row_bytes": "1121084160",
+      "compact_bytes": "149157120",
+      "removed_bytes": "971927040"
+    },
+    {
+      "g_rows": "3016384",
+      "xor_rows": "861824",
+      "full_row_bytes": "1606439936",
+      "compact_bytes": "213732352",
+      "removed_bytes": "1392707584"
+    },
+    {
+      "g_rows": "3016384",
+      "xor_rows": "861824",
+      "full_row_bytes": "1606439936",
+      "compact_bytes": "213732352",
+      "removed_bytes": "1392707584"
+    }
+  ],
+  "BLAKE3_PATH_SHARING_TOTAL": [
+    {
+      "upper_hashes": "17290",
+      "unique_upper_hashes": "9291",
+      "node_g_rows": "112",
+      "gross_candidate_g_rows": "565936",
+      "path_g_rows": "2037728",
+      "shared_path_g_rows": "329952",
+      "remaining_sharing_implemented": "false"
+    },
+    {
+      "upper_hashes": "17290",
+      "unique_upper_hashes": "9418",
+      "node_g_rows": "112",
+      "gross_candidate_g_rows": "551712",
+      "path_g_rows": "2037728",
+      "shared_path_g_rows": "329952",
+      "remaining_sharing_implemented": "false"
+    },
+    {
+      "upper_hashes": "17290",
+      "unique_upper_hashes": "9311",
+      "node_g_rows": "112",
+      "gross_candidate_g_rows": "563696",
+      "path_g_rows": "2029888",
+      "shared_path_g_rows": "329952",
+      "remaining_sharing_implemented": "false"
+    },
+    {
+      "upper_hashes": "17290",
+      "unique_upper_hashes": "9471",
+      "node_g_rows": "112",
+      "gross_candidate_g_rows": "545776",
+      "path_g_rows": "2069088",
+      "shared_path_g_rows": "329952",
+      "remaining_sharing_implemented": "false"
+    },
+    {
+      "upper_hashes": "24150",
+      "unique_upper_hashes": "14290",
+      "node_g_rows": "112",
+      "gross_candidate_g_rows": "712992",
+      "path_g_rows": "2975952",
+      "shared_path_g_rows": "391328",
+      "remaining_sharing_implemented": "false"
+    },
+    {
+      "upper_hashes": "24150",
+      "unique_upper_hashes": "14225",
+      "node_g_rows": "112",
+      "gross_candidate_g_rows": "720272",
+      "path_g_rows": "2975952",
+      "shared_path_g_rows": "391328",
+      "remaining_sharing_implemented": "false"
+    }
+  ],
+  "CANONICAL_TREE_BUDGET": [
+    {
+      "peak_bytes": "29486123337",
+      "limit_bytes": "51539607552"
+    }
+  ],
+  "BLAKE3_TREE": [
+    {
+      "verified": "true",
+      "leaves": "4",
+      "aggregate_levels": "2",
+      "cycles": "6",
+      "retained_root_rows": "4940200960"
+    }
+  ]
+}

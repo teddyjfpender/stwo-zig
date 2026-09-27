@@ -1,0 +1,49 @@
+error: Overflow
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/math.zig:570:21: 0x1021c93ab in placement (stwo-zig-riscv-cpu)
+    if (ov[1] != 0) return error.Overflow;
+                    ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/universal_component_roster.zig:39:223: 0x1021c93b3 in placement (stwo-zig-riscv-cpu)
+                    if (@intFromEnum(key) == i) return .{ .geometry = geometry, .preprocessed_offset = start[0], .main_offset = start[1], .interaction_offset = start[2], .constraint_offset = start[3], .claimed_sum_index = try std.math.add(u8, self.origin.claimed_sum_index, @intCast(i)) };
+                                                                                                                                                                                                                              ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/blake3_commitment_columns.zig:235:70: 0x1021c9c9f in bindAt (stwo-zig-riscv-cpu)
+            self.typed_components[i] = try roster.Component(Air).init(&self.definitions[i], self.plans[i], &placement, @enumFromInt(i), self.logs[i], .{}, &self.relations, claims[i]);
+                                                                     ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/blake3_commitment_columns.zig:235:40: 0x1021c9ca7 in bindAt (stwo-zig-riscv-cpu)
+            self.typed_components[i] = try roster.Component(Air).init(&self.definitions[i], self.plans[i], &placement, @enumFromInt(i), self.logs[i], .{}, &self.relations, claims[i]);
+                                       ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/compact_range_assembly.zig:48:64: 0x1021cf29b in bindCompactCommitments (stwo-zig-riscv-cpu)
+            self.components[i] = try roster.Component(Air).init(&prepared.definition, prepared.plan, &self.manifest, @enumFromInt(i), prepared.shape.log_size, .{}, &self.relations, claims[i]);
+                                                               ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/blake3_execution_prepared.zig:43:33: 0x10227d133 in initMode (stwo-zig-riscv-cpu)
+            errdefer self.deinit();
+                                ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/blake3_execution_prepared.zig:34:13: 0x1022fa503 in execute__anon_37139 (stwo-zig-riscv-cpu)
+            return initMode(a, source, pin, config, ranges);
+            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/proof_adapter/blake3_execution_request.zig:37:5: 0x1022f6ee7 in execute__anon_37139 (stwo-zig-riscv-cpu)
+    try runner.elf_loader.validateReleaseAbiForProfile(elf, profile);
+    ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem/Allocator.zig:147:25: 0x1022ff86b in runInternal__anon_37042 (stwo-zig-riscv-cpu)
+    return a.vtable.free(a.ptr, memory, alignment, ret_addr);
+                        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/proof_adapter/blake3_execution_product.zig:24:9: 0x102304203 in run__anon_36908 (stwo-zig-riscv-cpu)
+        return err;
+        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/proof_adapter/profile_router.zig:22:5: 0x102303f43 in run__anon_36908 (stwo-zig-riscv-cpu)
+    return switch (requested) {
+    ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/proof_adapter.zig:62:5: 0x102303f6b in run__anon_36908 (stwo-zig-riscv-cpu)
+    return profile_router.run(Engine, backend, allocator, elf_path, input_path, options, process_identity);
+    ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/Thread/Mutex.zig:139:32: 0x102317763 in runElf (stwo-zig-riscv-cpu)
+        c.os_unfair_lock_unlock(&self.oul);
+                               ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/products/riscv_shared/csp_ecdsa.zig:30:17: 0x102185187 in main (stwo-zig-riscv-cpu)
+            if (!select and !verify and !std.mem.eql(u8, args[0], "ecdsa-csp-bench"))
+                ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem/Allocator.zig:147:25: 0x102184923 in main (stwo-zig-riscv-cpu)
+    return a.vtable.free(a.ptr, memory, alignment, ret_addr);
+                        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/products/riscv_cpu/main.zig:11:5: 0x102187e33 in main (stwo-zig-riscv-cpu)
+    return @import("app.zig").main();
+    ^

@@ -1,0 +1,8 @@
+1/7 scheduled_admission_test_root_v1.test_0...OK
+2/7 scheduled_admission_test_v1.test.CUDA scheduled admission: actual session rejects absent or unsupported lanes...OK
+3/7 scheduled_admission_test_v1.test.CUDA scheduled admission: actual session enforces thread state and active stage...OK
+4/7 scheduled_admission_test_v1.test.CUDA scheduled admission: original compiled plan rejects tuple drift before session...OK
+5/7 scheduled_admission_test_v1.test.CUDA scheduled admission: original plan guards current schedule mutation and graph target...OK
+6/7 common.scheduled_executor.test.structural dispatcher covers every proof operation and rejects drift...OK
+7/7 common.driver.test.generic driver admits before execution and aborts failed transactions...OK
+All 7 tests passed.

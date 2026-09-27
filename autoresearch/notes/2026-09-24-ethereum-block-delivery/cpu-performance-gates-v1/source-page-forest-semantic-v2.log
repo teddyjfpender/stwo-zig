@@ -1,0 +1,6 @@
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_plan_v1.zig:166:52: error: capture shadows declaration of 'summary'
+        for (geometry.nodes, summaries) |planned, *summary| {
+                                                   ^~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_plan_v1.zig:238:9: note: declared here
+    pub fn summary(self: *const Owned, ref: Ref) !Summary {
+    ~~~~^~

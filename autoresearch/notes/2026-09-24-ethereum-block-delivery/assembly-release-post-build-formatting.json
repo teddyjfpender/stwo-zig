@@ -1,0 +1,56 @@
+{
+  "source_archive": "assembly-release-stream-source.tar.gz",
+  "changes": "zig fmt only after successful compilation and ownership tests",
+  "files": [
+    {
+      "path": "src/frontends/riscv/compact_commitment_test_root.zig",
+      "before_sha256": "3fdb80afd0769415f434ce78ac04151058f3061c735d655883ee98ed3aabfe4e",
+      "after_sha256": "4dec26662a3f4d48c99727f90339792f23e34bdd7cd6740fdc483ed93ca03263"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig",
+      "before_sha256": "87b88cd5a7fecc24acd0b050eb69c69c162115080fc410071c89ca0e1157abdf",
+      "after_sha256": "143feffd1f18c4c3d15286b558211eccb13cd5fff0f5906de94f6f4903d3e5c8"
+    },
+    {
+      "path": "src/prover/air/coefficient_cosets.zig",
+      "before_sha256": "e4e21b038af7108a68cffd777cb053526a635590d45843a5da1c43da32fe1868",
+      "after_sha256": "dc2c898d3ab53c3db204bd8d5d391f529d733d208d2cc531c4c787f36671b8e7"
+    },
+    {
+      "path": "src/prover/pcs/coefficient_opening.zig",
+      "before_sha256": "b8808ece14e3906b522096990c7e3b0010eeba70ee17e7d6af4a663fae8511cc",
+      "after_sha256": "acb4e6beadd5f4c73f676347ae63ca842ff77b2a4cf6d880075cc01193b5a9a6"
+    },
+    {
+      "path": "src/prover/pcs/coefficient_storage_test.zig",
+      "before_sha256": "1d23e8094b761a5f24f991558f9d4ef7ee9532f1f87c8c6ec6ca6d84309ccc40",
+      "after_sha256": "d37b3304d78c55dcce397db6507da57f7c5248145ed5ecb1332b40dda5aaabe0"
+    },
+    {
+      "path": "src/prover/pcs/columns/preparation.zig",
+      "before_sha256": "89c9cd9494d17481a21064ce613267b352f44f0ebf3f9cd57d9fa6ab1a5c6070",
+      "after_sha256": "bab515f7948261dc0dc615e904a23c580608bdacce85d3b076d0496c47d3a6c0"
+    },
+    {
+      "path": "src/prover/pcs/quotients/planning.zig",
+      "before_sha256": "2cd87bf9a182ef71c5d300cfe33312a59df096af15ef55a4c50f785a15af2f08",
+      "after_sha256": "923ee0f06f400d4d12a15a894cd475184201278b7e41d475609d10ef016d80de"
+    },
+    {
+      "path": "src/prover/pcs/tree_builders.zig",
+      "before_sha256": "9a03d1b7073f13894d89f8fce4b8e8be1b60e42e96cc90770c7f20d36f898a78",
+      "after_sha256": "f07577b3cd4c2460689eed6d336151e93118c684fd8baf13e665207d0db0673f"
+    },
+    {
+      "path": "src/prover/poly/circle/coset_partition.zig",
+      "before_sha256": "96dc0f491ce320fa7c968c6b45643ead8081106bea9ec3d3ecc7bc4ff1e86e08",
+      "after_sha256": "72b1fa0301c576f09fc3fc819fbb1752c491a65e552eecb7ff9362768d54082a"
+    },
+    {
+      "path": "src/prover/vcs_lifted/compact_blake3_leaf.zig",
+      "before_sha256": "023b6d45b02fd3d913e52ada02699048da5f330855708aa862d546b3c3360e3c",
+      "after_sha256": "db7679feed4e2617934fd2afe40d214ac63c317bf5b8032396e49f98c60cdae7"
+    }
+  ]
+}

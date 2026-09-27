@@ -1,0 +1,17 @@
+1/16 block_v5_global_join_recursive_test_root.test_0...OK
+2/16 block_v5_global_join_recursive_test_root.test.global join recursion: actual original parent aggregate attach and publication bodies retained...OK
+3/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: original byte graph preserves native scoped equations and source supplies...OK
+4/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: executions and register windows cannot cancel across scopes...OK
+5/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: provider kinds and groups keep independent equalities...OK
+6/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: byte partition and auxiliary sign are exact...OK
+7/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: malformed or changed original statement and mapping fail before recording...OK
+8/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: exhaustive graph and public schedule allocation rollback...OK
+9/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: real arithmetic cohorts bind each original coordinate and reject evaluation mutation...OK
+10/16 prover.block_v5_global_join_recursive_test_v1.test.global join recursion: parent admits exact execution window and provider census without a completion token...OK
+11/16 prover.block_execution_external_trace_v2.test_0...OK
+12/16 air.lookups.tables.mod.test_0...OK
+13/16 air.semantic_eval.test_0...OK
+14/16 prover.block_execution_external_access_bridge_v2.test_0...OK
+15/16 air.memory_commitment.poseidon2_air.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+All 16 tests passed.

@@ -1,0 +1,6 @@
+metal-ecdsa_secp256k1-32 control-first 0.67480675 0.069515791 0.051093416
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-host-barycentric-staging/measure-csp.py", line 47, in <module>
+    assert bool(host_lines)==arm.startswith('candidate')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

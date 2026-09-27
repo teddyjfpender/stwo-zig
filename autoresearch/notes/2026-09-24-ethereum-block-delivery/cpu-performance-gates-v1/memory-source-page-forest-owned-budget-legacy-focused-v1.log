@@ -1,0 +1,22 @@
+1/21 block_v5_memory_source_page_forest_owned_test_root.test_0...OK
+2/21 block_v5_memory_source_page_forest_owned_test_root.test.PAGE durable catalogue: actual original setup capture publisher and fresh compact receiver bodies retained...OK
+3/21 block_v5_memory_source_page_forest_owned_test_root.test.PAGE durable catalogue: independently selected execution policy remains bound...OK
+4/21 prover.block_v5_memory_source_page_forest_live_budget_test_v1.test.PAGE durable catalogue: live scratch exceeds metadata cap while each independent cap remains enforced...OK
+5/21 prover.block_v5_memory_source_page_forest_live_budget_test_v1.test.PAGE durable catalogue: aggregate backing still rejects combined metadata and scratch demand...OK
+6/21 prover.block_v5_memory_source_page_forest_live_budget_test_v1.test.PAGE durable catalogue: live lane rejects metadata allocator and zero cap before allocation...OK
+7/21 prover.block_v5_memory_source_page_forest_live_budget_test_v1.test.PAGE durable catalogue: escaping live summary lease and metadata lifetime survive every new allocation failure...OK
+8/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: bounded leases and backpressure conserve occupancy...OK
+9/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: ticket overflow is failure atomic...OK
+10/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: independent resource policy rejects inconsistent page limits...OK
+11/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: lower-only child selection consumes no descriptor slots...OK
+12/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: control parent directory and invalid metadata failures release every allocation...OK
+13/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: exact original leaf node file census and typed empty roster...OK
+14/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: independent limits reject before undefined source or file capability...OK
+15/21 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: durable names and closed summary grammar preserve exact old framing...OK
+16/21 prover.block_v5_memory_source_page_forest_summary_custody_test_v1.test.PAGE durable catalogue: summary allocator lease survives parent and scratch coordinator release and every allocation failure...OK
+17/21 prover.block_v5_memory_source_page_forest_summary_custody_test_v1.test.PAGE durable catalogue: inactive raw and fold slots cannot accept original recursive proof bytes...OK
+18/21 air.semantic_eval.test_0...OK
+19/21 air.lookups.tables.mod.test_0...OK
+20/21 air.memory_commitment.poseidon2_air.test_0...OK
+21/21 air.lookups.tables.source_ingest.test_0...OK
+All 21 tests passed.

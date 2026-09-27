@@ -1,0 +1,62 @@
+//! Composition graph compiler for full-digest BLAKE3 Span statements.
+const shard_0 = @import("composition_circuit_reference.zig").Contract(true);
+const shard_1 = @import("composition_circuit_row.zig").Compiler(shard_0);
+
+pub const ProofKind = shard_0.ProofKind;
+pub const SECURE_VALUE_WORD_COUNT = shard_0.SECURE_VALUE_WORD_COUNT;
+pub const RELATION_CHALLENGE_WORD_COUNT = shard_0.RELATION_CHALLENGE_WORD_COUNT;
+pub const SEGMENT_VERIFIER_ID = shard_0.SEGMENT_VERIFIER_ID;
+pub const GRAPH_FORMAT_VERSION = shard_0.GRAPH_FORMAT_VERSION;
+pub const GRAPH_DOMAIN = shard_0.GRAPH_DOMAIN;
+pub const REFERENCE_FORMAT_VERSION = shard_0.REFERENCE_FORMAT_VERSION;
+pub const REFERENCE_DOMAIN = shard_0.REFERENCE_DOMAIN;
+pub const SCHEDULE_FORMAT_VERSION = shard_0.SCHEDULE_FORMAT_VERSION;
+pub const SCHEDULE_DOMAIN = shard_0.SCHEDULE_DOMAIN;
+pub const Error = shard_0.Error;
+pub const BinaryOperands = shard_0.BinaryOperands;
+/// Structural graph node. Only constants carry values; every other value is
+/// witness-derived and therefore intentionally absent from verifier authority.
+pub const Op = shard_0.Op;
+pub const Node = shard_0.Node;
+/// A circuit graph is accepted only against an independently supplied seal.
+/// `authenticate` never invents authority by sealing its own input.
+pub const CircuitGraph = shard_0.CircuitGraph;
+pub const SecureCoordinate = shard_0.SecureCoordinate;
+pub const ChallengeCoordinate = shard_0.ChallengeCoordinate;
+pub const VmSource = shard_0.VmSource;
+pub const RecursionSource = shard_0.RecursionSource;
+pub const InputBinding = shard_0.InputBinding;
+pub const VmInputBinding = shard_0.VmInputBinding;
+pub const RecursionInputBinding = shard_0.RecursionInputBinding;
+pub const InputProfile = shard_0.InputProfile;
+pub const VmLane = shard_0.VmLane;
+pub const RecursionLane = shard_0.RecursionLane;
+pub const ModeSet = shard_0.ModeSet;
+pub const AnchorLane = shard_0.AnchorLane;
+/// All borrowed inputs remain owned by the caller. Mutation is detected by
+/// `validate` before compilation and by the compiled schedule seal afterward.
+pub const Reference = shard_0.Reference;
+pub const RecursionInput = shard_0.RecursionInput;
+pub const Classification = shard_1.Classification;
+pub const PREPROCESSED_COLUMN_COUNT = shard_1.PREPROCESSED_COLUMN_COUNT;
+pub const Row = shard_1.Row;
+pub const CompiledSchedule = shard_1.CompiledSchedule;
+/// Cold O(nodes + bindings + outputs) compiler. It performs two bounded
+/// allocations regardless of lane count: final rows plus a reusable use-count
+/// scratch vector. The returned writer hot path performs no allocation.
+pub const compile = shard_1.compile;
+pub const computeGraphDigest = shard_0.computeGraphDigest;
+pub const computeReferenceDigest = shard_0.computeReferenceDigest;
+pub const computeScheduleDigest = shard_1.computeScheduleDigest;
+pub const validateCompiledRows = shard_1.validateCompiledRows;
+pub const validateRow = shard_1.validateRow;
+pub const validateRecursionBindings = shard_0.validateRecursionBindings;
+pub const vmInputCount = shard_0.vmInputCount;
+pub const recursionInputCount = shard_0.recursionInputCount;
+pub const expectedVmSource = shard_0.expectedVmSource;
+pub const expectedRecursionSource = shard_0.expectedRecursionSource;
+pub const vmSourceIndices = shard_0.vmSourceIndices;
+pub const recursionSourceIndices = shard_0.recursionSourceIndices;
+
+pub const validateVmSourceBounds = shard_1.validateVmSourceBounds;
+pub const validateRecursionSourceBounds = shard_1.validateRecursionSourceBounds;

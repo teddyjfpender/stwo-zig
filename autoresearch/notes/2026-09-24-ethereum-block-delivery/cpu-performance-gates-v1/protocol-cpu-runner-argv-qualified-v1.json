@@ -1,0 +1,47 @@
+{
+  "schema": "python-argv-qualified-v1",
+  "scope": "command construction only; no Zig invocation",
+  "status": "pure-python-contracts-passed",
+  "tests": 19,
+  "command": "python3 -m unittest scripts.tests.test_zig_protocol_command scripts.tests.test_focused_cpu_runner",
+  "result": "19 tests passed; last focused run 0.282s",
+  "sources": [
+    {
+      "path": "scripts/zig_protocol_lib/command.py",
+      "sha256": "2751ca4bf1d395511b8329d3bd9c84cf0ed45134cf18d02ffeed9d7591007f19"
+    },
+    {
+      "path": "scripts/tests/test_zig_protocol_command.py",
+      "sha256": "cd3ff366c1bfd499a2885707bb6049ba540b14aeca09102c7c68c0b919f61b13"
+    },
+    {
+      "path": "scripts/tests/test_focused_cpu_runner.py",
+      "sha256": "4f6ef9b3928d68707a8756dc6111726e1eaa203d4e44cf442cef78798350419b"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+      "sha256": "34cd616f9b470e4f60fb1d9717125cd0d7975eb72ef527c1ec20b06e7a5e536d"
+    }
+  ],
+  "builder_api": "test_command(root,*zig_args,cpu_only=False,zig=\"zig\",standard_test_runner=None)",
+  "module_api": "protocol_module_args(root,optimize=None,strip=None,cpu=None,cpu_only=False,standard_test_runner=None)",
+  "defaults_preserved": [
+    "SHA wrapper uses pinned compiler, ReleaseFast, native CPU, default two filters",
+    "--all, --optimize Debug/ReleaseSafe/ReleaseFast, custom --test-runner and positional filters",
+    "canonical test runner existing --lock/--no-lock and Zig trailing arguments",
+    "builders take no lock; each CLI takes its own single lock and calls Zig directly"
+  ],
+  "change": [
+    "one contract-derived graph plus postcard shim sharing unique core/proof_wire nodes",
+    "CPU-only selected subset shares same authoritative dependency constructor",
+    "explicit -O/-mcpu/strip choice repeated before root/every selected module/custom standard runner -M",
+    "custom runner standard module comes from selected compiler path without invoking compiler",
+    "filter/runner payloads and -- suffix remain data, last compile-flag choice wins"
+  ],
+  "historical_receipts": "unchanged; prior manual runner did not explicitly optimize or choose native CPU for dependency modules after -M reset, so historical dependency optimization is not inferred from root -O text",
+  "not_qualified": [
+    "Zig compiler/test behavior",
+    "STARK/FRI/guest/segment/device execution",
+    "new performance or benchmark claims"
+  ]
+}

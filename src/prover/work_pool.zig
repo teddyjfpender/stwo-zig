@@ -131,6 +131,18 @@ pub const ScopedPoolBinding = struct {
         return .{ .pool = pool };
     }
 
+    /// Reuse an identical coordinator binding without taking its ownership.
+    /// A different nested pool remains forbidden. This reads only TLS and
+    /// never discovers or initializes the legacy global pool.
+    pub fn initIfNeeded(pool: *WorkPool) WorkPoolError!?ScopedPoolBinding {
+        pool.assertStableAddress();
+        if (scoped_pool) |bound| {
+            if (bound != pool) return error.ScopedPoolAlreadyBound;
+            return null;
+        }
+        return try init(pool);
+    }
+
     pub fn deinit(self: *ScopedPoolBinding) void {
         std.debug.assert(self.active);
         global_state.mutex.lock();
@@ -722,6 +734,12 @@ var global_state: struct {
 } = .{};
 
 threadlocal var scoped_pool: ?*WorkPool = null;
+/// Read the current coordinator binding without discovering/creating the
+/// legacy process-global pool. Borrowed worker owners use this to reuse an
+/// identical binding while still rejecting a different nested pool.
+pub fn currentScopedPool() ?*WorkPool {
+    return scoped_pool;
+}
 var active_scoped_pools: std.atomic.Value(usize) = .init(0);
 
 /// Gets or lazily initializes the process-wide pool. Tests use explicit local

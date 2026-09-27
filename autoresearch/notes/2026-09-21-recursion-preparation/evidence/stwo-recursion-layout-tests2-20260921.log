@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 2s
+
+Build Summary: 4/4 steps succeeded; 10/10 tests passed
+test-recursive-compact-tuple-ledger success
++- Recursive compact tuple ledger guard success
+   +- run test 10 passed 771ms MaxRSS:5M
+      +- compile test ReleaseSafe native success 17s MaxRSS:1G
+

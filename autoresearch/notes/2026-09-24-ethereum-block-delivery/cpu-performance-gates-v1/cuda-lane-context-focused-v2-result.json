@@ -1,0 +1,23 @@
+{
+  "source_candidate": "cuda-lane-context-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.1150003749644384,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "object_only": false,
+  "tests_run": true,
+  "discovered_tests": 7,
+  "test_summary": [
+    "All 7 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cuda-lane-context-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cuda-lane-context-focused-v2",
+    "bytes": 1574680,
+    "sha256": "b85f705e70601f493e591c12b4e3ea6a4fb4205cc12abdea816a6ba3acabffb8"
+  }
+}

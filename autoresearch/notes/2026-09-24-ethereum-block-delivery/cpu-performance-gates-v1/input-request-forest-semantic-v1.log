@@ -1,0 +1,24 @@
+src/frontends/riscv/prover/block_v5_input_request_forest_test_v1.zig:14:9: error: local variable shadows declaration of 'ranges'
+    var ranges: [17]Plan.Range = undefined;
+        ^~~~~~
+src/frontends/riscv/prover/block_v5_input_request_forest_test_v1.zig:130:1: note: declared here
+const ranges = [_]Plan.Range{ .{ .first = 0, .count = 4, .leaves = 1 }, .{ .first = 4, .count = 3, .leaves = 1 } };
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_input_request_forest_test_v1.zig:53:13: error: local variable shadows declaration of 'ranges'
+        var ranges = valid;
+            ^~~~~~
+src/frontends/riscv/prover/block_v5_input_request_forest_test_v1.zig:130:1: note: declared here
+const ranges = [_]Plan.Range{ .{ .first = 0, .count = 4, .leaves = 1 }, .{ .first = 4, .count = 3, .leaves = 1 } };
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/core/pcs/mod.zig:49:20: error: no field or member function named 'mixFelts' in 'recursion.block_v5_input_request_forest_bus_v1.Prefix'
+            channel.mixFelts(&[_]QM31{ packed_config_1, packed_config_2 });
+            ~~~~~~~^~~~~~~~~
+src/frontends/riscv/recursion/block_v5_input_request_forest_bus_v1.zig:50:16: note: struct declared here
+const Prefix = struct {
+               ^~~~~~
+src/core/pcs/mod.zig:49:20: note: method invocation only supports up to one level of implicit pointer dereferencing
+src/core/pcs/mod.zig:49:20: note: use '.*' to dereference pointer
+referenced by:
+    nodePrefix: src/frontends/riscv/recursion/block_v5_input_request_forest_bus_v1.zig:78:33
+    init: src/frontends/riscv/recursion/block_v5_input_request_forest_bus_v1.zig:120:50
+    3 reference(s) hidden; use '-freference-trace=5' to see all references

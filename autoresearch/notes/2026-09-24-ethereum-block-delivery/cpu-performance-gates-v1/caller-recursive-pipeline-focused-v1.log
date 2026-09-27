@@ -1,0 +1,16 @@
+1/15 block_v5_caller_recursive_pipeline_test_root.test_0...OK
+2/15 block_v5_caller_recursive_pipeline_test_root.test.caller recursive pipeline: actual original staged caller and both parent publishers are retained...OK
+3/15 prover.block_v5_caller_recursive_pipeline_test_v1.test.caller recursive pipeline: exact index bounded ownership duplicates missing and reentrant callbacks...OK
+4/15 prover.block_v5_caller_recursive_pipeline_test_v1.test.caller recursive pipeline: sink failure retains exactly the original owner for teardown...OK
+5/15 prover.block_v5_caller_recursive_pipeline_test_v1.test.caller recursive pipeline: independent original admission and all allocation failures release both policies...OK
+6/15 prover.block_v5_caller_recursive_pipeline_test_v1.test.caller recursive pipeline: altered original caller root fails before either proof family runs...OK
+7/15 air.lookups.tables.mod.test_0...OK
+8/15 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+9/15 runner.mod.test_0...OK
+10/15 runner.decode.test_0...OK
+11/15 prover.block_execution_external_trace_v2.test_0...OK
+12/15 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/15 prover.block_v5_committed_trace_column_v1.test_0...OK
+14/15 air.memory_commitment.poseidon2_air.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

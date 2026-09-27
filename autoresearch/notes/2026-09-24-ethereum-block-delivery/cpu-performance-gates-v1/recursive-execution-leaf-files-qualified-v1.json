@@ -1,0 +1,19 @@
+{
+  "status": "qualified_nonproving_transport_snapshot",
+  "semantic": "recursive-execution-leaf-files-semantic-v2-result.json",
+  "focused": "recursive-execution-leaf-files-focused-v2-result.json",
+  "checks": 11,
+  "named_checks": 4,
+  "scope": "Independent exact Prepared/template, family/index/header/extent/key mutation rejection, no full proof staging copy, arithmetic+fused claim/public metadata round trips, exhaustive allocation failures, literal nonproof rejected by actual receiver decode. All three original typed encode/decode/publish/loadFresh/Leaf.verify routes retained but not invoked successfully.",
+  "initial_failure": "Provider-only32KiB metadata cap rejected complete caller claims; execution default now4MiB encoded/32MiB bounded owned metadata using same original checked extent arithmetic. Initial failed source/results/log preserved.",
+  "not_qualified": [
+    "successful fresh recursive proof",
+    "exact complete manifest/roster loading",
+    "native-fused metadata behavioral roundtrip",
+    "canonical driver activation",
+    "complete block proof and performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

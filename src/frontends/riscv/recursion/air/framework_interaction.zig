@@ -25,6 +25,9 @@ const utils = stwo_core.utils;
 const logup = @import("../../air/logup.zig");
 const universal = @import("universal_challenges.zig");
 
+/// Default upper bound for an owned writer's inversion window (8192 rows).
+pub const OWNED_TILE_LOG_SIZE: u32 = 13;
+
 pub const Error = std.mem.Allocator.Error || universal.Error || QM31.Error || error{
     InteractionColumnMismatch,
     InteractionGeometryMismatch,
@@ -71,6 +74,15 @@ pub fn Runtime(comptime RelationRuntime: type) type {
             }
         };
 
+        /// Independently owned columns, suitable for direct PCS ownership transfer.
+        pub const OwnedColumns = struct {
+            columns: [INTERACTION_COLUMN_COUNT][]M31,
+            claimed_sum: QM31,
+            pub fn deinit(self: *OwnedColumns, allocator: std.mem.Allocator) void {
+                for (self.columns) |column| allocator.free(column);
+                self.* = undefined;
+            }
+        };
         /// Exact decomposition of one generated component claim by universal
         /// relation domain. The audited generator below derives this from the
         /// same inverse plane as the committed interaction, so asking for
@@ -150,6 +162,197 @@ pub fn Runtime(comptime RelationRuntime: type) type {
             log_size: u32,
             relations: *const universal.UniversalRelations,
         ) Error!Interaction {
+            return generatePreparedWithPadding(allocator, plan, rows, log_size, relations, null);
+        }
+
+        /// Repeats an explicitly supplied typed row beyond the live prefix.
+        /// Its actual lookup pairs are evaluated once, including nonzero padding events.
+        pub const ColumnRows = struct {
+            columns: [@typeInfo(Row).array.len][]const M31,
+            first: usize = 0,
+            count: usize,
+            main_count: usize = @typeInfo(Row).array.len,
+            metadata: ?[]const Row = null,
+            /// Row-major fixed tails; excludes the main columns already retained.
+            compact_metadata: ?[]const M31 = null,
+            pub fn validate(self: @This(), log: u32) Error!void {
+                const size = try traceSize(log);
+                if (self.first > size or self.count > size - self.first or self.main_count > @typeInfo(Row).array.len) return error.InvalidTraceShape;
+                if (self.metadata != null and self.compact_metadata != null) return error.InvalidTraceShape;
+                if (self.compact_metadata) |fixed| {
+                    const needed = std.math.mul(usize, self.count, @typeInfo(Row).array.len - self.main_count) catch return error.InvalidTraceShape;
+                    if (fixed.len != needed) return error.InvalidTraceShape;
+                } else if (self.metadata) |fixed| {
+                    if (fixed.len < self.count) return error.InvalidTraceShape;
+                } else if (self.main_count != @typeInfo(Row).array.len) return error.InvalidTraceShape;
+                for (self.columns[0..self.main_count]) |column| if (column.len != size) return error.InvalidTraceShape;
+            }
+            /// The caller validates the view and bounds index by count.
+            pub fn read(self: @This(), index: usize, log: u32) Row {
+                var row: Row = if (self.metadata) |fixed| fixed[index] else undefined;
+                if (self.compact_metadata) |fixed| {
+                    const width = @typeInfo(Row).array.len - self.main_count;
+                    @memcpy(row[self.main_count..], fixed[index * width ..][0..width]);
+                }
+                const source = committedRow(self.first + index, log);
+                for (row[0..self.main_count], self.columns[0..self.main_count]) |*value, column| value.* = column[source];
+                return row;
+            }
+        };
+        pub fn generatePreparedFromColumns(allocator: std.mem.Allocator, plan: *const Plan, columns: ColumnRows, log_size: u32, relations: *const universal.UniversalRelations, padding: ?Row) Error!Interaction {
+            return generateSource(allocator, plan, &.{}, log_size, relations, padding, columns, null);
+        }
+        pub fn generatePreparedWithPadding(
+            allocator: std.mem.Allocator,
+            plan: *const Plan,
+            rows: []const Row,
+            log_size: u32,
+            relations: *const universal.UniversalRelations,
+            padding: ?Row,
+        ) Error!Interaction {
+            return generateSource(allocator, plan, rows, log_size, relations, padding, null, null);
+        }
+        /// Output uses allocator; inversion scratch is borrowed for this call only.
+        /// The caller retains ownership of workspace and its exact scratch slice.
+        pub fn generatePreparedFromColumnsWithWorkspace(allocator: std.mem.Allocator, workspace: *Workspace, plan: *const Plan, columns: ColumnRows, log_size: u32, relations: *const universal.UniversalRelations, padding: ?Row) Error!Interaction {
+            return generateSource(allocator, plan, &.{}, log_size, relations, padding, columns, workspace);
+        }
+        /// Uses the same admitted, fail-atomic generator but allocates each
+        /// output column independently. Scratch remains caller-owned; PCS may
+        /// consume the outputs without detaching a shared slab or arena.
+        pub fn generatePreparedOwnedColumnsWithWorkspace(allocator: std.mem.Allocator, workspace: *Workspace, plan: *const Plan, source: ColumnRows, log_size: u32, relations: *const universal.UniversalRelations, padding: ?Row) Error!OwnedColumns {
+            const size = try traceSize(log_size);
+            var result = OwnedColumns{ .columns = @splat(&.{}), .claimed_sum = undefined };
+            errdefer result.deinit(allocator);
+            for (&result.columns) |*column| column.* = try allocator.alloc(M31, size);
+            result.claimed_sum = (try generatePreparedIntoInternal(false, workspace, plan, &.{}, log_size, relations, &result.columns, padding, source)).claimed_sum;
+            return result;
+        }
+        /// Bounded inversion scratch for exclusively owned output columns.
+        /// Errors destroy all partial outputs; borrowed destination APIs retain
+        /// their separate fail-atomic contract. The final column temporarily
+        /// holds row totals, then becomes the shifted global prefix in place.
+        pub fn generatePreparedOwnedColumnsTiledWithWorkspace(allocator: std.mem.Allocator, workspace: *Workspace, plan: *const Plan, source: ColumnRows, log_size: u32, relations: *const universal.UniversalRelations, padding: ?Row) Error!OwnedColumns {
+            return generatePreparedOwnedColumnsScheduled(allocator, &.{workspace}, plan, source, log_size, relations, padding, SerialTiles{});
+        }
+        const SerialTiles = struct {
+            pub fn run(_: @This(), contexts: anytype) void {
+                for (contexts) |*context| context.run();
+            }
+        };
+        /// Workspaces are worker-private; the scheduler must drain all jobs before
+        /// returning. Every worker writes disjoint logical rows directly into the
+        /// final layout. Only the global prefix depends on the completed row sums.
+        pub fn generatePreparedOwnedColumnsScheduled(allocator: std.mem.Allocator, workspaces: []const *Workspace, plan: *const Plan, source: ColumnRows, log_size: u32, relations: *const universal.UniversalRelations, padding: ?Row, scheduler: anytype) Error!OwnedColumns {
+            try relations.validate();
+            if (workspaces.len == 0) return error.WorkspaceCapacityMismatch;
+            const size = try traceSize(log_size);
+            const tile_log = @min(log_size, workspaces[0].capacity_log_size);
+            try source.validate(log_size);
+            const tile_size = try traceSize(tile_log);
+            const tile_count = size / tile_size;
+            if (workspaces.len > tile_count) return error.WorkspaceCapacityMismatch;
+            var result = OwnedColumns{ .columns = @splat(&.{}), .claimed_sum = QM31.zero() };
+            errdefer result.deinit(allocator);
+            for (&result.columns) |*column| column.* = try allocator.alloc(M31, size);
+            for (workspaces, 0..) |workspace, i| {
+                try workspace.validateFor(tile_log);
+                try validateMemoryContract(workspace, plan, &.{}, relations, &result.columns, size);
+                try validateColumnSource(source, log_size, workspace, &result.columns);
+                for (workspaces[0..i]) |other| {
+                    const begin = @intFromPtr(workspace.scratch.ptr);
+                    const other_begin = @intFromPtr(other.scratch.ptr);
+                    if (begin < other_begin + other.scratch.len * @sizeOf(QM31) and other_begin < begin + workspace.scratch.len * @sizeOf(QM31)) return error.DestinationAlias;
+                }
+            }
+            const absent_pairs = if (padding) |row| try plan.preparedRowPairs(row, relations) else paddingPairs();
+            const contexts = try allocator.alloc(TileWorker, workspaces.len);
+            defer allocator.free(contexts);
+            for (contexts, workspaces, 0..) |*context, workspace, i| context.* = .{
+                .workspace = workspace,
+                .plan = plan,
+                .source = source,
+                .log_size = log_size,
+                .relations = relations,
+                .columns = &result.columns,
+                .absent_pairs = absent_pairs,
+                .tile_size = tile_size,
+                .first = tile_count * i / contexts.len * tile_size,
+                .end = tile_count * (i + 1) / contexts.len * tile_size,
+            };
+            scheduler.run(contexts);
+            for (contexts) |context| {
+                if (context.failure) |err| return err;
+                result.claimed_sum = result.claimed_sum.add(context.sum);
+            }
+            const shift = try result.claimed_sum.divM31(M31.fromU64(size));
+            var prefix = QM31.zero();
+            for (0..size) |logical_row| {
+                const row = committedRow(logical_row, log_size);
+                prefix = prefix.add(secureAt(&result.columns, BATCH_COUNT - 1, row)).sub(shift);
+                writeSecure(&result.columns, BATCH_COUNT - 1, row, prefix);
+            }
+            if (!prefix.isZero()) return error.PrefixClosureMismatch;
+            return result;
+        }
+        const TileWorker = struct {
+            workspace: *Workspace,
+            plan: *const Plan,
+            source: ColumnRows,
+            log_size: u32,
+            relations: *const universal.UniversalRelations,
+            columns: *[INTERACTION_COLUMN_COUNT][]M31,
+            absent_pairs: [BATCH_COUNT]logup.RowPair,
+            tile_size: usize,
+            first: usize,
+            end: usize,
+            sum: QM31 = QM31.zero(),
+            failure: ?Error = null,
+            pub fn run(self: *@This()) void {
+                self.generate() catch |err| {
+                    self.failure = err;
+                };
+            }
+            fn generate(self: *@This()) Error!void {
+                const tile_size = self.tile_size;
+                const term_count = BATCH_COUNT * tile_size;
+                const numerators = self.workspace.scratch[0..term_count];
+                const denominators = self.workspace.scratch[term_count .. 2 * term_count];
+                const inverses = self.workspace.scratch[2 * term_count .. 3 * term_count];
+                const source = self.source;
+                const log_size = self.log_size;
+                const plan = self.plan;
+                const relations = self.relations;
+                const absent_pairs = self.absent_pairs;
+                var first: usize = self.first;
+                while (first < self.end) : (first += tile_size) {
+                    // Both domain and window are powers of two, so every tile is full.
+                    for (0..tile_size) |offset| {
+                        const logical_row = first + offset;
+                        const pairs = if (logical_row < source.count)
+                            try plan.preparedRowPairs(source.read(logical_row, log_size), relations)
+                        else
+                            absent_pairs;
+                        for (pairs, 0..) |pair, batch| {
+                            const index = batch * tile_size + offset;
+                            numerators[index] = pair.n1.mul(pair.d2).add(pair.n2.mul(pair.d1));
+                            denominators[index] = pair.d1.mul(pair.d2);
+                        }
+                    }
+                    fields.batchInverseInPlace(QM31, denominators, inverses) catch return error.ZeroDenominator;
+                    for (0..tile_size) |offset| {
+                        var within_row = QM31.zero();
+                        for (0..BATCH_COUNT) |batch| {
+                            const index = batch * tile_size + offset;
+                            within_row = within_row.add(numerators[index].mul(inverses[index]));
+                            writeSecure(self.columns, batch, committedRow(first + offset, log_size), within_row);
+                        }
+                        self.sum = self.sum.add(within_row);
+                    }
+                }
+            }
+        };
+        fn generateSource(allocator: std.mem.Allocator, plan: *const Plan, rows: []const Row, log_size: u32, relations: *const universal.UniversalRelations, padding: ?Row, columns_source: ?ColumnRows, borrowed_workspace: ?*Workspace) Error!Interaction {
             const size = try traceSize(log_size);
             const storage_len = try requiredStorageElementCount(log_size);
             const storage = try allocator.alloc(M31, storage_len);
@@ -157,19 +360,23 @@ pub fn Runtime(comptime RelationRuntime: type) type {
             var columns: [INTERACTION_COLUMN_COUNT][]M31 = undefined;
             for (&columns, 0..) |*column, index|
                 column.* = storage[index * size ..][0..size];
-            var workspace = try Workspace.init(allocator, log_size);
-            defer workspace.deinit();
-            const claimed_sum = try generatePreparedInto(
-                &workspace,
+            var owned_workspace: ?Workspace = if (borrowed_workspace == null) try Workspace.init(allocator, log_size) else null;
+            defer if (owned_workspace) |*workspace| workspace.deinit();
+            const workspace = borrowed_workspace orelse &owned_workspace.?;
+            const claims = try generatePreparedIntoInternal(
+                false,
+                workspace,
                 plan,
                 rows,
                 log_size,
                 relations,
                 &columns,
+                padding,
+                columns_source,
             );
             return .{
                 .columns = columns,
-                .claimed_sum = claimed_sum,
+                .claimed_sum = claims.claimed_sum,
                 .storage = storage,
             };
         }
@@ -194,6 +401,8 @@ pub fn Runtime(comptime RelationRuntime: type) type {
                 log_size,
                 relations,
                 destination,
+                null,
+                null,
             )).claimed_sum;
         }
 
@@ -218,6 +427,8 @@ pub fn Runtime(comptime RelationRuntime: type) type {
                 log_size,
                 relations,
                 destination,
+                null,
+                null,
             );
         }
 
@@ -255,8 +466,13 @@ pub fn Runtime(comptime RelationRuntime: type) type {
             log_size: u32,
             relations: *const universal.UniversalRelations,
             destination: *[INTERACTION_COLUMN_COUNT][]M31,
+            padding: ?Row,
+            columns_source: ?ColumnRows,
         ) Error!DomainClaims {
             const size = try preflightPreparedInto(workspace, plan, rows, log_size, relations, destination);
+            if (columns_source) |source| try validateColumnSource(source, log_size, workspace, destination);
+            const row_count = if (columns_source) |source| source.count else rows.len;
+            const absent_pairs = if (padding) |row| try plan.preparedRowPairs(row, relations) else paddingPairs();
 
             const term_count = std.math.mul(usize, BATCH_COUNT, size) catch
                 return error.InvalidTraceShape;
@@ -267,10 +483,10 @@ pub fn Runtime(comptime RelationRuntime: type) type {
             const inverses = scratch[2 * term_count .. 3 * term_count];
 
             for (0..size) |logical_row| {
-                const pairs = if (logical_row < rows.len)
-                    try plan.preparedRowPairs(rows[logical_row], relations)
+                const pairs = if (logical_row < row_count)
+                    try plan.preparedRowPairs(if (columns_source) |source| source.read(logical_row, log_size) else rows[logical_row], relations)
                 else
-                    paddingPairs();
+                    absent_pairs;
                 for (pairs, 0..) |pair, batch| {
                     const index = batch * size + logical_row;
                     numerators[index] = pair.n1.mul(pair.d2)
@@ -296,11 +512,21 @@ pub fn Runtime(comptime RelationRuntime: type) type {
                 }
                 claimed_sum = claimed_sum.add(within_row);
 
-                if (comptime decompose_domains) {
-                    const pairs = if (logical_row < rows.len)
-                        try plan.preparedRowPairs(rows[logical_row], relations)
+                if (comptime decompose_domains and RelationRuntime.BATCH_SIZE > 2) {
+                    const row = if (logical_row < row_count)
+                        (if (columns_source) |source| source.read(logical_row, log_size) else rows[logical_row])
+                    else (padding orelse continue);
+                    for (plan.preparedEntries(row)) |entry| {
+                        const denominator = try entry.denominator(relations);
+                        if (denominator.eql(QM31.zero())) return error.ZeroDenominator;
+                        const domain = @intFromEnum(entry.domain);
+                        by_domain[domain] = by_domain[domain].add(entry.numerator.mul((denominator.inv() catch return error.ZeroDenominator)));
+                    }
+                } else if (comptime decompose_domains) {
+                    const pairs = if (logical_row < row_count)
+                        try plan.preparedRowPairs(if (columns_source) |source| source.read(logical_row, log_size) else rows[logical_row], relations)
                     else
-                        paddingPairs();
+                        absent_pairs;
                     for (pairs, plan.batches, 0..) |pair, batch_plan, batch| {
                         const inverse = inverses[batch * size + logical_row];
                         const first_domain = @intFromEnum(
@@ -362,6 +588,22 @@ pub fn Runtime(comptime RelationRuntime: type) type {
                 .claimed_sum = claimed_sum,
                 .by_domain = by_domain,
             };
+        }
+
+        fn validateColumnSource(source: ColumnRows, log_size: u32, workspace: *const Workspace, destination: *const [INTERACTION_COLUMN_COUNT][]M31) Error!void {
+            try source.validate(log_size);
+            if (source.metadata) |fixed| {
+                if (try slicesOverlap(Row, fixed, QM31, workspace.scratch)) return error.DestinationAlias;
+                for (destination) |output| if (try slicesOverlap(Row, fixed, M31, output)) return error.DestinationAlias;
+            }
+            if (source.compact_metadata) |fixed| {
+                if (try slicesOverlap(M31, fixed, QM31, workspace.scratch)) return error.DestinationAlias;
+                for (destination) |output| if (try slicesOverlap(M31, fixed, M31, output)) return error.DestinationAlias;
+            }
+            for (source.columns[0..source.main_count]) |column| {
+                if (try slicesOverlap(M31, column, QM31, workspace.scratch)) return error.DestinationAlias;
+                for (destination) |output| if (try slicesOverlap(M31, column, M31, output)) return error.DestinationAlias;
+            }
         }
 
         fn validateMemoryContract(
@@ -820,4 +1062,67 @@ fn frameworkFailureCase(
         relations,
     );
     defer generated.deinit(allocator);
+}
+
+test "R-012 framework tiled owned output preserves columns and releases partial allocations" {
+    const a = std.testing.allocator;
+    const control = @import("control.zig");
+    const relation = @import("control_relation.zig");
+    const witness = @import("control_witness.zig");
+    const kind = @import("proof_kind.zig").ProofKind;
+    const F = Runtime(relation.Runtime);
+    var definition = try control.build(a);
+    defer definition.deinit();
+    const plan = try relation.authenticate(&definition);
+    const rows = [_]relation.Row{
+        witness.logicalRow(.{ .segment_mask = 1, .binary_mask = 0, .verifier_id = 0, .sequence = 0, .tag = 7, .args = .{ 11, 13, 17, 19 }, .terminal_mask = 0 }, kind.segment_leaf),
+        witness.logicalRow(.{ .segment_mask = 1, .binary_mask = 0, .verifier_id = 0, .sequence = 1, .tag = 23, .args = .{ 29, 31, 37, 41 }, .terminal_mask = 1 }, kind.segment_leaf),
+    };
+    var relations = universal.UniversalRelations.dummy();
+    var oracle = try F.generatePrepared(a, &plan, &rows, 4, &relations);
+    defer oracle.deinit(a);
+    const view = F.ColumnRows{ .columns = @splat(&.{}), .count = rows.len, .main_count = 0, .metadata = &rows };
+    for (0..5) |tile_log| {
+        var workspace = try F.Workspace.init(a, @intCast(tile_log));
+        defer workspace.deinit();
+        try std.testing.checkAllAllocationFailures(a, tiledFailureCase, .{ &workspace, &plan, view, &relations, &oracle });
+    }
+    var workspace = try F.Workspace.init(a, 0);
+    defer workspace.deinit();
+    var helper = try F.Workspace.init(a, 0);
+    defer helper.deinit();
+    const workers = [_]*F.Workspace{ &workspace, &helper };
+    try std.testing.checkAllAllocationFailures(a, scheduledFailureCase, .{ &workers, &plan, view, &relations, &oracle });
+    try std.testing.expectError(error.DestinationAlias, F.generatePreparedOwnedColumnsScheduled(a, &.{ &workspace, &workspace }, &plan, view, 4, &relations, null, ReverseTiles{}));
+    const pairs = try plan.preparedRowPairs(rows[0], &relations);
+    const domain = @intFromEnum(plan.events[plan.batches[0].first].domain);
+    relations.elements[domain].z = relations.elements[domain].z.add(pairs[0].d1);
+    try std.testing.expectError(error.ZeroDenominator, F.generatePreparedOwnedColumnsTiledWithWorkspace(a, &workspace, &plan, view, 4, &relations, null));
+    try std.testing.expectError(error.ZeroDenominator, F.generatePreparedOwnedColumnsScheduled(a, &workers, &plan, view, 4, &relations, null, ReverseTiles{}));
+}
+fn tiledFailureCase(a: std.mem.Allocator, workspace: *Runtime(@import("control_relation.zig").Runtime).Workspace, plan: *const @import("control_relation.zig").Plan, view: Runtime(@import("control_relation.zig").Runtime).ColumnRows, relations: *const universal.UniversalRelations, oracle: *const Runtime(@import("control_relation.zig").Runtime).Interaction) !void {
+    const F = Runtime(@import("control_relation.zig").Runtime);
+    var actual = try F.generatePreparedOwnedColumnsTiledWithWorkspace(a, workspace, plan, view, 4, relations, null);
+    defer actual.deinit(a);
+    try std.testing.expect(oracle.claimed_sum.eql(actual.claimed_sum));
+    for (oracle.columns, actual.columns) |left, right| try std.testing.expectEqualSlices(M31, left, right);
+}
+
+// Reverse completion order checks that prefix construction cannot depend on
+// scheduling order. Production pool execution is also checked by proof parity.
+const ReverseTiles = struct {
+    pub fn run(_: @This(), contexts: anytype) void {
+        var i = contexts.len;
+        while (i != 0) {
+            i -= 1;
+            contexts[i].run();
+        }
+    }
+};
+fn scheduledFailureCase(a: std.mem.Allocator, workspaces: []const *Runtime(@import("control_relation.zig").Runtime).Workspace, plan: *const @import("control_relation.zig").Plan, view: Runtime(@import("control_relation.zig").Runtime).ColumnRows, relations: *const universal.UniversalRelations, oracle: *const Runtime(@import("control_relation.zig").Runtime).Interaction) !void {
+    const F = Runtime(@import("control_relation.zig").Runtime);
+    var actual = try F.generatePreparedOwnedColumnsScheduled(a, workspaces, plan, view, 4, relations, null, ReverseTiles{});
+    defer actual.deinit(a);
+    try std.testing.expect(oracle.claimed_sum.eql(actual.claimed_sum));
+    for (oracle.columns, actual.columns) |left, right| try std.testing.expectEqualSlices(M31, left, right);
 }

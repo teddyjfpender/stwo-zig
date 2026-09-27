@@ -45,9 +45,29 @@ pub fn generate(
     allocator.free(base);
     base_owned = false;
 
-    try appendKeccak(allocator, result, &initialized, extension);
-    try appendTable(allocator, result, &initialized, .chi);
-    try appendTable(allocator, result, &initialized, .xor5);
+    try appendExtension(allocator, result, &initialized, extension);
+    if (initialized != result.len) return error.InvalidTraceShape;
+    return result;
+}
+
+/// Only the extension selectors. Full statement/certificate admission belongs
+/// to the caller; generation depends solely on canonical component geometry.
+pub fn generateExtension(allocator: std.mem.Allocator, extension: *const statement_mod.Statement) ![]prover_pcs.ColumnEvaluation {
+    try extension.validateGeometryWithCircuitProfileV1(extension.counts.external_retirements, if (extension.localZeroCustody()) .ethereum_local_zero_v1 else .ethereum_v5);
+    const result = try allocator.alloc(prover_pcs.ColumnEvaluation, extension_column_count);
+    var initialized: usize = 0;
+    errdefer {
+        for (result[0..initialized]) |column| allocator.free(@constCast(column.values));
+        allocator.free(result);
+    }
+    try appendExtension(allocator, result, &initialized, extension);
+    if (initialized != result.len) return error.InvalidTraceShape;
+    return result;
+}
+fn appendExtension(allocator: std.mem.Allocator, result: []prover_pcs.ColumnEvaluation, initialized: *usize, extension: *const statement_mod.Statement) !void {
+    try appendKeccak(allocator, result, initialized, extension);
+    try appendTable(allocator, result, initialized, .chi);
+    try appendTable(allocator, result, initialized, .xor5);
     for (extension.components[3..], 0..) |descriptor, index| {
         const active_prefix = if (index == 10)
             extension.counts.signer_calls
@@ -56,13 +76,11 @@ pub fn generate(
         try appendSecpSelectors(
             allocator,
             result,
-            &initialized,
+            initialized,
             descriptor.log_size,
             active_prefix,
         );
     }
-    if (initialized != result.len) return error.InvalidTraceShape;
-    return result;
 }
 
 /// Additive joined-profile Tree-0 sibling. The ordinary base and all fourteen
@@ -137,22 +155,7 @@ pub fn generateWithoutNativePoseidonV2(
     allocator.free(base);
     base_owned = false;
 
-    try appendKeccak(allocator, result, &initialized, extension);
-    try appendTable(allocator, result, &initialized, .chi);
-    try appendTable(allocator, result, &initialized, .xor5);
-    for (extension.components[3..], 0..) |descriptor, index| {
-        const active_prefix = if (index == 10)
-            extension.counts.signer_calls
-        else
-            0;
-        try appendSecpSelectors(
-            allocator,
-            result,
-            &initialized,
-            descriptor.log_size,
-            active_prefix,
-        );
-    }
+    try appendExtension(allocator, result, &initialized, extension);
     if (initialized != result.len) return error.InvalidTraceShape;
     return result;
 }

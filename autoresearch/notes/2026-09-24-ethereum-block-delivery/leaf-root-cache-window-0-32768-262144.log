@@ -1,0 +1,20 @@
+BLOCK_LEAF phase=execution cycles=32768
+BLOCK_LEAF phase=witness programs=729419 boundaries=13915 hash_logs={ 22, 20, 20, 19, 11, 14, 14, 20 } peak_bytes=2204192573
+       15.44 real        91.43 user         2.99 sys
+          9761292288  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1794464  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   3  voluntary context switches
+               81447  involuntary context switches
+       1274552176278  instructions retired
+        403443120786  cycles elapsed
+          9763791536  peak memory footprint

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "scope": "production all-family durable transport and independent metadata type/negative gate",
+  "profile": "diagnostic_q8_pow0 metadata only; no new proof generation",
+  "optimize": "ReleaseFast",
+  "tests_passed": 9,
+  "tests_total": 9,
+  "exit_code": 0,
+  "allocator_teardown": "std.testing allocator clean",
+  "typed_sink_loader_families": ["native", "request", "rom", "native_projection", "native_provider", "opcode_memory", "caller", "caller_program", "caller_state", "caller_tables", "external_memory", "packed_memory", "range16"],
+  "checks": ["all codec/sink/loader bodies compile", "independent geometry builder body compile", "owning complete receiver metadata JSON bodies compile", "canonical SHA-pinned file roster roundtrip", "wrong manifest SHA rejection", "aggregate file byte cap rejection", "duplicate roster order rejection", "one-attempt proof loader rejection"],
+  "tracked_peak_bytes": null,
+  "fresh_valid_proof_roundtrip": "pending production driver integrated gate",
+  "complete_block_authority": false,
+  "log": "/tmp/block-v5-bundle-store-gate.log"
+}

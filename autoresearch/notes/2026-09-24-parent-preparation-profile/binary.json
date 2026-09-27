@@ -1,0 +1,23 @@
+{
+  "parent-test": {
+    "path": "autoresearch/notes/2026-09-24-parent-preparation-profile/parent-test",
+    "sha256": "aaa829fe6bb782cbdff469cf1755aaa51b668c924577f7bc71bd30987cb7c249"
+  },
+  "control-parent-test": {
+    "path": "autoresearch/notes/2026-09-24-parent-preparation-profile/control-parent-test",
+    "sha256": "9de4f557ddfbe584bcdc292774a4af5b7084a3585e7762d0855658baf8cd7d2f"
+  },
+  "candidate-parent-test": {
+    "path": "autoresearch/notes/2026-09-24-parent-preparation-profile/candidate-parent-test",
+    "sha256": "37e6c057d5fb33bd83e539e9288f5fa84077ed26b03f5dbd44483d0e465377be"
+  },
+  "bundle": "../2026-09-24-canonical-parent-pipeline/core",
+  "parameters": {
+    "queries": 70,
+    "pow_bits": 26,
+    "proving_workers": 8,
+    "preparation_workers": 1,
+    "allocator": "smp",
+    "jobs": 2
+  }
+}

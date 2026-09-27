@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "status": "source-candidate-not-compiler-or-runtime-qualified",
+  "families": [
+    "range16",
+    "ram_lanes",
+    "program_table",
+    "native_lookup"
+  ],
+  "checks_prepared": 9,
+  "invocations": "fmt only; no compiler, segments, STARK, forest, benchmark or device execution",
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_codec_v1.zig",
+      "sha256": "a27811a1652dfe68c26d9ba413d4fb52242941cea02c9120149f9b8e4e2190f3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_definition_v1.zig",
+      "sha256": "fdb7cea2d081caf49723a0b64febf13e33964239fcfc83518e0958c9e324afe8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_family_v1.zig",
+      "sha256": "f96f05c47ad60f8939caf4a267c5d0fa15db8d24dc805ae79ac74bad7c341311"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_store_v1.zig",
+      "sha256": "445fe4250c3970742e692994e9858b6a0787e65e0d62a063a53d38889a1b80bd"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_templates_v1.zig",
+      "sha256": "96ad433ff3b583d74e05bcca790d820221aa7e5de72dd8b382a7ce730d82e935"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_transport_fixture_v1.zig",
+      "sha256": "0339d4d8872cc2e5883cd6dd9e9b68ca2494a432d2f1219b1adc2185ec10a30b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_transport_test_v1.zig",
+      "sha256": "95e03cf70b57b368b917cae1b0289535e3057aaa0f23d7d72b9930327ded2832"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_artifact_files_v1.zig",
+      "sha256": "6b9fe38e94f175bc2c170b75e2dbb743a9ffbc2e2542a9da08d43a9b77340f9e"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_provider_transport_test_root.zig",
+      "sha256": "0530e3b7c48db0d90acc56b1d9da07672d5d8ba42c733121052b4b2d1bde574e"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_provider_transport_codegen.zig",
+      "sha256": "119eee24a969fb59e6c6e19f9f64cdd0517700f69434f4ef81c1401beb85b168"
+    }
+  ],
+  "remaining": [
+    "compile and focused fixture qualification after provider freeze",
+    "canonical caller/provider aggregation and final global closure",
+    "actual complete bundle qualification remains stopped"
+  ],
+  "allocator_contract": "Stage publishing via Store.sink must use Store.a; artifact consumes only after durable successful publication"
+}

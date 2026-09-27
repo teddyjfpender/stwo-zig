@@ -1,0 +1,172 @@
+BLOCK_V4_CANDIDATE_MEMORY stage=first-preflight index=0 live=0 peak=358988867 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=source-preflight index=0 live=6579534 peak=358993804 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=0 live=109104704 peak=358993804 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=0 live=8016450176 peak=8035080240 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=0 live=177027132 peak=8084372604 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=0 live=262288589 peak=8084372604 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=0 live=31253262 peak=8084372604 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=1 live=106712590 peak=8084372604 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=1 live=8019794265 peak=8084372604 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=1 live=172019954 peak=8085101629 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=1 live=369112799 peak=8085101629 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=1 live=31320846 peak=8085101629 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=2 live=107077986 peak=8085101629 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=2 live=8031525593 peak=8085101629 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=2 live=172373806 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=2 live=369384400 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=2 live=31388430 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=3 live=100729410 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=3 live=8022887087 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=3 live=165957110 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=3 live=362482349 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=3 live=31456014 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=4 live=107793194 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=4 live=8032510542 peak=8096821413 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=4 live=173040654 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=4 live=369706683 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=4 live=31523598 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=5 live=108110182 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=5 live=8021993102 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=5 live=173107314 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=5 live=367989756 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=5 live=31591182 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=6 live=108482066 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=6 live=8037041125 peak=8097758002 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=6 live=173684598 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=6 live=370030515 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=6 live=31658766 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=7 live=105399186 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=7 live=8029064182 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=7 live=170791206 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=7 live=368487225 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=7 live=34954850 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=8 live=112430222 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=8 live=8027627306 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=8 live=177560058 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=8 live=373388016 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=8 live=35022434 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=9 live=112725094 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=9 live=8030838862 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=9 live=177930746 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=9 live=374298893 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=9 live=35022434 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=10 live=113104882 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=10 live=8026165962 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=10 live=178444486 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=10 live=375767041 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=10 live=35090018 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=11 live=123925194 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=11 live=8042586460 peak=8102243657 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=11 live=189063662 peak=8107724928 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=11 live=384953123 peak=8107724928 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=11 live=45643362 peak=8107724928 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=12 live=124244510 peak=8107724928 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=12 live=8057245544 peak=8107724928 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=12 live=189206594 peak=8122207628 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=12 live=383839319 peak=8122207628 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=12 live=45710946 peak=8122207628 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=13 live=118047066 peak=8122207628 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=13 live=8257195817 peak=8275833049 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=13 live=184000166 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=13 live=252761557 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=13 live=45778530 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=14 live=110111990 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=14 live=7978950729 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=14 live=174984114 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=14 live=368975874 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=14 live=45846114 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=15 live=125366622 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=15 live=8060253572 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=15 live=190543986 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=15 live=386710581 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=15 live=45913698 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_PROGRESS completed=16 total=218
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=16 live=125712514 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=16 live=8048533065 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=16 live=190843702 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=16 live=386681293 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=16 live=45981282 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=17 live=126093566 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=17 live=8049992162 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=17 live=191405298 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=17 live=388529265 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=17 live=46048866 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=18 live=126423154 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=18 live=8064095443 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=18 live=191520958 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=18 live=387120688 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=18 live=46116450 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=19 live=126714570 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=19 live=8063695455 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=19 live=191884862 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=19 live=388001069 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=19 live=46116450 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=20 live=120419754 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=20 live=8015407878 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=20 live=185897886 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=20 live=384207453 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=20 live=46184034 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=21 live=127456510 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=21 live=8049458394 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=21 live=192655298 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=21 live=388974539 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=21 live=46251618 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=22 live=121098210 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=22 live=8056036457 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=22 live=186226486 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=22 live=382043329 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=22 live=46319202 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=23 live=128161334 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=23 live=8069635591 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=23 live=193357730 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=23 live=389659928 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=23 live=46386786 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=24 live=128477650 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=24 live=8069337228 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=24 live=193447742 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=24 live=388137524 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=24 live=46454370 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=25 live=122147646 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=25 live=8062233578 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=25 live=187358914 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=25 live=383767075 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=25 live=46521954 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=26 live=122485634 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=26 live=8064249651 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=26 live=187999126 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=26 live=386560633 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=26 live=46521954 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=27 live=129506766 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=27 live=8061224067 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=27 live=194651162 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=27 live=390582860 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=27 live=46589538 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=28 live=115384986 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=28 live=8006460980 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=28 live=181190718 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=28 live=381834435 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=28 live=46657122 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=29 live=152930830 peak=8323148917 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=29 live=9203969057 peak=9204125137 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=29 live=220253194 peak=9271291421 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=29 live=294149325 peak=9748075183 limit=17179869184
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=29 live=46792290 peak=9748075183 limit=17179869184
+BLOCK_V4_CANDIDATE_PROBE_COMPLETE keys=30 no_manifest=true
+      616.77 real      1659.88 user        80.95 sys
+          9774448640  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            65531585  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+             7603759  involuntary context switches
+      18739303223142  instructions retired
+       7352042320555  cycles elapsed
+          9783707984  peak memory footprint

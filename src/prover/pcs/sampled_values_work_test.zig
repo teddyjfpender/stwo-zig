@@ -142,6 +142,23 @@ test "prover pcs: parallel barycentric weights match reference with exact runtim
         try std.testing.expect(parallel_weight.eql(reference_weight));
     }
 
+    {
+        var held = try pool.acquire(try work_pool_mod.WorkerBudget.init(4));
+        defer held.deinit();
+        const fallback = try context.computeWeightsWithReceipt(allocator, &parallel_workspace, sampled, .{ .allow_parallel = true });
+        try std.testing.expect(!fallback.receipt.used_parallel);
+        for (fallback.weights, reference) |actual, expected| try std.testing.expect(actual.eql(expected));
+    }
+    {
+        var borrowed = try pool.acquire(try work_pool_mod.WorkerBudget.init(2));
+        defer borrowed.deinit();
+        const bounded = try context.computeWeightsWithReceipt(allocator, &parallel_workspace, sampled, .{ .allow_parallel = true, .lease = &borrowed });
+        try std.testing.expectEqual(@as(usize, 2), bounded.receipt.batch_inverse_chunk_count);
+        for (bounded.weights, reference) |actual, expected| try std.testing.expect(actual.eql(expected));
+        try borrowed.validateRetained(try work_pool_mod.WorkerBudget.init(2));
+        try std.testing.expectError(error.PointOnDomain, context.computeWeightsWithReceipt(allocator, &parallel_workspace, context.pointAt(0), .{ .allow_parallel = true, .lease = &borrowed }));
+        try borrowed.validateRetained(try work_pool_mod.WorkerBudget.init(2));
+    }
     var audit: sampled_work.Audit = .{};
     audit.observeBarycentricWeightsExecution(
         log_size,
@@ -186,7 +203,7 @@ test "prover pcs: parallel barycentric weights reject a domain point" {
         context.computeWeightsWithReceipt(
             allocator,
             &workspace,
-            context.domain_points[0],
+            context.pointAt(0),
             .{ .allow_parallel = true },
         ),
     );

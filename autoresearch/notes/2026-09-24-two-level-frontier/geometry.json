@@ -1,0 +1,73 @@
+{
+  "children": [
+    {
+      "child": 0,
+      "current_total_g": 2230704,
+      "additional_g_reduction": 159936,
+      "projected_total_g": 2070768
+    },
+    {
+      "child": 1,
+      "current_total_g": 2230704,
+      "additional_g_reduction": 159936,
+      "projected_total_g": 2070768
+    },
+    {
+      "child": 2,
+      "current_total_g": 2222024,
+      "additional_g_reduction": 159936,
+      "projected_total_g": 2062088
+    },
+    {
+      "child": 3,
+      "current_total_g": 2264976,
+      "additional_g_reduction": 159936,
+      "projected_total_g": 2105040
+    },
+    {
+      "child": 4,
+      "current_total_g": 3426752,
+      "additional_g_reduction": 198016,
+      "projected_total_g": 3228736
+    },
+    {
+      "child": 5,
+      "current_total_g": 3426752,
+      "additional_g_reduction": 198016,
+      "projected_total_g": 3228736
+    }
+  ],
+  "folds": [
+    {
+      "children": [
+        0,
+        1
+      ],
+      "current_g": 4461408,
+      "projected_g": 4141536,
+      "current_padded": 8388608,
+      "projected_padded": 4194304
+    },
+    {
+      "children": [
+        2,
+        3
+      ],
+      "current_g": 4487000,
+      "projected_g": 4167128,
+      "current_padded": 8388608,
+      "projected_padded": 4194304
+    },
+    {
+      "children": [
+        4,
+        5
+      ],
+      "current_g": 6853504,
+      "projected_g": 6457472,
+      "current_padded": 8388608,
+      "projected_padded": 8388608
+    }
+  ],
+  "scope": "projection before native integration and routing overhead"
+}

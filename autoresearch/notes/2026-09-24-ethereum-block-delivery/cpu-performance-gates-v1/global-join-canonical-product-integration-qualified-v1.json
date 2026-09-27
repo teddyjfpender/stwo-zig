@@ -1,0 +1,9 @@
+{
+  "status": "qualified_semantic_integration",
+  "focused_equations": "global-join-algebra-focused-v1-result.json",
+  "canonical_product_semantic": "global-join-canonical-product-semantic-v1-result.json",
+  "scope": "Four pure equation checks and actual installed producer/detached receiver body analysis with shared global equations; no LLVM/run or recursive global-join closure claim",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

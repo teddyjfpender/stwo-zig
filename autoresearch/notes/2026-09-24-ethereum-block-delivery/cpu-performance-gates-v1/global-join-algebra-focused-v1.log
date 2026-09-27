@@ -1,0 +1,5 @@
+1/4 block_v5_global_join_algebra_test_root.test_0...OK
+2/4 prover.block_v5_global_join_algebra_v1.test.global join algebra: execution and register windows cannot cancel across scopes...OK
+3/4 prover.block_v5_global_join_algebra_v1.test.global join algebra: six table kinds and provider groups do not cancel across scopes...OK
+4/4 prover.block_v5_global_join_algebra_v1.test.global join algebra: recorded accounting preserves auxiliary sign and includes each byte request once...OK
+All 4 tests passed.

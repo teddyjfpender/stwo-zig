@@ -1,0 +1,61 @@
+test-recursive-fused-pcs-opening
++- Fused PCS opening guard
+   +- run test 13/14 passed, 1 failed
+NATIVE_PADDING air=0 live_events=52 implicit_columns_equal=false
+NATIVE_PADDING air=1 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=2 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=3 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=4 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=5 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=6 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=7 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=8 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=9 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=10 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=11 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=12 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=13 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=14 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=15 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=16 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=17 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=18 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=19 live_events=0 implicit_columns_equal=true
+error: 'recursion.air.blake3_shared_root_test.test.shared BLAKE3 root preserves every query input and exact multiplicity' failed: TUPLE_UNMATCHED domain=recursion_wire hash=30c2a257ce9a7da4b4d326e3b3925c17abc04bc8d474d74eaee8a878496aa2ae residual={ .{ .v = 2147483640 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } } prefix={ .{ .v = 900 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }, contributions=9
+  component=0 event=0 role=emit weight={ .{ .v = 1 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+TUPLE_UNMATCHED domain=recursion_wire hash=cb5a7e6e6f854ab06f695b93e30e08d279fd988f8d56991ca16dd9bd30daf21b residual={ .{ .v = 2147483640 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } } prefix={ .{ .v = 900 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 1 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 1 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }, contributions=9
+  component=0 event=0 role=emit weight={ .{ .v = 1 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+TUPLE_UNMATCHED domain=recursion_wire hash=ffa30c378d3d97f8051c044fa2907e01f263e1d9a9bea06df44100353a1a48ae residual={ .{ .v = 2147483640 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } } prefix={ .{ .v = 900 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 2 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } },{ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }, contributions=9
+  component=0 event=0 role=emit weight={ .{ .v = 1 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+  component=0 event=0 role=emit weight={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+error: while executing test 'recursion.air.framework_interaction.test.R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and alias-safe', the following test command failed:
+./.zig-cache/o/99e3e8302422797f07145cfdd1faa31e/test --cache-dir=./.zig-cache --seed=0x14d62405 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 13/14 tests passed; 1 failed
+test-recursive-fused-pcs-opening transitive failure
++- Fused PCS opening guard transitive failure
+   +- run test 13/14 passed, 1 failed
+      +- compile test ReleaseSafe native success 17s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/769f90eb348195621286fd66595f11ba/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x14d62405 -Z4857a506f6d18bef --maxrss 25769803776 -j1 test-recursive-fused-pcs-opening -Doptimize=ReleaseSafe --summary all

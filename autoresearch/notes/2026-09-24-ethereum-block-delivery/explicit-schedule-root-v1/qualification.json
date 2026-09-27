@@ -1,0 +1,30 @@
+{
+  "scope": "complete authentication fixture with unequal explicit leaf budgets and fresh-process receiver; not a mainnet block proof",
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-sizing-log25-stages",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.expected",
+    "16384",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/explicit-schedule-root-v1/root.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/explicit-schedule-root-v1/report.json",
+    "canonical",
+    "schedule=/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/explicit-schedule-root-v1/schedule.json"
+  ],
+  "wall_seconds": 88.40410562499892,
+  "proof_verified": true,
+  "rejected_invalid_schedules": [
+    "missing-cycle",
+    "invalid-slot-count"
+  ],
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-sizing-log25-stages": "ebec74484e2bf11c23ec6ebc5416645e2381dc2e7044a1f5007565c05e1041d9",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-receiver-qualification-v1/block-verify": "e7ec842c5952e21403217d73d3f6a1f2f47678b45ce907988467f7bf544067a4",
+    "autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.input": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d",
+    "autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.expected": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/explicit-schedule-root-v1/schedule.json": "6655456eef0789b0cf2b470de2aad917f7e715ddd454225e148ee3acaf47fda0",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/explicit-schedule-root-v1/root.proof": "11ef60008c4856dd56590f7ad049f3059d540149e2be548d5b2d3f43a5acd602",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/explicit-schedule-root-v1/report.json": "403d3f75938585e1b2ea2eb957960b0e717e48f864f0d587c9dd30802fe128a3"
+  }
+}

@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 4/4 tests passed
+test-blake3-hash success
++- BLAKE3 hash graph guard success
+   +- run test 3 passed 589ms MaxRSS:17M
+      +- compile test ReleaseSafe native success 5s MaxRSS:516M
+test-blake3-frame-witness success
++- BLAKE3 frame witness guard success
+   +- run test 1 passed 676ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 3s MaxRSS:445M
+

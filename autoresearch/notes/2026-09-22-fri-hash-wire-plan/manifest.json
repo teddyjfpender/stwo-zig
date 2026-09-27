@@ -1,0 +1,7 @@
+{
+  "README.md": "881d8b769467aab020928d0f6332bd279137b13488eca9aa7bf4b6c0ce659fbf",
+  "sources/autoresearch/notes/20260922-fri-hash-wire-plan-problem-match.md": "8ff6d67624f121a1b3d1ab34bde92328c9a49891c89f175a719847124a1750b3",
+  "sources/src/frontends/riscv/recursion/air/blake3_fri_group_test.zig": "351eeb2c4778e2db8a58a8142a2fb90cfea7ed79eb997630e1c49b6553ad33c3",
+  "sources/src/frontends/riscv/recursion/air/fri_hash_wire_plan.zig": "98a96f0f9ba90c138de2e2bc71d08b3d361db68886035c9ef2a08315678e2572",
+  "tests.log": "9355214e880e30749e3eea31ba1acee6108ab7d8304105b349f1fab2c08d432f"
+}

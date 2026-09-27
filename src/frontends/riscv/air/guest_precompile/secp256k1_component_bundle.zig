@@ -32,6 +32,7 @@ pub const TableTrace = trace_mod.Trace(config.Table);
 pub const EcdsaTrace = trace_mod.Trace(config.Ecdsa);
 pub const RecoveryTrace = trace_mod.Trace(config.Recovery);
 pub const RecoveryCallerTrace = trace_mod.Trace(config.RecoveryCaller);
+pub const RecoveryCallerLocalZeroTrace = trace_mod.Trace(config.RecoveryCallerLocalZero);
 pub const ByteTrace = trace_mod.Trace(config.ByteTable);
 
 pub const Bundle = struct {
@@ -235,24 +236,36 @@ pub fn generateRecoveryCaller(
     allocator: std.mem.Allocator,
     records: []const recovery_call_buffer.Record,
 ) !RecoveryCallerTrace {
-    var rows: std.ArrayList(RecoveryCallerTrace.Row) = .empty;
+    return generateRecoveryCallerForRecipe(false, allocator, records);
+}
+
+pub fn generateRecoveryCallerLocalZero(
+    allocator: std.mem.Allocator,
+    records: []const recovery_call_buffer.Record,
+) !RecoveryCallerLocalZeroTrace {
+    return generateRecoveryCallerForRecipe(true, allocator, records);
+}
+
+fn generateRecoveryCallerForRecipe(
+    comptime local_zero: bool,
+    allocator: std.mem.Allocator,
+    records: []const recovery_call_buffer.Record,
+) !trace_mod.Trace(if (local_zero) config.RecoveryCallerLocalZero else config.RecoveryCaller) {
+    const CallerTrace = trace_mod.Trace(if (local_zero) config.RecoveryCallerLocalZero else config.RecoveryCaller);
+    var rows: std.ArrayList(CallerTrace.Row) = .empty;
     defer rows.deinit(allocator);
     var active_prefix: std.ArrayList(usize) = .empty;
     defer active_prefix.deinit(allocator);
     try rows.ensureTotalCapacity(allocator, records.len);
     try active_prefix.ensureTotalCapacity(allocator, records.len);
     for (records, 0..) |record, index| {
-        rows.appendAssumeCapacity(recovery_caller.rowFromRecord(record));
+        const row = if (local_zero) try @import("secp256k1_caller_local_zero_v1.zig").rowFromRecord(record) else recovery_caller.rowFromRecord(record);
+        rows.appendAssumeCapacity(row);
         active_prefix.appendAssumeCapacity(index);
     }
-    if (rows.items.len != 0) return RecoveryCallerTrace.init(
-        allocator,
-        rows.items,
-        active_prefix.items,
-        &.{},
-    );
-    const padding = [1]RecoveryCallerTrace.Row{@splat(M31.zero())};
-    return RecoveryCallerTrace.init(allocator, &padding, &.{}, &.{});
+    if (rows.items.len != 0) return CallerTrace.init(allocator, rows.items, active_prefix.items, &.{});
+    const padding = [1]CallerTrace.Row{@splat(M31.zero())};
+    return CallerTrace.init(allocator, &padding, &.{}, &.{});
 }
 
 fn countBytes(

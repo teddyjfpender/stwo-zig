@@ -1,0 +1,25 @@
+1/14 block_v5_readonly_input_unit_test_root.test_0...OK
+2/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input public values subset complement and authority reject relabeling...OK
+3/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input source census scalar equations and coherent forgeries reject...OK
+4/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input collection cleanup survives every allocation failure...OK
+5/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input geometry resource and immutable matrix borrows reject substitution...OK
+6/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input all mutable and all readonly partitions preserve exact census...FAIL (TestUnexpectedResult)
+7/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input arbitrary OODS SIMD masks preserve all source equations...OK
+8/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input producer fresh native caller receiver bodies compile without invocation...OK
+9/14 air.memory_commitment.poseidon2_air.test_0...OK
+10/14 air.semantic_eval.test_0...OK
+11/14 prover.block_execution_external_trace_v2.test_0...OK
+12/14 air.lookups.tables.mod.test_0...OK
+13/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+14/14 air.lookups.tables.source_ingest.test_0...OK
+13 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/e452edfbaa1203029e0c85a955f783cc/root --seed=0x211d26e5
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 24, in <module>
+    subprocess.run([z,'test',*filter_args,*runner_args,'-O' + args.optimize,'-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','--dep','stwo_backend_contracts','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig',*runner_modules],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'block-v5 readonly input', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '--dep', 'stwo_backend_contracts', '-Mroot=src/frontends/riscv/block_v5_readonly_input_unit_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

@@ -1,0 +1,73 @@
+{
+  "status": "qualified_nonproving_wide_original_source",
+  "source_candidate": "wide-original-child-bridge-source-candidate-v1.json",
+  "evidence": {
+    "wide-original-child-bridge-semantic-v4": {
+      "source_candidate": "wide-original-child-bridge-semantic-v4-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.085395916015841,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/wide-original-child-bridge-semantic-v4.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "wide-original-child-bridge-focused-v1": {
+      "source_candidate": "wide-original-child-bridge-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 98.60769987496315,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 15,
+      "test_summary": [
+        "All 15 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/wide-original-child-bridge-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-wide-original-child-bridge-focused-v1",
+        "bytes": 11036000,
+        "sha256": "3369d31925a37f17f08ad121b76f07aa7806200ee93bff44118ab72c791e9ebe"
+      }
+    }
+  },
+  "historical_failed_attempts": [
+    "wide-original-child-bridge-semantic-v1",
+    "wide-original-child-bridge-semantic-v2",
+    "wide-original-child-bridge-semantic-v3"
+  ],
+  "root_corrections": [
+    "Graph retained evaluation capture renamed to avoid shadowing original reconstructed graph",
+    "Original fresh span comparison handles each genuine optional/nonoptional return type, rejects absent span and compares exact original payload"
+  ],
+  "emitted_body_marker": [
+    "0000000100000780 T _stwo_wide_original_bridge_body_gate"
+  ],
+  "tests_passed": 15,
+  "named_behavioral_checks": 8,
+  "scope": [
+    "Exact original channel framing and lazy full-u64 byte ingress, allocation rollback",
+    "New independent typed parent, original normative public digest bytes and full-u64 count/carry graph",
+    "Coordinate substitution, digest/carry/clock/steps/overflow mutation rejection",
+    "Original fresh verifier and symbolic State.plan bodies for all five supported families; genuine producer/fresh receiver bodies for native and capacity retained, not executed"
+  ],
+  "not_qualified": [
+    "Multiwindow wide public root",
+    "Canonical driver activation",
+    "Complete memory/source/global authority or whole block proof"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

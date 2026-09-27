@@ -1,0 +1,106 @@
+{
+  "schema": "source-candidate-v1",
+  "status": "source-only-unqualified-revision2",
+  "owned_sources_frozen": true,
+  "root": "src/frontends/riscv/block_v5_cpu_capacity_collection_unit_test_root.zig",
+  "filter": "capacity collection:",
+  "authored_tests": 6,
+  "command_for_root_only": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_cpu_capacity_collection_unit_test_root.zig 'capacity collection:'",
+  "executed_here": [],
+  "test_scope": [
+    "literal proposal metadata and field/hash census only",
+    "exhaustive allocation failures for ROM metadata and real late-bound entry construction",
+    "full legacy/capacity collection and assembly function bodies retained without invocation"
+  ],
+  "forbidden_operations_not_executed": [
+    "guest/segment",
+    "PCS commitment",
+    "STARK/FRI proof",
+    "device",
+    "benchmark"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig",
+      "sha256": "13189c8556f553e900fde344f5948a5ee7b48b7d546ac75f570953db8eba9598"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig",
+      "sha256": "a0a97008a7c08e0bf781dffa664b7eccb5b9f0418ad406b488e02ae484affb22"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_global_plans_v1.zig",
+      "sha256": "9a4fcf55c8ea6bbd4414c239351a3006bc3d2147e1c03c858213219645d939f5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_first_round_v1.zig",
+      "sha256": "581b2e10c27dd4c2fe742e503bbd5535cf5acc6b595635176c41b55f94b9fac0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_fused_first_round_v1.zig",
+      "sha256": "f3135903dc8e634ee358df42121573f9408f8293cadf1f980b04f4b4b16cae3d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_collect_v1.zig",
+      "sha256": "5f944e03b8e4836c95d541bafc2999eab4320e47b8878cb63697a9c1a257cf80"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_assembly_v1.zig",
+      "sha256": "385a1d1339cbf3b6e824f0e9e555c2a93969123faffe17ce6e3299dbc7000285"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_program_first_round_v1.zig",
+      "sha256": "083491022a3e0ed8f5b8d636df1d647b7639659cc363419f30b28023481ad8a6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_collection_test_v1.zig",
+      "sha256": "2526d4f034416849f66a79a3ff305842ee1e244e0106d77d6b49fa10087903ff"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_cpu_capacity_collection_unit_test_root.zig",
+      "sha256": "4689508ae3a1fd4624565024b0d627eabfeb3a17c4eecd57d14e268badef06e7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_collect_impl_v1.zig",
+      "sha256": "aff0c5b2ee3be7f06e94218606aed6874b68663701793b906b59c579276b2181"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_assembly_impl_v1.zig",
+      "sha256": "95dc444e29a5e667ba844c83b3a2d7932b54aafd661bdc27073c7a32d75ea1d2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_first_round_impl_v1.zig",
+      "sha256": "4a1f53f8c5e950c0738e439736190418f8a4f0cedcf8cdab8ed54f8335e5a97b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_fused_first_round_impl_v1.zig",
+      "sha256": "ec0071b4a4b302d3185c18f86ddc5c006f931c852a701562e208f1a6f6c3d578"
+    }
+  ],
+  "shared_dependencies_owned_elsewhere": [
+    "block_v5_cpu_driver_admission_common_v1.zig (root planning)",
+    "block_v5_cpu_capacity_root_proposal_v1.zig (exact_recursion)",
+    "block_v5_capacity_native_columns_stage_v1.zig (exact_recursion)",
+    "capacity fused lifecycle/proof and typed receiver stack (previous batch; root qualification)"
+  ],
+  "remaining": [
+    "serial pure source/metadata/body qualification",
+    "coordinated typed driver, bundle policy/store/detached producer activation qualification",
+    "genuine fresh B5CT+B5CF/global/recursive proof remains unqualified; segment/proof execution stays stopped"
+  ],
+  "apis": {
+    "collect": "block_v5_cpu_collect_v1.ForCapacity(bool).{Limits,Collected,collect,nativeMetadata,ordinaryEvents}",
+    "assembly": "block_v5_cpu_assembly_v1.ForCapacity(bool).{Assembly,assemble,requiredEntryCount}",
+    "program": "block_v5_program_first_round_v1.ForCapacity(bool).ForBackend(Backend)",
+    "limits": "capacity ordinary={memory,fused}; optional fixed_basis bounded one-entry cache defaults null",
+    "receiver": "capacity Programs/Memory/Global typed nominal stack; caps copied from real collection"
+  },
+  "revision": 2,
+  "original_snapshot": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-collection-assembly-source-original-v1.json",
+  "prior_attempt": {
+    "status": "compile-failed-no-tests-executed",
+    "log": "cpu-performance-gates-v1/native-capacity-collection-assembly-unit-v1.log",
+    "errors": "ambiguous outer legacy aliases versus inner factory declarations",
+    "fix": "four shared impl modules isolate generic declarations from public legacy aliases; APIs and implementations unchanged"
+  }
+}

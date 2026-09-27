@@ -1,0 +1,27 @@
+
+[38;2;10;191;131m   ZisK zkVM 1.3.0-alpha[0m
+      System Darwin 25.6.0 (macOS 26.7)
+    Hostname TMWM-JJC4N61YF7
+     Command Execute
+         Elf /Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-guest-e2e/guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/sha256-chain-peer-guest
+       Input inline://[[4096]]
+2026-09-24T17:14:21.150221Z INFO: Setting up EmuExecClient for ELF 'sha256-chain-peer-guest'
+2026-09-24T17:14:21.153766Z INFO: EmuExecClient ready
+2026-09-24T17:14:21.153774Z INFO: Running Emu execute
+2026-09-24T17:14:21.153862Z INFO: >>> COMPUTE_MINIMAL_TRACE
+2026-09-24T17:14:21.218531Z INFO: >>> COUNT
+2026-09-24T17:14:21.227700Z INFO: <<< COUNT (9ms)
+2026-09-24T17:14:21.227730Z INFO: <<< COMPUTE_MINIMAL_TRACE (73ms)
+2026-09-24T17:14:21.227760Z INFO: >>> PLAN_MAIN
+2026-09-24T17:14:21.227764Z INFO: <<< PLAN_MAIN (0ms)
+2026-09-24T17:14:21.227768Z INFO: >>> PLAN_SECONDARY
+2026-09-24T17:14:21.229570Z INFO: <<< PLAN_SECONDARY (1ms)
+2026-09-24T17:14:21.229581Z INFO: >>> WAIT_PLAN_MEM_CPP
+2026-09-24T17:14:21.229586Z INFO: <<< WAIT_PLAN_MEM_CPP (0ms)
+2026-09-24T17:14:21.229589Z INFO: >>> WAIT_ASM_RH
+2026-09-24T17:14:21.229593Z INFO: <<< WAIT_ASM_RH (0ms)
+2026-09-24T17:14:21.229652Z INFO: --- PLAN SUMMARY --------------
+2026-09-24T17:14:21.229659Z INFO: Zisk | Main: 1 | Rom: 1 | Mem: 1 | InputData: 1 | RomData: 1 | MemAlign: 1 | BinaryLarge: 1 | BinaryExtension: 1 | Dma64AlignedMemSet: 1 | Total instances: 9
+2026-09-24T17:14:21.229670Z INFO: --- EXECUTE SUMMARY -----------
+2026-09-24T17:14:21.229673Z INFO: Execution completed in 79ms, steps: 9749233
+2026-09-24T17:14:21.229675Z INFO: Execution summary: Setup 4ms + Execution 73ms + Count&Plan 1ms + Count&Plan MO 0ms

@@ -1,0 +1,70 @@
+{
+  "status": "source-only canonical native expected-key/cache integration; root qualification required",
+  "owned_only": true,
+  "source_frozen": true,
+  "files": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_recursive_template_derivation_v1.zig",
+      "sha256": "5d29a68aadb0a34069e37f5c90fe1d0492d4a06f1c8c5d6dc9250a9f625586ad"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_expected_setup_cache_v1.zig",
+      "sha256": "6d69e05d50324ac7f31c1ca5e8945c9f073955a43377ce4b78b875a43d0d15f5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_recursive_receive_v1.zig",
+      "sha256": "da019ed030f89c9d1daa8dd829e4b854b42ee6a7b9283229622c68be576e87ad"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_recursive_publication_v1.zig",
+      "sha256": "77e5ad23d56432d25d18f146041e6d504a2f31149acc00c72728fa0cf0ae6617"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_range_forest_policy_owner_v1.zig",
+      "sha256": "4f5753f9b1ab9e8141d98555264e2c1465310ec1f3fc0c8ff6c8364cbb5ea20a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_expected_setup_test_v1.zig",
+      "sha256": "fd31d3bf36cd22a55c5babe3fa2442684b78432590aa44d9649f2bfe6d0383cc"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_word_expected_setup_codegen_v1.zig",
+      "sha256": "96c1c4cc3d1e410f5775fad16b7d938384c3c2c9ccff05c2f2cb27504cd267f0"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_word_expected_setup_test_root_v1.zig",
+      "sha256": "0d69c3246b62a0ccd514392dd73924cbd82a44a0bae059c22352cd1978cc5181"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_word_recursive_fixed_roster_v1.zig",
+      "sha256": "96fe1aa195b5581af210e690e3a9cc8f065aae8796f683c962f2e873451c7507"
+    },
+    {
+      "path": "design/riscv-proving-stack/word-independent-expected-setup-v1.md",
+      "sha256": "cfc63bc4488148161dd45a27aa5f6401fb3d8bef6d9e7e064ad6275f54e9c327"
+    }
+  ],
+  "root": "src/frontends/riscv/block_v5_word_expected_setup_test_root_v1.zig",
+  "filters": [
+    "word expected setup",
+    "cpu recursive publication",
+    "RAM durable catalogue"
+  ],
+  "behavioral_groups": 5,
+  "actual_body_retention": [
+    "independent native policy expected-key factory and bounded cache",
+    "original mandatory base-proof verification and default CPU recursive receive",
+    "original RAM/range forest publication/reconstruction with independent leaf keys",
+    "direct typed internal roster/key constructor without duplicate cold roster"
+  ],
+  "canonical_selection_changed": true,
+  "segments_run": false,
+  "pcs_commitment_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "remaining": [
+    "runtime cold/hit fixed-root and original full live parity",
+    "independent forest/global join/complete block setup",
+    "positive complete block proof and end-to-end time/process peak memory"
+  ]
+}

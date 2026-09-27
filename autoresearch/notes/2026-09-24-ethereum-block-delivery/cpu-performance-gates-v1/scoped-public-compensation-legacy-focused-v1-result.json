@@ -1,0 +1,22 @@
+{
+  "source_candidate": "scoped-public-compensation-legacy-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 25.888765458017588,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/scoped-public-compensation-legacy-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-scoped-public-compensation-legacy-focused-v1",
+    "bytes": 46428232,
+    "sha256": "744d83f4c5f23e1d6ced8748845199237ffc2fd17df7fe7ca9ce762477b56252"
+  }
+}

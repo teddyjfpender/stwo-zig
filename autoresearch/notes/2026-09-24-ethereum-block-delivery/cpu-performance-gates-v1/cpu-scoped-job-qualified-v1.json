@@ -1,0 +1,108 @@
+{
+  "status": "qualified_nonproving_cpu_scoped_job_snapshot",
+  "authored_candidate": "cpu-scoped-job-source-candidate-v1.json",
+  "evidence": {
+    "cpu-scoped-job-legacy-semantic-v1": {
+      "source_candidate": "cpu-scoped-job-legacy-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 9.145893666951451,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-job-legacy-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "cpu-scoped-job-legacy-semantic-v2": {
+      "source_candidate": "cpu-scoped-job-legacy-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 9.687322292011231,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-job-legacy-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "cpu-scoped-job-legacy-focused-v1": {
+      "source_candidate": "cpu-scoped-job-legacy-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 190.89957599999616,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-job-legacy-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-scoped-job-legacy-focused-v1",
+        "bytes": 22783064,
+        "sha256": "ae402b18bcb0bd1a6ff7edc668fdbeee82065cf63bd07e0d7e5f9447501e2417"
+      }
+    },
+    "cpu-scoped-job-selected-focused-v1": {
+      "source_candidate": "cpu-scoped-job-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 47.51867945800768,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-job-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-scoped-job-selected-focused-v1",
+        "bytes": 86222920,
+        "sha256": "c880d48765de92f3368ef552bf9bae558efb7ecae5884db61c0280c383fe51b9"
+      }
+    }
+  },
+  "tests_passed_per_recipe": 22,
+  "authored_behavioral_checks": 9,
+  "body_markers": 1,
+  "source_pins_per_recipe": 1869,
+  "scope": [
+    "Actual optional driver callback, source assembly, bounded fresh folds and standalone independent receiver bodies emitted and retained, never invoked",
+    "Exact eight-family sparse nonrounded coverage, source/event mutations and new roster allocation rollback",
+    "Original context binder parity, canonical byte limb decoding and fail-closed old clock bounds",
+    "Reader sourceFilePins transport snapshots preserve writer-only filePins and cannot confer verification state",
+    "Same normative JobSetup prepare/finish kernel compiled for both original and transferred construction"
+  ],
+  "repairs": [
+    "Typed provider/execution family arrays in inline enum switches",
+    "Original typed Open proposal coercion, without changing proposal fields",
+    "FilePin test alias corrected to the original outer execution-store module"
+  ],
+  "not_qualified": [
+    "Positive genuine full-policy JobSetup finish and runtime allocation rollback",
+    "Shared input-tail and bounded wide-public compensation integration",
+    "Complete authenticated memory/source/global closure or canonical activation",
+    "Actual complete block proof, GPU run or end-to-end speed/peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

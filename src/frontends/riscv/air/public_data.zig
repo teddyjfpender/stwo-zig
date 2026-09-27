@@ -126,6 +126,72 @@ pub const IoEntries = struct {
     /// Output length word followed by the output data words.
     output_words: []const OutputWord,
 
+    // I/O identities need canonical values and addresses, while proof public
+    // data additionally binds every output access clock to the execution.
+    pub fn validateInputShape(io: IoEntries) ValidationError!void {
+        const expected_words_u32 = std.math.divCeil(u32, io.input_len, 4) catch unreachable;
+        const expected_words = std.math.cast(usize, expected_words_u32) orelse
+            return error.InputWordCountMismatch;
+        if (io.input_words.len != expected_words) return error.InputWordCountMismatch;
+
+        _ = std.math.add(u32, io.input_start, io.input_len) catch
+            return error.InputAddressOverflow;
+        if (io.input_words.len != 0) {
+            _ = try io.inputWordAddress(io.input_words.len - 1);
+        }
+
+        const used_bytes = io.input_len & 3;
+        if (used_bytes != 0) {
+            const used_bits: u5 = @intCast(used_bytes * 8);
+            const used_mask = (@as(u32, 1) << used_bits) - 1;
+            if ((io.input_words[io.input_words.len - 1] & ~used_mask) != 0)
+                return error.NonCanonicalInputPadding;
+        }
+    }
+    pub fn validateOutputShape(io: IoEntries) ValidationError!void {
+        // The pinned runner permits an unaligned symbol, but publishes only the
+        // containing aligned word. Without adjacent words the four-byte length
+        // cannot be reconstructed uniquely, so the proof profile fails closed
+        // to the aligned subset rather than leaving `output_len` transcript-only.
+        if ((io.output_len_addr & 3) != 0) return error.MisalignedOutputLengthAddress;
+        // The memory relation carries aligned word addresses, not the byte
+        // offset within a word. Restricting the data symbol to word alignment
+        // makes `output_data_addr` uniquely derivable from non-empty output.
+        if ((io.output_data_addr & 3) != 0) return error.MisalignedOutputDataAddress;
+        if (io.output_words.len == 0) {
+            if (io.output_len != 0) return error.OutputWordCountMismatch;
+            return;
+        }
+
+        const data_word_count = try io.outputDataWordCount();
+        const expected_count = std.math.add(usize, data_word_count, 1) catch
+            return error.OutputWordCountMismatch;
+        if (io.output_words.len != expected_count) return error.OutputWordCountMismatch;
+
+        const length_word_addr = io.output_len_addr & ~@as(u32, 3);
+        const length_word = io.output_words[0];
+        if (length_word.addr != length_word_addr) return error.OutputWordAddressMismatch;
+        if (length_word.value != io.output_len) return error.OutputLengthWordMismatch;
+
+        for (io.output_words[1..], 0..) |word, index| {
+            const expected_addr = try io.outputDataWordAddress(index);
+            if (expected_addr == length_word_addr) return error.OverlappingOutputRegions;
+            if (word.addr != expected_addr) return error.OutputWordAddressMismatch;
+        }
+    }
+    /// Bind canonical little-endian words to the supplied application input.
+    pub fn validateInputBytes(self: IoEntries, input: []const u8) !void {
+        if (input.len != self.input_len or self.input_words.len != try std.math.divCeil(usize, input.len, 4)) return error.InputLengthMismatch;
+        for (input, 0..) |byte, index| {
+            const shift: u5 = @intCast((index % 4) * 8);
+            if (byte != @as(u8, @truncate(self.input_words[index / 4] >> shift))) return error.InputDigestMismatch;
+        }
+        if (input.len % 4 != 0) {
+            const used_bits: u5 = @intCast((input.len % 4) * 8);
+            if (self.input_words[self.input_words.len - 1] >> used_bits != 0) return error.NonCanonicalInputPadding;
+        }
+    }
+
     /// Derive the address of an input word without the wrapping arithmetic used
     /// by the pinned Rust implementation. Valid statements occupy the shared
     /// non-wrapping subset of both implementations.
@@ -159,195 +225,167 @@ pub const IoEntries = struct {
 };
 
 /// Public execution state carried by an RV32IM proof.
-pub const PublicData = struct {
-    initial_pc: u32,
-    final_pc: u32,
-    /// Total executed instructions; access fields use derived protocol subclocks.
-    clock: u32,
-    initial_regs: [32]u32,
-    final_regs: [32]u32,
-    /// Last access clock for every register, or zero if never accessed.
-    reg_last_clock: [32]u32,
-    program_root: ?u32,
-    initial_rw_root: ?u32,
-    final_rw_root: ?u32,
-    /// Mandatory in every produced proof. `null` is accepted only as an input
-    /// convenience for synthetic traces and is resolved before commitment.
-    completion: ?Completion = null,
-    io_entries: IoEntries,
+pub const PublicData = Statement(false);
+/// Full-width prover-owned BLAKE3 roots. Artifact admission must explicitly
+/// select this contract; changing the PCS hash alone does not select it.
+pub const Blake3PublicData = Statement(true);
+pub const BLAKE3_STATEMENT_TRANSCRIPT_VERSION: u32 = 3;
 
-    /// Whether this statement claims the run touched the public I/O region.
-    ///
-    /// Read on the LogUp-imbalance diagnostic path. A statement declaring
-    /// neither input nor output words compensates no memory-access tuples for
-    /// them, so a run that in fact read input or wrote output cannot balance the
-    /// memory-access bus for *any* witness. That is a different failure from
-    /// "some relation is unbalanced" and deserves a different message, so the
-    /// distinction lives here beside the data it reads rather than inside the
-    /// verifier that consumes it.
-    ///
-    /// Structural -- lengths only. It answers what the statement declares, not
-    /// whether the declaration is true.
-    pub fn declaresPublicIo(self: *const PublicData) bool {
-        return self.io_entries.input_words.len != 0 or self.io_entries.output_words.len != 0;
-    }
+fn Statement(comptime blake3: bool) type {
+    return struct {
+        const Self = @This();
+        pub const Root = if (blake3) @import("../recursion/blake3_identity_digest.zig").Digest else u32;
+        pub const transcript_version = if (blake3) BLAKE3_STATEMENT_TRANSCRIPT_VERSION else STATEMENT_TRANSCRIPT_VERSION;
+        initial_pc: u32,
+        final_pc: u32,
+        /// Total executed instructions; access fields use derived protocol subclocks.
+        clock: u32,
+        initial_regs: [32]u32,
+        final_regs: [32]u32,
+        /// Last access clock for every register, or zero if never accessed.
+        reg_last_clock: [32]u32,
+        program_root: ?Root,
+        initial_rw_root: ?Root,
+        final_rw_root: ?Root,
+        /// Mandatory in every produced proof. `null` is accepted only as an input
+        /// convenience for synthetic traces and is resolved before commitment.
+        completion: ?Completion = null,
+        io_entries: IoEntries,
 
-    /// Validate the statement shape that is derivable from public data alone.
-    ///
-    /// The released CLI accepts one complete, unsegmented execution, so every
-    /// public output word is present. Output words expose complete memory words;
-    /// unused bytes of the final output word are intentionally not required to
-    /// be zero.
-    pub fn validate(self: *const PublicData) ValidationError!void {
-        if (!profile.isInstructionAligned(self.initial_pc))
-            return error.MisalignedInitialPc;
-        if (!profile.isInstructionAligned(self.final_pc))
-            return error.MisalignedFinalPc;
-        if (self.program_root == null) return error.MissingProgramRoot;
-        if (self.initial_regs[0] != 0) return error.NonZeroInitialX0;
-        if (self.final_regs[0] != 0) return error.NonZeroFinalX0;
-        try self.validateCompletion();
-        for (self.reg_last_clock) |clock| {
-            if (!access_clock.isWithinExecution(clock, self.clock, true))
-                return error.RegisterClockOutOfRange;
-        }
-        try self.validateInput();
-        try self.validateOutput();
-    }
-
-    fn validateCompletion(self: *const PublicData) ValidationError!void {
-        const completion = self.completion orelse return error.MissingCompletion;
-        switch (completion.kind) {
-            .halt_flag => {
-                if ((completion.address & 3) != 0 or completion.address >= 0x7fff_fffc)
-                    return error.InvalidCompletionAddress;
-                if (completion.value == 0) return error.InvalidCompletionValue;
-                if (!access_clock.isWithinExecution(completion.clock, self.clock, false))
-                    return error.InvalidCompletionClock;
-            },
-            .unretired_self_loop => {
-                if (completion.address != self.final_pc)
-                    return error.InvalidCompletionAddress;
-                profile.requireProgramWordAddress(completion.address) catch
-                    return error.InvalidCompletionAddress;
-                if (completion.value != CANONICAL_SELF_LOOP_WORD)
-                    return error.InvalidCompletionValue;
-                if (completion.clock != 0) return error.InvalidCompletionClock;
-            },
-            .unretired_program_fetch => {
-                if (completion.address != self.final_pc)
-                    return error.InvalidCompletionAddress;
-                profile.requireProgramWordAddress(completion.address) catch
-                    return error.InvalidCompletionAddress;
-                if (completion.value == 0) return error.InvalidCompletionValue;
-                if (completion.clock != 0) return error.InvalidCompletionClock;
-            },
-        }
-    }
-
-    fn validateInput(self: *const PublicData) ValidationError!void {
-        const io = self.io_entries;
-        const expected_words_u32 = std.math.divCeil(u32, io.input_len, 4) catch unreachable;
-        const expected_words = std.math.cast(usize, expected_words_u32) orelse
-            return error.InputWordCountMismatch;
-        if (io.input_words.len != expected_words) return error.InputWordCountMismatch;
-
-        _ = std.math.add(u32, io.input_start, io.input_len) catch
-            return error.InputAddressOverflow;
-        if (io.input_words.len != 0) {
-            _ = try io.inputWordAddress(io.input_words.len - 1);
+        /// Whether this statement claims the run touched the public I/O region.
+        ///
+        /// Read on the LogUp-imbalance diagnostic path. A statement declaring
+        /// neither input nor output words compensates no memory-access tuples for
+        /// them, so a run that in fact read input or wrote output cannot balance the
+        /// memory-access bus for *any* witness. That is a different failure from
+        /// "some relation is unbalanced" and deserves a different message, so the
+        /// distinction lives here beside the data it reads rather than inside the
+        /// verifier that consumes it.
+        ///
+        /// Structural -- lengths only. It answers what the statement declares, not
+        /// whether the declaration is true.
+        pub fn declaresPublicIo(self: *const Self) bool {
+            return self.io_entries.input_words.len != 0 or self.io_entries.output_words.len != 0;
         }
 
-        const used_bytes = io.input_len & 3;
-        if (used_bytes != 0) {
-            const used_bits: u5 = @intCast(used_bytes * 8);
-            const used_mask = (@as(u32, 1) << used_bits) - 1;
-            if ((io.input_words[io.input_words.len - 1] & ~used_mask) != 0)
-                return error.NonCanonicalInputPadding;
-        }
-    }
-
-    fn validateOutput(self: *const PublicData) ValidationError!void {
-        const io = self.io_entries;
-        // The pinned runner permits an unaligned symbol, but publishes only the
-        // containing aligned word. Without adjacent words the four-byte length
-        // cannot be reconstructed uniquely, so the proof profile fails closed
-        // to the aligned subset rather than leaving `output_len` transcript-only.
-        if ((io.output_len_addr & 3) != 0) return error.MisalignedOutputLengthAddress;
-        // The memory relation carries aligned word addresses, not the byte
-        // offset within a word. Restricting the data symbol to word alignment
-        // makes `output_data_addr` uniquely derivable from non-empty output.
-        if ((io.output_data_addr & 3) != 0) return error.MisalignedOutputDataAddress;
-        if (io.output_words.len == 0) {
-            if (io.output_len != 0) return error.OutputWordCountMismatch;
-            return;
+        /// Validate the statement shape that is derivable from public data alone.
+        ///
+        /// The released CLI accepts one complete, unsegmented execution, so every
+        /// public output word is present. Output words expose complete memory words;
+        /// unused bytes of the final output word are intentionally not required to
+        /// be zero.
+        pub fn validate(self: *const Self) ValidationError!void {
+            if (!profile.isInstructionAligned(self.initial_pc))
+                return error.MisalignedInitialPc;
+            if (!profile.isInstructionAligned(self.final_pc))
+                return error.MisalignedFinalPc;
+            if (self.program_root == null) return error.MissingProgramRoot;
+            if (self.initial_regs[0] != 0) return error.NonZeroInitialX0;
+            if (self.final_regs[0] != 0) return error.NonZeroFinalX0;
+            try self.validateCompletion();
+            for (self.reg_last_clock) |clock| {
+                if (!access_clock.isWithinExecution(clock, self.clock, true))
+                    return error.RegisterClockOutOfRange;
+            }
+            try self.validateInput();
+            try self.validateOutput();
         }
 
-        const data_word_count = try io.outputDataWordCount();
-        const expected_count = std.math.add(usize, data_word_count, 1) catch
-            return error.OutputWordCountMismatch;
-        if (io.output_words.len != expected_count) return error.OutputWordCountMismatch;
-
-        const length_word_addr = io.output_len_addr & ~@as(u32, 3);
-        const length_word = io.output_words[0];
-        if (length_word.addr != length_word_addr) return error.OutputWordAddressMismatch;
-        if (length_word.value != io.output_len) return error.OutputLengthWordMismatch;
-        try validateOutputClock(length_word.clock, self.clock);
-
-        for (io.output_words[1..], 0..) |word, index| {
-            const expected_addr = try io.outputDataWordAddress(index);
-            if (expected_addr == length_word_addr) return error.OverlappingOutputRegions;
-            if (word.addr != expected_addr) return error.OutputWordAddressMismatch;
-            try validateOutputClock(word.clock, self.clock);
+        fn validateCompletion(self: *const Self) ValidationError!void {
+            const completion = self.completion orelse return error.MissingCompletion;
+            switch (completion.kind) {
+                .halt_flag => {
+                    if ((completion.address & 3) != 0 or completion.address >= 0x7fff_fffc)
+                        return error.InvalidCompletionAddress;
+                    if (completion.value == 0) return error.InvalidCompletionValue;
+                    if (!access_clock.isWithinExecution(completion.clock, self.clock, false))
+                        return error.InvalidCompletionClock;
+                },
+                .unretired_self_loop => {
+                    if (completion.address != self.final_pc)
+                        return error.InvalidCompletionAddress;
+                    profile.requireProgramWordAddress(completion.address) catch
+                        return error.InvalidCompletionAddress;
+                    if (completion.value != CANONICAL_SELF_LOOP_WORD)
+                        return error.InvalidCompletionValue;
+                    if (completion.clock != 0) return error.InvalidCompletionClock;
+                },
+                .unretired_program_fetch => {
+                    if (completion.address != self.final_pc)
+                        return error.InvalidCompletionAddress;
+                    profile.requireProgramWordAddress(completion.address) catch
+                        return error.InvalidCompletionAddress;
+                    if (completion.value == 0) return error.InvalidCompletionValue;
+                    if (completion.clock != 0) return error.InvalidCompletionClock;
+                },
+            }
         }
-    }
 
-    /// Mix the versioned Zig statement prefix followed by fields in the exact
-    /// order used by pinned Stark-V `PublicData`.
-    pub fn mixInto(self: *const PublicData, channel: anytype) void {
-        channel.mixU32s(&.{
-            STATEMENT_TRANSCRIPT_DOMAIN,
-            STATEMENT_TRANSCRIPT_VERSION,
-        });
-        channel.mixU32s(&.{ self.initial_pc, self.final_pc, self.clock });
-        channel.mixU32s(&self.initial_regs);
-        channel.mixU32s(&self.final_regs);
-        channel.mixU32s(&self.reg_last_clock);
-
-        channel.mixU32s(&.{
-            @intFromBool(self.program_root != null),
-            @intFromBool(self.initial_rw_root != null),
-            @intFromBool(self.final_rw_root != null),
-        });
-        channel.mixU32s(&.{
-            self.program_root orelse 0,
-            self.initial_rw_root orelse 0,
-            self.final_rw_root orelse 0,
-        });
-
-        const completion = self.completion;
-        channel.mixU32s(&.{
-            @intFromBool(completion != null),
-            if (completion) |value| @intFromEnum(value.kind) else 0,
-            if (completion) |value| value.address else 0,
-            if (completion) |value| value.value else 0,
-            if (completion) |value| value.clock else 0,
-        });
-
-        channel.mixU32s(&.{
-            self.io_entries.input_start,
-            self.io_entries.input_len,
-            self.io_entries.output_len_addr,
-            self.io_entries.output_data_addr,
-            self.io_entries.output_len,
-            @intCast(self.io_entries.output_words.len),
-        });
-        channel.mixU32s(self.io_entries.input_words);
-        for (self.io_entries.output_words) |word| {
-            channel.mixU32s(&.{ word.addr, word.value, word.clock });
+        fn validateInput(self: *const Self) ValidationError!void {
+            try self.io_entries.validateInputShape();
         }
-    }
-};
+
+        fn validateOutput(self: *const Self) ValidationError!void {
+            try self.io_entries.validateOutputShape();
+            for (self.io_entries.output_words) |word| try validateOutputClock(word.clock, self.clock);
+        }
+
+        /// Mix the versioned Zig statement prefix followed by fields in the exact
+        /// order used by pinned Stark-V `PublicData`.
+        pub fn mixInto(self: *const Self, channel: anytype) void {
+            channel.mixU32s(&.{
+                STATEMENT_TRANSCRIPT_DOMAIN,
+                transcript_version,
+            });
+            channel.mixU32s(&.{ self.initial_pc, self.final_pc, self.clock });
+            channel.mixU32s(&self.initial_regs);
+            channel.mixU32s(&self.final_regs);
+            channel.mixU32s(&self.reg_last_clock);
+
+            channel.mixU32s(&.{
+                @intFromBool(self.program_root != null),
+                @intFromBool(self.initial_rw_root != null),
+                @intFromBool(self.final_rw_root != null),
+            });
+            if (blake3) {
+                // Sixteen u16 limbs preserve all 256 bits without M31 reduction.
+                // Presence flags distinguish an absent root from an all-zero root.
+                for ([_]?Root{ self.program_root, self.initial_rw_root, self.final_rw_root }) |root| {
+                    const words = (root orelse Root{ .bytes = @splat(0) }).toWords();
+                    channel.mixU32s(&words);
+                }
+            } else {
+                channel.mixU32s(&.{
+                    self.program_root orelse 0,
+                    self.initial_rw_root orelse 0,
+                    self.final_rw_root orelse 0,
+                });
+            }
+
+            const completion = self.completion;
+            channel.mixU32s(&.{
+                @intFromBool(completion != null),
+                if (completion) |value| @intFromEnum(value.kind) else 0,
+                if (completion) |value| value.address else 0,
+                if (completion) |value| value.value else 0,
+                if (completion) |value| value.clock else 0,
+            });
+
+            channel.mixU32s(&.{
+                self.io_entries.input_start,
+                self.io_entries.input_len,
+                self.io_entries.output_len_addr,
+                self.io_entries.output_data_addr,
+                self.io_entries.output_len,
+                @intCast(self.io_entries.output_words.len),
+            });
+            channel.mixU32s(self.io_entries.input_words);
+            for (self.io_entries.output_words) |word| {
+                channel.mixU32s(&.{ word.addr, word.value, word.clock });
+            }
+        }
+    };
+}
 
 fn validateOutputClock(clock: u32, final_clock: u32) ValidationError!void {
     if (!access_clock.isWithinExecution(clock, final_clock, false))
@@ -674,4 +712,79 @@ test "public data: unaligned output length is outside the supported proof profil
     data = validPublicData(&input_words, &output_words);
     data.io_entries.output_data_addr += 1;
     try std.testing.expectError(error.MisalignedOutputDataAddress, data.validate());
+}
+
+test "BLAKE3 public data binds every root bit and separates absence and version" {
+    var data = Blake3PublicData{
+        .initial_pc = 0x1000,
+        .final_pc = 0x1010,
+        .clock = 10,
+        .initial_regs = @splat(0),
+        .final_regs = @splat(0),
+        .reg_last_clock = @splat(0),
+        .program_root = .{ .bytes = @splat(0) },
+        .initial_rw_root = .{ .bytes = @splat(0) },
+        .final_rw_root = .{ .bytes = @splat(0) },
+        .completion = Completion.canonicalSelfLoop(0x1010),
+        .io_entries = .{
+            .input_start = 0x2000,
+            .input_len = 0,
+            .input_words = &.{},
+            .output_len = 0,
+            .output_len_addr = 0x3004,
+            .output_data_addr = 0x3008,
+            .output_words = &.{},
+        },
+    };
+    try data.validate();
+    var baseline = RecordingChannel{};
+    data.mixInto(&baseline);
+    try std.testing.expectEqual(@as(u32, 3), baseline.words[1]);
+    try std.testing.expect(PublicData.transcript_version != Blake3PublicData.transcript_version);
+    // Root payload follows domain/version, execution state, registers and flags.
+    const root_start = 2 + 3 + 3 * 32 + 3;
+    inline for (.{ "program_root", "initial_rw_root", "final_rw_root" }, 0..) |field, root_index| {
+        for (0..256) |bit| {
+            var changed = data;
+            @field(changed, field).?.bytes[bit / 8] ^= @as(u8, 1) << @as(u3, @intCast(bit % 8));
+            var channel = RecordingChannel{};
+            changed.mixInto(&channel);
+            try std.testing.expectEqual(baseline.words_len, channel.words_len);
+            const offset = root_start + root_index * 16 + bit / 16;
+            for (channel.words[0..channel.words_len], 0..) |value, i| {
+                const expected = if (i == offset) @as(u32, 1) << @as(u5, @intCast(bit % 16)) else baseline.words[i];
+                try std.testing.expectEqual(expected, value);
+            }
+        }
+        var absent = data;
+        @field(absent, field) = null;
+        var channel = RecordingChannel{};
+        absent.mixInto(&channel);
+        try std.testing.expectEqual(@as(u32, 0), channel.words[root_start - 3 + root_index]);
+        try std.testing.expect(!std.mem.eql(u32, baseline.words[0..baseline.words_len], channel.words[0..channel.words_len]));
+    }
+    data.program_root = null;
+    try std.testing.expectError(error.MissingProgramRoot, data.validate());
+    data.program_root = .{ .bytes = @splat(0xff) };
+    data.final_regs[0] = 1;
+    try std.testing.expectError(error.NonZeroFinalX0, data.validate());
+    data.final_regs[0] = 0;
+    data.completion = null;
+    try std.testing.expectError(error.MissingCompletion, data.validate());
+}
+
+test "public input byte binding rejects changed bytes lengths and padding" {
+    var words = [_]u32{ 0x04030201, 5 };
+    var io = IoEntries{ .input_start = 0, .input_len = 5, .input_words = &words, .output_len = 0, .output_len_addr = 0, .output_data_addr = 0, .output_words = &.{} };
+    try io.validateInputBytes(&.{ 1, 2, 3, 4, 5 });
+    try std.testing.expectError(error.InputLengthMismatch, io.validateInputBytes(&.{ 1, 2, 3, 4 }));
+    try std.testing.expectError(error.InputDigestMismatch, io.validateInputBytes(&.{ 1, 2, 3, 4, 6 }));
+    words[1] |= 0x100;
+    try std.testing.expectError(error.NonCanonicalInputPadding, io.validateInputBytes(&.{ 1, 2, 3, 4, 5 }));
+    io.input_len = 4;
+    io.input_words = words[0..1];
+    try io.validateInputBytes(&.{ 1, 2, 3, 4 });
+    io.input_len = 0;
+    io.input_words = &.{};
+    try io.validateInputBytes(&.{});
 }

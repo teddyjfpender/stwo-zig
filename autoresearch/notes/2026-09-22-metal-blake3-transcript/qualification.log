@@ -1,0 +1,42 @@
+test-blake3-leaves
++- run test stderr
+BLAKE3_METAL_LEAF columns=1 reuse=0 gpu_ms=0.03479166480246931
+BLAKE3_METAL_LEAF columns=1 reuse=1 gpu_ms=0.02541666617617011
+BLAKE3_METAL_LEAF columns=8 reuse=0 gpu_ms=0.035583332646638155
+BLAKE3_METAL_LEAF columns=8 reuse=1 gpu_ms=0.04475000605452806
+BLAKE3_METAL_LEAF columns=9 reuse=0 gpu_ms=0.3158750041620806
+BLAKE3_METAL_LEAF columns=9 reuse=1 gpu_ms=0.029333343263715506
+BLAKE3_METAL_LEAF columns=10 reuse=0 gpu_ms=0.04729165812022984
+BLAKE3_METAL_LEAF columns=10 reuse=1 gpu_ms=0.0450000079581514
+BLAKE3_METAL_LEAF columns=248 reuse=0 gpu_ms=0.372083333786577
+BLAKE3_METAL_LEAF columns=248 reuse=1 gpu_ms=0.41187499300576746
+BLAKE3_METAL_LEAF columns=249 reuse=0 gpu_ms=0.37329166661947966
+BLAKE3_METAL_LEAF columns=249 reuse=1 gpu_ms=0.4104999970877543
+BLAKE3_METAL_LEAF columns=250 reuse=0 gpu_ms=0.41833332215901464
+BLAKE3_METAL_LEAF columns=250 reuse=1 gpu_ms=0.4203333373880014
+BLAKE3_METAL_LEAF columns=505 reuse=0 gpu_ms=0.821249996079132
+BLAKE3_METAL_LEAF columns=505 reuse=1 gpu_ms=0.7719999994151294
+BLAKE3_METAL_LEAF columns=506 reuse=0 gpu_ms=0.8152499940479174
+BLAKE3_METAL_LEAF columns=506 reuse=1 gpu_ms=0.70525000046473
+BLAKE3_METAL_LEAF columns=761 reuse=0 gpu_ms=1.0353749967180192
+BLAKE3_METAL_LEAF columns=761 reuse=1 gpu_ms=1.0503750090720132
+BLAKE3_METAL_LEAF columns=762 reuse=0 gpu_ms=1.0570416634436697
+BLAKE3_METAL_LEAF columns=762 reuse=1 gpu_ms=1.0561249946476892
+BLAKE3_METAL_LEAF columns=1017 reuse=0 gpu_ms=1.3930833229096606
+BLAKE3_METAL_LEAF columns=1017 reuse=1 gpu_ms=1.391874990076758
+BLAKE3_METAL_LEAF columns=1018 reuse=0 gpu_ms=1.4177083357935771
+BLAKE3_METAL_LEAF columns=1018 reuse=1 gpu_ms=1.6532500012544915
+BLAKE3_METAL_LEAF columns=2042 reuse=0 gpu_ms=3.2858750055311248
+BLAKE3_METAL_LEAF columns=2042 reuse=1 gpu_ms=3.193374999682419
+
+Build Summary: 9/9 steps succeeded; 36/36 tests passed
+test-blake3-transcript success
++- run test 12 passed 4s MaxRSS:61M
+   +- compile test ReleaseSafe native success 7s MaxRSS:478M
+test-blake3-leaves success
++- run test 18 passed 632ms MaxRSS:54M
+   +- compile test ReleaseSafe native success 5s MaxRSS:485M
+test-shader-authority success
++- run test 6 passed 495ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 3s MaxRSS:324M
+

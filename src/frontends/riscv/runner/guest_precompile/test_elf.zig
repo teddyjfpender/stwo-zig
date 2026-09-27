@@ -82,13 +82,29 @@ pub const ethereum_elf_size: usize =
 
 /// Valid fixed d=1, k=1 ECDSA recovery followed by one Keccak-f call.
 pub fn buildEthereum() [ethereum_elf_size]u8 {
+    return buildEthereumWithCompletion(.ecall);
+}
+pub fn buildEthereumWithCompletion(comptime completion: Completion) [imageSize(if (completion == .ecall) ethereum_instructions.len else ethereum_instructions.len + 2, ethereum_data_size)]u8 {
+    return buildEthereumWithCompletionForProfile(completion, .rv32im_zkvm_ethereum_v1);
+}
+
+/// The signer/Keccak image is valid under both Ethereum profiles. Tests of the
+/// SHA superset need the matching ELF admission note even with zero SHA calls.
+pub fn buildEthereumWithCompletionForProfile(comptime completion: Completion, comptime profile: execution_profile.ExecutionProfile) [imageSize(if (completion == .ecall) ethereum_instructions.len else ethereum_instructions.len + 2, ethereum_data_size)]u8 {
+    var instructions: [if (completion == .ecall) ethereum_instructions.len else ethereum_instructions.len + 2]u32 = undefined;
+    @memcpy(instructions[0..ethereum_instructions.len], &ethereum_instructions);
+    if (completion == .self_loop) {
+        instructions[5] = 0x0010_0537; // LUI a0, 0x100.
+        instructions[6] = 0x0005_2223; // SW zero, 4(a0): publish empty output.
+        instructions[7] = 0x0000_006f;
+    }
     var elf = buildProgram(
-        ethereum_instructions.len,
-        &ethereum_instructions,
+        instructions.len,
+        &instructions,
         ethereum_data_size,
-        .rv32im_zkvm_ethereum_v1,
+        profile,
     );
-    const data_offset = program_offset + ethereum_instructions.len * @sizeOf(u32);
+    const data_offset = program_offset + instructions.len * @sizeOf(u32);
     var digest: [32]u8 = @splat(0);
     digest[31] = 1;
     const point = std.crypto.ecc.Secp256k1.basePoint.affineCoordinates();
@@ -349,7 +365,7 @@ pub fn buildAllFamilies() [all_family_elf_size]u8 {
     );
 }
 
-fn buildProgram(
+pub fn buildProgram(
     comptime instruction_count: usize,
     instructions: *const [instruction_count]u32,
     comptime writable_size: usize,
@@ -434,39 +450,100 @@ fn buildProgram(
     put(u32, &elf, symbols_offset + 32, 14);
     put(u32, &elf, symbols_offset + 36, program_size);
 
-    const admission = execution_profile.admission;
-    put(u32, &elf, note_offset, admission.note_name.len);
-    put(u32, &elf, note_offset + 4, admission.descriptor_size);
-    put(u32, &elf, note_offset + 8, admission.note_type);
-    @memcpy(elf[note_offset + 12 .. note_offset + 17], admission.note_name);
-    @memcpy(elf[descriptor_offset .. descriptor_offset + 8], admission.descriptor_magic);
-    put(u16, &elf, descriptor_offset + 8, admission.schema_version);
-    put(u16, &elf, descriptor_offset + 10, @intFromEnum(profile));
-    put(u64, &elf, descriptor_offset + 12, profile.requiredCapabilities());
-    const abi_version, const semantic_digest = switch (profile) {
-        .rv32im_zkvm_poseidon2_v1 => .{
-            execution_profile.poseidon2_abi_version,
-            execution_profile.poseidon2_semantic_digest,
-        },
-        .rv32im_zkvm_keccakf_v1 => .{
-            execution_profile.keccakf_abi_version,
-            execution_profile.keccakf_semantic_digest,
-        },
-        .rv32im_zkvm_ethereum_v1 => .{
-            execution_profile.ethereum_abi_version,
-            execution_profile.ethereum_semantic_digest,
-        },
-        .rv32im_zkvm_v1 => unreachable,
-    };
-    put(u16, &elf, descriptor_offset + 20, abi_version);
-    @memcpy(
-        elf[descriptor_offset + 24 .. descriptor_offset + 56],
-        &semantic_digest,
-    );
+    if (profile == .rv32im_zkvm_v1) {
+        // Base fixtures need declared text symbols, but no extension note.
+        @memset(elf[208..248], 0); // Unnamed SHT_NULL; no authoritative note.
+    } else {
+        const admission = execution_profile.admission;
+        put(u32, &elf, note_offset, admission.note_name.len);
+        put(u32, &elf, note_offset + 4, admission.descriptor_size);
+        put(u32, &elf, note_offset + 8, admission.note_type);
+        @memcpy(elf[note_offset + 12 .. note_offset + 17], admission.note_name);
+        @memcpy(elf[descriptor_offset .. descriptor_offset + 8], admission.descriptor_magic);
+        put(u16, &elf, descriptor_offset + 8, admission.schema_version);
+        put(u16, &elf, descriptor_offset + 10, @intFromEnum(profile));
+        put(u64, &elf, descriptor_offset + 12, profile.requiredCapabilities());
+        const abi_version, const semantic_digest = switch (profile) {
+            .rv32im_zkvm_poseidon2_v1 => .{
+                execution_profile.poseidon2_abi_version,
+                execution_profile.poseidon2_semantic_digest,
+            },
+            .rv32im_zkvm_keccakf_v1 => .{
+                execution_profile.keccakf_abi_version,
+                execution_profile.keccakf_semantic_digest,
+            },
+            .rv32im_zkvm_ethereum_sha_v1 => .{ execution_profile.ethereum_sha_abi_version, execution_profile.ethereum_sha_semantic_digest },
+            .rv32im_zkvm_ethereum_v1 => .{
+                execution_profile.ethereum_abi_version,
+                execution_profile.ethereum_semantic_digest,
+            },
+            .rv32im_zkvm_v1 => unreachable,
+        };
+        put(u16, &elf, descriptor_offset + 20, abi_version);
+        @memcpy(
+            elf[descriptor_offset + 24 .. descriptor_offset + 56],
+            &semantic_digest,
+        );
+    }
 
     for (instructions, 0..) |word, index|
         put(u32, &elf, program_offset + 4 * index, word);
     for (0..writable_size / @sizeOf(u32)) |lane|
         put(u32, &elf, data_offset + 4 * lane, @intCast(lane));
     return elf;
+}
+
+/// The same instruction image with the complete production ABI. Symbol tables
+/// live after the loadable image, preserving its execution and memory layout.
+pub fn buildReleaseProgram(
+    comptime instruction_count: usize,
+    instructions: *const [instruction_count]u32,
+    comptime writable_size: usize,
+    comptime profile: execution_profile.ExecutionProfile,
+) [imageSize(instruction_count, writable_size) + 512]u8 {
+    const original = buildProgram(instruction_count, instructions, writable_size, profile);
+    return withReleaseAbi(original.len, &original);
+}
+/// Add the same ABI to an extension fixture while retaining its initialized
+/// precompile input records and profile note byte-for-byte.
+pub fn withReleaseAbi(comptime size: usize, original: *const [size]u8) [size + 512]u8 {
+    const loader = @import("../elf_loader.zig");
+    var elf = [_]u8{0} ** (original.len + 512);
+    @memcpy(elf[0..original.len], original);
+    const table = original.len;
+    const names = table + (loader.RELEASE_ABI_SYMBOLS.len + 1) * 16;
+    const values = [_]u32{
+        0x1000,                        std.mem.readInt(u32, original[68..72], .little),
+        loader.DEFAULT_STACK_POINTER,  0,
+        loader.DEFAULT_GLOBAL_POINTER, loader.DEFAULT_STACK_POINTER,
+        loader.DEFAULT_STACK_POINTER,  loader.DEFAULT_OUTPUT_LEN,
+        loader.DEFAULT_OUTPUT_LEN,     loader.DEFAULT_HALT_FLAG,
+        loader.DEFAULT_OUTPUT_LEN,     loader.DEFAULT_OUTPUT_DATA,
+        loader.DEFAULT_OUTPUT_END,
+    };
+    var name_offset: usize = 1;
+    for (loader.RELEASE_ABI_SYMBOLS, values, 0..) |name, value, index| {
+        @memcpy(elf[names + name_offset ..][0..name.len], name);
+        put(u32, &elf, table + (index + 1) * 16, @intCast(name_offset));
+        put(u32, &elf, table + (index + 1) * 16 + 4, value);
+        name_offset += name.len + 1;
+    }
+    put(u32, &elf, 264, @intCast(table));
+    put(u32, &elf, 268, (loader.RELEASE_ABI_SYMBOLS.len + 1) * 16);
+    put(u32, &elf, 304, @intCast(names));
+    put(u32, &elf, 308, @intCast(name_offset));
+    return elf;
+}
+
+pub fn buildEthereumSha(comptime profile: execution_profile.ExecutionProfile) [imageSize(7, 256)]u8 {
+    const instructions = [_]u32{
+        0x0010_02b7, // LUI x5, 0x100.
+        0x1002_8293, // ADDI x5, x5, 0x100.
+        0x0802_8313, // ADDI x6, x5, 128: disjoint SHA block.
+        @import("../../isa/sha256_compression_v1.zig").encode(5, 6),
+        custom0.encodeKeccakf(5),
+        @import("../../isa/sha256_compression_v1.zig").encode(5, 6),
+        0x0000_006f, // Unretired self-loop completion.
+    };
+    return buildProgram(instructions.len, &instructions, 256, profile);
 }

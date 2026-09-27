@@ -1,0 +1,17 @@
+{
+  "local_head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "local_dirty": true,
+  "peer_head": "5c5f81c96929abed88894473ec6060b1b545b5c5",
+  "peer_dirty": false,
+  "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "hardware": "Apple M5 Max",
+  "zig": "0.15.2",
+  "rust": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+  "peer_rust": "rustc 1.94.0-dev",
+  "primary_local_binary": "single-wrapper-host",
+  "primary_local_source": "single-wrapper-host.zig",
+  "current_local_binary_scope": "same proof path plus preparation-only geometry reporting",
+  "source_archive": "local-source.tar.gz",
+  "full_gpu_comparison_available": false,
+  "gpu_scope": "Deferred by user; current task is CPU-only."
+}

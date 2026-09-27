@@ -1,0 +1,43 @@
+{
+  "status": "focused-nonproving-source-qualification-only",
+  "authoritative_source_snapshot": "word-fixed-public-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "word-fixed-public-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 5.4822515830164775,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 9,
+    "test_summary": [
+      "All 9 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-fixed-public-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-word-fixed-public-focused-v2",
+      "bytes": 7645560,
+      "sha256": "bcdd43e3ec9c9d401acfbd5853a6bff48e2c5c0ae135d100ab4537f9990bc1fa"
+    }
+  },
+  "source_pin_count": 1904,
+  "behavioral_checks": 4,
+  "scope": [
+    "One original RAM/range public supplier routing body serves original live preparation and typed fixed derivation",
+    "Original live value equality comparisons, receipt/public ordinal bounds, root query multiplicities and supplier order preserved",
+    "Original independent routing oracle and all allocator failures; actual original/typed native bodies retained only"
+  ],
+  "remaining": [
+    "Complete native private supplier/full roster qualification",
+    "Runtime genuine whole-family fixed/live parity, expected commitment root and production wiring",
+    "Positive complete proof and end-to-end time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "pcs_commitment_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

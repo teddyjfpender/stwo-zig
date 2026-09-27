@@ -1,0 +1,22 @@
+{
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-execute-hints",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-evm-collector.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/evm-collector.json",
+    "262144",
+    "collect-evm-hints",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/evm-collector-output.bin"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 82.01857558300253,
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-execute-hints": "3eb7d77ad66a9af64d3d67bde361edcdf2eefc709ac8ef4acd871d9e5d471302",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-evm-collector.elf": "d7f7f12b0e5e71b7c150cd940e9024921dd664b4c8f5e9f4a0a1a5e0ebd0e1de",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input.bin": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  }
+}

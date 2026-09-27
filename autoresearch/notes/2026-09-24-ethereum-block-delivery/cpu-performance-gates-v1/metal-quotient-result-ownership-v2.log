@@ -1,0 +1,7 @@
+1/6 metal_quotient_result_ownership_test_root.test.quotient result: receipt rejection consumes standalone published owner...OK
+2/6 metal_quotient_result_ownership_test_root.test.quotient result: failed fused receipt frees every tree and heap after original owner release...OK
+3/6 metal_quotient_result_ownership_test_root.test.quotient result: failed first adoption cannot double destroy or abandon tail trees...OK
+4/6 metal_quotient_result_ownership_test_root.test.quotient result: middle adoption failure preserves adopted owners and releases only remaining tail...OK
+5/6 metal_quotient_result_ownership_test_root.test.quotient result: successful receipt transfers charge until final adopted owner...OK
+6/6 metal_quotient_result_ownership_test_root.test.quotient result: raw batch heap survives all resource transfers and original owner release...OK
+All 6 tests passed.

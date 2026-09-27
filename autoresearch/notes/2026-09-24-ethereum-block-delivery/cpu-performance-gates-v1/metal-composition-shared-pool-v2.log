@@ -1,0 +1,5 @@
+1/4 metal_composition_pool_test_root.test.composition pool: active and idle buffers retain exact charges and reuse only their owner...OK
+2/4 metal_composition_pool_test_root.test.composition pool: admission precedes factory and every failure rolls back...OK
+3/4 metal_composition_pool_test_root.test.composition pool: eviction and oversized release preserve live plus idle bound...OK
+4/4 metal_composition_pool_test_root.test.composition pool: cached charge survives original budget release and uncapped scope remains separate...OK
+All 4 tests passed.

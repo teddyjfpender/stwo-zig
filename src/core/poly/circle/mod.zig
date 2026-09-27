@@ -1,5 +1,6 @@
 pub const canonic = @import("canonic.zig");
 pub const domain = @import("domain.zig");
+pub const quotient_geometry = @import("quotient_geometry.zig");
 
 pub const CanonicCoset = canonic.CanonicCoset;
 pub const CircleDomain = domain.CircleDomain;

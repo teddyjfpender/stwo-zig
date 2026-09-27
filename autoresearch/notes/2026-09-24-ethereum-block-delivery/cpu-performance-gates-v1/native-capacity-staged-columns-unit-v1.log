@@ -1,0 +1,11 @@
+1/10 block_v5_capacity_native_columns_test_root.test_0...OK
+2/10 prover.block_v5_capacity_native_columns_stage_test_v1.test.capacity staged: first pass span ordinal catalog public and metadata bounds are independently late bound...OK
+3/10 prover.block_v5_capacity_native_columns_stage_test_v1.test.capacity staged: empty physical capacity reuse retains changing counts and exact replay span...OK
+4/10 prover.block_v5_capacity_native_columns_stage_test_v1.test.capacity staged: bounded original main file rebuild preserves typed opcode counters clock counters public copies and ownership aliases...OK
+5/10 prover.block_v5_capacity_native_columns_stage_test_v1.test.capacity staged: empty original file remains a real frame proposal and allocation failures release reconstructed owner...OK
+6/10 prover.block_v5_capacity_native_columns_stage_test_v1.test.capacity staged: legacy stage API delegates to the same bounded owner reconstruction...OK
+7/10 air.semantic_eval.test_0...OK
+8/10 runner.decode.test_0...OK
+9/10 air.memory_commitment.poseidon2_air.test_0...OK
+10/10 air.lookups.tables.source_ingest.test_0...OK
+All 10 tests passed.

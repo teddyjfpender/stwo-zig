@@ -1,0 +1,16 @@
+{
+  "source_candidate": "wide-original-child-bridge-semantic-v2-source.json",
+  "exit_code": 1,
+  "elapsed_seconds": 5.753961582959164,
+  "changed_source_pins": [],
+  "qualified": false,
+  "semantic_only": true,
+  "tests_run": false,
+  "discovered_tests": 0,
+  "test_summary": [],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/wide-original-child-bridge-semantic-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": null
+}

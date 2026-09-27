@@ -24,7 +24,7 @@ pub fn build(
     allocator: std.mem.Allocator,
     family: trace.OpcodeFamily,
 ) !prover_component.OwnedBasePolynomialProgram {
-    var arena = symbolic.Arena.init(allocator);
+    var arena = symbolic.Arena.initRecoverable(allocator);
     defer arena.deinit();
     symbolic.begin(&arena);
     defer symbolic.end();
@@ -32,6 +32,7 @@ pub fn build(
     const main_column_count = Builder.mainColumnCount(family);
     var columns: [trace.MAX_FAMILY_COLUMNS]symbolic.Scalar = undefined;
     try model.declareColumns(&arena, family, columns[0..main_column_count]);
+    try arena.checkAllocation();
     const selector = arena.column("is_active");
     const direct = (try Builder.buildDirect(
         family,
@@ -54,13 +55,14 @@ pub fn buildLuiFromAuthority(
     allocator: std.mem.Allocator,
     compiled: *const typed_lui_authority.Authority,
 ) !prover_component.OwnedBasePolynomialProgram {
-    var arena = symbolic.Arena.init(allocator);
+    var arena = symbolic.Arena.initRecoverable(allocator);
     defer arena.deinit();
     symbolic.begin(&arena);
     defer symbolic.end();
 
     var columns: [typed_lui_authority.MAIN_COLUMN_COUNT]symbolic.Scalar = undefined;
     try model.declareColumns(&arena, .lui, &columns);
+    try arena.checkAllocation();
     const selector = arena.column("is_active");
     const direct = try compiled.evaluateDirect(
         symbolic.Scalar,
@@ -81,6 +83,9 @@ pub fn ownDirectProgram(
     direct: []const symbolic.Scalar,
     main_column_count: usize,
 ) !prover_component.OwnedBasePolynomialProgram {
+    // Scalar arithmetic cannot return allocation errors. Never read/copy its
+    // inert fallback IDs, validate them or publish ownership after latched OOM.
+    try arena.checkAllocation();
     const nodes = try allocator.alloc(
         prover_component.BasePolynomialNode,
         arena.nodes.items.len,
@@ -114,7 +119,7 @@ pub fn buildLookups(
     allocator: std.mem.Allocator,
     family: trace.OpcodeFamily,
 ) !prover_component.OwnedLookupPolynomialProgram {
-    var arena = symbolic.Arena.init(allocator);
+    var arena = symbolic.Arena.initRecoverable(allocator);
     defer arena.deinit();
     symbolic.begin(&arena);
     defer symbolic.end();
@@ -122,6 +127,7 @@ pub fn buildLookups(
     const main_column_count = Builder.mainColumnCount(family);
     var columns: [trace.MAX_FAMILY_COLUMNS]symbolic.Scalar = undefined;
     try model.declareColumns(&arena, family, columns[0..main_column_count]);
+    try arena.checkAllocation();
     const lookups = (try Builder.buildLookups(
         family,
         columns[0..main_column_count],
@@ -142,13 +148,14 @@ pub fn buildLuiLookupsFromAuthority(
     allocator: std.mem.Allocator,
     compiled: *const typed_lui_authority.Authority,
 ) !prover_component.OwnedLookupPolynomialProgram {
-    var arena = symbolic.Arena.init(allocator);
+    var arena = symbolic.Arena.initRecoverable(allocator);
     defer arena.deinit();
     symbolic.begin(&arena);
     defer symbolic.end();
 
     var columns: [typed_lui_authority.MAIN_COLUMN_COUNT]symbolic.Scalar = undefined;
     try model.declareColumns(&arena, .lui, &columns);
+    try arena.checkAllocation();
     var lookups: SymbolicLookupList = undefined;
     try compiled.buildLookupsInto(symbolic.Scalar, &columns, &lookups);
     return ownLookupProgram(
@@ -165,6 +172,7 @@ pub fn ownLookupProgram(
     lookups: *const SymbolicLookupList,
     main_column_count: usize,
 ) !prover_component.OwnedLookupPolynomialProgram {
+    try arena.checkAllocation();
     const nodes = try copyNodes(allocator, arena.nodes.items);
     errdefer allocator.free(nodes);
     const entries = try allocator.alloc(

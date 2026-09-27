@@ -1,0 +1,3 @@
+1/2 prover.block_v5_word_memory_test.test.block-v5 packed27 fresh range16 and global register RW endpoints...OK
+2/2 prover.block_v5_word_memory_test.test.block-v5 packed projection preserves all native bytes and rejects non-range limbs...OK
+All 2 tests passed.

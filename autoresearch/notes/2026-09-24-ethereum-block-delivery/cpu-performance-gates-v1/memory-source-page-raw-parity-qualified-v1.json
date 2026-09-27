@@ -1,0 +1,66 @@
+{
+  "scope": "Two genuine original Raw complete accumulated quotient parity/mutation behavioral checks; 5 total selected tests including unnamed imports. No proof admission or PCS.",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_page_raw_parity_test_root.zig",
+      "sha256": "1ef0c7a50689e99adaab94a27353711afacb7a479c9e1b09360f3e23cb45c4ac"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_raw_recursive_parity_test_v1.zig",
+      "sha256": "c3b3fd710e07ddd511b866a818d73aff5e9c1af6b1c202fe8e0da233ead32791"
+    }
+  ],
+  "attempts": [
+    {
+      "name": "source-page-raw-parity-semantic-v1",
+      "source_candidate": "source-page-raw-parity-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 1.4836307499790564,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-raw-parity-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "source-page-raw-parity-focused-v1",
+      "source_candidate": "source-page-raw-parity-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 12.321416541992221,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 5,
+      "test_summary": [
+        "All 5 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-raw-parity-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-source-page-raw-parity-focused-v1",
+        "bytes": 14383976,
+        "sha256": "31328f73569d7a89ed3181b636f3ec1d76f0830fe8d1832b4f87a5f86c2a7ab1"
+      }
+    }
+  ],
+  "parity": "Unchanged original nine-tree Raw Components.Owner maskPoints and evaluateConstraintQuotientsAtPoint vs actual original Recorded.record(.raw) symbolic graph at chosen arbitrary OODS current/previous samples, original fixed plans/claims/challenges; changed original main sample produces UnsatisfiedCircuit.",
+  "limits": "Full accumulated weighted quotient equality, not instrumented independent assertion for each accumulator contribution. Fixture original PAGE pins and claims are setup proposals, not positively verified proof artifacts.",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "complete_block_authority": false,
+  "remaining": [
+    "Positive real Raw/PAGE recursion proofs",
+    "Assembled PAGE forest and actual source/RAM/range join qualification",
+    "Standalone keys and final recursive global closure"
+  ]
+}

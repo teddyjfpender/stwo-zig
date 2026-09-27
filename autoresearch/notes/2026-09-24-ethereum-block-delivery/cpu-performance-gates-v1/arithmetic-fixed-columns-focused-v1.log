@@ -1,0 +1,16 @@
+src/frontends/riscv/recursion/air/arithmetic_fusion_fixed_columns_v1.zig:37:22: error: slice of non-array type 'struct { comptime type = recursion.air.detached_opening_accumulate4_v1, comptime type = recursion.air.qm31_mul_add_v1, comptime type = recursion.air.qm31_inv, comptime type = recursion.air.linear_ops }'
+            for (Airs[0..slot]) |Air| n += Air.PREPROCESSED_COLUMN_COUNT;
+                 ~~~~^~~~~~~~~
+referenced by:
+    requireFixedParity: src/frontends/riscv/recursion/air/arithmetic_fusion_direct_columns_test.zig:27:41
+    test.direct recursive arithmetic emitter matches legacy FMA inverse linear dot4 in both modes: src/frontends/riscv/recursion/air/arithmetic_fusion_direct_columns_test.zig:102:31
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+src/frontends/riscv/recursion/air/arithmetic_fusion_fixed_columns_v1.zig:37:22: error: slice of non-array type 'struct { comptime type = recursion.air.detached_opening_accumulate4_v1, comptime type = recursion.air.qm31_mul_add_v1, comptime type = recursion.air.qm31_inv, comptime type = recursion.air.linear_ops }'
+            for (Airs[0..slot]) |Air| n += Air.PREPROCESSED_COLUMN_COUNT;
+                 ~~~~^~~~~~~~~
+src/frontends/riscv/recursion/air/arithmetic_fusion_fixed_columns_v1.zig:37:22: error: slice of non-array type 'struct { comptime type = recursion.air.detached_opening_accumulate4_v1, comptime type = recursion.air.qm31_mul_add_v1, comptime type = recursion.air.qm31_inv, comptime type = recursion.air.linear_ops }'
+            for (Airs[0..slot]) |Air| n += Air.PREPROCESSED_COLUMN_COUNT;
+                 ~~~~^~~~~~~~~
+src/frontends/riscv/recursion/air/arithmetic_fusion_fixed_columns_v1.zig:37:22: error: slice of non-array type 'struct { comptime type = recursion.air.detached_opening_accumulate4_v1, comptime type = recursion.air.qm31_mul_add_v1, comptime type = recursion.air.qm31_inv, comptime type = recursion.air.linear_ops }'
+            for (Airs[0..slot]) |Air| n += Air.PREPROCESSED_COLUMN_COUNT;
+                 ~~~~^~~~~~~~~

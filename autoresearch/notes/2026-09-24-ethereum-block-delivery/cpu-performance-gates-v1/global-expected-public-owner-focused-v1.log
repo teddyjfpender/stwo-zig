@@ -1,0 +1,23 @@
+1/22 block_v5_global_expected_public_test_root.test_0...OK
+2/22 block_v5_global_expected_public_test_root.test.global expected public body: original publisher and fresh verifier production bodies retained...OK
+3/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: one durable input survives full window roundtrip...OK
+4/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: equal storage hash cannot admit changed expected completion or raw bytes...OK
+5/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: counted output and parse heap caps reject before success...OK
+6/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: immutable retained owner outlives original publication session...OK
+7/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: original raw field mutation cannot reuse independent job admission...OK
+8/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: encode parse and owner construction exhaustively roll back...OK
+9/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: durable publisher is exclusive and failed reopen stays terminal...OK
+10/22 prover.block_v5_global_expected_public_test_v1.test.global expected public: decoded job retains actual aggregate allocator through final owner teardown...OK
+11/22 recursion.block_v5_global_public_export_normalizer_v1.test.global expected public: exact lazy full-u64 descriptors reject changed cycle source...OK
+12/22 recursion.block_v5_global_public_export_normalizer_v1.test.global expected public: lazy descriptor construction exhaustively rolls back allocation failures...OK
+13/22 recursion.block_v5_global_public_export_normalizer_v1.test.global expected public: actual new public serializer crosses old one-million-cell bound with one borrowed input...OK
+14/22 recursion.block_v5_global_public_export_normalizer_v1.test.global expected public: binary cell lookup handles first last and duplicate empty frames after allocator owner release...OK
+15/22 recursion.block_v5_global_public_export_normalizer_v1.test.global expected public: original typed frame locator rejects equal-value unrelated spans and preserves claim coordinates...OK
+16/22 prover.block_execution_external_trace_v2.test_0...OK
+17/22 air.lookups.tables.mod.test_0...OK
+18/22 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+19/22 air.semantic_eval.test_0...OK
+20/22 prover.block_execution_external_access_bridge_v2.test_0...OK
+21/22 air.memory_commitment.poseidon2_air.test_0...OK
+22/22 air.lookups.tables.source_ingest.test_0...OK
+All 22 tests passed.

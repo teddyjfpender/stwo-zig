@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-25",
+  "scope": "Two-segment real public-I/O q8 fixture: fresh incremental core, file-backed recursive leaves, dyadic forest parent and exact outer root, with hash-checked reloads",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic"},
+  "verification": {
+    "fresh_incremental_core": true,
+    "staged_leaf_files": 2,
+    "dyadic_parent_files": 1,
+    "outer_proof_file": true,
+    "tampered_parent_file_rejected": true,
+    "tampered_outer_file_rejected": true,
+    "receiver_allocator_live_bytes_after_teardown": 0,
+    "complete_block_authority": false,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "dyadic_parent_proof_bytes": 140292,
+  "dyadic_parent_proving_elapsed_ns": 7420905250,
+  "outer_proof_bytes": 135976,
+  "outer_proving_elapsed_ns": 8509691291,
+  "limits": [
+    "These files are provisional until an independently hash-pinned final manifest and the canonical file-backed receiver fresh-verify the whole block.",
+    "The receiver reconstructs native verifier shape with a third pinned guest replay; this is bounded but not succinct.",
+    "This is a q8 diagnostic two-segment fixture, not a canonical or mainnet block measurement."
+  ],
+  "command_filter": "block-v4 streaming observer stages recursive leaves after fresh execution"
+}

@@ -1,0 +1,13 @@
+src/frontends/riscv/recursion/blake3_words_tail_v1.zig:13:9: error: local variable shadows declaration of 'digest'
+    var digest: [32]u8 = undefined;
+        ^~~~~~
+src/frontends/riscv/recursion/blake3_words_tail_v1.zig:122:5: note: declared here
+pub fn digest(words: [8]u32) [32]u8 {
+~~~~^~
+src/frontends/riscv/recursion/blake3_words_tail_v1.zig:18:57: error: original words framing changed
+    if (HEADER_BYTES != 67 or FIRST_INPUT_BYTES != 957) @compileError("original words framing changed");
+                                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    Tail: src/frontends/riscv/block_v5_blake3_words_tail_codegen_v1.zig:3:22
+    stwo_original_words_tail_body_gate: src/frontends/riscv/block_v5_blake3_words_tail_codegen_v1.zig:8:79
+    2 reference(s) hidden; use '-freference-trace=4' to see all references

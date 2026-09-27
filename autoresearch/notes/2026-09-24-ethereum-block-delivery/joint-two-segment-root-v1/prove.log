@@ -1,0 +1,7 @@
+BLOCK_STREAM required_terminal_cycles=349 terminal_leaf_cycles=13635
+BLOCK_STREAM preflight_cycles=21635 proof_segments=2 preflight_ns=9542708
+BLAKE3_NATIVE_QUERY_FUSION groups=19810 removed_scalars=79240
+BLAKE3_NATIVE_FUSION dot4=805463 fma=149380 arithmetic_rows=1408483
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800
+BLAKE3_NATIVE_FUSION dot4=816227 fma=151818 arithmetic_rows=1427771
+BLOCK_STREAM proved_segments=2/2 paired=true retained_nodes=1 peak_bytes=18760500288 elapsed_ns=76852518333

@@ -156,6 +156,7 @@ pub const prepare = Pipeline.prepare;
 pub const planTarget = Pipeline.planTarget;
 pub const validatePrepared = Pipeline.validatePrepared;
 pub const ingress = Pipeline.ingress;
+pub const admitNode = Pipeline.admitNode;
 pub const executeNode = Pipeline.executeNode;
 
 test "prepared executor owns canonical inputs and transfers its plan once" {

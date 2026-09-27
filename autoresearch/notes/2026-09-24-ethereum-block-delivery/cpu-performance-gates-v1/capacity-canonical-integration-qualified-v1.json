@@ -1,0 +1,79 @@
+{
+  "format_version": 1,
+  "status": "focused_contracts_and_actual_bodies_qualified",
+  "checks_passed": 55,
+  "gates": [
+    {
+      "name": "fixed-cache",
+      "receipt": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/capacity-canonical-integration-fixed-cache-result-v2.json",
+      "checks_passed": 17,
+      "actual_body_execution": false
+    },
+    {
+      "name": "ram-sizing",
+      "receipt": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/capacity-canonical-integration-ram-sizing-result-v2.json",
+      "checks_passed": 6,
+      "actual_body_execution": false
+    },
+    {
+      "name": "async-leaves",
+      "receipt": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/capacity-canonical-integration-async-leaves-result-v2.json",
+      "checks_passed": 10,
+      "actual_body_execution": false
+    },
+    {
+      "name": "canonical-product",
+      "receipt": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/capacity-canonical-integration-canonical-product-result-v3.json",
+      "checks_passed": 16,
+      "actual_body_execution": false
+    },
+    {
+      "name": "range-recursion",
+      "receipt": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/capacity-canonical-integration-range-recursion-result-v4.json",
+      "checks_passed": 6,
+      "actual_body_execution": false
+    },
+    {
+      "name": "canonical-product-semantic",
+      "receipt": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/capacity-canonical-integration-canonical-product-semantic-result-v4.json",
+      "checks_passed": 0,
+      "actual_body_execution": false
+    },
+    {
+      "name": "range-body",
+      "receipt": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/capacity-canonical-integration-range-body-result-v4.json",
+      "checks_passed": 0,
+      "actual_body_execution": false
+    }
+  ],
+  "latest_source_candidate": "capacity-canonical-integration-source-candidate-v5.json",
+  "changes_after_v2_passing_cache_memory_queue_tests": [
+    "src/frontends/riscv/prover/block_v5_range16_recursive_test_v1.zig",
+    "src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig"
+  ],
+  "scope_note": "Passing fixtures are qualified at their separately pinned snapshots. Only the range fixture helper name and shared sticky recorder error propagation changed afterward; corrected range fixtures and actual range object compilation pass, and complete installed producer/receiver semantic compilation passes on latest sources. Full installed LLVM code generation and 16 product checks are retained at v3; no redundant full LLVM regeneration claimed.",
+  "installed_capacity_source_selected": true,
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "executed_segments": false,
+  "executed_stark": false,
+  "fresh_complete_capacity_proof_qualified": false,
+  "recursive_global_closure_complete": false,
+  "performance_measurement": false,
+  "python_report_guard_checks": 3,
+  "python_command_contract_checks": 19,
+  "body_object": "/tmp/block-v5-range16-recursive-qualified-body-v4.o",
+  "body_object_bytes": 39836712,
+  "body_object_sha256": "9925f51609d2cdb6a7b895a21be05eba00a0e9136a6ac1c2c8bfaf7b8ff5734a",
+  "body_symbols_log": "capacity-canonical-integration-range-body-symbols-v4.log",
+  "format_check_passed": true,
+  "latest_compiler_source_candidate": "capacity-canonical-integration-source-candidate-v4.json",
+  "post_qualification_format_only": {
+    "path": "src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig",
+    "before_sha256": "cb90b8c64db3f3d876195ef704b58fbc23fabccd98f1417f96d57dffabad6d77",
+    "after_sha256": "7d561b47a36994ae68161030193418a11ac36bcb6c2b7fd69703849c0fb25f00",
+    "diff": "capacity-canonical-integration-format-only-v5.diff",
+    "nonwhitespace_text_unchanged": true,
+    "note": "Two pre-existing machine-expression clauses were whitespace-formatted. Formatter passed; qualified compiler/test snapshots remain immutable; no redundant compilation for whitespace."
+  }
+}

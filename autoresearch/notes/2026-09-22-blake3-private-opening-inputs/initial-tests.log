@@ -1,0 +1,37 @@
+test-blake3-fri-arithmetic-proof
++- BLAKE3 FRI arithmetic guard
+   +- run test
+      +- compile test ReleaseSafe native 2 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig:115:50: error: expected pointer dereference, optional unwrap, or field access, found 'packed'
+        try pack_rows.appendSlice(a, data.inputs.packed);
+                                                 ^~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_opening_inputs.zig:18:11: error: expected a struct, enum or union, found ':'
+    packed: []pack.Row,
+          ^
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_framework_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "BLAKE3 captured FRI arithmetic verifies in a complete typed CPU proof" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+test-blake3-combined-fri
++- BLAKE3 combined FRI guard
+   +- run test
+      +- compile test ReleaseSafe native 2 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig:115:50: error: expected pointer dereference, optional unwrap, or field access, found 'packed'
+        try pack_rows.appendSlice(a, data.inputs.packed);
+                                                 ^~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_opening_inputs.zig:18:11: error: expected a struct, enum or union, found ':'
+    packed: []pack.Row,
+          ^
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_framework_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "BLAKE3 private FRI values join all paths and canonical arithmetic in one proof" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/8 steps succeeded; 2 failed
+test-blake3-combined-fri transitive failure
++- BLAKE3 combined FRI guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 2 errors
+test-blake3-fri-arithmetic-proof transitive failure
++- BLAKE3 FRI arithmetic guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 2 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/2ee19158e6d234375b980980e3443d24/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xaf3405bf -Z4884c5b54b583e9f --maxrss 25769803776 -j1 test-blake3-combined-fri test-blake3-fri-arithmetic-proof -Doptimize=ReleaseSafe --summary all

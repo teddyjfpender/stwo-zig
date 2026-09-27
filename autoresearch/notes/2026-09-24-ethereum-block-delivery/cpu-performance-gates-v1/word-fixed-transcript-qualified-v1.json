@@ -1,0 +1,42 @@
+{
+  "status": "focused-nonproving-source-qualification-only",
+  "authoritative_source_snapshot": "word-fixed-transcript-focused-v1-source.json",
+  "successful_attempt": {
+    "source_candidate": "word-fixed-transcript-focused-v1-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 2.881809249985963,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 8,
+    "test_summary": [
+      "All 8 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-fixed-transcript-focused-v1.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-word-fixed-transcript-focused-v1",
+      "bytes": 3250712,
+      "sha256": "1d49caf0ec3dea94cb18d0e254569c712ae6b077a1fa8a38ba938ebca7d32245"
+    }
+  },
+  "source_pin_count": 1730,
+  "behavioral_checks": 6,
+  "scope": [
+    "Original RAM/range prefix and word challenge draw order shared by live/fixed emitters",
+    "Exact original four-tree STARK/PCS suffix schema and root routing",
+    "No capture, claim assignments, native transcript execution or MAIN columns in production fixed compiler",
+    "Original policy derivation/live replay bodies retained; original independent channel/draw oracle agrees"
+  ],
+  "remaining": [
+    "Native fixed path/query/opening/source roster and family contexts",
+    "Complete expected keys and end-to-end proving"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

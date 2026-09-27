@@ -1,0 +1,17 @@
+{
+  "qualified": false,
+  "exit_code": 1,
+  "elapsed_seconds": 5.465749291994143,
+  "source_candidate": "global-public-exports-semantic-v1-source.json",
+  "changed_source_pins": [],
+  "semantic_only": true,
+  "tests_run": false,
+  "discovered_tests": 0,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-public-exports-semantic-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "body_executed": false,
+  "body_export_confirmed": false,
+  "artifact": null
+}

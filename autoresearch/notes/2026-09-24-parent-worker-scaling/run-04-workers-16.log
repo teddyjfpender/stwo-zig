@@ -1,0 +1,65 @@
+1/7 blake3_metal_qualification_test_root.test.Metal compact canonical native BLAKE3 parent matches CPU qualification...BLAKE3_EXECUTION_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-execution","stages":[{"id":"execution.fixed","label":"Admission and fixed commitment","seconds":0.041518,"children":null},{"id":"execution.main","label":"Main commitment","seconds":0.034038,"children":null},{"id":"execution.native_interaction","label":"Native interaction generation","seconds":0.014743,"children":null},{"id":"execution.hash_interaction","label":"Hash interaction generation","seconds":0.010809,"children":null},{"id":"execution.interaction_commit","label":"Interaction closure and commitment","seconds":0.048948,"children":null},{"id":"execution.core","label":"Core STARK proof","seconds":6.441659,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000005,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000018,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.081786,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.006178,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.097597,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.011071,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.025451,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000055,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.223737,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":5.963496,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.014741,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.010258,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000113,"children":null}]}]}
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_HASH_METADATA g_rows=2444008 xor_rows=698288 full_row_bytes=1301608832 compact_bytes=173175424 removed_bytes=1128433408
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1281835520 compact_bytes=170544640 removed_bytes=1111290880
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+METAL_STREAM_LEAVES columns=453 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=576 overlap=true gpu_ms=88.882
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=129.06487501459196
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.365624997764826
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4899583475198597
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=2.1031249780207872
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.3260000084992498
+METAL_STREAM_LEAVES columns=468 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=640 overlap=true gpu_ms=104.600
+METAL_FRAMEWORK_COMPOSITION components=5 groups=3 gpu_ms=339.453
+METAL_HOST_BARYCENTRIC staging_bytes=67108864 commands=198 columns=1285 points=22 gpu_ms=176.009
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.012868,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":0.294452,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":1.064704,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":1.181524,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":1.138598,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":3.418208,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000008,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000051,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":1.572224,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.014882,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.095352,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.040755,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.762199,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.00011,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.606978,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.019217,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.106238,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.055125,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000162,"children":null}]}]}
+CANONICAL_PARENT_WORKERS count=16 host_cpus=18
+NATIVE_PARENT_DEVICE_WORK host_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK resident_merkle_commits=23
+NATIVE_PARENT_DEVICE_WORK metal_quotient_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_proof_of_work_dispatches=38
+NATIVE_PARENT_DEVICE_WORK metal_framework_polynomial_dispatches=5
+NATIVE_PARENT_DEVICE_WORK metal_streaming_leaf_dispatches=1216
+NATIVE_PARENT_DEVICE_WORK metal_framework_interaction_dispatches=20
+NATIVE_PARENT_DEVICE_WORK metal_sampled_value_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_circle_transform_dispatches=2
+NATIVE_PARENT_DEVICE_WORK metal_circle_lde_dispatches=79
+NATIVE_PARENT_DEVICE_WORK metal_fri_circle_fold_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_fri_fold_commit_epochs=1
+NATIVE_PARENT_DEVICE_WORK cpu_streaming_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK cpu_composition_components=17
+NATIVE_PARENT_DEVICE_WORK metal_commit_source_uploads=79
+NATIVE_PARENT_METAL dispatches=1387 fallbacks=2
+CANONICAL_PARENT_MEMORY peak_bytes=11993423094 limit_bytes=25769803776
+BLAKE3_PARENT_ARTIFACT_SHA256 87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=857591 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40432 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       20.07 real        24.52 user         7.79 sys
+         20887568384  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2620106  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               20400  involuntary context switches
+        357263054817  instructions retired
+        111582573299  cycles elapsed
+         27759850096  peak memory footprint

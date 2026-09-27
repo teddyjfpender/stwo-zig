@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const core_shader_abi: u32 = 22;
+pub const core_shader_abi: u32 = 24;
 pub const witness_codegen_support_version: u64 = 6;
 
 pub const CompileProfile = struct {
@@ -53,6 +53,16 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_transcript_draw_queries_resident", .owner = .transcript },
     .{ .name = "stwo_zig_blake2s_leaves", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_pow_search", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_pow_search", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_parent_tail_sparse", .owner = .transcript },
+    .{ .name = "stwo_zig_blake3_parents_sparse", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_leaf_absorb_compact_v1", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_leaves_wide", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_transcript_resident_v1", .owner = .transcript },
+    .{ .name = "stwo_zig_blake3_qm31_to_coordinates", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_fri_fold_line", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_leaves", .owner = .commitments },
+    .{ .name = "stwo_zig_blake3_parents", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_resident", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_compact_resident", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parents", .owner = .commitments },
@@ -137,6 +147,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_quotient_combine_resident", .owner = .quotient },
     .{ .name = "stwo_zig_fri_fold3_resident", .owner = .fri },
     .{ .name = "stwo_zig_fri_fold2_resident", .owner = .fri },
+    .{ .name = "stwo_zig_blake3_fri_packed_leaves_resident", .owner = .fri },
     .{ .name = "stwo_zig_fri_packed_leaves_resident", .owner = .fri },
     .{ .name = "stwo_zig_poseidon2_m31_fri_packed_leaves_resident", .owner = .fri },
     .{ .name = "stwo_zig_fri_final_line_resident", .owner = .fri },
@@ -179,6 +190,31 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_base_poly_40d34cb41f90634e26f0b2bb88a77110", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_5d744c2fbb612ce7e9954dfd6cc1b4b7", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_base_poly_903175038c36e2a6aad8376003874197", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_133f4e4e3c62b73f2e54e7ff8cc8377b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_7dacbce512fb1da65730dc8e536c4ea0", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_03fbb75acc054e7f21cf3e75583c725d", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_e98342ee507508d7b3d89be9274786ce", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_565f1e9f8b87771d0d1a22000d8c8edc", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_91e309498b399f9e34678e6d8a95fe86", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_5467cd2f72a81a29196fc9ec36bc10e1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_a034d62551a325963119adf318b99458", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_6232705cfd37d60bace4b480ac8a91bd", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_89c3dd7b7f81ba4b2e04337237051d53", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_255a08b7f2477734baf39b572daeb91a", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_92ae13c195ee8ff20b01eac8e8e948b4", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_2bbc25ad6ba065a06c1a43d5eb3543a1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_e53fe8adb4e19cdf8c8f567f94e6e545", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_ffe3261dbeb12b756c592576bf9de057", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_4fff47f2d63fe6c45761826a94861f6d", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_4d93131c8a3ea3312e95ef13094aa342", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_a5980ef351d2fafc7a22e5aa40300954", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_e5715747fc906de9684a84af2d392d1e", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_8a132b1e9e82b54afcec47fe86f30324", .owner = .riscv_polynomials },
@@ -196,6 +232,24 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_lookup_poly_d7203c97e13213534f5bd98272130f81", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_fe8c4b8e3259f973cd85613a2dd582bc", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_e043b1b3232a0dbcfc8bda99c25c86b1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_e5d99b83e0dd5dc59e86dbba7ce3eb48", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_6399b46e486af31583503132193389c8", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_3d51de4528fccab699a9806402c6fd3b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_cc67684d85ad15706f9e7866fe88ec11", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_dab614b8c74a6c2a7c351d0c0df04801", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_7b74ead324c7c19f12615176d4488e65", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_fe119dd8ad84b74c8c1e3f2e9411dd4f", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_43d702ddcadb8cafe2eaa1720f173ac1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_8a2fc8b521b6cf944784f89b522ddd3a", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_b547e97c65f9605a8a9f0570f597d5ae", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_bfe56690b8ba9e4ed770edb085400787", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_97e9f142fab4487e805c0e66245846fe", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_163061241838f28b8fb2a44f656566e4", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_7d711f392b09898943a349cdd4a32919", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_7c1005880e6f5453f8fa0b4446185218", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_v2_6e35df3dbb1bb66f7c23e82cdf0f6705509c4f08e5719edab77049660d8e632d", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_v2_253283e6dfe6bf332f2e466400c1f09394999e7935e86d6bb99a351d8d0b1f49", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_v2_28bc2d54b9a33dccb35df8513dc35a810077488a2f4be0c88b5d36a55a9e8bf8", .owner = .riscv_polynomials },
@@ -213,16 +267,28 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_lookup_poly_v2_a5c335d39317cb0ece5d0ffe5dd536cba3b9c4c84da54f5c8876a3b6cd5520f4", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_v2_23bb5dc1410c56ceab84080bd3239e6c9156f3761b93508f773dee7e448a70dc", .owner = .riscv_polynomials },
     .{ .name = "stwo_zig_lookup_poly_v2_64c076e4946245d3c0f988997bf90b10774d23a6344d856e147c744b2df6d98c", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_block_scan_v1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_scan_blocks_v1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_finalize_v1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_cumulative_block_scan_v1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_cumulative_scan_blocks_v1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_cumulative_finalize_v1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_14f3cbfd44bdddc3bf7416de819ba23270b3c8b5cf25005b2c36e2f3655e0898", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_3189e0f57241480608d508e3d36064f73c53ad19b6bea003e6b7dc0d14cc975b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_1da43de062b46ceaa5e04a77f429f3466050cfca52f6b1830a1133298130c20f", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_ace96d9a45c208b9f233bb27ac73ce6147a91ad9df4301b9f1aff166fef6c9c4", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_91d5fa87688b8c993ffca44fbb0679d02b25139fd1f538482c23d08bbfa7dec7", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_a20d43085e9946c62dae85cfd655f90cfd044884b022408cc301aad58f77d860", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_f3062cacdbdc4475a2eb63fe1632cdea209bea7f6b52826d0373f4281b5e0f69", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_interaction_v1_75a8d6628aa611590f73e1140e4d07eb773e0a4b856497959812210fd52bfdb1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_f17154cc136988c312ad7d9d4186fe35eee1a7e865ae0b967791e1f43e643372", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_14fd127befc138e59e7bd018171534722c4e35f018f049ff3411bbb987bbd92f", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_3cf90e2e9f42306556486b60b704dacd35b2ae0ca8e8dc82d094c24e878dec08", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_f75d65c0d545ba7c86fe825fd6bb72cc3206fd05d304b008bac279fa5364ded7", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_72044ffd5100747bfbbb99fa4510e30bfabea6e957ad8af3fd7ecfcd24267fd3", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_49cfc130b5919dcc71f5ede1ebc4670d768c75de281cbc2b61afdd57895f85d5", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_e0ee3bbc99efb45a130369bedeb3ed37a3c2b1a33ce09945ec5f47795a94726a", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_framework_poly_v1_64c7692789702f479217419ea05af67c8163b99191c8278fc8fca40eb12e30e0", .owner = .riscv_polynomials },
 };
 
 pub fn isDeferredOwner(owner: Unit) bool {
@@ -261,6 +327,7 @@ pub const TranslationUnit = struct {
 const legacy_source = @embedFile("../kernels.metal");
 const fri_resident_source = @embedFile("core/fri_resident.metal");
 const base_source = @embedFile("include/base.metal");
+const blake3_source = @embedFile("include/blake3.metal");
 const blake2s_source = @embedFile("include/blake2s.metal");
 const merkle_source = @embedFile("include/merkle.metal");
 const decommit_source = @embedFile("include/decommit.metal");
@@ -288,6 +355,8 @@ const composition_source = @embedFile("core/composition.metal");
 const relation_source = @embedFile("core/relation.metal");
 const decommit_kernels_source = @embedFile("core/decommit.metal");
 const polynomial_eval_source = @embedFile("core/polynomial_eval.metal");
+pub const blake3_interaction_source = @embedFile("blake3_interactions.metal");
+pub const blake3_interaction_inventory = @embedFile("blake3_interactions_exports.zig");
 const riscv_polynomials_source = @embedFile("core/riscv_polynomials.metal");
 
 pub const WitnessCodegenSupport = struct {
@@ -316,6 +385,7 @@ pub const witness_codegen_support = WitnessCodegenSupport{
 pub const support_headers = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/include/base.metal", .source = base_source },
     .{ .path = "src/backends/metal/shaders/include/blake2s.metal", .source = blake2s_source },
+    .{ .path = "src/backends/metal/shaders/include/blake3.metal", .source = blake3_source },
     .{ .path = "src/backends/metal/shaders/include/merkle.metal", .source = merkle_source },
     .{ .path = "src/backends/metal/shaders/include/decommit.metal", .source = decommit_source },
     .{ .path = "src/backends/metal/shaders/include/m31.metal", .source = m31_source },
@@ -349,6 +419,7 @@ pub const translation_units = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/core/decommit.metal", .source = decommit_kernels_source },
     .{ .path = "src/backends/metal/shaders/core/polynomial_eval.metal", .source = polynomial_eval_source },
     .{ .path = "src/backends/metal/shaders/core/riscv_polynomials.metal", .source = riscv_polynomials_source },
+    .{ .path = "src/backends/metal/shaders/blake3_interactions.metal", .source = blake3_interaction_source },
 };
 
 pub const native_translation_units = [_]TranslationUnit{
@@ -364,11 +435,13 @@ pub const native_translation_units = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/core/decommit.metal", .source = decommit_kernels_source },
     .{ .path = "src/backends/metal/shaders/core/polynomial_eval.metal", .source = polynomial_eval_source },
     .{ .path = "src/backends/metal/shaders/core/riscv_polynomials.metal", .source = riscv_polynomials_source },
+    .{ .path = "src/backends/metal/shaders/blake3_interactions.metal", .source = blake3_interaction_source },
 };
 
 pub const native_amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATED 1\n" ++
     "#line 1 \"src/backends/metal/shaders/include/base.metal\"\n" ++ base_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/blake2s.metal\"\n" ++ blake2s_source ++
+    "\n#line 1 \"src/backends/metal/shaders/include/blake3.metal\"\n" ++ blake3_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/merkle.metal\"\n" ++ merkle_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/decommit.metal\"\n" ++ decommit_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/m31.metal\"\n" ++ m31_source ++
@@ -387,7 +460,7 @@ pub const native_amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATE
     "\n#line 1 \"src/backends/metal/shaders/core/relation.metal\"\n" ++ relation_source ++
     "\n#line 1 \"src/backends/metal/shaders/core/decommit.metal\"\n" ++ decommit_kernels_source ++
     "\n#line 1 \"src/backends/metal/shaders/core/polynomial_eval.metal\"\n" ++ polynomial_eval_source ++
-    "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n" ++ riscv_polynomials_source ++ "\x00";
+    "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n" ++ riscv_polynomials_source ++ "\n" ++ blake3_interaction_source ++ "\x00";
 
 /// Hash at runtime. The generated RISC-V polynomial kernels are large enough
 /// that evaluating SHA-256 at comptime exhausts the compiler's branch quota
@@ -409,6 +482,7 @@ pub const amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATED 1\n" 
     base_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/blake2s.metal\"\n" ++
     blake2s_source ++
+    "\n#line 1 \"src/backends/metal/shaders/include/blake3.metal\"\n" ++ blake3_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/merkle.metal\"\n" ++
     merkle_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/decommit.metal\"\n" ++
@@ -464,7 +538,7 @@ pub const amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATED 1\n" 
     "\n#line 1 \"src/backends/metal/shaders/core/polynomial_eval.metal\"\n" ++
     polynomial_eval_source ++
     "\n#line 1 \"src/backends/metal/shaders/core/riscv_polynomials.metal\"\n" ++
-    riscv_polynomials_source ++ "\x00";
+    riscv_polynomials_source ++ "\n" ++ blake3_interaction_source ++ "\x00";
 
 pub fn amalgamatedSourceDigest() [32]u8 {
     var result: [32]u8 = undefined;

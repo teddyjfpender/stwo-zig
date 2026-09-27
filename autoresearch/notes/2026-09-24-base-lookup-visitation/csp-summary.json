@@ -1,0 +1,58 @@
+[
+  {
+    "case": "metal-ecdsa_secp256k1-32",
+    "control": {
+      "complete_median_seconds": 0.685503333,
+      "execution_witness_proving_mean_seconds": 0.5437821873333334,
+      "peak_physical_footprint_bytes": 1847478624
+    },
+    "candidate": {
+      "complete_median_seconds": 0.670229146,
+      "execution_witness_proving_mean_seconds": 0.5269071803333333,
+      "peak_physical_footprint_bytes": 1847511176
+    },
+    "complete_reduction_percent": 2.2281710773242813
+  },
+  {
+    "case": "metal-sha256-128",
+    "control": {
+      "complete_median_seconds": 1.6118741245,
+      "execution_witness_proving_mean_seconds": 1.140298708,
+      "peak_physical_footprint_bytes": 4530179912
+    },
+    "candidate": {
+      "complete_median_seconds": 1.524971042,
+      "execution_witness_proving_mean_seconds": 1.061631514,
+      "peak_physical_footprint_bytes": 4528557800
+    },
+    "complete_reduction_percent": 5.391431078835451
+  },
+  {
+    "case": "metal-sha256-2048",
+    "control": {
+      "complete_median_seconds": 2.633728229,
+      "execution_witness_proving_mean_seconds": 2.0075787358333335,
+      "peak_physical_footprint_bytes": 8082527776
+    },
+    "candidate": {
+      "complete_median_seconds": 2.533697562,
+      "execution_witness_proving_mean_seconds": 1.9181547566666666,
+      "peak_physical_footprint_bytes": 8083314256
+    },
+    "complete_reduction_percent": 3.7980633650261053
+  },
+  {
+    "case": "metal-keccak-128",
+    "control": {
+      "complete_median_seconds": 2.540282375,
+      "execution_witness_proving_mean_seconds": 1.9484006946666665,
+      "peak_physical_footprint_bytes": 7817827824
+    },
+    "candidate": {
+      "complete_median_seconds": 2.416209125,
+      "execution_witness_proving_mean_seconds": 1.837667743,
+      "peak_physical_footprint_bytes": 7816795416
+    },
+    "complete_reduction_percent": 4.884230635974074
+  }
+]

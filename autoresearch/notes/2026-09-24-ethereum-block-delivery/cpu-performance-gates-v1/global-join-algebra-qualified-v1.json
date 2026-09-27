@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "status": "qualified_at_stated_scope",
+  "scope": "4 nonproving checks; scoped scalar and recorded accounting equations",
+  "attempt": "global-join-algebra-focused-v1-result.json",
+  "source_candidate": "global-join-algebra-focused-v1-source.json",
+  "current_source_pins_match": true,
+  "binary": {
+    "path": "/tmp/block-v5-global-join-algebra-focused-v1",
+    "bytes": 295512,
+    "sha256": "a3ccec7713b16be35f5c5f0914e9359412ea14722359aa9dd1d1bf2dcf1cd460"
+  },
+  "pending": [
+    "current production Global/driver semantic integration gate",
+    "heterogeneous recursive input/public-bus binding",
+    "independent source and exact-coverage proof authority"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_measurement": false
+}

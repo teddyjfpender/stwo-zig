@@ -1,0 +1,5 @@
+control-first wall 32.291 parent stages 19.035
+candidate-first wall 26.614 parent stages 14.091
+candidate-last wall 26.769 parent stages 14.113
+control-last wall 31.951 parent stages 19.248
+{"control": {"samples": 2, "wall_median_seconds": 32.12091260399029, "parent_stage_median_seconds": 19.141332, "peak_rss_bytes": 20886847488}, "candidate": {"samples": 2, "wall_median_seconds": 26.691755937994458, "parent_stage_median_seconds": 14.101565999999998, "peak_rss_bytes": 20883177472}}

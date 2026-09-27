@@ -1,0 +1,9 @@
+src/backends/cuda/runtime/session_selected_test_v1.zig:28:85: error: expected type '?runtime.context.ContextFor(runtime.session_selected_test_v1.Session__struct_26518)', found 'runtime.context.ContextFor(runtime.session_selected_test_v1.Context__struct_27482)'
+    result.context = .{ .failed = .{ .cause = error.OutOfMemory, .teardown = Context{ .handle = @ptrCast(handle), .stream = undefined, .device = undefined, .lane_count = 0, .owner_thread_id = std.Thread.getCurrentId(), .teardown_pending = true } } };
+                                                                             ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/backends/cuda/runtime/context.zig:14:12: note: struct declared here (2 times)
+    return struct {
+           ^~~~~~
+referenced by:
+    test.CUDA selected session: process outcome retains failed owner and lease thread guard: src/backends/cuda/runtime/session_selected_test_v1.zig:116:165
+    test_0: src/backends/cuda/session_selected_test_root_v1.zig:3:17

@@ -1,0 +1,29 @@
+{
+  "status": "qualified-focused-memory-pipeline-and-supplemental-rollback",
+  "source": "word-expected-setup-focused-v6-source.json",
+  "source_sha256": "119e7292ff8553b132b36e7df15cda16ffaa40b0acc19b322a75f8a925598fc2",
+  "result": "word-expected-setup-focused-v6-result.json",
+  "result_sha256": "379e2759e702b16913a5e0fa6a50459a581985fd94d84d26288520a3a1a1ba59",
+  "selected_checks": 49,
+  "source_pin_count": 2143,
+  "elapsed_seconds": 153.5340892910026,
+  "binary": {
+    "path": "/tmp/block-v5-word-expected-setup-focused-v6",
+    "bytes": 115792136,
+    "sha256": "49ff588bb27afb6fa2d1f79d644a04c7e8fa7dcfe36ca77f6e7646583eb61e40"
+  },
+  "scope": [
+    "Previous memory integration checks plus four allocation-free rollback transport groups across seven original typed leaf families.",
+    "Actual exclusive sparse publications, preservation of pending/preexisting destinations, reader exclusion, bounded inventory rejection, missing/deletion-failure retry and zero allocator calls.",
+    "Report byte/file overflow boundary checks; actual Completion and Driver accounting bodies retain rollback through combined totals.",
+    "Actual CPU Driver, Session create/deinit/rollback, memory/final factories and receivers compiled/address-retained only; no full driver or proof invocation."
+  ],
+  "positive_full_fixed_live_root_parity": false,
+  "complete_source_authority": false,
+  "complete_block_authority": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "end_to_end_time_measured": false,
+  "peak_rss_measured": false
+}

@@ -1,0 +1,52 @@
+{
+  "scope": "Immutable compiled source-recipe digest cache only; no job/policy/key/proof acceptance cached. Four pure byte/concurrent worker fixtures plus import root.",
+  "sources": [
+    {
+      "path": "src/frontends/riscv/recursion/source_authority_cache_v1.zig",
+      "sha256": "aeef426ace4b0bf1a5c7ec02029085e574207ab85139a5e1d322c2ac116f9236"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/source_authority_cache_v1_test.zig",
+      "sha256": "8f041eab4e971c86578c3dba95e508d1e8ebf7c7d1a61a799b33e25c87cb874a"
+    },
+    {
+      "path": "src/frontends/riscv/source_authority_cache_v1_test_root.zig",
+      "sha256": "8b6fea35be034177163f1064b806eb205112177f47c50624a394adf06d7f0159"
+    }
+  ],
+  "attempt": {
+    "source_candidate": "static-source-authority-cache-focused-v1-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1.1049182080314495,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 5,
+    "test_summary": [
+      "All 5 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/static-source-authority-cache-focused-v1.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-static-source-authority-cache-focused-v1",
+      "bytes": 1543472,
+      "sha256": "854b17efa1aef5c779f1a6a44b6a43dd333532b78fe18f890ee7a254a1f4d617"
+    }
+  },
+  "behavioral_tests": 4,
+  "guarantees": [
+    "Exact deterministic byte digest",
+    "One initialization across8 concurrent workers with acquire/release publication",
+    "Distinct recipes retain distinct storage",
+    "Acyclic nested dependency cache initializes without rebuilding"
+  ],
+  "caller_contract": "Builder is infallible deterministic immutable compiled recipe; cannot read job/proof data or re-enter its own cache.",
+  "production_integration": "New PAGE forest Protocol now calls cache and pins helper/protocol bytes; actual protocol parity and body qualification in separate source-page-forest gate.",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_claim": "Avoids repeated static source-file hashes structurally; no measured proof speedup."
+}

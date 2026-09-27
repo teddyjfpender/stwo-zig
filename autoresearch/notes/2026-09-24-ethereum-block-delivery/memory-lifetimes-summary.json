@@ -1,0 +1,40 @@
+{
+  "scope": "Ethereum transaction authentication with one execution leaf and one recursive parent; not full block execution",
+  "queries": 70,
+  "pow_bits": 26,
+  "rows": [
+    {
+      "transactions": 16,
+      "old_worker_peak_bytes": 17196556091,
+      "worker_peak_bytes": 15594682504,
+      "old_process_peak_bytes": 16906402960,
+      "process_peak_bytes": 15848274512,
+      "old_total_ns": 37777214042,
+      "total_ns": 40011812500,
+      "proof_byte_identical": true,
+      "proof_sha256": "b50fcc72e9b1a2948738305faf10efc5b8cf5216071d017b58cbcdcc3dd5560d"
+    },
+    {
+      "transactions": 32,
+      "old_worker_peak_bytes": 17815694163,
+      "worker_peak_bytes": 16208312456,
+      "old_process_peak_bytes": 17817060392,
+      "process_peak_bytes": 16647551952,
+      "old_total_ns": 41877674458,
+      "total_ns": 44292015333,
+      "proof_byte_identical": true,
+      "proof_sha256": "a63a40b760f6c7bc0246960461e73d9d23fbf381355279de4ef35cf7e8edd2e6"
+    },
+    {
+      "transactions": 64,
+      "old_worker_peak_bytes": 17823208113,
+      "worker_peak_bytes": 16208312456,
+      "old_process_peak_bytes": 17688200088,
+      "process_peak_bytes": 16487382208,
+      "old_total_ns": 47798996500,
+      "total_ns": 49851418292,
+      "proof_byte_identical": true,
+      "proof_sha256": "6dd0479d95488cf6339a997d9a2554cf0c3c702a7e01c4a675af4dbf087ab10b"
+    }
+  ]
+}

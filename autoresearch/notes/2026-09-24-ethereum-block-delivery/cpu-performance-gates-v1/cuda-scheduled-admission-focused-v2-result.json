@@ -1,0 +1,23 @@
+{
+  "source_candidate": "cuda-scheduled-admission-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.5139399580075406,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "object_only": false,
+  "tests_run": true,
+  "discovered_tests": 7,
+  "test_summary": [
+    "All 7 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cuda-scheduled-admission-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cuda-scheduled-admission-focused-v2",
+    "bytes": 1997968,
+    "sha256": "0a3d47a850ae7c74450dd5792cc7fe91864f8a6a200f7b011d08ca0e5cf03425"
+  }
+}

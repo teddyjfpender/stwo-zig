@@ -1,0 +1,37 @@
+[scope] precompile full guest proofs; secure 70 queries / 26 PoW bits
+[power] CSP-comparable timings require AC power (observed: Battery Power)
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/stwo-blake3-csp-20260922-mjvs0bdj/cpu-csp.evidence-999se094
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/16] sha256/128: execute, prove, verify
+  prove=2.075s verify=0.192s proof=820.5KiB rss=1.28GiB
+[2/16] sha256/256: execute, prove, verify
+  prove=2.206s verify=0.191s proof=818.3KiB rss=1.29GiB
+[3/16] sha256/512: execute, prove, verify
+  prove=2.295s verify=0.193s proof=812.2KiB rss=1.31GiB
+[4/16] sha256/1024: execute, prove, verify
+  prove=3.894s verify=0.192s proof=819.7KiB rss=1.37GiB
+[5/16] sha256/2048: execute, prove, verify
+  prove=2.719s verify=0.197s proof=839.6KiB rss=1.42GiB
+[6/16] keccak/128: execute, prove, verify
+  prove=2.586s verify=0.194s proof=810.3KiB rss=1.28GiB
+[7/16] keccak/256: execute, prove, verify
+  prove=1.806s verify=0.198s proof=822.9KiB rss=1.30GiB
+[8/16] keccak/512: execute, prove, verify
+  prove=3.880s verify=0.257s proof=827.8KiB rss=1.33GiB
+[9/16] keccak/1024: execute, prove, verify
+  prove=3.597s verify=0.226s proof=828.1KiB rss=1.41GiB
+[10/16] keccak/2048: execute, prove, verify
+  prove=3.811s verify=0.268s proof=877.8KiB rss=1.57GiB
+[11/16] poseidon2_m31/2: execute, prove, verify
+  prove=2.458s verify=0.225s proof=847.6KiB rss=1.32GiB
+[12/16] poseidon2_m31/4: execute, prove, verify
+  prove=2.286s verify=0.223s proof=879.2KiB rss=1.38GiB
+[13/16] poseidon2_m31/8: execute, prove, verify
+  prove=1.712s verify=0.218s proof=902.7KiB rss=1.57GiB
+[14/16] poseidon2_m31/12: execute, prove, verify
+  prove=2.197s verify=0.232s proof=994.3KiB rss=1.66GiB
+[15/16] poseidon2_m31/16: execute, prove, verify
+  prove=3.596s verify=0.245s proof=1059.6KiB rss=1.85GiB
+[16/16] ecdsa_secp256k1/32: execute, prove, verify
+  prove=1.097s verify=0.167s proof=3660.4KiB rss=1.21GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/stwo-blake3-csp-20260922-mjvs0bdj/cpu-csp.json

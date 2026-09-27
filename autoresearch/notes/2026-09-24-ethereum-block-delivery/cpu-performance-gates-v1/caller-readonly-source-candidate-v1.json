@@ -1,0 +1,143 @@
+{
+  "schema": "block-v5-caller-readonly-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "tests_run_by_agent": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "segments_run": false,
+  "protocol": {
+    "tag": "B5IC",
+    "tag_u32": "0x42354943",
+    "version": 1
+  },
+  "previous_snapshot": {
+    "status": "compiler_failed_before_tests",
+    "source_pins": [
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_protocol_v1.zig",
+        "sha256": "1be4f5dfc3c8c7d9f84b584213a470b0a281a49740a9606ee6d7fae8b4b78695"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig",
+        "sha256": "a11ab3c5b455fe852f5c84c74d9bdf8b0c760061e24e64e5b03b8a4f8a858946"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_domain_v1.zig",
+        "sha256": "bad99371a0a02f478d198afa1244cb84e4e3d56b0bffc91125da83811689dc20"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_witness_v1.zig",
+        "sha256": "f31e2080a208c4c0477f61a2348006e86ff04f8b34ea5e86ef6755a6cf092e29"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_proof_v1.zig",
+        "sha256": "7c2074af899a31f8cf53ee6c1821d29162833624be9455b3c8c196b778954c27"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_stage_v1.zig",
+        "sha256": "0bfbc9acc0af1c6d8c07074d10124ff47c137b45e3ebd7c265500409b5e541ab"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_receiver_v1.zig",
+        "sha256": "af9e89c98839a222aca09bff6dc89984cc5d05ca4753c6d389eb98e08b760a97"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_caller_readonly_unit_test.zig",
+        "sha256": "bf11a41ac8ffbf425dc81672860defca17d91078312817bd630902c65b6732ea"
+      },
+      {
+        "path": "src/frontends/riscv/block_v5_caller_readonly_unit_test_root.zig",
+        "sha256": "19e9860161b1aecccd30270458dfffa4adce224ab8cca00b7a1c9af34e220ff2"
+      }
+    ],
+    "failure_log": {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-readonly-unit-v1.log",
+      "sha256": "49be07ec5cd653eed7ca1fba1d7b418954aea2114a5ef8fa82c458c1e47489f6"
+    },
+    "exit_code": 1,
+    "tests_executed": 0,
+    "diagnostic": "stage line130 counter capture mass shadowed outer byte-counter mass line119"
+  },
+  "correction": {
+    "path": "src/frontends/riscv/prover/block_v5_caller_readonly_stage_v1.zig",
+    "change": "Rename inner interval counter capture to counter_mass; no equations, claims, counters, geometry or admission rules changed.",
+    "read_only_audit": "Reviewed the nine new sources for obvious capture/name collisions; no other obvious naming error found. Compiler qualification remains pending."
+  },
+  "formatting": "zig fmt completed on all nine Zig sources; no compiler/test invocation",
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_protocol_v1.zig",
+      "sha256": "1be4f5dfc3c8c7d9f84b584213a470b0a281a49740a9606ee6d7fae8b4b78695"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig",
+      "sha256": "a11ab3c5b455fe852f5c84c74d9bdf8b0c760061e24e64e5b03b8a4f8a858946"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_domain_v1.zig",
+      "sha256": "bad99371a0a02f478d198afa1244cb84e4e3d56b0bffc91125da83811689dc20"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_witness_v1.zig",
+      "sha256": "f31e2080a208c4c0477f61a2348006e86ff04f8b34ea5e86ef6755a6cf092e29"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_proof_v1.zig",
+      "sha256": "7c2074af899a31f8cf53ee6c1821d29162833624be9455b3c8c196b778954c27"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_stage_v1.zig",
+      "sha256": "e040d4e64340789a548a0a8d22b6c24aa082458151f5f5df27221bee5118a611"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_receiver_v1.zig",
+      "sha256": "af9e89c98839a222aca09bff6dc89984cc5d05ca4753c6d389eb98e08b760a97"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_readonly_unit_test.zig",
+      "sha256": "bf11a41ac8ffbf425dc81672860defca17d91078312817bd630902c65b6732ea"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_caller_readonly_unit_test_root.zig",
+      "sha256": "19e9860161b1aecccd30270458dfffa4adce224ab8cca00b7a1c9af34e220ff2"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-caller-readonly-fusion-v1.md",
+      "sha256": "1b501ad4f342e0e5f8dd92225bac50fc40f777a0ddaaeff4f05cd2e6efae49f1"
+    }
+  ],
+  "qualification_helper": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "sha256": "3575f8ea285af7f929eeecce2f7ce8a1e9d764b6009db4c26a62a3db4e5965f0"
+  },
+  "qualification_command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_caller_readonly_unit_test_root.zig",
+    "block-v5 caller readonly"
+  ],
+  "declared_tests": [
+    "block-v5 caller readonly authentic SHA cells reuse global clock and reject selected writes",
+    "block-v5 caller readonly empty subset mutable fallback and independent authority mutations",
+    "block-v5 caller readonly versioned source identity and five-array caps reject legacy relabel",
+    "block-v5 caller readonly actual producer fresh receiver and warm ownership bodies retained",
+    "block-v5 caller readonly all authentic slots exact masks OODS and selected domain parity",
+    "block-v5 caller readonly metadata and interaction all allocation failures clean",
+    "block-v5 caller readonly physical selection stage and zero RW typed absence"
+  ],
+  "body_retention": "Actual CPU producer, fresh arithmetic+composite receiver, optional receiver, physical collection and warm ownership functions retained by addresses; no proof invocation authorized.",
+  "security_scope": [
+    "Authentic original source fields reused; no redundant copied event matrix.",
+    "Existing all-RW universal and byte requests retained; separate mutable/readonly transition partition.",
+    "Public Selection and actual-source Plan independently admitted; exact per-slot provider census.",
+    "All five claim arrays and dense counters independently capped before untrusted allocations.",
+    "No canonical transport/MemoryJoin/global activation in this isolated batch."
+  ],
+  "limitations": [
+    "Candidate source cells are not accepted base AIR proofs.",
+    "Dense provider arrays may exceed admitted caps on very large subsets; no unbounded fallback.",
+    "Full canonical fused consumer/transport closure and actual STARK qualification remain outstanding."
+  ]
+}

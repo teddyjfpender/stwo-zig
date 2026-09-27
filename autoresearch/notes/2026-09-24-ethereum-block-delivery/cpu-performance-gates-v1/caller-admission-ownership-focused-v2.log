@@ -1,0 +1,22 @@
+1/21 block_v5_caller_recursive_admission_catalog_test_root.test_0...OK
+2/21 block_v5_caller_recursive_admission_catalog_test_root.test.caller admission ownership: actual assembled source admission and original borrowed staged producer bodies retained only...OK
+3/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: overlapping sessions share stable original policies and later validation survives teardown...OK
+4/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: pair owner and final borrowed-session validation allocation faults release geometry and leases...OK
+5/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: original private session retains stable pair custody and unwinds owner allocation boundaries...OK
+6/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: changed pair linkage limits and security reject without taking a lease...OK
+7/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: exact original sparse index2 roster builds once and keeps both policies after caller teardown...OK
+8/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: sparse catalog slot pair and final validation allocation faults release partial ownership...OK
+9/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: missing duplicate shifted sources and catalog caps reject exact source census...OK
+10/21 prover.block_v5_caller_recursive_pipeline_test_v1.test.caller recursive pipeline: exact index bounded ownership duplicates missing and reentrant callbacks...OK
+11/21 prover.block_v5_caller_recursive_pipeline_test_v1.test.caller recursive pipeline: sink failure retains exactly the original owner for teardown...OK
+12/21 prover.block_v5_caller_recursive_pipeline_test_v1.test.caller recursive pipeline: altered original caller root fails before either proof family runs...OK
+13/21 prover.block_execution_external_trace_v2.test_0...OK
+14/21 air.lookups.tables.mod.test_0...OK
+15/21 prover.block_execution_external_access_bridge_v2.test_0...OK
+16/21 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+17/21 runner.mod.test_0...OK
+18/21 runner.decode.test_0...OK
+19/21 prover.block_v5_committed_trace_column_v1.test_0...OK
+20/21 air.memory_commitment.poseidon2_air.test_0...OK
+21/21 air.lookups.tables.source_ingest.test_0...OK
+All 21 tests passed.

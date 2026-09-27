@@ -8,6 +8,7 @@ const runtime_error = @import("error.zig");
 const telemetry = @import("telemetry.zig");
 
 pub const NativeContext = ContextFor(native_api);
+pub const CreateOptions = native_api.ContextOptions;
 
 pub fn ContextFor(comptime Api: type) type {
     return struct {
@@ -23,6 +24,12 @@ pub fn ContextFor(comptime Api: type) type {
         stream: *anyopaque,
         device: u32,
         lane_count: u32,
+        identity: u64 = 0,
+        owner_thread_id: std.Thread.Id = 0,
+        lanes: [native_api.max_context_lanes]?*anyopaque = @splat(null),
+        dependency_capacity: u32 = 0,
+        dependencies: [native_api.max_context_dependencies]DependencySlot = @splat(.{}),
+        live_dependencies: usize = 0,
         live_buffers: usize = 0,
         allocations: [max_allocations]Allocation =
             [_]Allocation{.{}} ** max_allocations,
@@ -33,7 +40,46 @@ pub fn ContextFor(comptime Api: type) type {
         next_stage_index: usize = 0,
         synchronized: bool = true,
         capture_active: bool = false,
+        teardown_pending: bool = false,
         counters: telemetry.Counters = .{},
+
+        pub const Construction = union(enum) {
+            ready: Self,
+            released: void,
+            failed: struct { cause: runtime_error.Error, teardown: ?Self = null },
+
+            /// A failed cleanup still owns its native control node. On another
+            /// teardown error the outcome remains intact for explicit retry.
+            pub fn deinit(self: *Construction) runtime_error.Error!void {
+                switch (self.*) {
+                    .ready => |*owner| {
+                        try owner.abort();
+                        self.* = .released;
+                    },
+                    .released => {},
+                    .failed => |*failure| if (failure.teardown) |*owner| {
+                        try owner.abort();
+                        failure.teardown = null;
+                    },
+                }
+            }
+        };
+
+        pub const DependencySlot = struct {
+            generation: u64 = 0,
+            producer_lane: u32 = 0,
+            active: bool = false,
+        };
+        pub const Lane = struct {
+            owner: usize,
+            context_identity: u64,
+            index: u32,
+            stream: *anyopaque,
+        };
+        pub const Dependency = struct {
+            owner: usize,
+            token: native_api.DependencyToken,
+        };
 
         pub const Buffer = struct {
             pointer: [*]u32,
@@ -49,33 +95,181 @@ pub fn ContextFor(comptime Api: type) type {
 
         pub fn open() runtime_error.Error!Self {
             var raw_handle: ?*anyopaque = null;
-            try runtime_error.check(Api.stwo_exec_context_create(&raw_handle));
+            runtime_error.check(Api.stwo_exec_context_create(&raw_handle)) catch |err| {
+                // Legacy error-union API has no failure-owner return channel.
+                // Retry cleanup if the native constructor retained one; new
+                // selected-device callers must use the owned outcome below.
+                if (raw_handle) |handle| _ = Api.stwo_exec_context_destroy(handle);
+                return err;
+            };
+            return finishOpen(raw_handle, .{});
+        }
+
+        /// Resource ownership only: compiled scheduled lanes remain disabled.
+        /// A selected device becomes current on this owner thread on success.
+        pub fn openOptions(options: CreateOptions) Construction {
+            options.validate() catch |err| return .{ .failed = .{ .cause = err } };
+            if (comptime @hasDecl(Api, "stwo_exec_context_create_options")) {
+                var raw_handle: ?*anyopaque = null;
+                runtime_error.check(Api.stwo_exec_context_create_options(&options, &raw_handle)) catch |err| {
+                    return .{ .failed = .{ .cause = err, .teardown = if (raw_handle) |handle| teardownOnly(handle) else null } };
+                };
+                const handle = raw_handle orelse return .{ .failed = .{ .cause = error.NullExecutionContext } };
+                const owner = readOpen(handle, options) catch |err| {
+                    runtime_error.check(Api.stwo_exec_context_destroy(handle)) catch {
+                        return .{ .failed = .{ .cause = err, .teardown = teardownOnly(handle) } };
+                    };
+                    return .{ .failed = .{ .cause = err } };
+                };
+                return .{ .ready = owner };
+            } else return .{ .failed = .{ .cause = error.InvalidState } };
+        }
+
+        fn teardownOnly(handle: *anyopaque) Self {
+            return .{ .handle = handle, .stream = undefined, .device = undefined, .lane_count = 0, .owner_thread_id = std.Thread.getCurrentId(), .teardown_pending = true };
+        }
+
+        fn finishOpen(raw_handle: ?*anyopaque, options: CreateOptions) runtime_error.Error!Self {
             const handle = raw_handle orelse return error.NullExecutionContext;
             errdefer _ = Api.stwo_exec_context_destroy(handle);
+            return readOpen(handle, options);
+        }
 
+        fn readOpen(handle: *anyopaque, options: CreateOptions) runtime_error.Error!Self {
             var raw_stream: ?*anyopaque = null;
             try runtime_error.check(Api.stwo_exec_context_stream(handle, &raw_stream));
             const stream = raw_stream orelse return error.NullExecutionStream;
             var device: c_int = -1;
             try runtime_error.check(Api.stwo_exec_context_device(handle, &device));
-            if (device < 0) return error.InvalidDeviceOrdinal;
+            if (device < 0 or (options.device_ordinal != native_api.current_device and options.device_ordinal != @as(u32, @intCast(device)))) return error.InvalidDeviceOrdinal;
             var lane_count: u32 = 0;
             try runtime_error.check(Api.stwo_exec_context_lane_count(handle, &lane_count));
-            if (lane_count == 0) return error.InvalidExecutionLaneCount;
-            return .{
+            if (lane_count != options.lane_count) return error.InvalidExecutionLaneCount;
+            var result = Self{
                 .handle = handle,
                 .stream = stream,
                 .device = @intCast(device),
                 .lane_count = lane_count,
+                .owner_thread_id = std.Thread.getCurrentId(),
+                .dependency_capacity = options.dependency_capacity,
             };
+            result.lanes[0] = stream;
+            if (comptime @hasDecl(Api, "stwo_exec_context_identity")) {
+                try runtime_error.check(Api.stwo_exec_context_identity(handle, &result.identity));
+                if (result.identity == 0) return error.ContextMismatch;
+            }
+            if (comptime @hasDecl(Api, "stwo_exec_context_lane_stream")) {
+                for (0..lane_count) |index| {
+                    var lane_stream: ?*anyopaque = null;
+                    try runtime_error.check(Api.stwo_exec_context_lane_stream(handle, @intCast(index), &lane_stream));
+                    result.lanes[index] = lane_stream orelse return error.NullExecutionStream;
+                    if (index == 0 and result.lanes[index].? != stream) return error.ContextMismatch;
+                    for (result.lanes[0..index]) |previous| {
+                        if (previous == lane_stream) return error.ContextMismatch;
+                    }
+                }
+            } else if (lane_count != 1 or options.dependency_capacity != 0) return error.InvalidExecutionLaneCount;
+            return result;
+        }
+
+        /// The handle identifies real native stream ownership, not admitted
+        /// scheduling capability. Callers must preserve this Context lifetime.
+        pub fn lane(self: *Self, index: u32) runtime_error.Error!Lane {
+            const handle = try self.requireHandle();
+            if (self.capture_active or self.identity == 0) return error.InvalidState;
+            if (index >= self.lane_count or index >= self.lanes.len) return error.InvalidExecutionLaneCount;
+            const stream = self.lanes[index] orelse return error.NullExecutionStream;
+            // A borrowed stream can enqueue work outside this wrapper. Keep
+            // teardown fenced even when no wrapper launch counter changes.
+            self.synchronized = false;
+            return .{ .owner = @intFromPtr(handle), .context_identity = self.identity, .index = index, .stream = stream };
+        }
+
+        pub fn validateLane(self: *Self, selected: Lane) runtime_error.Error!void {
+            const handle = try self.requireHandle();
+            if (self.capture_active) return error.InvalidState;
+            if (self.identity == 0 or selected.owner != @intFromPtr(handle) or selected.context_identity != self.identity) return error.ContextMismatch;
+            if (selected.index >= self.lane_count or selected.index >= self.lanes.len) return error.InvalidExecutionLaneCount;
+            if (self.lanes[selected.index] != selected.stream) return error.ContextMismatch;
+        }
+
+        pub fn validateDependency(self: *Self, dependency: Dependency) runtime_error.Error!void {
+            const handle = try self.requireHandle();
+            if (self.capture_active) return error.InvalidState;
+            const token = dependency.token;
+            if (self.identity == 0 or dependency.owner != @intFromPtr(handle) or token.context_identity != self.identity or token.generation == 0) return error.ContextMismatch;
+            if (token.slot >= self.dependency_capacity or token.slot >= self.dependencies.len or token.producer_lane >= self.lane_count) return error.ContextMismatch;
+            const admitted = self.dependencies[token.slot];
+            if (!admitted.active or admitted.generation != token.generation or admitted.producer_lane != token.producer_lane) return error.ContextMismatch;
+        }
+
+        pub fn recordDependency(self: *Self, producer: Lane, slot: u32) runtime_error.Error!Dependency {
+            try self.validateLane(producer);
+            if (self.active_stage == null) return error.StageNotActive;
+            if (slot >= self.dependency_capacity or slot >= self.dependencies.len) return error.InvalidExecutionLaneCount;
+            const previous = self.dependencies[slot];
+            if (previous.active) return error.InvalidState;
+            if (previous.generation == std.math.maxInt(u64)) return error.SizeOverflow;
+            if (comptime @hasDecl(Api, "stwo_exec_context_dependency_record")) {
+                var token: native_api.DependencyToken = undefined;
+                try runtime_error.check(Api.stwo_exec_context_dependency_record(try self.requireHandle(), producer.index, slot, &token));
+                self.synchronized = false;
+                if (token.context_identity != self.identity or token.slot != slot or token.producer_lane != producer.index or token.generation != previous.generation + 1) return error.ContextMismatch;
+                self.dependencies[slot] = .{ .generation = token.generation, .producer_lane = producer.index, .active = true };
+                self.live_dependencies += 1;
+                return .{ .owner = producer.owner, .token = token };
+            } else return error.InvalidState;
+        }
+
+        pub fn waitDependency(self: *Self, consumer: Lane, dependency: Dependency) runtime_error.Error!void {
+            try self.validateLane(consumer);
+            try self.validateDependency(dependency);
+            if (self.active_stage == null) return error.StageNotActive;
+            if (comptime @hasDecl(Api, "stwo_exec_context_dependency_wait")) {
+                try runtime_error.check(Api.stwo_exec_context_dependency_wait(try self.requireHandle(), consumer.index, &dependency.token));
+                self.synchronized = false;
+            } else return error.InvalidState;
+        }
+
+        /// Terminal retirement synchronizes every producer and waiter lane
+        /// before native event reuse. It is not a nonblocking reclamation API.
+        pub fn releaseDependency(self: *Self, dependency: *Dependency) runtime_error.Error!void {
+            try self.validateDependency(dependency.*);
+            if (self.live_dependencies == 0) return error.InvalidState;
+            if (comptime @hasDecl(Api, "stwo_exec_context_dependency_release")) {
+                try runtime_error.check(Api.stwo_exec_context_dependency_release(try self.requireHandle(), &dependency.token));
+                self.dependencies[dependency.token.slot].active = false;
+                self.live_dependencies -= 1;
+                self.synchronized = true;
+                self.counters.sync(self.active_stage);
+                dependency.* = .{ .owner = 0, .token = .{ .context_identity = 0, .generation = 0, .slot = 0, .producer_lane = 0 } };
+            } else return error.InvalidState;
+        }
+
+        fn resetDependencies(self: *Self) runtime_error.Error!void {
+            const handle = try self.requireHandle();
+            if (self.capture_active) return error.InvalidState;
+            if (comptime @hasDecl(Api, "stwo_exec_context_dependencies_reset")) {
+                try runtime_error.check(Api.stwo_exec_context_dependencies_reset(handle));
+                for (&self.dependencies) |*slot| slot.active = false;
+                self.live_dependencies = 0;
+                self.synchronized = true;
+            } else if (self.live_dependencies != 0 or self.lane_count != 1) return error.InvalidState;
         }
 
         pub fn close(self: *Self) runtime_error.Error!void {
-            const handle = self.handle orelse return error.ContextClosed;
+            const handle = try self.requireControl();
+            if (self.teardown_pending) {
+                try runtime_error.check(Api.stwo_exec_context_destroy(handle));
+                self.handle = null;
+                return;
+            }
+            if (self.live_dependencies != 0) return error.InvalidState;
             if (self.live_buffers != 0) return error.DeviceBufferLive;
             if (self.active_stage != null) return error.StageAlreadyActive;
             if (self.capture_active) return error.InvalidState;
             if (!self.synchronized) try self.sync();
+            self.teardown_pending = true;
             try runtime_error.check(Api.stwo_exec_context_destroy(handle));
             self.handle = null;
         }
@@ -85,7 +279,7 @@ pub fn ContextFor(comptime Api: type) type {
             if (self.live_buffers != self.persistent_buffers)
                 return error.DeviceBufferLive;
             if (self.active_stage != null) return error.StageAlreadyActive;
-            if (!self.synchronized or self.capture_active)
+            if (!self.synchronized or self.capture_active or self.live_dependencies != 0)
                 return error.InvalidState;
             self.next_stage_index = 0;
             self.counters = .{};
@@ -117,22 +311,22 @@ pub fn ContextFor(comptime Api: type) type {
                     first_error = err;
                 };
             }
+            // Abort all pending producer/waiter uses before queuing frees on
+            // coordination stream 0. Failure retains buffers for safe retry.
+            try self.resetDependencies();
             while (self.live_buffers != self.persistent_buffers) {
-                self.live_buffers -= 1;
-                const allocation = self.allocations[self.live_buffers];
+                const index = self.live_buffers - 1;
+                const allocation = self.allocations[index];
                 if (allocation.address != 0) {
-                    var free_enqueued = true;
                     runtime_error.check(Api.stwo_exec_context_free_u32(
                         self.handle.?,
                         @ptrFromInt(allocation.address),
-                    )) catch |err| {
-                        free_enqueued = false;
-                        if (first_error == null) first_error = err;
-                    };
-                    if (free_enqueued) self.synchronized = false;
+                    )) catch |err| return first_error orelse err;
+                    self.synchronized = false;
                     self.counters.free(self.active_stage, allocation.bytes);
                 }
-                self.allocations[self.live_buffers] = .{};
+                self.live_buffers = index;
+                self.allocations[index] = .{};
             }
             if (!self.synchronized) {
                 self.sync() catch |err| {
@@ -150,25 +344,30 @@ pub fn ContextFor(comptime Api: type) type {
         /// allocations. Every allocation registered by this context is queued
         /// for release before destroying the stream and its isolated pool.
         pub fn abort(self: *Self) runtime_error.Error!void {
-            const handle = self.handle orelse return error.ContextClosed;
+            const handle = try self.requireControl();
+            if (self.teardown_pending) {
+                try runtime_error.check(Api.stwo_exec_context_destroy(handle));
+                self.handle = null;
+                return;
+            }
             var first_error: ?runtime_error.Error = null;
-            self.abortProof() catch |err| {
-                first_error = err;
-            };
+            try self.abortProof();
             var persistent_free_enqueued = false;
             while (self.live_buffers != 0) {
-                self.live_buffers -= 1;
-                const allocation = self.allocations[self.live_buffers];
+                const index = self.live_buffers - 1;
+                const allocation = self.allocations[index];
                 if (allocation.address != 0) {
+                    if (allocation.bytes > self.persistent_bytes) return error.InvalidState;
                     runtime_error.check(Api.stwo_exec_context_free_u32(
                         handle,
                         @ptrFromInt(allocation.address),
-                    )) catch |err| {
-                        if (first_error == null) first_error = err;
-                    };
+                    )) catch |err| return first_error orelse err;
                     persistent_free_enqueued = true;
+                    self.persistent_bytes -= allocation.bytes;
                 }
-                self.allocations[self.live_buffers] = .{};
+                self.live_buffers = index;
+                self.persistent_buffers = index;
+                self.allocations[index] = .{};
             }
             self.persistent_buffers = 0;
             self.persistent_bytes = 0;
@@ -177,9 +376,9 @@ pub fn ContextFor(comptime Api: type) type {
                     if (first_error == null) first_error = err;
                 };
             }
-            runtime_error.check(Api.stwo_exec_context_destroy(handle)) catch |err| {
-                if (first_error == null) first_error = err;
-            };
+            if (first_error) |err| return err;
+            self.teardown_pending = true;
+            try runtime_error.check(Api.stwo_exec_context_destroy(handle));
             self.handle = null;
             if (first_error) |err| return err;
         }
@@ -262,6 +461,7 @@ pub fn ContextFor(comptime Api: type) type {
             self: *Self,
             words: usize,
         ) runtime_error.Error!Buffer {
+            _ = try self.requireHandle();
             return persistent_allocation.allocate(Api, self, words);
         }
 
@@ -278,7 +478,8 @@ pub fn ContextFor(comptime Api: type) type {
         }
 
         pub fn freeRaw(self: *Self, pointer: [*]u32) c_int {
-            return Api.stwo_exec_context_free_u32(self.handle.?, pointer);
+            const handle = self.requireHandle() catch return -1;
+            return Api.stwo_exec_context_free_u32(handle, pointer);
         }
 
         pub fn free(self: *Self, buffer: *Buffer) runtime_error.Error!void {
@@ -301,6 +502,7 @@ pub fn ContextFor(comptime Api: type) type {
             self: *Self,
             buffer: *Buffer,
         ) runtime_error.Error!void {
+            _ = try self.requireHandle();
             try persistent_allocation.free(Api, self, buffer);
         }
 
@@ -609,6 +811,7 @@ pub fn ContextFor(comptime Api: type) type {
         }
 
         pub fn recordKernels(self: *Self, count: u64) runtime_error.Error!void {
+            _ = try self.requireHandle();
             if (count == 0) return error.KernelPathUnused;
             const stage = self.active_stage orelse return error.StageNotActive;
             self.synchronized = false;
@@ -616,14 +819,22 @@ pub fn ContextFor(comptime Api: type) type {
         }
 
         pub fn recordGraphs(self: *Self, count: u64) runtime_error.Error!void {
+            _ = try self.requireHandle();
             if (count == 0) return error.KernelPathUnused;
             const stage = self.active_stage orelse return error.StageNotActive;
             self.synchronized = false;
             self.counters.graphs(stage, count);
         }
 
-        fn requireHandle(self: *Self) runtime_error.Error!*anyopaque {
+        fn requireControl(self: *Self) runtime_error.Error!*anyopaque {
+            if (self.owner_thread_id == 0 or self.owner_thread_id != std.Thread.getCurrentId()) return error.ThreadOwnershipViolation;
             return self.handle orelse error.ContextClosed;
+        }
+
+        fn requireHandle(self: *Self) runtime_error.Error!*anyopaque {
+            const handle = try self.requireControl();
+            if (self.teardown_pending) return error.InvalidState;
+            return handle;
         }
 
         fn stageLabel(stage: telemetry.Stage) [*:0]const u8 {

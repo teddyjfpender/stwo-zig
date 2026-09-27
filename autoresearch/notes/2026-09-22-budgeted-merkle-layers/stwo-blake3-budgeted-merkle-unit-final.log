@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 3/3 tests passed
+test-pcs-budgeted-merkle success
++- run test 3 passed 824ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 3s MaxRSS:353M
+

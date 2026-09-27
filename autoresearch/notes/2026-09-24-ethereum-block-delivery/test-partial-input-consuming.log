@@ -1,0 +1,11 @@
+1/10 prover.blake3_partial_input_test.test.BLAKE3 unused public input closes memory relations...OK
+2/10 prover.blake3_partial_input_test.test.BLAKE3 partial public input proof verifies native and recursive closure...OK
+3/10 runner.mod.test_0...OK
+4/10 runner.decode.test_0...OK
+5/10 air.public_data.test.public input byte binding rejects changed bytes lengths and padding...OK
+6/10 air.memory_commitment.poseidon2_air.test_0...OK
+7/10 air.semantic_eval.test_0...OK
+8/10 air.public_logup.test.public LogUp: malformed public input fails before address wrapping...OK
+9/10 air.lookups.tables.source_ingest.test_0...OK
+10/10 diagnostics.mod.test_0...OK
+All 10 tests passed.

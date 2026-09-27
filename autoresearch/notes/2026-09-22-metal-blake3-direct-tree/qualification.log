@@ -1,0 +1,54 @@
+test-blake3-leaves
++- run test stderr
+BLAKE3_METAL_LEAF columns=1 reuse=0 gpu_ms=0.030625000363215804
+BLAKE3_METAL_LEAF columns=1 reuse=1 gpu_ms=0.025583329261280596
+BLAKE3_METAL_LEAF columns=8 reuse=0 gpu_ms=0.26812498981598765
+BLAKE3_METAL_LEAF columns=8 reuse=1 gpu_ms=0.3126666561001912
+BLAKE3_METAL_LEAF columns=9 reuse=0 gpu_ms=0.036124998587183654
+BLAKE3_METAL_LEAF columns=9 reuse=1 gpu_ms=0.03033332177437842
+BLAKE3_METAL_LEAF columns=10 reuse=0 gpu_ms=0.050000002374872565
+BLAKE3_METAL_LEAF columns=10 reuse=1 gpu_ms=0.03937500878237188
+BLAKE3_METAL_LEAF columns=248 reuse=0 gpu_ms=0.3651250008260831
+BLAKE3_METAL_LEAF columns=248 reuse=1 gpu_ms=0.3470000083325431
+BLAKE3_METAL_LEAF columns=249 reuse=0 gpu_ms=0.38770832179579884
+BLAKE3_METAL_LEAF columns=249 reuse=1 gpu_ms=0.37533332942985
+BLAKE3_METAL_LEAF columns=250 reuse=0 gpu_ms=0.413541667512618
+BLAKE3_METAL_LEAF columns=250 reuse=1 gpu_ms=0.3888333303621039
+BLAKE3_METAL_LEAF columns=505 reuse=0 gpu_ms=0.7288749911822379
+BLAKE3_METAL_LEAF columns=505 reuse=1 gpu_ms=0.7372499967459589
+BLAKE3_METAL_LEAF columns=506 reuse=0 gpu_ms=0.759416667278856
+BLAKE3_METAL_LEAF columns=506 reuse=1 gpu_ms=0.7337916613323614
+BLAKE3_METAL_LEAF columns=761 reuse=0 gpu_ms=1.0852083360077813
+BLAKE3_METAL_LEAF columns=761 reuse=1 gpu_ms=1.0698333353502676
+BLAKE3_METAL_LEAF columns=762 reuse=0 gpu_ms=1.118416665121913
+BLAKE3_METAL_LEAF columns=762 reuse=1 gpu_ms=1.1157499975524843
+BLAKE3_METAL_LEAF columns=1017 reuse=0 gpu_ms=1.474500008043833
+BLAKE3_METAL_LEAF columns=1017 reuse=1 gpu_ms=1.3834166747983545
+BLAKE3_METAL_LEAF columns=1018 reuse=0 gpu_ms=1.4018750080140308
+BLAKE3_METAL_LEAF columns=1018 reuse=1 gpu_ms=1.4071250043343753
+BLAKE3_METAL_LEAF columns=2042 reuse=0 gpu_ms=2.8017500007990748
+BLAKE3_METAL_LEAF columns=2042 reuse=1 gpu_ms=2.8434166742954403
+test-blake3-direct-tree
++- run test stderr
+BLAKE3_DIRECT columns=1 mixed=false
+BLAKE3_DIRECT columns=1 mixed=true
+BLAKE3_DIRECT columns=9 mixed=false
+BLAKE3_DIRECT columns=9 mixed=true
+BLAKE3_DIRECT columns=249 mixed=false
+BLAKE3_DIRECT columns=249 mixed=true
+BLAKE3_DIRECT columns=250 mixed=false
+BLAKE3_DIRECT columns=250 mixed=true
+BLAKE3_DIRECT columns=762 mixed=false
+BLAKE3_DIRECT columns=762 mixed=true
+
+Build Summary: 9/9 steps succeeded; 26/26 tests passed
+test-blake3-direct-tree success
++- run test 2 passed 547ms MaxRSS:51M
+   +- compile test ReleaseSafe native success 3s MaxRSS:402M
+test-blake3-leaves success
++- run test 18 passed 3s MaxRSS:61M
+   +- compile test ReleaseSafe native success 7s MaxRSS:482M
+test-shader-authority success
++- run test 6 passed 479ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 3s MaxRSS:324M
+

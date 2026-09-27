@@ -16,6 +16,16 @@ const WorkRecorder = work_profile.Recorder(true);
 
 pub const ColumnEvaluation = quotient_ops.ColumnEvaluation;
 
+/// One owning allocation, possibly borrowed by several column descriptors.
+pub const ColumnBacking = struct {
+    values: []M31,
+    alignment: std.mem.Alignment,
+    pub fn deinit(self: ColumnBacking, allocator: std.mem.Allocator) void {
+        if (self.values.len != 0)
+            allocator.rawFree(std.mem.sliceAsBytes(self.values), self.alignment, @returnAddress());
+    }
+};
+
 /// Optional backend-owned lifetime hook that runs after all host backing
 /// allocations for a commitment have actually been returned to the allocator.
 /// Treat this value as move-only.
@@ -106,12 +116,105 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
         retained_column_allocator: ?std.mem.Allocator = null,
         coefficients: ?[]prover_circle.CircleCoefficients,
         column_backing_buffers: ?[][]M31 = null,
+        streaming_column_backings: ?[]ColumnBacking = null,
         column_backing_alignment: std.mem.Alignment = .of(M31),
         coefficient_backing_buffers: ?[][]M31 = null,
+        coefficient_backing_alignment: std.mem.Alignment = .of(M31),
         backing_teardown: ?BackingTeardownToken = null,
         commitment: B.MerkleTree(H),
+        shared_owner: ?*SharedOwner = null,
+        compact_polynomials: bool = false,
 
         const Self = @This();
+        const SharedOwner = struct {
+            allocator: std.mem.Allocator,
+            tree: Self,
+            references: std.atomic.Value(usize),
+        };
+
+        /// Promote an exclusively owned tree to shared immutable storage.
+        /// Failure preserves ownership. All copies must use retainShared; raw
+        /// struct copies remain moves. Backend payload reads must be thread-safe
+        /// before leases may be used concurrently, and the owner allocator must
+        /// support the thread performing the final release.
+        pub fn share(self: *Self, allocator: std.mem.Allocator) !void {
+            if (self.shared_owner != null) return;
+            const owner = try allocator.create(SharedOwner);
+            owner.* = .{ .allocator = allocator, .tree = self.*, .references = .init(1) };
+            self.shared_owner = owner;
+        }
+
+        /// The source lease must remain live throughout acquisition.
+        pub fn retainShared(self: *const Self) Self {
+            const owner = self.shared_owner orelse @panic("commitment tree is not shared");
+            const previous = owner.references.fetchAdd(1, .monotonic);
+            if (previous >= std.math.maxInt(usize) / 2) @panic("too many commitment leases");
+            var result = owner.tree;
+            result.shared_owner = owner;
+            return result;
+        }
+
+        /// Drop the full LDE after hashing, retaining the native polynomial.
+        /// Host backing arenas are detached selectively; tiny columns stay
+        /// materialized. Backend aliases and shared owners cannot be invalidated.
+        pub fn compactPolynomialStorage(self: *Self, allocator: std.mem.Allocator, minimum_log_size: u32) !void {
+            if (self.compact_polynomials or self.columns.len == 0) return;
+            if (comptime B.MerkleTree(H) != vcs_lifted_prover.MerkleProverLifted(H)) return error.UnsupportedCompactPolynomialStorage;
+            if (self.shared_owner != null or self.backing_teardown != null)
+                return error.UnsupportedCompactPolynomialStorage;
+            const coefficients = self.coefficients orelse return error.MissingCompactCoefficients;
+            if (coefficients.len != self.columns.len) return error.ShapeMismatch;
+            for (self.columns, coefficients) |column, coefficient| {
+                try column.validate();
+                if (coefficient.logSize() > column.log_size) return error.ShapeMismatch;
+            }
+            const backed = self.column_backing_buffers != null or self.streaming_column_backings != null;
+            if (backed and self.retained_column_allocator != null) return error.UnsupportedCompactPolynomialStorage;
+            const small = try allocator.alloc([]const M31, self.columns.len);
+            defer allocator.free(small);
+            @memset(small, &.{});
+            errdefer for (small) |values| allocator.free(values);
+            if (backed) for (self.columns, small) |column, *copy| {
+                if (column.log_size < minimum_log_size) copy.* = try allocator.dupe(M31, column.values);
+            };
+            for (self.columns, coefficients, small) |*column, coefficient, copy| {
+                if (column.log_size < minimum_log_size) {
+                    if (backed) column.values = copy;
+                    continue;
+                }
+                // Tiny columns remain directly readable for ordinary table AIRs.
+                if (!backed) (self.retained_column_allocator orelse allocator).free(column.values);
+                column.values = &.{};
+                column.coefficient_values = coefficient.coefficients();
+            }
+            if (self.streaming_column_backings) |backings| {
+                for (backings) |backing| backing.deinit(allocator);
+                allocator.free(backings);
+                self.streaming_column_backings = null;
+            }
+            if (self.column_backing_buffers) |buffers| {
+                @import("backed_columns.zig").freeBuffers(allocator, buffers, self.column_backing_alignment);
+                self.column_backing_buffers = null;
+            }
+            self.compact_polynomials = true;
+        }
+
+        /// Sampling may discard its coefficient view, but shared storage stays
+        /// alive for later proofs. Other allocations remain with the tree owner.
+        pub fn releaseCoefficients(self: *Self, allocator: std.mem.Allocator) void {
+            if (self.compact_polynomials) return;
+            if (self.coefficients) |coefficients| {
+                if (self.shared_owner == null) {
+                    for (coefficients) |*coefficient| coefficient.deinit(allocator);
+                    allocator.free(coefficients);
+                    if (self.coefficient_backing_buffers) |buffers| {
+                        @import("backed_columns.zig").freeBuffers(allocator, buffers, self.coefficient_backing_alignment);
+                        self.coefficient_backing_buffers = null;
+                    }
+                }
+                self.coefficients = null;
+            }
+        }
 
         /// Transfers a complete prepared owner on success, including the
         /// allocation metadata needed when releasing resident backing.
@@ -125,6 +228,7 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
                 recorder,
             );
             tree.column_backing_alignment = prepared.column_backing_alignment;
+            if (@hasField(@TypeOf(prepared.*), "coefficient_backing_alignment")) tree.coefficient_backing_alignment = prepared.coefficient_backing_alignment;
             return tree;
         }
 
@@ -203,6 +307,7 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
                 try B.commitMerkle(H, allocator, column_refs);
             errdefer commitment.deinit(allocator);
             recordMerkleWork(B, work_recorder, column_refs);
+            if (comptime @hasDecl(B.MerkleTree(H), "compactForQueries")) commitment.compactForQueries();
 
             return .{
                 .columns = owned_columns,
@@ -242,22 +347,46 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             backing_teardown: ?BackingTeardownToken,
         ) Self {
             std.debug.assert(owned_coefficients == null or owned_coefficients.?.len == owned_columns.len);
+            var retained_commitment = commitment;
+            if (comptime @hasDecl(B.MerkleTree(H), "compactForQueries")) retained_commitment.compactForQueries();
             return .{
                 .columns = owned_columns,
                 .coefficients = owned_coefficients,
                 .column_backing_buffers = column_backing_buffers,
                 .coefficient_backing_buffers = coefficient_backing_buffers,
                 .backing_teardown = backing_teardown,
-                .commitment = commitment,
+                .commitment = retained_commitment,
             };
         }
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            if (self.shared_owner) |owner| {
+                self.* = undefined;
+                if (owner.references.fetchSub(1, .acq_rel) == 1) {
+                    const original_allocator = owner.allocator;
+                    const budget = @import("../host_budget_allocator.zig").SharedHostBudget.fromAllocator(original_allocator);
+                    if (budget) |retained| _ = retained.retain();
+                    defer if (budget) |retained| retained.destroy();
+                    owner.tree.deinit(original_allocator);
+                    original_allocator.destroy(owner);
+                }
+                return;
+            }
+            // A resident commitment can hold the final budget lease after its
+            // caller releases the root owner. Keep the allocator alive while
+            // destroying that view and then returning all host backing.
+            const budget = @import("../host_budget_allocator.zig").SharedHostBudget.fromAllocator(allocator);
+            if (budget) |retained| _ = retained.retain();
+            defer if (budget) |retained| retained.destroy();
             // A backend commitment may retain a no-copy view of the committed
             // column arena. Release that view before returning its host
             // backing to the allocator.
             self.commitment.deinit(allocator);
-            if (self.column_backing_buffers) |buffers| {
+            if (self.streaming_column_backings) |backings| {
+                allocator.free(self.columns);
+                for (backings) |backing| backing.deinit(allocator);
+                allocator.free(backings);
+            } else if (self.column_backing_buffers) |buffers| {
                 allocator.free(self.columns);
                 @import("backed_columns.zig").freeBuffers(allocator, buffers, self.column_backing_alignment);
             } else {
@@ -268,8 +397,7 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
                 allocator.free(coeffs);
             }
             if (self.coefficient_backing_buffers) |buffers| {
-                for (buffers) |buffer| allocator.free(buffer);
-                allocator.free(buffers);
+                @import("backed_columns.zig").freeBuffers(allocator, buffers, self.coefficient_backing_alignment);
             }
             if (self.backing_teardown) |*token| token.deinit();
             self.* = undefined;
@@ -316,7 +444,12 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             for (self.columns, 0..) |column, i| {
                 column_refs[i] = column.values;
             }
-            var result = try self.commitment.decommit(allocator, sorted_positions, column_refs);
+            var result = if (self.compact_polynomials and self.columns.len != 0) blk: {
+                if (comptime @hasField(B.MerkleTree(H), "layers"))
+                    break :blk try @import("coefficient_opening.zig").decommit(H, allocator, self, sorted_positions)
+                else
+                    return error.UnsupportedCompactPolynomialStorage;
+            } else try self.commitment.decommit(allocator, sorted_positions, column_refs);
             errdefer result.deinit(allocator);
 
             const reordered = try allocator.alloc([]M31, result.queried_values.len);

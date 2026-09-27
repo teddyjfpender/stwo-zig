@@ -1,0 +1,22 @@
+{
+  "source_candidate": "source-ram-forest-join-fixed-selected-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 36.05044574994827,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 21,
+  "test_summary": [
+    "All 21 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-ram-forest-join-fixed-selected-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-source-ram-forest-join-fixed-selected-focused-v1",
+    "bytes": 55525176,
+    "sha256": "39395494e7e2214254aa1188e41482a68217ffd5398509b6270397f8980d004d"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "status": "qualified-focused-fixtures-and-full-body-retention",
+  "result": "word-expected-setup-focused-v5-result.json",
+  "result_sha256": "ecab15fcae12698bbec79790f6873fe093cb9a7a21ec11fea32ee64998a565a1",
+  "source": "word-expected-setup-focused-v5-source.json",
+  "source_sha256": "7fa6955c5b65a91335ff3cad2e67e4a760995a22b2aebe3fbc8e1e82cf0048ed",
+  "selected_checks": 44,
+  "elapsed_seconds": 153.5780251249671,
+  "source_pin_count": 2141,
+  "repairs": [
+    "Preserved failed v3 shadowed child-position compile attempt; renamed child local.",
+    "Preserved failed v4 original PAGE static compiler quota attempt; raised PAGE shape compile-only quota."
+  ],
+  "scope": [
+    "Independent V19/V20 default memory expected setup and direct PUBLIC21/FINAL22 key factories selected in actual CPU bodies.",
+    "Persistent RAM/range expected-key caches and producer workers borrowing driver pool.",
+    "Exact original producer fixed-root admission and fresh recursive verification retained, never invoked by this gate.",
+    "Original publication/source-binding/OOM/rollback/catalogue/geometry preflight checks and new early stage rejection fixtures."
+  ],
+  "bodies_retained": [
+    "CPU capacity driver run",
+    "Session create/deinit and supplemental callbacks",
+    "CPU supplemental receiver",
+    "RAM/range forest build publish/reconstruct",
+    "CPU final job build publish/reconstruct"
+  ],
+  "positive_fixed_live_root_parity": false,
+  "complete_block_authority": false,
+  "end_to_end_time_measured": false,
+  "peak_rss_measured": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

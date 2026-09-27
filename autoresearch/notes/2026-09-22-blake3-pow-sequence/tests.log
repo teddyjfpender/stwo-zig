@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 3/3 tests passed
+test-blake3-query-mask success
++- BLAKE3 query mask guard success
+   +- run test 1 passed 583ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:633M
+test-blake3-transcript-sequence success
++- BLAKE3 transcript sequence guard success
+   +- run test 2 passed 4s MaxRSS:394M
+      +- compile test ReleaseSafe native success 22s MaxRSS:1G
+

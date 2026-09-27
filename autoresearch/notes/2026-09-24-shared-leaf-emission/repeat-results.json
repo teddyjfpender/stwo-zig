@@ -1,0 +1,266 @@
+[
+  {
+    "index": 0,
+    "variant": "candidate",
+    "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t1%; charging; (no estimate) present: true\n",
+    "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t2%; charging; 2:42 remaining present: true\n",
+    "binary_sha256": "44c348f0bd4c1eb435abcc9ae78c876826cf199f2914fec3a15e320eb6f5a587",
+    "wall_seconds": 47.721437542000785,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "4663642541"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8575135541"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "5190853792"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8754580958"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "3878820750"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "16184598791"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 38719487752,
+    "peak_rss_bytes": 36938055680
+  },
+  {
+    "index": 1,
+    "variant": "control",
+    "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t2%; charging; 2:42 remaining present: true\n",
+    "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t3%; charging; 2:50 remaining present: true\n",
+    "binary_sha256": "cb2b155e86236745057b6838c0c45139cc097fbb6c65e8790ec5f6bd8037faf8",
+    "wall_seconds": 51.156648375006625,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6132885542"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8818007666"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6024932375"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8925171500"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "3955079250"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "16723256375"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 39161814896,
+    "peak_rss_bytes": 37118017536
+  },
+  {
+    "index": 2,
+    "variant": "control",
+    "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t3%; charging; 2:50 remaining present: true\n",
+    "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t4%; charging; 2:46 remaining present: true\n",
+    "binary_sha256": "cb2b155e86236745057b6838c0c45139cc097fbb6c65e8790ec5f6bd8037faf8",
+    "wall_seconds": 50.950411583005916,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6177566125"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8755992166"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6198309833"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8822077000"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "3971109459"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "16485108000"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 39161847568,
+    "peak_rss_bytes": 37118115840
+  },
+  {
+    "index": 3,
+    "variant": "candidate",
+    "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t4%; charging; 2:46 remaining present: true\n",
+    "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t5%; charging; 2:49 remaining present: true\n",
+    "binary_sha256": "44c348f0bd4c1eb435abcc9ae78c876826cf199f2914fec3a15e320eb6f5a587",
+    "wall_seconds": 50.11442945798626,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6380921333"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8762589167"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "5128418666"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8747566125"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "3944964459"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "16615699833"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 38988307352,
+    "peak_rss_bytes": 36944887808
+  }
+]

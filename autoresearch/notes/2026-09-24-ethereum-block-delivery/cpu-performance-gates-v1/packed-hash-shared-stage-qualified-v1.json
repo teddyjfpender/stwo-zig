@@ -1,0 +1,81 @@
+{
+  "status": "qualified_nonproving_cached_hash_stage_snapshot",
+  "evidence": {
+    "packed-hash-shared-stage-semantic-v1": {
+      "source_candidate": "packed-hash-shared-stage-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 1.2492869999841787,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/packed-hash-shared-stage-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "packed-hash-shared-stage-focused-v1": {
+      "source_candidate": "packed-hash-shared-stage-focused-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 48.56947470799787,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 11,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/packed-hash-shared-stage-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-packed-hash-shared-stage-focused-v1",
+        "bytes": 3407216,
+        "sha256": "c2838b89c41c991a35895b338ccb4382ea588fe4d50da39492cb0168724fc164"
+      }
+    },
+    "packed-hash-shared-stage-focused-v2": {
+      "source_candidate": "packed-hash-shared-stage-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 48.38701533299172,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 11,
+      "test_summary": [
+        "All 11 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/packed-hash-shared-stage-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-packed-hash-shared-stage-focused-v2",
+        "bytes": 3407216,
+        "sha256": "5a36d1f06754c4ff9c5dafc3be621031a57c0b1ceb323aed4825b7784064c0ff"
+      }
+    }
+  },
+  "tests_passed": 11,
+  "scope": [
+    "Cached SHA collection, durable persistence and replay preserve all six original commitment roots",
+    "Prepared and shared-setup components copy original scalar programs; masks/logs survive source page destruction",
+    "SHA producer reuses existing authenticated page definitions rather than rebuilding four AIRs",
+    "Cross-budget immutable tree sharing preserves the original storage allocator while destination descriptors use their own budget",
+    "Original SHA/BLAKE column parity, retained ownership and page allocation rollback regressions"
+  ],
+  "repair": "First focused gate exposed tree promotion through the destination budget. Additive Shared.copyWithSourceAllocator retains the raw FirstRound allocator; the unchanged fixture then passes page teardown.",
+  "not_qualified": [
+    "Unified raw/fold PAGE proof and complete source/global closure",
+    "Canonical CPU driver activation or complete block proof",
+    "End-to-end speed or peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

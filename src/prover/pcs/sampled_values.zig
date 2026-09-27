@@ -93,7 +93,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
         }
 
         for (tree.columns, tree_points, 0..) |column, points, column_idx| {
-            try column.validate();
+            try column.validateRetained();
             tree_values[column_idx] = try allocator.alloc(QM31, points.len);
             initialized_columns += 1;
             if (points.len != 0 and column.log_size > lifting_log_size) {
@@ -138,6 +138,20 @@ pub fn evaluateAndReleaseWithWorkRecorder(
     const coefficient_work_audit = if (capture_work) &coefficient_work else null;
     const barycentric_work_audit = if (capture_work) &barycentric_work else null;
 
+    if (std.process.hasEnvVarConstant("STWO_ZIG_PROFILE_SAMPLED_DISPATCH")) {
+        std.debug.print("SAMPLED_DISPATCH backend={s} coefficient={} barycentric={} mixed={}\n", .{
+            @typeName(B),                                @hasDecl(B, "evaluateCoefficientPlans"),
+            @hasDecl(B, "evaluateBarycentricTreePlans"), @hasDecl(B, "supportsMixedSampledEvaluation"),
+        });
+        for (trees, 0..) |tree, i| {
+            var log: u32 = 0;
+            for (tree.columns) |column| log = @max(log, column.log_size);
+            std.debug.print("SAMPLED_TREE index={d} coefficients={} columns={d} max_log={d}\n", .{
+                i, tree.coefficients != null, tree.columns.len, log,
+            });
+        }
+    }
+
     if (comptime @hasDecl(B, "evaluateCoefficientPlans")) {
         if (try evaluateCoefficientTreesWithBackend(
             B,
@@ -173,6 +187,31 @@ pub fn evaluateAndReleaseWithWorkRecorder(
             releaseTreeCoefficients(B, H, trees, allocator);
             if (selected_barycentric_evaluation)
                 finishBarycentricWork(work_recorder, barycentric_work);
+            return TreeVec([][]QM31).initOwned(out);
+        }
+    }
+
+    if (comptime @hasDecl(B, "supportsMixedSampledEvaluation") and
+        @hasDecl(B, "evaluateCoefficientPlans") and
+        @hasDecl(B, "evaluateBarycentricTreePlans") and
+        @hasDecl(B, "quotientResidencyHandle"))
+    {
+        if (B.supportsMixedSampledEvaluation() and try @import("sampled_mixed_backend.zig").evaluate(
+            B,
+            H,
+            trees,
+            sampled_points.items,
+            out,
+            allocator,
+            lifting_log_size,
+            coefficient_work_audit,
+            barycentric_work_audit,
+            evaluateCoefficientTreesWithBackend,
+            evaluateBarycentricTreesWithBackend,
+        )) {
+            releaseTreeCoefficients(B, H, trees, allocator);
+            if (selected_coefficient_evaluation) finishCoefficientWork(work_recorder, coefficient_work);
+            if (selected_barycentric_evaluation) finishBarycentricWork(work_recorder, barycentric_work);
             return TreeVec([][]QM31).initOwned(out);
         }
     }
@@ -256,27 +295,26 @@ pub fn evaluateAndReleaseWithWorkRecorder(
             };
         }
 
-        const primary_tree = largestTreeIndex(trees, sampled_points.items);
-        worker_contexts[primary_tree].parallel_coefficient_plans = true;
-        // This remains an explicit research switch. The measured Stage101 A/B
-        // was byte-identical but wall-neutral and increased CPU/RSS because
-        // inner weight workers displaced the already-active tree workers.
-        worker_contexts[primary_tree].parallel_barycentric_plans =
-            std.process.hasEnvVarConstant(
-                "STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS",
-            );
-
-        var wait_group: std.Thread.WaitGroup = .{};
-        for (worker_contexts, 0..) |*worker_context, tree_idx| {
-            if (tree_idx == primary_tree) continue;
-            pool.spawnWg(
-                &wait_group,
-                SampledValueWorkerCtx(B, H).run,
-                .{worker_context},
-            );
+        if (preferBarycentricWaves(trees, sampled_points.items) or std.process.hasEnvVarConstant("STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS")) {
+            // Large evaluation-form trees benefit from inner parallelism.
+            // Drain one tree at a time so its bounded weight/dot lease does not
+            // compete with unrelated tree workers or nested waits.
+            for (worker_contexts) |*context| {
+                context.parallel_coefficient_plans = true;
+                context.parallel_barycentric_plans = true;
+                context.run();
+            }
+        } else {
+            const primary_tree = largestTreeIndex(trees, sampled_points.items);
+            worker_contexts[primary_tree].parallel_coefficient_plans = true;
+            var wait_group: std.Thread.WaitGroup = .{};
+            for (worker_contexts, 0..) |*worker_context, tree_idx| {
+                if (tree_idx == primary_tree) continue;
+                pool.spawnWg(&wait_group, SampledValueWorkerCtx(B, H).run, .{worker_context});
+            }
+            SampledValueWorkerCtx(B, H).run(&worker_contexts[primary_tree]);
+            wait_group.wait();
         }
-        SampledValueWorkerCtx(B, H).run(&worker_contexts[primary_tree]);
-        wait_group.wait();
 
         for (worker_contexts) |worker_context| {
             if (worker_context.failed) return error.ShapeMismatch;
@@ -363,6 +401,16 @@ fn finishBarycentricWork(
 fn parallelEvaluationPool(tree_count: usize) ?*work_pool_mod.WorkPool {
     if (builtin.single_threaded or tree_count <= 1) return null;
     return work_pool_mod.getGlobalPool();
+}
+
+fn preferBarycentricWaves(trees: anytype, sampled_points: [][][]CirclePointQM31) bool {
+    for (trees, sampled_points) |tree, points| {
+        if (tree.coefficients != null) continue;
+        for (tree.columns, points) |column, locations| {
+            if (column.log_size >= 18 and locations.len != 0) return true;
+        }
+    }
+    return false;
 }
 
 fn largestTreeIndex(
@@ -583,13 +631,14 @@ fn evaluateTreesSequential(
 fn evaluateCoefficientTreesWithBackend(
     comptime B: type,
     comptime H: type,
-    trees: []commitment_tree.CommitmentTreeProverForBackend(B, H),
+    trees: anytype,
     tree_points_list: [][][]CirclePointQM31,
     out: [][][]QM31,
     allocator: std.mem.Allocator,
     lifting_log_size: u32,
     work_audit: ?*sampled_work.Audit,
 ) !bool {
+    _ = H;
     for (trees, 0..) |tree, tree_index| if (tree.coefficients == null) {
         std.log.debug(
             "backend sampled evaluation unavailable: tree {d} has no coefficients",
@@ -695,7 +744,7 @@ fn evaluateCoefficientTreesWithBackend(
 fn evaluateBarycentricTreesWithBackend(
     comptime B: type,
     comptime H: type,
-    trees: []commitment_tree.CommitmentTreeProverForBackend(B, H),
+    trees: anytype,
     tree_points_list: [][][]CirclePointQM31,
     out: [][][]QM31,
     allocator: std.mem.Allocator,
@@ -703,6 +752,15 @@ fn evaluateBarycentricTreesWithBackend(
     work_audit: ?*sampled_work.Audit,
 ) !bool {
     for (trees) |tree| if (tree.coefficients != null) return false;
+    // Decide eligibility before constructing plans or recording their work.
+    // A mixed epoch stages every column, including formerly resident trees.
+    var host_columns = false;
+    for (trees) |tree| host_columns = host_columns or B.quotientResidencyHandle(H, tree.commitment) == null;
+    if (host_columns) {
+        if (comptime @hasDecl(B, "supportsHostBarycentricColumns")) {
+            for (trees) |tree| if (!B.supportsHostBarycentricColumns(tree.columns)) return false;
+        } else return false;
+    }
 
     const plan_lists = try allocator.alloc(std.ArrayList(BarycentricEvalPlan), trees.len);
     defer allocator.free(plan_lists);
@@ -722,7 +780,7 @@ fn evaluateBarycentricTreesWithBackend(
         const resident_tree = B.quotientResidencyHandle(
             H,
             tree.commitment,
-        ) orelse return false;
+        );
         var plans = std.ArrayList(BarycentricEvalPlan).empty;
         errdefer deinitBarycentricEvalPlans(allocator, &plans);
         var plan_index = std.AutoHashMap(u64, usize).init(allocator);
@@ -884,13 +942,7 @@ fn releaseTreeCoefficients(
     trees: []commitment_tree.CommitmentTreeProverForBackend(B, H),
     allocator: std.mem.Allocator,
 ) void {
-    for (trees) |*tree| {
-        if (tree.coefficients) |coefficients| {
-            for (coefficients) |*coefficient| coefficient.deinit(allocator);
-            allocator.free(coefficients);
-            tree.coefficients = null;
-        }
-    }
+    for (trees) |*tree| tree.releaseCoefficients(allocator);
 }
 
 const Root = @This();

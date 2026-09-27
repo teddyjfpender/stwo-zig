@@ -1,0 +1,6 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 95s
+1/3 recursion.air.blake3_wide_committed_test.test.wide recursion compression proof verifies and rejects substituted fixed root...OK
+2/3 recursion.air.relation_wide_batch_test.test.wide batches preserve every mixed-domain fraction and reject forged plans...OK
+3/3 recursion.air.framework_device_interaction.test.BLAKE3 execution commitment chunk projection spans wide tiles...OK
+All 3 tests passed.

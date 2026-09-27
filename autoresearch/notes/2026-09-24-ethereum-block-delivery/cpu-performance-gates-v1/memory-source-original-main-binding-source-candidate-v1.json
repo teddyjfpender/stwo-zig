@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "status": "source_candidate_unqualified",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_protocol_v1.zig",
+      "bytes": 4635,
+      "sha256": "49c2a2d59ab17e41c7e2e9fc6dccccbd939167b1424164ac83b2e8c2b8104532"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_binding_plan_v1.zig",
+      "bytes": 6345,
+      "sha256": "2fca7da75be36564948ea4e4fda6a58d22867edf8a7b444d3970e014a6b1bbd2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_binding_air_v1.zig",
+      "bytes": 2399,
+      "sha256": "33d5c8aeea6cd47e1eb6a4363cb45ad5e45da1c6dbdc2d14cdcb12896c655fe0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_binding_interaction_v1.zig",
+      "bytes": 3524,
+      "sha256": "2eaa6a437ef9185de24b87fb42d590bc64c46b844cba6477498e6c16064e8874"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_binding_component_v1.zig",
+      "bytes": 7994,
+      "sha256": "970cc23995c0f750af43217398b3e3df1be13b690841b89193310ebd195f41b1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_store_v1.zig",
+      "bytes": 7206,
+      "sha256": "fea0b775a4d66fea273144863931eb5496e6419ce0f66e75fe009b00e523353f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_replay_v1.zig",
+      "bytes": 4962,
+      "sha256": "7ef30db464de217ff70505373483d97f4ffac49056993b61329f7daf6aa2aa12"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_binding_test_v1.zig",
+      "bytes": 19271,
+      "sha256": "55439aeb29b7000c6f7976960452357621d44acdc403382bef38d8cbfd428838"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_binding_codegen.zig",
+      "bytes": 790,
+      "sha256": "eeaf2fc67d8e829325d762aeb88257df1e2910227821ae8fe3316f152514a4bf"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_binding_test_root.zig",
+      "bytes": 248,
+      "sha256": "fdedea59ad0f615a3ffbe6be8b02f250eb745bf37f35614962939fbbe71a20d1"
+    }
+  ],
+  "read_only_dependencies": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_first_protocol_v1.zig",
+      "bytes": 10428,
+      "sha256": "34619962ab8c374e6a8f1f74a2ff8c92681d9e42a4bf6077593407381fa0fdd2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_first_columns_v1.zig",
+      "bytes": 8449,
+      "sha256": "713a3a99588757c3d315fcac5d7111a2632486c8279bc69daeb926cd4f3f267e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_first_round_v1.zig",
+      "bytes": 14001,
+      "sha256": "886bfc83fe2aad7ebca17a65345d89a49d81fcda4ebdde997f9b96ae7e4f639d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_auth_protocol_v1.zig",
+      "bytes": 6678,
+      "sha256": "3ad74ff12dbdae745180f9d7873685b1fd3fbfb7bfba08887ac151acc0ea5b3b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_circuit_v1.zig",
+      "bytes": 10525,
+      "sha256": "f8eedd4b7f72bea27040ccb8bc3206087b5e2a48fab46a306c26670ca229c42f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_stream_v1.zig",
+      "bytes": 11857,
+      "sha256": "fbb558f68ef9ab4675798e64f993574e8e702519aabc2838e7244444947cf312"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "bytes": 19174,
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_initial_sources_v1.zig",
+      "bytes": 8978,
+      "sha256": "009840797a275e5bda57fdde35a8fccdedb92975c24e5a348f8453734a755a7e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_rw_endpoint_sources_v1.zig",
+      "bytes": 8973,
+      "sha256": "36cf8e6a4c4d51a85eda0d29efe4a16a029f5140d2d87227762c82fb7871a584"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "bytes": 5072,
+      "sha256": "c3c1327f544317c7850adb8c9b467a14e33a1f95db965fcafbcce8cefa42ecb3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_shared_first_round_v1.zig",
+      "bytes": 2172,
+      "sha256": "136d2d6085eae7026f974a7d04f032bd7128f03758194833f0f05e3f008ab04d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig",
+      "bytes": 10771,
+      "sha256": "8a583fb8c5bb3dce5536df82aa9334833b4de38bf9f7954de355aaa548280eab"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_domain_rows_v1.zig",
+      "bytes": 8481,
+      "sha256": "630a640b95b594a925f41ecc8a0ca2af70c96306cfd4d563a1fa96693c34811b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_equations_v1.zig",
+      "bytes": 24288,
+      "sha256": "d1611f6d0909bcbf868c086add3f9fc036f1fac86840eabdf18a7294e6f20b43"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_crypto_v1.zig",
+      "bytes": 11507,
+      "sha256": "2874910940db0025294b87ec90a49041fa3e3558680c636a56f568701cddcbd2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering.zig",
+      "bytes": 2059,
+      "sha256": "166b935ea546fd83d6ba90198437d96117e33352aa87b1130643cdceabf5abdd"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig",
+      "bytes": 20501,
+      "sha256": "929fa99677fa03ccbf06b2842b31bfedbe01ab9142c2335a2a12c894b0a30537"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_plan.zig",
+      "bytes": 19826,
+      "sha256": "b0753b65c9ef6661a32f362180d89c63495825d3328edcdd2e7669d09228a6f5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder.zig",
+      "bytes": 3485,
+      "sha256": "393ac0d6b085c909aff81ca3dfc5b06dc5bb427a7d75fc45023d443cacea656d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig",
+      "bytes": 20181,
+      "sha256": "7d561b47a36994ae68161030193418a11ac36bcb6c2b7fd69703849c0fb25f00"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_circuit.zig",
+      "bytes": 4241,
+      "sha256": "46f85487869a8c6784da78f1380b1091e95ff8eb155015a4e1ef88ff3d18d9c8"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_circuit_reference.zig",
+      "bytes": 31432,
+      "sha256": "a9d9f11b2e40a497008c7cc1337b462a29fb7dcb505911ac801843f00285fdb9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_challenges.zig",
+      "bytes": 12066,
+      "sha256": "ae2943f6e296639dccf727a402c46478b5516edc4577d5657b8f68610018390f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/wire_relation.zig",
+      "bytes": 5293,
+      "sha256": "8ff61f5f238d8f17dc2434a4fe90276ebed56ec5f34a95f2670a214a65eb84f2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/qm31_mul_full.zig",
+      "bytes": 20053,
+      "sha256": "6592202126525c51585d37eb9bebb9c3295080e0a7788211965b1f57f481dea2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/qm31_inv.zig",
+      "bytes": 18398,
+      "sha256": "bb20ff27e73ce8335181a269c4a6c740be9b6873754f2773b45c749033021cb6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/linear_ops.zig",
+      "bytes": 21068,
+      "sha256": "ba4a1b77788bf182cfbdcb793a458d2d2a6b1708785bf36ceffe4f4eed4c2eee"
+    },
+    {
+      "path": "src/frontends/riscv/air/block/memory_component_trace.zig",
+      "bytes": 15400,
+      "sha256": "2a43313674f62742f397be332d7cc2faebd46e4763c524246b36c94fe0797f85"
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "bytes": 16483,
+      "sha256": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d"
+    },
+    {
+      "path": "src/prover/pcs/commitment_tree.zig",
+      "bytes": 27659,
+      "sha256": "84e12f093aaf78f0c1398a2de0919eae69fc41283953170e169e4d635a877f09"
+    },
+    {
+      "path": "src/core/utils.zig",
+      "bytes": 7828,
+      "sha256": "e6a4427e8cca5a83e0d2accd5c05cc08d9ac167238833fc225155dfd36f2fd18"
+    }
+  ],
+  "checks": [
+    "source binding routing: actual independent kind graph exact private node fanout and canonical tail",
+    "source binding routing faults: all independent graph and owner allocations unwind",
+    "source binding equations: original cells prefix wire census value-use-clock tails and mutations",
+    "source binding degree: every original-main and two-fraction equation has declared degree2 or3",
+    "source binding replay: streaming packed file scope hash length padding exclusive publication and load faults",
+    "source binding masks: four actual trees retain original source cells and only prefixes shift",
+    "source binding epoch: both request and supplier roots precede dedicated wire draw",
+    "source binding packed: scalar and SIMD equations agree at nonzero extension-coordinate samples",
+    "source binding replay owner: live page prevents reader teardown and invalid phases fail closed",
+    "source binding bodies: actual four-tree point-domain adapter and streamed original-root recommit retained",
+    "source binding root"
+  ],
+  "root": "src/frontends/riscv/block_v5_memory_source_binding_test_root.zig",
+  "root_only_command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_memory_source_binding_test_root.zig",
+    "--optimize",
+    "ReleaseFast",
+    "source binding"
+  ],
+  "executed_here": [
+    "zig fmt only"
+  ],
+  "epoch_order": [
+    "B5SC source roster",
+    "Source9 draws",
+    "all arithmetic fixed/main root roster",
+    "dedicated recursion_wire6 draws",
+    "actual shared page interaction/proof pending"
+  ],
+  "implemented": [
+    "actual original-main supplier AIR and scalar/packed four-tree component",
+    "independent exact graph/node/private-use/all-arithmetic census routing plan",
+    "strict bounded compressed private page store",
+    "actual original-two-root PCS recommit and explicit one-page reader lifetime"
+  ],
+  "not_implemented": [
+    "combined page arithmetic columns and actual five-tree page STARK",
+    "fresh page verifier/capture/public bus/recursive leaf",
+    "exact-once page aggregate and sorted initial/endpoint closures",
+    "efficient SHA/BLAKE3 source frame/connectors/providers"
+  ],
+  "performance_claim": null
+}

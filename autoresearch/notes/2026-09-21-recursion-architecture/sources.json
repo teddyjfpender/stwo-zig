@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-21",
+  "repo_heads": {
+    "proving": "cd7bc5f4697fb188a27e09f9242f1dd76df8afdc",
+    "stwo-cairo": "2b1fb4ded5496fb2db4e8261cd5ee5ef6b710839",
+    "zisk": "5c5f81c96929abed88894473ec6060b1b545b5c5",
+    "pil2-proofman": "d485fac207679076958b502554fb595568c2f954",
+    "zkdtvm-stark-verifier": "e02a91464d94a5d1d5d3123003ddd2f86b54eeb8"
+  },
+  "local_head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "local_branch": "autoresearch/recursion-preparation-20260921",
+  "machine": "Apple M5 Max",
+  "memory_bytes": 68719476736,
+  "scope": "Read-only upstream inspection; existing local optimized binary; no upstream benchmarks executed."
+}

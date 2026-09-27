@@ -1,0 +1,20 @@
+{
+  "README.md": "896b1af0139f5dfb7e556fd1e57c2da1b58e17a32b645a3506ca64f866fd214f",
+  "framework-final.log": "489da8045eb74aa2d2915337e445885c5c7dbeb0c39f8649a1148c005c2e829c",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/autoresearch/notes/20260921-blake3-boundary-interaction-problem-match.md": "eb349bfe04622d789c71e959e8c6c6afd13d7460336cdf17ab0929a31275621b",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "65431e01259a1c8ce486acb72df60f636d691c36609025705dfddd0022530705",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "6a53033a0399a3220f46e0ecc937271aaf4283f492c09b14ec3a01abb1a315df",
+  "sources/src/frontends/riscv/recursion/air/blake3_boundary.zig": "16b4312851fd77a44e77be6feaa75d6437b1ef5bbbca1e6ad4ad87bff7099b81",
+  "sources/src/frontends/riscv/recursion/air/blake3_committed_test.zig": "6d7d9a835e0893e04e016f268b9e8c556e21853fd1d0dc79169a79e8e8f358b5",
+  "sources/src/frontends/riscv/recursion/air/blake3_compression_plan.zig": "1128c84585974ab54a35e7becc929fb7a5be76f5b2ed93aab0b1f282e6e11246",
+  "sources/src/frontends/riscv/recursion/air/blake3_compression_witness.zig": "14791739d3f85ee3fab1a2de801217032393c8577761eae989bdaccafdd5ae28",
+  "sources/src/frontends/riscv/recursion/air/blake3_framework_test.zig": "87a554d7263d1f1f4363f42e372d9fad76cc2f530cb860cdde312f9fdc33629f",
+  "sources/src/frontends/riscv/recursion/air/blake3_g_call.zig": "011a7a009acfe1b9b8b9dfee9e00a0bb733d57d37fb95236d130adc48d773fe2",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_fixture.zig": "39c8c0cf88d324990906018ef58629cebc2d3dc4115702c5306888d8c910269e",
+  "sources/src/frontends/riscv/recursion/air/blake3_xor_call.zig": "eca57d72048df20898e2750317602cd9307dfa4d31db7afe137b2222e4b5b4f5",
+  "sources/src/frontends/riscv/recursion/air/framework_device_interaction.zig": "289025abfb5b530f5ede7e58308c7aae71d4e133986b97b46e1540fe219e5448",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "3001e6e7f957d21e4078a2614e3e0c9809ccbd7ecef4eb6e963eeaf8c97e27d5",
+  "sources/src/prover/air/component_programs.zig": "4a2a2fcf822e56bda4839d542aa5e1cfd46c87513ac74b5cd666294733a6df71",
+  "tests.log": "032c21c82b205ba2a584fed5bb97542ab0d7f977bf6ccf446afb4e15773bc9e2"
+}

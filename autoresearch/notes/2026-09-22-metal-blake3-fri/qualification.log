@@ -1,0 +1,19 @@
+test-blake3-fri-tree
++- run test
+   +- compile test ReleaseSafe native 1 errors
+blake3_fri_test_root.zig:21:33: error: LHS of shift must be a fixed-width integer type, or RHS must be comptime-known
+            const leaves = size >> @as(u5, @intCast(packing));
+                           ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -cflags -fobjc-arc -fblocks -- /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/runtime.m -lobjc -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/blake3_fri_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -framework Foundation -framework Metal -lc --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 3/6 steps succeeded; 1 failed; 6/6 tests passed
+test-blake3-fri-tree transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+test-shader-authority success
++- run test 6 passed 589ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 3s MaxRSS:323M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/f7c95ebe37392f3e3fceba48f2355545/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x54b25576 -Zd861c7ac0ec10ad5 --maxrss 25769803776 -j1 test-blake3-fri-tree test-shader-authority -Doptimize=ReleaseSafe --summary all

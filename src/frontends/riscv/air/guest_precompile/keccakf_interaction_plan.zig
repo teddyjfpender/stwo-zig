@@ -9,6 +9,7 @@ const QM31 = @import("stwo_core").fields.qm31.QM31;
 const logup = @import("../logup.zig");
 const authority = @import("keccakf_authority.zig");
 const caller = @import("keccakf_caller.zig");
+const local_zero = @import("keccakf_caller_local_zero_v1.zig");
 const relations_mod = @import("keccakf_relations.zig");
 const trace = @import("keccakf_trace.zig");
 const witness = @import("keccakf_witness.zig");
@@ -23,7 +24,7 @@ pub const permutation_batch_count: usize = permutation_event_count / 2;
 pub const batch_count: usize = permutation_batch_count + caller.batch_count;
 pub const interaction_column_count: usize = 4 * batch_count;
 
-pub const Error = error{InvalidTraceShape};
+pub const Error = error{ InvalidTraceShape, InvalidX0CallerGeometry };
 
 pub fn rowPairsBase(
     main: []const M31,
@@ -52,7 +53,19 @@ pub fn rowPairsGeneric(
     selectors: []const S,
     relations: anytype,
 ) Error![batch_count]logup.RowPairFor(InteractionScalar(S)) {
-    if (main.len != trace.Layout.main_columns or
+    return rowPairsGenericForRecipe(S, main, next_state, caller_output_state, selectors, relations, false);
+}
+
+pub fn rowPairsGenericForRecipe(
+    comptime S: type,
+    main: []const S,
+    next_state: []const S,
+    caller_output_state: []const S,
+    selectors: []const S,
+    relations: anytype,
+    local_zero_enabled: bool,
+) Error![batch_count]logup.RowPairFor(InteractionScalar(S)) {
+    if (main.len != trace.Layout.main_columns + @as(usize, if (local_zero_enabled) 2 else 0) or
         next_state.len != witness.state_cell_count or
         caller_output_state.len != witness.state_cell_count or
         selectors.len != witness.row_count)
@@ -146,7 +159,18 @@ pub fn rowPairsGeneric(
             .d2 = events[first + 1].d1,
         };
     }
-    const caller_pairs = try caller.rowPairs(
+    const caller_pairs = if (local_zero_enabled) try local_zero.rowPairs(
+        S,
+        main[trace.Layout.caller..],
+        main[trace.Layout.state..][0..witness.state_cell_count],
+        caller_output_state,
+        main[trace.Layout.io_a..][0..relations_mod.io_arity],
+        main[trace.Layout.io_b..][0..relations_mod.io_arity],
+        selectors[0],
+        selectors[1],
+        main[trace.Layout.in_use_b],
+        relations,
+    ) else try caller.rowPairs(
         S,
         main[trace.Layout.caller..][0..caller.Layout.main_columns],
         main[trace.Layout.state..][0..witness.state_cell_count],

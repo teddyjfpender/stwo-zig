@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 4/4 tests passed
+test-blake3-compression success
++- BLAKE3 compression guard success
+   +- run test 4 passed 626ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 4s MaxRSS:479M
+

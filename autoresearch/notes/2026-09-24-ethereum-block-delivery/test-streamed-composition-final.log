@@ -1,0 +1,13 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 101s
+1/10 air.component_prepared_test.test.prepared composition is canonical with one two and four workers...OK
+2/10 air.component_prepared_test.test.prepared composition task capture is opt-in...OK
+3/10 air.component_prepared_test.test.prepared composition publishes exact serial and parallel task profiles...OK
+4/10 air.component_prepared_test.test.prepared composition obeys finite host budgets at one two and four workers...OK
+5/10 air.component_prepared_test.test.prepared composition retains identity when the shared lease is busy...OK
+6/10 air.component_prepared_test.test.prepared composition rejects an undersized helper stack before run...OK
+7/10 air.component_prepared_test.test.prepared composition rejects a component that under-consumes its power range...OK
+8/10 air.component_prepared_test.test.streamed prepared composition preserves powers and bounds live preparation...OK
+9/10 air.component_prepared_test.test.streamed prepared composition releases every failed allocation...OK
+10/10 air.component_prepared_test.test.streamed prepared composition stops and cleans up failed execution...OK
+All 10 tests passed.

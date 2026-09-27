@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-blake3-query-path-plan success
++- BLAKE3 query path plan guard success
+   +- run test 1 passed 489ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 3s MaxRSS:409M
+test-blake3-query-path-proof success
++- BLAKE3 query path proof guard success
+   +- run test 1 passed 3s MaxRSS:359M
+      +- compile test ReleaseSafe native success 22s MaxRSS:1G
+

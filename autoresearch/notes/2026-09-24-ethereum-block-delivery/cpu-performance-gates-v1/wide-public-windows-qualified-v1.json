@@ -1,0 +1,83 @@
+{
+  "status": "qualified_nonproving_bounded_wide_public_windows_snapshot",
+  "authored_candidate": "wide-public-windows-source-candidate-v1.json",
+  "evidence": {
+    "wide-public-windows-semantic-v1": {
+      "source_candidate": "wide-public-windows-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 0.2620504170190543,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/wide-public-windows-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "wide-public-windows-semantic-v2": {
+      "source_candidate": "wide-public-windows-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.059828541998286,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/wide-public-windows-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "wide-public-windows-focused-v1": {
+      "source_candidate": "wide-public-windows-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 103.54393154097488,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 17,
+      "test_summary": [
+        "All 17 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/wide-public-windows-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-wide-public-windows-focused-v1",
+        "bytes": 11165272,
+        "sha256": "7243c8228729b9fe33bd445a9595b72f636fddb6dd0da2c0c5ad4e8fd1db2095"
+      }
+    }
+  },
+  "tests_passed": 17,
+  "source_pins": 1740,
+  "scope": [
+    "Independently selected contiguous1..4 original native windows; exact global indices and independent whole-job expected input owner",
+    "Full-u64 clock/carry/adjacency and original native compensation/count equations match independent scalar oracle",
+    "Actual symbolic equations reject high-byte and endpoint mutations, exhaustive graph/input-owner allocation rollback",
+    "Million-word input does not expand the bounded lower public frame; cached input root remains checked against independently held expectation",
+    "Genuine new-parent producer/fresh receiver/higher-source and default shared-row bodies emitted and retained, never invoked",
+    "Original shared global_public_export_rows factory exposes the same default public aliases/math"
+  ],
+  "repairs": [
+    "Generic Prepared qualification and six shadowed identifiers; no public grammar or original channel math changed"
+  ],
+  "input_digest_link_proved": false,
+  "not_qualified": [
+    "Original native B5PD to new expected-input-root in-circuit bridge",
+    "Whole-job tail carrier/public parent integration or complete source/global closure",
+    "Canonical driver activation, complete block proof or end-to-end performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

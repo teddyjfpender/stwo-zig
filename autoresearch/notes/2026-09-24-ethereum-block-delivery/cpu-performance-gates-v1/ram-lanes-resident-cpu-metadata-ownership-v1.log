@@ -1,0 +1,5 @@
+1/4 block_v5_ram_lanes_resident_producer_test_root.test.RAM resident metadata preserves full clocks and admits4096-row tiny tails before collection...OK
+2/4 block_v5_ram_lanes_resident_producer_test_root.test.RAM resident streaming histogram matches typed lane witness for high clocks and odd padding...OK
+3/4 block_v5_ram_lanes_resident_producer_test_root.test.RAM resident23-total transcript boundary preserves typed claims and rejects wrong census...OK
+4/4 block_v5_ram_lanes_resident_producer_test_root.test.RAM resident aligned ingress cleans every allocation failure and preserves move alignment...OK
+All 4 tests passed.

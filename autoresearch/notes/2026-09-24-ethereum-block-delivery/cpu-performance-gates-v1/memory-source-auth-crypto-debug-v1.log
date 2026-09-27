@@ -1,0 +1,4 @@
+1/3 prover.block_v5_memory_source_auth_test_v1.test.source auth crypto: full SHA padding and BLAKE3 tree frames match independent kernels...OK
+2/3 prover.block_v5_memory_source_auth_test_v1.test.source auth crypto operations: carry rotate arbitrary SHA chaining and compression match exact kernel...OK
+3/3 prover.block_v5_memory_source_auth_test_v1.test.source auth crypto frames: independent full-width tree leaf and node digests...OK
+All 3 tests passed.

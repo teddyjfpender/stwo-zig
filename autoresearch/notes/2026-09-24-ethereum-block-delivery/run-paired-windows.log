@@ -1,0 +1,12 @@
+Proving paired-memory block leaf 0
+[ethereum-paired-memory-block-leaf] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-paired-memory-block-leaf] acquired after 22s
+Proving paired-memory block leaf 1
+[ethereum-paired-memory-block-leaf] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-paired-memory-block-leaf] acquired after 109s
+Proving paired-memory block leaf 15
+[ethereum-paired-memory-block-leaf] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-paired-memory-block-leaf] acquired after 58s
+Proving paired-memory block leaf 63
+[ethereum-paired-memory-block-leaf] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-paired-memory-block-leaf] acquired after 3s

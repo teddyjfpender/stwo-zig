@@ -10,6 +10,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const call_buffer = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
 const authority = @import("keccakf_authority.zig");
 const caller_mod = @import("keccakf_caller.zig");
+const local_zero = @import("keccakf_caller_local_zero_v1.zig");
 const counters_mod = @import("keccakf_multiplicities.zig");
 const relations = @import("keccakf_relations.zig");
 const witness = @import("keccakf_witness.zig");
@@ -52,6 +53,9 @@ pub const Error = counters_mod.Error || relations.Error || error{
     EmptyShard,
     OutputMismatch,
     TraceSizeOverflow,
+    InvalidX0CallerGeometry,
+    InvalidX0RegisterIndex,
+    NonzeroX0CallerPointer,
 };
 
 pub const Shard = struct {
@@ -62,6 +66,11 @@ pub const Shard = struct {
     n_rows: u32,
     first_call_index: u32,
     call_count: u32,
+    x0_local_custody_version: u32 = 0,
+
+    pub fn mainColumnCount(self: *const Shard) usize {
+        return Layout.main_columns + (if (self.x0_local_custody_version == 1) @as(usize, 2) else 0);
+    }
 
     pub fn deinit(self: *Shard) void {
         self.allocator.free(self.main_storage);
@@ -80,7 +89,7 @@ pub const Shard = struct {
     }
 
     pub fn mainColumn(self: *const Shard, index: usize) []const M31 {
-        std.debug.assert(index < Layout.main_columns);
+        std.debug.assert(index < self.mainColumnCount());
         const size = self.domainSize();
         return self.main_storage[index * size ..][0..size];
     }
@@ -106,6 +115,13 @@ pub fn generateShardWithMaximumLogSize(
     counters: *counters_mod.Counters,
     admitted_maximum_log_size: u32,
 ) Error!Shard {
+    return generateShardForRecipe(allocator, records, first_call_index, counters, admitted_maximum_log_size, false);
+}
+
+/// Explicit physical recipe selected before committing any arithmetic cells.
+/// Legacy callers retain the old width. This function builds each arithmetic
+/// matrix once; pointer hints are written in the original slot fill operation.
+pub fn generateShardForRecipe(allocator: std.mem.Allocator, records: []const call_buffer.Record, first_call_index: usize, counters: *counters_mod.Counters, admitted_maximum_log_size: u32, local_zero_enabled: bool) Error!Shard {
     const maximum_calls = try maximumCallsForLogSize(admitted_maximum_log_size);
     if (records.len == 0 and first_call_index != 0)
         return error.CallIndexOutOfRange;
@@ -137,7 +153,7 @@ pub fn generateShardWithMaximumLogSize(
     ) catch return error.TraceSizeOverflow;
     const main_cells = std.math.mul(
         usize,
-        Layout.main_columns,
+        Layout.main_columns + (if (local_zero_enabled) @as(usize, 2) else 0),
         domain_size,
     ) catch return error.TraceSizeOverflow;
     _ = std.math.mul(usize, main_cells, @sizeOf(M31)) catch
@@ -158,6 +174,7 @@ pub fn generateShardWithMaximumLogSize(
         .n_rows = @intCast(n_rows),
         .first_call_index = @intCast(first_call_index),
         .call_count = @intCast(records.len),
+        .x0_local_custody_version = @intFromBool(local_zero_enabled),
     };
     result.preprocessed_storage[committedRow(0, log_size)] = M31.one();
 
@@ -181,7 +198,7 @@ pub fn generateShardWithMaximumLogSize(
             }
         }
         try counters.recordSlot(&slot);
-        writeSlot(
+        try writeSlot(
             &result,
             slot_index,
             first_record,
@@ -210,10 +227,10 @@ fn writeSlot(
     io_a: relations.IoTuple,
     io_b: ?relations.IoTuple,
     slot: *const witness.Slot,
-) void {
+) Error!void {
     const size = shard.domainSize();
-    const caller_a = caller_mod.fill(record_a.*);
-    const caller_b = if (record_b) |record| caller_mod.fill(record.*) else null;
+    const caller_a = try callerRow(record_a.*, shard.x0_local_custody_version == 1);
+    const caller_b = if (record_b) |record| try callerRow(record.*, shard.x0_local_custody_version == 1) else null;
     for (slot.rows, 0..) |row, group| {
         const logical_row = slot_index * witness.row_count + group;
         const destination = committedRow(logical_row, shard.log_size);
@@ -248,10 +265,18 @@ fn writeSlot(
             &caller_b.?
         else
             null;
-        if (caller_row) |values| for (values, 0..) |value, column| {
+        if (caller_row) |values| for (values[0 .. shard.mainColumnCount() - Layout.caller], 0..) |value, column| {
             shard.main_storage[(Layout.caller + column) * size + destination] = value;
         };
     }
+}
+
+fn callerRow(record: call_buffer.Record, enabled: bool) Error![local_zero.Layout.main_columns]M31 {
+    if (enabled) return local_zero.fill(record);
+    var values: [local_zero.Layout.main_columns]M31 = @splat(M31.zero());
+    const source = caller_mod.fill(record);
+    @memcpy(values[0..source.len], &source);
+    return values;
 }
 
 pub fn stateFromWords(words: [call_buffer.word_count]u32) authority.State {

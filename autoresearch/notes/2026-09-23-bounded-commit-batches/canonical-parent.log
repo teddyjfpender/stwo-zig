@@ -1,0 +1,15 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=9520 removed_scalars=38080
+BLAKE3_NATIVE_FUSION dot4=19973 fma=59595 arithmetic_rows=172288
+CANONICAL_PARENT_MEMORY peak_bytes=15001575082 limit_bytes=25769803776
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=850599 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40712 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=494897 independently_verified=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-statement-codecs success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:17G
+

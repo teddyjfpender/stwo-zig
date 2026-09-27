@@ -1,0 +1,12 @@
+1/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: SHA pages preserve original columns and allocator custody after coordinator release...OK
+2/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: every SHA page allocation failure releases lease and local buffers...OK
+3/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: genuine SHA create and cached regeneration production bodies retained...OK
+4/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: cached collection and durable replay preserve all six original roots...OK
+5/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: actual cached PAGE producer and independent fresh receiver bodies retained...OK
+6/11 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: original shared changed and default leaf geometry...OK
+7/11 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: bounded ordinal circuit compression and cell admission...OK
+8/11 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: actual regeneration and retained allocator cleanup bodies...OK
+9/11 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: regenerated matrices counters and captures match original row projection...OK
+10/11 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: shared immutable setup survives coordinator and allocator release...OK
+11/11 block_v5_memory_source_packed_blake_columns_test_root.test.source packed BLAKE columns: each page allocation unwinds without rebuilding shared AIR...OK
+All 11 tests passed.

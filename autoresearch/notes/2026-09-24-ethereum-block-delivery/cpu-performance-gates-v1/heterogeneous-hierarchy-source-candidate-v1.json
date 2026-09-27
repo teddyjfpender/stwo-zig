@@ -1,0 +1,390 @@
+{
+  "schema": "block-v5-heterogeneous-hierarchy-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "tests_run_by_agent": false,
+  "compiler_build_run_by_agent": false,
+  "stark_proved": false,
+  "recursive_proof_proved": false,
+  "guest_executed": false,
+  "device_executed": false,
+  "named_checks": 8,
+  "scope": "Actual exact typed hierarchical original recursive leaf+parent verification, original descendant byte forwarding and explicit native span/pairing equations; OPEN only",
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/block_v5_heterogeneous_hierarchy_codegen_v1.zig",
+      "sha256": "c254b0b8c103b1ad328780d650f4b9486fb77d6df44a4406babc595be0a1a3d3"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_heterogeneous_hierarchy_test_root.zig",
+      "sha256": "254c472fcb1f1f2c3fffe028bee84416cf8c577b27b7ad66b9c36faeb7f3a32d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_heterogeneous_hierarchy_stage_v1.zig",
+      "sha256": "0749e5286b37077ee1c5aac7f69c6d6c79f9b73219711670c1e7be06702490d8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_heterogeneous_hierarchy_test_v1.zig",
+      "sha256": "a55ecfa78d743fd57c288f1f79b1ee69b4419492d8a7cae2a7d7b68432cbcfeb"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_hierarchy_exports_v1.zig",
+      "sha256": "0b70c9caebf7790bbfcc80695f1f94f5118ef5fe511c56f83d8b551fadadc300"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_hierarchy_graph_rows_v1.zig",
+      "sha256": "2e8bf22e7a0a25e8e0a37e98170ddd405c5b62df4266fceee38bf4d9522750b4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_frames_v1.zig",
+      "sha256": "cbaf605647ad6219e03a12e2dcf09aa84978348d64157eee7f355c093e2f901c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_plan_v1.zig",
+      "sha256": "2373f61ca6a21d95d4a34243dd61906d3dd0be723e02db765b3f93bffef94bc9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_preparation_v1.zig",
+      "sha256": "c530eabc2156ea24c53257b37c949c0a05ae852fe19c78386b40516d2cdc42f1"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_public_bus_v1.zig",
+      "sha256": "3486ed934c9979effd4526ac47ce21990792aeab38eed4887e9db31a3603f61d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_receiver_v1.zig",
+      "sha256": "50e5ed117a29b33a9d6c2dfa36ef8195f0fde7044dcef783d0285e867d84d1d4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_heterogeneous_hierarchy_protocol_v1.zig",
+      "sha256": "5ae5236dfeff731ca18f2f41816786e98704c071c675af2a9c26e50efd583ee4"
+    }
+  ],
+  "doc_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-heterogeneous-hierarchy-v1.md",
+      "sha256": "00ab8a94fdb1588b07f6607a65e0de4c8476edb0689f0697feae0c55d32c785e"
+    }
+  ],
+  "dependency_pins": [
+    {
+      "path": "src/frontends/riscv/block_v5_heterogeneous_recursive_codegen_v1.zig",
+      "sha256": "e4df8e71a5854afc4b98307647644c425b67a25768f0bde8e8825996283e8689"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_heterogeneous_recursive_test_root.zig",
+      "sha256": "e097aa695073513ff52cfba756acbc9047a9b0b21b622cd8f1c7cc2d15f541fc"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_policy_test_runner_v1.zig",
+      "sha256": "a2d41d9925bae7a1e051b5de388c172ad61a857ad430f28ffdc92d27aca8182c"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recipe_test_runner.zig",
+      "sha256": "08d4bfb098a865b9388f26b8fdf5e510bfad065b280127cf25750843fd390639"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_x0_selected_test_runner.zig",
+      "sha256": "6dee3e701d14133a556a5a60d63d70446d86410c6a5f9674211d839e4eb083bc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_execution_recipe_v1.zig",
+      "sha256": "6ba9a3c31a8116d710f598bc87b7d763dcef54647cb7dc5918b174fd0795959b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_join_algebra_v1.zig",
+      "sha256": "bf4752dbc17fc23ab21b8f41ef30c679aaf28727d1a96ac5b0484a09bf284588"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_heterogeneous_child_test_v1.zig",
+      "sha256": "5d9522ec8f59af04b6c01f4a00079ed2a68b716cd6d8b33d28857927908ffd3f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_heterogeneous_recursive_stage_v1.zig",
+      "sha256": "72e67a0078a97689cfb1b885eeffe8439eb6f3737e85466848031db8d5bce240"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_coverage_plan_v1.zig",
+      "sha256": "5fe0a8b805730d882f289dc2cd48f2ddd64740d8950cccc060c61fbb7928c868"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_definition_v1.zig",
+      "sha256": "fdb7cea2d081caf49723a0b64febf13e33964239fcfc83518e0958c9e324afe8"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/arithmetic_fusion_rows.zig",
+      "sha256": "677ba25ac1091c81930b0f9572a575b43c4dc67016e88ee9c45057a088be2e8f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_direct_cohort_columns_v1.zig",
+      "sha256": "55f6ad844e8f7f6be49905a872727838e02c417f9d1e522184f9e9ab9b3983db"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_join.zig",
+      "sha256": "186c072269d4cee757e4680a0a173133d0bfb2be029f0b68370b9d24bbfa1e47"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_rebase.zig",
+      "sha256": "bfe8f21c0f0ecb4048fd854a04fc1a04786e1804ee7265c1ab3d9e8be7f88f60"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig",
+      "sha256": "3530c94eeeb5cadf97550571f1ef0ae2bd23c833e05dfa1cefa95cab906d5a12"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_global_join_composition_v1.zig",
+      "sha256": "12763fc2d8252bb0fb4baf6e88933c8e65dca99a6ec25b5670a30088f3255304"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_graph_rows_v1.zig",
+      "sha256": "6ad38d27bf22b4b1a13049d1bcec61322706b2a191ecc4b154d1586815c54dcb"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_pairing_v1.zig",
+      "sha256": "adb9ebe5f8dc1b44da9ec5a69b90b704f9262b9eb662b6a243fe65e541f1cac1"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_open_parent_packed_sources_v2.zig",
+      "sha256": "df10d21efcf706dc89008f72de5835ef012f3744a8461c31d5330a8948cb6bfd"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering.zig",
+      "sha256": "166b935ea546fd83d6ba90198437d96117e33352aa87b1130643cdceabf5abdd"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_plan.zig",
+      "sha256": "b0753b65c9ef6661a32f362180d89c63495825d3328edcdd2e7669d09228a6f5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig",
+      "sha256": "929fa99677fa03ccbf06b2842b31bfedbe01ab9142c2335a2a12c894b0a30537"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "76344962abd6b1ac8ecfcc21ccb0cfd9559f1d10db5da1b9b679dd9236dd3fc3"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_proof.zig",
+      "sha256": "75cafdcc1c855458e8cb931d912f73895d971f434d6ab9305e2e6c598facba4c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "sha256": "3337806d63a144479ae8e3432fd38c875ccf980bd3dee6f3d69e39033f1f86d2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_verifier.zig",
+      "sha256": "6753c2f827b1f1251e3386185d4f74a64132ebda4690427497eedd3bfdf3da22"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_global_join_parent_preparation_v1.zig",
+      "sha256": "47dae3f98db0085f009df68aff9c4db83ad8a2390d5d20080af68f01d09e4cc4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig",
+      "sha256": "8f93a6aa0f2640c2f9c681b98069f98cd979d4c04af732abfbb5112d87bd79b2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_leaf_definition_v1.zig",
+      "sha256": "bba19458f8e7dd5eab21a601c6abc0788803efb3f0d03bc01b47b32e051d039e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_parent_preparation_v1.zig",
+      "sha256": "051a71ad536abfef0ea00ed063699437f442e048711546ec33a9754d32d05c0c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_parent_receiver_v1.zig",
+      "sha256": "0f45f2b022f0a3cc80191fd99e154f97cccc8a8cd04863b9fafe24c435b8d124"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_policy_v1.zig",
+      "sha256": "f2f1ffac196543b420755f73242a7b7b1506771bbf814680977eabfbf0a7f8db"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_public_bus_v1.zig",
+      "sha256": "bf8bdfdc4d49e4e175e0c1515f39e8d8862fa82478d59ad88c0647395adab4b9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_pc_clock_span_v1.zig",
+      "sha256": "fe27f95657c4bfc851ac0648f12a4d2d0c499ab1dbb53ee4fa858b620ca871ba"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_heterogeneous_parent_protocol_v1.zig",
+      "sha256": "b85ad0608c056528d3341993c46e14c70de86d5ff0654b22a926694c0ddf1be3"
+    }
+  ],
+  "previous_flat_candidate": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/heterogeneous-open-recursion-source-candidate-v3.json",
+    "sha256": "09b0201a1ef2f344b4e420ebb7adab921b9d8ee625412f9ea8c6467f20941c5f"
+  },
+  "root": "src/frontends/riscv/block_v5_heterogeneous_hierarchy_test_root.zig",
+  "filter": "heterogeneous hierarchy:",
+  "commands": {
+    "selected_unit": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_proof_wire",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "block_v5_standard_test_runner",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mroot=src/frontends/riscv/block_v5_heterogeneous_hierarchy_test_root.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_api",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mblock_v5_standard_test_runner=/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig",
+      "-lc",
+      "--test-runner",
+      "src/frontends/riscv/block_v5_x0_selected_test_runner.zig",
+      "--test-filter",
+      "heterogeneous hierarchy:"
+    ],
+    "legacy_unit": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_proof_wire",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "block_v5_standard_test_runner",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mroot=src/frontends/riscv/block_v5_heterogeneous_hierarchy_test_root.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_api",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mblock_v5_standard_test_runner=/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig",
+      "-lc",
+      "--test-runner",
+      "src/frontends/riscv/block_v5_recipe_test_runner.zig",
+      "--test-filter",
+      "heterogeneous hierarchy:"
+    ]
+  },
+  "bounds": {
+    "immediate_children": 4,
+    "max_leaves": 32768,
+    "max_nodes": 32768,
+    "max_export_cells_per_node": 4194304,
+    "max_total_export_cells": 67108864,
+    "max_source_cells_per_node": 16777216,
+    "max_total_source_cells": 67108864,
+    "stage_owned_bytes": 4294967296,
+    "child_bytes": 134217728,
+    "parent_bytes": 536870912
+  },
+  "cost": "Root nested source O(n log n); all independent node policy sources O(n log^2 n); exact cell counters cap both. Does not imply canonical performance architecture.",
+  "pending": [
+    "Independent node template/source setup construction and durable typed node transport",
+    "Canonical driver selection and scoped aggregate coordinate adapter for hierarchy cells",
+    "Ten Coverage source/public/endpoint authorities and terminal/public boundary closure",
+    "No ClosedBlock or whole-block receipt issued"
+  ]
+}

@@ -1,0 +1,31 @@
+test-blake3-ethereum-parent-aot
++- run test failure
+BLAKE3_ETHEREUM_METAL verified_on_cpu=true preprocessing_equal=true signer=1 keccak=1 queries=70 pow_bits=26 artifact_bytes=5587689 dispatches=162 fallbacks=3 runtime=authenticated_aot witness_released=true
+Segmentation fault at address 0x2d06d51063ca7f92
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig:30:67: 0x102b68744 in deinit (test)
+            for (self.main[i]) |column| self.allocator.free(column.values);
+                                                                  ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_metal_qualification_test_root.zig:73:46: 0x102b65aef in checkParent__anon_48386 (test)
+}
+                                             ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_metal_qualification_test_root.zig:65:24: 0x102b77ad7 in check__anon_144 (test)
+    const delta = (try Engine.telemetrySnapshot()).delta(before);
+                       ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x102f3898b in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x102f38227 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+???:?:?: 0x1865684e3 in ??? (???)
+???:?:?: 0x0 in ??? (???)
+error: while executing test 'blake3_metal_qualification_test_root.test.Metal full-width BLAKE3 Ethereum canonical recursive parent independently verifies on CPU', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/ea7f19342a8c25f1c8d306d490a10ccc/test --cache-dir=./.zig-cache --seed=0x77867ffa --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 8/8 tests passed
+test-blake3-ethereum-parent-aot transitive failure
++- run test failure
+   +- compile test ReleaseSafe native success 4m MaxRSS:8G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/9d01c9a9944edb88c2efaccc86c90a19/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x77867ffa -Z7ea59df67311d952 --maxrss 25769803776 -j1 test-blake3-ethereum-parent-aot -Dmetal-core-aot-bundle=/tmp/stwo-blake3-core-aot-20260922 -Doptimize=ReleaseSafe --summary all

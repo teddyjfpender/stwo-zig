@@ -1,0 +1,23 @@
+1/22 block_v5_cpu_scoped_job_selected_test_root.test_0...OK
+2/22 block_v5_cpu_scoped_job_selected_test_root.test.cpu scoped job: actual dual driver late-bound source fold producer independent reconstruction and setup transfer bodies retained...OK
+3/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: exact eight-family nonrounded sparse physical roster preserves independently pinned typed absence...OK
+4/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: stale event census source requirement and sparse claimant cannot reseal independent coverage...OK
+5/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: every new exact roster allocation failure releases owned policy without proof side effects...OK
+6/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: compact output reads exact four canonical little endian limbs and rejects malformed bytes...OK
+7/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: original and independently bound setup context use identical B5ZC kernel...OK
+8/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: setup consumes failure safely and rejects resource policy before dereferencing source...OK
+9/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: legacy span grammar rejects wide native cycles instead of truncating actual u64 authority...OK
+10/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: bounded reader pin snapshot preserves writer API and cannot confer verified state...OK
+11/22 prover.block_v5_cpu_scoped_job_test_v1.test.cpu scoped job: all new reader snapshot allocation failures release authentic source borrows...OK
+12/22 prover.block_execution_external_trace_v2.test_0...OK
+13/22 air.lookups.tables.mod.test_0...OK
+14/22 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+15/22 air.semantic_eval.test_0...OK
+16/22 prover.block_execution_external_access_bridge_v2.test_0...OK
+17/22 air.memory_commitment.poseidon2_air.test_0...OK
+18/22 runner.mod.test_0...OK
+19/22 runner.decode.test_0...OK
+20/22 prover.block_v5_committed_trace_column_v1.test_0...OK
+21/22 air.lookups.tables.source_ingest.test_0...OK
+22/22 diagnostics.mod.test_0...OK
+All 22 tests passed.

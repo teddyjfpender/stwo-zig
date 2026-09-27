@@ -1,0 +1,9 @@
+# Shared composition and BLAKE3 scratch ownership
+
+The production composition-domain and streaming BLAKE3 scratch pool now reserves resident bytes against the supplied shared heap/external budget before device allocation. Cached buffers keep their charge until eviction or teardown. Reuse matches both runtime and original allocator identity, preventing a different proof budget from borrowing an already charged buffer. The ordinary uncapped API remains explicitly separate; a supplied shared budget always enforces its cap.
+
+The combined active/idle pool remains limited to two buffers. Each cached buffer is at most 128 MiB; larger buffers are destroyed on release. The nonpooled comparison path also reserves its buffer. Factories fail before publication, and failure or wrong extent rolls back reservations. Composition teardown retains its allocator until the outer heap arrays have been freed. Backend shutdown drains joined inverse and composition caches before runtime shutdown; outstanding borrowers return RuntimeBusy.
+
+Four device-free fixtures pass for owner-specific reuse and drain, allocation admission, factory failure rollback, eviction, oversized release, uncapped separation, and survival after the original budget owner is released. Actual pooled/unpooled allocation, composition preparation, streaming BLAKE3 commitment, destructor and backend shutdown bodies compile to an object without executing them. Exact source hashes and logs are retained in [the qualification receipt](cpu-performance-gates-v1/metal-composition-shared-pool-qualified-v1.json).
+
+This is logical ownership accounting, not a whole-process RSS cap. No device, guest, STARK, segment or performance benchmark ran. Generic opening/OODS/FFT scratch and complete device execution remain outside this receipt. Native composition's strict expanded-input residency and independently coordinated FRI caches remain separate work.

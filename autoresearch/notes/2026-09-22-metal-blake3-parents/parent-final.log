@@ -1,0 +1,16 @@
+test-blake3-parent-chain
++- run test stderr
+BLAKE3_METAL_PARENT depth=1 levels=1 reuse=0 gpu_ms=0.030958326533436775
+BLAKE3_METAL_PARENT depth=1 levels=1 reuse=1 gpu_ms=0.030958341085352004
+BLAKE3_METAL_PARENT depth=5 levels=5 reuse=0 gpu_ms=0.07329166692215949
+BLAKE3_METAL_PARENT depth=5 levels=5 reuse=1 gpu_ms=0.07566667045466602
+BLAKE3_METAL_PARENT depth=11 levels=11 reuse=0 gpu_ms=0.15283333777915686
+BLAKE3_METAL_PARENT depth=11 levels=11 reuse=1 gpu_ms=0.15049999637994915
+BLAKE3_METAL_PARENT depth=11 levels=1 reuse=0 gpu_ms=0.03262498648837209
+BLAKE3_METAL_PARENT depth=11 levels=1 reuse=1 gpu_ms=0.03320832911413163
+
+Build Summary: 3/3 steps succeeded; 2/2 tests passed
+test-blake3-parent-chain success
++- run test 2 passed 906ms MaxRSS:51M
+   +- compile test ReleaseSafe native success 5s MaxRSS:382M
+

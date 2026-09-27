@@ -38,8 +38,17 @@ pub const Shape = struct {
     config: Config,
     /// Preprocessed, main, interaction, and composition column counts.
     tree_columns: [TREE_COUNT]u32,
+    /// Fixed-only provider proofs may commit an empty main tree. Other tree
+    /// counts remain nonzero, and the parser still checks exact zero vectors.
+    allow_empty_main_tree: bool = false,
     /// Maximum column log size after composition splitting and before FRI.
     max_column_log_size: u32,
+    /// Optional larger Merkle-path bound for reused native fixed/main trees.
+    /// Zero keeps the original four-tree admission behavior.
+    max_merkle_column_log_size: u32 = 0,
+    /// A same-root adapter may open only selected native source columns.
+    /// The AIR verifier, not this allocation guard, checks exact masks.
+    allow_zero_samples: bool = false,
     /// Allocation-safety bounds for sampled values per column in each tree.
     ///
     /// The default preserves the released V1 proof-artifact admission policy.
@@ -52,6 +61,51 @@ pub const Shape = struct {
     hash_encoding: HashEncoding = .raw_bytes,
     max_wire_bytes: usize,
 };
+
+/// Block-v2 same-root execution sidecars commit native fixed/main, sidecar
+/// witness/interaction, then composition: five trees in one STARK.
+pub const Shape5 = struct {
+    config: Config,
+    tree_columns: [5]u32,
+    allow_empty_main_tree: bool = false,
+    /// FRI layers follow the last (composition) commitment's lifting log.
+    max_column_log_size: u32,
+    /// Replayed native fixed/main columns may have larger logs but need only
+    /// Merkle-path resource bounds when sampled by the sidecar.
+    max_merkle_column_log_size: u32,
+    allow_zero_samples: bool = true,
+    sample_width_limits: [5]u32 = .{ 1, 1, 1, 2, 1 },
+    hash_size: u32,
+    hash_encoding: HashEncoding = .raw_bytes,
+    max_wire_bytes: usize,
+};
+
+/// Independent multi-tree component inventories. N is a compile-time protocol
+/// choice, never a length decoded from an untrusted artifact. Existing four-
+/// and five-tree APIs retain their released behavior and default masks.
+pub const MAX_TYPED_TREES: usize = 16;
+pub fn ShapeFor(comptime N: usize) type {
+    if (N < 2 or N > MAX_TYPED_TREES) @compileError("unsupported typed proof tree count");
+    return struct {
+        config: Config,
+        tree_columns: [N]u32,
+        allow_empty_main_tree: bool = false,
+        max_column_log_size: u32,
+        max_merkle_column_log_size: u32 = 0,
+        allow_zero_samples: bool = false,
+        // Mandatory independent allocation bounds; no inferred/default masks.
+        sample_width_limits: [N]u32,
+        hash_size: u32,
+        hash_encoding: HashEncoding = .raw_bytes,
+        max_wire_bytes: usize,
+    };
+}
+pub fn validateFor(comptime N: usize, raw: []const u8, shape: ShapeFor(N)) Error!void {
+    // Large width envelopes must not be accidentally selected as mask policy.
+    // Actual point masks remain independently checked by the AIR receiver.
+    for (shape.sample_width_limits) |width| if (width == 0 or width > 16) return error.InvalidPreflightShape;
+    return validateInternal(raw, shape, null);
+}
 
 pub const Error = error{
     EndOfStream,
@@ -96,6 +150,10 @@ pub fn validate(raw: []const u8, shape: Shape) Error!void {
     return validateInternal(raw, shape, null);
 }
 
+pub fn validateFive(raw: []const u8, shape: Shape5) Error!void {
+    return validateInternal(raw, shape, null);
+}
+
 /// Run the canonical preflight while retaining only its first exact mismatch.
 pub fn validateWithDiagnostic(
     raw: []const u8,
@@ -108,7 +166,7 @@ pub fn validateWithDiagnostic(
 
 fn validateInternal(
     raw: []const u8,
-    shape: Shape,
+    shape: anytype,
     diagnostic: ?*?Diagnostic,
 ) Error!void {
     const bounds = try Bounds.init(shape);
@@ -119,17 +177,17 @@ fn validateInternal(
 
     try expectCountAt(
         &cursor,
-        TREE_COUNT,
+        shape.tree_columns.len,
         diagnostic,
         .commitment_tree_count,
         null,
         null,
     );
-    for (0..TREE_COUNT) |_| try skipHash(&cursor, bounds);
+    for (0..shape.tree_columns.len) |_| try skipHash(&cursor, bounds);
 
     try expectCountAt(
         &cursor,
-        TREE_COUNT,
+        shape.tree_columns.len,
         diagnostic,
         .sampled_tree_count,
         null,
@@ -151,7 +209,7 @@ fn validateInternal(
         for (0..column_count) |column_index| {
             const sample_width_offset = cursor.position;
             const sample_width = try cursor.readUsize();
-            if (sample_width == 0) {
+            if (sample_width == 0 and !(if (@hasField(@TypeOf(shape), "allow_zero_samples")) shape.allow_zero_samples else false)) {
                 recordMismatch(
                     diagnostic,
                     .sampled_width,
@@ -171,17 +229,17 @@ fn validateInternal(
 
     try expectCountAt(
         &cursor,
-        TREE_COUNT,
+        shape.tree_columns.len,
         diagnostic,
         .decommitment_tree_count,
         null,
         null,
     );
-    for (0..TREE_COUNT) |_| try skipHashWitness(&cursor, bounds);
+    for (0..shape.tree_columns.len) |_| try skipHashWitness(&cursor, bounds);
 
     try expectCountAt(
         &cursor,
-        TREE_COUNT,
+        shape.tree_columns.len,
         diagnostic,
         .queried_tree_count,
         null,
@@ -239,7 +297,7 @@ const Bounds = struct {
     hash_encoding: HashEncoding,
     hash_word_count: usize,
 
-    fn init(shape: Shape) Error!Bounds {
+    fn init(shape: anytype) Error!Bounds {
         const config = shape.config;
         if (shape.max_wire_bytes == 0 or shape.hash_size == 0 or
             config.n_queries == 0 or config.n_queries > std.math.maxInt(usize) or
@@ -249,8 +307,9 @@ const Bounds = struct {
             shape.max_column_log_size > 30 or
             shape.max_column_log_size < config.log_last_layer_degree_bound)
             return error.InvalidPreflightShape;
-        for (shape.tree_columns) |count| {
-            if (count == 0) return error.InvalidPreflightShape;
+        for (shape.tree_columns, 0..) |count, index| {
+            if (count == 0 and !(shape.allow_empty_main_tree and index == 1))
+                return error.InvalidPreflightShape;
         }
         for (shape.sample_width_limits) |limit| {
             if (limit == 0) return error.InvalidPreflightShape;
@@ -265,9 +324,14 @@ const Bounds = struct {
         };
 
         const n_queries: usize = @intCast(config.n_queries);
+        const merkle_log = if (shape.max_merkle_column_log_size != 0)
+            shape.max_merkle_column_log_size
+        else
+            shape.max_column_log_size;
+        if (merkle_log > 30) return error.InvalidPreflightShape;
         const merkle_depth_u32 = std.math.add(
             u32,
-            shape.max_column_log_size,
+            merkle_log,
             config.log_blowup_factor + 1,
         ) catch return error.InvalidPreflightShape;
         const merkle_depth: usize = @intCast(merkle_depth_u32);
@@ -828,4 +892,78 @@ test "proof preflight rejects deep layer bombs and noncanonical varints" {
     const count_index = bomb.len - 5;
     bomb[count_index] = 2;
     try std.testing.expectError(error.InvalidProofShape, validate(bomb, shape));
+}
+
+fn typedWire(comptime N: usize, allocator: std.mem.Allocator, shape: ShapeFor(N)) ![]u8 {
+    var raw: std.ArrayList(u8) = .empty;
+    errdefer raw.deinit(allocator);
+    // Test framing has one first-layer fold, no inner layers and one last
+    // coefficient. Typed production admission derives its real FRI count.
+    for ([_]u64{ shape.config.pow_bits, shape.config.log_blowup_factor, shape.config.n_queries, shape.config.log_last_layer_degree_bound, shape.config.fold_step }) |value| try appendVarint(allocator, &raw, value);
+    try raw.append(allocator, 0); // lifting log absent
+    try appendVarint(allocator, &raw, N);
+    try raw.appendNTimes(allocator, 0, N * shape.hash_size);
+    try appendVarint(allocator, &raw, N);
+    for (shape.tree_columns) |count| {
+        try appendVarint(allocator, &raw, count);
+        for (0..count) |_| {
+            try appendVarint(allocator, &raw, 1);
+            try appendZeroQm31(allocator, &raw);
+        }
+    }
+    try appendVarint(allocator, &raw, N);
+    for (0..N) |_| try appendVarint(allocator, &raw, 0);
+    try appendVarint(allocator, &raw, N);
+    for (shape.tree_columns) |count| {
+        try appendVarint(allocator, &raw, count);
+        for (0..count) |_| try appendVarint(allocator, &raw, 0);
+    }
+    for (0..3) |_| try appendVarint(allocator, &raw, 0); // PoW, first FRI witness, Merkle
+    try raw.appendNTimes(allocator, 0, shape.hash_size);
+    try appendVarint(allocator, &raw, 0); // inner layers
+    try appendVarint(allocator, &raw, 1);
+    try appendZeroQm31(allocator, &raw);
+    return raw.toOwnedSlice(allocator);
+}
+fn typedTestShape() ShapeFor(8) {
+    return .{ .config = testShape().config, .tree_columns = .{ 15, 1728, 8, 5, 174, 256, 128, 16 }, .sample_width_limits = .{ 1, 1, 1, 1, 1, 1, 2, 1 }, .max_column_log_size = 1, .hash_size = 32, .max_wire_bytes = 1 << 20 };
+}
+test "proof preflight typed eight-tree framing retains exact config lengths and allocation-free parser" {
+    const shape = typedTestShape();
+    const raw = try typedWire(8, std.testing.allocator, shape);
+    defer std.testing.allocator.free(raw);
+    // No allocator enters validateFor: the same accepted framing can be checked
+    // while a deny-all allocator proves that a caller has no allocation budget.
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    try std.testing.expectError(error.OutOfMemory, failing.allocator().alloc(u8, 1));
+    try validateFor(8, raw, shape);
+    var wrong = shape;
+    wrong.tree_columns[5] += 1;
+    try std.testing.expectError(error.InvalidProofShape, validateFor(8, raw, wrong));
+    wrong = shape;
+    wrong.config.n_queries += 1;
+    try std.testing.expectError(error.InvalidProofConfig, validateFor(8, raw, wrong));
+    wrong = shape;
+    wrong.sample_width_limits[3] = 17;
+    try std.testing.expectError(error.InvalidPreflightShape, validateFor(8, raw, wrong));
+    try std.testing.expectError(error.EndOfStream, validateFor(8, raw[0 .. raw.len - 1], shape));
+}
+test "proof preflight typed eight-tree bombs and noncanonical varints reject before any decode allocation" {
+    const shape = typedTestShape();
+    var prefix: std.ArrayList(u8) = .empty;
+    defer prefix.deinit(std.testing.allocator);
+    try appendConfig(std.testing.allocator, &prefix, testShape());
+    const count_at = prefix.items.len;
+    try appendVarint(std.testing.allocator, &prefix, 7);
+    try std.testing.expectError(error.InvalidProofShape, validateFor(8, prefix.items, shape));
+    prefix.shrinkRetainingCapacity(count_at);
+    try prefix.appendSlice(std.testing.allocator, &.{ 0x88, 0x00 }); // overlong 8
+    try std.testing.expectError(error.NonCanonicalVarint, validateFor(8, prefix.items, shape));
+    prefix.shrinkRetainingCapacity(count_at);
+    try appendVarint(std.testing.allocator, &prefix, 8);
+    try prefix.appendNTimes(std.testing.allocator, 0, 8 * 32);
+    try appendVarint(std.testing.allocator, &prefix, 8);
+    try appendVarint(std.testing.allocator, &prefix, shape.tree_columns[0]);
+    try appendVarint(std.testing.allocator, &prefix, std.math.maxInt(u64)); // nested sample bomb
+    try std.testing.expectError(error.ProofResourceLimitExceeded, validateFor(8, prefix.items, shape));
 }

@@ -1,0 +1,66 @@
+{
+  "label": "balanced",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "workers": 16,
+  "worker_limit_gib": 48,
+  "samples_per_case": 1,
+  "opening_storage_change_preserves_16_tx_proof_bytes": true,
+  "results": [
+    {
+      "transactions": 64,
+      "verified": true,
+      "process_wall_seconds": 143.30734254102572,
+      "peak_process_footprint_bytes": 59507346704,
+      "peak_process_footprint_gib": 55.42053534090519,
+      "worker_peak_bytes": 51383616801,
+      "worker_peak_gib": 47.85472229216248,
+      "preparation_retained_bytes": 12024903672,
+      "parent_proving_seconds": 63.3835745,
+      "leaf_proving_seconds": 16.763597083,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 8388608,
+          "fixed_rows": 8388608,
+          "fixed_columns": 16,
+          "retained_bytes": 3288336304
+        },
+        {
+          "index": 20,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 8388608,
+          "fixed_rows": 8388608,
+          "fixed_columns": 16,
+          "retained_bytes": 3288336304
+        },
+        {
+          "index": 21,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 4194304,
+          "fixed_rows": 4194304,
+          "fixed_columns": 16,
+          "retained_bytes": 1644169136
+        },
+        {
+          "index": 22,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 2097152,
+          "fixed_rows": 1173120,
+          "fixed_columns": 16,
+          "retained_bytes": 762947504
+        }
+      ],
+      "hash_partition_seconds": 1.321648708,
+      "proof_bytes": 1063113,
+      "cycles": 561079
+    }
+  ]
+}

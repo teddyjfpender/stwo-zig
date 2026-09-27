@@ -1,0 +1,28 @@
+test-readonly-consistency
++- Read-only consistency guard
+   +- run test 1/2 passed, 1 failed
+error: 'recursion.air.readonly_consistency_test.test.Read-only input authenticates byte indices scalar values and stable table tuples' failed: readonly input identity: 79d8d1f12a6892a82e5d7ac54bc0b5ef4f1f32771e0e1b26e27c7866852a797d
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+79 D8 D1 F1 2A 68 92 A8  2E 5D 7A C5 4B C0 B5 EF  y...*h...]z.K...
+4F 1F 32 77 1E 0E 1B 26  E2 7C 78 66 85 2A 79 7D  O.2w...&.|xf.*y}
+
+================================================
+error: while executing test 'recursion.air.readonly_consistency_test.test.Read-only input authenticates byte indices scalar values and stable table tuples', the following test command failed:
+./.zig-cache/o/87f1540276d6636d89cc063b6719bb68/test --cache-dir=./.zig-cache --seed=0x4793b696 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-readonly-consistency transitive failure
++- Read-only consistency guard transitive failure
+   +- run test 1/2 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:651M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/6f23321a37383e6010b978a25a62cd75/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x4793b696 -Zacd80e48ee53f660 --maxrss 25769803776 -j1 test-readonly-consistency -Doptimize=ReleaseSafe --summary all

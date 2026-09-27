@@ -1,0 +1,8 @@
+1/7 context_lanes_test_root_v1.test_0...OK
+2/7 runtime.context_lanes_test_v1.test.CUDA lane ownership: exact ABI layouts and bounded construction options...OK
+3/7 runtime.context_lanes_test_v1.test.CUDA lane ownership: borrowed lanes bind exact owner identity index and stream...OK
+4/7 runtime.context_lanes_test_v1.test.CUDA lane ownership: thread capture closed and partial teardown guards...OK
+5/7 runtime.context_lanes_test_v1.test.CUDA lane ownership: dependency membership rejects every altered token field...OK
+6/7 runtime.context_lanes_test_v1.test.CUDA lane ownership: released slots new generations and reused context addresses reject stale tokens...OK
+7/7 runtime.context_lanes_test_v1.test.CUDA lane ownership: missing event backend state and exhausted generation remain failure atomic...OK
+All 7 tests passed.

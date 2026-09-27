@@ -1,0 +1,18 @@
+1/8 recursion_statement_codec_test_root.test_0...OK
+2/8 prover.compact_range_execution_test.test.compact range provider canonical recursive parent verifies...BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=9520 removed_scalars=38080
+BLAKE3_NATIVE_FUSION dot4=19973 fma=59595 arithmetic_rows=172288
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.013339,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":5.083595,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":19.023705,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":6.302046,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":7.309164,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":22.109073,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000004,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.00002,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":10.817494,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.063688,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":1.596345,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.014822,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":4.111979,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000049,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":4.154013,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":1.234904,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.032573,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.021487,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000095,"children":null}]}]}
+CANONICAL_PARENT_MEMORY peak_bytes=15001594618 limit_bytes=25769803776
+BLAKE3_PARENT_ARTIFACT_SHA256 8659d8493978c707aa8cf3159f39ae3b546219db6a76d3ad7a3dc65cb81ac8aa
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=850599 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40712 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=494897 independently_verified=true
+OK
+3/8 runner.mod.test_0...OK
+4/8 runner.decode.test_0...OK
+5/8 air.memory_commitment.poseidon2_air.test_0...OK
+6/8 air.semantic_eval.test_0...OK
+7/8 air.lookups.tables.source_ingest.test_0...OK
+8/8 diagnostics.mod.test_0...OK
+All 8 tests passed.

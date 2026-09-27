@@ -1,0 +1,27 @@
+1/25 runner.balanced_schedule.test.balanced execution schedule covers every cycle with nonempty binary leaves...OK
+2/25 runner.balanced_schedule.test.balanced execution schedule rejects impossible and overflowing geometry...OK
+3/25 recursion.air.blake3_public_subtrees.test.public subtree cover matches sparse tree hashes without absorbing gaps...OK
+4/25 recursion.air.blake3_public_subtrees.test.public subtree cover scales with the boundary of a large public input...PUBLIC_SUBTREE_PLAN words=675173 ranges=17 path_hashes=640 old_path_hashes=40510380
+OK
+5/25 recursion.blake3_stream_frontier.test.stream frontier retains bounded nodes and requires authenticated padding...OK
+6/25 recursion.blake3_stream_frontier.test.stream frontier carry failure preserves input and all prior nodes...OK
+7/25 recursion.blake3_stream_frontier.test.stream frontier rejects wrong order job and returned parent without mutation...OK
+8/25 recursion.blake3_identity_digest.test.BLAKE3 identity encoding pins byte order and preserves all high bits...OK
+9/25 recursion.blake3_identity_digest.test.BLAKE3 identity rejects M31-canonical aliases at every limb...OK
+10/25 recursion.blake3_identity_digest.test.every BLAKE3 digest bit changes its field encoding...OK
+11/25 air.public_data.test.public data: versioned transcript preserves pinned Stark-V field order...OK
+12/25 air.public_data.test.public data: absent roots and empty input preserve versioned field calls...OK
+13/25 air.public_data.test.public data: statement transcript version is a nonzero domain prefix...OK
+14/25 air.public_data.test.public data: pack input words is little endian with zero padding...OK
+15/25 air.public_data.test.public data: validator accepts the pinned input and output shape...OK
+16/25 air.public_data.test.public data: validator rejects missing root and malformed input...OK
+17/25 air.public_data.test.public data: validator rejects malformed output structure...OK
+18/25 air.public_data.test.public data: empty output forms retain the pinned segment distinction...OK
+19/25 air.public_data.test.public data: output regions use checked, non-overlapping addresses...OK
+20/25 air.public_data.test.public data: unaligned output length is outside the supported proof profile...OK
+21/25 air.public_data.test.BLAKE3 public data binds every root bit and separates absence and version...OK
+22/25 air.public_data.test.public input byte binding rejects changed bytes lengths and padding...OK
+23/25 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+24/25 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+25/25 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+All 25 tests passed.

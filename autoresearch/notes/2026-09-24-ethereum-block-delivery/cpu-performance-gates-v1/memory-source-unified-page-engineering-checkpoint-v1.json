@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "status": "source_engineering_checkpoint_unqualified",
+  "formal_freeze": false,
+  "canonical_enabled": false,
+  "complete_source_authority": false,
+  "agent_compiler_tests_proofs_run": false,
+  "segment_runs_stopped": true,
+  "scope": "Exact packed BLAKE capture wire+byte framing, one raw/fold PAGE semantic graph/direct arithmetic owner, original-cell graph-derived input suppliers and canonical zeros, six-root compact fold commit/replay, versioned transcript epochs. Combined source proof/receiver and aggregate remain in progress.",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_blake_capture_air_v1.zig",
+      "bytes": 3504,
+      "sha256": "cfa22c0981ae09b6add4ffefaadd0abddf4a830ecd8df3ffd4923a65142350aa"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_blake_capture_interaction_v1.zig",
+      "bytes": 5401,
+      "sha256": "56effbc52b1760d54f4beb2ef298ccb9a0dcf5e62c6014df206d658821d7d586"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_blake_capture_component_v1.zig",
+      "bytes": 2900,
+      "sha256": "e39c255c7584e35c2d0c5a3d4b3d3005abbfc51c42c7fabe1c4c29f6b25a67d1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_blake_semantics_v1.zig",
+      "bytes": 9954,
+      "sha256": "6838c2918211117515eac8dc04ed9bf56ea0cc7812c0e632e998fd0cc32774cb"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_semantic_columns_v1.zig",
+      "bytes": 20124,
+      "sha256": "d5a174db3626865f517e15715d24ee50a5c0d4414ef56072d2effbf1cef5d1f5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_canonical_component_v1.zig",
+      "bytes": 5363,
+      "sha256": "b7da9e5daa7a99f981ded1abcca8bed7576fa002d74ad1d397f50b740e0e2f6c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_input_component_v1.zig",
+      "bytes": 14554,
+      "sha256": "d0f05a1a4a4b7f01ef2b57da6965ae4d58f4d20d3462991fa8889f700e722b0d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_unified_page_protocol_v1.zig",
+      "bytes": 15058,
+      "sha256": "25b7261bffa3561dce72d948075af4e0e3a98aacad040114730429952e5c9bca"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_fold_operand_store_v1.zig",
+      "bytes": 7129,
+      "sha256": "5f54cd94f44993a899ac8f770f00034c45087555e8e2252490590075b5e6e278"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_fold_premix_v1.zig",
+      "bytes": 16961,
+      "sha256": "7bff27cbf9b919807566daf01fbd46b68e28ad588283496a35593442d7b27c04"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_unified_page_test_v1.zig",
+      "bytes": 18745,
+      "sha256": "ed3864a856a88d2b80c4c57b9f29fb3fd8262efaf4013bbc2d279a4dc42f935c"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_unified_page_codegen.zig",
+      "bytes": 2919,
+      "sha256": "c87e2d6aa925b245cf5bf2d7d203983b4fadc6264865a1c2767b6e25f9b259e2"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_unified_page_test_root.zig",
+      "bytes": 254,
+      "sha256": "12eaae72d84794edd6e4f5764b121c568d5dba38788707a7da9f461c7e00d629"
+    }
+  ],
+  "read_only_checkpoint_dependencies": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_blake_columns_v1.zig",
+      "bytes": 14253,
+      "sha256": "1bf8114639d79a4b964d9bcebac716dc0f760a33658c023f3754bae82782f83f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_packed_hash_setup_v1.zig",
+      "bytes": 3690,
+      "sha256": "e6186d49a8826147095ed625d15762ccad6689c6787f45c41f1b09baaf5eace1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_sha_columns_v1.zig",
+      "bytes": 14610,
+      "sha256": "f0413da8246cbbcb37cac6c739f47fa4f061b50f7adc1ac98850aca1881c0f19"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_sha_replay_v1.zig",
+      "bytes": 14766,
+      "sha256": "761833079abf5a1ddb8c415db1922ae3e59b928f0bdb1d5ce6f64df5f7bd8e39"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_sha_proof_v1.zig",
+      "bytes": 26098,
+      "sha256": "0d9e6fa9d1879800be24d61fecce008594fb428b6767f6935d959927741e5592"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/arithmetic_fusion_rows.zig",
+      "bytes": 13432,
+      "sha256": "677ba25ac1091c81930b0f9572a575b43c4dc67016e88ee9c45057a088be2e8f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_plan.zig",
+      "bytes": 19826,
+      "sha256": "b0753b65c9ef6661a32f362180d89c63495825d3328edcdd2e7669d09228a6f5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_batch_equations_v1.zig",
+      "bytes": 19954,
+      "sha256": "ddc71eb54aeaf2592326963ae80826fdfdb7c39d99920dda89e35841576c524e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_fold_v1.zig",
+      "bytes": 15551,
+      "sha256": "8abc55dee84cd3c1ae172b12d27478b6a6f814d26210f840f2d680560e6583a0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig",
+      "bytes": 14981,
+      "sha256": "2fab7990e85af24a0f77bacbdc14a9144087c9f021bb30914d96ab476ce37bfe"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_shared_first_round_v1.zig",
+      "bytes": 2765,
+      "sha256": "01aa0f7e7c55551f24bf96f30f779d569f89eff304584e91904349819d874f66"
+    }
+  ],
+  "root": "src/frontends/riscv/block_v5_memory_source_unified_page_test_root.zig",
+  "filters": [
+    "source unified PAGE"
+  ],
+  "behavioral_tests_authored": 8,
+  "body_retention_tests_authored": 1,
+  "root_import_tests": 1,
+  "checks_by_agent": [
+    "source/API/cleanup audit",
+    "relative imports exist",
+    "zig fmt --check all13 files"
+  ],
+  "pending": [
+    "Actual combined PAGE component/proof/fresh CPU receiver and ten-tree owned codec; no source receipt yet",
+    "Root-owned fixed-only arithmetic fusion extraction for independent semantic fixed-root reconstruction",
+    "Mandatory aggregate raw/fold coverage, SHA-byte/chaining/indexed/route/source-count/first-touch/final joins with independently fresh sorted RAM",
+    "Recursive export/leaf and canonical driver/source global admission migration",
+    "Run root-serialized source gates after coherent freeze; real proof lifecycle remains unqualified"
+  ],
+  "bounds": {
+    "fold_operand_record_bytes": 250,
+    "max_operand_page_operations": 4096,
+    "default_operand_file_cap_bytes": 2097152,
+    "premix_trees": 6,
+    "semantic_trees": 2,
+    "interaction_trees": 1,
+    "proof_commitments_with_composition": 10,
+    "blake_capture_main_columns": 192,
+    "blake_capture_wire_slots_per_compression": 48,
+    "blake_capture_interaction_columns": 96,
+    "source_private_bits_raw": 1728,
+    "source_private_bits_fold": 1859,
+    "raw_source_binding_columns": 960,
+    "capture_binding_columns_raw": 256,
+    "capture_binding_columns_fold": 192
+  },
+  "qualification_claims": []
+}

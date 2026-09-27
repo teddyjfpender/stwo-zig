@@ -1,0 +1,38 @@
+[
+  {
+    "kind": "leaf",
+    "m31_words": 16,
+    "paired_samples": 6,
+    "iterations": 2048,
+    "poseidon_median_ns_per_hash": 1786.4482421875,
+    "blake3_median_ns_per_hash": 204.559326171875,
+    "median_paired_speedup": 8.759015460418873
+  },
+  {
+    "kind": "leaf",
+    "m31_words": 256,
+    "paired_samples": 6,
+    "iterations": 2048,
+    "poseidon_median_ns_per_hash": 19687.54052734375,
+    "blake3_median_ns_per_hash": 1826.47705078125,
+    "median_paired_speedup": 10.790700688102095
+  },
+  {
+    "kind": "leaf",
+    "m31_words": 4096,
+    "paired_samples": 6,
+    "iterations": 2048,
+    "poseidon_median_ns_per_hash": 305724.4162597656,
+    "blake3_median_ns_per_hash": 27860.5244140625,
+    "median_paired_speedup": 10.98654397751354
+  },
+  {
+    "kind": "node",
+    "m31_words": null,
+    "paired_samples": 6,
+    "iterations": 2048,
+    "poseidon_median_ns_per_hash": 595.3779296875,
+    "blake3_median_ns_per_hash": 160.3798828125,
+    "median_paired_speedup": 3.6992431609789542
+  }
+]

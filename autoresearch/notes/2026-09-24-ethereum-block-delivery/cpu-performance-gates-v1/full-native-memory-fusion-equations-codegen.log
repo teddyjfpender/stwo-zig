@@ -1,0 +1,12 @@
+1/11 block_v5_native_projection_fused_v2_unit_test_root.test_0...OK
+2/11 prover.block_v5_native_projection_fused_v2_unit_test.test.block-v5 full fused nonproving projection access OODS domain and complete masks parity...OK
+3/11 prover.block_v5_native_projection_fused_v2_unit_test.test.block-v5 full fused identities bind frame mode witness both rosters and reject v1...OK
+4/11 prover.block_v5_native_projection_fused_v2_unit_test.test.block-v5 full fused typed absence never accepts dummy STARK or missing real projection...OK
+5/11 prover.block_v5_native_projection_fused_v2_unit_test.test.block-v5 full fused nonproving concrete producer receiver stage and memory hook codegen...OK
+6/11 air.semantic_eval.test_0...OK
+7/11 prover.block_execution_external_trace_v2.test_0...OK
+8/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+9/11 air.lookups.tables.mod.test_0...OK
+10/11 air.memory_commitment.poseidon2_air.test_0...OK
+11/11 air.lookups.tables.source_ingest.test_0...OK
+All 11 tests passed.

@@ -1,0 +1,16 @@
+{
+  "source_result": "provider-cohesive-focused-v4-result.json",
+  "qualified": false,
+  "actual_body_retention_passed": true,
+  "tests_run": true,
+  "passed": 38,
+  "failed": 3,
+  "remaining_failed_checks": [
+    "RAM public census fixture expected wrong rejected error",
+    "Lookup six-table scalar/symbolic split oracle baseline",
+    "Lookup same oracle allocation-failure fixture"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

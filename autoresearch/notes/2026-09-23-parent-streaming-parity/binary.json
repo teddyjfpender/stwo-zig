@@ -1,0 +1,8 @@
+{
+  "source": "/Users/theodorepender/code/cryptography/stwo-zig/.zig-cache/products/riscv_cpu/o/325e051097f7ace0a9868385a7117395/test",
+  "frozen": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-parent-streaming-parity/parent-test",
+  "sha256": "62720b7b6abc019e7e9a83790e508f5a000759c3aba8d64ab1be3f6748ccf805",
+  "workers": 2,
+  "queries": 70,
+  "pow_bits": 26
+}

@@ -1,0 +1,8 @@
+{"log_size":12,"sample":0,"warmup":true,"reference_ns":2636208,"optimized_ns":1504458,"exact_match":true}
+{"log_size":12,"sample":1,"warmup":false,"reference_ns":2196417,"optimized_ns":1438583,"exact_match":true}
+{"log_size":12,"sample":2,"warmup":false,"reference_ns":2143042,"optimized_ns":1266166,"exact_match":true}
+{"log_size":12,"sample":3,"warmup":false,"reference_ns":1927291,"optimized_ns":1252584,"exact_match":true}
+{"log_size":16,"sample":0,"warmup":true,"reference_ns":43277625,"optimized_ns":21310417,"exact_match":true}
+{"log_size":16,"sample":1,"warmup":false,"reference_ns":31310625,"optimized_ns":19415667,"exact_match":true}
+{"log_size":16,"sample":2,"warmup":false,"reference_ns":31944625,"optimized_ns":19272417,"exact_match":true}
+{"log_size":16,"sample":3,"warmup":false,"reference_ns":31336541,"optimized_ns":18923417,"exact_match":true}

@@ -1,0 +1,28 @@
+{
+  "schema": "metal-fri-inverse-lru-source-freeze-v1",
+  "qualified": false,
+  "device_executed": false,
+  "stark_proved": false,
+  "sources": [
+    {
+      "path": "src/backends/metal/runtime/fri_inverse_cache_budget_v1.zig",
+      "sha256": "4d108dc5ccc27bff1afafe652e6a7e71d761cc7183ba8255bb57956a054796b2",
+      "bytes": 16347
+    },
+    {
+      "path": "src/metal_fri_budget_test_root.zig",
+      "sha256": "161009685265c0858674c686c57f27ad846c844874d697014d8da4267a2c792d",
+      "bytes": 28621
+    },
+    {
+      "path": "src/metal_fri_inverse_lease_test_root.zig",
+      "sha256": "b5ca633c6ce8dadb57ba153631e2cc6f2af28050dcbbc41b76fffac2779b778e",
+      "bytes": 29296
+    },
+    {
+      "path": "design/riscv-proving-stack/metal-fri-shared-budget-v1.md",
+      "sha256": "ca9d89e8949b9563fe069bbf1fee627c537c6b0cec9302a59ad7128e1c281d2d",
+      "bytes": 12439
+    }
+  ]
+}

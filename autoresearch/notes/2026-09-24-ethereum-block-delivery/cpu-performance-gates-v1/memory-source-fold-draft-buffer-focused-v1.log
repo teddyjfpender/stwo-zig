@@ -1,0 +1,22 @@
+1/21 block_v5_memory_source_fold_draft_buffer_test_root.test.source fold draft buffer root...OK
+2/21 prover.block_v5_memory_source_fold_draft_buffer_test_v1.test.source fold draft buffer: exact original Cursor and final bytes with one-record 64-record and PAGE buffers...OK
+3/21 prover.block_v5_memory_source_fold_draft_buffer_test_v1.test.source fold draft buffer: earlier promotion preserves unread later-PAGE bytes and exact order...OK
+4/21 prover.block_v5_memory_source_fold_draft_buffer_test_v1.test.source fold draft buffer: cached inventory never accepts changed current bytes or forged payload grammar...OK
+5/21 prover.block_v5_memory_source_fold_draft_buffer_test_v1.test.source fold draft buffer: cache mutation only selects original fallback and published full SHA stays mandatory...OK
+6/21 prover.block_v5_memory_source_fold_draft_buffer_test_v1.test.source fold draft buffer: allocation refusal leaves reader lease free and capacity denied before source...OK
+7/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: dense original cursor two-pass replay and same-inode original Store interoperability...OK
+8/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: empty image exact capacity boundaries and teardown preserve promoted originals...OK
+9/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: fail-closed limits source failure and exclusive collisions roll back only new drafts...OK
+10/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: exact plan and pin order single-reader lifetime and no promotion before replay...OK
+11/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: independently admitted census row capacity and every per-page tuple stay exact...OK
+12/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: header enum image bool ordinal payload length and pin tampering poison replay...OK
+13/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: promotion rechecks payload and preserves destination collisions...OK
+14/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: every owner metadata and original load allocation failure releases files and owners...OK
+15/21 prover.block_v5_memory_source_fold_draft_pages_test_v1.test.source fold draft pages: retained aggregate budget outlives coordinator and replay reuses its charged PAGE buffer...OK
+16/21 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: later failure rolls back successful final prefix while collision and original inputs survive...OK
+17/21 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: commit transfers only complete original transport and rejects reused owners...OK
+18/21 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: arbitrary late callback failure cleans files without allocating cleanup state...OK
+19/21 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: raw success inventory and fold prefix roll back together preserving later collisions...OK
+20/21 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: allocation faults after promotion release transaction before source owner...OK
+21/21 block_v5_memory_source_fold_draft_buffer_codegen.test.source fold draft buffer bodies: actual canonical collection current byte hashing cached grammar and rollback...OK
+All 21 tests passed.

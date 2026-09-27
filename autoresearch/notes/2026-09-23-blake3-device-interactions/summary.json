@@ -1,0 +1,66 @@
+[
+  {
+    "case": "metal-ecdsa_secp256k1-32",
+    "control": {
+      "total_seconds": 0.9917661875,
+      "hash_interaction_seconds": 0.035839499999999996,
+      "matched_scope_mean_seconds": 0.8388523331666666,
+      "maximum_observed_peak_bytes": 1328105872
+    },
+    "candidate": {
+      "total_seconds": 0.962907813,
+      "hash_interaction_seconds": 0.017439,
+      "matched_scope_mean_seconds": 0.8055020558333333,
+      "maximum_observed_peak_bytes": 1631111544
+    },
+    "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+  },
+  {
+    "case": "metal-sha256-128",
+    "control": {
+      "total_seconds": 2.0722025210000004,
+      "hash_interaction_seconds": 0.253611,
+      "matched_scope_mean_seconds": 1.6010854863333335,
+      "maximum_observed_peak_bytes": 4325297680
+    },
+    "candidate": {
+      "total_seconds": 1.8759038955,
+      "hash_interaction_seconds": 0.078608,
+      "matched_scope_mean_seconds": 1.4115107638333333,
+      "maximum_observed_peak_bytes": 4629024560
+    },
+    "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+  },
+  {
+    "case": "metal-sha256-2048",
+    "control": {
+      "total_seconds": 3.6300961039999997,
+      "hash_interaction_seconds": 0.5320765000000001,
+      "matched_scope_mean_seconds": 3.011301243166667,
+      "maximum_observed_peak_bytes": 8090310440
+    },
+    "candidate": {
+      "total_seconds": 3.2422400415,
+      "hash_interaction_seconds": 0.14459650000000002,
+      "matched_scope_mean_seconds": 2.6132336668333336,
+      "maximum_observed_peak_bytes": 8392349576
+    },
+    "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+  },
+  {
+    "case": "metal-keccak-128",
+    "control": {
+      "total_seconds": 3.583376771,
+      "hash_interaction_seconds": 0.5438385,
+      "matched_scope_mean_seconds": 2.9746865761666665,
+      "maximum_observed_peak_bytes": 7824053672
+    },
+    "candidate": {
+      "total_seconds": 3.154529021,
+      "hash_interaction_seconds": 0.150033,
+      "matched_scope_mean_seconds": 2.5526488266666667,
+      "maximum_observed_peak_bytes": 8122504352
+    },
+    "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+  }
+]

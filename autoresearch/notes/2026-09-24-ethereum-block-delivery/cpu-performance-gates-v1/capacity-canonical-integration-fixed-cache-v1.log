@@ -1,0 +1,20 @@
+1/17 prover.block_v5_native_capacity_fixed_cache_test_v1.test.capacity fixed cache: exact capacity metadata reuses logical counts and authenticates expected root...FAIL (InvalidStatement)
+2/17 prover.block_v5_native_capacity_fixed_cache_test_v1.test.capacity fixed cache: metadata allocation faults never publish a partial owner...FAIL (InvalidStatement)
+3/17 prover.block_v5_native_capacity_fixed_cache_test_v1.test.capacity fixed cache: disabled cache falls back only after independent staged admission validates...OK
+4/17 prover.block_v5_native_capacity_fixed_cache_test_v1.test.capacity fixed cache: cold-cap metadata faults propagate OOM without owner or busy token...OK
+5/17 prover.block_v5_native_capacity_fixed_cache_test_v1.test.capacity fixed cache: malformed caps allocator phase and generation never become cold misses...OK
+6/17 prover.block_v5_native_capacity_fixed_cache_test_v1.test.capacity fixed cache: low log and column caps remain cold with exact valid source geometry...OK
+7/17 prover.block_v5_native_capacity_fixed_cache_test_v1.test.capacity fixed cache: genuine acquisition release and collector bodies retained without invocation...OK
+8/17 air.semantic_eval.test_0...OK
+9/17 air.memory_commitment.poseidon2_air.test_0...OK
+10/17 air.lookups.tables.mod.test_0...OK
+11/17 runner.mod.test_0...OK
+12/17 runner.decode.test_0...OK
+13/17 prover.block_execution_external_trace_v2.test_0...OK
+14/17 prover.block_execution_external_access_bridge_v2.test_0...OK
+15/17 prover.block_v5_committed_trace_column_v1.test_0...OK
+16/17 air.lookups.tables.source_ingest.test_0...OK
+17/17 diagnostics.mod.test_0...OK
+15 passed; 0 skipped; 2 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/1801318fe2af8f96aa5d1bb0377047fd/root --seed=0x6e006e07

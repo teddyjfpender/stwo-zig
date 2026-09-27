@@ -1,0 +1,43 @@
+{
+  "status": "focused-nonproving-exact-frame-comparator-only",
+  "authoritative_source_snapshot": "recursive-statement-compare-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "recursive-statement-compare-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1.2016902079922147,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 9,
+    "test_summary": [
+      "All 9 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-statement-compare-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-recursive-statement-compare-focused-v2",
+      "bytes": 1637424,
+      "sha256": "98ff5989d82f693f28ed1e17fb79a067160ea30c220fb6da9cda420608c504cb"
+    }
+  },
+  "source_pin_count": 1933,
+  "behavioral_checks": 8,
+  "scope": [
+    "Original Builder and PUBLIC21/V20 recordFrame parity",
+    "Exact original operation tags, boundaries, roots, full u32/u64 values and canonical field limbs",
+    "Truncation, trailing inventories, auxiliary offsets, size bounds, sticky error and denial allocator fixtures",
+    "Allocation-free comparator supports 80 roots with no fixed root inventory"
+  ],
+  "remaining": [
+    "Integration into original PUBLIC21/V20 Source.validate",
+    "Complete independently authenticated reusable setup and final standalone receiver",
+    "Positive end-to-end proof and time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

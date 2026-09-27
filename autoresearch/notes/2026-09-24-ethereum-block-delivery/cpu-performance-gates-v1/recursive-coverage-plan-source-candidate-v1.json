@@ -1,0 +1,165 @@
+{
+  "schema": "source-candidate-v1",
+  "status": "source-only-unqualified",
+  "sources_frozen": true,
+  "scope": "metadata planning/admission only; no cryptographic closure token",
+  "root": "src/frontends/riscv/block_v5_recursive_coverage_plan_test_root.zig",
+  "filter": "coverage metadata:",
+  "authored_behavioral_tests": 5,
+  "body_root": "src/frontends/riscv/block_v5_recursive_coverage_plan_body_test_root.zig",
+  "body_filter": "coverage bodies:",
+  "authored_body_retention_tests": 1,
+  "commands_for_root_only": [
+    "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_recursive_coverage_plan_test_root.zig \"coverage metadata:\"",
+    "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_recursive_coverage_plan_body_test_root.zig \"coverage bodies:\""
+  ],
+  "body_gate_policy": "defer until shared typed integer/access kernel changes are frozen; refresh dependency snapshot if these underlying files change",
+  "executed_here": [
+    "zig fmt only; no compiler/test/proof/guest/device/segment run"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_coverage_plan_v1.zig",
+      "sha256": "5fe0a8b805730d882f289dc2cd48f2ddd64740d8950cccc060c61fbb7928c868"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_coverage_plan_test_v1.zig",
+      "sha256": "2808510318cd1beae73ba108d97a4ce566ca08a7e7d698b5f8019a590f9f9c15"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_coverage_plan_test_root.zig",
+      "sha256": "34e65c5d9612353db4b6c127761494c380e28a9a953e67c7cd38abd1338861dc"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_coverage_plan_codegen.zig",
+      "sha256": "53935224e17aae28cd77e239f693edceae6a2e8afa56a0db5b7c86ff87617775"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_coverage_plan_body_test_root.zig",
+      "sha256": "0b1cbecc30bba04f7481c84d53557ee7dd1ff0df50e2944d8da04c0dbb2f4f93"
+    }
+  ],
+  "pure_dependencies": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-global-recursive-closure-v1.md",
+      "sha256": "4b689702c47d39452e89966e8ed7e743501fc2261011aa8467469fba2aba0c74"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_execution_recipe_v1.zig",
+      "sha256": "6ba9a3c31a8116d710f598bc87b7d763dcef54647cb7dc5918b174fd0795959b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/blake3_execution_protocol.zig",
+      "sha256": "f73d2cf539b6217202ded332dca133b74cd52e688bf1b597c85550d934a49a98"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_plan_v1.zig",
+      "sha256": "4ef9081347244348ad83c8611232291c95f05bd5fa55d8134b01af3e2e7ddeca"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/schema.zig",
+      "sha256": "788273e0c240763e24423fa141c6218ef40aa6495bab8c5dc1182e747e1f197a"
+    },
+    {
+      "path": "src/core/pcs/mod.zig",
+      "sha256": "3f405c76644d5ea26e7f49fd1e4f735a2b875adf1e004c55eac56a52e842ca5d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_protocol.zig",
+      "sha256": "f2ed6c4fd1806b1169725b679a3aa8677d7d8d083219d0f38ccb3dac44db591e"
+    }
+  ],
+  "body_dependencies_snapshot_not_owned": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_receiver_stack_v1.zig",
+      "sha256": "4a8f2228901d5dd45ab54b710a2f60d84dc222b9b12e8ca2326024e317833034"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_receiver_impl_v1.zig",
+      "sha256": "0f43e3fb6e60212cfe6fa7c1d34cbea4f436d07b3cd8f351bfaaffe79c04e75c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_sorted_memory_v1.zig",
+      "sha256": "e69208b9640a8049d06b9c452686674706e64b0b5219dbf921874e74cdf30a4e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_receiver_v1.zig",
+      "sha256": "8406de326f80c8315e987633f18d515506e1333a7a6ac47b21325e76e2c5c17e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_plan_v1.zig",
+      "sha256": "b52c60a150659ca507734fc240d58e88a4e473991e4e92e276d4253a58cbfa0d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_batch_common_v1.zig",
+      "sha256": "c8f7742fd48488a228f4810a496f9a65760de5a7decad38ee86c03e4933d38c9"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_projection_fused_receiver_v2.zig",
+      "sha256": "303a3d4f6797ad1b5dccea46b1ae35a2747ca068badbf6381751f67a770d1ffc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_receiver_v1.zig",
+      "sha256": "3f2c33700dec25dea98a2b32b5a7ad30c02ef17fb49499904003d0d034587d22"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_projection_fused_source_v1.zig",
+      "sha256": "8966b6fb661ce8fb4d1092ec344d2d7e7e512d094e5d0f2cf4905fbc86655b8c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig",
+      "sha256": "4932344c626287b8cc981fe131dc9db2b310b5a1cac21dc764917889a2a44f6f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_receiver_v1.zig",
+      "sha256": "117b64468ade06da03195ded6fd6cbdf7a9d55ed33470abf1725fd51df31dd64"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_byte_demand_v1.zig",
+      "sha256": "8f3a0ce08bf88789444c45eb9d757fee9cc59d3e0eecc6dd5fa7622ab8e97e79"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_table_demand_v1.zig",
+      "sha256": "d531232cc32c8bde24c7b32682d61241044871d0182dd68d32175a8540eccd09"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_proof_v1.zig",
+      "sha256": "9ad9d3e49d54246ea6d584dcb73d5f0cce78d61d0a1cf802c86e868c618f8876"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_rw_endpoint_sources_v1.zig",
+      "sha256": "36cf8e6a4c4d51a85eda0d29efe4a16a029f5140d2d87227762c82fb7871a584"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_initial_sources_v1.zig",
+      "sha256": "009840797a275e5bda57fdde35a8fccdedb92975c24e5a348f8453734a755a7e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_register_windows_v1.zig",
+      "sha256": "4c1f2318e1e483e71cb91c6324e60ea5ca9e34f15d9e5894cfc11b5ecab69fc6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_table_proof_v1.zig",
+      "sha256": "d2c04549a908c8c17f19a8d63d3b216d4bc8b5943737a991616f736e60f6fd70"
+    }
+  ],
+  "canonical_counts": {
+    "logical": "3*N + 3*C + M + R + G + 1",
+    "physical": "N + F + 2*C + M + R + G + 1",
+    "F": "nonempty exact native projection inventory; zero access alone does not imply no fused proof"
+  },
+  "pending": {
+    "recursive_physical_adapters": [
+      "native fused",
+      "caller arithmetic",
+      "caller fused"
+    ],
+    "typed_source_authentication_descriptors": 10,
+    "heterogeneous_parent_verifier": "not implemented; topology is metadata only",
+    "production_activation": "not wired to Driver/Global; existing all-family detached CPU verifier remains authority"
+  }
+}

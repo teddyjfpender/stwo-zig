@@ -1,0 +1,323 @@
+--- a/src/frontends/riscv/prover/blake3_execution_pipeline_test_support.zig
++++ b/src/frontends/riscv/prover/blake3_execution_pipeline_test_support.zig
+@@ -0,0 +1,82 @@
++//! Canonical single-level preparation/proving overlap using real typed captures.
++const std = @import("std");
++const api = @import("../recursion/blake3_execution_parent_proof.zig");
++const GiB = 1024 * 1024 * 1024;
++pub fn check(comptime Backend: type, a: std.mem.Allocator, verifier: anytype, capture: anytype, seed: *const api.preparation.Prepared) !void {
++    const Pipeline = api.execution_pipeline.ForBackend(Backend, @TypeOf(verifier.*), @TypeOf(capture.*));
++    const workers = try @import("blake3_parent_profile_test_support.zig").benchmarkWorkerCount(a);
++    const key = try api.ForBackend(Backend).deriveKeyWithProfile(a, seed, .csp_q70_pow26);
++    const expected = try key.identity();
++    const admission = try api.protocol.Admission.init(key, expected);
++    const job = Pipeline.Job{ .verifier = verifier, .capture = capture, .expected_child_id = verifier.id, .admission = admission, .capacity = 2 };
++    const Policy = @import("blake3_pipeline_test_policy.zig").Policy;
++    const policy = Policy{ .total_cpu_tokens = workers + 1, .cpu_tokens_per_node = workers + 1, .proof_worker_count = workers, .total_rss_bytes = 60 * GiB, .rss_bytes_per_node = 60 * GiB };
++    const sizing = api.execution_pipeline.Sizing{ .preparation_bytes = 12 * GiB, .worker_bytes = 24 * GiB, .queued_bytes = try std.math.add(usize, try seed.rows.retainedBytes(), 64 * 1024 * 1024), .external_reserved_bytes = 12 * GiB };
++    _ = try Pipeline.admit(&policy, sizing, 2);
++    var excessive = sizing;
++    excessive.external_reserved_bytes = 60 * GiB;
++    try std.testing.expectError(error.ParentPipelineMemoryBudgetExceeded, Pipeline.admit(&policy, excessive, 2));
++    var cpu_limited = policy;
++    cpu_limited.total_cpu_tokens = workers;
++    cpu_limited.cpu_tokens_per_node = workers;
++    try std.testing.expectError(error.ParentPipelineCpuBudgetExceeded, Pipeline.admit(&cpu_limited, sizing, 2));
++    const worker = try Pipeline.Worker.init(a, &seed.rows, admission, .{ .worker_count = workers, .host_byte_limit = sizing.worker_bytes, .retained_scratch_limit = 64 * 1024 * 1024 });
++    var alive = true;
++    defer if (alive) worker.deinit();
++    const plan = worker.plan;
++    const fixed = plan.fixed_commitment.columns.ptr;
++    var denied = sizing;
++    denied.preparation_bytes = 1;
++    try std.testing.expectError(error.PreparationHostBudgetExceeded, Pipeline.run(a, &policy, denied, worker, &.{job}));
++    var corrupt = job;
++    corrupt.admission.expected_id[0] ^= 1;
++    try std.testing.expectError(error.UntrustedBlake3ParentKey, Pipeline.run(a, &policy, sizing, worker, &.{corrupt}));
++    const serial = std.process.hasEnvVarConstant("STWO_RISCV_PARENT_PIPELINE_SERIAL");
++    var first_report: ?api.execution_pipeline.Report = null;
++    defer if (first_report) |*first| first.deinit();
++    const begin = try std.time.Instant.now();
++    // Same persistent worker, keys, inputs and limits. The serial control drains
++    // the first job before starting the second through the same bounded runner.
++    var report = if (serial) blk: {
++        first_report = try Pipeline.run(a, &policy, sizing, worker, &.{job});
++        break :blk try Pipeline.run(a, &policy, sizing, worker, &.{job});
++    } else try Pipeline.run(a, &policy, sizing, worker, &.{ job, job });
++    const pipeline_ns = (try std.time.Instant.now()).since(begin);
++    defer report.deinit();
++    try std.testing.expectEqual(@as(usize, 2), report.outputs.len + if (first_report) |first| first.outputs.len else @as(usize, 0));
++    if (serial) {
++        try std.testing.expectEqual(@as(u64, 0), report.overlapNs() + first_report.?.overlapNs());
++    } else try std.testing.expect(report.overlapNs() > 0);
++    try std.testing.expectEqual(plan, worker.plan);
++    try std.testing.expectEqual(fixed, worker.plan.fixed_commitment.columns.ptr);
++    try std.testing.expect(worker.workspace.arena.queryCapacity() <= worker.workspace.retained_limit);
++    const usage = worker.budget.snapshot();
++    try std.testing.expect(usage.peak_live_bytes <= usage.limit);
++    worker.deinit();
++    alive = false;
++    var first_digest: ?[32]u8 = null;
++    const batches = [_][]api.artifact.Owned{ if (first_report) |first| first.outputs else &.{}, report.outputs };
++    var index: usize = 0;
++    for (batches) |outputs| for (outputs) |*output| {
++        // Verification consumes artifact ownership; encode before transferring it.
++        const bytes = try api.codec.encode(a, output, &admission);
++        defer a.free(bytes);
++        var verified = try api.verify(output, &admission);
++        defer verified.deinit();
++        try verified.validate(&admission, expected);
++        try std.testing.expectEqual(@as(usize, 70), verified.capture.queries.raw.len);
++        var digest: [32]u8 = undefined;
++        std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
++        if (first_digest) |prior| try std.testing.expectEqualSlices(u8, &prior, &digest) else first_digest = digest;
++        var decoded = try api.codec.decode(a, bytes, &admission);
++        defer decoded.deinit();
++        var fresh = try api.verify(&decoded, &admission);
++        defer fresh.deinit();
++        try fresh.validate(&admission, expected);
++        std.debug.print("CANONICAL_PIPELINE_ARTIFACT index={d} sha256={s} bytes={d} independently_verified=true\n", .{ index, std.fmt.bytesToHex(digest, .lower), bytes.len });
++        index += 1;
++    };
++    std.debug.print("CANONICAL_EXECUTION_PIPELINE mode={s} jobs=2 workers={d} cpu_tokens={d} reserved_bytes={d} wall_ns={d} overlap_ns={d} worker_peak_bytes={d} worker_limit_bytes={d} child_queries={d} child_pow_bits={d} parent_queries=70 parent_pow_bits=26 plan_reused=true outputs_outlive_worker=true independently_verified=true\n", .{ if (serial) "serial" else "overlapped", workers, report.admission.cpu_tokens, report.admission.reserved_bytes, pipeline_ns, report.overlapNs(), usage.peak_live_bytes, usage.limit, seed.context.child_config.fri_config.n_queries, seed.context.child_config.pow_bits });
++    if (first_report) |first| for (first.spans, 0..) |span, i| std.debug.print("CANONICAL_PIPELINE_SPAN run=0 index={d} prepare_start={d} prepare_end={d} prove_start={d} prove_end={d}\n", .{ i, span.preparation.start, span.preparation.end, span.proving.start, span.proving.end });
++    for (report.spans, 0..) |span, i| std.debug.print("CANONICAL_PIPELINE_SPAN run={d} index={d} prepare_start={d} prepare_end={d} prove_start={d} prove_end={d}\n", .{ @intFromBool(serial), i, span.preparation.start, span.preparation.end, span.proving.start, span.proving.end });
++}
+--- a/src/frontends/riscv/prover/blake3_parent_profile_test_support.zig
++++ b/src/frontends/riscv/prover/blake3_parent_profile_test_support.zig
+@@ -102,7 +102,7 @@
+ 
+ /// Qualification override only; production workers receive admitted policy counts.
+ /// Keep two workers as the ordinary test default and reject oversubscription.
+-fn benchmarkWorkerCount(a: std.mem.Allocator) !usize {
++pub fn benchmarkWorkerCount(a: std.mem.Allocator) !usize {
+     const value = std.process.getEnvVarOwned(a, "STWO_RISCV_PARENT_BENCH_WORKERS") catch |err| switch (err) {
+         error.EnvironmentVariableNotFound => return 2,
+         else => return err,
+@@ -112,3 +112,19 @@
+     if (count == 0 or count > try std.Thread.getCpuCount()) return error.InvalidParentBenchmarkWorkers;
+     return count;
+ }
++
++/// Keep leak-checking test allocation by default; opt into the production heap
++/// explicitly for performance comparisons, without changing worker budget caps.
++pub fn benchmarkAllocator() !std.mem.Allocator {
++    const value = std.process.getEnvVarOwned(std.heap.page_allocator, "STWO_RISCV_PARENT_BENCH_ALLOCATOR") catch |err| switch (err) {
++        error.EnvironmentVariableNotFound => {
++            std.debug.print("CANONICAL_PARENT_ALLOCATOR mode=testing\n", .{});
++            return std.testing.allocator;
++        },
++        else => return err,
++    };
++    defer std.heap.page_allocator.free(value);
++    if (!std.mem.eql(u8, value, "smp")) return error.InvalidParentBenchmarkAllocator;
++    std.debug.print("CANONICAL_PARENT_ALLOCATOR mode=smp\n", .{});
++    return std.heap.smp_allocator;
++}
+--- a/src/frontends/riscv/prover/blake3_pipeline_test_policy.zig
++++ b/src/frontends/riscv/prover/blake3_pipeline_test_policy.zig
+@@ -0,0 +1,21 @@
++const std = @import("std");
++// Local qualification authority. Production callers supply their sealed policy;
++// the shared scheduler validates its own CPU and memory reservations regardless.
++pub const Policy = struct {
++    total_cpu_tokens: usize,
++    cpu_tokens_per_node: usize,
++    proof_worker_count: usize,
++    total_rss_bytes: usize,
++    rss_bytes_per_node: usize,
++    pub fn validate(self: *const Policy) !void {
++        if (self.total_cpu_tokens == 0 or self.total_cpu_tokens > try std.Thread.getCpuCount() or
++            self.cpu_tokens_per_node == 0 or self.cpu_tokens_per_node > self.total_cpu_tokens or
++            self.proof_worker_count == 0 or self.proof_worker_count > self.cpu_tokens_per_node or
++            self.total_rss_bytes == 0 or self.rss_bytes_per_node == 0 or
++            self.rss_bytes_per_node > self.total_rss_bytes) return error.InvalidTestPolicy;
++    }
++    pub fn engineWorkerCount(self: *const Policy) !usize {
++        try self.validate();
++        return self.proof_worker_count;
++    }
++};
+--- a/src/frontends/riscv/prover/blake3_tree_pipeline_test_support.zig
++++ b/src/frontends/riscv/prover/blake3_tree_pipeline_test_support.zig
+@@ -68,23 +68,4 @@
+     return result;
+ }
+ 
+-// Local qualification authority. Production callers supply their sealed policy;
+-// the shared scheduler validates its own CPU and memory reservations regardless.
+-const TestPolicy = struct {
+-    total_cpu_tokens: usize,
+-    cpu_tokens_per_node: usize,
+-    proof_worker_count: usize,
+-    total_rss_bytes: usize,
+-    rss_bytes_per_node: usize,
+-    pub fn validate(self: *const TestPolicy) !void {
+-        if (self.total_cpu_tokens == 0 or self.total_cpu_tokens > try std.Thread.getCpuCount() or
+-            self.cpu_tokens_per_node == 0 or self.cpu_tokens_per_node > self.total_cpu_tokens or
+-            self.proof_worker_count == 0 or self.proof_worker_count > self.cpu_tokens_per_node or
+-            self.total_rss_bytes == 0 or self.rss_bytes_per_node == 0 or
+-            self.rss_bytes_per_node > self.total_rss_bytes) return error.InvalidTestPolicy;
+-    }
+-    pub fn engineWorkerCount(self: *const TestPolicy) !usize {
+-        try self.validate();
+-        return self.proof_worker_count;
+-    }
+-};
++const TestPolicy = @import("blake3_pipeline_test_policy.zig").Policy;
+--- a/src/frontends/riscv/prover/compact_range_execution_test.zig
++++ b/src/frontends/riscv/prover/compact_range_execution_test.zig
+@@ -137,7 +137,7 @@
+ }
+ /// Same admitted CPU child and parent checks, with only parent proving backend varied.
+ pub fn checkProofForBackend(comptime recurse: bool, comptime ParentBackend: type) !void {
+-    const a = std.testing.allocator;
++    const a = if (recurse) try @import("blake3_parent_profile_test_support.zig").benchmarkAllocator() else std.testing.allocator;
+     const instructions = [_]u32{ 0x00500093, 0x00708093, 0x00100137, 0x00100193, 0x00312223, 0x00312423, 0x0000006f };
+     const elf = @import("../runner/guest_precompile/test_elf.zig").buildReleaseProgram(instructions.len, &instructions, 0, .rv32im_zkvm_v1);
+     var run = try @import("../runner/mod.zig").runWithInput(a, &elf, &.{}, 100);
+@@ -182,7 +182,9 @@
+     if (recurse) {
+         var parent = try @import("../recursion/blake3_execution_parent_preparation.zig").prepare(a, prepared, &captured, prepared.id, 2);
+         defer parent.deinit();
+-        try @import("blake3_parent_profile_test_support.zig").checkWithBackend(ParentBackend, a, &parent, 24 * 1024 * 1024 * 1024);
++        if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_PIPELINE")) {
++            try @import("blake3_execution_pipeline_test_support.zig").check(ParentBackend, a, prepared, &captured, &parent);
++        } else try @import("blake3_parent_profile_test_support.zig").checkWithBackend(ParentBackend, a, &parent, 24 * 1024 * 1024 * 1024);
+         std.debug.print("COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true\n", .{});
+     }
+     std.debug.print("COMPACT_BASE_PROOF queries={d} pow_bits={d} bytes={d} independently_verified=true\n", .{ config.fri_config.n_queries, config.pow_bits, encoded.len });
+--- a/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig
+@@ -0,0 +1,46 @@
++//! Full-width execution captures on the shared bounded preparation/proving pipeline.
++const std = @import("std");
++const shared = @import("blake3_parent_pipeline.zig");
++const preparation = @import("blake3_execution_parent_preparation.zig");
++const protocol = @import("blake3_execution_parent_protocol.zig");
++const artifact = @import("blake3_native_parent_artifact.zig");
++pub const Sizing = shared.Sizing;
++pub const Report = shared.Report;
++
++/// Verifier/capture types retain the child's typed execution profile. Inputs and
++/// the exclusively leased worker outlive run; outputs retain worker-budget leases.
++pub fn ForBackend(comptime Backend: type, comptime Verifier: type, comptime Capture: type) type {
++    return struct {
++        const Self = @This();
++        pub const Worker = @import("blake3_native_parent_worker.zig").WorkerForProtocol(Backend, protocol);
++        pub const Job = struct {
++            verifier: *const Verifier,
++            capture: *const Capture,
++            expected_child_id: [32]u8,
++            admission: protocol.Admission,
++            capacity: u32,
++        };
++        const Adapter = struct {
++            pub const Job = Self.Job;
++            pub const Worker = Self.Worker;
++            pub const Prepared = preparation.Prepared;
++            pub fn prepare(a: std.mem.Allocator, job: Self.Job, limit: usize) !Prepared {
++                try job.admission.validate();
++                var result = try preparation.prepareBounded(a, job.verifier, job.capture, job.expected_child_id, job.capacity, limit);
++                errdefer result.deinit();
++                if (!std.meta.eql(result.context, job.admission.key.context)) return error.ParentPipelineKeyMismatch;
++                return result;
++            }
++            pub fn prove(worker: *Self.Worker, prepared: *const Prepared, job: Self.Job) !artifact.Owned {
++                if (!std.meta.eql(prepared.context, job.admission.key.context)) return error.ParentPipelineKeyMismatch;
++                return worker.proveAdmitted(&prepared.rows, job.admission);
++            }
++        };
++        pub fn admit(policy: anytype, sizing: Sizing, count: usize) !shared.Admission {
++            return shared.admit(Adapter, policy, sizing, count);
++        }
++        pub fn run(a: std.mem.Allocator, policy: anytype, sizing: Sizing, worker: *Worker, jobs: []const Job) !Report {
++            return shared.run(Adapter, a, policy, sizing, worker, jobs);
++        }
++    };
++}
+--- a/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
+@@ -23,14 +23,33 @@
+     span_binding_id: ?[32]u8 = null,
+     aggregation: ?Aggregation = null,
+ };
++const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
+ pub const Prepared = struct {
+     rows: rows_mod.Prepared,
+     context: Context,
++    allocation_budget: ?*Budget = null,
++    pub fn retainedBytes(self: Prepared) !usize {
++        const payload = if (self.allocation_budget) |budget| try std.math.add(usize, budget.snapshot().live_bytes, @sizeOf(Budget)) else try self.rows.retainedBytes();
++        return std.math.add(usize, @sizeOf(Prepared), payload);
++    }
+     pub fn deinit(self: *Prepared) void {
+         self.rows.deinit();
++        if (self.allocation_budget) |budget| budget.destroy();
+         self.* = undefined;
+     }
+ };
++/// Bounds both preparation intermediates and retained output rows. Borrowed child
++/// captures, allocator overhead and stacks belong to the caller's reservation.
++pub fn prepareBounded(a: std.mem.Allocator, admitted: anytype, capture: anytype, expected: [32]u8, capacity: u32, limit: usize) !Prepared {
++    const budget = try Budget.create(a, limit);
++    errdefer budget.destroy();
++    var result = prepare(budget.allocator(), admitted, capture, expected, capacity) catch |err| {
++        if (err == error.OutOfMemory and budget.snapshot().exceeded) return error.PreparationHostBudgetExceeded;
++        return err;
++    };
++    result.allocation_budget = budget;
++    return result;
++}
+ pub fn prepare(a: std.mem.Allocator, admitted: anytype, capture: anytype, expected: [32]u8, capacity: u32) !Prepared {
+     const state = try State.init(a, admitted, capture, expected, capacity);
+     defer state.deinit();
+--- a/src/frontends/riscv/recursion/blake3_execution_parent_proof.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_parent_proof.zig
+@@ -10,6 +10,7 @@
+ pub const spans = @import("blake3_execution_span.zig");
+ pub const public_io = @import("blake3_public_io.zig");
+ pub const pipeline = @import("blake3_tree_pipeline.zig");
++pub const execution_pipeline = @import("blake3_execution_parent_pipeline.zig");
+ pub const tree = @import("blake3_execution_tree.zig");
+ pub const aggregation = @import("blake3_execution_aggregate.zig");
+ pub const preparation = @import("blake3_execution_parent_preparation.zig");
+--- a/src/integrations/riscv_metal/build.zig
++++ b/src/integrations/riscv_metal/build.zig
+@@ -362,6 +362,7 @@
+     const native_parent_tests = b.addTest(.{ .root_module = blake3_full_root, .filters = &.{"Metal compact canonical native BLAKE3 parent matches CPU qualification"} });
+     linkMetalFrameworks(native_parent_tests);
+     const native_parent_aot_step = b.step("test-blake3-native-parent-aot", "Qualify the same canonical native parent fixture on authenticated Metal");
++    const native_parent_pipeline_aot_step = b.step("test-blake3-native-parent-pipeline-aot", "Qualify bounded canonical execution-parent preparation/proving overlap on Metal");
+     const blake3_full_tests = b.addTest(.{ .root_module = blake3_full_root, .filters = &.{"Metal full-width BLAKE3 Ethereum canonical leaf"} });
+     linkMetalFrameworks(blake3_full_tests);
+     const blake3_parent_tests = b.addTest(.{ .root_module = blake3_full_root, .filters = &.{"Metal full-width BLAKE3 Ethereum canonical recursive parent"} });
+@@ -404,6 +405,7 @@
+             "test-authenticated-aot requires -Dmetal-core-aot-bundle=<absolute-path>",
+         );
+         native_parent_aot_step.dependOn(&missing_bundle.step);
++        native_parent_pipeline_aot_step.dependOn(&missing_bundle.step);
+         blake3_poseidon_parent_aot_step.dependOn(&missing_bundle.step);
+         blake3_parent_aot_step.dependOn(&missing_bundle.step);
+         blake3_smp_aot_step.dependOn(&missing_bundle.step);
+@@ -420,6 +422,7 @@
+             "test-authenticated-aot requires an absolute AOT bundle path",
+         );
+         native_parent_aot_step.dependOn(&invalid_bundle.step);
++        native_parent_pipeline_aot_step.dependOn(&invalid_bundle.step);
+         blake3_poseidon_parent_aot_step.dependOn(&invalid_bundle.step);
+         blake3_parent_aot_step.dependOn(&invalid_bundle.step);
+         blake3_smp_aot_step.dependOn(&invalid_bundle.step);
+@@ -465,6 +468,12 @@
+     native_parent_aot.setEnvironmentVariable("STWO_BLAKE3_CSP_RUNTIME", "authenticated_aot");
+     native_parent_aot.setEnvironmentVariable("STWO_RISCV_METAL_AOT_BUNDLE", configured_bundle);
+     native_parent_aot_step.dependOn(&native_parent_aot.step);
++    const native_parent_pipeline_aot = b.addRunArtifact(native_parent_tests);
++    native_parent_pipeline_aot.setEnvironmentVariable("STWO_BLAKE3_CSP_RUNTIME", "authenticated_aot");
++    native_parent_pipeline_aot.setEnvironmentVariable("STWO_RISCV_METAL_AOT_BUNDLE", configured_bundle);
++    native_parent_pipeline_aot.setEnvironmentVariable("STWO_RISCV_PARENT_PIPELINE", "1");
++    native_parent_pipeline_aot.removeEnvironmentVariable("STWO_RISCV_PARENT_PIPELINE_SERIAL");
++    native_parent_pipeline_aot_step.dependOn(&native_parent_pipeline_aot.step);
+     const blake3_parent_aot = b.addRunArtifact(blake3_parent_tests);
+     blake3_parent_aot.setEnvironmentVariable("STWO_BLAKE3_CSP_RUNTIME", "authenticated_aot");
+     blake3_parent_aot.setEnvironmentVariable("STWO_RISCV_METAL_AOT_BUNDLE", configured_bundle);

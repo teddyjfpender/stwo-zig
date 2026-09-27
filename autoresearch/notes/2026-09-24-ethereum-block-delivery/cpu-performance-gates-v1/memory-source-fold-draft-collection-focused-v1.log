@@ -1,0 +1,24 @@
+1/23 block_v5_memory_source_fold_draft_integration_test_root.test.source fold draft integration root...OK
+2/23 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: later failure rolls back successful final prefix while collision and original inputs survive...OK
+3/23 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: commit transfers only complete original transport and rejects reused owners...OK
+4/23 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: arbitrary late callback failure cleans files without allocating cleanup state...OK
+5/23 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: raw success inventory and fold prefix roll back together preserving later collisions...OK
+6/23 prover.block_v5_memory_source_fold_draft_collection_test_v1.test.source fold draft collection: allocation faults after promotion release transaction before source owner...OK
+7/23 prover.block_v5_memory_source_fold_draft_integration_test_v1.test.source fold draft integration: actual Controller derives one exact independent capacity and aggregate file budget...OK
+8/23 prover.block_v5_memory_source_fold_draft_integration_test_v1.test.source fold draft integration: malformed transport geometry fails before allocator files and source access...OK
+9/23 prover.block_v5_memory_source_fold_draft_integration_test_v1.test.source fold draft integration: rollback uses original raw and fold operand names including index extremes...OK
+10/23 block_v5_memory_source_fold_draft_integration_codegen.test.source fold draft integration bodies: actual canonical Controller shared Job collect source seal and detached load...OK
+11/23 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: options fail before source files or allocator are touched...OK
+12/23 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: durable producer and independent receiver policies agree before collection...OK
+13/23 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: positional private reader enforces all lengths offsets and overflow...OK
+14/23 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: durable exact fold inventory releases nested ownership on every allocation failure...OK
+15/23 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: independent fold census inventory and compact file corruption fail closed...OK
+16/23 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: aggregate disk and metadata caps check exact boundary and arithmetic overflow...OK
+17/23 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: invalid budget failed phase and live owner reject before any proof or reader...OK
+18/23 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: actual fold proposal graph closure and full root mutation are checked independently...OK
+19/23 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: actual original five-stream packed SHA claim proposal matches semantic graph...OK
+20/23 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: actual constructor retains parent and setup lease until page release...OK
+21/23 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: initial budget control and setup allocation failures release parent references...OK
+22/23 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: detached bounded fold recipe inventory has independent lifetime and every allocation fault...OK
+23/23 air.memory_commitment.poseidon2_air.test_0...OK
+All 23 tests passed.

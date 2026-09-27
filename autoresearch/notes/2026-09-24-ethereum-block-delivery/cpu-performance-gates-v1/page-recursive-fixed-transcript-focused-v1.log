@@ -1,0 +1,52 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/fmt.zig:222:24: error: evaluation exceeded 10000 backwards branches
+        if (self.number()) |i| return .{ .number = i };
+            ~~~~~~~~~~~^~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/fmt.zig:222:24: note: use @setEvalBranchQuota() to raise the branch limit from 10000
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/fmt.zig:140:39: note: called at comptime here
+        const width = parser.specifier() catch |err| @compileError(@errorName(err));
+                      ~~~~~~~~~~~~~~~~^~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/Io/Writer.zig:667:63: note: called at comptime here
+        const placeholder = comptime std.fmt.Placeholder.parse(&placeholder_array);
+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/fmt.zig:614:12: note: called at comptime here
+    w.print(fmt, args) catch |err| switch (err) {
+    ~~~~~~~^~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/fmt.zig:621:32: note: called at comptime here
+    const result = try bufPrint(buf, fmt ++ "\x00", args);
+                       ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/meta.zig:938:38: note: called at comptime here
+            .name = std.fmt.bufPrintZ(&num_buf, "{d}", .{i}) catch unreachable,
+                    ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/meta.zig:929:29: note: called at comptime here
+    return CreateUniqueTuple(types.len, types[0..types.len].*);
+           ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_packed_hash_setup_v1.zig:17:34: note: called at comptime here
+        break :blk std.meta.Tuple(&types);
+                   ~~~~~~~~~~~~~~^~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_static_component_compiler_v1.zig:10:84: note: called at comptime here
+    const Setup = @import("../../prover/block_v5_packed_hash_setup_v1.zig").ForAirs(Airs);
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_recursive_shape_v1.zig:22:42: note: called at comptime here
+    const CoreCompiler = Compiler.ForAirs(C.CoreAirs);
+                         ~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_recursive_fixed_v1.zig:17:33: note: called at comptime here
+    const Native = Shape.ForKind(kind);
+                   ~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/recursion/block_v5_native_recursive_fixed_pcs_v1.zig:127:89: note: called at comptime here
+    const Native = @import("block_v5_memory_source_page_recursive_fixed_v1.zig").ForKind(kind);
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/block_v5_page_fixed_transcript_codegen_v1.zig:13:30: note: called at comptime here
+    const Ports = Pcs.ForPage(kind);
+                  ~~~~~~~~~~~^~~~~~
+src/frontends/riscv/block_v5_page_fixed_transcript_codegen_v1.zig:25:11: note: called at comptime here
+    Bodies(.fold).keep();
+    ~~~~~~^~~~~~~
+referenced by:
+    stwo_page_fixed_transcript_body_gate: src/frontends/riscv/block_v5_page_fixed_transcript_codegen_v1.zig:23:5
+    test.PAGE fixed transcript: genuine admitted owner PCS and original live body retention: src/frontends/riscv/block_v5_page_fixed_transcript_test_root_v1.zig:5:13
+src/frontends/riscv/prover/block_v5_page_fixed_transcript_test_v1.zig:52:34: error: missing struct field: config
+    const pin = Raw.Pin{ .raw = .{ .plan_id = plan.identity, .page = page, .roots = roots[0..2].* }, .geometry = geometry, .roots = roots };
+                                ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_first_protocol_common_v1.zig:72:25: note: struct declared here
+        pub const Pin = struct {
+                        ^~~~~~

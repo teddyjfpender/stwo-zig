@@ -1,0 +1,34 @@
+1/19 block_v5_requester_public_fixed_assembly_test_root_v1.test_0...OK
+2/19 block_v5_requester_public_fixed_assembly_test_root_v1.test.PUBLIC21 fixed assembly: actual complete fixed expected-key and original family bodies retained...OK
+3/19 block_v5_requester_public_fixed_assembly_test_root_v1.test.PUBLIC21 fixed assembly: explicit legacy source recipe retained...OK
+4/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: original five context channels and each source namespace graph mutation...OK
+5/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: exact external wire conversion and invalid child part kinds reject...OK
+6/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: canonical external order and duplicate schedules fail closed...OK
+7/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: every original cohort preserves child then tuple join order and caps...OK
+8/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: all bounded join allocations release with admitted source buffers outside injection...OK
+9/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: original six lane lowering identifiers and exact namespace parity...FAIL (InvalidParentRebase)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_parent_rebase.zig:93:67: 0x100529fbb in geometry__anon_52808 (root)
+        if (parent.main[i].len != Air.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentRebase;
+                                                                  ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_parent_rebase.zig:49:19: 0x10052fe0b in prepare__anon_52797 (root)
+    const masks = try geometry(parent);
+                  ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/block_v5_recursive_fixed_namespace_v1.zig:37:24: 0x101f242ef in validateLive__anon_201319 (root)
+        var expected = try Original.prepare(self.original.allocator, parent, self.original.first);
+                       ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_requester_public_fixed_assembly_test_v1.zig:169:5: 0x101f2689f in test.PUBLIC21 fixed assembly: original six lane lowering identifiers and exact namespace parity (root)
+    try right.validateLive(&live);
+    ^
+10/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: identifier metadata allocation failures and invalid geometry reject...OK
+11/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: real retained identifier custody after creator budget release...OK
+12/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: resource guards precede undefined independent owner and expose no proof acceptance...OK
+13/19 prover.block_v5_requester_public_fixed_assembly_test_v1.test.PUBLIC21 fixed assembly: final G geometry preserves all tails and already partitioned cohorts...OK
+14/19 prover.block_execution_external_trace_v2.test_0...OK
+15/19 air.lookups.tables.mod.test_0...OK
+16/19 air.semantic_eval.test_0...OK
+17/19 prover.block_execution_external_access_bridge_v2.test_0...OK
+18/19 air.memory_commitment.poseidon2_air.test_0...OK
+19/19 air.lookups.tables.source_ingest.test_0...OK
+18 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-requester-public-fixed-assembly-legacy-focused-v1 --seed=0xb089b7aa

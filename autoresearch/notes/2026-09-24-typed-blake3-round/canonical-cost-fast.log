@@ -1,0 +1,14 @@
+test-blake3-round-cost
++- BLAKE3 round cost guard
+   +- run test stderr
+BLAKE3_COMPRESSION_COST arm=g queries=70 pow=26 columns=328 cells=10521152 next_path_g=1978928 next_path_xor=565408 next_g_log=21
+BLAKE3_COMPRESSION_FIXTURE arm=g elapsed_ns=17323566542
+BLAKE3_COMPRESSION_COST arm=round queries=70 pow=26 columns=1838 cells=10517088 next_path_g=2374848 next_path_xor=678528 next_g_log=22
+BLAKE3_COMPRESSION_FIXTURE arm=round elapsed_ns=11158891208
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-blake3-round-cost success
++- BLAKE3 round cost guard success
+   +- run test 1 passed 29s MaxRSS:346M
+      +- compile test ReleaseFast native success 1m MaxRSS:2G
+

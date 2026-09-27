@@ -1,0 +1,8 @@
+{
+  "src/frontends/riscv/recursion/air/blake3_parallel_lookup_counts.zig": "c145b405b8f0c66219b6214ef3103b1f9ad3b691463bca7c0a44c0cc8cad5f47",
+  "src/frontends/riscv/prover/blake3_commitment_columns.zig": "4672e020738f97689461124ab15803740513f147e14ffc53a12014b7be576c7a",
+  "src/frontends/riscv/prover/blake3_coefficient_retention.zig": "291c68595fd34fa2ca1224b11dde0006331c32ebda782510a9a042c53e18244f",
+  "src/frontends/riscv/prover/blake3_execution_proof.zig": "151eaf964d87baa56dc114e0a2f81fadf8cf6e4c19dbc5d49dea1a457082783e",
+  "src/frontends/riscv/prover/blake3_extension_proof.zig": "dab2dea5447b7d1296e4fe70078272073384a6fc6651667c769649ca79c318d7",
+  "src/frontends/riscv/prover/blake3_ethereum_witness.zig": "49653bfd251169b32ea58b9572ade957bbb9047afc68447ce90c7380f08a6308"
+}

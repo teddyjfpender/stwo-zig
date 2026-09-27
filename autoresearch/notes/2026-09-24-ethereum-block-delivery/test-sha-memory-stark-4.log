@@ -1,0 +1,17 @@
+1/11 air.guest_precompile.sha256_coefficient_bounds.test.SHA provider public coefficient bounds include padding and both memory polarities...OK
+2/11 recursion.air.universal_component_owner.test.SHA provider joined component owner keeps challenges alive after AST teardown...OK
+3/11 air.guest_precompile.sha256_lookup_registration.test.SHA provider shared lookup registration preserves counters on a late invalid tuple...OK
+4/11 air.guest_precompile.sha256_component_profile.test.SHA provider profile pins geometry semantics and checked component placement...OK
+5/11 air.guest_precompile.sha256_relations.test.SHA provider wires are independent while all VM tuple challenges remain shared...OK
+6/11 air.guest_precompile.sha256_memory_rows.test.SHA provider execution tape ownership and caller preflight...OK
+7/11 air.guest_precompile.sha256_memory_rows.test.SHA provider zero-call segment satisfies every AIR and emits only valid padding lookups...OK
+8/11 air.guest_precompile.sha256_preprocessed.test.SHA provider preprocessing matches independent topology and releases every failed allocation...SHA_PREPROCESSING calls=1 removed_placeholder_bytes=78016 final_fixed_value_bytes=9888
+SHA_PREPROCESSING calls=16 removed_placeholder_bytes=1248256 final_fixed_value_bytes=158208
+SHA_PREPROCESSING calls=64 removed_placeholder_bytes=4993024 final_fixed_value_bytes=632832
+SHA_PREPROCESSING calls=1024 removed_placeholder_bytes=79888384 final_fixed_value_bytes=10125312
+OK
+9/11 air.guest_precompile.sha256_memory_proof_test.test.SHA canonical memory call STARK verifies exact CPU and memory claims...SHA_MEMORY_STARK verified=true queries=70 pow_bits=26 elapsed_ns=24772465750 production_vm_profile=false
+OK
+10/11 air.guest_precompile.sha256_compression_rows.test.SHA provider batches own only final rows and reconstruct private-independent topology...OK
+11/11 runner.decode.test_0...OK
+All 11 tests passed.

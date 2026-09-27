@@ -1,0 +1,15 @@
+test-blake3-ethereum-segment-secure
++- BLAKE3 canonical segment guard
+   +- run test stderr
+ETHEREUM_SEGMENT_ARTIFACT suite=native_blake3 version=7 queries=70 pow_bits=26 artifact_bytes=3524992
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-ethereum-segment-artifact-fixture success
++- Segment artifact fixture guard success
+   +- run test 1 passed 549ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 7s MaxRSS:634M
+test-blake3-ethereum-segment-secure success
++- BLAKE3 canonical segment guard success
+   +- run test 1 passed 19s MaxRSS:1G
+      +- compile test ReleaseSafe native success 3m MaxRSS:6G
+

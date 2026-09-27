@@ -1,0 +1,16 @@
+1/15 block_v5_cpu_bundle_store_test_root.test_0...OK
+2/15 prover.block_v5_cpu_bundle_store_test.test.block-v5 durable bundle APIs retain typed all-family ownership...OK
+3/15 prover.block_v5_cpu_bundle_store_test.test.block-v5 durable file roster is bounded canonical SHA pinned and single use...OK
+4/15 prover.block_v5_cpu_bundle_store_test.test.block-v5 independent metadata and geometry builders validate caps before pins...OK
+5/15 prover.block_v5_cpu_bundle_store_test.test_0...OK
+6/15 prover.block_v5_cpu_bundle_store_test.test.block-v5 fused canonical transport and global consumer APIs compile without proving...OK
+7/15 prover.block_v5_cpu_bundle_store_test.test.block-v5 fused transport rejects separate format and unpinned envelope before allocation...OK
+8/15 prover.block_v5_cpu_bundle_store_test.test.block-v5 fused transport independently pins secondary census and tree grammar...OK
+9/15 prover.block_v5_cpu_bundle_store_test.test.block-v5 fused transport rejects secondary census before proof parsing or allocation...OK
+10/15 air.memory_commitment.poseidon2_air.test_0...OK
+11/15 air.lookups.tables.mod.test_0...OK
+12/15 air.semantic_eval.test_0...OK
+13/15 prover.block_execution_external_trace_v2.test_0...OK
+14/15 prover.block_execution_external_access_bridge_v2.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

@@ -1,0 +1,33 @@
+{
+  "producer_argv": [
+    "/tmp/stwo-recursion-direct-merkle-cpu-20260921/bin/recursive-segment-v2-detached-parent-prove",
+    "--profile",
+    "tiny-parent-root-v2",
+    "/tmp/stwo-recursion-direct-merkle-20260921/cpu-parent",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+    "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+    "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+    "--parent-key",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+    "--parent-key-sha256",
+    "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "--proof-profile",
+    "recursive_q193_v1"
+  ],
+  "verifier_argv": [
+    "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+    "/tmp/stwo-recursion-direct-merkle-20260921/cpu-parent",
+    "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+  ],
+  "producer_sha256": "cdd9fe8a4e57b3002052e48d3fb1e169655aca523e8898ef4940eb2f5f79be30",
+  "verified": true,
+  "expected": {
+    "key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+    "proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb"
+  }
+}

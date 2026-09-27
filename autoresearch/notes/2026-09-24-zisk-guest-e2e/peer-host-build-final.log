@@ -1,0 +1,3 @@
+warning: zisk-sm-mem-planner@1.3.0-alpha: [BUILD INFO] mem-planner-cpp compiled with CPU-only support (feature enabled)
+   Compiling zisk-large-guest-benchmark v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-guest-e2e/peer-host)
+    Finished `release` profile [optimized] target(s) in 0.97s

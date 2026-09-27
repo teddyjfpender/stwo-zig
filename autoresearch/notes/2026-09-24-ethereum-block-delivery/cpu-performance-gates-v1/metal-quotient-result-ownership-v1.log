@@ -1,0 +1,35 @@
+1/6 metal_quotient_result_ownership_test_root.test.quotient result: receipt rejection consumes standalone published owner...OK
+2/6 metal_quotient_result_ownership_test_root.test.quotient result: failed fused receipt frees every tree and heap after original owner release...slices differ. first difference occurs at index 1 (0x1)
+
+============ expected this output: =============  len: 4 (0x4)
+
+[0]: 1
+[1]: 1
+[2]: 1
+[3]: 1
+
+============= instead found this: ==============  len: 4 (0x4)
+
+[0]: 1
+[1]: 0
+[2]: 0
+[3]: 0
+
+================================================
+
+FAIL (TestExpectedEqual)
+3/6 metal_quotient_result_ownership_test_root.test.quotient result: failed first adoption cannot double destroy or abandon tail trees...OK
+4/6 metal_quotient_result_ownership_test_root.test.quotient result: middle adoption failure preserves adopted owners and releases only remaining tail...OK
+5/6 metal_quotient_result_ownership_test_root.test.quotient result: successful receipt transfers charge until final adopted owner...OK
+6/6 metal_quotient_result_ownership_test_root.test.quotient result: raw batch heap survives all resource transfers and original owner release...OK
+5 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/7794e5fef6837ca004a2d6c765e1dd0a/root --seed=0xa304d5cf
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 24, in <module>
+    subprocess.run([z,'test',*filter_args,*runner_args,'-O' + args.optimize,'-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','--dep','stwo_backend_contracts','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig',*runner_modules],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'quotient result:', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '--dep', 'stwo_backend_contracts', '-Mroot=src/metal_quotient_result_ownership_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

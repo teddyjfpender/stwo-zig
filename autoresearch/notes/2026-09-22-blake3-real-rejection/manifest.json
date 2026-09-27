@@ -1,0 +1,10 @@
+{
+  "README.md": "b65852ab928c83e599a1e909abf977ddba6922489d8529912d927970fa04a9f0",
+  "search.log": "2c2358e39ab3155ae8994ce502e3e7536684ab20879f89c7ad60ecc9e8291655",
+  "sources/autoresearch/experiments/blake3-rejection-fixture/build.zig": "f5197a4f0a9b307f0907aee0542bd6c0e6f369612f6bbde18f1952085d7c6c9c",
+  "sources/autoresearch/experiments/blake3-rejection-fixture/main.zig": "85fa3e2f88c8ed873889efe7838772399ed02038fda809ece6d50b46d56d65aa",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness_test.zig": "3e10ec9a80bc46cb3a0fe28ad08b419072a140b530fdd87684bbd2e1d5cdde11",
+  "sources/src/frontends/riscv/recursion/air/blake3_rejection_fixture.zig": "ce8d7969e36603d565859f5755a96bd31ba466e8f31f604b27eecbff887590dd",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig": "2538b0065202ec43cbbcd5c7aa1a056c6a190a983252d4e0462507b024b1a996",
+  "tests.log": "d1c540baa66d7117e4d2f46aed1921a25b8dccd5e681972fc41b454d0a952ccc"
+}

@@ -16,6 +16,18 @@ pub const QuotientOpsError = error{
 pub const ColumnEvaluation = struct {
     log_size: u32,
     values: []const M31,
+    /// Internal retained PCS representation. Input/pointwise consumers still
+    /// require validate(); only coefficient-aware stages accept this storage.
+    coefficient_values: ?[]const M31 = null,
+
+    pub fn validateRetained(self: ColumnEvaluation) QuotientOpsError!void {
+        if (self.coefficient_values) |coefficients| {
+            const expected = try checkedPow2(self.log_size);
+            if (self.values.len != 0 or coefficients.len < 2 or
+                !std.math.isPowerOfTwo(coefficients.len) or coefficients.len > expected)
+                return error.InvalidColumnLength;
+        } else try self.validate();
+    }
 
     pub fn validate(self: ColumnEvaluation) QuotientOpsError!void {
         const expected_len = try checkedPow2(self.log_size);

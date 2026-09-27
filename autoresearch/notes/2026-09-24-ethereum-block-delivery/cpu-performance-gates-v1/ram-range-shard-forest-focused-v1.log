@@ -1,0 +1,46 @@
+1/16 block_v5_ram_range_forest_test_root.test.RAM range forest qualification imports...OK
+2/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: minimum ordered fanin4 topology for empty and carry edges...OK
+3/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: independent shards preserve u64 aggregate request census...OK
+4/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: every topology allocation failure rolls back ownership...OK
+5/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: topology resource and original ordinal failures are strict...OK
+6/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: all17 requester planes propagate and close only in own shard...OK
+7/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: final PAGE signs and transition stay exact and open...OK
+8/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: scalar symbolic original shard conservation parity...OK
+9/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: every symbolic shard allocation failure releases ownership...OK
+10/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: no external descendant supplier or complete block authority...OK
+11/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: actual original child node and final fresh producer bodies retained only...OK
+12/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: original admissions graph and immutable local recipe identity...FAIL (BuilderAlreadyActive)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:126:26: 0x1003c8fcf in finish (root)
+        if (self.active) return error.BuilderAlreadyActive;
+                         ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/block_v5_ram_range_forest_graph_v1.zig:140:19: 0x100760a1b in prepare (root)
+    var circuit = try builder.finish();
+                  ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/block_v5_ram_range_forest_test_v1.zig:354:17: 0x101730f67 in authority (root)
+    var graph = try @import("air/block_v5_ram_range_forest_graph_v1.zig").prepare(a, &public);
+                ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/block_v5_ram_range_forest_test_v1.zig:380:5: 0x1017323c7 in test.RAM range forest: original admissions graph and immutable local recipe identity (root)
+    try authority(std.testing.allocator);
+    ^
+13/16 recursion.block_v5_ram_range_forest_test_v1.test.RAM range forest: every original admission and node graph allocation failure releases owners...FAIL (BuilderAlreadyActive)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:126:26: 0x1003c8fcf in finish (root)
+        if (self.active) return error.BuilderAlreadyActive;
+                         ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/block_v5_ram_range_forest_graph_v1.zig:140:19: 0x100760a1b in prepare (root)
+    var circuit = try builder.finish();
+                  ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/block_v5_ram_range_forest_test_v1.zig:354:17: 0x101730f67 in authority (root)
+    var graph = try @import("air/block_v5_ram_range_forest_graph_v1.zig").prepare(a, &public);
+                ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:1137:9: 0x1017324ab in checkAllAllocationFailures__anon_158267 (root)
+        try @call(.auto, test_fn, args);
+        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/block_v5_ram_range_forest_test_v1.zig:383:5: 0x1017327c7 in test.RAM range forest: every original admission and node graph allocation failure releases owners (root)
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, authority, .{});
+    ^
+14/16 air.memory_commitment.poseidon2_air.test_0...OK
+15/16 air.lookups.tables.mod.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+14 passed; 0 skipped; 2 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-ram-range-shard-forest-focused-v1 --seed=0xded4acb5

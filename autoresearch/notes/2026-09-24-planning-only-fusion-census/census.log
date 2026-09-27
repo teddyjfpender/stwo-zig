@@ -1,0 +1,20 @@
+test-blake3-planning-census
++- Planning census guard
+   +- run test stderr
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_RESIDUAL_FUSION_CENSUS lane=1500 multiply=2177 linear=790 inverse=52 quotient_accumulations=0 prelinear_products=125 prelinear_hidden_rows=125 prelinear_add=1 prelinear_sub=122 prelinear_neg=2 prelinear_both=0 candidate_only=true
+BLAKE3_ARITHMETIC_CENSUS lane=1500 nodes=6412 multiply=3368 linear=1981 inverse=52 dot4=41 fma=1027 removable_rows=1314
+BLAKE3_RESIDUAL_FUSION_CENSUS lane=1502 multiply=12676 linear=8552 inverse=842 quotient_accumulations=210 prelinear_products=3203 prelinear_hidden_rows=3203 prelinear_add=26 prelinear_sub=3177 prelinear_neg=0 prelinear_both=0 candidate_only=true
+BLAKE3_ARITHMETIC_CENSUS lane=1502 nodes=225360 multiply=88393 linear=84269 inverse=842 dot4=16476 fma=9813 removable_rows=125145
+BLAKE3_RESIDUAL_FUSION_CENSUS lane=1504 multiply=52168 linear=13581 inverse=1260 quotient_accumulations=0 prelinear_products=3501 prelinear_hidden_rows=3501 prelinear_add=0 prelinear_sub=3501 prelinear_neg=0 prelinear_both=0 candidate_only=true
+BLAKE3_ARITHMETIC_CENSUS lane=1504 nodes=199436 multiply=110745 linear=72158 inverse=1260 dot4=2520 fma=48497 removable_rows=66137
+BLAKE3_PCS_QUERY_FUSION_CENSUS nodes=225360 query_inputs=46060 single_use=36260 shared=9800 dot4=16476 eligible=8610 scope=pre_lowering_graph_candidates
+BLAKE3_ARITHMETIC_CENSUS total_rows=363068 removable_rows=192596 removed_relation_events=385192 scope=graph_match_census
+CANONICAL_PLANNING_CENSUS child_verified=true queries=70 pow_bits=26 parent_emitted=false parent_proved=false
+
+Build Summary: 4/4 steps succeeded; 8/8 tests passed
+test-blake3-planning-census success
++- Planning census guard success
+   +- run test 8 passed 10s MaxRSS:341M
+      +- compile test ReleaseSafe native cached 76ms MaxRSS:35M
+

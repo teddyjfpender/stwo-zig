@@ -1,0 +1,7 @@
+1/6 block_v5_range16_recursive_test_root.test_0...OK
+2/6 prover.block_v5_range16_recursive_test_v1.test.range recursion: exact CPU OODS quotient equals typed symbolic equations and rejects sum count previous and split chunk mutations...OK
+3/6 prover.block_v5_range16_recursive_test_v1.test.range recursion: equation graph construction failures release all owned circuit and arena state...OK
+4/6 prover.block_v5_range16_recursive_test_v1.test.range recursion: independent shard roster config and fixed geometry admit before capture and allocation failures unwind...OK
+5/6 prover.block_v5_range16_recursive_test_v1.test.range recursion: recorder replays original B5SS universal word suffix and every shard claim framing byte...OK
+6/6 prover.block_v5_range16_recursive_test_v1.test.range recursion: reusable statement bus changes value identity and rejects proof-policy or public closure substitution...OK
+All 6 tests passed.

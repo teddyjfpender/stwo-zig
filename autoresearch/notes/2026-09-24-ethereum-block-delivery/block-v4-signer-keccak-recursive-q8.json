@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-25",
+  "scope": "One Ethereum-SHA-profile signer and Keccak segment; fresh shared sorted-memory core, diagnostic recursive leaf, and exact singleton outer root",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic_q8_pow0"},
+  "verification": {
+    "fresh_shared_core": true,
+    "fresh_recursive_leaf_and_exact_outer": true,
+    "canonical_complete_receiver": false,
+    "tests_passed": 8
+  },
+  "memory_events": 103,
+  "opcode_events": 9,
+  "external_events": {"signer": 43, "keccak": 51},
+  "proof_bytes": {"recursive_leaf": 151867, "recursive_exact_outer": 132954},
+  "timing_ns": {"recursive_leaf_prove": 5966069667, "recursive_exact_outer_prove": 2443780042},
+  "memory": {"tracked_recursion_peak_live_bytes": 3755264283, "whole_process_peak_bytes": null},
+  "fixture_limits": [
+    "This is an explicit diagnostic q8/PoW0 recursive path, not canonical block security.",
+    "The q70/PoW26 complete receiver qualification is a separate pending run.",
+    "This is a small signer/Keccak guest, not an Ethereum block or throughput measurement."
+  ],
+  "command_filter": "block-v4 signer Keccak q8 core recursively verifies leaf and exact root"
+}

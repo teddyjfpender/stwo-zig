@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "passed": true,
+  "test_count": 12,
+  "scope": "Nonproving legacy/direct scalar and sample/pack schedule parity, genuine graph evaluation, mutation/immutable inventory/matcher ownership checks and every allocation failure; actual canonical payload plus native/execution/owned/borrowed parent preparation body generation. No child, recursive or STARK proof, guest, device or segment execution.",
+  "stark_proved": false,
+  "segment_executed": false,
+  "recursive_proved": false,
+  "end_to_end_performance_measured": false,
+  "log_sha256": "98599cb1f799f71da1a359322937b5d5da14a849155dd80751d6df9b89faddb7",
+  "source_sha256": {
+    "src/frontends/riscv/block_v5_recursive_scalar_columns_test_root.zig": "da5d198f4210602bc05c653c6ee514676c0e599813b22448f0eb3c472ca4f6a0",
+    "src/frontends/riscv/block_v5_recursive_parent_codegen_test_root.zig": "ff91b5ce41921d4e47ae7cb2b5a64bfdb75bf7376189fc61a196adb4d231ca87",
+    "src/frontends/riscv/recursion/air/blake3_execution_sample_columns_test.zig": "2d371f5d722e33ecbfa9dac16aaae916814e0f5f2a2e315ac042d4a46892cc16",
+    "src/frontends/riscv/recursion/air/blake3_execution_sample_links.zig": "07d6de5e6fa52394849f7a25773643c269754bb8da125e0fc20f9d5cd2edc98f",
+    "src/frontends/riscv/recursion/air/blake3_execution_payloads.zig": "601ffcb3cc047b65c79de07cbc77d6c5b0e3bece98a6c634086de70065c46b4d",
+    "src/frontends/riscv/recursion/air/blake3_execution_parent_sources.zig": "1448700403737b0f0c9865353d92c9a7cdc14fc33355817e783f16c64f8ce7d2",
+    "src/frontends/riscv/recursion/air/blake3_direct_source_columns_v1.zig": "649c97cbab90afe33116da62457545edb623d01426652b7780b72030879a4114",
+    "src/frontends/riscv/recursion/air/blake3_direct_source_columns_test.zig": "ab41fdcb084bd84dcb26a71f7470226319c955bf8f1767d76b118cbe39adff75",
+    "src/frontends/riscv/recursion/air/blake3_recursive_column_rows_v1.zig": "924c789a7d4865ff7670b0d6ab898f4fd60ba431325cb5896043e81b613504dc",
+    "src/frontends/riscv/recursion/air/blake3_recursive_column_inventory_test.zig": "a5104e63e76f7a2285d9865b9fae9ca929b65fc30c7c85248b4602404046214e",
+    "src/frontends/riscv/recursion/air/blake3_parent_input_inventory.zig": "ebd8c6c8319ba5ffc90fdabeac45164a131cd36de4106e8cb609f20fdd775c78",
+    "src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig": "3530c94eeeb5cadf97550571f1ef0ae2bd23c833e05dfa1cefa95cab906d5a12",
+    "src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig": "73037da8afb813bbecb1928b9564c311cbee1a9029179cb794c95a30cafcd40a",
+    "src/frontends/riscv/recursion/air/native_pcs_fusion_rows.zig": "7f22de615db4b797dd78714a23e2cbe575d7f8b843e425d128cc02c820b3f79e",
+    "src/frontends/riscv/recursion/air/blake3_direct_cohort_columns_v1.zig": "55f6ad844e8f7f6be49905a872727838e02c417f9d1e522184f9e9ab9b3983db"
+  }
+}

@@ -1,0 +1,35 @@
+test-recursive-fused-pcs-opening
++- Fused PCS opening guard
+   +- run test stderr
+NATIVE_PADDING air=0 live_events=52 implicit_columns_equal=false
+NATIVE_PADDING air=1 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=2 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=3 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=4 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=5 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=6 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=7 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=8 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=9 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=10 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=11 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=12 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=13 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=14 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=15 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=16 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=17 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=18 live_events=0 implicit_columns_equal=true
+NATIVE_PADDING air=19 live_events=0 implicit_columns_equal=true
+test-recursive-fused-pcs-opening
++- Fused PCS opening guard failure
+error: the native recursion proof root compiled 13 tests; expected exactly 12
+
+Build Summary: 2/4 steps succeeded; 1 failed; 13/13 tests passed
+test-recursive-fused-pcs-opening transitive failure
++- Fused PCS opening guard failure
+   +- run test 13 passed 562ms MaxRSS:137M
+      +- compile test ReleaseSafe native success 16s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/5c06c84e3efab6c575bdc429ed891274/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x85e9465f -Z1dee56edf05f623d --maxrss 25769803776 -j1 test-recursive-fused-pcs-opening -Doptimize=ReleaseSafe --summary all

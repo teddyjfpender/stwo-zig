@@ -1,0 +1,40 @@
+BLOCK_V5_COLLECT segment=1/3 cycles=6 memory_events=11
+BLOCK_V5_COLLECT segment=3/3 cycles=17 memory_events=132
+BLOCK_V5_COLLECT sorted_events=132 lookup_groups=1 global_roots_started=true
+BLOCK_V5_DRIVER collected=true segments=3 memory_instances=1 base_files=21 collection_ms=478
+BLAKE3_NATIVE_QUERY_FUSION groups=1120 removed_scalars=4480
+BLAKE3_NATIVE_FUSION dot4=3608 fma=6207 arithmetic_rows=32292
+BLOCK_V5_PROVE native_and_recursive_leaf=1/3
+BLAKE3_NATIVE_QUERY_FUSION groups=770 removed_scalars=3080
+BLAKE3_NATIVE_FUSION dot4=2454 fma=3903 arithmetic_rows=25663
+BLAKE3_NATIVE_QUERY_FUSION groups=2030 removed_scalars=8120
+BLAKE3_NATIVE_FUSION dot4=6492 fma=4830 arithmetic_rows=32831
+BLOCK_V5_PROVE native_and_recursive_leaf=3/3
+BLOCK_V5_DRIVER base_and_recursive_leaves_published=true proving_ms=14432 proof_files=21
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=35715 fma=61615 arithmetic_rows=198638
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=35715 fma=61609 arithmetic_rows=198638
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36963 fma=76516 arithmetic_rows=232972
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=35717 fma=61391 arithmetic_rows=198005
+BLOCK_V5_DRIVER exact_forest_published=true forest_ms=66725 fresh_complete_receiver_started=true
+       82.44 real       249.82 user         6.97 sys
+         10785488896  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             8195736  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  71  voluntary context switches
+               61309  involuntary context switches
+       3938537554326  instructions retired
+       1086406794124  cycles elapsed
+         10783469232  peak memory footprint

@@ -1,0 +1,18 @@
+1/17 block_v5_recipe_production_unit_test_root.test.block-v5 selected production independent root policy matches executable...OK
+2/17 block_v5_recipe_production_unit_test_root.test_0...OK
+3/17 prover.block_v5_x0_selected_production_unit_test.test.block-v5 selected production recipe rejects native caller window and source relabeling...OK
+4/17 prover.block_v5_x0_selected_production_unit_test.test.block-v5 selected production mixed caller real roots staged warm leases and register window agree...OK
+5/17 prover.block_v5_x0_selected_production_unit_test.test.block-v5 selected production cold warm driver codec and global bodies generate without invocation...OK
+6/17 air.guest_precompile.sha256_coefficient_bounds.test.block-v5 selected production SHA bounds use authenticated local-zero multiplicities...OK
+7/17 air.lookups.tables.mod.test_0...OK
+8/17 prover.block_execution_external_trace_v2.test_0...OK
+9/17 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/17 prover.block_v5_committed_trace_column_v1.test_0...OK
+11/17 runner.mod.test_0...OK
+12/17 runner.decode.test_0...OK
+13/17 air.memory_commitment.poseidon2_air.test_0...OK
+14/17 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+15/17 air.semantic_eval.test_0...OK
+16/17 air.lookups.tables.source_ingest.test_0...OK
+17/17 diagnostics.mod.test_0...OK
+All 17 tests passed.

@@ -1,0 +1,22 @@
+src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig:197:28: error: 'memory' is not marked 'pub'
+    const hasher = Defaults.memory;
+                   ~~~~~~~~^~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_batch_defaults_v1.zig:6:1: note: declared here
+var memory: Tree.TreeHasher = undefined;
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    recipes: src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig:213:127
+    emitOperation__anon_36819: src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig:240:29
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig:244:36: error: 'memory' is not marked 'pub'
+            const hasher = Defaults.memory;
+                           ~~~~~~~~^~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_batch_defaults_v1.zig:6:1: note: declared here
+var memory: Tree.TreeHasher = undefined;
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig:281:28: error: 'memory' is not marked 'pub'
+    const hasher = Defaults.memory;
+                   ~~~~~~~~^~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_batch_defaults_v1.zig:6:1: note: declared here
+var memory: Tree.TreeHasher = undefined;
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

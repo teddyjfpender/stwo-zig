@@ -61,6 +61,67 @@ uint64_t stwo_zig_metal_recommended_max_working_set_size(void *runtime_ptr) {
     }
 }
 
+bool stwo_zig_metal_qm31_resident_to_coordinates_v1(
+    void *runtime_ptr, void *source_ptr, void *destination_ptr, uint32_t value_count,
+    double *gpu_milliseconds, char *error_message, size_t error_message_len
+) {
+    if (runtime_ptr == NULL || source_ptr == NULL || destination_ptr == NULL || value_count == 0u) return false;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        id<MTLBuffer> source = (__bridge id<MTLBuffer>)source_ptr;
+        id<MTLBuffer> destination = (__bridge id<MTLBuffer>)destination_ptr;
+        size_t bytes = (size_t)value_count * 16u;
+        if (source.length != bytes || destination.length != bytes) return false;
+        id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
+        id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
+        if (command == nil || encoder == nil) return false;
+        [encoder setComputePipelineState:runtime.qm31ToCoordinates];
+        bind_qm31_coordinate_kernel(encoder, source, destination, value_count, destination, source, 0u, 0u);
+        NSUInteger width = MIN(runtime.qm31ToCoordinates.maxTotalThreadsPerThreadgroup, runtime.qm31ToCoordinates.threadExecutionWidth * 8u);
+        [encoder dispatchThreads:MTLSizeMake(value_count, 1u, 1u) threadsPerThreadgroup:MTLSizeMake(width, 1u, 1u)];
+        [encoder endEncoding]; [command commit]; [command waitUntilCompleted];
+        if (command.status != MTLCommandBufferStatusCompleted) { write_error(error_message,error_message_len,@"Resident QM31 conversion failed"); return false; }
+        if (gpu_milliseconds) *gpu_milliseconds = (command.GPUEndTime-command.GPUStartTime)*1000.0;
+        return true;
+    }
+}
+
+bool stwo_zig_metal_fri_resident_fold_v1(
+    void *runtime_ptr,void *source_ptr,void *destination_ptr,void *inverse_ptr,
+    uint32_t count,uint32_t kind,uint32_t initial,uint32_t step,bool generate,
+    const uint32_t *alpha,double *gpu_milliseconds,char *error_message,size_t error_message_len
+) {
+    if (!runtime_ptr || !source_ptr || !destination_ptr || !inverse_ptr || !alpha || count<2u || (count&(count-1u)) || kind>1u) return false;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime=(__bridge StwoZigMetalRuntime *)runtime_ptr;
+        id<MTLBuffer> source=(__bridge id<MTLBuffer>)source_ptr;
+        id<MTLBuffer> destination=(__bridge id<MTLBuffer>)destination_ptr;
+        id<MTLBuffer> inverse=(__bridge id<MTLBuffer>)inverse_ptr;
+        uint32_t values=count>>1u;
+        if(source.length!=(size_t)count*16u || destination.length!=(size_t)values*16u || inverse.length!=(size_t)values*4u) return false;
+        id<MTLComputePipelineState> pipeline=kind==0u?runtime.friFoldCircle:runtime.friFoldLine;
+        id<MTLCommandBuffer> command=[runtime.queue commandBuffer];
+        id<MTLComputeCommandEncoder> encoder=[command computeCommandEncoder];
+        if(!pipeline || !command || !encoder) return false;
+        if(generate) {
+            encode_fri_inverse_domain(runtime,encoder,inverse,0u,values,initial,step,kind==0u?2u:1u);
+            [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
+        }
+        [encoder setComputePipelineState:pipeline];
+        [encoder setBuffer:source offset:0u atIndex:0];
+        [encoder setBuffer:inverse offset:0u atIndex:1];
+        [encoder setBytes:alpha length:16u atIndex:2];
+        [encoder setBuffer:destination offset:0u atIndex:3];
+        [encoder setBytes:&values length:4u atIndex:4];
+        NSUInteger width=MIN(pipeline.maxTotalThreadsPerThreadgroup,pipeline.threadExecutionWidth*8u);
+        [encoder dispatchThreads:MTLSizeMake(values,1u,1u) threadsPerThreadgroup:MTLSizeMake(width,1u,1u)];
+        [encoder endEncoding]; [command commit]; [command waitUntilCompleted];
+        if(command.status!=MTLCommandBufferStatusCompleted) { write_error(error_message,error_message_len,@"Resident FRI fold failed"); return false; }
+        if(gpu_milliseconds) *gpu_milliseconds=(command.GPUEndTime-command.GPUStartTime)*1000.0;
+        return true;
+    }
+}
+
 bool stwo_zig_metal_qm31_to_coordinates(
     void *runtime_ptr, const uint32_t *source, uint32_t value_count,
     uint32_t *destination, double *gpu_milliseconds,

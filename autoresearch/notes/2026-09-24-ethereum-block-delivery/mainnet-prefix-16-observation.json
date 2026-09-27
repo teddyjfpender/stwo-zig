@@ -1,0 +1,14 @@
+{
+  "scope": "verified 16-leaf prefix of the 1024-leaf mainnet job; not a complete block root",
+  "measurement_directory": "measurements-mainnet-24628607-sha-canonical-262144",
+  "verified_segments": 16,
+  "planned_segments": 1024,
+  "retained_frontier_nodes": 1,
+  "tracked_peak_bytes": 21568911347,
+  "elapsed_ns": 1691919184958,
+  "completed_recursive_jobs_in_prefix": 31,
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "full_block_root_verified": false,
+  "observation_unix_ns": 1790318740334218000
+}

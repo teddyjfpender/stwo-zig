@@ -1,0 +1,10 @@
+1/9 block_v5_native_capacity_fixed_basis_test_root.test_0...OK
+2/9 prover.block_v5_native_capacity_fixed_basis_test.test.capacity fixed admission exact retained bound rejects columns logs bytes and invalid config...OK
+3/9 prover.block_v5_native_capacity_fixed_basis_test.test.capacity fixed lease cold warm transcripts and main roots agree with fresh fixed reconstruction...OK
+4/9 prover.block_v5_native_capacity_fixed_basis_test.test.capacity fixed lease rejects profile config roster root log and stale owner mismatches...OK
+5/9 prover.block_v5_native_capacity_fixed_basis_test.test.capacity fixed lease outlives cache owner with coefficient views and independent channels...OK
+6/9 prover.block_v5_native_capacity_fixed_basis_test.test.capacity fixed lease every allocation failure preserves cache and acquired tree ownership...OK
+7/9 prover.block_v5_native_capacity_fixed_basis_test.test.capacity fixed admission cached and uncached real producer and independent receiver bodies compile only...OK
+8/9 air.semantic_eval.test_0...OK
+9/9 air.memory_commitment.poseidon2_air.test_0...OK
+All 9 tests passed.

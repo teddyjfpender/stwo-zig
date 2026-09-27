@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "status": "source_only_unqualified_revision_3",
+  "protocol": "B5CF v1",
+  "source_date": "2026-09-27",
+  "root": "src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig",
+  "safe_filter": "capacity fused",
+  "authored_checks": 17,
+  "note": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-fused-source-v1.md",
+  "files": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_artifact_receiver_v1.zig",
+      "sha256": "60322f075d296e377c47f28f6b9ec6ebd0ebd16833b0a9b3e11d217d4bf390c8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig",
+      "sha256": "49b178f03bd131e2257620c2b59ca36b0dc4f68439fcec2cfa8f7a5879cab825"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_component_v1.zig",
+      "sha256": "9423bf824a75147c8e8ec0fa76f2378ef527ce3ae7552750e8bc0fc9e687cf17"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_extraction_test_v1.zig",
+      "sha256": "78126c97c4ebbfb22d0f50465a3adccd31af685302b23581fc953301aad2834b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_proof_v1.zig",
+      "sha256": "ddcc163caf00edc7af6c544f9805e16d9af067db375819ff8dc0d977ebfd6007"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_receiver_v1.zig",
+      "sha256": "3f2c33700dec25dea98a2b32b5a7ad30c02ef17fb49499904003d0d034587d22"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig",
+      "sha256": "922e24feb49c0493e2d811b5d6adfdfeb7b1723163214d37917920afdbcfcdfe"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_stage_v1.zig",
+      "sha256": "f69b231137dec365bcc31b6141bbfe87a4ea00e926239caca2bbf845c20f0a07"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_store_v1.zig",
+      "sha256": "da2a6992c0a25042306a9c15c8504139b0505807280cd9b53be88b773ecd482c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_fixture_v1.zig",
+      "sha256": "3776d4827590450c7d46a31552fe492112deb3a43211d70f1e103c04562f59a3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_test_v1.zig",
+      "sha256": "eddfac7488ce4c861a0d4d1dfc8bd2f195d0e311c6c6d70541d8f4bf861310c6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_unit_test.zig",
+      "sha256": "09791542998f2a612610bd30981ca9d3e7dc7dcc1bf92324c5ee23cb54d8f472"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig",
+      "sha256": "fe70d48bfc92082f17e8f525db8ce27ffd95788107758e57eff70e5537a18d55"
+    },
+    {
+      "path": "src/frontends/riscv/air/extract/runtime_program.zig",
+      "sha256": "cf7d3c19422a6d0bc1703f8639d41261d07d38f60cc642f4f32a76cf38818123"
+    },
+    {
+      "path": "src/frontends/riscv/air/extract/model.zig",
+      "sha256": "cd2174e0d94e4175ef65f2394762189ca15c7ad90c03eb24c304eabb07329ffe"
+    }
+  ],
+  "source_revision": 3,
+  "previous_snapshot": "native-capacity-fused-source-revision2-v1.json",
+  "previous_snapshot_sha256": "497e3bfdc9653bad5834efc5beef6bbf5502535a94976f41a9ee6224b16bc59c",
+  "corrections": [
+    "Policy.expected fully derived value renamed to derived",
+    "receipt range accumulation only iterates mutable allocated slice when present; zero memory stays null/no allocation",
+    "all four runtime scalar extraction factories use recoverable arenas",
+    "symbolic column naming checks latched allocation errors before node dereference",
+    "direct/lookup ownership adapters reject failed graphs before copying or publishing"
+  ],
+  "agent_executed_builds_tests_proofs_guests_devices_benchmarks": false,
+  "original_snapshot": "native-capacity-fused-source-original-v1.json",
+  "dependencies": [
+    {
+      "path": "src/frontends/riscv/air/extract/symbolic.zig",
+      "sha256": "c8f54255347ad49034d88f5299ab5e51c5cc3dfab89b3f84e2326e223e43ccce",
+      "edited_in_this_revision": false
+    }
+  ],
+  "shared_original_dependencies": [
+    {
+      "path": "src/frontends/riscv/air/extract/runtime_program.zig",
+      "sha256": "4de713f5a868c087c143ec95541a7273913445268d5a7c461b16ae4b3286a55e",
+      "basis": "unchanged HEAD source before this bounded allocation fix"
+    },
+    {
+      "path": "src/frontends/riscv/air/extract/model.zig",
+      "sha256": "3229ac2f1b1add8a785faff734e09d71b9a16d1bb3f2c7e9a7fc8c597609a78b",
+      "basis": "unchanged HEAD source before this bounded allocation fix"
+    }
+  ]
+}

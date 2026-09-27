@@ -1,0 +1,10 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_ETHEREUM_WITNESS_READY external_retirements=2
+BLAKE3_ETHEREUM_WITNESS keccak=1 signer=1 external_retirements=2 legacy_commitments=0 base_protocol_rejects=true relations_closed=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 4m MaxRSS:12G
+

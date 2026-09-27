@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/bad-parity.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/bad-parity.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-bad-parity-execute-qualification.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-bad-parity-execute-qualification.json",
+    "execute"
+  ],
+  "side": "local",
+  "mode": "execute",
+  "requested_workers": 16,
+  "timeout_seconds": 900,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "31aaaad819aaf960512de23084206ce62e1467d09dafd0739b3bdab06e6602fa",
+    "guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo": "988e26742a18c9d7fd2c073a0fa3b40fa80eeb14d30a1a7eb60486abad478e0a",
+    "fixtures/bad-parity.input": "1f788219d281f410baac1403fb578358d6b707c73b75c74597a5dbf9e68d6149",
+    "fixtures/bad-parity.expected": "834a709ba2534ebe3ee1397fd4f7bd288b2acc1d20a08d6c862dcd99b6f04400"
+  },
+  "swap_before": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:39 remaining present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 0.02382162498543039,
+  "swap_after": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:39 remaining present: true\n",
+  "output_checked": true
+}

@@ -1,0 +1,20 @@
+{
+  "README.md": "954a28266e8f6be1d1409b33b66b1777764dc0c7d9d4e93d981c547d8ec9c5ec",
+  "final-qualification.log": "47b0c45e32afb2bac76ad1f1680d2056c03a7f01b26cd9803ea3eed6eda970b4",
+  "initial-qualification.log": "7f8573f1a46b0fefa93f6cc1875a162e0c6cc7a926eec4b319184502cb0bba8e",
+  "input-identity.log": "37025bbd2b8796dae04ad37c96c049d313b204d671b9239effaa7e662cdd54d8",
+  "sorted-identity.log": "2a95b96a366a534ee84b1708363de42d58a4718ddf4fe49615695245bd457ea2",
+  "sources/autoresearch/notes/20260922-readonly-consistency-problem-match.md": "fc0b46cef970d9d9c6d9c7b0228dcfe54a539307a79dd3e4c7c9c5b493d12b75",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "bc66cd1882d97b8839f3e8bcc06c9d7a4ffdd4e4206cba4fb6795f6ae48568da",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "4d0fc681c0a7c9ab545a7f9ae444e47c3bd616e2d50c7463bf77197e8021fe37",
+  "sources/src/frontends/riscv/recursion/air/blake3_boundary.zig": "19d691e513d0385221a2abf668e523643224e27682ec3bb354f63a4afa915afe",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "a449d5b620ceed55204b8bb143bd07fd98a8bf36663608b772a12e28b03ba68b",
+  "sources/src/frontends/riscv/recursion/air/blake3_opening_inputs.zig": "684815de5eb50f8403b1694eee2f6b171fe999c197660c6042fdbdf5e3242d14",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "5bc007f4fef81d5395ed8c331038d2b8df1ae11a5e8ce385581028cb43f779d6",
+  "sources/src/frontends/riscv/recursion/air/pcs_deep_circuit_build.zig": "2735e6680c663a9455872b30df43c1e152785a4742047edd55b2208bfc799013",
+  "sources/src/frontends/riscv/recursion/air/readonly_consistency.zig": "597ff78ee8ad0d0afcc7ba4f2fe8f3634516a570fa56d2a9f1bf341958568c79",
+  "sources/src/frontends/riscv/recursion/air/readonly_consistency_test.zig": "9f4a3b9f40ea6263240d4b2e9d3c6511a7af47035625bc70258cad5d29f7e22e",
+  "sources/src/frontends/riscv/recursion/air/readonly_input.zig": "ce8ad184ba9fc5d2413d067c86bc56e946767e8da11f29d067d7e28788c0647f",
+  "sources/src/frontends/riscv/recursion/air/relation_effect.zig": "9ef5dadb8ea4c40b52b1c6963f7706ae1a60af25a5f3ab359b0b1efd4607c6d6",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "d9d10eb82ce2fabc18fc1286d9b50fd7f9b9ae60c3d2610012982ddade9e9f4a"
+}

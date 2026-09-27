@@ -1,0 +1,6 @@
+Now drawing from 'Battery Power'
+ -InternalBattery-0 (id=35192931)	3%; discharging; 0:07 remaining present: true
+	Battery Warning: Early
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded

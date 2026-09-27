@@ -1,0 +1,17 @@
+{
+  "source_archive": "sha-combined-session-source.tar.gz",
+  "source_sha256": "885fdae1485817b418c090e3f7d81e84f12a2568326c95bf6ebff0df9d605a3d",
+  "source_files": {
+    "src/frontends/riscv/runner/guest_precompile/ethereum_sha.zig": "6f9770d4bca56b9f6b37bd5e59b7cba0a1bbbd67935db596671d621cc0a167b0",
+    "src/frontends/riscv/runner/guest_precompile/ethereum_v1.zig": "c6a1279ed9ba1c03d330f44a388f2f558540cf496bc3aec8dd5ffd77b7f804e2",
+    "src/frontends/riscv/air/guest_precompile/sha256_memory_proof_test.zig": "bd82a1899753f913ceb68470c4ed696dcb9f58cc968253fb719b3535c6193dd6",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py": "f902fdea8e127862621c73b89bc662d9e211a16ccdb8e62ba5f6074498527dd4"
+  },
+  "base_snapshot": "sha-memory-foundation-qualified.json",
+  "standalone_proof_log": "test-sha-memory-stark-4.log",
+  "standalone_proof_elapsed_ns": 24772465750,
+  "combined_session_log": "test-sha-combined-session-3.log",
+  "mixed_execution_and_allocation_failures_passed": true,
+  "production_profile_active": false,
+  "combined_production_leaf_proof_verified": false
+}

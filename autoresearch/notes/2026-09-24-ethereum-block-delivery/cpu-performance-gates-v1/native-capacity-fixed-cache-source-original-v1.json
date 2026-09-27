@@ -1,0 +1,68 @@
+{
+  "schema": "source-candidate-v1",
+  "status": "source-only-unqualified",
+  "owned_sources_frozen": true,
+  "root": "src/frontends/riscv/block_v5_native_capacity_fixed_cache_unit_test_root.zig",
+  "filter": "capacity fixed cache:",
+  "authored_tests": 7,
+  "command_for_root_only": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_native_capacity_fixed_cache_unit_test_root.zig 'capacity fixed cache:'",
+  "executed_here": [],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fixed_cache_v1.zig",
+      "sha256": "618a1aa59239efe4ba67a0b8eb418dea3aab04d44866106120df99cec8b96496"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fixed_cache_test_v1.zig",
+      "sha256": "faef9cd6ffe2c2089d41170aba86047ca60cf255b1812bd17631f7c16c4b4c81"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fixed_cache_unit_test_root.zig",
+      "sha256": "2269884ecc963ee9343893e5904cbb64574d0aeac4ad50810b5b1d09f6890124"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_collect_impl_v1.zig",
+      "sha256": "86cc70fc37f0fde79db18aac430f2977f49ffae9fb685596010f175ea2028d51"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fixed_basis_v1.zig",
+      "sha256": "f98d17d58599ad705bb6eef7c412b60e51b84f20d8d69c53f5631a1945043bd3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_protocol_v1.zig",
+      "sha256": "3d808a44a298b2c32ea56a2b859ff512845ad3df7e54d233b478ba913ca7f530"
+    },
+    {
+      "path": "src/prover/pcs/commitment_tree.zig",
+      "sha256": "84e12f093aaf78f0c1398a2de0919eae69fc41283953170e169e4d635a877f09"
+    }
+  ],
+  "api": {
+    "type": "block_v5_native_capacity_fixed_cache_v1.ForBackend(B).Cache",
+    "init": "init(allocator,Limits)!Cache",
+    "acquire": "acquire(allocator,shape,external,config,profile,?Expected)!?Lease",
+    "lease": "basis:*Basis; release()!void after all acquired PCS owners are destroyed",
+    "destroy": "Cache.deinit()!void; live token or real tree references reject teardown",
+    "metadata": "preflight(...Limits,?Expected)!?Request; caller must Request.deinit()"
+  },
+  "scope": [
+    "one shared cache-selection implementation; collector wired; staged source root-owned integration pending",
+    "original Basis.Limits preserved; zero/low admitted cache caps return null only after full geometry/config/expected admission validation",
+    "ptr/vtable allocator identity checked, including immutable shared tree owner",
+    "actual refcount==1 and serial generation token prevent eviction/release/deinit with physical leases",
+    "unconfigured legacy/capacity cold producer APIs unchanged"
+  ],
+  "nonproving_tests": [
+    "actual capacity/log/budget metadata, different counts under fixed geometry, expected identity mutations",
+    "exhaustive metadata/cold-path allocation failures with no partially published owner",
+    "disabled/low cache caps, wrong expected root/id/config, malformed source/caps, allocator and phase mismatch, generation overflow",
+    "genuine cache acquisition/release and collector function bodies retained without invocation"
+  ],
+  "remaining": [
+    "root staged-source adoption: retain optional Lease until prepared.deinit AND moved FirstRound scheme destruction",
+    "serial pure metadata/fault/body qualification; no actual cache commitment/lease/proof executed by this batch",
+    "genuine warm producer/receiver proof and default activation remain separately qualified obligations"
+  ]
+}

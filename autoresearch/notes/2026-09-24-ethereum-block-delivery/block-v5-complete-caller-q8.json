@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-26",
+  "status": "passed",
+  "security": { "queries": 8, "pow_bits": 0, "canonical": false },
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_full_caller_join_test_root.zig 'block-v5 complete caller SHA Keccak' 'block-v5 SHA universal memory tuples' 'block-v5 Keccak universal memory tuples' 'block-v5 signer universal memory tuples'",
+  "tests_passed": 13,
+  "allocator_teardown": "clean std.testing allocator",
+  "workload": { "sha_calls": 2, "keccak_calls": 1, "signer_calls": 0, "memory_events": 103, "memory_byte_requests": 1442, "rom_fetches_including_terminal": 4 },
+  "qualified": [
+    "Real release-ABI guest caller segment with independently pinned initial state after setup",
+    "Actual zero-opcode native STARK with genuine physical frame",
+    "Fresh caller arithmetic, program, state and shared-table proofs",
+    "Fresh packed36 sorted-memory and range proofs with RW/register endpoint sources",
+    "Private final global accounting closure without relaxed equations",
+    "Genuine reusable native recursive leaf and one-child exact outer, freshly received after global closure",
+    "SHA, Keccak and signer shared universal memory bridges match authentic caller events and preserve sorted transitions"
+  ],
+  "scope_exclusions": [
+    "Not an Ethereum block or a whole guest proof from reset",
+    "Signer regression is an authentic event check, not a complete signer bundle in this gate",
+    "Not canonical q70/PoW26 qualification",
+    "Not the production block driver",
+    "Not a single recursively compressed proof of all global families",
+    "No end-to-end timing or peak RSS measured"
+  ]
+}

@@ -19,7 +19,7 @@ test "framework backend export matches authenticated direct and relation plans" 
     }
 }
 
-fn exercise(comptime Air: type, definition: *const Air.Definition) !void {
+pub fn exercise(comptime Air: type, definition: *const Air.Definition) !void {
     const compiled = try direct.authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
     const plan = try bindings.Binding(Air).authenticate(definition);
     const parameter_count = Air.LOGICAL_INPUT_COUNT - Air.PHYSICAL_MAIN_COLUMN_COUNT - Air.PREPROCESSED_COLUMN_COUNT;

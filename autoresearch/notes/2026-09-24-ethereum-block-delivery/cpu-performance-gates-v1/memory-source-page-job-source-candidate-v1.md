@@ -1,0 +1,11 @@
+# Source PAGE job candidate v1
+
+Source-only, unqualified. Seven bounded behavioral fixtures and one root/body check each are ready for the root-owned serialized gate. No compiler, test, proof, guest, segment or device execution occurred in this batch.
+
+`ForBackend(B).Job.collect(a, dir, admitted, rawPlan, foldPlan, statelessReader, baseSeal, limits)` collects actual original raw/fold pages once, persists compact operands, checks actual fold census against the independently admitted plan, and seals the exact premix roster. One SHA, BLAKE and arithmetic setup lives per job. `publishNext(sink)` replays/recommits all six roots, computes witness claim proposals from actual cells, invokes the original unified PAGE prover, encodes its strict artifact, releases original producer/proof state, decodes and freshly verifies, then publishes the exclusive durable file. `requirePublished` means only every page was published.
+
+All page/setup/metadata/proof/decoder allocations use one SharedHostBudget. Job retains an identifiable caller budget, charges stable control allocations through an external reservation, and rejects teardown while setup/page leases are live. Owned metadata and aggregate operand/artifact byte limits are checked with overflow-safe arithmetic. Directory lifetime is borrowed; the input reader and whole-image buffers are retained only during collection. A failure after partial collection/publication leaves durable files for inspection but never grants completion or silently retries.
+
+Callbacks and SHA file pins are observational/integrity metadata. The independent PAGE/lane/range Join must take actual artifacts and freshly verify them. Existing challenge and original hash/core/table/source closures are used unchanged. The claim helper is a scalar witness proposal, never a verification receipt.
+
+The smallest driver insertion is after finalized first-pass sourcewriter pins and B5SS source seal: admit the exact source, plan raw/fold census independently, use the existing authenticated stateless reader, then collect and publish under the driver global shared budget. This opt-in driver route and durable Join loader are next; canonical default selection, actual proof execution and final recursive/global authority are still pending.

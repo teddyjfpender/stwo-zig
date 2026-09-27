@@ -1,0 +1,15 @@
+
+Build Summary: 12/12 steps succeeded; 9/9 tests passed
+test-blake3-protocol success
++- BLAKE3 protocol test guard success
+   +- run test 5 passed 533ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 9s MaxRSS:816M
+test-blake3-field-bytes-proof success
++- BLAKE3 field bytes proof guard success
+   +- run test 1 passed 3s MaxRSS:347M
+      +- compile test ReleaseSafe native success 21s MaxRSS:1G
+test-blake3-byte-route success
++- BLAKE3 byte route guard success
+   +- run test 3 passed 702ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:652M
+

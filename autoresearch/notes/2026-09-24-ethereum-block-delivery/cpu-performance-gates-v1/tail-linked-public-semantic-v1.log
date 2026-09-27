@@ -1,0 +1,6 @@
+src/frontends/riscv/recursion/block_v5_wide_public_windows_impl_v1.zig:238:27: error: local constant shadows declaration of 'word'
+                    const word = try std.math.add(u32, @intCast(self.input.prefix_count), try std.math.mul(u32, ordinal, 8));
+                          ^~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_impl_v1.zig:122:9: note: declared here
+        fn word(field: *const Fields.Fields, index: u32) ![4]Q {
+        ^~

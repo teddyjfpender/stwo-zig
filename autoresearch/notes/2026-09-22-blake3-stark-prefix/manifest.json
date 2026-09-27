@@ -1,0 +1,9 @@
+{
+  "README.md": "b2b18bf95bcea5512411940a9ad6f15578d7676c6ad37d557a1469cb5f85957a",
+  "sources/autoresearch/notes/20260922-blake3-stark-prefix-problem-match.md": "54c6c642d4433b62c33ad6005f2cce6614f7957c86fa1eecb3339fb2f9531f1f",
+  "sources/src/frontends/riscv/recursion/air/blake3_combined_fri_test.zig": "2161557d21a06746d8b44ed76fc1e91343d58ef53d667ef37cd3b05cd73d9f4e",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_transcript.zig": "2d76b2480e309f2d6ca94fda397f7f1a469a26947a78cddde2f946c1dfd7a607",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "fc77f186854e247a282f718949630bda28ecd126dd0831ce4f0d7b5be4d4a27a",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig": "d623b8c70390ce0e4cee077f1cc3447543b4eba4422043cb1607b67efff48d76",
+  "tests.log": "5026f0cb74817945dce96e10effeae81fa17e5906404e543b8e5ff6914803529"
+}

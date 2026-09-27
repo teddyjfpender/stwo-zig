@@ -1,0 +1,16 @@
+   Compiling eth-auth-common v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/common)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s
+     Running unittests src/lib.rs (target/debug/deps/eth_auth_common-d9b97112e0f50c23)
+
+running 2 tests
+test tests::reject_noncanonical_rlp_and_integer_encodings ... ok
+test tests::enforce_scalar_range_and_access_list_structure ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests eth_auth_common
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

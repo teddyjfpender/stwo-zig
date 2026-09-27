@@ -1,0 +1,82 @@
+{
+  "scope": "quotient row kernel only; excludes witness, recovery, LDE, commitments, FRI, PoW and recursive/global proving",
+  "complete_block": false,
+  "segment_proving_launched": false,
+  "optimization": "ReleaseFast -mcpu=native",
+  "trials_per_variant": 3,
+  "metric": "median",
+  "all_output_rows_verified": true,
+  "cpu": "Apple M5 Max",
+  "memory_bytes": 68719476736,
+  "logical_cpus": 18,
+  "zig_version": "0.15.2",
+  "variants": [
+    {
+      "rows": 32768,
+      "constraints": 82,
+      "main_columns": 36,
+      "interaction_columns": 68,
+      "scalar_median_ns": 60369291,
+      "packed_median_ns": 44951291,
+      "parallel_median_ns": 15716084,
+      "workers": 3,
+      "verified_all_rows": "true",
+      "scope": "quotient_rows_only",
+      "scalar_to_parallel_ratio": 3.8412425767131304,
+      "log": "word36-driver-kernel.log"
+    },
+    {
+      "rows": 32768,
+      "constraints": 63,
+      "main_columns": 27,
+      "interaction_columns": 68,
+      "scalar_median_ns": 54278250,
+      "packed_median_ns": 40063000,
+      "parallel_median_ns": 14214083,
+      "workers": 3,
+      "verified_all_rows": "true",
+      "scope": "quotient_rows_only",
+      "scalar_to_parallel_ratio": 3.8186248103377474,
+      "log": "word27-driver-kernel.log"
+    },
+    {
+      "rows": 32768,
+      "constraints": 63,
+      "main_columns": 27,
+      "interaction_columns": 68,
+      "scalar_median_ns": 55897334,
+      "packed_median_ns": 40515500,
+      "parallel_median_ns": 14350709,
+      "workers": 3,
+      "verified_all_rows": "true",
+      "scope": "quotient_rows_only",
+      "protocol_version": 4,
+      "fixed_columns": 12,
+      "scalar_to_parallel_ratio": 3.895092151892983,
+      "log": "word-v4-driver-kernel.log"
+    }
+  ],
+  "prior_word27_source_sha256": {
+    "src/frontends/riscv/air/block/word_memory_v5.zig": "ffe03169bec7d86d9a554cb889cd580b9a0a7696b05ce7e331600057494c89aa",
+    "src/frontends/riscv/air/block/word_memory_trace_v5.zig": "8ec0492e67bc5b19a04ec1167628a5305bef30bb27dfd57224f1d578290df572",
+    "src/frontends/riscv/prover/block_v5_word_memory_interaction_v1.zig": "2493ff75640f13623972e1d7653f0bf1710997e728ee476616421bdf22fdfba5",
+    "src/frontends/riscv/prover/block_v5_word_memory_component_v1.zig": "4b7d6e88cc78053a07d2813bb5e0fd412112d51d6f3527f349ccd3715e3f4f77",
+    "src/frontends/riscv/prover/block_v5_word_domain_rows_v1.zig": "c9796880e13cac486bb86101b52144fda332c709a95dac275c304613f2d117bf",
+    "src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig": "55366c9a0cf1b44369231fa48137e88137ad3f471b8f466f260209bc37cdf144",
+    "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig": "df4241191f85ccbda99f28dc710ca68ce1aa7756c9ff5a4280978a0f493eac15",
+    "src/frontends/riscv/prover/block_v5_word_cpu_optimization_test.zig": "6a4fa9e17d525a4957177a5246c2b6a5048b55920e054aa2b9b08e70e58ebbe1",
+    "src/core/fields/packed_qm31.zig": "f5eb88fa06ad712c280070daf1a548a7165ace06cf527624ff28a0cff1e2432d"
+  },
+  "latest_word_v4_source_sha256": {
+    "src/frontends/riscv/air/block/word_memory_v5.zig": "ffe03169bec7d86d9a554cb889cd580b9a0a7696b05ce7e331600057494c89aa",
+    "src/frontends/riscv/air/block/word_memory_trace_v5.zig": "06f4edf9fe943f3bb9c1330c207f407294cba8649255f0037603291850e82af5",
+    "src/frontends/riscv/prover/block_v5_word_memory_interaction_v1.zig": "2493ff75640f13623972e1d7653f0bf1710997e728ee476616421bdf22fdfba5",
+    "src/frontends/riscv/prover/block_v5_word_memory_component_v1.zig": "c342a090d19bbf3b783265622fd914497802dfe6a961d37d19ca634c1c760a95",
+    "src/frontends/riscv/prover/block_v5_word_domain_rows_v1.zig": "4c70c728b56775b22923bf5970596022fe05d7054bf11f1622ce7f6382568262",
+    "src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig": "0d317962912ddd3353c94657a0ab439ffe43dc0fd4516fdddfa35aae277a1e59",
+    "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig": "78d813387486020d2f0b8246b5d7ac0dd2b5f4646f7fde99d2b5e250cdb709b7",
+    "src/frontends/riscv/prover/block_v5_word_cpu_optimization_test.zig": "6a4fa9e17d525a4957177a5246c2b6a5048b55920e054aa2b9b08e70e58ebbe1",
+    "src/core/fields/packed_qm31.zig": "f5eb88fa06ad712c280070daf1a548a7165ace06cf527624ff28a0cff1e2432d",
+    "src/frontends/riscv/air/block/word_memory_fixed_v5.zig": "121870dff27a34cb0246a34f88f974e9f42a5a12a3177c9b42c2efb9424948fe"
+  }
+}

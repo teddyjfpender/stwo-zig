@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "gate": "zig build test-block-v5-precompile-family -Doptimize=ReleaseFast --summary all",
+  "security": {
+    "queries": 8,
+    "pow_bits": 0
+  },
+  "scope": "Fresh family11 SHA-256, Keccak and signer proof plus same-caller-root B5PS PC/clock projection",
+  "checks": [
+    "shared fixed/main roots and owned column lease pointer parity",
+    "independent runner call PC/clock retirement oracle",
+    "exact three-caller census",
+    "changed quotient claim rejected",
+    "changed caller binding rejected",
+    "old standalone family11 gate retained"
+  ],
+  "complete_block": false,
+  "canonical_benchmark": false,
+  "build_and_test_seconds": 49,
+  "build_and_test_max_rss": "2 GiB reported by Zig outer build; not isolated proving memory"
+}

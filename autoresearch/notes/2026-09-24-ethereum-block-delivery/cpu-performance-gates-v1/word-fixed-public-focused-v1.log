@@ -1,0 +1,6 @@
+src/frontends/riscv/prover/block_v5_word_fixed_public_test_v1.zig:97:23: error: cannot assign to constant
+        receipt.source.first_wire = 7;
+        ~~~~~~~~~~~~~~^~~~~~~~~~~
+referenced by:
+    test.word fixed public: native receipt span and graph ordinal mutations reject without integer overflow: src/frontends/riscv/prover/block_v5_word_fixed_public_test_v1.zig:120:17
+    test_0: src/frontends/riscv/block_v5_word_fixed_public_test_root_v1.zig:2:17

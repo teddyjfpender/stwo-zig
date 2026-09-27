@@ -1,0 +1,11 @@
+test-blake3-rotation-precompile
++- BLAKE3 rotation precompile guard
+   +- run test stderr
+BLAKE3_ROUND_TYPED main=656 fixed=66 constraints=256 events=384 digest=f7dedd17e90886b9c829575f4d9504c8a0761199e82bdcf1b53933ae7fc2640f
+
+Build Summary: 4/4 steps succeeded; 6/6 tests passed
+test-blake3-rotation-precompile success
++- BLAKE3 rotation precompile guard success
+   +- run test 6 passed 18s MaxRSS:358M
+      +- compile test ReleaseSafe native success 1m MaxRSS:2G
+

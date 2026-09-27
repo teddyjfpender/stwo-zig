@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-fold-draft-pages-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.7839325420209207,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 11,
+  "test_summary": [
+    "All 11 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-fold-draft-pages-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-fold-draft-pages-focused-v2",
+    "bytes": 2138416,
+    "sha256": "c2a26dc1973102c94521bc6117acae2a36eb2a69176bfdc29e8e53ec4a30e748"
+  }
+}

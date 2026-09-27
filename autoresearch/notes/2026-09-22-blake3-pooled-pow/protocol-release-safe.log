@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 7/7 tests passed
+test-blake3-protocol success
++- BLAKE3 protocol test guard success
+   +- run test 7 passed 754ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 9s MaxRSS:830M
+

@@ -1,0 +1,10 @@
+{
+  "candidate": {
+    "source": "src/integrations/riscv_metal/.zig-cache/o/29d93c7de709c48e7f66755b4e35309a/test",
+    "sha256": "e014a8688b36c0ffe9dc79f6e42c009b22c681b76125b411ee047dd1383aaed8"
+  },
+  "control": {
+    "source": "autoresearch/notes/2026-09-24-compact-hash-emission/candidate-parent-test",
+    "sha256": "d018a98ec89c80cf7c68edd70003d423b20ed46356af162d1570690b0a1a5c1d"
+  }
+}

@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-blake3-projection-links success
++- BLAKE3 projection links guard success
+   +- run test 1 passed 512ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 4s MaxRSS:480M
+test-blake3-combined-fri success
++- BLAKE3 combined FRI guard success
+   +- run test 1 passed 32s MaxRSS:6G
+      +- compile test ReleaseSafe native success 42s MaxRSS:2G
+

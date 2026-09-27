@@ -1,0 +1,10 @@
+{
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t98%; charging; 0:21 remaining present: true\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t98%; charging; 0:21 remaining present: true\n",
+  "extension_oracle_checks": 3072,
+  "merkle_root_parity_cases": 4,
+  "binaries": {
+    "zisk": "5998cb96732a880fef909820ea2d6ef58bb3ea65c843440feb6aceda2a38fd94",
+    "stwo": "2b4b4e9c772c603e5588d82f1f84fc1726ff756b29775895b113dfe100aa26a6"
+  }
+}

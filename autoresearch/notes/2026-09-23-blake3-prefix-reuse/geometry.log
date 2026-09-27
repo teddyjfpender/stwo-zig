@@ -1,0 +1,10 @@
+pcs_column_histogram hasher=vcs_lifted.blake3_merkle.MerkleHasher columns=137 groups=2:4,3:2,6:4,7:2,9:4,11:4,13:27,14:4,16:3,17:3,18:45,19:19,21:16
+pcs_bounded_prefix final_log=21 prefix_log=14 prefix_columns=51 tail_columns=86 prefix_state_bytes=30932992 leaf_bytes=67108864 leaf_phase_peak_bytes=98041856 repeated_tail_absorptions=0 tail_cache_bytes=3907584
+pcs_column_histogram hasher=vcs_lifted.blake3_merkle.MerkleHasher columns=137 groups=2:4,3:2,6:4,7:2,9:4,11:4,13:27,14:4,16:3,17:3,18:45,19:19,21:16
+pcs_bounded_prefix final_log=21 prefix_log=14 prefix_columns=51 tail_columns=86 prefix_state_bytes=30932992 leaf_bytes=67108864 leaf_phase_peak_bytes=98041856 repeated_tail_absorptions=0 tail_cache_bytes=3907584
+pcs_column_histogram hasher=vcs_lifted.blake3_merkle.MerkleHasher columns=619 groups=2:83,3:20,6:78,7:25,9:67,11:4,12:8,13:94,14:85,16:1,17:1,18:12,19:17,21:124
+pcs_bounded_prefix final_log=21 prefix_log=14 prefix_columns=464 tail_columns=155 prefix_state_bytes=30932992 leaf_bytes=67108864 leaf_phase_peak_bytes=98041856 repeated_tail_absorptions=0 tail_cache_bytes=3907584
+pcs_column_histogram hasher=vcs_lifted.blake3_merkle.MerkleHasher columns=572 groups=2:92,3:16,6:64,7:20,9:44,11:8,12:4,13:80,14:72,16:4,17:4,18:8,19:24,21:132
+pcs_bounded_prefix final_log=21 prefix_log=14 prefix_columns=400 tail_columns=172 prefix_state_bytes=30932992 leaf_bytes=67108864 leaf_phase_peak_bytes=98041856 repeated_tail_absorptions=0 tail_cache_bytes=3907584
+pcs_column_histogram hasher=vcs_lifted.blake3_merkle.MerkleHasher columns=137 groups=2:4,3:2,6:4,7:2,9:4,11:4,13:27,14:4,16:3,17:3,18:45,19:19,21:16
+pcs_bounded_prefix final_log=21 prefix_log=14 prefix_columns=51 tail_columns=86 prefix_state_bytes=30932992 leaf_bytes=67108864 leaf_phase_peak_bytes=98041856 repeated_tail_absorptions=0 tail_cache_bytes=3907584

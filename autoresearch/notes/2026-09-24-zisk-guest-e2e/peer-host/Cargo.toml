@@ -1,0 +1,11 @@
+[package]
+name = "zisk-large-guest-benchmark"
+version = "0.1.0"
+edition = "2021"
+[workspace]
+[dependencies]
+zisk-prover-backend = { path = "/tmp/stwo-recursion-peer-research-20260921/zisk/prover-backend", features = ["cpu-only"] }
+zisk-common = { path = "/tmp/stwo-recursion-peer-research-20260921/zisk/common" }
+anyhow = "1"
+sha2 = "=0.10.9"
+serde_json = "1"

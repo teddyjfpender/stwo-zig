@@ -1,0 +1,108 @@
+{
+  "status": "qualified_nonproving_bounded_original_input_windows_and_local_carrier_equations",
+  "authored_candidate": "tail-linked-public-windows-source-candidate-v1.json",
+  "evidence": {
+    "tail-linked-public-semantic-v1": {
+      "source_candidate": "tail-linked-public-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 3.5728481249534525,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/tail-linked-public-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "tail-linked-public-semantic-v2": {
+      "source_candidate": "tail-linked-public-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 4.043007416999899,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/tail-linked-public-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "tail-linked-public-focused-v1": {
+      "source_candidate": "tail-linked-public-focused-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 20.65090470801806,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 31,
+      "test_summary": [
+        "28 passed; 0 skipped; 3 failed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/tail-linked-public-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-tail-linked-public-focused-v1",
+        "bytes": 37198168,
+        "sha256": "b862fa389e8d10098ccf97db6ba4813306c711d4059db25d9da440b9dad3f410"
+      }
+    },
+    "tail-linked-public-focused-v2": {
+      "source_candidate": "tail-linked-public-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 19.651301167032216,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 31,
+      "test_summary": [
+        "All 31 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/tail-linked-public-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-tail-linked-public-focused-v2",
+        "bytes": 37216584,
+        "sha256": "5531088abdacaea161014060e88bcd0fda01d45ef3286889c09c50e1a503e896"
+      }
+    }
+  },
+  "tests_passed": 31,
+  "new_named_behavioral_checks": 5,
+  "original_window_checks": 10,
+  "original_tail_provider_checks": 10,
+  "retained_production_body_marker": 1,
+  "literal_source_pins": 1779,
+  "root_repairs": [
+    "Rename inputFrontier local word to word_index to preserve original declaration scope",
+    "Original ancestor graph now records all input/source symbols before activating equality operations, as required by original authenticated graph ABI; pair ordering/equality math unchanged"
+  ],
+  "scope": [
+    "Actual selected v2 window publisher/fresh receiver and original B5PD bounded prefix/frontier row assembly compile and are retained, never proof-invoked",
+    "Actual local ancestor publisher/fresh receiver compile for one genuine carrier plus up to three genuine v2 window captures",
+    "Exact byte mapping/equality equations reject changed carrier length/prefix/CV cells, exhaustive graph construction allocation failures roll back",
+    "Original window and original input-tail equations/custody/large extent fixtures remain passing",
+    "Original default grammar/math preserved; source-derived keys require rederivation after factory extraction"
+  ],
+  "not_qualified": [
+    "Genuine positive window/carrier/ancestor STARK proof execution",
+    "Placement and descendant multiplicity across larger forest",
+    "Canonical driver selection, global source closure and final recursive block statement",
+    "End-to-end performance or peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

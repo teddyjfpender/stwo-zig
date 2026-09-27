@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "target": "metal",
+  "word_protocol_version": 4,
+  "word_protocol_abi": "456e3aba189598a192d98e86decc235bd258097c8eecaec3425363deaa6af679",
+  "typed_authority": "dba8c73084a5c6eec062f8a806abbd5dc6d4bfa5506699d9b61ec341398e6028",
+  "source_file": "kernels.metal",
+  "source_sha256": "76f460089bd87968e3f6e2267317915b9c32abbc1aae7b8ad2308182f7e60965",
+  "programs": [
+    {
+      "kind": "word_equations_v4",
+      "program_identity": "7ace9657cbbc5dcb863cf64faaa2153930923706ca50993837c3f287af23e078",
+      "executable_identity": "4c60fc28ce58d04b506b4c6f59e878680059cd41d8e61c866ade216bbb22e840",
+      "kernel": "stwo_zig_framework_poly_v1_4c60fc28ce58d04b506b4c6f59e878680059cd41d8e61c866ade216bbb22e840",
+      "inputs": 184,
+      "parameters": 164,
+      "equations_or_buses": 63
+    },
+    {
+      "kind": "word_fractions_v4",
+      "program_identity": "86dd780c3258da2ee7b5123e88673e38c144d910835f93eeb7bde8d7af2e3c0e",
+      "executable_identity": "73c4e8d10fa4a3e054870b75609c93239cbc3bbbc77cac293848d3674261cfb2",
+      "kernel": "stwo_zig_secure_interaction_v1_73c4e8d10fa4a3e054870b75609c93239cbc3bbbc77cac293848d3674261cfb2",
+      "inputs": 48,
+      "parameters": 76,
+      "equations_or_buses": 17
+    },
+    {
+      "kind": "range16_equations_v4",
+      "program_identity": "e66df0156c2b55e367b4acc64b294e53431af580ad654bbfdd3d85bf352fefbd",
+      "executable_identity": "35a578f3d69789516412a5fc483f3a8841fd3ef08be8cbd779705b6395e2b09d",
+      "kernel": "stwo_zig_framework_poly_v1_35a578f3d69789516412a5fc483f3a8841fd3ef08be8cbd779705b6395e2b09d",
+      "inputs": 18,
+      "parameters": 4,
+      "equations_or_buses": 2
+    },
+    {
+      "kind": "range16_fractions_v4",
+      "program_identity": "e58fa1f0b11ca22d3195b8529977a8414f3bfdcdb36bf14d795115f2099ecb1e",
+      "executable_identity": "c75ba4182dffeb829cf3924baf80f7c6e39348c489bf7b64461b19c674b531ad",
+      "kernel": "stwo_zig_secure_interaction_v1_c75ba4182dffeb829cf3924baf80f7c6e39348c489bf7b64461b19c674b531ad",
+      "inputs": 2,
+      "parameters": 1,
+      "equations_or_buses": 2
+    }
+  ],
+  "dynamic_claims_and_challenges": true,
+  "proof_acceptance_authority": false,
+  "device_compiled": false,
+  "device_executed": false
+}

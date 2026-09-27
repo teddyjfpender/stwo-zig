@@ -1,0 +1,5 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 109s
+1/2 pcs_commitments_test_root.test_0...OK
+2/2 pcs.deferred_commit.test.resolveObserved: failed append clears pending and leaks nothing...OK
+All 2 tests passed.

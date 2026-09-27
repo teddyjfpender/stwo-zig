@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "passed": true,
+  "test_count": 4,
+  "scope": "Explicit noncanonical SHA/Keccak/signer local-zero caller equations, authentic original event/liveness/census/retirement/RW parity, nonboolean quotient numerator algebra, pointer/clock/hint mutations; genuine SHA typed recipe digest derivation. No canonical production profile/witness/window/tracker integration or fresh proof qualification.",
+  "canonical_x0_elision_enabled": false,
+  "stark_proved": false,
+  "segment_executed": false,
+  "sha_candidate": {
+    "constraints": 97,
+    "events": 189,
+    "digest": "512c30efdf23c16a4a22a5635e92a764bde2331c1282b08fdd25d42e0e04d914"
+  },
+  "log_sha256": "fdbfd2ceab3ea87542f686ecedca3995c303923945fb9e52f61741645216b4df",
+  "source_sha256": {
+    "src/frontends/riscv/block_v5_x0_caller_unit_test_root.zig": "78ac04a6e4be534bbe8876f0c180cd586dbde65799b1ca8662ca8d4be1eefd81",
+    "src/frontends/riscv/prover/block_v5_x0_caller_unit_test.zig": "3dc1f966ad0db10fef4432658ea2cb62e7d58c0e640bd5b211f9b8474ba969ac",
+    "src/frontends/riscv/air/guest_precompile/keccakf_caller_local_zero_v1.zig": "eeb63579d9e5dcb5a476984747f73ef5ebc4ac34746097b409b77980d447bfff",
+    "src/frontends/riscv/air/guest_precompile/sha256_memory_caller_test.zig": "3492df29ef273f2a6e64ca1078673a66df95bc15f021a8b3440e643604b4c28d",
+    "src/frontends/riscv/air/guest_precompile/sha256_caller_local_zero_v1.zig": "25af669ea7927ef9e57253d37672ce81ed0a4d31079be4bd916b068c4fff17e1",
+    "src/frontends/riscv/air/guest_precompile/sha256_memory_caller.zig": "aa5c9a37262e747bb9e055447c1f93dcfc605747cf021b9695b243934dde280a",
+    "src/frontends/riscv/air/guest_precompile/secp256k1_caller_local_zero_v1.zig": "e2ce5c21f6d248e21f8855bbab785ab75dd3b491c97a5baa56c847b90aa648f4",
+    "src/frontends/riscv/air/guest_precompile/x0_caller_envelope_v1.zig": "f0a0502987f54af402e9eecfde600ff26fb4ac5e67861705f80676e2a5eedf29"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "target": "cuda",
+  "word_protocol_version": 4,
+  "word_protocol_abi": "456e3aba189598a192d98e86decc235bd258097c8eecaec3425363deaa6af679",
+  "typed_authority": "dba8c73084a5c6eec062f8a806abbd5dc6d4bfa5506699d9b61ec341398e6028",
+  "source_file": "kernels.cu",
+  "source_sha256": "1f0691921ea76ee0d93090d0224d1bb258431445f61f20a7a627d6072861fddf",
+  "programs": [
+    {
+      "kind": "word_equations_v4",
+      "program_identity": "7ace9657cbbc5dcb863cf64faaa2153930923706ca50993837c3f287af23e078",
+      "executable_identity": "9fceb146b4b6ea0ce33d80005f92b37a275d9806fd951ecf8a808401ee341b50",
+      "kernel": "stwo_cuda_secure_v1_9fceb146b4b6ea0ce33d80005f92b37a275d9806fd951ecf8a808401ee341b50",
+      "inputs": 184,
+      "parameters": 164,
+      "equations_or_buses": 63,
+      "abi_schema": 23,
+      "argument_count": 12,
+      "cache_key": 930757158401855135
+    },
+    {
+      "kind": "word_fractions_v4",
+      "program_identity": "86dd780c3258da2ee7b5123e88673e38c144d910835f93eeb7bde8d7af2e3c0e",
+      "executable_identity": "a45f694bb7892dc011de70982ba465bcbb16c73422603ed15fd311009548ed8c",
+      "kernel": "stwo_cuda_secure_v1_a45f694bb7892dc011de70982ba465bcbb16c73422603ed15fd311009548ed8c",
+      "inputs": 48,
+      "parameters": 76,
+      "equations_or_buses": 17,
+      "abi_schema": 24,
+      "argument_count": 12,
+      "cache_key": 13847875849571360676
+    },
+    {
+      "kind": "range16_equations_v4",
+      "program_identity": "e66df0156c2b55e367b4acc64b294e53431af580ad654bbfdd3d85bf352fefbd",
+      "executable_identity": "094ee6f1cf7f0610bf0c2a09554e2ae41aae39290b03a42d8ff9e95c62772eab",
+      "kernel": "stwo_cuda_secure_v1_094ee6f1cf7f0610bf0c2a09554e2ae41aae39290b03a42d8ff9e95c62772eab",
+      "inputs": 18,
+      "parameters": 4,
+      "equations_or_buses": 2,
+      "abi_schema": 23,
+      "argument_count": 12,
+      "cache_key": 1154750885560471049
+    },
+    {
+      "kind": "range16_fractions_v4",
+      "program_identity": "e58fa1f0b11ca22d3195b8529977a8414f3bfdcdb36bf14d795115f2099ecb1e",
+      "executable_identity": "25e312ef91c785396c83dd5aa63cbcc2d4915b3ed9181c9ca6c1c048376239ec",
+      "kernel": "stwo_cuda_secure_v1_25e312ef91c785396c83dd5aa63cbcc2d4915b3ed9181c9ca6c1c048376239ec",
+      "inputs": 2,
+      "parameters": 1,
+      "equations_or_buses": 2,
+      "abi_schema": 24,
+      "argument_count": 12,
+      "cache_key": 4144938461659587365
+    }
+  ],
+  "cuda_helpers": [
+    {
+      "kernel": "stwo_cuda_range16_inverse_table_v1",
+      "executable_identity": "dee2fc3365db8a00978bb52d40a9be01ada4f941b3c89eeed66a40c268d2be95",
+      "cache_key": 39084774496461534,
+      "abi_schema": 25,
+      "argument_count": 2
+    },
+    {
+      "kernel": "stwo_cuda_secure_scan_block_v1",
+      "executable_identity": "08854f6c7775f91a9e790caf09f401fa06b24cfcfa6ca5ff360127534db34308",
+      "cache_key": 1943713869965788424,
+      "abi_schema": 26,
+      "argument_count": 5
+    },
+    {
+      "kernel": "stwo_cuda_secure_scan_carry_v1",
+      "executable_identity": "96e640ecf35f60a30bd2fdeef8a5108699febcb3a61a82e998b0e97f68a89328",
+      "cache_key": 11772514927191844502,
+      "abi_schema": 26,
+      "argument_count": 5
+    },
+    {
+      "kernel": "stwo_cuda_secure_totals_v1",
+      "executable_identity": "9bf6a5b3c4544d9bb5f755f62204b9298c31c5401c05847150196dee0d910809",
+      "cache_key": 11190693852889872027,
+      "abi_schema": 27,
+      "argument_count": 4
+    },
+    {
+      "kernel": "stwo_cuda_secure_mean_v1",
+      "executable_identity": "8615ad49d158b27dd37c268d475b935cfe86b1b81b38f03429a9c72ef250fce6",
+      "cache_key": 9057399456502977926,
+      "abi_schema": 27,
+      "argument_count": 4
+    },
+    {
+      "kernel": "stwo_cuda_word_memory_witness_v4",
+      "executable_identity": "26206257cdbb069f0bb187f3665c33fbc48075307c2e7b5434e7f85fda1b821b",
+      "cache_key": 11459052792499544102,
+      "abi_schema": 28,
+      "argument_count": 5
+    },
+    {
+      "kernel": "stwo_cuda_range16_witness_v4",
+      "executable_identity": "3a52398bae609a803b8e3c7f91687d818a40ca1ccb26097e96a23dd339e5764c",
+      "cache_key": 9266825486044582458,
+      "abi_schema": 29,
+      "argument_count": 3
+    }
+  ],
+  "dynamic_claims_and_challenges": true,
+  "proof_acceptance_authority": false,
+  "device_compiled": false,
+  "device_executed": false
+}

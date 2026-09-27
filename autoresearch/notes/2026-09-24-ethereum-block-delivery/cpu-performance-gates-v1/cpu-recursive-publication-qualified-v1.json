@@ -1,0 +1,106 @@
+{
+  "status": "qualified_nonproving_actual_driver_recursive_publication",
+  "authored_candidate": "cpu-recursive-family-publication-source-candidate-v1.json",
+  "evidence": {
+    "cpu-recursive-publication-legacy-semantic-v1": {
+      "source_candidate": "cpu-recursive-publication-legacy-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 9.031633458042052,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-publication-legacy-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "cpu-recursive-publication-legacy-semantic-v2": {
+      "source_candidate": "cpu-recursive-publication-legacy-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 9.547415915993042,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-publication-legacy-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "cpu-recursive-publication-legacy-focused-v1": {
+      "source_candidate": "cpu-recursive-publication-legacy-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 210.1960175409913,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 19,
+      "test_summary": [
+        "All 19 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-publication-legacy-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-recursive-publication-legacy-focused-v1",
+        "bytes": 21782200,
+        "sha256": "8a001444bbce1f42c12dce1bc1090473d635cd486be9e9c0b0165707a024fde7"
+      }
+    },
+    "cpu-recursive-publication-selected-focused-v1": {
+      "source_candidate": "cpu-recursive-publication-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 141.95631616702303,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 19,
+      "test_summary": [
+        "All 19 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-publication-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-recursive-publication-selected-focused-v1",
+        "bytes": 83079848,
+        "sha256": "c0c9cc8e5e130262f0c10c1162a1457834af764ad67aebac9ecef7925e1888da"
+      }
+    }
+  },
+  "tests_passed_per_recipe": 19,
+  "optimizations": {
+    "legacy": "ReleaseFast",
+    "selected": "Debug"
+  },
+  "source_pins_per_recipe": 1843,
+  "scope": [
+    "Actual capacity CPU driver optional seven-family recursive publication and fresh detached supplemental leaf receiving",
+    "Original admitted sources own sparse roster; callbacks bind freshly row-derived exact templates once and copy immutable schedules",
+    "Stable caller admissions and native-fused/provider callbacks retain same-lifetime original sources through worker joins",
+    "Fresh receiving reopens genuine original base files and independently derives expected parent keys before checking recursive leaf bytes",
+    "Both actual CPU driver variants and every family producer/capture/key derivation/fresh receiver emitted and retained, never invoked",
+    "Sparse source and transport checks, every source/store/template allocation fault, independent source identity/key/census/limit rejection"
+  ],
+  "repair": "Only source marker exports needed pub visibility across imported modules; original production admission and protocol math unchanged.",
+  "not_qualified": [
+    "A real supplemental recursive leaf or multi-family STARK proof run",
+    "Native-fused paired-source obligation or scoped/public/source/global closure",
+    "Canonical default activation, final self-contained block or end-to-end performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

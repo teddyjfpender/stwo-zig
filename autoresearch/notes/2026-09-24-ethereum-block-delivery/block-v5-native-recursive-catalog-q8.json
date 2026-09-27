@@ -1,0 +1,32 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "security": {"fri_queries": 8, "pow_bits": 0, "canonical_q70": false},
+  "test": "block-v5 native-only catalog admits two different leaf geometries",
+  "status": "passed",
+  "tests_passed": 7,
+  "native_states": 2,
+  "varied_native_geometry": true,
+  "source_seal_catalog_mode": true,
+  "native_template_protocol_version": 2,
+  "recursive_native_leaves_proved": 1,
+  "recursive_native_stark_equation_verified": true,
+  "recursive_transcript_verified": true,
+  "recursive_fri_and_merkle_verified": true,
+  "recursive_fixed_rows": 51865,
+  "recursive_proof_bytes": 128024,
+  "exported_open_claim_constraint": true,
+  "changed_exported_open_claim_rejected": true,
+  "missing_catalog_rejected": true,
+  "changed_catalog_record_rejected": true,
+  "independent_recursive_receiver_version_gate": {"status": "passed", "tests_passed": 2},
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "complete_block_authority": false,
+  "global_relations_still_open": ["program", "memory", "lookup", "precompile", "public_boundary"],
+  "limitations": [
+    "The recursive key is specialized to the B5SS roots, instance IDs, public endpoints and exported claim; reusable recursive setup is not qualified.",
+    "Native fixed active selectors still depend on exact row counts; the catalog admits varied geometry without providing capacity-only native key reuse.",
+    "The recursive proof covers ordinary native opcode/clock equations. Separate family-11 arithmetic, zero-ordinary admission and full global closure remain required.",
+    "The operational span-plus-sidecar leaf receiver has a type/preflight gate; the joined positive span binding is not included in this run."
+  ]
+}

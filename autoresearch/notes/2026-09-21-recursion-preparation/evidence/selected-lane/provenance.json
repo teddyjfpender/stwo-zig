@@ -1,0 +1,9 @@
+{
+  "head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "binary_sha256": {
+    "baseline": "e231b5bffdbd60b168f88c9ec2753a899f8e973187d0f07ae8c894e352051704",
+    "candidate": "7bc5ba918d6b2490a0f247cabe682881103b6edb3c603237c44c37cfe7d2435d"
+  },
+  "source_patch_sha256": "a6283f8b6bf6b31e32d8e53597127bceaf9a663341bc7cf350e8864831cce078",
+  "scope": "exploratory only: concurrent focused-test compilation; rerun uncontended before claiming"
+}

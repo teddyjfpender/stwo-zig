@@ -1,0 +1,65 @@
+1/7 blake3_metal_qualification_test_root.test.Metal compact canonical native BLAKE3 parent matches CPU qualification...BLAKE3_EXECUTION_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-execution","stages":[{"id":"execution.fixed","label":"Admission and fixed commitment","seconds":0.043101,"children":null},{"id":"execution.main","label":"Main commitment","seconds":0.039204,"children":null},{"id":"execution.native_interaction","label":"Native interaction generation","seconds":0.01663,"children":null},{"id":"execution.hash_interaction","label":"Hash interaction generation","seconds":0.012101,"children":null},{"id":"execution.interaction_commit","label":"Interaction closure and commitment","seconds":0.054744,"children":null},{"id":"execution.core","label":"Core STARK proof","seconds":6.624916,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000005,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000021,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.094011,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.006989,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.11117,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.012344,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.028448,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000058,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.25779,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":6.082433,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.014174,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.010262,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000111,"children":null}]}]}
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_HASH_METADATA g_rows=2444008 xor_rows=698288 full_row_bytes=1301608832 compact_bytes=173175424 removed_bytes=1128433408
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1281835520 compact_bytes=170544640 removed_bytes=1111290880
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+METAL_STREAM_LEAVES columns=453 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=576 overlap=true gpu_ms=92.360
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=128.7834999966435
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.7030416822526604
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.434791658539325
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=2.1027500042691827
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.3003750171046704
+METAL_STREAM_LEAVES columns=468 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=640 overlap=true gpu_ms=64.732
+METAL_FRAMEWORK_COMPOSITION components=5 groups=3 gpu_ms=247.304
+METAL_HOST_BARYCENTRIC staging_bytes=67108864 commands=198 columns=1285 points=22 gpu_ms=88.684
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.013036,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":1.688385,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":2.666221,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":1.04254,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":2.546103,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":2.230831,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000005,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000048,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":1.134857,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.00684,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.043917,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.022909,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.460575,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000074,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.379168,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.013871,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.048363,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.037549,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000117,"children":null}]}]}
+CANONICAL_PARENT_WORKERS count=2 host_cpus=18
+NATIVE_PARENT_DEVICE_WORK host_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK resident_merkle_commits=23
+NATIVE_PARENT_DEVICE_WORK metal_quotient_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_proof_of_work_dispatches=38
+NATIVE_PARENT_DEVICE_WORK metal_framework_polynomial_dispatches=5
+NATIVE_PARENT_DEVICE_WORK metal_streaming_leaf_dispatches=1216
+NATIVE_PARENT_DEVICE_WORK metal_framework_interaction_dispatches=20
+NATIVE_PARENT_DEVICE_WORK metal_sampled_value_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_circle_transform_dispatches=2
+NATIVE_PARENT_DEVICE_WORK metal_circle_lde_dispatches=79
+NATIVE_PARENT_DEVICE_WORK metal_fri_circle_fold_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_fri_fold_commit_epochs=1
+NATIVE_PARENT_DEVICE_WORK cpu_streaming_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK cpu_composition_components=17
+NATIVE_PARENT_DEVICE_WORK metal_commit_source_uploads=79
+NATIVE_PARENT_METAL dispatches=1387 fallbacks=2
+CANONICAL_PARENT_MEMORY peak_bytes=11993422982 limit_bytes=25769803776
+BLAKE3_PARENT_ARTIFACT_SHA256 87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=857591 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40432 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       23.30 real        22.54 user         3.70 sys
+         20860551168  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2605689  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                9773  involuntary context switches
+        356336790095  instructions retired
+         94924361036  cycles elapsed
+         27759260176  peak memory footprint

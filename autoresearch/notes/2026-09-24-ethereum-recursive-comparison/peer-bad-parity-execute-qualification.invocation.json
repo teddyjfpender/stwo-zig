@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-eth-auth-benchmark",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/eth-auth-zisk",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/bad-parity.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/bad-parity.expected",
+    "/tmp/stwo-zisk-guest-e2e-20260924/provingKey",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/peer-bad-parity-execute-qualification.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/peer-bad-parity-execute-qualification.json",
+    "execute"
+  ],
+  "side": "peer",
+  "mode": "execute",
+  "requested_workers": 16,
+  "timeout_seconds": 900,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-eth-auth-benchmark": "c3989ca608f70792b82fdfdb4ec5ea2ceb413fb70d0933c685d7997076069a59",
+    "guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/eth-auth-zisk": "18ab3192cba141913ff3578ff66ef5a1fecfe3352e0be3dd0d43850548afa305",
+    "fixtures/bad-parity.input": "1f788219d281f410baac1403fb578358d6b707c73b75c74597a5dbf9e68d6149",
+    "fixtures/bad-parity.expected": "834a709ba2534ebe3ee1397fd4f7bd288b2acc1d20a08d6c862dcd99b6f04400"
+  },
+  "swap_before": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:39 remaining present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 0.08917829202255234,
+  "swap_after": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:39 remaining present: true\n",
+  "output_checked": true
+}

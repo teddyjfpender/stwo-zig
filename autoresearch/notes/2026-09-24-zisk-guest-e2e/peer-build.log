@@ -1,0 +1,1245 @@
+[zisk-guest-peer-cpu-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zisk-guest-peer-cpu-build] acquired after 5s
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.5
+   Compiling find-msvc-tools v0.1.12
+   Compiling shlex v2.0.1
+   Compiling serde_core v1.0.229
+   Compiling syn v2.0.119
+   Compiling syn v3.0.6
+   Compiling once_cell v1.21.4
+   Compiling autocfg v1.5.1
+   Compiling libm v0.2.16
+   Compiling pin-project-lite v0.2.17
+   Compiling pkg-config v0.3.34
+   Compiling log v0.4.34
+   Compiling jobserver v0.1.35
+   Compiling memchr v2.8.3
+   Compiling cc v1.4.6
+   Compiling bitflags v2.13.2
+   Compiling either v1.18.0
+   Compiling itertools v0.13.0
+   Compiling num-traits v0.2.19
+   Compiling itoa v1.0.18
+   Compiling regex-syntax v0.8.11
+   Compiling tracing-core v0.1.36
+   Compiling serde v1.0.229
+   Compiling regex-automata v0.4.18
+   Compiling serde_derive v1.0.229
+   Compiling regex v1.13.1
+   Compiling tracing-attributes v0.1.31
+   Compiling prettyplease v0.2.37
+   Compiling paste v1.0.15
+   Compiling smallvec v1.16.1
+   Compiling tracing v0.1.44
+   Compiling getrandom v0.2.17
+   Compiling num-integer v0.1.47
+   Compiling crossbeam-utils v0.8.23
+   Compiling num-bigint v0.4.8
+   Compiling bytes v1.12.1
+   Compiling arrayvec v0.7.8
+   Compiling equivalent v1.0.2
+   Compiling hashbrown v0.17.1
+   Compiling zeroize_derive v1.5.0
+   Compiling indexmap v2.14.2
+   Compiling zeroize v1.9.0
+   Compiling typenum v1.20.1
+   Compiling glob v0.3.4
+   Compiling clang-sys v1.9.1
+   Compiling crossbeam-epoch v0.9.21
+   Compiling minimal-lexical v0.2.1
+   Compiling version_check v0.9.5
+   Compiling crossbeam-deque v0.8.8
+   Compiling zerocopy v0.8.57
+   Compiling nom v7.1.3
+   Compiling libloading v0.8.9
+   Compiling errno v0.3.14
+   Compiling bindgen v0.72.1
+   Compiling cexpr v0.6.0
+   Compiling blake3 v1.8.7
+   Compiling shlex v1.3.0
+   Compiling rustc-hash v2.1.3
+   Compiling generic-array v0.14.7
+   Compiling rand_core v0.6.4
+   Compiling aho-corasick v1.1.5
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.3.1
+   Compiling futures-core v0.3.34
+   Compiling rayon-core v1.13.0
+   Compiling parking_lot_core v0.9.12
+   Compiling rand v0.8.8
+   Compiling constant_time_eq v0.4.2
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling socket2 v0.6.5
+   Compiling lazy_static v1.5.0
+   Compiling cfg_aliases v0.2.2
+   Compiling parking_lot v0.12.5
+   Compiling proofman-fields v1.3.0-alpha
+   Compiling rayon v1.12.0
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling signal-hook-registry v1.4.8
+   Compiling tokio-macros v2.7.2
+   Compiling mio v1.2.3
+   Compiling zmij v1.0.23
+   Compiling dunce v1.0.5
+   Compiling tokio v1.53.1
+   Compiling digest v0.10.7
+   Compiling futures-sink v0.3.34
+   Compiling serde_json v1.0.151
+   Compiling thiserror v2.0.20
+   Compiling anyhow v1.0.104
+   Compiling thiserror-impl v2.0.20
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling num_cpus v1.17.0
+   Compiling slab v0.4.12
+   Compiling shell-words v1.1.1
+   Compiling heck v0.5.0
+   Compiling build-probe-mpi v0.1.6
+   Compiling enum-ordinalize v4.4.2
+   Compiling ark-std v0.5.0
+   Compiling ahash v0.8.12
+   Compiling ark-serialize-derive v0.5.0
+   Compiling winnow v1.0.4
+   Compiling ark-serialize v0.5.0
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling ark-ff-macros v0.5.0
+   Compiling educe v0.6.0
+   Compiling cmake v0.1.58
+   Compiling ark-ff-asm v0.5.0
+   Compiling synstructure v0.14.0
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling allocator-api2 v0.2.21
+   Compiling fs_extra v1.3.0
+   Compiling core-foundation-sys v0.8.7
+   Compiling hashbrown v0.15.5
+   Compiling toml_edit v0.25.15+spec-1.1.0
+   Compiling aws-lc-sys v0.45.0
+   Compiling ark-ff v0.5.0
+   Compiling mpi-sys v0.2.4
+   Compiling objc2-core-foundation v0.3.2
+   Compiling libffi-sys v4.2.2
+   Compiling objc2-io-kit v0.3.2
+   Compiling ark-poly v0.5.0
+   Compiling proc-macro-crate v3.5.0
+   Compiling zerofrom-derive v0.1.8
+   Compiling tokio-util v0.7.19
+   Compiling crossbeam-channel v0.5.17
+   Compiling ring v0.17.14
+   Compiling proofman-starks-src v1.3.0-alpha
+   Compiling ryu v1.0.23
+   Compiling proofman-starks-lib-c v1.3.0-alpha
+   Compiling ark-ec v0.5.0
+   Compiling mpi v0.8.2
+   Compiling borsh v1.8.1
+   Compiling sharded-slab v0.1.7
+   Compiling matchers v0.2.0
+   Compiling tracing-serde v0.2.0
+   Compiling tracing-log v0.2.0
+   Compiling thread_local v1.1.10
+   Compiling custom_derive v0.1.7
+   Compiling unty v0.0.4
+   Compiling nu-ansi-term v0.50.3
+   Compiling aws-lc-rs v1.18.1
+   Compiling tracing-subscriber v0.3.23
+   Compiling bincode v2.0.1
+   Compiling conv v0.3.3
+   Compiling borsh-derive v1.8.1
+   Compiling sysinfo v0.35.2
+warning: proofman-starks-lib-c@1.3.0-alpha: [BUILD INFO] STARKS compiled with CPU-only support (feature enabled)
+error: failed to run custom build command for `proofman-starks-lib-c v1.3.0-alpha`
+
+Caused by:
+  process didn't exit successfully: `/tmp/stwo-zisk-guest-e2e-20260924/target/release/build/proofman-starks-lib-c-54326ebdd45c4c76/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-env-changed=CUDA_ARCHS
+  cargo:rerun-if-env-changed=CUDA_ARCH
+  cargo:rerun-if-env-changed=CUDA_GENCODE_FLAGS
+  cargo:warning=[BUILD INFO] STARKS compiled with CPU-only support (feature enabled)
+  cargo:rustc-env=STARKS_BUILD_MODE=CPU
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/Cargo.toml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/LICENSE
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/Makefile
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/Cargo.lock
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/starks_src.rs
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/README.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/.gitignore
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/.gitattributes
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/go.mod
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/LICENSE
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/build.zig.zon
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/build.zig
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.lgtm.yml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.golangci.yml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/README.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/build.bat
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/build.sh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.gitignore
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.github/workflows/golang-lint.yml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.github/workflows/codeql-analysis.yml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.github/workflows/ci.yml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.gitattributes
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/blst_logo_small.png
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/zig/tests.zig
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/zig/generate.py
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/zig/blst.zig
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/zig/README.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/zig/c.zig
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_wasm.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_miller_loop_test.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_minpk_test.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_minsig_test.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst.tgo
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/generate.py
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_htoc_test.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_px.tgo
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/README.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/cgo_server.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/cgo_assembly.S
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/rb_tree.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_misc.tgo
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/go/blst_minpk.tgo
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/python/run.me
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/blst.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/c#/poc.csproj
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/c#/run.me
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/c#/supranational.blst.cs
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/c#/poc.cs
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/blst_aux.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/blst.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/java/build.sh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/java/run.me
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/java/runnable.java
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/vectors/hash_to_curve/BLS12381G1_XMD_SHA-256_SSWU_NU_.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/vectors/hash_to_curve/BLS12381G1_XMD_SHA-256_SSWU_RO_.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/vectors/hash_to_curve/README
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/vectors/hash_to_curve/BLS12381G2_XMD_SHA-256_SSWU_RO_.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/vectors/hash_to_curve/expand_message_xmd_SHA256_256.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/vectors/hash_to_curve/BLS12381G2_XMD_SHA-256_SSWU_NU_.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/vectors/hash_to_curve/expand_message_xmd_SHA256_38.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/node.js/runnable.ts
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/node.js/blst.hpp.ts
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/node.js/binding.gyp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/node.js/blst_wrap.py
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/node.js/runnable.js
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/node.js/run.me
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/node.js/tsconfig.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/emscripten/build.py
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/emscripten/runnable.js
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/emscripten/run.me
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/emscripten/runnable.html
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/bindings/blst.swg
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/.travis.yml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/SECURITY.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/hash_to_field.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/vect.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/multi_scalar.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/keygen.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/rb_tree.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/x86_64-xlate.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/ct_is_square_mod_384-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/ct_inverse_mod_256-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/div3w-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/mulq_mont_384-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/ct_inverse_mod_384-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/div3w-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/sha256-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/mulq_mont_256-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/ctq_inverse_mod_384-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/mul_mont_256-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/ct_inverse_mod_256-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/mul_mont_384-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/add_mod_256-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/ctx_inverse_mod_384-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/add_mod_384x384-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/add_mod_384-armv8.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/add_mod_256-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/mulx_mont_256-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/sha256-portable-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/mulx_mont_384-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/add_mod_384-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/arm-xlate.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/sha256-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/asm/ct_is_square_mod_384-x86_64.pl
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/client_min_pk.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/no_asm.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/consts.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/point.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/pairing.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/fields.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/sqrt-addchain.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/exp.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/sha256.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/errors.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/client_min_sig.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/blst_t.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/server.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/bulk_addition.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/pentaroot-addchain.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/map_to_g2.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/sqrt.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/ec_mult.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/vect.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/recip-addchain.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/e1.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/exports.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/bytes.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/cpuid.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/ec_ops.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/consts.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/recip.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/map_to_g1.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/e2.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/aggregate.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/pentaroot.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/blst/src/fp12_tower.c
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/poc/go/go.mod
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/poc/go/poc_test.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/poc/go/go.sum
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/poc/go/cgo_sppark.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/poc/go/poc.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/poc/go/poc.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/kernels/ct_mixed_radix_wide.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/kernels/ct_mixed_radix_narrow.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/kernels/gs_mixed_radix_wide.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/kernels/gs_mixed_radix_narrow.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/alt_bn128.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/vesta.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/pallas.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/goldilocks.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/baby_bear.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/bls12_377.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/bls12_381.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/parameters/.gitattributes
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/ntt.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ntt/kernels.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/go.mod
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/go/sppark.go
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/go/README.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/go/cgo_sppark.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/LICENSE
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/gpu_t.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/all_gpus.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/exception.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/rusterror.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/slice_t.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/vec2d_t.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/thread_pool_t.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/cuda_timer_t.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/cuda_available.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/cuda2hip.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/util/exception.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ec/jacobian_t.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ec/affine_t.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ec/xyzz_t.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/go.sum
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/README.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/.gitignore
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/.github/workflows/ci.yml
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/msm/pippenger.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/msm/sort.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/msm/batch_addition.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/msm/pippenger.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/goldilocks.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/batch_inversion.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/baby_bear.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/alt_bn128-fp2.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/bls12-381.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/pow.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/bls12-377-fp2.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/mont32_t.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/alt_bn128.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/mont32_t.hip
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/bls12-377.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/bls12-381-fp2.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/mersenne31.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/shfl.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/mont_t.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/mont_t.hip
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/gl64_t.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/gl64_t.hip
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/ff/pasta.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/polynomial/prefix_op.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/polynomial/div_by_x_minus_z.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/external/sppark/polynomial/evaluate.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/.cargo_vcs_info.json
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/Cargo.toml.orig
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/.cargo-ok
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey_plonk.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/logger.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/binfile_writer.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/plonk_prover_gpu.c.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/fflonk_setup.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/plonk_prover_gpu.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/binfile_utils.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/curve_utils.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/dump.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey_utils.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/keccak_wrapper.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/wtns_utils.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/dump.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/fflonk_prover.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/groth16.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/r1cs_constraint_processor.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/snark_proof.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/fflonk_setup_settings.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey_fflonk.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/mul_z.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/keccak_256_transcript.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/r1cs_binfile.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/plonk_setup.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/plonk_prover.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/mul_z.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/plonk_prover.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/plonk_prover.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/groth16.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/r1cs_constraint_processor.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/thread_utils.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/fflonk_prover.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey_fflonk.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/r1cs_binfile.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/plonk_setup.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey_plonk.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/logger.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/binfile_writer.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/snark_proof.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/fflonk_setup.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/polynomial/polynomial.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/polynomial/polynomial.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/polynomial/cpolynomial.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/polynomial/evaluations.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/polynomial/evaluations.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/polynomial/cpolynomial.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/binfile_utils.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/curve_utils.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/keccak_wrapper.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/wtns_utils.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/zkey_utils.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/rapidsnark/keccak_256_transcript.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/fflonk_setup/fflonk_setup.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/config/zkglobals.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/config/version.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/config/zkglobals.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/config/definitions.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/utils.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/zklog.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/gpu_timer.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/zkassert.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/timer.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/exit_process.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/timer.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/exit_process.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/hash_family.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/cuda_utils.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/utils.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/zklog.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/cuda_graph_cache.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/utils/pack_columns.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/fri/fri.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/gen_proof.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/global_constraints.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/starks_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/stark_info.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/steps.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/gen_recursivef_proof.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/hints.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptBN128.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptGL.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptGL.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptGL.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptBN128.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptBN128.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptGL.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/transcript/transcriptBN128.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/eval_info.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/verify_constraints.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/proof2zkinStark.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/exec_file.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/exec_layout.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_blake3.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_blake3_gpu.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_poseidon1.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_poseidon2.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_poseidon_cpu.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_cpu.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_poseidon_gpu.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/gate_bands/gate_bands_blake3_cpu.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/recursion_trace/witness_widen_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/starks_gpu_bn128.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/unpack_indexed_device.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/starks_gpu_bn128.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/final_snark_proof.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/hints.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/hints.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/const_pols.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/hints.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/verify_constraints.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/unpack_indexed_row.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/proof2zkinStark.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/proofman_sumcheck.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/proofman_sumcheck.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_pack.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_bin.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_ctx.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_info.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_codegen.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_gpu.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_info.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/expressions/expressions_bin.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/proof_stark.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/stark_verify.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/fri_expression.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/setup_ctx.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/starks.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/polinomial.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/gen_proof.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/merkleTree/merkleTreeBN128.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/merkleTree/merkleTreeGL.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/merkleTree/merkleTreeGL.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/merkleTree/merkleTreeBN128.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/final_snark_proof_gpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/fixed_cols.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/stark_info.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/starks_gpu.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/final_snark_proof_gpu.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/starkpil/gen_recursivef_proof.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/LICENSE
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/Makefile
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_gate_bands_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_gate_bands_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_poseidon2_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_unpack_indexed_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_ntt_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_exec_file_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_stream_commit_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_fri_expression_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_ntt_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_helpers.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_pack_columns_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_field_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_blake3_transcript_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_unpack_indexed_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_poseidon_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_poseidon2_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_cubic_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/tests/test_poseidon_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/cuda_utils.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/timer_gl.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/Makefile
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/deviceQuery.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/helper_cuda.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/cuda_utils.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/timer_gl.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/utils/helper_string.h
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/README.md
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/.gitignore
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/configure.sh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_poseidon2_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_ntt_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/blake3_device.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_field_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_poseidon_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_blake2b_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/blake2b_device.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_poseidon_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_blake3_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_poseidon2_cpu.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/benchs/bench_ntt_gpu.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_cubic_extension_avx512.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon2_goldilocks.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon_gpu_common.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/ntt_goldilocks.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_base_field.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon2_goldilocks.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_tooling.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon2_goldilocks_avx512.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon_goldilocks_avx.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/stream_commit.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_base_field_scalar.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/grinding_launch.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_cubic_extension.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_base_field_pack.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_tooling.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_base_field_tools.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_base_field_avx.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/ntt_goldilocks.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon_goldilocks.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/blake3_goldilocks.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/blake3_goldilocks.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon2_goldilocks_avx.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon2_goldilocks_constants.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_cubic_extension_avx.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon_goldilocks_constants.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon_goldilocks.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/blake3_core.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/blake3_goldilocks.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon_goldilocks.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_trace_layout.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_base_field_avx512.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_cubic_extension_pack.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/blake3_goldilocks.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/stream_commit.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon2_goldilocks.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon2_goldilocks.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/ntt_goldilocks.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/ntt_goldilocks.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_tooling.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_base_field.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/poseidon_goldilocks.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_cubic_extension.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/goldilocks/src/goldilocks_cubic_extension.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bctree/build_const_tree.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bctree/main.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bctree/build_const_tree.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/Makefile
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/tests/tests.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/tests/tests.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/benchs/bench.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/benchs/bench.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ntt/ntt_bn128.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ntt/ntt_bn128.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon2/poseidon2_bn128.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon2/poseidon2_bn128.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon2/poseidon2_bn128.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon2/poseidon2_bn128_constants.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon2/poseidon2_bn128.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/curve/point.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffigpu/bn128.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffigpu/fr.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffigpu/fq.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/splitparstr.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/f2field.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/naf.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fr.asm
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fq.asm
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fft.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fec.asm
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/misc.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/multiexp.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fr.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/curve.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fr_asm.o
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fq.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fnec.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/alt_bn128.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fq.o
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/pointparallelprocessor.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fec.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/exp.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fft.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/exp2.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/multiexp.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fr.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fq.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/alt_bn128.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fnec.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fec.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/splitparstr.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/f2field.c.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/naf.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/curve.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/fnec.asm
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/ffiasm/misc.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/msm/msm_bn128.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/msm/msm_bn128.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon/poseidon_bn128.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon/poseidon_bn128.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon/poseidon_bn128_constants.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon/poseidon_bn128.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/bn128/src/poseidon/poseidon_bn128.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/api/starks_api.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/api/starks_api_internal.cuh
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/api/starks_backend.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/api/starks_api.cu
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/api/starks_backend.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/api/starks_api.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/api/starks_api_internal.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/binfile/main.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/plonk_setup/main_prover.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/plonk_setup/plonk_setup.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/XKCP/Keccak-more-compact.cpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/src/XKCP/Keccak-more-compact.hpp
+  cargo:rerun-if-changed=/Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-src-1.3.0-alpha/lib/libstarks.a
+  rm -f -r ./build ./lib
+  mkdir -p build/./src/api/
+  mkdir -p build/./src/api/
+  mkdir -p build/./src/bctree/
+  mkdir -p build/./src/goldilocks/src/
+  mkdir -p build/./src/goldilocks/src/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/api/starks_api.cpp -o build/./src/api/starks_api.cpp.o
+  mkdir -p build/./src/goldilocks/src/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/api/starks_backend.cpp -o build/./src/api/starks_backend.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bctree/build_const_tree.cpp -o build/./src/bctree/build_const_tree.cpp.o
+  mkdir -p build/./src/goldilocks/src/
+  mkdir -p build/./src/goldilocks/src/
+  mkdir -p build/./src/goldilocks/src/
+  mkdir -p build/./src/config/
+  mkdir -p build/./src/starkpil/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/goldilocks/src/goldilocks_base_field.cpp -o build/./src/goldilocks/src/goldilocks_base_field.cpp.o
+  mkdir -p build/./src/starkpil/transcript/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/goldilocks/src/blake3_goldilocks.cpp -o build/./src/goldilocks/src/blake3_goldilocks.cpp.o
+  mkdir -p build/./src/starkpil/transcript/
+  mkdir -p build/./src/starkpil/
+  mkdir -p build/./src/starkpil/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/goldilocks/src/ntt_goldilocks.cpp -o build/./src/goldilocks/src/ntt_goldilocks.cpp.o
+  mkdir -p build/./src/starkpil/expressions/
+  mkdir -p build/./src/starkpil/expressions/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/stark_info.cpp -o build/./src/starkpil/stark_info.cpp.o
+  mkdir -p build/./src/starkpil/merkleTree/
+  mkdir -p build/./src/starkpil/merkleTree/
+  mkdir -p build/./src/XKCP/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/transcript/transcriptBN128.cpp -o build/./src/starkpil/transcript/transcriptBN128.cpp.o
+  mkdir -p build/./src/bn128/src/poseidon/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/merkleTree/merkleTreeGL.cpp -o build/./src/starkpil/merkleTree/merkleTreeGL.cpp.o
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/expressions/expressions_bin.cpp -o build/./src/starkpil/expressions/expressions_bin.cpp.o
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/rapidsnark/
+  mkdir -p build/./src/bn128/src/ffiasm/
+  mkdir -p build/./src/bn128/src/ffiasm/
+  mkdir -p build/./src/bn128/src/ffiasm/
+  mkdir -p build/./src/bn128/src/ffiasm/
+  mkdir -p build/./src/bn128/src/ffiasm/
+  mkdir -p build/./src/bn128/src/ffiasm/
+  mkdir -p build/./src/bn128/src/ffiasm/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/transcript/transcriptGL.cpp -o build/./src/starkpil/transcript/transcriptGL.cpp.o
+  mkdir -p build/./src/bn128/src/ffiasm/
+  mkdir -p build/./src/utils/
+  mkdir -p build/./src/utils/
+  mkdir -p build/./src/utils/
+  mkdir -p build/./src/utils/
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/keccak_wrapper.cpp -o build/./src/rapidsnark/keccak_wrapper.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/splitparstr.cpp -o build/./src/bn128/src/ffiasm/splitparstr.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/utils/exit_process.cpp -o build/./src/utils/exit_process.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/XKCP/Keccak-more-compact.cpp -o build/./src/XKCP/Keccak-more-compact.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/r1cs_constraint_processor.cpp -o build/./src/rapidsnark/r1cs_constraint_processor.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/poseidon/poseidon_bn128.cpp -o build/./src/bn128/src/poseidon/poseidon_bn128.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/utils/timer.cpp -o build/./src/utils/timer.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/merkleTree/merkleTreeBN128.cpp -o build/./src/starkpil/merkleTree/merkleTreeBN128.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/curve_utils.cpp -o build/./src/rapidsnark/curve_utils.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/goldilocks/src/poseidon_goldilocks.cpp -o build/./src/goldilocks/src/poseidon_goldilocks.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/binfile_writer.cpp -o build/./src/rapidsnark/binfile_writer.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/proof2zkinStark.cpp -o build/./src/starkpil/proof2zkinStark.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/hints.cpp -o build/./src/starkpil/hints.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/zkey.cpp -o build/./src/rapidsnark/zkey.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/misc.cpp -o build/./src/bn128/src/ffiasm/misc.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/utils/zklog.cpp -o build/./src/utils/zklog.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/starkpil/expressions/expressions_info.cpp -o build/./src/starkpil/expressions/expressions_info.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/fq.cpp -o build/./src/bn128/src/ffiasm/fq.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/binfile_utils.cpp -o build/./src/rapidsnark/binfile_utils.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/fr.cpp -o build/./src/bn128/src/ffiasm/fr.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/zkey_fflonk.cpp -o build/./src/rapidsnark/zkey_fflonk.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/alt_bn128.cpp -o build/./src/bn128/src/ffiasm/alt_bn128.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/utils/utils.cpp -o build/./src/utils/utils.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/fec.cpp -o build/./src/bn128/src/ffiasm/fec.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/zkey_utils.cpp -o build/./src/rapidsnark/zkey_utils.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/naf.cpp -o build/./src/bn128/src/ffiasm/naf.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/wtns_utils.cpp -o build/./src/rapidsnark/wtns_utils.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/r1cs_binfile.cpp -o build/./src/rapidsnark/r1cs_binfile.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/plonk_setup.cpp -o build/./src/rapidsnark/plonk_setup.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/fflonk_setup.cpp -o build/./src/rapidsnark/fflonk_setup.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/config/zkglobals.cpp -o build/./src/config/zkglobals.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/logger.cpp -o build/./src/rapidsnark/logger.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/bn128/src/ffiasm/fnec.cpp -o build/./src/bn128/src/ffiasm/fnec.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/goldilocks/src/goldilocks_cubic_extension.cpp -o build/./src/goldilocks/src/goldilocks_cubic_extension.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/rapidsnark/zkey_plonk.cpp -o build/./src/rapidsnark/zkey_plonk.cpp.o
+  clang++  -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -I/opt/homebrew/include -I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/libsodium/include -MMD -MP -I./src -I./src/rapidsnark -I./src/rapidsnark/polynomial -I./src/fflonk_setup -I./src/config -I./src/utils -I./src/starkpil -I./src/starkpil/fri -I./src/starkpil/transcript -I./src/starkpil/recursion_trace -I./src/starkpil/recursion_trace/gate_bands -I./src/starkpil/expressions -I./src/starkpil/merkleTree -I./src/goldilocks -I./src/goldilocks/tests -I./src/goldilocks/utils -I./src/goldilocks/.vscode -I./src/goldilocks/benchs -I./src/goldilocks/src -I./src/bctree -I./src/bn128 -I./src/bn128/tests -I./src/bn128/benchs -I./src/bn128/src -I./src/bn128/src/ntt -I./src/bn128/src/poseidon2 -I./src/bn128/src/curve -I./src/bn128/src/ffigpu -I./src/bn128/src/ffiasm -I./src/bn128/src/msm -I./src/bn128/src/poseidon -I./src/api -I./src/binfile -I./src/plonk_setup -I./src/XKCP -std=c++17 -Wall -pthread -Wno-unused-label -Wno-vla-cxx-extension -fPIC -Xpreprocessor -fopenmp -D__DARWIN_ARCH__ -O3 -c src/goldilocks/src/poseidon2_goldilocks.cpp -o build/./src/goldilocks/src/poseidon2_goldilocks.cpp.o
+
+  --- stderr
+  Makefile changed — running clean rebuild...
+  Running make -j starks_lib...
+  In file included from src/starkpil/stark_info.cpp:1:
+  src/starkpil/stark_info.hpp:4:10: fatal error: 'nlohmann/json.hpp' file not found
+      4 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/starkpil/expressions/expressions_info.cpp:1:
+  src/starkpil/expressions/expressions_info.hpp:4:10: fatal error: 'nlohmann/json.hpp' file not found
+      4 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/goldilocks/src/ntt_goldilocks.cpp:1:
+  In file included from src/goldilocks/src/ntt_goldilocks.hpp:4:
+  In file included from src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/bctree/build_const_tree.cpp:1:
+  In file included from src/bctree/build_const_tree.hpp:6:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  In file included from src/goldilocks/src/blake3_goldilocks.cpp:1:
+  In file included from src/goldilocks/src/blake3_goldilocks.hpp:12:
+  In file included from src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/goldilocks/src/goldilocks_base_field.cpp:1:
+  In file included from src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/starkpil/merkleTree/merkleTreeGL.cpp:1:
+  In file included from src/starkpil/merkleTree/merkleTreeGL.hpp:6:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/api/starks_api.cpp:1:
+  In file included from ./src/config/zkglobals.hpp:4:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/starkpil/transcript/transcriptGL.cpp:1:
+  In file included from src/starkpil/transcript/transcriptGL.hpp:4:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/utils/exit_process.cpp:3:
+  In file included from src/utils/utils.hpp:5:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/starkpil/expressions/expressions_bin.cpp:1:
+  In file included from src/starkpil/expressions/expressions_bin.hpp:8:
+  src/starkpil/expressions/expressions_info.hpp:4:10: fatal error: 'nlohmann/json.hpp' file not found
+      4 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/goldilocks/src/poseidon_goldilocks.cpp:1:
+  In file included from src/goldilocks/src/poseidon_goldilocks.hpp:8:
+  In file included from src/goldilocks/src/poseidon_goldilocks_constants.hpp:4:
+  In file included from src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/api/starks_api.cpp:2:
+  ./src/starkpil/proof2zkinStark.hpp:4:10: fatal error: 'nlohmann/json.hpp' file not found
+      4 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/goldilocks/src/goldilocks_cubic_extension.cpp:1:
+  In file included from src/goldilocks/src/goldilocks_cubic_extension.hpp:5:
+  In file included from src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  3 warnings generated.
+  In file included from src/config/zkglobals.cpp:1:
+  In file included from src/config/zkglobals.hpp:4:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  1 error generated.
+  make: *** [build/./src/starkpil/expressions/expressions_bin.cpp.o] Error 1
+  make: *** Waiting for unfinished jobs....
+  In file included from src/goldilocks/src/poseidon2_goldilocks.cpp:1:
+  In file included from src/goldilocks/src/poseidon2_goldilocks.hpp:4:
+  In file included from src/goldilocks/src/poseidon2_goldilocks_constants.hpp:3:
+  In file included from src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/starkpil/merkleTree/merkleTreeGL.cpp:1:
+  In file included from src/starkpil/merkleTree/merkleTreeGL.hpp:7:
+  In file included from ./src/api/starks_api_internal.hpp:16:
+  In file included from ./src/utils/zklog.hpp:8:
+  ./src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  3 warnings and 1 error generated.
+  make: *** [build/./src/starkpil/merkleTree/merkleTreeGL.cpp.o] Error 1
+  In file included from src/starkpil/proof2zkinStark.cpp:5:
+  src/starkpil/proof2zkinStark.hpp:4:10: fatal error: 'nlohmann/json.hpp' file not found
+      4 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/starkpil/transcript/transcriptGL.cpp:1:
+  In file included from src/starkpil/transcript/transcriptGL.hpp:6:
+  In file included from ./src/api/starks_api_internal.hpp:16:
+  In file included from ./src/utils/zklog.hpp:8:
+  ./src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/utils/exit_process.cpp:3:
+  src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  3 warnings and 1 error generated.
+  make: *** [build/./src/starkpil/transcript/transcriptGL.cpp.o] Error 1
+  In file included from src/starkpil/transcript/transcriptBN128.cpp:1:
+  In file included from src/starkpil/transcript/transcriptBN128.hpp:5:
+  In file included from ./src/bn128/src/poseidon/poseidon_bn128.hpp:8:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.hIn file included from src/starkpil/merkleTree/merkleTreeBN128.cpp:2:
+  In file included from src/starkpil/merkleTree/merkleTreeBN128.hpp:6:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  1 error generated.
+  make: *** [build/./src/starkpil/expressions/expressions_info.cpp.o] Error 1
+  :2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  3 warnings generated.
+  src/bn128/src/ffiasm/fec.cpp:10:14: warning: unused variable 'zero' [-Wunused-variable]
+     10 | static mpz_t zero;
+        | In file included from src/bctree/build_const_tree.cpp:1:
+  In file included from src/bctree/build_const_tree.hpp:8:
+  In file included from ./src/starkpil/merkleTree/merkleTreeBN128.hpp:9:
+  In file included from ./src/utils/zklog.hpp:8:
+  ./src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/utils/timer.cpp:2:
+  In file included from src/utils/timer.hpp:8:
+  In file included from src/utils/zklog.hpp:8:
+  In file included from src/utils/utils.hpp:5:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h             ^~~~:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+
+  src/bn128/src/ffiasm/fec.cpp:11:14: warning: unused variable 'one' [-Wunused-variable]
+     11 | static mpz_t one;
+        |              ^~~
+  src/bn128/src/ffiasm/fec.cpp:12:14: warning: unused variable 'mask' [-Wunused-variable]
+     12 | static mpz_t mask;
+        |              ^~~~
+  src/bn128/src/ffiasm/fec.cpp:13:15: warning: unused variable 'nBits' [-Wunused-variable]
+     13 | static size_t nBits;
+        |               ^~~~~
+  src/bn128/src/ffiasm/fec.cpp:14:13: warning: unused variable 'initialized' [-Wunused-variable]
+     14 | static bool initialized = false;
+        |             ^~~~~~~~~~~
+  3 warnings and 1 error generated.
+  3 warnings generated.
+  make: *** [build/./src/utils/exit_process.cpp.o] Error 1
+  In file included from src/bn128/src/poseidon/poseidon_bn128.cpp:1:
+  In file included from src/bn128/src/poseidon/poseidon_bn128.hpp:8:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/utils/zklog.cpp:1:
+  In file included from src/utils/zklog.hpp:8:
+  In file included from src/utils/utils.hpp:5:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_claIn file included from src/utils/timer.cpp:2:
+  In file included from src/utils/timer.hpp:8:
+  In file included from src/utils/zklog.hpp:8:
+  src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  ss operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  3 warnings and 1 error generated.
+  5 warnings generated.
+  make: *** [build/./src/utils/timer.cpp.o] Error 1
+  3 warnings and 1 error generated.
+  make: *** [build/./src/bctree/build_const_tree.cpp.o] Error 1
+  src/goldilocks/src/poseidon_goldilocks.cpp:70:32: warning: unknown warning group '-Wrestrict', ignored [-Wunknown-warning-option]
+     70 | #pragma GCC diagnostic ignored "-Wrestrict"
+        |                                ^
+  In file included from src/starkpil/hints.cpp:1:
+  In file included from ./src/starkpil/expressions/expressions_ctx.hpp:3:
+  In file included from ./src/starkpil/expressions/expressions_bin.hpp:8:
+  ./src/starkpil/expressions/expressions_info.hpp:4:10: fatal error: 'nlohmann/json.hpp' file not found
+      4 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  1 error generated.
+  make: *** [build/./src/starkpil/proof2zkinStark.cpp.o] Error 1
+  In file included from src/utils/utils.cpp:14:
+  In file included from src/utils/utils.hpp:5:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  In file included from src/utils/zklog.cpp:1:
+  In file included from src/utils/zklog.hpp:8:
+  src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  3 warnings generated.
+  3 warnings and 1 error generated.
+  In file included from src/starkpil/transcript/transcriptBN128.cpp:3:
+  In file included from ./src/utils/zklog.hpp:8:
+  ./src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  3 warnings and 1 error generated.
+  make: *** [build/./src/utils/zklog.cpp.o] Error 1
+  make: *** [build/./src/starkpil/transcript/transcriptBN128.cpp.o] Error 1
+  src/goldilocks/src/poseidon2_goldilocks.cpp:58:32: warning: unknown warning group '-Wrestrict', ignored [-Wunknown-warning-option]
+     58 | #pragma GCC diagnostic ignored "-Wrestrict"
+        |                                ^
+  In file included from src/utils/utils.cpp:14:
+  src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  1 error generated.
+  make: *** [build/./src/starkpil/stark_info.cpp.o] Error 1
+  3 warnings generated.
+  3 warnings and 1 error generated.
+  In file included from src/rapidsnark/plonk_setup.cpp:1:
+  In file included from src/rapidsnark/plonk_setup.hpp:16:
+  In file included from ./src/utils/utils.hpp:5:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  make: *** [build/./src/utils/utils.cpp.o] Error 1
+  In file included from src/starkpil/merkleTree/merkleTreeBN128.cpp:2:
+  In file included from src/starkpil/merkleTree/merkleTreeBN128.hpp:9:
+  In file included from ./src/utils/zklog.hpp:8:
+  ./src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  In file included from src/rapidsnark/fflonk_setup.cpp:1:
+  In file included from src/rapidsnark/fflonk_setup.hpp:16:
+  In file included from ./src/utils/utils.hpp:5:
+  In file included from ./src/goldilocks/src/goldilocks_base_field.hpp:6:
+  /opt/homebrew/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2163 | inline mpz_class operator"" _mpz(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpz
+  /opt/homebrew/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2168 | inline mpq_class operator"" _mpq(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpq
+  /opt/homebrew/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+   2175 | inline mpf_class operator"" _mpf(const char* s)
+        |                  ~~~~~~~~~~~^~~~
+        |                  operator""_mpf
+  3 warnings and 1 error generated.
+  make: *** [build/./src/starkpil/merkleTree/merkleTreeBN128.cpp.o] Error 1
+  In file included from src/rapidsnark/plonk_setup.cpp:1:
+  In file included from src/rapidsnark/plonk_setup.hpp:16:
+  ./src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  3 warnings and 1 error generated.
+  In file included from src/rapidsnark/fflonk_setup.cpp:1:
+  In file included from src/rapidsnark/fflonk_setup.hpp:16:
+  ./src/utils/utils.hpp:7:10: fatal error: 'nlohmann/json.hpp' file not found
+      7 | #include <nlohmann/json.hpp>
+        |          ^~~~~~~~~~~~~~~~~~~
+  make: *** [build/./src/rapidsnark/plonk_setup.cpp.o] Error 1
+  3 warnings and 1 error generated.
+  3 warnings generated.
+  3 warnings and 1 error generated.
+  make: *** [build/./src/rapidsnark/fflonk_setup.cpp.o] Error 1
+  make: *** [build/./src/api/starks_api.cpp.o] Error 1
+  1 error generated.
+  make: *** [build/./src/starkpil/hints.cpp.o] Error 1
+  4 warnings generated.
+  4 warnings generated.
+
+  thread 'main' (4234671) panicked at /Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/proofman-starks-lib-c-1.3.0-alpha/build.rs:210:9:
+  Command `make` failed with exit code Some(2)
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+warning: build failed, waiting for other jobs to finish...
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-guest-e2e/build_peer.py", line 7, in <module>
+    subprocess.run(['cargo','build','--release','--locked','-p','cargo-zisk','--bin','cargo-zisk','--bin','cargo-zisk-dev','--features','cpu-only','-j','4'],cwd='/tmp/stwo-recursion-peer-research-20260921/zisk',env=env,check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['cargo', 'build', '--release', '--locked', '-p', 'cargo-zisk', '--bin', 'cargo-zisk', '--bin', 'cargo-zisk-dev', '--features', 'cpu-only', '-j', '4']' returned non-zero exit status 101.

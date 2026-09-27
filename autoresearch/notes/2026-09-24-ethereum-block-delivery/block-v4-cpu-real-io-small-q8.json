@@ -1,0 +1,58 @@
+{
+  "date": "2026-09-25",
+  "scope": "One terminal Ethereum-SHA-profile CPU segment with a four-byte public input, four-byte public output, output-length and halt stores, and one Keccak caller; fresh block-v4 core verification only",
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "qualification": "diagnostic plumbing, not canonical q70/PoW26"
+  },
+  "verification": {
+    "fresh_native_execution": true,
+    "fresh_opcode_and_external_sidecars": true,
+    "fresh_sorted_memory_and_range_tables": true,
+    "fresh_public_initial_rw_root_and_claim": true,
+    "global_transition_and_event_census_closed": true,
+    "recursive_leaf_or_outer_proof": false,
+    "tests_passed": 8
+  },
+  "counts": {
+    "execution_memory_events": 70,
+    "external_keccak_events": 51,
+    "first_touch_keys": 59,
+    "memory_instances": 1
+  },
+  "bytes": {
+    "public_initial_nonzero_image": 2040,
+    "public_first_touch_roster": 590,
+    "stark_and_native_artifact_payload": 1651532,
+    "payload_excludes": "Separate claim arrays, pinned statement, roster metadata, and verifier-visible public source files"
+  },
+  "timing_ns": {
+    "assembly_proving_and_fresh_core_verification": 5416079250
+  },
+  "memory": {
+    "tracked_peak_live_bytes": 520385073,
+    "whole_process_peak_bytes": null
+  },
+  "fixture_limits": [
+    "The 2040-byte public image includes initialized Keccak state; it is not the public-I/O overhead alone.",
+    "The trusted public job and native key were derived in a separate fixture preflight; a production caller must pin them independently.",
+    "This is a small core proof with real I/O, not a recursive complete-block proof or an Ethereum mainnet block measurement."
+  ],
+  "postrun_address_bound_refinement": {
+    "change": "The byte-address bridge was subsequently restricted below 2^30 to match the native typed load/store quarter-index bound and remove an M31 packing-edge alias. The measured fixture addresses are below this limit.",
+    "focused_releasefast_tests_passed": 4,
+    "full_core_proof_repeated_after_refinement": false,
+    "current_bridge_sha256": {
+      "block_execution_access_bridge_v2.zig": "1b469c99a262fa52f5541025b67e985dcbe6dfd3b1913512f507940549277c49",
+      "block_execution_integer_bridge_v2.zig": "fc121e32c71c652c0004f7cad79b12b99ffcb82eecc42e54805f9b7401fadc5b"
+    }
+  },
+  "source_sha256_at_run": {
+    "block_v4_cpu_one_segment_assembly.zig": "6c7c7910b2d2aa2303a1db36b4058fb8afda97d6a66dc3eb9fb590eb01694031",
+    "block_v4_cpu_one_segment_assembly_test.zig": "f2afb54d27b998e5aa9e730e128274846d8d2ca5cc4c706d5971912dfc070fb1",
+    "block_v4_public_source_assembly.zig": "4750b54af3c05d976c53d95e4d86bd29da2e3ba7ef7e66647e243162faf56e38",
+    "block_execution_access_bridge_v2.zig": "14696e07e6fed15378f38e6f03682f27d2465a652a32d3b73ef91e7e3acd1abb",
+    "block_execution_integer_bridge_v2.zig": "4cb44696c2cb8e7c194f8d7f217f3b2289a710673a42b0d4ecd78e7367b349be"
+  }
+}

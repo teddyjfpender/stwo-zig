@@ -46,7 +46,7 @@ pub const COMPOSITION_DOMAIN_SCRATCH_CONCURRENCY: u16 = composition_domain_scrat
 
 /// Frees pooled composition-domain scratch buffers; the Metal backend calls
 /// this before tearing the shared runtime down.
-pub const releasePooledCompositionScratch = composition_domain_scratch.releasePooledResidents;
+pub const releasePooledCompositionScratch = composition_domain_scratch.tryReleasePooledResidents;
 /// Below 2^16 evaluation rows, four direct dispatches plus one lookup dispatch
 /// do not amortize the resident command setup. Keep the complete reference
 /// component on the host until this measured crossover; larger components use
@@ -205,6 +205,7 @@ fn evaluateInternal(
     profiled_execution: ?prover.air.composition_execution.Execution,
 ) !?SecureColumn {
     const execution_mode = try execution_policy.requested();
+    const admission_diagnostic = try compositionParityRequested();
     var timing = host_graph.WallTiming.requested();
     defer if (timing) |*clock| clock.finish();
     if (components.len == 0) return null;
@@ -219,23 +220,58 @@ fn evaluateInternal(
     var accelerated_component_count: usize = 0;
     const partitions = try allocator.alloc(ComponentPartition, components.len);
     defer allocator.free(partitions);
-    for (components, partitions) |component, *partition| {
-        total_constraints = try std.math.add(
-            usize,
-            total_constraints,
-            component.nConstraints(),
-        );
+    for (components) |component| {
+        total_constraints = try std.math.add(usize, total_constraints, component.nConstraints());
         max_log_size = @max(max_log_size, component.maxConstraintLogDegreeBound());
+    }
+    const job_storage = try allocator.alloc(framework_jobs_mod.Job, components.len);
+    defer allocator.free(job_storage);
+    defer for (job_storage[0..framework_count]) |*job| job.deinit();
+    const tree_counts = try allocator.alloc(usize, trace.polys.items.len);
+    defer allocator.free(tree_counts);
+    for (trace.polys.items, tree_counts) |tree, *count| count.* = tree.len;
+    var cursor = total_constraints;
+    for (components, partitions) |component, *partition| {
+        cursor -= component.nConstraints();
         partition.* = try componentPartition(component, execution_mode, lease.runtime.admitted_profile == .recursive_framework_v1);
-        // Old/core-only bundles retain their existing host route without
-        // exporting every recursive program just to discover a missing kernel.
-        if (lease.runtime.admitted_profile != .recursive_framework_v1)
+        // Keep the retained core host route available for matched measurements.
+        if (lease.runtime.admitted_profile != .recursive_framework_v1 and
+            std.posix.getenv("STWO_RISCV_CPU_HASH_COMPOSITION") != null)
             partition.framework = null;
+        if (partition.framework) |capability| {
+            // Export and authenticate once. Availability is determined by the
+            // exact executable identity, never the component name or workload.
+            var job = try framework_jobs_mod.Job.init(allocator, component, capability, tree_counts, cursor);
+            const supported = if (lease.runtime.admitted_profile) |profile| supported: {
+                for (profile.exports()) |entry| {
+                    if (std.mem.eql(u8, entry.name, job.kernel_name)) break :supported true;
+                }
+                break :supported false;
+            } else false;
+            if (admission_diagnostic) std.debug.print("METAL_FRAMEWORK_ADMISSION name={s} supported={}\n", .{ job.kernel_name, supported });
+            if (supported) {
+                job_storage[framework_count] = job;
+                framework_count += 1;
+            } else {
+                job.deinit();
+                partition.framework = null;
+            }
+        }
+        // Resident-only families cannot address a streamed host tree. Keep
+        // that entire component on the host while independently admitted
+        // framework jobs stage their exact columns in bounded domain groups.
+        var resident = true;
+        for (partition.bases[0..partition.base_count]) |base| {
+            resident = resident and hasTreeResidency(residency_handles, &.{ base.capability.selector_tree_index, base.capability.main_tree_index });
+        }
+        if (partition.lookup) |capability| resident = resident and lookup_resident.hasResidency(capability, residency_handles);
+        if (!resident) partition.* = .{};
         semantic_count += partition.base_count;
         if (partition.lookup != null) lookup_count += 1;
-        if (partition.framework != null) framework_count += 1;
         if (partition.accelerated()) accelerated_component_count += 1;
     }
+    const framework_jobs = job_storage[0..framework_count];
+    if (admission_diagnostic) std.debug.print("METAL_COMPOSITION_ADMISSION base={} lookup={} framework={} resident_handles={any}\n", .{ semantic_count, lookup_count, framework_count, residency_handles });
     if (semantic_count + lookup_count + framework_count == 0) return null;
     const host_component_count = components.len - accelerated_component_count;
     if (host_component_count != 0) {
@@ -255,47 +291,6 @@ fn evaluateInternal(
     }
     if (trace.polys.items.len == 0 or residency_handles.len == 0)
         return declineResidentPolynomial();
-    for (partitions) |partition| {
-        for (partition.bases[0..partition.base_count]) |base| {
-            const capability = base.capability;
-            if (!hasTreeResidency(
-                residency_handles,
-                &.{ capability.selector_tree_index, capability.main_tree_index },
-            )) return declineResidentPolynomial();
-        }
-        if (partition.lookup) |capability| {
-            if (!lookup_resident.hasResidency(capability, residency_handles))
-                return declineResidentPolynomial();
-        }
-    }
-
-    const framework_jobs = try allocator.alloc(framework_jobs_mod.Job, framework_count);
-    defer allocator.free(framework_jobs);
-    var initialized_framework: usize = 0;
-    defer for (framework_jobs[0..initialized_framework]) |*job| job.deinit();
-    if (framework_count != 0) {
-        const tree_counts = try allocator.alloc(usize, trace.polys.items.len);
-        defer allocator.free(tree_counts);
-        for (trace.polys.items, tree_counts) |tree, *count| count.* = tree.len;
-        var cursor = total_constraints;
-        for (components, partitions) |component, partition| {
-            cursor -= component.nConstraints();
-            const capability = partition.framework orelse continue;
-            framework_jobs[initialized_framework] = try framework_jobs_mod.Job.init(
-                allocator,
-                component,
-                capability,
-                tree_counts,
-                cursor,
-            );
-            initialized_framework += 1;
-            for (framework_jobs[initialized_framework - 1].column_trees) |tree| {
-                if (tree == std.math.maxInt(u32)) continue;
-                if (!hasTreeResidency(residency_handles, &.{tree})) return declineResidentPolynomial();
-            }
-        }
-    }
-
     // Cold program admission precedes bulk scratch allocation. In particular,
     // core-only bundles may lack newly exported provider kernels; decline that
     // request before reconstructing expanded provider columns or starting CPU work.
@@ -490,7 +485,10 @@ fn evaluateInternal(
     std.debug.assert(lookup_index == lookup_jobs.len);
     std.debug.assert(host_index == host_workers.len);
 
-    lookup_catalog.prepareAll(lease.runtime) catch return declineResidentPolynomial();
+    lookup_catalog.prepareAll(lease.runtime) catch |err| {
+        if (admission_diagnostic) std.debug.print("METAL_COMPOSITION_LOOKUP_DECLINED {s}\n", .{@errorName(err)});
+        return declineResidentPolynomial();
+    };
 
     // All AOT families have resolved before host work starts. A dominant
     // reviewed splitter may consume the ambient pool while this
@@ -735,7 +733,7 @@ fn evaluateInternal(
     );
     if (framework_result.dispatches != 0) {
         telemetry.recordN(.metal_framework_polynomial_dispatch, @intCast(framework_result.dispatches));
-        std.log.info("resident framework composition: components={} groups={} gpu_ms={d:.3}", .{
+        if (admission_diagnostic or std.posix.getenv("STWO_RISCV_EXECUTION_PROFILE") != null) std.debug.print("METAL_FRAMEWORK_COMPOSITION components={} groups={} gpu_ms={d:.3}\n", .{
             framework_result.dispatches, framework_result.groups, framework_result.gpu_milliseconds,
         });
     }

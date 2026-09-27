@@ -1,0 +1,10 @@
+src/frontends/riscv/recursion/public_wire_uniqueness_test_v1.zig:24:53: error: expected type 'u8', found 'u32'
+    if (@hasField(W, "child")) wire.child = ordinal % 4;
+                                            ~~~~~~~~^~~
+src/frontends/riscv/recursion/public_wire_uniqueness_test_v1.zig:24:53: note: unsigned 8-bit int cannot represent all possible unsigned 32-bit values
+referenced by:
+    test.public wire uniqueness: separated duplicates reject regardless of differing uses and source metadata: src/frontends/riscv/recursion/public_wire_uniqueness_test_v1.zig:57:54
+    test_0: src/frontends/riscv/block_v5_public_wire_uniqueness_test_root.zig:2:17
+src/frontends/riscv/recursion/public_wire_uniqueness_test_v1.zig:78:50: error: type 'u8' cannot represent integer value '4294967295'
+            wires[0].coordinate = std.math.maxInt(u32);
+                                  ~~~~~~~~~~~~~~~^~~~~

@@ -1,0 +1,4 @@
+1/2 air.block.memory_order_test.test.block memory ordering proves wide clocks values and address transitions...BLOCK_MEMORY_ORDER identity=a1de6d7d98a71bbab8f3dad997f76bb0e8337e74465f648c09bf2ffa85df4c28 constraints=41 range_events=24
+OK
+2/2 air.block.memory_order_test.test.block memory ordering rejects value bypass clocks carries and unbounded bytes...OK
+All 2 tests passed.

@@ -1,0 +1,22 @@
+ETH_AUTH_EXECUTION cycles=12419 keccak=6 recoveries=1 output=0100000001000000ad40f6a7de9e85a4284678f80e678537a5a54a5e8b9c93762ca7c5cbc4d4f44cb1b6df74a5bca3624ff555fd4d4dc116504421a8e2fb2c69f8dd8e570638aefa
+BLAKE3_SEGMENT_LEAF_TIMING proving_ns=4253763875 capture_verification_ns=40006167
+BLAKE3_NATIVE_QUERY_FUSION groups=24150 removed_scalars=96600
+BLAKE3_NATIVE_FUSION dot4=816815 fma=152979 arithmetic_rows=1430772
+       14.17 real        64.40 user         1.90 sys
+         14932328448  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2184288  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               30675  involuntary context switches
+       1379833407217  instructions retired
+        282687284199  cycles elapsed
+         14935242216  peak memory footprint

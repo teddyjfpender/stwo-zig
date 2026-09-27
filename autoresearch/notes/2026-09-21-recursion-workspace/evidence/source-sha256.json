@@ -1,0 +1,8 @@
+{
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_workspace.zig": "88bc3ba652255b19ba7b44c986ae94eaad10eef57838172209094c089f78fe8a",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_batch.zig": "b90237a3d8689462a97e2d20e33086f266bb81f80bebc88a907e0badd5b36ec4",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig": "91e1a07646cfd5ff287f030702c45e8d5d530ceef8bf1ee73abedbbcdcd27ae1",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig": "9e054752979cfc0e3617d61299153c12dd9320c694c9707e43c44364003fb910",
+  "src/integrations/riscv_metal/recursive_segment_v2_detached_parent_producer_runner.zig": "4895c5eedee033633c06b27ed84c3a6cb281c57bc4d63052606acd98fdd00c6a",
+  "src/integrations/riscv_cpu/build_segment_steps.zig": "d932055d88a1d50f80274f329f49f69213b9f7a111f9156229382f6c6a344621"
+}

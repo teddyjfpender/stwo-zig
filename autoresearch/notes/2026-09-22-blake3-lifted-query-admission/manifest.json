@@ -1,0 +1,8 @@
+{
+  "README.md": "3d89152ae615583c721e66a8ff0c321e2317dc1015525c5c91ccdac8093b9318",
+  "sources/autoresearch/notes/20260922-blake3-lifted-query-admission-problem-match.md": "318f4a789f233dbdb76290e022eec783e26ab5cfe97a4d07bf8dee5037865c66",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "4b2069a20e15ee7e4b699afbfd20a89637c9497af6c8f7d00d426757f301f901",
+  "sources/src/frontends/riscv/recursion/air/blake3_lifted_leaf_plan.zig": "3404412d5ebdb3c95b7a63705072d18128aae92bfaf67933f699c960e6e31e08",
+  "sources/src/frontends/riscv/recursion/air/blake3_lifted_path_test.zig": "181e050959f6531451f597612e9357a652d4aa8848bfa66fc6a1c6f1a3b61939",
+  "tests.log": "9d0dc5f0297b208714028271fdb0922d4be88d62e9981f70927e417207843da3"
+}

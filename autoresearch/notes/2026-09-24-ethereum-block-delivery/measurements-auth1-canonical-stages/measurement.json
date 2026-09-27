@@ -1,0 +1,63 @@
+{
+  "schema": "stwo.cpu-block-measurements.v1",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-stage-metrics",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.expected",
+    "32768",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/measurements-auth1-canonical-stages/root.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/measurements-auth1-canonical-stages/proof-report.json",
+    "canonical"
+  ],
+  "hardware": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "logical_cpus": 18
+  },
+  "inputs": {
+    "binary": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-stage-metrics",
+      "sha256": "de8c7891e7f9b1c5faf12b09233f95077c6b8027a0aa084a739b65fce6355f9a"
+    },
+    "elf": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+      "sha256": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c"
+    },
+    "input": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.input",
+      "sha256": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d"
+    },
+    "expected_output": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.expected",
+      "sha256": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138"
+    }
+  },
+  "complete_execution_proof_verified": true,
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t100%; charged; 0:00 remaining present: true",
+  "process_wall_ns": 41912503541,
+  "exit_code": 0,
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t100%; charged; 0:00 remaining present: true",
+  "peak_rss_bytes": 10139238400,
+  "peak_physical_footprint_bytes": 10138544520,
+  "prover_pipeline_ns": 41205359792,
+  "stage_ns": {
+    "preflight": 9537542,
+    "replay_execution": 3700250,
+    "witness_preparation": 1512626750,
+    "verifier_preparation": 669342625,
+    "leaf_proof_and_recursive_witness": 17040524292,
+    "recursive_proving_and_aggregation": 21952648000,
+    "final_root_verification": 15758833
+  },
+  "unclassified_pipeline_ns": 1221500,
+  "peak_tracked_bytes": 10010117687,
+  "proof_bytes": 981446,
+  "cycles": 21635,
+  "segments": 1,
+  "queries": 70,
+  "pow_bits": 26,
+  "process_cycles_per_second": 516.1944091179384
+}

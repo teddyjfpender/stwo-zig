@@ -1,0 +1,66 @@
+{
+  "schema": "stwo.cpu-block-v5-measurements.v1",
+  "inputs": {
+    "producer": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-ethereum-block-v5-cpu-produce",
+      "sha256": "22a7536af7d02d8387717a60214a9944f75810e3d9581587ef6b7de101d39448"
+    },
+    "verifier": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-ethereum-block-v5-cpu-verify",
+      "sha256": "df51503b556404f9f97ae160d0e13b967613332e0132d9bead41d63819b9ff03"
+    },
+    "elf": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+      "sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688"
+    },
+    "input": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+      "sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82"
+    },
+    "oracle": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+      "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+    }
+  },
+  "hardware": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "logical_cpus": 18
+  },
+  "job_id": "334f0899a1373935251d5a86620c538332faaacbe996de2bf7318a8e4305bcca",
+  "producer_command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-ethereum-block-v5-cpu-produce",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+    "2097152",
+    "334f0899a1373935251d5a86620c538332faaacbe996de2bf7318a8e4305bcca",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-v5-mainnet-24628607-2m-canonical-v1/bundle"
+  ],
+  "phase": "failed",
+  "complete_block_verified": false,
+  "build_included": false,
+  "machine_outputs": {
+    "producer": "producer.stdout.json",
+    "verifier": "verifier.stdout.json"
+  },
+  "diagnostics_and_time_logs": {
+    "producer": "producer.log",
+    "verifier": "verifier.log"
+  },
+  "policy_scope": "Fresh-process verification of separately pinned producer-generated policy. These measurements do not independently admit an Ethereum block or external public-state policy.",
+  "producer_exit_code": 1,
+  "producer_process_wall_ns": 370003858417,
+  "error": "producer exited with 1; see producer.log",
+  "failed_run_resources": {
+    "time_log_real_seconds": 370.04,
+    "peak_rss_bytes": 6044762112,
+    "scope": "Isolated producer process including host preflight; compilation excluded; incomplete first collection pass, no complete proof produced."
+  },
+  "diagnosis": {
+    "error": "CallRangeTooLarge",
+    "source": "block_v5_precompile_witness_v1.Witness.initSegment selected legacy_v4 Keccak instead of explicit ethereum_v5 variant",
+    "complete_block_verified": false
+  }
+}

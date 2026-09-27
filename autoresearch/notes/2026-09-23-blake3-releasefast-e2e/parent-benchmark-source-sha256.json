@@ -1,0 +1,5 @@
+{
+  "src/frontends/riscv/prover/blake3_poseidon_witness_test.zig": "6f57180f092b232654e793b4034dbd7f5a21f85055181775bfd2e0aaa6b18dd9",
+  "src/frontends/riscv/prover/blake3_poseidon_proof_test_support.zig": "8d49c189367c97e8b65fa5508593b8ed671bc50262506fc7f997bb5b20bcef20",
+  "src/frontends/riscv/prover/blake3_extension_parent_test_support.zig": "3a0a41b0a2dc0d3ef448d355a7e3e6aa834c23d2bd93ac9e811bc74975a167d4"
+}

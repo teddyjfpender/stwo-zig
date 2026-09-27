@@ -1,0 +1,22 @@
+{
+  "source_candidate": "fold-operand-streaming-consumer-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 2.796188542037271,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 5,
+  "test_summary": [
+    "All 5 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/fold-operand-streaming-consumer-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-fold-operand-streaming-consumer-focused-v1",
+    "bytes": 6136960,
+    "sha256": "6242473ecc85c1dddb7c07889796ba30c7994a7847555ef0b324f3979122f698"
+  }
+}

@@ -1,0 +1,13 @@
+[package]
+name = "eth-auth-zisk"
+version = "0.1.0"
+edition = "2021"
+[workspace]
+[dependencies]
+eth-auth-common = { path = "../common" }
+ziskos = { path = "/tmp/stwo-recursion-peer-research-20260921/zisk/ziskos/entrypoint" }
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+codegen-units = 1

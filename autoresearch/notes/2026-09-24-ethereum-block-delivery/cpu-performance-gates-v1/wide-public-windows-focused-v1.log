@@ -1,0 +1,18 @@
+1/17 block_v5_wide_public_windows_test_root.test.wide public windows body: actual legacy and selected channel parent producer receiver and higher rows retention...OK
+2/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: independent native oracle matches full-width compensation and count equations...OK
+3/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: high clock carry x0 and count faults reject...OK
+4/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: actual symbolic equation graph rejects original high-byte mutation...OK
+5/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: symbolic graph construction rolls back exhaustive OOM...OK
+6/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: layout keeps million-word input lengths out of bounded lower frame extents...OK
+7/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: u64 adjacency gap wrap and register endpoint mutations reject...OK
+8/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: expected input root has exact length word order and high byte framing...OK
+9/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: retained input root rejects cache mutation against independent expectation...OK
+10/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: input owner retain construction and file custody exhaustively roll back OOM...OK
+11/17 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: independent contiguous fan-in rejects rounding gaps overflow and oversized roots...OK
+12/17 prover.block_execution_external_trace_v2.test_0...OK
+13/17 air.lookups.tables.mod.test_0...OK
+14/17 air.semantic_eval.test_0...OK
+15/17 prover.block_execution_external_access_bridge_v2.test_0...OK
+16/17 air.memory_commitment.poseidon2_air.test_0...OK
+17/17 air.lookups.tables.source_ingest.test_0...OK
+All 17 tests passed.

@@ -1,0 +1,71 @@
+1/7 blake3_metal_qualification_test_root.test.Metal compact canonical native BLAKE3 parent matches CPU qualification...CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_EXECUTION_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-execution","stages":[{"id":"execution.fixed","label":"Admission and fixed commitment","seconds":0.028334,"children":null},{"id":"execution.main","label":"Main commitment","seconds":0.023609,"children":null},{"id":"execution.native_interaction","label":"Native interaction generation","seconds":0.009901,"children":null},{"id":"execution.hash_interaction","label":"Hash interaction generation","seconds":0.006732,"children":null},{"id":"execution.interaction_commit","label":"Interaction closure and commitment","seconds":0.033024,"children":null},{"id":"execution.core","label":"Core STARK proof","seconds":21257.151852,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000006,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.053968,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.00415,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.066661,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000094,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.012584,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000022,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.160655,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":21256.479305,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.181704,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.178916,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.004512,"children":null}]}]}
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_HASH_METADATA g_rows=2444008 xor_rows=698288 full_row_bytes=1301608832 compact_bytes=173175424 removed_bytes=1128433408
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1281835520 compact_bytes=170544640 removed_bytes=1111290880
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+BLAKE3_HASH_METADATA g_rows=2444008 xor_rows=698288 full_row_bytes=1301608832 compact_bytes=173175424 removed_bytes=1128433408
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1281835520 compact_bytes=170544640 removed_bytes=1111290880
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+BLAKE3_HASH_METADATA g_rows=2444008 xor_rows=698288 full_row_bytes=1301608832 compact_bytes=173175424 removed_bytes=1128433408
+METAL_STREAM_LEAVES columns=453 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=576 overlap=true gpu_ms=53.328
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=129.34966667671688
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=7.508416660130024
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=2.069625013973564
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=6.006250012433156
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=1.2171249836683273
+METAL_STREAM_LEAVES columns=468 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=640 overlap=true gpu_ms=81.697
+METAL_FRAMEWORK_COMPOSITION components=5 groups=3 gpu_ms=255.106
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1281835520 compact_bytes=170544640 removed_bytes=1111290880
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+METAL_HOST_BARYCENTRIC staging_bytes=67108864 commands=198 columns=1285 points=22 gpu_ms=180.267
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.026619,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":0.52932,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":1.083991,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":0.716297,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":1.246959,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":3.906638,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000001,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000004,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":1.798892,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.022235,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.272003,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.00024,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":1.001132,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000085,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.597337,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.014369,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.005818,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.050961,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000405,"children":null}]}]}
+METAL_STREAM_LEAVES columns=453 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=576 overlap=true gpu_ms=148.275
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=128.45024999114685
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=7.741041656117886
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=2.05199999618344
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=2.9226249898783863
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.6000416760798544
+METAL_STREAM_LEAVES columns=468 log=23 tile_log=17 scratch_bytes=67108864 working_bytes=54525952 dispatches=640 overlap=true gpu_ms=110.805
+METAL_FRAMEWORK_COMPOSITION components=5 groups=3 gpu_ms=251.550
+METAL_HOST_BARYCENTRIC staging_bytes=67108864 commands=198 columns=1285 points=22 gpu_ms=143.055
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.052337,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":0.841347,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":1.827056,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":1.237057,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":1.351366,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":2.760711,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000001,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000005,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":1.223586,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.016016,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.067159,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000095,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.613816,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000085,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.578325,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.014205,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.007063,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.049615,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000192,"children":null}]}]}
+CANONICAL_PIPELINE_ARTIFACT index=0 sha256=87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b bytes=857591 independently_verified=true
+CANONICAL_PIPELINE_ARTIFACT index=1 sha256=87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b bytes=857591 independently_verified=true
+CANONICAL_EXECUTION_PIPELINE mode=overlapped jobs=2 workers=8 cpu_tokens=9 reserved_bytes=56523834968 wall_ns=19740554334 overlap_ns=6276255292 worker_peak_bytes=11994253102 worker_limit_bytes=25769803776 child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 plan_reused=true outputs_outlive_worker=true independently_verified=true
+CANONICAL_PIPELINE_SPAN run=0 index=0 prepare_start=13334 prepare_end=4111107084 prove_start=4111118042 prove_end=11621781000
+CANONICAL_PIPELINE_SPAN run=0 index=1 prepare_start=4111110167 prepare_end=10387373334 prove_start=11641155709 prove_end=19710893542
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+    21280.97 real        45.87 user         9.65 sys
+         25967558656  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             4974660  page reclaims
+                 478  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                3342  voluntary context switches
+               58639  involuntary context switches
+        470411755744  instructions retired
+        177949314892  cycles elapsed
+         32767787808  peak memory footprint

@@ -1,0 +1,1297 @@
+ M build_support/graph/delegation.zig
+ M build_support/products/catalog.zig
+ M build_support/products/riscv_cpu.zig
+ M build_support/products/riscv_cpu_tests.zig
+ M build_support/products/riscv_metal.zig
+ M build_support/products/riscv_shared_shell.zig
+ M design/riscv-proving-stack/recursive-metal-composition.md
+ M scripts/riscv_csp_benchmark.py
+ M scripts/riscv_csp_benchmark_lib/precompile.py
+ M scripts/riscv_csp_benchmark_lib/validation.py
+ M scripts/tests/test_riscv_csp_benchmark.py
+ M scripts/tests/test_riscv_csp_benchmark_wiring.py
+ M scripts/tests/test_riscv_csp_native_isolation.py
+ M scripts/tests/test_riscv_csp_precompile.py
+ M src/backends/metal/build.zig
+ M src/backends/metal/commit_backend.zig
+ M src/backends/metal/commit_backend_fri.zig
+ M src/backends/metal/hash_domain.zig
+ M src/backends/metal/merkle_tree.zig
+ M src/backends/metal/runtime.m
+ M src/backends/metal/runtime.zig
+ M src/backends/metal/runtime/abi.h
+ M src/backends/metal/runtime/bindings.zig
+ M src/backends/metal/runtime/circle_commit_epoch.m
+ M src/backends/metal/runtime/combined_commit.zig
+ M src/backends/metal/runtime/combined_commit_operations.zig
+ M src/backends/metal/runtime/fri_cascade_operations.zig
+ M src/backends/metal/runtime/fri_fold_commit.m
+ M src/backends/metal/runtime/fri_plans.m
+ M src/backends/metal/runtime/heterogeneous_commit.zig
+ M src/backends/metal/runtime/lifecycle_and_tree.m
+ M src/backends/metal/runtime/merkle_epochs.m
+ M src/backends/metal/runtime/object_model.h
+ M src/backends/metal/runtime/opening_bindings.zig
+ M src/backends/metal/runtime/opening_operations.zig
+ M src/backends/metal/runtime/polynomial_operations.zig
+ M src/backends/metal/runtime/prepared_execution.zig
+ M src/backends/metal/runtime/proof_of_work.m
+ M src/backends/metal/runtime/proof_of_work.zig
+ M src/backends/metal/runtime/quotient_planning.m
+ M src/backends/metal/runtime/quotients.m
+ M src/backends/metal/runtime/resident_data.zig
+ M src/backends/metal/runtime/resident_fri_transaction.zig
+ M src/backends/metal/runtime/resident_operations.zig
+ M src/backends/metal/runtime/witness_primitives.m
+ M src/backends/metal/shaders/abi_contract.zig
+ M src/backends/metal/shaders/abi_declaration_digests.zig
+ M src/backends/metal/shaders/aot_profile.zig
+ M src/backends/metal/shaders/core/commitments.metal
+ M src/backends/metal/shaders/core/fri_resident.metal
+ M src/backends/metal/shaders/core/transcript.metal
+ M src/backends/metal/shaders/manifest.zig
+ M src/backends/metal/tests/fri_fold_commit.zig
+ M src/backends/metal/tests/heterogeneous_commit.zig
+ M src/backends/metal/tests/quotient_internal_parity.zig
+ M src/core/channel/mod.zig
+ M src/core/crypto/mod.zig
+ M src/core/fri/query_capture.zig
+ M src/core/mod.zig
+ M src/core/vcs_lifted/mod.zig
+ M src/frontends/riscv/air/guest_precompile/ethereum_statement.zig
+ M src/frontends/riscv/air/guest_precompile/interaction.zig
+ M src/frontends/riscv/air/guest_precompile/lookup_registration.zig
+ M src/frontends/riscv/air/guest_precompile/main_trace.zig
+ M src/frontends/riscv/air/guest_precompile/relation_challenges.zig
+ M src/frontends/riscv/air/guest_precompile/statement.zig
+ M src/frontends/riscv/air/memory_commitment/mod.zig
+ M src/frontends/riscv/air/program/commitment.zig
+ M src/frontends/riscv/air/public_data.zig
+ M src/frontends/riscv/air/public_logup.zig
+ M src/frontends/riscv/air/statement.zig
+ M src/frontends/riscv/build_focused_tests.zig
+ M src/frontends/riscv/prover.zig
+ M src/frontends/riscv/prover/base_component_assembly.zig
+ M src/frontends/riscv/prover/guest_precompile/component_assembly.zig
+ M src/frontends/riscv/prover/guest_precompile/ecdsa_csp.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_assembly.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_interaction.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_main.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_preprocessed.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_proof_artifact.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_proof_artifact_wire.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_segment_proof_artifact.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_segment_proof_artifact_wire.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_transcript.zig
+ M src/frontends/riscv/prover/guest_precompile/ethereum_types.zig
+ M src/frontends/riscv/prover/guest_precompile/orchestration.zig
+ M src/frontends/riscv/prover/guest_precompile/proof_artifact.zig
+ M src/frontends/riscv/prover/guest_precompile/proof_artifact_header.zig
+ M src/frontends/riscv/prover/guest_precompile/proof_artifact_test.zig
+ M src/frontends/riscv/prover/guest_precompile/proof_artifact_wire.zig
+ M src/frontends/riscv/prover/guest_precompile/proof_finalize.zig
+ M src/frontends/riscv/prover/guest_precompile/trace_geometry.zig
+ M src/frontends/riscv/prover/guest_precompile/types.zig
+ M src/frontends/riscv/prover/guest_precompile/verifier.zig
+ M src/frontends/riscv/prover/opcode_trace.zig
+ M src/frontends/riscv/prover/types.zig
+ M src/frontends/riscv/recursion/air/composition_circuit.zig
+ M src/frontends/riscv/recursion/air/composition_circuit_reference.zig
+ M src/frontends/riscv/recursion/air/composition_circuit_row.zig
+ M src/frontends/riscv/recursion/air/framework_device_interaction.zig
+ M src/frontends/riscv/recursion/air/framework_interaction.zig
+ M src/frontends/riscv/recursion/air/fri_merkle_anchor_witness.zig
+ M src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_contract.zig
+ M src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_preprocessed.zig
+ M src/frontends/riscv/recursion/air/fri_merkle_node_witness.zig
+ M src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig
+ M src/frontends/riscv/recursion/air/linear_ops.zig
+ M src/frontends/riscv/recursion/air/mod.zig
+ M src/frontends/riscv/recursion/air/pcs_deep_circuit.zig
+ M src/frontends/riscv/recursion/air/pcs_deep_circuit_prepared.zig
+ M src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig
+ M src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig
+ M src/frontends/riscv/recursion/air/qm31_inv.zig
+ M src/frontends/riscv/recursion/air/qm31_mul_full.zig
+ M src/frontends/riscv/recursion/air/relation_interaction.zig
+ M src/frontends/riscv/recursion/air/relation_interaction_runtime.zig
+ M src/frontends/riscv/recursion/air/statement_input_witness.zig
+ M src/frontends/riscv/recursion/air/statement_semantics_input_witness.zig
+ M src/frontends/riscv/recursion/air/trace_merkle_witness_contract.zig
+ M src/frontends/riscv/recursion/air/trace_merkle_witness_preprocessed.zig
+ M src/frontends/riscv/recursion/air/universal_relation_binding.zig
+ M src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig
+ M src/frontends/riscv/recursion/air/vm_air_composition_input_witness.zig
+ M src/frontends/riscv/recursion/captured_fri_owned.zig
+ M src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig
+ M src/frontends/riscv/recursion/detached_child_capture_v1.zig
+ M src/frontends/riscv/recursion/detached_parent_arithmetic_v1.zig
+ M src/frontends/riscv/recursion/detached_parent_preparation_v1.zig
+ M src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig
+ M src/frontends/riscv/recursion/detached_proof_preflight.zig
+ M src/frontends/riscv/recursion/engine.zig
+ M src/frontends/riscv/recursion/ethereum_composition_extension_geometry_v2.zig
+ M src/frontends/riscv/recursion/ethereum_composition_relations_v2.zig
+ M src/frontends/riscv/recursion/ethereum_vm_composition_graph_extension_v2.zig
+ M src/frontends/riscv/recursion/mod.zig
+ M src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig
+ M src/frontends/riscv/recursion/segment_statement_v2_wire.zig
+ M src/frontends/riscv/recursion/span_statement.zig
+ M src/frontends/riscv/recursion/span_statement_executed_span.zig
+ M src/frontends/riscv/recursion/span_statement_span_statement.zig
+ M src/frontends/riscv/recursion/statement_semantics_circuit.zig
+ M src/frontends/riscv/recursion/statement_semantics_circuit_build.zig
+ M src/frontends/riscv/recursion/statement_semantics_circuit_contract.zig
+ M src/frontends/riscv/recursion/statement_semantics_circuit_tracked_builder.zig
+ M src/frontends/riscv/recursion_air_core_test_root.zig
+ M src/frontends/riscv/recursion_air_test_root.zig
+ M src/frontends/riscv/runner/guest_precompile/test_elf.zig
+ M src/frontends/riscv/runner/segment_continuation_test.zig
+ M src/frontends/riscv/test_inventory.zig
+ M src/frontends/riscv/testing/secp256k1_proof_harness.zig
+ M src/integrations/riscv_cpu/build_ethereum_leaf_steps.zig
+ M src/integrations/riscv_cpu/build_proof_steps.zig
+ M src/integrations/riscv_cpu/build_segment_steps.zig
+ M src/integrations/riscv_cpu/ethereum_precompile_proof_test.zig
+ M src/integrations/riscv_cpu/guest_precompile_proof_test.zig
+ M src/integrations/riscv_cpu/mod.zig
+ M src/integrations/riscv_cpu/proof_adapter.zig
+ M src/integrations/riscv_cpu/proof_adapter/artifact_verifier.zig
+ M src/integrations/riscv_cpu/proof_adapter/benchmark_report.zig
+ D src/integrations/riscv_cpu/proof_adapter/guest_profile.zig
+ M src/integrations/riscv_cpu/proof_adapter/guest_profile_verifier.zig
+ M src/integrations/riscv_cpu/proof_adapter/profile_router.zig
+ M src/integrations/riscv_cpu/proof_adapter/transcript_state.zig
+ M src/integrations/riscv_cpu/proof_adapter/verify_receipt.zig
+ M src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test.zig
+ M src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_capture_test.zig
+ M src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_prepare.zig
+ M src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig
+ M src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig
+ M src/integrations/riscv_cpu/secp256k1_precompile_proof_test.zig
+ M src/integrations/riscv_cpu/segment_v2_native_proof_test.zig
+ M src/integrations/riscv_metal/build.zig
+ M src/integrations/riscv_metal/recursive_segment_v2_detached_parent_producer_runner.zig
+ M src/interop/riscv_artifact.zig
+ M src/interop/riscv_artifact/preflight.zig
+ M src/interop/riscv_artifact/schema.zig
+ M src/interop/riscv_artifact/validation.zig
+ M src/interop/riscv_artifact/validation_test.zig
+ M src/products/riscv_cpu/app.zig
+ M src/products/riscv_metal/app.zig
+ M src/products/riscv_metal/capabilities.zig
+ M src/products/riscv_metal/cli.zig
+ M src/products/riscv_metal/guest_poseidon2_app.zig
+ M src/products/riscv_shared/app.zig
+ M src/products/riscv_shared/cli.zig
+ M src/products/riscv_shared/csp_ecdsa.zig
+ M src/prover/air/component_programs.zig
+ M src/prover/build.zig
+ M src/prover/host_budget_allocator.zig
+ M src/prover/pcs/columns/storage.zig
+ M src/prover/pcs/commit_ops.zig
+ M src/prover/pcs/commitment_tree.zig
+ M src/prover/pcs/owned_source_admission_test.zig
+ M src/prover/pcs/proof_of_work.zig
+ M src/prover/pcs/retained_column_storage_test.zig
+ M src/prover/pcs/sampled_values.zig
+ M src/prover/pcs/scheme.zig
+ M src/prover/pcs/tree_builders.zig
+ M src/prover/pcs_commitments_test_root.zig
+ M src/prover/poly/circle/evaluation.zig
+ M src/prover/vcs_lifted/parameters.zig
+ M vectors/riscv_csp/README.md
+?? autoresearch/benchmarks/recursion/
+?? autoresearch/experiments/
+?? autoresearch/notes/2026-09-21-blake3-byte-routing/
+?? autoresearch/notes/2026-09-21-blake3-committed/
+?? autoresearch/notes/2026-09-21-blake3-compression/
+?? autoresearch/notes/2026-09-21-blake3-framing/
+?? autoresearch/notes/2026-09-21-blake3-full-hash/
+?? autoresearch/notes/2026-09-21-blake3-migration/
+?? autoresearch/notes/2026-09-21-blake3-packed/
+?? autoresearch/notes/2026-09-21-blake3-private-input/
+?? autoresearch/notes/2026-09-21-blake3-private-proof/
+?? autoresearch/notes/2026-09-21-blake3-wiring/
+?? autoresearch/notes/2026-09-21-recursion-architecture/
+?? autoresearch/notes/2026-09-21-recursion-direct-merkle-rows/
+?? autoresearch/notes/2026-09-21-recursion-fused-pcs-opening/
+?? autoresearch/notes/2026-09-21-recursion-implementation/
+?? autoresearch/notes/2026-09-21-recursion-pcs-plan-cache/
+?? autoresearch/notes/2026-09-21-recursion-persistent-workers/
+?? autoresearch/notes/2026-09-21-recursion-preparation/
+?? autoresearch/notes/2026-09-21-recursion-workspace/
+?? autoresearch/notes/2026-09-22-blake3-adjacent-aggregation/
+?? autoresearch/notes/2026-09-22-blake3-all-absorption/
+?? autoresearch/notes/2026-09-22-blake3-bounded-transcript/
+?? autoresearch/notes/2026-09-22-blake3-byte-memory-tree/
+?? autoresearch/notes/2026-09-22-blake3-byte-update-witness/
+?? autoresearch/notes/2026-09-22-blake3-canonical-chain/
+?? autoresearch/notes/2026-09-22-blake3-canonical-csp-ecdsa/
+?? autoresearch/notes/2026-09-22-blake3-challenge/
+?? autoresearch/notes/2026-09-22-blake3-combined-deep/
+?? autoresearch/notes/2026-09-22-blake3-combined-fri/
+?? autoresearch/notes/2026-09-22-blake3-commitment-pcs-columns/
+?? autoresearch/notes/2026-09-22-blake3-compact-plan-metadata/
+?? autoresearch/notes/2026-09-22-blake3-composition-proof/
+?? autoresearch/notes/2026-09-22-blake3-composition-schedule-compiler/
+?? autoresearch/notes/2026-09-22-blake3-composition-witness/
+?? autoresearch/notes/2026-09-22-blake3-continuation-custody/
+?? autoresearch/notes/2026-09-22-blake3-ethereum-witness/
+?? autoresearch/notes/2026-09-22-blake3-execution-admission-capture/
+?? autoresearch/notes/2026-09-22-blake3-execution-composition/
+?? autoresearch/notes/2026-09-22-blake3-execution-openings/
+?? autoresearch/notes/2026-09-22-blake3-execution-parent/
+?? autoresearch/notes/2026-09-22-blake3-execution-span-parent/
+?? autoresearch/notes/2026-09-22-blake3-field-encoding/
+?? autoresearch/notes/2026-09-22-blake3-four-leaf-tree/
+?? autoresearch/notes/2026-09-22-blake3-frame-routing/
+?? autoresearch/notes/2026-09-22-blake3-fri-arithmetic/
+?? autoresearch/notes/2026-09-22-blake3-fri-group/
+?? autoresearch/notes/2026-09-22-blake3-full-csp-boundary-audit/
+?? autoresearch/notes/2026-09-22-blake3-full-csp-matrix/
+?? autoresearch/notes/2026-09-22-blake3-full-stark-arithmetic/
+?? autoresearch/notes/2026-09-22-blake3-identity-constraints/
+?? autoresearch/notes/2026-09-22-blake3-leaf-bulk/
+?? autoresearch/notes/2026-09-22-blake3-lifted-path/
+?? autoresearch/notes/2026-09-22-blake3-lifted-query-admission/
+?? autoresearch/notes/2026-09-22-blake3-memory-boundary-lowering/
+?? autoresearch/notes/2026-09-22-blake3-memory-node-routing/
+?? autoresearch/notes/2026-09-22-blake3-memory-path-proof/
+?? autoresearch/notes/2026-09-22-blake3-memory-path/
+?? autoresearch/notes/2026-09-22-blake3-memory-update-proof/
+?? autoresearch/notes/2026-09-22-blake3-memory-word-binding/
+?? autoresearch/notes/2026-09-22-blake3-merkle-path/
+?? autoresearch/notes/2026-09-22-blake3-metal-product-proof/
+?? autoresearch/notes/2026-09-22-blake3-mixed-query-sequence/
+?? autoresearch/notes/2026-09-22-blake3-native-execution-assembly/
+?? autoresearch/notes/2026-09-22-blake3-ordered-draw/
+?? autoresearch/notes/2026-09-22-blake3-ordinary-commitment-assembly/
+?? autoresearch/notes/2026-09-22-blake3-owned-interactions/
+?? autoresearch/notes/2026-09-22-blake3-pair-trusted-preprocessing/
+?? autoresearch/notes/2026-09-22-blake3-paired-identity-proof/
+?? autoresearch/notes/2026-09-22-blake3-parent-csp-profile/
+?? autoresearch/notes/2026-09-22-blake3-parent-identity-binding/
+?? autoresearch/notes/2026-09-22-blake3-parent-namespace-join/
+?? autoresearch/notes/2026-09-22-blake3-parent-of-parent/
+?? autoresearch/notes/2026-09-22-blake3-parent-paths/
+?? autoresearch/notes/2026-09-22-blake3-parent-routed-inputs/
+?? autoresearch/notes/2026-09-22-blake3-pcs-capture/
+?? autoresearch/notes/2026-09-22-blake3-pcs-transcript/
+?? autoresearch/notes/2026-09-22-blake3-pooled-pow/
+?? autoresearch/notes/2026-09-22-blake3-pow-sequence/
+?? autoresearch/notes/2026-09-22-blake3-private-challenges/
+?? autoresearch/notes/2026-09-22-blake3-private-counters/
+?? autoresearch/notes/2026-09-22-blake3-private-draw/
+?? autoresearch/notes/2026-09-22-blake3-private-memory-leaf/
+?? autoresearch/notes/2026-09-22-blake3-private-nonce/
+?? autoresearch/notes/2026-09-22-blake3-private-opening-inputs/
+?? autoresearch/notes/2026-09-22-blake3-private-parent-samples/
+?? autoresearch/notes/2026-09-22-blake3-private-payload-framing/
+?? autoresearch/notes/2026-09-22-blake3-private-queries/
+?? autoresearch/notes/2026-09-22-blake3-private-roots/
+?? autoresearch/notes/2026-09-22-blake3-private-terminal-inputs/
+?? autoresearch/notes/2026-09-22-blake3-private-transition/
+?? autoresearch/notes/2026-09-22-blake3-product-suite-selection/
+?? autoresearch/notes/2026-09-22-blake3-program-component-admission/
+?? autoresearch/notes/2026-09-22-blake3-public-root-contract/
+?? autoresearch/notes/2026-09-22-blake3-python-software-admission/
+?? autoresearch/notes/2026-09-22-blake3-query-batch/
+?? autoresearch/notes/2026-09-22-blake3-query-mask/
+?? autoresearch/notes/2026-09-22-blake3-query-path/
+?? autoresearch/notes/2026-09-22-blake3-real-execution-proof/
+?? autoresearch/notes/2026-09-22-blake3-real-rejection/
+?? autoresearch/notes/2026-09-22-blake3-retained-memory-source/
+?? autoresearch/notes/2026-09-22-blake3-retry-controller/
+?? autoresearch/notes/2026-09-22-blake3-routed-transcript-inputs/
+?? autoresearch/notes/2026-09-22-blake3-runner-memory-source/
+?? autoresearch/notes/2026-09-22-blake3-segment-canonical/
+?? autoresearch/notes/2026-09-22-blake3-segment-pair-api/
+?? autoresearch/notes/2026-09-22-blake3-segment-v7/
+?? autoresearch/notes/2026-09-22-blake3-single-draw/
+?? autoresearch/notes/2026-09-22-blake3-snapshot-openings/
+?? autoresearch/notes/2026-09-22-blake3-software-artifact-suite/
+?? autoresearch/notes/2026-09-22-blake3-software-producer-reports/
+?? autoresearch/notes/2026-09-22-blake3-software-verifier-receipt/
+?? autoresearch/notes/2026-09-22-blake3-span-identities/
+?? autoresearch/notes/2026-09-22-blake3-span-identity-pair/
+?? autoresearch/notes/2026-09-22-blake3-span-identity-routing/
+?? autoresearch/notes/2026-09-22-blake3-span-input-chain/
+?? autoresearch/notes/2026-09-22-blake3-span-joined-identity/
+?? autoresearch/notes/2026-09-22-blake3-span-private-hash/
+?? autoresearch/notes/2026-09-22-blake3-span-statement/
+?? autoresearch/notes/2026-09-22-blake3-stark-prefix/
+?? autoresearch/notes/2026-09-22-blake3-statement-input-air/
+?? autoresearch/notes/2026-09-22-blake3-statement-provider/
+?? autoresearch/notes/2026-09-22-blake3-statement-semantics-graph/
+?? autoresearch/notes/2026-09-22-blake3-trace-join/
+?? autoresearch/notes/2026-09-22-blake3-transcript-arithmetic-join/
+?? autoresearch/notes/2026-09-22-blake3-transcript-sequence/
+?? autoresearch/notes/2026-09-22-blake3-tree-pipeline/
+?? autoresearch/notes/2026-09-22-bounded-draw-destinations/
+?? autoresearch/notes/2026-09-22-budgeted-merkle-layers/
+?? autoresearch/notes/2026-09-22-column-interaction-view/
+?? autoresearch/notes/2026-09-22-column-table-registration/
+?? autoresearch/notes/2026-09-22-core-blake3-guest-proof/
+?? autoresearch/notes/2026-09-22-csp-blake3-slowdown-profile/
+?? autoresearch/notes/2026-09-22-csp-report-suite-admission/
+?? autoresearch/notes/2026-09-22-fixed-draw-destinations/
+?? autoresearch/notes/2026-09-22-frame-group-main-columns/
+?? autoresearch/notes/2026-09-22-frame-hash-destination/
+?? autoresearch/notes/2026-09-22-fri-arithmetic-proof/
+?? autoresearch/notes/2026-09-22-fri-hash-wire-plan/
+?? autoresearch/notes/2026-09-22-fri-scalar-pack/
+?? autoresearch/notes/2026-09-22-hash-column-sink/
+?? autoresearch/notes/2026-09-22-hash-main-column-destination/
+?? autoresearch/notes/2026-09-22-hash-witness-destination/
+?? autoresearch/notes/2026-09-22-merkle-group-frame-destination/
+?? autoresearch/notes/2026-09-22-metal-blake3-adoption/
+?? autoresearch/notes/2026-09-22-metal-blake3-backend-cascade/
+?? autoresearch/notes/2026-09-22-metal-blake3-cascade/
+?? autoresearch/notes/2026-09-22-metal-blake3-circle-fri/
+?? autoresearch/notes/2026-09-22-metal-blake3-csp-aot/
+?? autoresearch/notes/2026-09-22-metal-blake3-csp-ecdsa/
+?? autoresearch/notes/2026-09-22-metal-blake3-direct-tree/
+?? autoresearch/notes/2026-09-22-metal-blake3-fri/
+?? autoresearch/notes/2026-09-22-metal-blake3-heterogeneous/
+?? autoresearch/notes/2026-09-22-metal-blake3-leaves/
+?? autoresearch/notes/2026-09-22-metal-blake3-parents/
+?? autoresearch/notes/2026-09-22-metal-blake3-pow/
+?? autoresearch/notes/2026-09-22-metal-blake3-quotient-fri/
+?? autoresearch/notes/2026-09-22-metal-blake3-staged-tree/
+?? autoresearch/notes/2026-09-22-metal-blake3-staged/
+?? autoresearch/notes/2026-09-22-metal-blake3-transcript/
+?? autoresearch/notes/2026-09-22-metal-blake3-uniform/
+?? autoresearch/notes/2026-09-22-native-arithmetic-fusion-census/
+?? autoresearch/notes/2026-09-22-native-blake3-commitment-reuse/
+?? autoresearch/notes/2026-09-22-native-blake3-composition-links/
+?? autoresearch/notes/2026-09-22-native-blake3-deep-join/
+?? autoresearch/notes/2026-09-22-native-blake3-fri-join/
+?? autoresearch/notes/2026-09-22-native-blake3-handoff/
+?? autoresearch/notes/2026-09-22-native-blake3-opening-producers/
+?? autoresearch/notes/2026-09-22-native-blake3-parent-admission/
+?? autoresearch/notes/2026-09-22-native-blake3-parent-codec/
+?? autoresearch/notes/2026-09-22-native-blake3-parent-preparation/
+?? autoresearch/notes/2026-09-22-native-blake3-parent-producer/
+?? autoresearch/notes/2026-09-22-native-blake3-parent-verifier/
+?? autoresearch/notes/2026-09-22-native-blake3-parent/
+?? autoresearch/notes/2026-09-22-native-blake3-paths/
+?? autoresearch/notes/2026-09-22-native-blake3-payload-links/
+?? autoresearch/notes/2026-09-22-native-blake3-pcs-challenges/
+?? autoresearch/notes/2026-09-22-native-blake3-pipeline/
+?? autoresearch/notes/2026-09-22-native-blake3-preparation-budget/
+?? autoresearch/notes/2026-09-22-native-blake3-public-boundary/
+?? autoresearch/notes/2026-09-22-native-blake3-public-links/
+?? autoresearch/notes/2026-09-22-native-blake3-public-sources/
+?? autoresearch/notes/2026-09-22-native-blake3-query-join/
+?? autoresearch/notes/2026-09-22-native-blake3-root-nonce/
+?? autoresearch/notes/2026-09-22-native-blake3-segment/
+?? autoresearch/notes/2026-09-22-native-blake3-terminal-encoding/
+?? autoresearch/notes/2026-09-22-native-blake3-transcript/
+?? autoresearch/notes/2026-09-22-native-blake3-worker/
+?? autoresearch/notes/2026-09-22-native-blake3-workspace/
+?? autoresearch/notes/2026-09-22-native-column-interaction/
+?? autoresearch/notes/2026-09-22-native-commit-scratch-release/
+?? autoresearch/notes/2026-09-22-native-direct-cohort-projection/
+?? autoresearch/notes/2026-09-22-native-hash-layout-planning/
+?? autoresearch/notes/2026-09-22-native-owned-final-buffers/
+?? autoresearch/notes/2026-09-22-native-padding-copy-removal/
+?? autoresearch/notes/2026-09-22-native-path-owned-rows/
+?? autoresearch/notes/2026-09-22-native-pcs-opening-air/
+?? autoresearch/notes/2026-09-22-native-pcs-query-fusion/
+?? autoresearch/notes/2026-09-22-native-preparation-scratch/
+?? autoresearch/notes/2026-09-22-native-query-admission/
+?? autoresearch/notes/2026-09-22-native-query-fusion-integration/
+?? autoresearch/notes/2026-09-22-native-row-presizing/
+?? autoresearch/notes/2026-09-22-native-row-staging/
+?? autoresearch/notes/2026-09-22-native-shared-fusion/
+?? autoresearch/notes/2026-09-22-native-shared-inversion/
+?? autoresearch/notes/2026-09-22-native-virtual-padding/
+?? autoresearch/notes/2026-09-22-parent-alias-join/
+?? autoresearch/notes/2026-09-22-parent-column-adoption/
+?? autoresearch/notes/2026-09-22-prepared-main-columns/
+?? autoresearch/notes/2026-09-22-query-transcript-destinations/
+?? autoresearch/notes/2026-09-22-readonly-consistency/
+?? autoresearch/notes/2026-09-22-stark-path-group-destination/
+?? autoresearch/notes/2026-09-22-suite-transcript-receipts/
+?? autoresearch/notes/2026-09-22-transcript-frame-destinations/
+?? autoresearch/notes/2026-09-22-transcript-owned-rows/
+?? autoresearch/notes/2026-09-22-transcript-path-main-columns/
+?? autoresearch/notes/2026-09-22-transcript-plan/
+?? autoresearch/notes/2026-09-23-barycentric-base-context/
+?? autoresearch/notes/2026-09-23-blake3-aggregate-retained-storage/
+?? autoresearch/notes/2026-09-23-blake3-allocator-authority/
+?? autoresearch/notes/2026-09-23-blake3-base-pair-admission/
+?? autoresearch/notes/2026-09-23-blake3-canonical-ethereum-qualification/
+?? autoresearch/notes/2026-09-23-blake3-canonical-parent-census/
+?? autoresearch/notes/2026-09-23-blake3-canonical-product-route/
+?? autoresearch/notes/2026-09-23-blake3-chunk-projection/
+?? autoresearch/notes/2026-09-23-blake3-compact-parent-fixed/
+?? autoresearch/notes/2026-09-23-blake3-csp-full-width-reader/
+?? autoresearch/notes/2026-09-23-blake3-csp-memory-geometry/
+?? autoresearch/notes/2026-09-23-blake3-csp-shared-route/
+?? autoresearch/notes/2026-09-23-blake3-default-promotion/
+?? autoresearch/notes/2026-09-23-blake3-ethereum-artifact/
+?? autoresearch/notes/2026-09-23-blake3-ethereum-manifest/
+?? autoresearch/notes/2026-09-23-blake3-ethereum-product-artifact/
+?? autoresearch/notes/2026-09-23-blake3-ethereum-proof/
+?? autoresearch/notes/2026-09-23-blake3-ethereum-recursion/
+?? autoresearch/notes/2026-09-23-blake3-ethereum-segments/
+?? autoresearch/notes/2026-09-23-blake3-execution-manifest/
+?? autoresearch/notes/2026-09-23-blake3-execution-source/
+?? autoresearch/notes/2026-09-23-blake3-extension-recursion/
+?? autoresearch/notes/2026-09-23-blake3-guest-poseidon-witness/
+?? autoresearch/notes/2026-09-23-blake3-hash-work-breakdown/
+?? autoresearch/notes/2026-09-23-blake3-independent-product-verifier/
+?? autoresearch/notes/2026-09-23-blake3-leaf-interaction-windows/
+?? autoresearch/notes/2026-09-23-blake3-metal-wide-fragmentation/
+?? autoresearch/notes/2026-09-23-blake3-owned-complete-run/
+?? autoresearch/notes/2026-09-23-blake3-owned-preprocessing/
+?? autoresearch/notes/2026-09-23-blake3-owned-segment-pair/
+?? autoresearch/notes/2026-09-23-blake3-parent-commitment-residency/
+?? autoresearch/notes/2026-09-23-blake3-parent-plan-reuse/
+?? autoresearch/notes/2026-09-23-blake3-release-artifact/
+?? autoresearch/notes/2026-09-23-blake3-releasefast-e2e/
+?? autoresearch/notes/2026-09-23-blake3-segment-span-construction/
+?? autoresearch/notes/2026-09-23-blake3-shared-extension-pipeline/
+?? autoresearch/notes/2026-09-23-blake3-shared-path-ecdsa/
+?? autoresearch/notes/2026-09-23-blake3-smp-canonical/
+?? autoresearch/notes/2026-09-23-blake3-statement-wire/
+?? autoresearch/notes/2026-09-23-blake3-streaming-backing-ownership/
+?? autoresearch/notes/2026-09-23-blake3-tiled-interactions/
+?? autoresearch/notes/20260921-132154-recursion-selective-materialization-problem-match.md
+?? autoresearch/notes/20260921-132420-recursion-exact-tuple-aggregation-problem-match.md
+?? autoresearch/notes/20260921-133011-recursion-blocked-column-materialization-problem-match.md
+?? autoresearch/notes/20260921-170647-recursion-bounded-dag-scheduler-problem-match.md
+?? autoresearch/notes/20260921-171255-recursion-persistent-workspace-problem-match.md
+?? autoresearch/notes/20260921-172640-recursion-authenticated-pcs-graph-memoization.md
+?? autoresearch/notes/20260921-174606-recursion-persistent-worker-integration-problem-match.md
+?? autoresearch/notes/20260921-175840-direct-selected-merkle-witness-rows-problem-match.md
+?? autoresearch/notes/20260921-181042-fused-pcs-query-binding-and-opening-accumulation.md
+?? autoresearch/notes/20260921-182857-blake3-protocol-foundation-and-migration-boundaries.md
+?? autoresearch/notes/20260921-184007-blake3-compression-typed-arithmetic-oracle.md
+?? autoresearch/notes/20260921-184630-compact-typed-blake3-g-through-canonical-byte-lookup-schemas.md
+?? autoresearch/notes/20260921-185428-blake3-compression-ssa-wiring-and-typed-call-relations.md
+?? autoresearch/notes/20260921-190741-blake3-compression-boundary-and-framework-interaction-prepar.md
+?? autoresearch/notes/20260921-192155-blake3-committed-compression-proof-and-framework-integration.md
+?? autoresearch/notes/20260921-192338-blake3-full-hash-graph-problem-matching.md
+?? autoresearch/notes/20260921-193151-blake3-full-hash-dag-and-verified-cpu-hash-proofs.md
+?? autoresearch/notes/20260921-193345-blake3-private-input-wire-binding-problem-matching.md
+?? autoresearch/notes/20260921-193822-blake3-typed-private-input-bridge-and-message-free-preproces.md
+?? autoresearch/notes/20260921-194003-blake3-committed-private-hash-composition-problem-match.md
+?? autoresearch/notes/20260921-194253-blake3-private-digest-composition-passes-a-complete-cpu-star.md
+?? autoresearch/notes/20260921-194815-canonical-blake3-framing-and-verified-framed-merkle-node.md
+?? autoresearch/notes/20260921-195025-blake3-authenticated-frame-byte-routing-problem-match.md
+?? autoresearch/notes/20260921-195728-blake3-authenticated-byte-routing-and-native-two-leaf-tree-p.md
+?? autoresearch/notes/20260921-200010-blake3-private-sibling-merkle-path-problem-match.md
+?? autoresearch/notes/20260921-200710-blake3-private-sibling-paths-pass-complete-cpu-proofs.md
+?? autoresearch/notes/20260921-201043-blake3-challenge-block-reduction-and-whole-block-rejection.md
+?? autoresearch/notes/20260921-202028-blake3-ordered-draw-attempt-admission.md
+?? autoresearch/notes/20260921-202500-blake3-single-secure-challenge-consumption.md
+?? autoresearch/notes/20260921-202759-shared-authenticated-blake3-digest-frame-routing.md
+?? autoresearch/notes/20260921-203057-private-blake3-transcript-frame-composition.md
+?? autoresearch/notes/20260921-203445-authenticated-private-state-for-ordered-blake3-draws.md
+?? autoresearch/notes/20260921-203917-native-blake3-transcript-sequence-compilation.md
+?? autoresearch/notes/20260921-204256-all-native-blake3-absorption-variants.md
+?? autoresearch/notes/20260921-204521-exact-raw-blake3-query-masking.md
+?? autoresearch/notes/20260921-205039-native-blake3-query-batch-construction.md
+?? autoresearch/notes/20260921-205426-mixed-native-blake3-query-and-challenge-sequencing.md
+?? autoresearch/notes/20260921-205703-native-blake3-pow-transcript-predicate.md
+?? autoresearch/notes/20260921-210024-canonical-blake3-query-to-path-admission.md
+?? autoresearch/notes/20260921-210543-native-blake3-lifted-leaf-geometry.md
+?? autoresearch/notes/20260921-210905-canonical-qm31-bytes-for-blake3-payloads.md
+?? autoresearch/notes/20260921-211448-private-arithmetic-payloads-in-canonical-blake3-frames.md
+?? autoresearch/notes/20260921-212017-lifted-queried-value-consistency-admission.md
+?? autoresearch/notes/20260921-212654-blake3-actual-pcs-capture-integration.md
+?? autoresearch/notes/20260921-213314-typed-complete-blake3-fri-folding-subtree.md
+?? autoresearch/notes/20260921-214006-blake3-captures-reuse-canonical-fri-arithmetic.md
+?? autoresearch/notes/20260921-214356-fri-scalar-wire-repacking-for-blake3.md
+?? autoresearch/notes/20260921-214817-canonical-fri-hash-wire-schedule-and-exports.md
+?? autoresearch/notes/20260921-215139-existing-fri-arithmetic-in-a-complete-typed-proof.md
+?? autoresearch/notes/20260921-215657-combined-private-fri-arithmetic-and-blake3-paths.md
+?? autoresearch/notes/20260921-220432-actual-pcs-transcript-in-joined-blake3-fri-proof.md
+?? autoresearch/notes/20260921-220945-canonical-pcs-deep-in-combined-blake3-proof.md
+?? autoresearch/notes/20260921-221428-private-trace-openings-joined-to-blake3-pcs-deep.md
+?? autoresearch/notes/20260921-222449-real-stark-capture-and-typed-verifier-prefix.md
+?? autoresearch/notes/20260921-223305-blake3-full-stark-composition-proof.md
+?? autoresearch/notes/20260921-223950-full-stark-pcs-and-composition-arithmetic.md
+?? autoresearch/notes/20260921-224638-join-full-stark-transcript-and-arithmetic.md
+?? autoresearch/notes/20260921-225056-authenticate-full-stark-parent-openings.md
+?? autoresearch/notes/20260921-225651-routed-private-transcript-absorption.md
+?? autoresearch/notes/20260921-230314-shared-parent-transcript-and-arithmetic-inputs.md
+?? autoresearch/notes/20260921-230835-private-shared-parent-samples.md
+?? autoresearch/notes/20260921-231434-private-authenticated-opening-inputs.md
+?? autoresearch/notes/20260921-232138-private-shared-answers-and-terminal-coefficients.md
+?? autoresearch/notes/20260921-233330-private-transcript-challenges-into-canonical-verifier-arithm.md
+?? autoresearch/notes/20260921-234058-shared-commitment-roots-for-blake3-recursion.md
+?? autoresearch/notes/20260921-234838-transcript-queries-and-dynamic-merkle-directions.md
+?? autoresearch/notes/20260921-blake3-boundary-interaction-problem-match.md
+?? autoresearch/notes/20260921-blake3-byte-routing-problem-match.md
+?? autoresearch/notes/20260921-blake3-compression-problem-match.md
+?? autoresearch/notes/20260921-blake3-hash-graph-problem-match.md
+?? autoresearch/notes/20260921-blake3-merkle-path-problem-match.md
+?? autoresearch/notes/20260921-blake3-packed-g-problem-match.md
+?? autoresearch/notes/20260921-blake3-private-input-problem-match.md
+?? autoresearch/notes/20260921-blake3-private-proof-problem-match.md
+?? autoresearch/notes/20260921-blake3-protocol-problem-match.md
+?? autoresearch/notes/20260921-blake3-wiring-problem-match.md
+?? autoresearch/notes/20260921-recursion-bounded-scheduler-problem-match.md
+?? autoresearch/notes/20260921-recursion-direct-merkle-rows-problem-match.md
+?? autoresearch/notes/20260921-recursion-fused-pcs-opening-problem-match.md
+?? autoresearch/notes/20260921-recursion-pcs-plan-cache-problem-match.md
+?? autoresearch/notes/20260921-recursion-persistent-worker-problem-match.md
+?? autoresearch/notes/20260921-recursion-persistent-workspace-problem-match.md
+?? autoresearch/notes/20260922-000351-shared-private-pow-nonce-bytes.md
+?? autoresearch/notes/20260922-001129-native-rejected-draw-pinned-for-scheduler-qualification.md
+?? autoresearch/notes/20260922-001516-typed-first-accepted-block-controller.md
+?? autoresearch/notes/20260922-002406-checked-private-draw-counter-advancement.md
+?? autoresearch/notes/20260922-003530-bounded-transcript-counter-chaining-and-reset.md
+?? autoresearch/notes/20260922-004822-bounded-blake3-transcript-and-joined-parent-qualified.md
+?? autoresearch/notes/20260922-005525-sparse-read-only-consistency-for-lifted-aliases.md
+?? autoresearch/notes/20260922-010331-sparse-read-only-consistency-and-authenticated-input-proof-q.md
+?? autoresearch/notes/20260922-010558-join-sparse-alias-consistency-through-existing-affine-routin.md
+?? autoresearch/notes/20260922-011309-parent-alias-consistency-joined-through-authenticated-projec.md
+?? autoresearch/notes/20260922-011517-reusable-bounded-transcript-preprocessing-plan.md
+?? autoresearch/notes/20260922-012353-reusable-bounded-transcript-plan-qualified-with-explicit-own.md
+?? autoresearch/notes/20260922-012711-real-native-v2-segment-proofs-through-the-blake3-engine.md
+?? autoresearch/notes/20260922-013318-native-blake3-v2-risc-v-segment-proofs-qualified.md
+?? autoresearch/notes/20260922-013923-replay-native-v2-transcript-through-canonical-encoders.md
+?? autoresearch/notes/20260922-015007-native-blake3-v2-transcript-parity-qualified.md
+?? autoresearch/notes/20260922-015328-join-native-blake3-challenges-to-composition-inputs.md
+?? autoresearch/notes/20260922-015734-native-blake3-composition-replay-and-challenge-routes-qualif.md
+?? autoresearch/notes/20260922-015835-join-native-composition-payloads-to-blake3-encodings.md
+?? autoresearch/notes/20260922-020349-native-blake3-claim-and-sample-payload-rows-qualified.md
+?? autoresearch/notes/20260922-020457-join-native-blake3-composition-samples-to-canonical-deep.md
+?? autoresearch/notes/20260922-021116-native-blake3-deep-evaluation-and-shared-sample-routes-quali.md
+?? autoresearch/notes/20260922-021308-join-native-blake3-fri-arithmetic-to-deep-answers.md
+?? autoresearch/notes/20260922-021505-native-blake3-fri-evaluation-and-deep-answer-routes-qualifie.md
+?? autoresearch/notes/20260922-021704-share-native-blake3-transcript-challenges-with-deep-and-fri.md
+?? autoresearch/notes/20260922-022009-native-blake3-pcs-challenge-sharing-qualified.md
+?? autoresearch/notes/20260922-022214-encode-native-fri-terminal-coefficients-into-blake3-transcri.md
+?? autoresearch/notes/20260922-022413-native-blake3-terminal-encoding-qualified-with-shared-payloa.md
+?? autoresearch/notes/20260922-022613-join-native-blake3-queries-across-transcript-deep-and-fri.md
+?? autoresearch/notes/20260922-022809-native-blake3-transcript-deep-and-fri-query-joins-qualified.md
+?? autoresearch/notes/20260922-022945-share-canonical-blake3-paths-with-native-captures.md
+?? autoresearch/notes/20260922-023737-canonical-native-blake3-paths-and-exact-query-fanout-qualifi.md
+?? autoresearch/notes/20260922-023914-connect-native-authenticated-opening-scalar-producers.md
+?? autoresearch/notes/20260922-024124-native-blake3-opening-scalar-producers-qualified.md
+?? autoresearch/notes/20260922-024359-join-native-blake3-root-and-pow-nonce-sources.md
+?? autoresearch/notes/20260922-024603-native-blake3-root-and-nonce-source-joins-qualified.md
+?? autoresearch/notes/20260922-024857-reuse-native-public-boundary-graph-with-blake3-captures.md
+?? autoresearch/notes/20260922-025116-native-blake3-public-boundary-graph-replay-qualified.md
+?? autoresearch/notes/20260922-025250-join-public-boundary-challenges-and-native-aggregate-cancell.md
+?? autoresearch/notes/20260922-025933-native-public-challenge-sharing-and-aggregate-cancellation-q.md
+?? autoresearch/notes/20260922-030441-native-public-boundary-source-closure-problem-match.md
+?? autoresearch/notes/20260922-030820-native-public-boundary-input-sources-qualified.md
+?? autoresearch/notes/20260922-030940-complete-native-blake3-parent-assembly-problem-match.md
+?? autoresearch/notes/20260922-032449-complete-experimental-native-blake3-parent-proved-and-verifi.md
+?? autoresearch/notes/20260922-032557-blake3-native-parent-explicit-key-and-transcript-admission.md
+?? autoresearch/notes/20260922-033258-native-blake3-parent-key-admission-and-dedicated-transcript-.md
+?? autoresearch/notes/20260922-033430-witness-independent-blake3-native-parent-verification.md
+?? autoresearch/notes/20260922-034427-witness-independent-blake3-parent-verification-and-owned-cap.md
+?? autoresearch/notes/20260922-034546-bounded-native-blake3-parent-artifact-transport.md
+?? autoresearch/notes/20260922-035308-bounded-blake3-parent-artifact-codec-and-independent-roundtr.md
+?? autoresearch/notes/20260922-035507-standalone-native-blake3-producer-and-persistent-proving-pla.md
+?? autoresearch/notes/20260922-040325-standalone-blake3-parent-producer-and-persistent-plan-owners.md
+?? autoresearch/notes/20260922-040444-canonical-native-capture-to-parent-preparation.md
+?? autoresearch/notes/20260922-040939-canonical-native-blake3-capture-preparation-and-released-int.md
+?? autoresearch/notes/20260922-041556-native-parent-fixed-commitment-shared-ownership-problem-matc.md
+?? autoresearch/notes/20260922-042242-native-blake3-fixed-commitment-reuse-qualified-with-two-pare.md
+?? autoresearch/notes/20260922-042408-native-parent-reusable-workspace-problem-match.md
+?? autoresearch/notes/20260922-042742-native-blake3-reusable-worker-workspace-qualified.md
+?? autoresearch/notes/20260922-043009-bounded-owned-native-parent-preparation-handoff-problem-matc.md
+?? autoresearch/notes/20260922-043705-bounded-native-blake3-preparation-handoff-qualified-across-t.md
+?? autoresearch/notes/20260922-043948-native-preparation-allocation-budget-lifetime-problem-match.md
+?? autoresearch/notes/20260922-044604-native-blake3-preparation-allocation-caps-and-partial-failur.md
+?? autoresearch/notes/20260922-044902-persistent-native-parent-worker-resource-ownership-problem-m.md
+?? autoresearch/notes/20260922-045221-persistent-native-blake3-worker-and-artifact-allocator-lifet.md
+?? autoresearch/notes/20260922-045431-budgeted-merkle-allocation-routing-problem-match.md
+?? autoresearch/notes/20260922-045913-merkle-layers-included-in-native-blake3-worker-allocation-bu.md
+?? autoresearch/notes/20260922-050334-admitted-native-parent-two-stage-pipeline-problem-match.md
+?? autoresearch/notes/20260922-050940-native-blake3-pipeline-admission-and-real-stage-overlap-qual.md
+?? autoresearch/notes/20260922-051246-native-blake3-arithmetic-fusion-census-problem-match.md
+?? autoresearch/notes/20260922-051550-native-blake3-graph-census-identifies-11282-removable-arithm.md
+?? autoresearch/notes/20260922-051851-shared-typed-fusion-for-native-blake3-parent-problem-match.md
+?? autoresearch/notes/20260922-052941-native-blake3-shared-typed-fusion-qualified.md
+?? autoresearch/notes/20260922-053050-native-pcs-query-fusion-transfer-boundary.md
+?? autoresearch/notes/20260922-053252-native-pcs-query-fusion-census-and-conservation-boundary.md
+?? autoresearch/notes/20260922-053418-native-base-query-opening-air-conservation-contract.md
+?? autoresearch/notes/20260922-053553-native-pcs-opening-air-preserves-external-authentication.md
+?? autoresearch/notes/20260922-053728-native-query-fusion-roster-integration-contract.md
+?? autoresearch/notes/20260922-054114-native-query-fusion-integrated-and-independently-verified.md
+?? autoresearch/notes/20260922-054336-eliminate-native-padded-logical-row-staging.md
+?? autoresearch/notes/20260922-054928-native-padded-row-elimination-rejected-by-full-proof.md
+?? autoresearch/notes/20260922-055129-typed-virtual-padding-preserves-complete-interaction-columns.md
+?? autoresearch/notes/20260922-055405-typed-virtual-padding-qualified-across-native-roster.md
+?? autoresearch/notes/20260922-055507-native-virtual-padding-counter-integration.md
+?? autoresearch/notes/20260922-055936-native-padded-row-copies-removed-with-verified-proofs.md
+?? autoresearch/notes/20260922-060018-native-preparation-scratch-lifetime-separation.md
+?? autoresearch/notes/20260922-060339-preparation-scratch-split-rejected-on-measured-allocation.md
+?? autoresearch/notes/20260922-060641-pre-size-measured-dominant-native-hash-rows.md
+?? autoresearch/notes/20260922-061132-native-pre-sizing-reduces-retained-preparation-memory-by-45-.md
+?? autoresearch/notes/20260922-061301-individually-owned-native-final-row-buffers.md
+?? autoresearch/notes/20260922-061628-native-owned-buffers-reduce-handoff-retention-to-live-payloa.md
+?? autoresearch/notes/20260922-061725-native-path-adapter-owns-final-row-allocations.md
+?? autoresearch/notes/20260922-062034-native-path-ownership-reduces-preparation-peak-below-800-mb.md
+?? autoresearch/notes/20260922-062129-transcript-witness-final-row-ownership.md
+?? autoresearch/notes/20260922-062453-transcript-ownership-halves-cumulative-preparation-peak.md
+?? autoresearch/notes/20260922-062646-canonical-hash-witness-into-caller-owned-rows.md
+?? autoresearch/notes/20260922-062820-canonical-hash-generation-supports-caller-owned-rows.md
+?? autoresearch/notes/20260922-062928-routed-frame-reserves-canonical-hash-destinations.md
+?? autoresearch/notes/20260922-063234-routed-frame-integrates-canonical-hash-destinations.md
+?? autoresearch/notes/20260922-063352-canonical-hash-evaluator-with-committed-column-sink.md
+?? autoresearch/notes/20260922-063605-canonical-hash-evaluator-writes-committed-columns-directly.md
+?? autoresearch/notes/20260922-063713-interaction-generation-over-committed-column-row-views.md
+?? autoresearch/notes/20260922-063905-canonical-interactions-consume-committed-column-row-views.md
+?? autoresearch/notes/20260922-064011-native-interactions-use-main-columns-and-authenticated-metad.md
+?? autoresearch/notes/20260922-064348-native-producer-verifies-column-backed-interactions.md
+?? autoresearch/notes/20260922-064504-canonical-lookup-counters-consume-column-views.md
+?? autoresearch/notes/20260922-064850-native-table-counts-and-interactions-share-column-ingress.md
+?? autoresearch/notes/20260922-065033-prepared-main-columns-replace-retained-native-live-rows.md
+?? autoresearch/notes/20260922-065401-prepared-main-columns-qualified-with-worker-memory-regressio.md
+?? autoresearch/notes/20260922-065940-native-commitment-scratch-last-use-boundary.md
+?? autoresearch/notes/20260922-070356-native-commitment-staging-release-qualified-worker-peak-down.md
+?? autoresearch/notes/20260922-070458-reuse-native-air-inversion-scratch-across-cohorts.md
+?? autoresearch/notes/20260922-070837-shared-native-inversion-scratch-cuts-worker-peak-to-982-mb.md
+?? autoresearch/notes/20260922-070938-project-native-hash-source-chunks-without-live-concatenation.md
+?? autoresearch/notes/20260922-071313-native-hash-cohorts-project-without-concatenation-full-proof.md
+?? autoresearch/notes/20260922-071536-merkle-frames-emit-g-and-xor-directly-into-group-storage.md
+?? autoresearch/notes/20260922-072555-merkle-group-direct-frame-destinations-qualified-preparation.md
+?? autoresearch/notes/20260922-072641-measure-frame-encoding-allocation-order-regression.md
+?? autoresearch/notes/20260922-073032-merkle-group-hash-rows-write-into-stark-path-accumulators.md
+?? autoresearch/notes/20260922-073426-stark-paths-borrow-group-destinations-ownership-and-proofs-q.md
+?? autoresearch/notes/20260922-073541-transcript-frames-emit-directly-into-transcript-hash-rows.md
+?? autoresearch/notes/20260922-074309-transcript-destinations-cut-preparation-peak-to-382-mb-proof.md
+?? autoresearch/notes/20260922-074451-query-frames-write-directly-through-transcript-destinations.md
+?? autoresearch/notes/20260922-074917-query-frames-write-through-transcript-destinations-proofs-qu.md
+?? autoresearch/notes/20260922-075115-bounded-draws-emit-into-transcript-hash-destinations.md
+?? autoresearch/notes/20260922-075516-bounded-secure-draw-destinations-qualified-with-native-proof.md
+?? autoresearch/notes/20260922-075658-fixed-attempt-draws-use-direct-transcript-hash-destinations.md
+?? autoresearch/notes/20260922-080141-fixed-attempt-direct-draw-destinations-qualified-across-publ.md
+?? autoresearch/notes/20260922-080421-hash-emission-destination-matches-native-main-columns-and-me.md
+?? autoresearch/notes/20260922-080809-native-main-column-hash-sink-qualified-parent-integration-pe.md
+?? autoresearch/notes/20260922-081140-plan-native-hash-domains-before-transcript-and-path-witness-.md
+?? autoresearch/notes/20260922-081924-native-hash-domains-planned-before-live-emission-ownership-a.md
+?? autoresearch/notes/20260922-082414-frame-routing-forwards-native-main-column-hash-emission.md
+?? autoresearch/notes/20260922-082944-merkle-groups-forward-native-main-column-hash-destinations.md
+?? autoresearch/notes/20260922-083253-frame-and-merkle-group-main-column-destinations-qualified-co.md
+?? autoresearch/notes/20260922-083411-transcript-draw-and-query-adapters-forward-final-main-column.md
+?? autoresearch/notes/20260922-083618-transcript-owner-borrows-final-hash-main-column-metadata.md
+?? autoresearch/notes/20260922-083949-aggregate-stark-paths-borrow-final-main-column-ranges.md
+?? autoresearch/notes/20260922-084324-core-risc-v-and-csp-blake3-migration-entrypoints-audited.md
+?? autoresearch/notes/20260922-084505-transcript-and-full-stark-path-main-column-adapters-qualifie.md
+?? autoresearch/notes/20260922-084628-native-parent-adopts-final-blake3-main-column-ownership.md
+?? autoresearch/notes/20260922-085416-native-parent-direct-column-adoption-qualified-preparation-m.md
+?? autoresearch/notes/20260922-085648-canonical-core-suites-and-blake3-guest-artifact-admission.md
+?? autoresearch/notes/20260922-090058-guest-prover-carries-selected-suite-through-typed-outputs-an.md
+?? autoresearch/notes/20260922-090617-core-blake3-real-guest-proof-and-explicit-v5-artifact-qualif.md
+?? autoresearch/notes/20260922-090933-blake3-ethereum-artifact-admission-for-canonical-csp-ecdsa.md
+?? autoresearch/notes/20260922-091412-canonical-csp-ecdsa-blake3-proof-and-v6-artifact-qualified.md
+?? autoresearch/notes/20260922-091738-suite-bound-core-transcript-receipts-with-full-blake3-counte.md
+?? autoresearch/notes/20260922-093241-canonical-csp-blake3-regression-serial-pow-explains-91-perce.md
+?? autoresearch/notes/20260922-093344-blake3-pow-bounded-deterministic-minimum-search.md
+?? autoresearch/notes/20260922-093729-bounded-pooled-blake3-pow-qualified-canonical-ecdsa-1-000-se.md
+?? autoresearch/notes/20260922-094221-blake3-bulk-leaf-encoding-lower-local-instructions-canonical.md
+?? autoresearch/notes/20260922-095639-blake3-segment-boundary-audit-remaining-poseidon-and-full-di.md
+?? autoresearch/notes/20260922-100131-blake3-v7-segment-artifact-and-full-capture-verified-at-diag.md
+?? autoresearch/notes/20260922-100748-blake3-v7-segment-qualified-at-70-queries-and-26-pow-bits.md
+?? autoresearch/notes/20260922-101038-metal-blake3-pow-fixed-prefix-compression-and-ordered-search.md
+?? autoresearch/notes/20260922-101727-blake3-metal-pow-device-parity-through-26-bits-no-fallback.md
+?? autoresearch/notes/20260922-102042-metal-blake3-parents-reuse-resident-reduction-with-full-dige.md
+?? autoresearch/notes/20260922-102633-metal-blake3-resident-parent-chain-parity-with-shared-compre.md
+?? autoresearch/notes/20260922-103247-metal-blake3-direct-leaf-chunk-stack-match.md
+?? autoresearch/notes/20260922-103838-metal-blake3-direct-leaves-match-cpu-across-chunk-boundaries.md
+?? autoresearch/notes/20260922-104634-typed-metal-blake3-fri-trees-qualified-with-canonical-packed.md
+?? autoresearch/notes/20260922-104725-width-bounded-blake3-staged-leaf-state-mapping.md
+?? autoresearch/notes/20260922-105202-staged-metal-blake3-state-matches-cpu-across-415-lifted-stag.md
+?? autoresearch/notes/20260922-105711-reusable-staged-blake3-trees-qualified-in-one-command-epoch.md
+?? autoresearch/notes/20260922-105914-completed-staged-blake3-tree-ownership-handoff-qualified.md
+?? autoresearch/notes/20260922-110204-production-heterogeneous-blake3-commitment-matches-cpu-and-v.md
+?? autoresearch/notes/20260922-110620-direct-blake3-metal-trees-qualified-with-shared-wide-offset-.md
+?? autoresearch/notes/20260922-110847-combined-uniform-blake3-precommit-matches-cpu-transforms-and.md
+?? autoresearch/notes/20260922-111009-canonical-resident-blake3-transcript-mapping.md
+?? autoresearch/notes/20260922-111420-resident-blake3-transcript-matches-canonical-framing-and-u64.md
+?? autoresearch/notes/20260922-112134-native-blake3-line-fri-cascade-matches-cpu-roots-challenges-.md
+?? autoresearch/notes/20260922-112909-blake3-backend-fri-cascade-matches-cpu-with-host-and-device-.md
+?? autoresearch/notes/20260922-113236-blake3-metal-circle-fri-matches-cpu-proof-and-independent-ve.md
+?? autoresearch/notes/20260922-113657-blake3-combined-quotient-fri-matches-cpu-proofs-and-independ.md
+?? autoresearch/notes/20260922-114159-canonical-blake3-csp-ecdsa-verifies-on-metal-source-jit-at-0.md
+?? autoresearch/notes/20260922-114555-authenticated-aot-blake3-canonical-ecdsa-verifies-at-0-882-s.md
+?? autoresearch/notes/20260922-114851-full-blake3-csp-requires-regular-product-artifact-and-receip.md
+?? autoresearch/notes/20260922-115134-regular-software-artifact-v5-admits-explicit-blake3-suite-an.md
+?? autoresearch/notes/20260922-115410-regular-verifier-v2-carries-typed-blake3-receipts-and-preser.md
+?? autoresearch/notes/20260922-115850-regular-blake3-producer-emits-v5-and-typed-suite-checked-ben.md
+?? autoresearch/notes/20260922-120133-python-csp-software-validation-pins-requested-suite-and-reta.md
+?? autoresearch/notes/20260922-120853-explicit-blake3-product-suite-proves-verifies-and-benchmarks.md
+?? autoresearch/notes/20260922-121253-metal-blake3-software-product-proof-matches-cpu-bytes-and-bo.md
+?? autoresearch/notes/20260922-122344-blake3-full-cpu-and-metal-csp-matrix-with-ecdsa-timing-recon.md
+?? autoresearch/notes/20260922-123241-blake3-span-statement-with-shared-validation-and-full-digest.md
+?? autoresearch/notes/20260922-123851-blake3-span-input-air-schedule-and-shared-final-column-write.md
+?? autoresearch/notes/20260922-124356-blake3-full-digest-statement-semantics-graph-with-pinned-ari.md
+?? autoresearch/notes/20260922-124808-blake3-statement-provider-and-complete-segment-parent-tuple-.md
+?? autoresearch/notes/20260922-125351-blake3-composition-compiler-with-format-separated-source-map.md
+?? autoresearch/notes/20260922-125840-blake3-composition-witness-and-binary-child-statement-routin.md
+?? autoresearch/notes/20260922-130933-blake3-span-identity-input-routing.md
+?? autoresearch/notes/20260922-131257-blake3-span-canonical-input-preparation.md
+?? autoresearch/notes/20260922-131501-blake3-parent-identity-source-authority.md
+?? autoresearch/notes/20260922-131718-blake3-private-span-identity-hash-assembly.md
+?? autoresearch/notes/20260922-131958-blake3-joined-parent-statement-identity-preparation.md
+?? autoresearch/notes/20260922-132155-blake3-shared-job-and-statement-identity-preparation.md
+?? autoresearch/notes/20260922-132339-blake3-message-free-paired-identity-preprocessing.md
+?? autoresearch/notes/20260922-132601-blake3-paired-identity-arithmetic-and-table-qualification.md
+?? autoresearch/notes/20260922-132841-blake3-paired-identity-cpu-stark-proof.md
+?? autoresearch/notes/20260922-133127-blake3-full-digest-byte-memory-commitment-primitive.md
+?? autoresearch/notes/20260922-133406-blake3-typed-memory-node-routing.md
+?? autoresearch/notes/20260922-133636-blake3-private-byte-memory-leaf-witness.md
+?? autoresearch/notes/20260922-134126-blake3-full-depth-memory-path-and-corrected-qualification.md
+?? autoresearch/notes/20260922-134334-blake3-full-depth-memory-opening-stark-proof.md
+?? autoresearch/notes/20260922-134657-blake3-snapshot-derived-memory-openings.md
+?? autoresearch/notes/20260922-134948-blake3-shared-sibling-byte-update-witness.md
+?? autoresearch/notes/20260922-135249-blake3-combined-byte-update-stark-proof.md
+?? autoresearch/notes/20260922-140229-blake3-fixed-address-memory-boundary-lowering.md
+?? autoresearch/notes/20260922-140518-blake3-bound-four-byte-memory-opening.md
+?? autoresearch/notes/20260922-140811-blake3-runner-snapshot-memory-projection.md
+?? autoresearch/notes/20260922-141058-blake3-memory-source-from-real-adjacent-segments.md
+?? autoresearch/notes/20260922-141757-blake3-full-width-ordinary-public-root-contract.md
+?? autoresearch/notes/20260922-142648-blake3-ordinary-commitment-assembly-and-full-field-program-p.md
+?? autoresearch/notes/20260922-143658-blake3-program-access-hashing-and-admitted-component-plans.md
+?? autoresearch/notes/20260922-144448-persistent-blake3-commitment-pcs-columns-and-component-bindi.md
+?? autoresearch/notes/20260922-145510-shared-native-execution-and-blake3-commitment-assembly.md
+?? autoresearch/notes/20260922-153126-real-blake3-native-execution-proof-and-independent-verifier-.md
+?? autoresearch/notes/20260922-161308-prepared-blake3-execution-keys-artifacts-and-recursion-captu.md
+?? autoresearch/notes/20260922-163959-full-width-blake3-execution-recursion-arithmetic-and-transcr.md
+?? autoresearch/notes/20260922-164538-full-width-blake3-execution-opening-query-and-terminal-bindi.md
+?? autoresearch/notes/20260922-165937-full-width-blake3-execution-parent-independently-proves-and-.md
+?? autoresearch/notes/20260922-170846-blake3-distinct-key-unary-parent-of-parent-proves-and-verifi.md
+?? autoresearch/notes/20260922-172718-blake3-continuation-memory-conversion-and-public-custody-qua.md
+?? autoresearch/notes/20260922-175013-blake3-execution-span-and-nonzero-memory-conversion-prove-th.md
+?? autoresearch/notes/20260922-180154-blake3-parent-namespace-relocation-proves-through-two-levels.md
+?? autoresearch/notes/20260922-182212-blake3-adjacent-segments-aggregate-through-a-shared-caller-p.md
+?? autoresearch/notes/20260922-183158-blake3-four-segment-binary-tree-independently-verifies-throu.md
+?? autoresearch/notes/20260922-184740-shared-bounded-scheduler-qualifies-blake3-tree-preparation-a.md
+?? autoresearch/notes/20260922-185436-explicit-blake3-q70-pow26-parent-profile-verifies-and-recurs.md
+?? autoresearch/notes/20260922-190152-blake3-execution-leaf-and-recursive-parent-qualify-together-.md
+?? autoresearch/notes/20260922-191358-compact-blake3-parent-plan-metadata-saves-1-59-gb-of-canonic.md
+?? autoresearch/notes/20260922-192647-owned-blake3-parent-interaction-columns-reduce-canonical-wor.md
+?? autoresearch/notes/20260922-193442-shared-blake3-segment-pairing-admits-both-children-before-pr.md
+?? autoresearch/notes/20260922-195816-ethereum-witness-relations-close-with-full-width-blake3-prov.md
+?? autoresearch/notes/20260922-202703-full-width-blake3-ethereum-proof-independently-verifies-afte.md
+?? autoresearch/notes/20260922-205218-canonical-full-width-blake3-ethereum-artifacts-and-verifier-.md
+?? autoresearch/notes/20260922-212334-full-width-blake3-ethereum-leaf-recursively-verifies-through.md
+?? autoresearch/notes/20260922-blake3-all-absorption-problem-match.md
+?? autoresearch/notes/20260922-blake3-bounded-transcript-problem-match.md
+?? autoresearch/notes/20260922-blake3-canonical-field-encoding-problem-match.md
+?? autoresearch/notes/20260922-blake3-challenge-block-problem-match.md
+?? autoresearch/notes/20260922-blake3-combined-deep-problem-match.md
+?? autoresearch/notes/20260922-blake3-combined-fri-problem-match.md
+?? autoresearch/notes/20260922-blake3-composition-proof-problem-match.md
+?? autoresearch/notes/20260922-blake3-counter-step-problem-match.md
+?? autoresearch/notes/20260922-blake3-csp-ecdsa-artifact-match.md
+?? autoresearch/notes/20260922-blake3-frame-routing-problem-match.md
+?? autoresearch/notes/20260922-blake3-fri-arithmetic-capture-problem-match.md
+?? autoresearch/notes/20260922-blake3-fri-group-problem-match.md
+?? autoresearch/notes/20260922-blake3-full-stark-arithmetic-problem-match.md
+?? autoresearch/notes/20260922-blake3-lifted-leaf-problem-match.md
+?? autoresearch/notes/20260922-blake3-lifted-query-admission-problem-match.md
+?? autoresearch/notes/20260922-blake3-mixed-query-sequence-problem-match.md
+?? autoresearch/notes/20260922-blake3-ordered-draw-problem-match.md
+?? autoresearch/notes/20260922-blake3-parent-paths-problem-match.md
+?? autoresearch/notes/20260922-blake3-parent-routed-inputs-problem-match.md
+?? autoresearch/notes/20260922-blake3-pcs-capture-problem-match.md
+?? autoresearch/notes/20260922-blake3-pcs-transcript-problem-match.md
+?? autoresearch/notes/20260922-blake3-pooled-pow-match.md
+?? autoresearch/notes/20260922-blake3-pow-sequence-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-challenges-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-draw-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-frame-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-nonce-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-opening-inputs-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-parent-samples-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-payload-framing-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-queries-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-roots-problem-match.md
+?? autoresearch/notes/20260922-blake3-private-terminal-inputs-problem-match.md
+?? autoresearch/notes/20260922-blake3-query-batch-problem-match.md
+?? autoresearch/notes/20260922-blake3-query-mask-problem-match.md
+?? autoresearch/notes/20260922-blake3-query-path-admission-problem-match.md
+?? autoresearch/notes/20260922-blake3-real-rejection-problem-match.md
+?? autoresearch/notes/20260922-blake3-retry-controller-problem-match.md
+?? autoresearch/notes/20260922-blake3-routed-transcript-inputs-problem-match.md
+?? autoresearch/notes/20260922-blake3-segment-boundary-audit.md
+?? autoresearch/notes/20260922-blake3-single-draw-problem-match.md
+?? autoresearch/notes/20260922-blake3-stark-prefix-problem-match.md
+?? autoresearch/notes/20260922-blake3-trace-join-problem-match.md
+?? autoresearch/notes/20260922-blake3-transcript-arithmetic-join-problem-match.md
+?? autoresearch/notes/20260922-blake3-transcript-sequence-problem-match.md
+?? autoresearch/notes/20260922-bounded-draw-destinations-match.md
+?? autoresearch/notes/20260922-budgeted-merkle-allocation-problem-match.md
+?? autoresearch/notes/20260922-column-interaction-view-match.md
+?? autoresearch/notes/20260922-column-table-registration-match.md
+?? autoresearch/notes/20260922-core-blake3-migration-entrypoints.md
+?? autoresearch/notes/20260922-core-suite-guest-artifact-match.md
+?? autoresearch/notes/20260922-fixed-draw-destinations-match.md
+?? autoresearch/notes/20260922-frame-encoding-allocation-order.md
+?? autoresearch/notes/20260922-frame-hash-destination-match.md
+?? autoresearch/notes/20260922-frame-main-column-destination-match.md
+?? autoresearch/notes/20260922-fri-arithmetic-proof-problem-match.md
+?? autoresearch/notes/20260922-fri-hash-wire-plan-problem-match.md
+?? autoresearch/notes/20260922-fri-scalar-pack-problem-match.md
+?? autoresearch/notes/20260922-group-main-column-destination-match.md
+?? autoresearch/notes/20260922-guest-prover-suite-types-match.md
+?? autoresearch/notes/20260922-hash-column-sink-match.md
+?? autoresearch/notes/20260922-hash-main-column-destination-match.md
+?? autoresearch/notes/20260922-hash-witness-destination-match.md
+?? autoresearch/notes/20260922-merkle-group-frame-destination-match.md
+?? autoresearch/notes/20260922-metal-blake3-leaf-match.md
+?? autoresearch/notes/20260922-metal-blake3-parent-match.md
+?? autoresearch/notes/20260922-metal-blake3-pow-match.md
+?? autoresearch/notes/20260922-metal-blake3-staged-state-match.md
+?? autoresearch/notes/20260922-metal-blake3-transcript-match.md
+?? autoresearch/notes/20260922-native-arithmetic-census-problem-match.md
+?? autoresearch/notes/20260922-native-blake3-segment-problem-match.md
+?? autoresearch/notes/20260922-native-column-interaction-match.md
+?? autoresearch/notes/20260922-native-commit-scratch-lifetime-match.md
+?? autoresearch/notes/20260922-native-composition-links-problem-match.md
+?? autoresearch/notes/20260922-native-deep-join-problem-match.md
+?? autoresearch/notes/20260922-native-direct-cohort-projection-match.md
+?? autoresearch/notes/20260922-native-fri-join-problem-match.md
+?? autoresearch/notes/20260922-native-hash-layout-planning-match.md
+?? autoresearch/notes/20260922-native-opening-producers-problem-match.md
+?? autoresearch/notes/20260922-native-owned-buffers-match.md
+?? autoresearch/notes/20260922-native-parent-admission-problem-match.md
+?? autoresearch/notes/20260922-native-parent-allocation-budget-problem-match.md
+?? autoresearch/notes/20260922-native-parent-assembly-problem-match.md
+?? autoresearch/notes/20260922-native-parent-codec-problem-match.md
+?? autoresearch/notes/20260922-native-parent-commitment-reuse-problem-match.md
+?? autoresearch/notes/20260922-native-parent-handoff-problem-match.md
+?? autoresearch/notes/20260922-native-parent-pipeline-problem-match.md
+?? autoresearch/notes/20260922-native-parent-preparation-problem-match.md
+?? autoresearch/notes/20260922-native-parent-producer-problem-match.md
+?? autoresearch/notes/20260922-native-parent-verifier-problem-match.md
+?? autoresearch/notes/20260922-native-parent-worker-problem-match.md
+?? autoresearch/notes/20260922-native-parent-workspace-problem-match.md
+?? autoresearch/notes/20260922-native-path-owned-rows-match.md
+?? autoresearch/notes/20260922-native-paths-problem-match.md
+?? autoresearch/notes/20260922-native-payload-links-problem-match.md
+?? autoresearch/notes/20260922-native-pcs-challenges-problem-match.md
+?? autoresearch/notes/20260922-native-pcs-query-fusion-match.md
+?? autoresearch/notes/20260922-native-preparation-scratch-match.md
+?? autoresearch/notes/20260922-native-public-boundary-problem-match.md
+?? autoresearch/notes/20260922-native-public-links-problem-match.md
+?? autoresearch/notes/20260922-native-public-sources-problem-match.md
+?? autoresearch/notes/20260922-native-query-join-problem-match.md
+?? autoresearch/notes/20260922-native-root-nonce-problem-match.md
+?? autoresearch/notes/20260922-native-row-presizing-match.md
+?? autoresearch/notes/20260922-native-row-staging-match.md
+?? autoresearch/notes/20260922-native-shared-fusion-problem-match.md
+?? autoresearch/notes/20260922-native-shared-inversion-scratch-match.md
+?? autoresearch/notes/20260922-native-terminal-encoding-problem-match.md
+?? autoresearch/notes/20260922-native-transcript-adapter-problem-match.md
+?? autoresearch/notes/20260922-native-virtual-padding-match.md
+?? autoresearch/notes/20260922-parent-alias-join-problem-match.md
+?? autoresearch/notes/20260922-parent-main-column-adoption-match.md
+?? autoresearch/notes/20260922-prepared-main-columns-match.md
+?? autoresearch/notes/20260922-query-transcript-destinations-match.md
+?? autoresearch/notes/20260922-readonly-consistency-problem-match.md
+?? autoresearch/notes/20260922-stark-path-group-destination-match.md
+?? autoresearch/notes/20260922-stark-path-main-columns-match.md
+?? autoresearch/notes/20260922-suite-transcript-receipts-match.md
+?? autoresearch/notes/20260922-transcript-adapter-main-columns-match.md
+?? autoresearch/notes/20260922-transcript-frame-destinations-match.md
+?? autoresearch/notes/20260922-transcript-owned-rows-match.md
+?? autoresearch/notes/20260922-transcript-owner-main-columns-match.md
+?? autoresearch/notes/20260922-transcript-plan-problem-match.md
+?? autoresearch/notes/20260923-044114-real-ethereum-segments-prove-blake3-full-memory-custody-and-.md
+?? autoresearch/notes/20260923-051119-canonical-ethereum-recursion-exceeds-36-gib-bounded-interact.md
+?? autoresearch/notes/20260923-054100-full-width-metal-leaf-verifies-combined-recursion-gate-crash.md
+?? autoresearch/notes/20260923-055219-remove-undefined-stateless-allocator-context-reads-from-blak.md
+?? autoresearch/notes/20260923-055439-canonical-blake3-parent-fails-at-interaction-commitment-boun.md
+?? autoresearch/notes/20260923-060037-admit-both-blake3-base-execution-witnesses-before-consuming-.md
+?? autoresearch/notes/20260923-060325-avoid-full-domain-scans-for-small-blake3-witness-chunks.md
+?? autoresearch/notes/20260923-061156-canonical-metal-recursion-exposes-lost-combined-buffer-owner.md
+?? autoresearch/notes/20260923-061941-canonical-full-width-blake3-ethereum-cpu-parent-verifies-wit.md
+?? autoresearch/notes/20260923-062725-compact-retained-blake3-parent-schedules-across-assembly-joi.md
+?? autoresearch/notes/20260923-063009-canonical-full-width-blake3-ethereum-metal-parent-verifies-i.md
+?? autoresearch/notes/20260923-063720-compact-blake3-parent-rows-pass-projection-parity-and-two-le.md
+?? autoresearch/notes/20260923-064527-canonical-blake3-ethereum-parent-keeps-verification-while-pr.md
+?? design/riscv-proving-stack/blake3-migration.md
+?? design/riscv-proving-stack/recursion-architecture-comparison.md
+?? design/riscv-proving-stack/recursion-performance-investigation.md
+?? scripts/recursive_proof_scheduler.py
+?? scripts/recursive_proof_worker_pool.py
+?? scripts/riscv_csp_benchmark_lib/full_width.py
+?? scripts/test_recursive_proof_scheduler.py
+?? scripts/test_recursive_proof_worker_pool.py
+?? scripts/tests/test_riscv_csp_full_width.py
+?? scripts/tests/test_riscv_csp_proof_suites.py
+?? src/backends/metal/blake3_cascade_test_root.zig
+?? src/backends/metal/blake3_direct_test_root.zig
+?? src/backends/metal/blake3_fri_test_root.zig
+?? src/backends/metal/blake3_heterogeneous_test_root.zig
+?? src/backends/metal/blake3_leaf_test_root.zig
+?? src/backends/metal/blake3_parent_test_root.zig
+?? src/backends/metal/blake3_staged_test_root.zig
+?? src/backends/metal/blake3_staged_tree_test_root.zig
+?? src/backends/metal/blake3_transcript_test_root.zig
+?? src/backends/metal/proof_of_work_test_root.zig
+?? src/backends/metal/shader_authority_test_root.zig
+?? src/backends/metal/shaders/include/blake3.metal
+?? src/core/channel/blake3.zig
+?? src/core/channel/blake3_frame.zig
+?? src/core/channel/transcript_receipt.zig
+?? src/core/crypto/blake3_compression.zig
+?? src/core/proof_suites.zig
+?? src/core/vcs_lifted/blake3_merkle.zig
+?? src/frontends/riscv/air/memory_commitment/blake3_byte_tree.zig
+?? src/frontends/riscv/air/memory_commitment/byte_tree_topology.zig
+?? src/frontends/riscv/air/program/blake3_commitment.zig
+?? src/frontends/riscv/air/public_logup_arithmetic.zig
+?? src/frontends/riscv/blake3_aggregation_test_root.zig
+?? src/frontends/riscv/blake3_canonical_chain_test_root.zig
+?? src/frontends/riscv/blake3_compression_test_root.zig
+?? src/frontends/riscv/blake3_execution_commitment_test_root.zig
+?? src/frontends/riscv/blake3_framework_test_root.zig
+?? src/frontends/riscv/blake3_hash_test_root.zig
+?? src/frontends/riscv/blake3_memory_path_proof_test_root.zig
+?? src/frontends/riscv/blake3_memory_update_proof_test_root.zig
+?? src/frontends/riscv/blake3_metal_qualification_test_root.zig
+?? src/frontends/riscv/blake3_packed_test_root.zig
+?? src/frontends/riscv/blake3_span_identity_proof_test_root.zig
+?? src/frontends/riscv/blake3_wiring_test_root.zig
+?? src/frontends/riscv/pcs_opening_test_root.zig
+?? src/frontends/riscv/pcs_plan_cache_test_root.zig
+?? src/frontends/riscv/prover/blake3_allocator_authority_test.zig
+?? src/frontends/riscv/prover/blake3_canonical_chain_test.zig
+?? src/frontends/riscv/prover/blake3_commitment_columns.zig
+?? src/frontends/riscv/prover/blake3_commitment_columns_test.zig
+?? src/frontends/riscv/prover/blake3_commitment_components.zig
+?? src/frontends/riscv/prover/blake3_commitment_components_test.zig
+?? src/frontends/riscv/prover/blake3_commitment_plan.zig
+?? src/frontends/riscv/prover/blake3_commitment_plan_codec.zig
+?? src/frontends/riscv/prover/blake3_commitment_shared_emit.zig
+?? src/frontends/riscv/prover/blake3_commitment_sharing.zig
+?? src/frontends/riscv/prover/blake3_commitment_witness.zig
+?? src/frontends/riscv/prover/blake3_commitment_witness_test.zig
+?? src/frontends/riscv/prover/blake3_continuation_witness_test.zig
+?? src/frontends/riscv/prover/blake3_ethereum_capture.zig
+?? src/frontends/riscv/prover/blake3_ethereum_codec.zig
+?? src/frontends/riscv/prover/blake3_ethereum_manifest.zig
+?? src/frontends/riscv/prover/blake3_ethereum_prepared.zig
+?? src/frontends/riscv/prover/blake3_ethereum_profile.zig
+?? src/frontends/riscv/prover/blake3_ethereum_proof.zig
+?? src/frontends/riscv/prover/blake3_ethereum_protocol.zig
+?? src/frontends/riscv/prover/blake3_ethereum_segment_test.zig
+?? src/frontends/riscv/prover/blake3_ethereum_statement.zig
+?? src/frontends/riscv/prover/blake3_ethereum_witness.zig
+?? src/frontends/riscv/prover/blake3_ethereum_witness_test.zig
+?? src/frontends/riscv/prover/blake3_execution_artifact.zig
+?? src/frontends/riscv/prover/blake3_execution_artifact_test_support.zig
+?? src/frontends/riscv/prover/blake3_execution_capture.zig
+?? src/frontends/riscv/prover/blake3_execution_codec.zig
+?? src/frontends/riscv/prover/blake3_execution_components.zig
+?? src/frontends/riscv/prover/blake3_execution_key.zig
+?? src/frontends/riscv/prover/blake3_execution_manifest.zig
+?? src/frontends/riscv/prover/blake3_execution_parent_proof_test_support.zig
+?? src/frontends/riscv/prover/blake3_execution_parent_test_support.zig
+?? src/frontends/riscv/prover/blake3_execution_paths_test_support.zig
+?? src/frontends/riscv/prover/blake3_execution_prepared.zig
+?? src/frontends/riscv/prover/blake3_execution_proof.zig
+?? src/frontends/riscv/prover/blake3_execution_protocol.zig
+?? src/frontends/riscv/prover/blake3_execution_source.zig
+?? src/frontends/riscv/prover/blake3_execution_span_test_support.zig
+?? src/frontends/riscv/prover/blake3_execution_trace.zig
+?? src/frontends/riscv/prover/blake3_execution_trace_test.zig
+?? src/frontends/riscv/prover/blake3_extension_bounds.zig
+?? src/frontends/riscv/prover/blake3_extension_capture.zig
+?? src/frontends/riscv/prover/blake3_extension_census_test_support.zig
+?? src/frontends/riscv/prover/blake3_extension_codec.zig
+?? src/frontends/riscv/prover/blake3_extension_manifest.zig
+?? src/frontends/riscv/prover/blake3_extension_parent_test_support.zig
+?? src/frontends/riscv/prover/blake3_extension_prepared.zig
+?? src/frontends/riscv/prover/blake3_extension_proof.zig
+?? src/frontends/riscv/prover/blake3_extension_replay_test_support.zig
+?? src/frontends/riscv/prover/blake3_hash_census_test_support.zig
+?? src/frontends/riscv/prover/blake3_parent_profile_test_support.zig
+?? src/frontends/riscv/prover/blake3_parent_rebase_test_support.zig
+?? src/frontends/riscv/prover/blake3_poseidon_claims.zig
+?? src/frontends/riscv/prover/blake3_poseidon_manifest.zig
+?? src/frontends/riscv/prover/blake3_poseidon_profile.zig
+?? src/frontends/riscv/prover/blake3_poseidon_proof.zig
+?? src/frontends/riscv/prover/blake3_poseidon_proof_test_support.zig
+?? src/frontends/riscv/prover/blake3_poseidon_protocol.zig
+?? src/frontends/riscv/prover/blake3_poseidon_statement.zig
+?? src/frontends/riscv/prover/blake3_poseidon_witness.zig
+?? src/frontends/riscv/prover/blake3_poseidon_witness_test.zig
+?? src/frontends/riscv/prover/blake3_profile_artifact.zig
+?? src/frontends/riscv/prover/blake3_segment_aggregation_test.zig
+?? src/frontends/riscv/prover/blake3_segment_execution.zig
+?? src/frontends/riscv/prover/blake3_segment_parent.zig
+?? src/frontends/riscv/prover/blake3_segment_public.zig
+?? src/frontends/riscv/prover/blake3_segment_statement.zig
+?? src/frontends/riscv/prover/blake3_segment_tree_test.zig
+?? src/frontends/riscv/prover/blake3_shared_path_emit.zig
+?? src/frontends/riscv/prover/blake3_shared_path_topology.zig
+?? src/frontends/riscv/prover/blake3_tree_pipeline_test_support.zig
+?? src/frontends/riscv/prover/blake3_verified_public.zig
+?? src/frontends/riscv/prover/guest_precompile/ethereum_main_columns.zig
+?? src/frontends/riscv/prover/guest_precompile/ethereum_proof_artifact_impl.zig
+?? src/frontends/riscv/prover/guest_precompile/ethereum_segment_proof_artifact_impl.zig
+?? src/frontends/riscv/prover/guest_precompile/proof_artifact_impl.zig
+?? src/frontends/riscv/recursion/air/arithmetic_fusion_census.zig
+?? src/frontends/riscv/recursion/air/arithmetic_fusion_rows.zig
+?? src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig
+?? src/frontends/riscv/recursion/air/blake3_boundary.zig
+?? src/frontends/riscv/recursion/air/blake3_bounded_draw.zig
+?? src/frontends/riscv/recursion/air/blake3_bounded_draw_test.zig
+?? src/frontends/riscv/recursion/air/blake3_byte_route.zig
+?? src/frontends/riscv/recursion/air/blake3_byte_route_test.zig
+?? src/frontends/riscv/recursion/air/blake3_challenge_block.zig
+?? src/frontends/riscv/recursion/air/blake3_challenge_block_test.zig
+?? src/frontends/riscv/recursion/air/blake3_challenge_committed_test.zig
+?? src/frontends/riscv/recursion/air/blake3_challenge_links.zig
+?? src/frontends/riscv/recursion/air/blake3_combined_fri_test.zig
+?? src/frontends/riscv/recursion/air/blake3_committed_test.zig
+?? src/frontends/riscv/recursion/air/blake3_compact_metadata_test.zig
+?? src/frontends/riscv/recursion/air/blake3_component_roster.zig
+?? src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig
+?? src/frontends/riscv/recursion/air/blake3_compression_plan.zig
+?? src/frontends/riscv/recursion/air/blake3_compression_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_counter_step.zig
+?? src/frontends/riscv/recursion/air/blake3_counter_step_test.zig
+?? src/frontends/riscv/recursion/air/blake3_deep_fixture.zig
+?? src/frontends/riscv/recursion/air/blake3_draw_hash_layout.zig
+?? src/frontends/riscv/recursion/air/blake3_draw_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_draw_witness_test.zig
+?? src/frontends/riscv/recursion/air/blake3_ethereum_composition_extension.zig
+?? src/frontends/riscv/recursion/air/blake3_ethereum_verifier_components.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_challenges.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_composition.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_composition_native.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_deep.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_parent_sources.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_payloads.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_profile.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_roots.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_sample_links.zig
+?? src/frontends/riscv/recursion/air/blake3_execution_transcript.zig
+?? src/frontends/riscv/recursion/air/blake3_extension_verifier_components.zig
+?? src/frontends/riscv/recursion/air/blake3_field_bytes.zig
+?? src/frontends/riscv/recursion/air/blake3_field_bytes_proof_test.zig
+?? src/frontends/riscv/recursion/air/blake3_field_bytes_test.zig
+?? src/frontends/riscv/recursion/air/blake3_fixture_roster.zig
+?? src/frontends/riscv/recursion/air/blake3_frame_route.zig
+?? src/frontends/riscv/recursion/air/blake3_frame_test.zig
+?? src/frontends/riscv/recursion/air/blake3_frame_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_frame_witness_test.zig
+?? src/frontends/riscv/recursion/air/blake3_framework_test.zig
+?? src/frontends/riscv/recursion/air/blake3_fri_arithmetic_proof_test.zig
+?? src/frontends/riscv/recursion/air/blake3_fri_group_test.zig
+?? src/frontends/riscv/recursion/air/blake3_fri_path_opening.zig
+?? src/frontends/riscv/recursion/air/blake3_g_call.zig
+?? src/frontends/riscv/recursion/air/blake3_g_packed.zig
+?? src/frontends/riscv/recursion/air/blake3_g_packed_test.zig
+?? src/frontends/riscv/recursion/air/blake3_g_packed_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_g_reference.zig
+?? src/frontends/riscv/recursion/air/blake3_g_reference_test.zig
+?? src/frontends/riscv/recursion/air/blake3_hash_plan.zig
+?? src/frontends/riscv/recursion/air/blake3_hash_test.zig
+?? src/frontends/riscv/recursion/air/blake3_hash_test_support.zig
+?? src/frontends/riscv/recursion/air/blake3_hash_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_input_bridge.zig
+?? src/frontends/riscv/recursion/air/blake3_lifted_leaf_plan.zig
+?? src/frontends/riscv/recursion/air/blake3_lifted_path_test.zig
+?? src/frontends/riscv/recursion/air/blake3_main_column_test_support.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_boundary.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_boundary_test.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_custody.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_custody_test.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_leaf.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_path.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_path_proof_test.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_runner_test.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_snapshot.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_snapshot_test.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_update.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_update_chain.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_update_chain_test.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_update_proof_test.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_word.zig
+?? src/frontends/riscv/recursion/air/blake3_memory_word_test.zig
+?? src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_merkle_path_test.zig
+?? src/frontends/riscv/recursion/air/blake3_merkle_path_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_native_challenge_links.zig
+?? src/frontends/riscv/recursion/air/blake3_native_deep.zig
+?? src/frontends/riscv/recursion/air/blake3_native_fri.zig
+?? src/frontends/riscv/recursion/air/blake3_native_openings.zig
+?? src/frontends/riscv/recursion/air/blake3_native_parent_roster.zig
+?? src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
+?? src/frontends/riscv/recursion/air/blake3_native_parent_test_support.zig
+?? src/frontends/riscv/recursion/air/blake3_native_payload_links.zig
+?? src/frontends/riscv/recursion/air/blake3_native_pcs_challenges.zig
+?? src/frontends/riscv/recursion/air/blake3_native_public_boundary.zig
+?? src/frontends/riscv/recursion/air/blake3_native_public_links.zig
+?? src/frontends/riscv/recursion/air/blake3_native_public_sources.zig
+?? src/frontends/riscv/recursion/air/blake3_native_queries.zig
+?? src/frontends/riscv/recursion/air/blake3_native_recorder.zig
+?? src/frontends/riscv/recursion/air/blake3_native_recorder_test.zig
+?? src/frontends/riscv/recursion/air/blake3_native_root_nonce.zig
+?? src/frontends/riscv/recursion/air/blake3_native_sample_links.zig
+?? src/frontends/riscv/recursion/air/blake3_native_terminal_encoding.zig
+?? src/frontends/riscv/recursion/air/blake3_native_transcript.zig
+?? src/frontends/riscv/recursion/air/blake3_node_route.zig
+?? src/frontends/riscv/recursion/air/blake3_opening_inputs.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_append.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_append_test.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_composition.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_custody_rows.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_deep.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_input_inventory.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_join.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_join_test.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_namespace.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_rebase.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
+?? src/frontends/riscv/recursion/air/blake3_parent_transcript.zig
+?? src/frontends/riscv/recursion/air/blake3_path_select.zig
+?? src/frontends/riscv/recursion/air/blake3_path_select_test.zig
+?? src/frontends/riscv/recursion/air/blake3_pcs_capture_test.zig
+?? src/frontends/riscv/recursion/air/blake3_pcs_transcript.zig
+?? src/frontends/riscv/recursion/air/blake3_poseidon_composition_extension.zig
+?? src/frontends/riscv/recursion/air/blake3_private_committed_test.zig
+?? src/frontends/riscv/recursion/air/blake3_private_draw_test.zig
+?? src/frontends/riscv/recursion/air/blake3_private_hash_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_private_input_test.zig
+?? src/frontends/riscv/recursion/air/blake3_private_word.zig
+?? src/frontends/riscv/recursion/air/blake3_program_boundary.zig
+?? src/frontends/riscv/recursion/air/blake3_program_word.zig
+?? src/frontends/riscv/recursion/air/blake3_projection_links.zig
+?? src/frontends/riscv/recursion/air/blake3_projection_links_test.zig
+?? src/frontends/riscv/recursion/air/blake3_proof_fixture.zig
+?? src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig
+?? src/frontends/riscv/recursion/air/blake3_query_links.zig
+?? src/frontends/riscv/recursion/air/blake3_query_mask.zig
+?? src/frontends/riscv/recursion/air/blake3_query_mask_test.zig
+?? src/frontends/riscv/recursion/air/blake3_query_path_plan.zig
+?? src/frontends/riscv/recursion/air/blake3_query_path_proof_test.zig
+?? src/frontends/riscv/recursion/air/blake3_query_proof_test.zig
+?? src/frontends/riscv/recursion/air/blake3_query_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_query_witness_test.zig
+?? src/frontends/riscv/recursion/air/blake3_rejection_fixture.zig
+?? src/frontends/riscv/recursion/air/blake3_retry_control.zig
+?? src/frontends/riscv/recursion/air/blake3_retry_control_test.zig
+?? src/frontends/riscv/recursion/air/blake3_root_sources.zig
+?? src/frontends/riscv/recursion/air/blake3_routed_node_test.zig
+?? src/frontends/riscv/recursion/air/blake3_routed_transcript_test.zig
+?? src/frontends/riscv/recursion/air/blake3_row_columns.zig
+?? src/frontends/riscv/recursion/air/blake3_sample_links.zig
+?? src/frontends/riscv/recursion/air/blake3_scalar_payload_rows.zig
+?? src/frontends/riscv/recursion/air/blake3_shared_opening_topology.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_binding.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_constraints_test.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_hash.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_inputs.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_inputs_test.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_join_test.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_pair.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_proof_test.zig
+?? src/frontends/riscv/recursion/air/blake3_span_identity_route.zig
+?? src/frontends/riscv/recursion/air/blake3_stark_paths.zig
+?? src/frontends/riscv/recursion/air/blake3_stark_pcs_fixture.zig
+?? src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig
+?? src/frontends/riscv/recursion/air/blake3_terminal_links.zig
+?? src/frontends/riscv/recursion/air/blake3_transcript_plan.zig
+?? src/frontends/riscv/recursion/air/blake3_transcript_plan_test.zig
+?? src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig
+?? src/frontends/riscv/recursion/air/blake3_transcript_transition_test.zig
+?? src/frontends/riscv/recursion/air/blake3_transcript_witness.zig
+?? src/frontends/riscv/recursion/air/blake3_wiring_test.zig
+?? src/frontends/riscv/recursion/air/blake3_xor_call.zig
+?? src/frontends/riscv/recursion/air/composition_circuit_blake3.zig
+?? src/frontends/riscv/recursion/air/composition_circuit_blake3_test.zig
+?? src/frontends/riscv/recursion/air/detached_pcs_opening4_v1.zig
+?? src/frontends/riscv/recursion/air/detached_pcs_opening4_v1_test.zig
+?? src/frontends/riscv/recursion/air/detached_pcs_opening_closure_test.zig
+?? src/frontends/riscv/recursion/air/detached_pcs_opening_plan.zig
+?? src/frontends/riscv/recursion/air/detached_pcs_opening_plan_test.zig
+?? src/frontends/riscv/recursion/air/fri_hash_wire_plan.zig
+?? src/frontends/riscv/recursion/air/native_padding_test.zig
+?? src/frontends/riscv/recursion/air/native_pcs_fusion_rows.zig
+?? src/frontends/riscv/recursion/air/native_pcs_opening4_test.zig
+?? src/frontends/riscv/recursion/air/native_pcs_opening4_v1.zig
+?? src/frontends/riscv/recursion/air/pcs_deep_plan_cache.zig
+?? src/frontends/riscv/recursion/air/qm31_pack_wire.zig
+?? src/frontends/riscv/recursion/air/qm31_pack_wire_test.zig
+?? src/frontends/riscv/recursion/air/readonly_consistency.zig
+?? src/frontends/riscv/recursion/air/readonly_consistency_test.zig
+?? src/frontends/riscv/recursion/air/readonly_input.zig
+?? src/frontends/riscv/recursion/air/scalar_wire_source.zig
+?? src/frontends/riscv/recursion/air/scalar_wire_source_test.zig
+?? src/frontends/riscv/recursion/air/statement_input_blake3_test.zig
+?? src/frontends/riscv/recursion/air/statement_input_witness_blake3.zig
+?? src/frontends/riscv/recursion/air/statement_input_witness_profile.zig
+?? src/frontends/riscv/recursion/air/statement_semantics_input_blake3_test.zig
+?? src/frontends/riscv/recursion/air/statement_semantics_input_witness_blake3.zig
+?? src/frontends/riscv/recursion/air/statement_semantics_input_witness_profile.zig
+?? src/frontends/riscv/recursion/air/vm_air_composition_input_blake3_test.zig
+?? src/frontends/riscv/recursion/air/vm_air_composition_input_witness_blake3.zig
+?? src/frontends/riscv/recursion/air/vm_air_composition_input_witness_profile.zig
+?? src/frontends/riscv/recursion/air/witness_row_sink.zig
+?? src/frontends/riscv/recursion/blake3_byte_tree_test.zig
+?? src/frontends/riscv/recursion/blake3_engine_protocol.zig
+?? src/frontends/riscv/recursion/blake3_execution_aggregate.zig
+?? src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
+?? src/frontends/riscv/recursion/blake3_execution_parent_proof.zig
+?? src/frontends/riscv/recursion/blake3_execution_parent_protocol.zig
+?? src/frontends/riscv/recursion/blake3_execution_span.zig
+?? src/frontends/riscv/recursion/blake3_execution_tree.zig
+?? src/frontends/riscv/recursion/blake3_identity_digest.zig
+?? src/frontends/riscv/recursion/blake3_native_hash_columns.zig
+?? src/frontends/riscv/recursion/blake3_native_hash_layout.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_artifact.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_codec.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_components.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_pipeline.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_preparation.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_producer.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_protocol.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_verifier.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_worker.zig
+?? src/frontends/riscv/recursion/blake3_native_parent_workspace.zig
+?? src/frontends/riscv/recursion/blake3_parent_pipeline.zig
+?? src/frontends/riscv/recursion/blake3_public_io.zig
+?? src/frontends/riscv/recursion/blake3_tree_pipeline.zig
+?? src/frontends/riscv/recursion/fri_arithmetic_capture.zig
+?? src/frontends/riscv/recursion/owned_handoff.zig
+?? src/frontends/riscv/recursion/pcs_arithmetic_capture.zig
+?? src/frontends/riscv/recursion/pcs_arithmetic_capture_test.zig
+?? src/frontends/riscv/recursion/span_identity_blake3.zig
+?? src/frontends/riscv/recursion/span_identity_blake3_test.zig
+?? src/frontends/riscv/recursion/span_statement_blake3.zig
+?? src/frontends/riscv/recursion/span_statement_blake3_test.zig
+?? src/frontends/riscv/recursion/span_statement_blake3_test_fixture.zig
+?? src/frontends/riscv/recursion/span_statement_semantics.zig
+?? src/frontends/riscv/recursion/statement_semantics_circuit_blake3.zig
+?? src/frontends/riscv/recursion/statement_semantics_circuit_blake3_test.zig
+?? src/frontends/riscv/recursion_statement_codec_test_root.zig
+?? src/frontends/riscv/testing/csp_ecdsa_proof_harness.zig
+?? src/integrations/riscv_cpu/blake3_hash_benchmark.zig
+?? src/integrations/riscv_cpu/blake3_pcs_test.zig
+?? src/integrations/riscv_cpu/blake3_protocol_test.zig
+?? src/integrations/riscv_cpu/blake3_test_root.zig
+?? src/integrations/riscv_cpu/build_blake3_steps.zig
+?? src/integrations/riscv_cpu/proof_adapter/blake3_execution_product.zig
+?? src/integrations/riscv_cpu/proof_adapter/blake3_execution_request.zig
+?? src/integrations/riscv_cpu/proof_adapter/blake3_execution_verifier.zig
+?? src/integrations/riscv_cpu/proof_adapter/report_transcript.zig
+?? src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_batch.zig
+?? src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_worker.zig
+?? src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_workspace.zig
+?? src/integrations/riscv_metal/blake3_csp_test.zig
+?? src/integrations/riscv_metal/blake3_runtime.zig
+?? src/products/riscv_shared/suite_selection.zig
+?? src/prover/barycentric_context_benchmark.zig
+?? src/prover/barycentric_test_root.zig
+?? src/prover/pcs/blake3_proof_of_work.zig
+?? src/prover/pcs/budgeted_merkle_test.zig
+?? src/prover/pcs/shared_commitment_test.zig

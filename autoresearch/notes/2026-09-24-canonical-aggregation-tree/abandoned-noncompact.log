@@ -1,0 +1,17 @@
+test-blake3-native-tree-aot
++- run test failure
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_NATIVE_QUERY_FUSION groups=7560 removed_scalars=30240
+BLAKE3_NATIVE_FUSION dot4=15629 fma=67093 arithmetic_rows=183037
+BLAKE3_NATIVE_QUERY_FUSION groups=7560 removed_scalars=30240
+BLAKE3_NATIVE_FUSION dot4=15629 fma=67095 arithmetic_rows=183033
+error: while executing test 'blake3_metal_qualification_test_root.test.Metal canonical four-leaf BLAKE3 aggregation tree', the following command terminated with signal 15 (expected exited with code 0):
+./.zig-cache/o/e17e88ba3d520e2778d96bd8363d8fd6/test --cache-dir=./.zig-cache --seed=0xb5b59da3 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 7/7 tests passed
+test-blake3-native-tree-aot transitive failure
++- run test failure
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0f9b4d8288993472a9b2e4fb44d339c7/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal .zig-cache /Users/theodorepender/.cache/zig --seed 0xb5b59da3 -Z1809ce5071830f4f --maxrss 25769803776 -j1 test-blake3-native-tree-aot -Dmetal-core-aot-bundle=/Users/theodorepender/code/cryptography/stwo-zig/zig-out/share/stwo-zig/metal/core -Doptimize=ReleaseFast --summary all

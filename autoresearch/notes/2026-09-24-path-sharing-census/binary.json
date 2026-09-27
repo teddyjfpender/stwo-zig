@@ -1,0 +1,6 @@
+{
+  "sha256": "2b606c9c298258c1243aad093e22bd3c61538dca893e53bf5cd27f5e0349cde9",
+  "source": "src/integrations/riscv_metal/.zig-cache/o/05002e5d2499a117fafb801a9cdc5820/test",
+  "aot_bundle": "zig-out/share/stwo-zig/metal/core",
+  "qualification": "canonical.log"
+}

@@ -1,0 +1,74 @@
+    Emulator Running in emulator mode
+ Proving Key /tmp/stwo-zisk-guest-e2e-20260924/provingKey
+   SNARK Key /Users/theodorepender/.zisk/provingKeySnark
+
+2026-09-24T17:27:20.461423Z INFO: Creating proof context
+2026-09-24T17:27:20.461745Z INFO: Using hash function: blake3
+2026-09-24T17:27:20.465480Z INFO: >>> INITIALIZING_PROOFMAN
+2026-09-24T17:27:21.971516Z INFO: Max prover buffer size: 24.87 GB
+2026-09-24T17:27:21.971550Z INFO: Max prover recursive buffer size: 14.92 GB
+2026-09-24T17:27:21.971555Z INFO: Max prover recursive1/recursive2 buffer size: 10.12 GB (recursive2 map 9.12 GB + compact witness tail 1.00 GB)
+2026-09-24T17:27:21.984764Z INFO: >>> LOADING_FIXED_POLS
+2026-09-24T17:27:21.984788Z INFO: <<< LOADING_FIXED_POLS (0ms)
+2026-09-24T17:27:21.984800Z INFO: <<< INITIALIZING_PROOFMAN (1519ms)
+2026-09-24T17:27:21.984812Z INFO: >>> INIT_PROOFMAN
+2026-09-24T17:27:21.984829Z INFO: <<< INIT_PROOFMAN (0ms)
+2026-09-24T17:27:22.165065Z INFO: MemoryHandler::Total memory for basic traces: 4.88 GB
+2026-09-24T17:27:22.165116Z INFO: Node has 18 cores
+2026-09-24T17:27:22.165122Z INFO: Using 16 threads per process based on RAYON_NUM_THREADS environment variable
+2026-09-24T17:27:22.284458Z INFO: MemoryHandlerRecursive::Total memory for recursive traces: 3.22 GB = 2 x trace 1.61 GB
+2026-09-24T17:27:22.284504Z INFO: SignalValuesPool: 1 x 485.22 MB = 485.22 MB
+2026-09-24T17:27:22.284509Z INFO: MemoryHandlerRecursive::circom solve threads per recursive witness: 8
+2026-09-24T17:27:23.356379Z INFO: Using 4 threads per witness computation
+2026-09-24T17:27:23.431645Z INFO: Computing custom trace ROM
+2026-09-24T17:27:24.072689Z INFO: Root hash: [10425612061867408812, 78544545398839242, 4350314084968718820, 12026801787972919107]
+GUEST_BENCH_SETUP_COMPLETE seconds=3.644898375
+2026-09-24T17:27:24.078052Z INFO: Initializing publics custom_commits
+2026-09-24T17:27:24.081714Z INFO: >>> EXECUTE
+2026-09-24T17:27:24.089601Z INFO: >>> COMPUTE_MINIMAL_TRACE
+2026-09-24T17:27:24.153838Z INFO: >>> COUNT
+2026-09-24T17:27:24.161576Z INFO: <<< COUNT (7ms)
+2026-09-24T17:27:24.161586Z INFO: <<< COMPUTE_MINIMAL_TRACE (71ms)
+2026-09-24T17:27:24.161591Z INFO: >>> PLAN_MAIN
+2026-09-24T17:27:24.161605Z INFO: <<< PLAN_MAIN (0ms)
+2026-09-24T17:27:24.161611Z INFO: >>> PLAN_SECONDARY
+2026-09-24T17:27:24.163202Z INFO: <<< PLAN_SECONDARY (1ms)
+2026-09-24T17:27:24.163212Z INFO: >>> WAIT_PLAN_MEM_CPP
+2026-09-24T17:27:24.163217Z INFO: <<< WAIT_PLAN_MEM_CPP (0ms)
+2026-09-24T17:27:24.163221Z INFO: >>> WAIT_ASM_RH
+2026-09-24T17:27:24.163224Z INFO: <<< WAIT_ASM_RH (0ms)
+2026-09-24T17:27:24.163899Z INFO: --- PROOF INSTANCES SUMMARY ---
+2026-09-24T17:27:24.163918Z INFO: Zisk | BinaryExtension: 1 | BinaryLarge: 1 | InputData: 1 | Main: 1 | Mem: 1 | MemAlign: 1 | Rom: 1 | RomData: 1 | VirtualTableZisk0: 1 | VirtualTableZisk1: 1 | Total global instances: 10
+2026-09-24T17:27:24.163923Z INFO: --------------------------------
+2026-09-24T17:27:24.163931Z INFO: <<< EXECUTE (82ms)
+2026-09-24T17:27:24.163946Z INFO: >>> CALCULATING_CONTRIBUTIONS
+2026-09-24T17:27:34.458446Z INFO: <<< CALCULATING_CONTRIBUTIONS (10294ms)
+2026-09-24T17:27:34.458555Z INFO: ··· Global challenge: [11449577442789842321, 10951998179158962864, 5730887617178820601]
+2026-09-24T17:27:34.458564Z INFO: >>> GENERATING_PROOFS
+2026-09-24T17:27:34.458568Z INFO: >>> GENERATING_INNER_PROOFS
+2026-09-24T17:27:34.458572Z INFO: ··· Witness reuse: 6 traces reclaimed, 6 re-armed for the proofs phase, 1 duplicate dispatches refused, 0 recomputed over a live trace
+2026-09-24T17:31:37.382912Z INFO: <<< GENERATING_INNER_PROOFS (242924ms)
+2026-09-24T17:31:37.383335Z INFO: >>> GENERATE_VADCOP_FINAL_PROOF
+2026-09-24T17:31:47.313036Z INFO: <<< GENERATE_VADCOP_FINAL_PROOF (9929ms)
+2026-09-24T17:31:47.316238Z INFO: >>> VERIFYING_VADCOP_FINAL_PROOF
+2026-09-24T17:31:47.406633Z INFO: <<< VERIFYING_VADCOP_FINAL_PROOF (90ms)
+2026-09-24T17:31:47.406671Z INFO: ··· ✓ Vadcop Final proof was verified
+{"iterations":4096,"setup_seconds":3.644898375,"prove_seconds":263.329513625,"verify_seconds":0.018725833,"prover_reported_ms":263328,"steps":9818886,"output_bytes":[243,79,206,129,194,44,213,43,230,237,226,128,140,218,58,47,38,155,184,16,217,177,75,237,86,227,172,175,157,109,28,53,0,16,0,0],"public_iteration_count":4096,"proof_bytes":831536,"verified":true,"aggregation":true}
+      268.17 real      4035.71 user        20.31 sys
+         49763074048  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3542047  page reclaims
+               54991  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   1  messages sent
+                   0  messages received
+                   0  signals received
+                 709  voluntary context switches
+             2501379  involuntary context switches
+      63671284544617  instructions retired
+      14373815289790  cycles elapsed
+         49852584320  peak memory footprint

@@ -1,0 +1,18 @@
+{
+  "README.md": "4b06e7f219a7e08e2fe4c19c4f88a9e7319aaf9ff1e6d4c5031f9cb0fcfc3db0",
+  "final-ownership-qualification.log": "192945ae2be0e594c26743de37e490fba91aa244566c554108fba881f33a7342",
+  "initial-qualification.log": "b0a4a4468f3041395a4ed2360f3d57d6d9cf0ef65a5d80e91011992e51b1cced",
+  "sources/autoresearch/notes/20260922-transcript-plan-problem-match.md": "ed4d3f01f5c99a7dca4cd4f8b9b756615971e0aa37da9e2dc270ace3b69ffd9a",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "a38e321d97823e9bf57e815926ae3ceb1d50754f67c219112be298c1f4a1416b",
+  "sources/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig": "36788d0cfe300d2e9d9fca4b4865b2f4db629233e743390b48bc4721a700c82a",
+  "sources/src/frontends/riscv/recursion/air/blake3_bounded_draw.zig": "704c220433f938533e5e8a37ee3bc867e1a464020016876bb060da9eb417f68a",
+  "sources/src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig": "0e114ebaccdba880e5e0b81e92492ee91c3131b55ac94691841c1a4580e87de5",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "a449d5b620ceed55204b8bb143bd07fd98a8bf36663608b772a12e28b03ba68b",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "5bc007f4fef81d5395ed8c331038d2b8df1ae11a5e8ce385581028cb43f779d6",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig": "3c5b5c73dea4f801459266840eac28892b33f1c53deaaf0f6e9560da90c3037e",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_plan.zig": "3213562939403d885f74d32ec312d7dafb2bf7c2a6231678e432c75074f0161b",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_plan_test.zig": "1aa1a2e51f9189a007d2a83aa0a4173582cc1b6055a8633a5c3352efbc3a501e",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig": "49c9514fd9881692c3a24844b4e3a48037575f96a77b147d1e2c89a6988336d3",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "96f155341ec31f9ee92b1227f0c40daacf9b5bb5013a260efe0258f94a4c90aa",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "ef4254c163a67b4832c445dcdaf0db85da3671a78e28fcd6571df8024ebbd6c3"
+}

@@ -1,0 +1,49 @@
+{
+  "status": "qualified_nonproving_source",
+  "evidence": {
+    "native-fused-selection-focused-v1": {
+      "source_candidate": "native-fused-selection-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 51.29116066702409,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 15,
+      "test_summary": [
+        "All 15 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-fused-selection-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-native-fused-selection-focused-v1",
+        "bytes": 5566360,
+        "sha256": "3ed2848af4e60b62bc5e788a8646429499f50815f41cb127fa41ce40ec655758"
+      }
+    }
+  },
+  "historical_semantic_attempts": [
+    "native-fused-selection-semantic-v1-result.json",
+    "native-fused-selection-semantic-v2-result.json"
+  ],
+  "semantic_history": "Initial fixture used an unavailable fused public source enum; corrected to the original first_root coordinate. Semantic v2 passed; final focused source additionally factors the original slot-cap check before selection recipe work.",
+  "scope": [
+    "Independently admitted complete native shape/catalogue/source roster selects every required fused companion",
+    "Both original projection and memory inventories must be empty to omit a companion",
+    "Actual two-execution canonical q70/pow26 admission: genuine empty index0 and required index1",
+    "Dense default grammar preserved; typed sparse construction only; no received index list is selection authority",
+    "Required omission, relabel, reordered native owners, geometry/security mutation and lookalike native owner rejection",
+    "All-empty census produces no fresh leaf equation",
+    "Selection limits and exhaustive selection allocation rollback; original caller sparse publication, framing rejection, split I/O and allocator regressions"
+  ],
+  "named_behavioral_checks": 8,
+  "tests_passed": 15,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "canonical_driver_enabled": false,
+  "complete_block_authority": false,
+  "speed_or_peak_rss_claim": false
+}

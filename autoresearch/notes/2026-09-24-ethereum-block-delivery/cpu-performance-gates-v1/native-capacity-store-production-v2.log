@@ -1,0 +1,12 @@
+1/11 block_v5_native_capacity_store_test_root.test_0...OK
+2/11 prover.block_v5_native_capacity_store_test.test.capacity store actual admitted policy publishes consumes loads independent literal proof...OK
+3/11 prover.block_v5_native_capacity_store_test.test.capacity store publication failures retain proof caps roots identity and existing bytes...OK
+4/11 prover.block_v5_native_capacity_store_test.test.capacity store failed tampered load burns slot and cannot substitute file...OK
+5/11 prover.block_v5_native_capacity_store_test.test.capacity store manifest rejects count metadata grammar total and hashes before bulk allocation...OK
+6/11 prover.block_v5_native_capacity_store_test.test.capacity store exhaustive allocation failures retain publication and deep load ownership...OK
+7/11 prover.block_v5_native_capacity_store_test.test.capacity store real fresh capture loader and legacy I O bodies compile without invocation...OK
+8/11 prover.block_v5_cpu_bundle_store_test.test.block-v5 durable file roster is bounded canonical SHA pinned and single use...OK
+9/11 prover.block_v5_cpu_bundle_store_test.test_0...OK
+10/11 air.semantic_eval.test_0...OK
+11/11 air.memory_commitment.poseidon2_air.test_0...OK
+All 11 tests passed.

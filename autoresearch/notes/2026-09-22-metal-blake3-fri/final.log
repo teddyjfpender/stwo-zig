@@ -1,0 +1,31 @@
+test-blake3-fri-tree
++- run test 23/24 passed, 1 failed
+error: 'runtime.opening_bindings.test.opening bindings retain canonical shared ABI parameter types' failed: METAL_FRI_TREE family=blake3 prefix=0 packing=0 reuse=0 gpu_ms=0.15600000915583223
+METAL_FRI_TREE family=blake3 prefix=0 packing=0 reuse=1 gpu_ms=0.14508332242257893
+METAL_FRI_TREE family=blake3 prefix=0 packing=1 reuse=0 gpu_ms=0.12920833250973374
+METAL_FRI_TREE family=blake3 prefix=0 packing=1 reuse=1 gpu_ms=0.1221249985974282
+METAL_FRI_TREE family=blake3 prefix=0 packing=2 reuse=0 gpu_ms=0.1341666647931561
+METAL_FRI_TREE family=blake3 prefix=0 packing=2 reuse=1 gpu_ms=0.12916667037643492
+METAL_FRI_TREE family=blake2s prefix=64 packing=0 reuse=0 gpu_ms=0.22037500457372516
+METAL_FRI_TREE family=blake2s prefix=64 packing=0 reuse=1 gpu_ms=0.18383334099780768
+METAL_FRI_TREE family=blake2s prefix=64 packing=1 reuse=0 gpu_ms=0.18662500951904804
+METAL_FRI_TREE family=blake2s prefix=64 packing=1 reuse=1 gpu_ms=0.1963333343155682
+METAL_FRI_TREE family=blake2s prefix=64 packing=2 reuse=0 gpu_ms=0.15970833192113787
+METAL_FRI_TREE family=blake2s prefix=64 packing=2 reuse=1 gpu_ms=0.1656666718190536
+METAL_FRI_TREE family=blake2s prefix=0 packing=0 reuse=0 gpu_ms=0.18720833759289235
+METAL_FRI_TREE family=blake2s prefix=0 packing=0 reuse=1 gpu_ms=0.16833332483656704
+METAL_FRI_TREE family=blake2s prefix=0 packing=1 reuse=0 gpu_ms=0.18237500626128167
+METAL_FRI_TREE family=blake2s prefix=0 packing=1 reuse=1 gpu_ms=0.15725000412203372
+METAL_FRI_TREE family=blake2s prefix=0 packing=2 reuse=0 gpu_ms=0.1640833361307159
+METAL_FRI_TREE family=blake2s prefix=0 packing=2 reuse=1 gpu_ms=0.1728750066831708
+expected 15, found 16
+error: while executing test 'runtime.abi.test.arena copy range reserved word defaults to zero', the following test command failed:
+./.zig-cache/o/e4f7627fbbe56112d17f1a2c1e767e5a/test --cache-dir=./.zig-cache --seed=0xb261943b --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 23/24 tests passed; 1 failed
+test-blake3-fri-tree transitive failure
++- run test 23/24 passed, 1 failed
+   +- compile test ReleaseSafe native success 5s MaxRSS:502M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/f7c95ebe37392f3e3fceba48f2355545/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0xb261943b -Z6257f20e4a1c9ae9 --maxrss 25769803776 -j1 test-blake3-fri-tree -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "ram-range-forest-owned-release-legacy-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 17.134172125020996,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 18,
+  "test_summary": [
+    "All 18 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/ram-range-forest-owned-release-legacy-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-ram-range-forest-owned-release-legacy-v1",
+    "bytes": 34223552,
+    "sha256": "3f89a5f1c53acdb4f1d2000aac91ed7e119d0f746fcd53318ae015279217a32e"
+  }
+}

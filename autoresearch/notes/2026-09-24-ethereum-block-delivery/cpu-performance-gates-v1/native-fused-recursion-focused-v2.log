@@ -1,0 +1,20 @@
+1/19 block_v5_native_capacity_fused_recursive_test_root.test_0...OK
+2/19 block_v5_native_capacity_fused_recursive_test_root.test.capacity fused recursion: actual capture all cohorts publication cache and receiver bodies retained...OK
+3/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: full original mixed-domain projections and optional access match symbolic OODS...OK
+4/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: full equation construction propagates original OOM and unwinds...OK
+5/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: exact first and restarted Word52 claim framing preserve native channels...OK
+6/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: public statement owning clones survive source release and allocation failures...OK
+7/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: geometry key reuses changed logical counts but separates optional access...OK
+8/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: wide public schedule stays strict and requires exact coordinates...OK
+9/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: exact public extents reject caps before allocation in both root layouts...OK
+10/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: physical Keccak pair DEEP matches native periodicity and rejects mutations...OK
+11/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: shifted DEEP graph construction releases every allocation failure...OK
+12/19 prover.block_v5_native_capacity_fused_recursive_test_v1.test.capacity fused recursion: hash sizing admits exactly four or five consistently bound trees...OK
+13/19 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+14/19 air.semantic_eval.test_0...OK
+15/19 prover.block_execution_external_trace_v2.test_0...OK
+16/19 air.lookups.tables.mod.test_0...OK
+17/19 air.memory_commitment.poseidon2_air.test_0...OK
+18/19 prover.block_execution_external_access_bridge_v2.test_0...OK
+19/19 air.lookups.tables.source_ingest.test_0...OK
+All 19 tests passed.

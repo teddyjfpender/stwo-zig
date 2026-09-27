@@ -1,0 +1,27 @@
+src/frontends/riscv/prover/block_v5_heterogeneous_scoped_owned_files_v1.zig:93:15: error: local constant shadows declaration of 'expected'
+        const expected = try self.expected(index);
+              ^~~~~~~~
+src/frontends/riscv/prover/block_v5_heterogeneous_scoped_owned_files_v1.zig:75:5: note: declared here
+    fn expected(self: *const Store, index: u32) !Expected {
+    ^~
+src/frontends/riscv/prover/block_v5_heterogeneous_scoped_owned_files_v1.zig:109:15: error: local constant shadows declaration of 'expected'
+        const expected = try self.expected(index);
+              ^~~~~~~~
+src/frontends/riscv/prover/block_v5_heterogeneous_scoped_owned_files_v1.zig:75:5: note: declared here
+    fn expected(self: *const Store, index: u32) !Expected {
+    ^~
+src/frontends/riscv/recursion/air/block_v5_recursive_u64_span_v1.zig:23:76: error: function parameter shadows declaration of 'carries'
+pub fn increment(comptime S: type, sink: anytype, left: [8]S, right: [8]S, carries: [4]S) !void {
+                                                                           ^~~~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_u64_span_v1.zig:37:5: note: declared here
+pub fn carries(value: u64) ![4]u8 {
+~~~~^~
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_owner_v1.zig:121:49: error: capture shadows declaration of 'node'
+        for (self.nodes[0..self.initialized]) |*node| node.source.deinit();
+                                                ^~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_owner_v1.zig:148:9: note: declared here
+    pub fn node(self: *const Owner, index: u32) !Admission {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_owner_v1.zig:299:53: error: invalid left-hand side to assignment
+            inline for (std.meta.fields(T)) |field| if (!field.is_comptime) @field(result, field.name) = try clone(field.type, a, @field(value, field.name));
+                                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

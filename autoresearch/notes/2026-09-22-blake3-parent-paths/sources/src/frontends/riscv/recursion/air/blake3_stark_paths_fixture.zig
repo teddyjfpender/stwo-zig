@@ -1,0 +1,119 @@
+//! All native STARK openings; public leaf words, private authentication siblings.
+const std = @import("std");
+const f = @import("blake3_proof_fixture.zig");
+const group = @import("blake3_merkle_group_witness.zig");
+const leaf = @import("blake3_lifted_leaf_plan.zig");
+pub const word = group.word;
+const Capture = f.core.verifier.ProofCapture(f.Hasher);
+pub const Rows = struct {
+    g_rows: []group.g.Row,
+    xor_rows: []group.xor.Row,
+    boundary_rows: []group.boundary.Row,
+    route_rows: []group.route.Row,
+    word_rows: []word.Row,
+};
+pub const Prepared = struct {
+    arena: std.heap.ArenaAllocator,
+    live: Rows,
+    fixed: Rows,
+    pub fn deinit(self: *Prepared) void {
+        self.arena.deinit();
+    }
+};
+const Lists = struct {
+    g_rows: std.ArrayList(group.g.Row) = .empty,
+    xor_rows: std.ArrayList(group.xor.Row) = .empty,
+    boundary_rows: std.ArrayList(group.boundary.Row) = .empty,
+    route_rows: std.ArrayList(group.route.Row) = .empty,
+    word_rows: std.ArrayList(word.Row) = .empty,
+    fn append(self: *Lists, a: std.mem.Allocator, rows: anytype) !void {
+        inline for (std.meta.fields(Rows)) |field| try @field(self, field.name).appendSlice(a, @field(rows, field.name));
+    }
+    fn finish(self: *Lists, a: std.mem.Allocator) !Rows {
+        var out: Rows = undefined;
+        inline for (std.meta.fields(Rows)) |field| @field(out, field.name) = try @field(self, field.name).toOwnedSlice(a);
+        return out;
+    }
+};
+const Builder = struct {
+    a: std.mem.Allocator,
+    live: Lists = .{},
+    fixed: Lists = .{},
+    next: u32 = 2_000_000,
+    payload: u32 = 0,
+    count: usize = 0,
+    fn opening(self: *Builder, leaves: u32, words: u32, index: u32, depth: u32, root: [32]u8, values: []const f.M31, siblings: []const [32]u8) !void {
+        const span = try std.math.add(u32, try std.math.sub(u32, try std.math.mul(u32, leaves, 2), 1), try std.math.mul(u32, depth, 2));
+        const end = try std.math.add(u32, self.next, span);
+        if (end >= 3_000_000 or depth > 31) return error.InvalidStarkPathNamespace;
+        const statement = group.Statement{ .namespace = self.next, .payload = .{ .circuit = 3_000_000, .first_wire = self.payload }, .leaf_count = leaves, .words_per_leaf = words, .index = index, .depth = @intCast(depth), .root = root };
+        var live = try group.prepare(std.testing.allocator, statement, values, siblings);
+        defer live.deinit();
+        try std.testing.expectEqualSlices(u8, &root, &live.computed_root.?);
+        var fixed = try group.trusted(std.testing.allocator, statement);
+        defer fixed.deinit();
+        try std.testing.expectEqualSlices(u32, fixed.payload_uses, live.payload_uses);
+        try self.live.append(self.a, live);
+        try self.fixed.append(self.a, fixed);
+        for (values, live.payload_uses, 0..) |value, uses, i| {
+            const boundary = try f.boundary.logicalRow(3_000_000, try std.math.add(u32, self.payload, @intCast(i)), f.M31.fromCanonical(uses), value.v);
+            try self.live.boundary_rows.append(self.a, boundary);
+            try self.fixed.boundary_rows.append(self.a, boundary);
+        }
+        // A wrong sibling must not produce the statement's root. The circuit
+        // anchors all 32 root bytes; it does not trust this host comparison.
+        if (self.count == 0 and siblings.len > 0) {
+            const changed = try self.a.dupe([32]u8, siblings);
+            defer self.a.free(changed);
+            changed[0][31] ^= 0x80;
+            var bad = try group.prepare(std.testing.allocator, statement, values, changed);
+            defer bad.deinit();
+            try std.testing.expect(!std.mem.eql(u8, &root, &bad.computed_root.?));
+        }
+        self.next = end;
+        self.payload = try std.math.add(u32, self.payload, @intCast(values.len));
+        self.count += 1;
+    }
+};
+pub fn prepare(backing: std.mem.Allocator, capture: *const Capture) !Prepared {
+    var arena = std.heap.ArenaAllocator.init(backing);
+    errdefer arena.deinit();
+    const a = arena.allocator();
+    var b = Builder{ .a = a };
+    const n = capture.queries.raw.len;
+    try std.testing.expectEqual(@as(usize, 4), capture.trace_paths.len);
+    const lifting = capture.fri.layers[0].path_depth + capture.fri.layers[0].fold_step;
+    var cursor: usize = 0;
+    for (capture.column_log_sizes, capture.trace_paths, capture.commitments) |logs, path, root| {
+        var geometry = try leaf.build(a, logs);
+        defer geometry.deinit();
+        const positions = try f.core.pcs.utils.prepareTreeQueryPositions(a, capture.queries.raw, lifting, geometry.max_log);
+        try std.testing.expectEqualSlices(usize, positions, path.positions);
+        try std.testing.expectEqual(geometry.max_log, path.path_depth);
+        const columns = try a.alloc([]const f.M31, logs.len);
+        for (columns) |*column| {
+            const end = try std.math.add(usize, cursor, n);
+            if (end > capture.queried_values.len) return error.InvalidStarkPathValues;
+            column.* = capture.queried_values[cursor..end];
+            cursor = end;
+        }
+        try geometry.admitQueries(a, positions, columns);
+        const query = try a.alloc(f.M31, columns.len);
+        for (positions, 0..) |position, q| {
+            for (query, columns) |*value, column| value.* = column[q];
+            const ordered = try geometry.leaf(a, query);
+            try b.opening(1, @intCast(ordered.len), @intCast(position), path.path_depth, root, ordered, path.path(q));
+        }
+    }
+    try std.testing.expectEqual(capture.queried_values.len, cursor);
+    for (capture.fri.layers) |layer| {
+        const leaf_width: u32 = if (layer.fold_step > 1) 4 else 1;
+        const values = try a.alloc(f.M31, layer.fold_width * 4);
+        for (layer.positions, 0..) |position, q| {
+            for (layer.queryValues(q), 0..) |value, i| values[i * 4 ..][0..4].* = value.toM31Array();
+            try b.opening(layer.fold_width / leaf_width, leaf_width * 4, @intCast(position >> @intCast(layer.fold_step)), layer.path_depth, layer.commitment, values, layer.queryPath(q));
+        }
+    }
+    try std.testing.expectEqual((4 + capture.fri.layers.len) * n, b.count);
+    return .{ .arena = arena, .live = try b.live.finish(a), .fixed = try b.fixed.finish(a) };
+}

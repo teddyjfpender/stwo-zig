@@ -1,0 +1,1150 @@
+[
+  {
+    "name": "keccak_permute",
+    "rounds": 32768,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 133958458,
+        "ns_per_call": 4088.0877075195312,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 5664541,
+        "ns_per_call": 172.86807250976562,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 4503500,
+        "ns_per_call": 137.4359130859375,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 4510333,
+        "ns_per_call": 137.64443969726562,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 5502416,
+        "ns_per_call": 167.92041015625,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 133793625,
+        "ns_per_call": 4083.057403564453,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 4452125,
+        "ns_per_call": 135.86807250976562,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 5559667,
+        "ns_per_call": 169.66757202148438,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 134015958,
+        "ns_per_call": 4089.8424682617188,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 134245250,
+        "ns_per_call": 4096.839904785156,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 5501083,
+        "ns_per_call": 167.87973022460938,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 4578042,
+        "ns_per_call": 139.71075439453125,
+        "checksum": 17764873499159058880,
+        "stage_ns_per_call": []
+      }
+    ],
+    "median_ns": {
+      "before": 4088.965087890625,
+      "after": 168.7939910888672,
+      "zisk": 137.54017639160156
+    },
+    "comparison": "identical_output",
+    "calls_per_item": 1
+  },
+  {
+    "name": "keccak_full_trace",
+    "rounds": 32768,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 151199583,
+        "ns_per_call": 4614.245086669922,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 11081250,
+        "ns_per_call": 338.17291259765625,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 11055916,
+        "ns_per_call": 337.3997802734375,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 150522041,
+        "ns_per_call": 4593.568145751953,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 11104750,
+        "ns_per_call": 338.89007568359375,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 150459500,
+        "ns_per_call": 4591.6595458984375,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 151109417,
+        "ns_per_call": 4611.493438720703,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 11080167,
+        "ns_per_call": 338.1398620605469,
+        "checksum": 11697007729398588084,
+        "stage_ns_per_call": []
+      }
+    ],
+    "median_ns": {
+      "before": 4602.530792236328,
+      "after": 338.15638732910156
+    },
+    "comparison": "identical_output",
+    "calls_per_item": 1
+  },
+  {
+    "name": "keccak_paired_witness",
+    "rounds": 4096,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 103822667,
+        "ns_per_call": 25347.330810546875,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 68546917,
+        "ns_per_call": 16735.087158203125,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 68468167,
+        "ns_per_call": 16715.861083984375,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 103270834,
+        "ns_per_call": 25212.60595703125,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 68410792,
+        "ns_per_call": 16701.853515625,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 103576042,
+        "ns_per_call": 25287.11962890625,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 103807417,
+        "ns_per_call": 25343.607666015625,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 68612625,
+        "ns_per_call": 16751.129150390625,
+        "checksum": 829616515,
+        "stage_ns_per_call": []
+      }
+    ],
+    "median_ns": {
+      "before": 25315.363647460938,
+      "after": 16725.47412109375
+    },
+    "comparison": "same_local_complete_stage",
+    "calls_per_item": 2
+  },
+  {
+    "name": "keccak_paired_witness_validate_count",
+    "rounds": 32,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 134718459,
+        "ns_per_call": 4209951.84375,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 141756458,
+        "ns_per_call": 4429889.3125,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 139333333,
+        "ns_per_call": 4354166.65625,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 134288792,
+        "ns_per_call": 4196524.75,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 141266750,
+        "ns_per_call": 4414585.9375,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 133867708,
+        "ns_per_call": 4183365.875,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 133383042,
+        "ns_per_call": 4168220.0625,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 138948667,
+        "ns_per_call": 4342145.84375,
+        "checksum": 7902096,
+        "stage_ns_per_call": []
+      }
+    ],
+    "median_ns": {
+      "before": 4189945.3125,
+      "after": 4384376.296875
+    },
+    "comparison": "same_local_complete_stage",
+    "calls_per_item": 2
+  },
+  {
+    "name": "transcript_absorb_draw8",
+    "rounds": 65536,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 83554750,
+        "ns_per_call": 1274.9443054199219,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 78114333,
+        "ns_per_call": 1191.9301300048828,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 16313833,
+        "ns_per_call": 248.92933654785156,
+        "checksum": 14869658467860997591,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 16287416,
+        "ns_per_call": 248.5262451171875,
+        "checksum": 14869658467860997591,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 78069958,
+        "ns_per_call": 1191.2530212402344,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 83403625,
+        "ns_per_call": 1272.6383209228516,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 16398667,
+        "ns_per_call": 250.2238006591797,
+        "checksum": 14869658467860997591,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 78071125,
+        "ns_per_call": 1191.2708282470703,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 83249875,
+        "ns_per_call": 1270.2922821044922,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 83546708,
+        "ns_per_call": 1274.8215942382812,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 78056375,
+        "ns_per_call": 1191.0457611083984,
+        "checksum": 2252953282898978,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 16390000,
+        "ns_per_call": 250.091552734375,
+        "checksum": 14869658467860997591,
+        "stage_ns_per_call": []
+      }
+    ],
+    "median_ns": {
+      "before": 1273.7299575805664,
+      "after": 1191.2619247436523,
+      "zisk": 249.51044464111328
+    },
+    "input_bytes": 64,
+    "comparison": "native_protocols_differ"
+  },
+  {
+    "name": "transcript_absorb_draw8",
+    "rounds": 32768,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 90117959,
+        "ns_per_call": 2750.181854248047,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 64273334,
+        "ns_per_call": 1961.4664916992188,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 41300416,
+        "ns_per_call": 1260.388671875,
+        "checksum": 17941590182430890793,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 41252417,
+        "ns_per_call": 1258.9238586425781,
+        "checksum": 17941590182430890793,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 64378625,
+        "ns_per_call": 1964.6797180175781,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 90061542,
+        "ns_per_call": 2748.4601440429688,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 41505000,
+        "ns_per_call": 1266.632080078125,
+        "checksum": 17941590182430890793,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 64272542,
+        "ns_per_call": 1961.4423217773438,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 90164583,
+        "ns_per_call": 2751.604705810547,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 89890541,
+        "ns_per_call": 2743.2416076660156,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 64364959,
+        "ns_per_call": 1964.2626647949219,
+        "checksum": 1125440064561745,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 41387542,
+        "ns_per_call": 1263.0475463867188,
+        "checksum": 17941590182430890793,
+        "stage_ns_per_call": []
+      }
+    ],
+    "median_ns": {
+      "before": 2749.320999145508,
+      "after": 1962.8645782470703,
+      "zisk": 1261.7181091308594
+    },
+    "input_bytes": 1024,
+    "comparison": "native_protocols_differ"
+  },
+  {
+    "name": "transcript_absorb_draw8",
+    "rounds": 2048,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 105323083,
+        "ns_per_call": 51427.28662109375,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 56144709,
+        "ns_per_call": 27414.40869140625,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 76889667,
+        "ns_per_call": 37543.78271484375,
+        "checksum": 7174930852333812482,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 76405291,
+        "ns_per_call": 37307.27099609375,
+        "checksum": 7174930852333812482,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 56091333,
+        "ns_per_call": 27388.34619140625,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 105462917,
+        "ns_per_call": 51495.56494140625,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 76320125,
+        "ns_per_call": 37265.68603515625,
+        "checksum": 7174930852333812482,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 56266792,
+        "ns_per_call": 27474.01953125,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 104928833,
+        "ns_per_call": 51234.78173828125,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 105443042,
+        "ns_per_call": 51485.8603515625,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 56150459,
+        "ns_per_call": 27417.21630859375,
+        "checksum": 70715178250000,
+        "stage_ns_per_call": []
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 76427000,
+        "ns_per_call": 37317.87109375,
+        "checksum": 7174930852333812482,
+        "stage_ns_per_call": []
+      }
+    ],
+    "median_ns": {
+      "before": 51456.573486328125,
+      "after": 27415.8125,
+      "zisk": 37312.571044921875
+    },
+    "input_bytes": 32768,
+    "comparison": "native_protocols_differ"
+  },
+  {
+    "name": "lde_commit_pipeline",
+    "rounds": 256,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 129859958,
+        "ns_per_call": 507265.4609375,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          27179.203125,
+          478499.53515625
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 128195125,
+        "ns_per_call": 500762.20703125,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          27127.2421875,
+          472117.2421875
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 112540125,
+        "ns_per_call": 439609.86328125,
+        "checksum": 12468647581137828864,
+        "stage_ns_per_call": [
+          174308.44921875,
+          264160.3359375
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 112592750,
+        "ns_per_call": 439815.4296875,
+        "checksum": 12468647581137828864,
+        "stage_ns_per_call": [
+          174145.125,
+          264780.2734375
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 127423417,
+        "ns_per_call": 497747.72265625,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          27023.7265625,
+          469206.703125
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 129269167,
+        "ns_per_call": 504957.68359375,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          26963.88671875,
+          476472.625
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 112743167,
+        "ns_per_call": 440402.99609375,
+        "checksum": 12468647581137828864,
+        "stage_ns_per_call": [
+          174495.1171875,
+          264630.71875
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 127919958,
+        "ns_per_call": 499687.3359375,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          27198.2265625,
+          470965.34765625
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 129741667,
+        "ns_per_call": 506803.38671875,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          27034.01953125,
+          478231.296875
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 129110959,
+        "ns_per_call": 504339.68359375,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          26952.796875,
+          475890.14453125
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 127593583,
+        "ns_per_call": 498412.43359375,
+        "checksum": 1312144018225493248,
+        "stage_ns_per_call": [
+          27084.9375,
+          469844.5546875
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 112573917,
+        "ns_per_call": 439741.86328125,
+        "checksum": 12468647581137828864,
+        "stage_ns_per_call": [
+          174311.38671875,
+          264059.4140625
+        ]
+      }
+    ],
+    "median_ns": {
+      "before": 505880.53515625,
+      "after": 499049.884765625,
+      "zisk": 439778.646484375
+    },
+    "input_rows": 1024,
+    "columns": 8,
+    "expansion": 2,
+    "comparison": "different_fields_native_protocols_and_layouts",
+    "stage_order": [
+      "lde",
+      "commit"
+    ]
+  },
+  {
+    "name": "lde_commit_pipeline",
+    "rounds": 32,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 110844958,
+        "ns_per_call": 3463904.9375,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          573298.1875,
+          2867687.5
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 111086792,
+        "ns_per_call": 3471462.25,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          574600.21875,
+          2875309.96875
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 280106417,
+        "ns_per_call": 8753325.53125,
+        "checksum": 16496643754697733856,
+        "stage_ns_per_call": [
+          4485774.6875,
+          4253583.375
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 276859375,
+        "ns_per_call": 8651855.46875,
+        "checksum": 16496643754697733856,
+        "stage_ns_per_call": [
+          4424779.9375,
+          4213740.90625
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 110629166,
+        "ns_per_call": 3457161.4375,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          572472.6875,
+          2862149.71875
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 110999792,
+        "ns_per_call": 3468743.5,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          573455.65625,
+          2873481.78125
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 276656958,
+        "ns_per_call": 8645529.9375,
+        "checksum": 16496643754697733856,
+        "stage_ns_per_call": [
+          4422307.28125,
+          4209434.96875
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 110239083,
+        "ns_per_call": 3444971.34375,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          571494.78125,
+          2850718.8125
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 110924917,
+        "ns_per_call": 3466403.65625,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          574192.78125,
+          2870408.8125
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 111658000,
+        "ns_per_call": 3489312.5,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          571421.875,
+          2896470.0625
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 110975875,
+        "ns_per_call": 3467996.09375,
+        "checksum": 13906667075792046496,
+        "stage_ns_per_call": [
+          571049.5625,
+          2875739.6875
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 277351333,
+        "ns_per_call": 8667229.15625,
+        "checksum": 16496643754697733856,
+        "stage_ns_per_call": [
+          4432820.28125,
+          4220637.9375
+        ]
+      }
+    ],
+    "median_ns": {
+      "before": 3467573.578125,
+      "after": 3462578.765625,
+      "zisk": 8659542.3125
+    },
+    "input_rows": 16384,
+    "columns": 8,
+    "expansion": 2,
+    "comparison": "different_fields_native_protocols_and_layouts",
+    "stage_order": [
+      "lde",
+      "commit"
+    ]
+  },
+  {
+    "name": "lde_commit_pipeline",
+    "rounds": 16,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 119361833,
+        "ns_per_call": 7460114.5625,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2585135.375,
+          4773419.25
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 117628166,
+        "ns_per_call": 7351760.375,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2620177.0625,
+          4634799.5625
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 621122000,
+        "ns_per_call": 38820125.0,
+        "checksum": 6645814383432519440,
+        "stage_ns_per_call": [
+          21873291.75,
+          16885429.6875
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 621033042,
+        "ns_per_call": 38814565.125,
+        "checksum": 6645814383432519440,
+        "stage_ns_per_call": [
+          21884156.375,
+          16868309.6875
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 117920083,
+        "ns_per_call": 7370005.1875,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2586351.5,
+          4683166.6875
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 120022750,
+        "ns_per_call": 7501421.875,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2607085.9375,
+          4793216.0
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 621917958,
+        "ns_per_call": 38869872.375,
+        "checksum": 6645814383432519440,
+        "stage_ns_per_call": [
+          21929158.6875,
+          16878182.25
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 118441250,
+        "ns_per_call": 7402578.125,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2604458.5,
+          4699195.3125
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 120214500,
+        "ns_per_call": 7513406.25,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2618705.8125,
+          4795593.75
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 119384667,
+        "ns_per_call": 7461541.6875,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2622390.625,
+          4742627.625
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 119150334,
+        "ns_per_call": 7446895.875,
+        "checksum": 4439115422232892592,
+        "stage_ns_per_call": [
+          2621718.8125,
+          4727057.4375
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 621378500,
+        "ns_per_call": 38836156.25,
+        "checksum": 6645814383432519440,
+        "stage_ns_per_call": [
+          21916521.0,
+          16857512.9375
+        ]
+      }
+    ],
+    "median_ns": {
+      "before": 7481481.78125,
+      "after": 7386291.65625,
+      "zisk": 38828140.625
+    },
+    "input_rows": 65536,
+    "columns": 8,
+    "expansion": 2,
+    "comparison": "different_fields_native_protocols_and_layouts",
+    "stage_order": [
+      "lde",
+      "commit"
+    ]
+  },
+  {
+    "name": "lde_commit_pipeline",
+    "rounds": 16,
+    "samples": [
+      {
+        "arm": "before",
+        "elapsed_ns": 139705708,
+        "ns_per_call": 8731606.75,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4660268.0625,
+          3903627.5
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 139714459,
+        "ns_per_call": 8732153.6875,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4699020.9375,
+          3872755.125
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 723286083,
+        "ns_per_call": 45205380.1875,
+        "checksum": 2559213895480260448,
+        "stage_ns_per_call": [
+          26316625.0,
+          18791604.1875
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 719372208,
+        "ns_per_call": 44960763.0,
+        "checksum": 2559213895480260448,
+        "stage_ns_per_call": [
+          26070101.5625,
+          18792565.0625
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 140629333,
+        "ns_per_call": 8789333.3125,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4678278.5625,
+          3945216.1875
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 138904917,
+        "ns_per_call": 8681557.3125,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4691781.25,
+          3830825.625
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 738946917,
+        "ns_per_call": 46184182.3125,
+        "checksum": 2559213895480260448,
+        "stage_ns_per_call": [
+          27239531.25,
+          18845583.125
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 139809666,
+        "ns_per_call": 8738104.125,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4678104.1875,
+          3892640.5625
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 141628291,
+        "ns_per_call": 8851768.1875,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4690281.3125,
+          4001018.125
+        ]
+      },
+      {
+        "arm": "before",
+        "elapsed_ns": 143126375,
+        "ns_per_call": 8945398.4375,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4708562.3125,
+          4077645.875
+        ]
+      },
+      {
+        "arm": "after",
+        "elapsed_ns": 139143833,
+        "ns_per_call": 8696489.5625,
+        "checksum": 7268221154337521952,
+        "stage_ns_per_call": [
+          4748265.8125,
+          3787401.0625
+        ]
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 728813083,
+        "ns_per_call": 45550817.6875,
+        "checksum": 2559213895480260448,
+        "stage_ns_per_call": [
+          26722518.1875,
+          18730802.0625
+        ]
+      }
+    ],
+    "median_ns": {
+      "before": 8791687.46875,
+      "after": 8735128.90625,
+      "zisk": 45378098.9375
+    },
+    "input_rows": 16384,
+    "columns": 64,
+    "expansion": 2,
+    "comparison": "different_fields_native_protocols_and_layouts",
+    "stage_order": [
+      "lde",
+      "commit"
+    ]
+  }
+]

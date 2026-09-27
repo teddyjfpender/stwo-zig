@@ -1,0 +1,21 @@
+BLOCK_STREAM required_terminal_cycles=56 terminal_leaf_cycles=2175232
+BLOCK_STREAM preflight_cycles=139214856 proof_segments=64 preflight_ns=10049406584
+error: CommitmentTraceTooLarge
+       11.76 real         9.96 user         1.09 sys
+           789331968  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1650610  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                1125  involuntary context switches
+        212981108289  instructions retired
+         49880879344  cycles elapsed
+           788890752  peak memory footprint

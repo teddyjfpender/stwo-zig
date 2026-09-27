@@ -1,0 +1,12 @@
+{
+  "README.md": "9d0b9fc934892b53221635a4b053e09492d2b907b21fad6c2a98c806f2aeb945",
+  "draw-tests.log": "26bb55dbd60fbf0611223e45e23850640dbccb28248d45a41cfbf90960c15dad",
+  "private-proof.log": "3f5d64ca58faa4f5de2049efd80197bbfadb813ba5c89866d197da410506a81b",
+  "sources/autoresearch/notes/20260922-blake3-private-draw-problem-match.md": "9ec40d02f1cf58c08e9a06892569c22632bac889270631df9308f91d2c3d6781",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "2b45414cc6c76cf14088916c4b7482a20205f2390d2c1796a8d8dc32ddb15657",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "b52af46ad711f7e6bfe68f086685dbed1cd5ec99ad253510af2e4864cce87322",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness.zig": "f4fc6ac720754041583af06e9f594318cb3c22d97c18b9736176da89301c613e",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness_test.zig": "86c25e3f1a1b8f546fca8003d0d9abd77922f94cceca29c278780363a9ca17fe",
+  "sources/src/frontends/riscv/recursion/air/blake3_private_draw_test.zig": "b7c72fbb031209b6b9038f782d809f2bb52f0e54ade6e155b2ccae0838cfcb3b",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "b6dae0db5bd6524e0b5f6930f72293aae93f26faafbc4dcaab219c05d6324ead"
+}

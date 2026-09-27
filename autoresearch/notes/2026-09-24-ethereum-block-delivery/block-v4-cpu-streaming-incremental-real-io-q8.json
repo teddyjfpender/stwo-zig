@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-25",
+  "scope": "Two-segment CPU block-v4 real public-I/O fixture: two-pass staged producer followed by one-leaf-at-a-time fresh core receiver with a third pinned host replay",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic"},
+  "verification": {
+    "fresh_incremental_core": true,
+    "recursive_root": false,
+    "receiver_allocator_live_bytes_after_teardown": 0,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "public_initial_image_bytes": 2040,
+  "public_first_touch_bytes": 590,
+  "staged_payload_bytes": 2010498,
+  "streaming_producer_elapsed_ns": 7507286750,
+  "fresh_incremental_core_receiver_elapsed_ns": 4508293792,
+  "receiver_allocator_peak_bytes": 356753638,
+  "limits": [
+    "The receiver allocator peak excludes proof-byte buffers loaded by the producer-owned staged file sink and is not total process peak.",
+    "The receiver reconstructs native verifier shape by a third pinned guest replay; this is bounded but not succinct.",
+    "The two stages were timed separately. This record does not include recursive proof generation or root verification.",
+    "The public initial image and first-touch roster remain verifier-visible; this q8 fixture is not a canonical-security or mainnet block measurement."
+  ],
+  "command_filter": "block-v4 CPU multi assembler crosses real IO with a zero-call first leaf"
+}

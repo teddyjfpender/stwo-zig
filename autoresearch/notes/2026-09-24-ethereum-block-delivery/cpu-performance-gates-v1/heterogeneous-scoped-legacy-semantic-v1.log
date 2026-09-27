@@ -1,0 +1,11 @@
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_routes_v1.zig:137:60: error: invalid left-hand side to assignment
+        for (cohort.children[0..cohort.child_count]) |ref| for (switch (ref) {
+                                                           ^~~
+src/frontends/riscv/prover/block_v5_global_join_algebra_v1.zig:81:18: error: unable to resolve comptime value
+            for (byte_parts) |part| sum = sum.add(part.sum);
+                 ^~~~~~~~~~
+src/frontends/riscv/prover/block_v5_global_join_algebra_v1.zig:81:18: note: tuple field index must be comptime-known
+referenced by:
+    recordAdmitted: src/frontends/riscv/recursion/air/block_v5_heterogeneous_scoped_equations_v1.zig:204:59
+    test.scoped hierarchy: original reordered word-frame claims lift identical QM31 and reject canonical limb violations: src/frontends/riscv/prover/block_v5_heterogeneous_scoped_test_v1.zig:347:37
+    1 reference(s) hidden; use '-freference-trace=3' to see all references

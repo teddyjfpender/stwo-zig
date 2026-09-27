@@ -1,0 +1,29 @@
+test-recursive-subtraction-product
++- Subtraction product guard
+   +- run test 1/3 passed, 2 failed
+error: 'recursion.air.qm31_sub_mul_test.test.subtraction product pins degree two and rejects main mutations' failed: SUB_MUL_DIGEST=9eb981d37251406e7afcc56bf0046686365ea8a20c904c09250fa9310fe28382
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+9E B9 81 D3 72 51 40 6E  7A FC C5 6B F0 04 66 86  ....rQ@nz..k..f.
+36 5E A8 A2 0C 90 4C 09  25 0F A9 31 0F E2 83 82  6^....L␉%..1....
+
+================================================
+error: 'recursion.air.qm31_sub_mul_test.test.subtraction product preserves signed lookup closure and fixed routing' failed
+error: while executing test 'recursion.air.qm31_sub_mul_test.test.subtraction product matcher preserves exports sharing and prior reservations', the following test command failed:
+./.zig-cache/o/4c3dee561f114f7ddedb64b88fa23640/test --cache-dir=./.zig-cache --seed=0xb8d3d49 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/3 tests passed; 2 failed
+test-recursive-subtraction-product transitive failure
++- Subtraction product guard transitive failure
+   +- run test 1/3 passed, 2 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:521M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/5c23968f09f8c02934bc04d67ea2567b/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb8d3d49 -Z4f8a16c792ff3692 --maxrss 25769803776 -j1 test-recursive-subtraction-product -Doptimize=ReleaseSafe --summary all

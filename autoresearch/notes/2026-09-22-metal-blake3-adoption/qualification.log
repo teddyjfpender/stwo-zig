@@ -1,0 +1,16 @@
+test-blake3-staged-tree
++- run test stderr
+BLAKE3_STAGED_TREE columns=17 reuse=0 stages=4 dispatches=8 gpu_ms=0.23774999135639518
+BLAKE3_STAGED_TREE columns=17 reuse=1 stages=4 dispatches=8 gpu_ms=0.21479166753124446
+BLAKE3_STAGED_TREE columns=250 reuse=0 stages=16 dispatches=20 gpu_ms=0.7408750097965822
+BLAKE3_STAGED_TREE columns=250 reuse=1 stages=16 dispatches=20 gpu_ms=0.6794999935664237
+BLAKE3_STAGED_TREE columns=762 reuse=0 stages=48 dispatches=52 gpu_ms=2.133625006536022
+BLAKE3_STAGED_TREE columns=762 reuse=1 stages=48 dispatches=52 gpu_ms=2.176499998313375
+BLAKE3_STAGED_TREE columns=2042 reuse=0 stages=128 dispatches=132 gpu_ms=5.351458326913416
+BLAKE3_STAGED_TREE columns=2042 reuse=1 stages=128 dispatches=132 gpu_ms=5.5890000076033175
+
+Build Summary: 3/3 steps succeeded; 16/16 tests passed
+test-blake3-staged-tree success
++- run test 16 passed 801ms MaxRSS:51M
+   +- compile test ReleaseSafe native success 7s MaxRSS:479M
+

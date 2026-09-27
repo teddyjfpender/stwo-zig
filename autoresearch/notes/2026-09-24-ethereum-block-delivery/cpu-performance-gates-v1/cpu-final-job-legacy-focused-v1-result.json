@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-final-job-legacy-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 26.203209917002823,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 20,
+  "test_summary": [
+    "All 20 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-final-job-legacy-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-final-job-legacy-focused-v1",
+    "bytes": 46734328,
+    "sha256": "1b9be2d7b23f29cf77caf78582d69b82cb5f04f61d232a5bca1d2bcbf98909d1"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "tests_passed": 13,
+  "scope": "Actual Driver.run and CLI.main body generation after canonical caller fusion + direct pack11/boundary2 integration; functions only retained, not called. Includes transitive module tests. No STARK, segment or GPU execution.",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-direct-parent-driver-codegen.log",
+    "sha256": "e403af9d4e5e4cc245b05185b1db30d3f6b4920b097d49824fbb32024ff9d978"
+  },
+  "sources": {
+    "src/frontends/riscv/block_v5_cpu_family_queue_test_root.zig": "8bc9dde37dc822aa0b6795d3173c2f2282e01967aee806e186a826e666daf36e",
+    "src/frontends/riscv/prover/block_v5_cpu_driver_v1.zig": "b07d8a1f2afd6448bf1dfbdfdd69065bd9f311067339dd4f9097d2c3e42105bf",
+    "src/frontends/riscv/ethereum_block_v5_cpu_produce.zig": "f13682782524195db889256f21633944f7f63f620607da67bc79e6d917a5b17d",
+    "src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig": "69d679afb5f515cfac762aab63109421ad2db926330fd53bc19ad0f8adb85e33"
+  }
+}

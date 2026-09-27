@@ -1,0 +1,7 @@
+1/6 block_v5_word_gpu_codegen_test_root.test.secure GPU codegen binds typed source and reuses executable across dynamic public values...OK
+2/6 block_v5_word_gpu_codegen_test_root.test.secure GPU schema rejects forbidden fraction equations and cross-builder inputs...OK
+3/6 frontends.riscv.prover.block_v5_word_gpu_program_test.test.word device DAG equals all 63 typed secure OOD equations and dynamic instance identity...OK
+4/6 frontends.riscv.prover.block_v5_word_gpu_program_test.test.word device fractions recover exact 17 CPU prefix buses including padding and high clocks...OK
+5/6 frontends.riscv.prover.block_v5_word_gpu_program_test.test.range16 device DAG equals typed secure equations and preserves zero-weight poles...OK
+6/6 frontends.riscv.prover.block_v5_word_gpu_program_test.test.word device claim metadata retains exact wide public boundaries...OK
+All 6 tests passed.

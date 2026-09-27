@@ -1,0 +1,59 @@
+//! Canonical row projection and lookup registration for typed BLAKE3 provers.
+const std = @import("std");
+const core = @import("stwo_core");
+const M31 = core.fields.m31.M31;
+const Column = @import("stwo_prover_engine").pcs.ColumnEvaluation;
+const binding = @import("universal_relation_binding.zig");
+const framework = @import("framework_interaction.zig");
+const schema = @import("../../air/lookups/tables/schema.zig");
+const Counter = @import("../../air/lookups/tables/counter.zig").Counter;
+pub fn padded(comptime Air: type, allocator: std.mem.Allocator, rows: []const Air.Row, log: u32) ![]Air.Row {
+    const result = try allocator.alloc(Air.Row, @as(usize, 1) << @intCast(log));
+    @memset(result, @splat(M31.zero()));
+    @memcpy(result[0..rows.len], rows);
+    return result;
+}
+pub fn project(comptime Air: type, allocator: std.mem.Allocator, rows: []const Air.Row, log: u32, comptime tree: usize, columns: *std.ArrayList(Column)) !void {
+    const count = if (tree == 0) Air.PREPROCESSED_COLUMN_COUNT else Air.PHYSICAL_MAIN_COLUMN_COUNT;
+    var values: [count][]M31 = undefined;
+    for (&values) |*column| {
+        column.* = try allocator.alloc(M31, @as(usize, 1) << @intCast(log));
+        @memset(column.*, M31.zero());
+        try columns.append(allocator, .{ .log_size = log, .values = column.* });
+    }
+    @import("framework_device_interaction.zig").writeColumns(Air, rows, log, tree, &values);
+}
+pub fn register(comptime Air: type, plan: *const binding.Binding(Air).Plan, rows: []const Air.Row, counters: *[2]Counter) !void {
+    for (rows) |row| try registerRepeated(Air, plan, row, 1, counters);
+}
+/// Repeated identical rows contribute the same tuples with scaled signed weights.
+pub fn registerRepeated(comptime Air: type, plan: *const binding.Binding(Air).Plan, row: Air.Row, count: usize, counters: *[2]Counter) !void {
+    if (count == 0) return;
+    const lang = @import("../../air/lang/mod.zig");
+    const scale = core.fields.qm31.QM31.fromBase(M31.fromU64(count));
+    for (plan.preparedEntries(row)) |entry| {
+        const index: usize = if (entry.schema == lang.relation.id(.bitwise)) 0 else if (entry.schema == lang.relation.id(.range_check_8_8)) 1 else continue;
+        try counters[index].registerRaw(entry.numerator.mul(scale), entry.values[0..entry.arity]);
+    }
+}
+
+pub fn tablePreprocessed(allocator: std.mem.Allocator, kind: schema.Kind, columns: *std.ArrayList(Column)) !void {
+    const log = schema.logSize(kind);
+    const count = schema.arity(kind) + 1;
+    var values: [schema.MAX_ARITY + 1][]M31 = undefined;
+    for (values[0..count]) |*column| {
+        column.* = try allocator.alloc(M31, schema.size(kind));
+        try columns.append(allocator, .{ .log_size = log, .values = column.* });
+    }
+    for (0..schema.size(kind)) |row| {
+        const dst = framework.committedRow(row, log);
+        values[0][dst] = if (row == 0) M31.one() else M31.zero();
+        const tuple = try schema.tupleAt(kind, row);
+        for (tuple.slice(), values[1..count]) |value, column| column[dst] = value;
+    }
+}
+pub fn columnLogs(allocator: std.mem.Allocator, columns: []const Column) ![]u32 {
+    const result = try allocator.alloc(u32, columns.len);
+    for (result, columns) |*log, column| log.* = column.log_size;
+    return result;
+}

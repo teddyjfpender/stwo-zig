@@ -1,0 +1,6 @@
+src/frontends/riscv/recursion/air/block_v5_heterogeneous_scoped_public_equations_v1.zig:38:58: error: function parameter shadows declaration of 'positions'
+    fn field(self: *@This(), values: Values, child: u32, positions: [4]u32) ![4][4]S {
+                                                         ^~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_heterogeneous_scoped_public_equations_v1.zig:72:1: note: declared here
+fn positions(first: u32) ![4]u32 {
+^~

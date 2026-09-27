@@ -1,0 +1,29 @@
+{
+  "source_archive": "sha-combined-admission-source.tar.gz",
+  "source_sha256": "ab23b5283082657217b63187e408dfb3ffab73572d3999ac8f187a04aaf8a5b8",
+  "source_files": {
+    "src/frontends/riscv/runner/guest_precompile/ethereum_sha.zig": "be82103412b745d5d044e32580f1a7970ab190d4d180842e8d19294199ba06eb",
+    "src/frontends/riscv/runner/guest_precompile/ethereum_v1.zig": "c6a1279ed9ba1c03d330f44a388f2f558540cf496bc3aec8dd5ffd77b7f804e2",
+    "src/frontends/riscv/runner/guest_precompile/sha256_compression_v1.zig": "62c37d02ccb0033223fc1b5b74586d037f77cac70ae9e3b691e2d0068b1a9ae2",
+    "src/frontends/riscv/runner/result.zig": "456fa9c8547d60d65ffc1ccfee5240b5de792c7bbcd5e88748009dc3edb25580",
+    "src/frontends/riscv/air/guest_precompile/sha256_memory_proof_test.zig": "23231fbbb62babc23eafb63ded4cbff5eb9c806725af34e834c1d413ec966e27",
+    "src/frontends/riscv/sha256_memory_proof_test_root.zig": "3c96f51eb505357056ad48eb4bcfcb9240ebd295be6ace57ad09f0fa2f73ae94",
+    "src/frontends/riscv/prover/blake3_ethereum_statement.zig": "95963593c89cb3be99d0d02e1889b77fa53407c366a08f42b5a24a082b2cb788",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_statement.zig": "60f2b49cdf0034bf126316ad3b66b944a0903de3ea36585fcacdb626c4b04154",
+    "src/frontends/riscv/prover/blake3_ethereum_witness_test.zig": "c09334ac8c2790b846a3bde267ce3de9e5e1782cb5265ccb2fe85ca2aa67ee94",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_relations.zig": "3363d2784101554eb8c4df28951456de5b6654bf65ebcb4c88645b13264d8249",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py": "84b104e484b67ea56c7cb4a2b1d2ff12437fe9059cca9403b18091e9333be3b3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_combined_admission.py": "12930ad9d6c478c4f12fcc18b847a5e9cc91d2c3f9f1385cbddf01926a9f172f"
+  },
+  "base_snapshot": "sha-memory-foundation-qualified.json",
+  "logs": {
+    "test-sha-memory-stark-5.log": 14,
+    "test-sha-combined-admission-2.log": 9
+  },
+  "canonical_standalone_memory_call_proof_ns": 24895695875,
+  "combined_session_and_frozen_ownership_qualified": true,
+  "combined_statement_and_challenge_replay_qualified": true,
+  "production_profile_active": false,
+  "combined_production_leaf_proof_verified": false,
+  "segment_runner_plumbing_complete": false
+}

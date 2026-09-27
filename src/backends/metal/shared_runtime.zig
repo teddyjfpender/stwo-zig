@@ -55,6 +55,13 @@ pub const ShutdownError = error{
 pub const CallLease = struct {
     runtime: *runtime_mod.Runtime,
 
+    /// Read identity while this lease already protects the runtime. Taking
+    /// another shared lock could deadlock behind a queued shutdown writer.
+    pub fn identitySnapshot(self: *const CallLease) struct { identity: RuntimeIdentity, initialization_count: u64 } {
+        std.debug.assert(shared_runtime != null and self.runtime == &shared_runtime.?);
+        return .{ .identity = shared_identity.?, .initialization_count = runtime_initializations.load(.monotonic) };
+    }
+
     pub fn deinit(_: *CallLease) void {
         _ = active_call_leases.fetchSub(1, .monotonic);
         runtime_lock.unlockShared();

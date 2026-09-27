@@ -1,0 +1,7 @@
+1/6 block_v5_sha_admission_cache_test_root.test_0...OK
+2/6 air.guest_precompile.sha256_coefficient_bounds.test.SHA admission setup cache: original uncached effect oracle agrees across padding geometry and rejection boundaries...OK
+3/6 air.guest_precompile.sha256_coefficient_bounds.test.SHA admission setup cache: failed initialization publishes nothing and warm setup performs no allocator calls...OK
+4/6 air.guest_precompile.sha256_coefficient_bounds.test.SHA admission setup cache: concurrent callers publish exactly one immutable actual typed census...OK
+5/6 air.guest_precompile.sha256_coefficient_bounds.test.block-v5 selected production SHA bounds use authenticated local-zero multiplicities...OK
+6/6 air.guest_precompile.sha256_coefficient_bounds.test.SHA provider public coefficient bounds include padding and both memory polarities...OK
+All 6 tests passed.

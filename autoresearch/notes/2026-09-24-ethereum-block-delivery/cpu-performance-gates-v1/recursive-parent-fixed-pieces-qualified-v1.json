@@ -1,0 +1,48 @@
+{
+  "scope": "Partial independent fixed-only recursive parent geometry/compiler pieces; no complete fixed commitment, expected-key derivation or reusable authenticated statement claimed.",
+  "candidate": "recursive-parent-fixed-pieces-source-candidate-v2.json",
+  "attempts": [
+    {
+      "result": "recursive-parent-fixed-pieces-semantic-v1-result.json",
+      "seconds": 3.932723541976884,
+      "tests": 0,
+      "source_pins": 1892,
+      "binary": null
+    },
+    {
+      "result": "recursive-parent-fixed-pieces-focused-v2-result.json",
+      "seconds": 18.970876042032614,
+      "tests": 11,
+      "source_pins": 1892,
+      "binary": {
+        "path": "/tmp/block-v5-recursive-parent-fixed-pieces-focused-v2",
+        "bytes": 35759216,
+        "sha256": "a50851d4388d93bb7feac0ec738e285d2f80d0e8cb51f39a65e3b94430db1ad9"
+      }
+    }
+  ],
+  "behavioral_tests": 5,
+  "total_checks": 11,
+  "retained_body_symbol": "stwo_recursive_parent_fixed_shape_body_gate",
+  "retained_bodies": "Independent Shape/composition/DEEP/FRI/transcript/queries/trusted paths/fixed arithmetic/pieces plus original live capture producer and fresh verifier. Bodies retained only.",
+  "failed_attempts_preserved": [
+    "fold-operand-streaming-semantic-v1-result.json",
+    "memory-source-page-forest-owned-semantic-v1-result.json",
+    "recursive-parent-fixed-pieces-focused-v1-result.json"
+  ],
+  "intentional_interruption": "Root stopped slow OOM fixture test child after90.78s. No pin drift. Revised fixture preserves original full component/mask parity once and injects OOM only into new geometry reconstruction/teardown. v2 complete gate18.97s.",
+  "canonical_config_changed": false,
+  "fixture_config": "One query/zero PoW only for nonproving geometry/native transcript fixtures, never proof security.",
+  "complete_fixed_setup": false,
+  "standalone_expected_key_derived": false,
+  "reusable_instance_independent_key": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_measured": false,
+  "remaining": [
+    "Original opening-input/link/fusion/fixed roster/G partition and fixed-only PCS assembly",
+    "Replace value-pinned boundary public roots/claims/IDs with authenticated MAIN suppliers before reusable across-instance keys",
+    "All original final global/source compensation and canonical e2e qualification"
+  ]
+}

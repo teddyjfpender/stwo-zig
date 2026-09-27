@@ -70,10 +70,9 @@ pub const BarycentricWeightResult = struct {
 };
 
 pub const BarycentricWeightOptions = struct {
-    // The inner-parallel experiment is opt-in. A genuine Stage101 A/B kept
-    // proof bytes identical but showed no wall-time gain, +1.5% CPU, and
-    // +0.56 GB RSS because it competed with the existing tree-level workers.
     allow_parallel: bool = false,
+    /// Borrowed at a drained boundary; each wave is joined before return.
+    lease: ?*work_pool_mod.WorkLease = null,
 };
 
 const minimum_parallel_chunk_elements: usize = 4096;
@@ -82,8 +81,8 @@ pub const BarycentricContext = struct {
     log_size: u32,
     coset: CanonicCoset,
     vanishing_shift: CirclePointQM31,
-    domain_points: []CirclePointQM31,
-    si_values: []QM31,
+    domain_points: []CirclePointM31,
+    si_values: [2]QM31,
 
     pub fn init(allocator: std.mem.Allocator, log_size: u32) !BarycentricContext {
         const coset = CanonicCoset.new(log_size);
@@ -91,22 +90,31 @@ pub const BarycentricContext = struct {
         const coset_m31 = coset.coset();
         const n = domain.size();
 
-        const domain_points = try allocator.alloc(CirclePointQM31, n);
+        const domain_points = try allocator.alloc(CirclePointM31, n);
         errdefer allocator.free(domain_points);
-        const si_values = try allocator.alloc(QM31, n);
-        errdefer allocator.free(si_values);
 
-        const minus_two = QM31.fromBase(M31.fromCanonical(2)).neg();
+        const minus_two = M31.fromCanonical(2).neg();
         const generated_coset = circle.Coset.new(
             circle.CirclePointIndex.generator(),
             log_size,
         );
-        for (0..n) |i| {
-            const point = pointM31IntoQM31(domain.at(utils.bitReverseIndex(i, log_size)));
+        // On the canonical circle domain, -2*y*V'(x) has constant magnitude.
+        // Conjugation flips its sign; in bit-reversed circle storage these are
+        // exactly the even/odd entries (the same parity used by device PCS).
+        // Compute the derivative once, not its nested doubling products at
+        // every domain point. Keep the literal formula as the test oracle.
+        const first = domain.at(0);
+        const si0 = QM31.fromBase(minus_two.mul(first.y).mul(
+            constraints.cosetVanishingDerivative(M31, generated_coset, first),
+        ));
+        const si1 = si0.neg();
+        // Walk the domain once rather than exponentiating its generator at
+        // every index. Domain points remain exact M31 constants.
+        var points = domain.iter();
+        var natural_index: usize = 0;
+        while (points.next()) |point| : (natural_index += 1) {
+            const i = utils.bitReverseIndex(natural_index, log_size);
             domain_points[i] = point;
-            si_values[i] = minus_two.mul(point.y).mul(
-                constraints.cosetVanishingDerivative(QM31, generated_coset, point),
-            );
         }
 
         return .{
@@ -114,13 +122,19 @@ pub const BarycentricContext = struct {
             .coset = coset,
             .vanishing_shift = pointM31IntoQM31(coset_m31.initial).neg().add(pointM31IntoQM31(coset_m31.half_step)),
             .domain_points = domain_points,
-            .si_values = si_values,
+            .si_values = .{ si0, si1 },
         };
+    }
+
+    pub fn pointAt(self: *const BarycentricContext, index: usize) CirclePointQM31 {
+        return pointM31IntoQM31(self.domain_points[index]);
+    }
+    pub fn derivativeAt(self: *const BarycentricContext, index: usize) QM31 {
+        return self.si_values[index & 1];
     }
 
     pub fn deinit(self: *BarycentricContext, allocator: std.mem.Allocator) void {
         allocator.free(self.domain_points);
-        allocator.free(self.si_values);
         self.* = undefined;
     }
 
@@ -146,18 +160,22 @@ pub const BarycentricContext = struct {
         options: BarycentricWeightOptions,
     ) (std.mem.Allocator.Error || EvaluationError)!BarycentricWeightResult {
         const n = self.domain_points.len;
-        if (self.si_values.len != n) return EvaluationError.ShapeMismatch;
+        if (n != self.coset.circleDomain().size()) return EvaluationError.ShapeMismatch;
 
         try workspace.ensureCapacity(allocator, n);
         const denominators = workspace.denominators[0..n];
         const weights = workspace.weights[0..n];
-        const factors = workspace.factors[0..n];
-        const pool = if (options.allow_parallel and
-            n >= 2 * minimum_parallel_chunk_elements)
-            work_pool_mod.getGlobalPool()
-        else
-            null;
-        const chunk_count = weightChunkCount(n, pool);
+        var owned_lease: ?work_pool_mod.WorkLease = null;
+        defer if (owned_lease) |*lease| lease.deinit();
+        if (options.allow_parallel and options.lease == null and n >= 2 * minimum_parallel_chunk_elements) {
+            if (work_pool_mod.getGlobalPool()) |pool| {
+                const workers = @min(pool.workerCount(), n / minimum_parallel_chunk_elements);
+                if (workers > 1) owned_lease = pool.acquire(work_pool_mod.WorkerBudget.init(workers) catch unreachable) catch null;
+            }
+        }
+        const lease = if (options.allow_parallel) options.lease orelse (if (owned_lease) |*value| value else null) else null;
+        if (lease) |active| active.validateRetained(active.budget) catch return EvaluationError.ShapeMismatch;
+        const chunk_count = weightChunkCount(n, lease);
         var failed = std.atomic.Value(bool).init(false);
         var work: [work_pool_mod.MAX_WORKERS]BarycentricWeightChunk = undefined;
         const chunk_len = (n + chunk_count - 1) / chunk_count;
@@ -166,26 +184,26 @@ pub const BarycentricContext = struct {
             const end = @min(n, start + chunk_len);
             chunk.* = .{
                 .domain_points = self.domain_points[start..end],
-                .si_values = self.si_values[start..end],
+                .si_values = self.si_values,
+                .first_index = start,
                 .denominators = denominators[start..end],
                 .weights = weights[start..end],
-                .factors = factors[start..end],
                 .point = point,
                 .scale = QM31.zero(),
                 .failed = &failed,
             };
         }
-        runWeightWave(pool, work[0..chunk_count], BarycentricWeightChunk.fill);
+        runWeightWave(lease, work[0..chunk_count], BarycentricWeightChunk.fill);
         if (failed.load(.acquire)) return EvaluationError.PointOnDomain;
         runWeightWave(
-            pool,
+            lease,
             work[0..chunk_count],
             BarycentricWeightChunk.invert,
         );
         if (failed.load(.acquire)) return EvaluationError.PointOnDomain;
         const vn_p = self.cosetVanishingAtPoint(point);
         for (work[0..chunk_count]) |*chunk| chunk.scale = vn_p;
-        runWeightWave(pool, work[0..chunk_count], BarycentricWeightChunk.applyScale);
+        runWeightWave(lease, work[0..chunk_count], BarycentricWeightChunk.applyScale);
 
         const product_count = std.math.mul(usize, 3, n) catch
             return EvaluationError.ShapeMismatch;
@@ -219,20 +237,17 @@ pub const BarycentricContext = struct {
 pub const BarycentricWorkspace = struct {
     denominators: []QM31,
     weights: []QM31,
-    factors: []QM31,
 
     pub fn init() BarycentricWorkspace {
         return .{
             .denominators = &[_]QM31{},
             .weights = &[_]QM31{},
-            .factors = &[_]QM31{},
         };
     }
 
     pub fn deinit(self: *BarycentricWorkspace, allocator: std.mem.Allocator) void {
         if (self.denominators.len != 0) allocator.free(self.denominators);
         if (self.weights.len != 0) allocator.free(self.weights);
-        if (self.factors.len != 0) allocator.free(self.factors);
         self.* = undefined;
     }
 
@@ -253,32 +268,23 @@ pub const BarycentricWorkspace = struct {
             else
                 try allocator.realloc(self.weights, len);
         }
-        if (self.factors.len < len) {
-            self.factors = if (self.factors.len == 0)
-                try allocator.alloc(QM31, len)
-            else
-                try allocator.realloc(self.factors, len);
-        }
     }
 };
 
 const BarycentricWeightChunk = struct {
-    domain_points: []const CirclePointQM31,
-    si_values: []const QM31,
+    domain_points: []const CirclePointM31,
+    si_values: [2]QM31,
+    first_index: usize,
     denominators: []QM31,
     weights: []QM31,
-    factors: []QM31,
     point: CirclePointQM31,
     scale: QM31,
     failed: *std.atomic.Value(bool),
 
     fn fill(self: *BarycentricWeightChunk) void {
-        for (self.domain_points, self.si_values, 0..) |
-            domain_point,
-            si_i,
-            index,
-        | {
-            const h = self.point.sub(domain_point);
+        for (self.domain_points, 0..) |domain_point, index| {
+            const si_i = self.si_values[(self.first_index + index) & 1];
+            const h = self.point.sub(pointM31IntoQM31(domain_point));
             const one_plus_x = QM31.one().add(h.x);
             if (one_plus_x.isZero()) {
                 self.failed.store(true, .release);
@@ -286,10 +292,9 @@ const BarycentricWeightChunk = struct {
             }
 
             // Equivalent to `si_i * pointVanishing(domain_point, point)`
-            // without per-element inversion. The saved `1 + h.x` factor is
-            // applied only after this chunk's Montgomery inverse.
+            // without per-element inversion. Recompute `1 + h.x` after
+            // inversion instead of retaining another extension-field array.
             self.denominators[index] = si_i.mul(h.y);
-            self.factors[index] = one_plus_x;
         }
     }
 
@@ -299,16 +304,18 @@ const BarycentricWeightChunk = struct {
     }
 
     fn applyScale(self: *BarycentricWeightChunk) void {
-        for (self.weights, self.factors) |*weight, factor|
-            weight.* = self.scale.mul(weight.*).mul(factor);
+        for (self.weights, self.domain_points) |*weight, domain_point| {
+            const h = self.point.sub(pointM31IntoQM31(domain_point));
+            weight.* = self.scale.mul(weight.*).mul(QM31.one().add(h.x));
+        }
     }
 };
 
 fn weightChunkCount(
     domain_size: usize,
-    pool: ?*work_pool_mod.WorkPool,
+    lease: ?*work_pool_mod.WorkLease,
 ) usize {
-    const active = pool orelse return 1;
+    const active = lease orelse return 1;
     const useful = (domain_size + minimum_parallel_chunk_elements - 1) /
         minimum_parallel_chunk_elements;
     return @max(@as(usize, 1), @min(
@@ -320,12 +327,12 @@ fn weightChunkCount(
 }
 
 fn runWeightWave(
-    pool: ?*work_pool_mod.WorkPool,
+    lease: ?*work_pool_mod.WorkLease,
     work: []BarycentricWeightChunk,
     comptime run: fn (*BarycentricWeightChunk) void,
 ) void {
     std.debug.assert(work.len != 0);
-    const active = pool orelse {
+    const active = lease orelse {
         run(&work[0]);
         return;
     };
@@ -335,9 +342,10 @@ fn runWeightWave(
     }
     var wait_group: std.Thread.WaitGroup = .{};
     for (work[1..]) |*chunk|
-        active.spawnWg(&wait_group, run, .{chunk});
+        active.spawnWg(&wait_group, run, .{chunk}) catch run(chunk);
     run(&work[0]);
     wait_group.wait();
+    active.completeWave();
 }
 
 fn batchInverseInto(values: []const QM31, out: []QM31) EvaluationError!void {
@@ -648,4 +656,46 @@ test "prover poly circle evaluation: context rejects log-size mismatch" {
             sampled,
         ),
     );
+}
+
+test "prover poly circle evaluation: base-field context equals indexed extension-field reference" {
+    const allocator = std.testing.allocator;
+    for (1..11) |log| {
+        const log_size: u32 = @intCast(log);
+        var context = try BarycentricContext.init(allocator, log_size);
+        defer context.deinit(allocator);
+        const domain = CanonicCoset.new(log_size).circleDomain();
+        const generated = circle.Coset.new(circle.CirclePointIndex.generator(), log_size);
+        for (0..context.domain_points.len) |i| {
+            const actual_point = context.pointAt(i);
+            const actual_si = context.derivativeAt(i);
+            const point = pointM31IntoQM31(domain.at(utils.bitReverseIndex(i, log_size)));
+            const expected = QM31.fromBase(M31.fromCanonical(2)).neg().mul(point.y).mul(
+                constraints.cosetVanishingDerivative(QM31, generated, point),
+            );
+            try std.testing.expect(actual_point.eql(point));
+            try std.testing.expect(actual_si.eql(expected));
+        }
+    }
+}
+
+test "prover poly circle evaluation: canonical derivative parity at production domains" {
+    const a = std.testing.allocator;
+    for ([_]u32{ 14, 18, 21 }) |log| {
+        var context = try BarycentricContext.init(a, log);
+        defer context.deinit(a);
+        const domain = CanonicCoset.new(log).circleDomain();
+        const generated = circle.Coset.new(circle.CirclePointIndex.generator(), log);
+        const n = domain.size();
+        // Exercise both signs, conjugate halves and both ends of large domains
+        // without making the independent quadratic-in-log oracle a long test.
+        for ([_]usize{ 0, 1, 2, 3, n / 2 - 1, n / 2, n / 2 + 1, n - 2, n - 1 }) |i| {
+            const point = pointM31IntoQM31(domain.at(utils.bitReverseIndex(i, log)));
+            const expected = QM31.fromBase(M31.fromCanonical(2)).neg().mul(point.y).mul(
+                constraints.cosetVanishingDerivative(QM31, generated, point),
+            );
+            try std.testing.expect(context.pointAt(i).eql(point));
+            try std.testing.expect(context.derivativeAt(i).eql(expected));
+        }
+    }
 }

@@ -1,0 +1,22 @@
+test-pcs-shared-commitment
++- run test
+   +- compile test ReleaseSafe native 1 errors
+pcs/shared_commitment_test.zig:11:36: error: struct 'fields.m31.M31' has no member named 'fromU32'
+    const values = [_]M{ M.one(), M.fromU32(2), M.fromU32(3), M.fromU32(4) };
+                                  ~^~~~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/core/fields/m31.zig:10:17: note: struct declared here
+pub const M31 = struct {
+                ^~~~~~
+referenced by:
+    test.PCS shared commitment failed promotion preserves original ownership: pcs/shared_commitment_test.zig:51:24
+    test_0: pcs_commitments_test_root.zig:2:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/pcs_commitments_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig --test-filter "PCS shared commitment" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-pcs-shared-commitment transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/b1756a3698ea28490588b547be35bff4/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/prover .zig-cache /Users/theodorepender/.cache/zig --seed 0xb6b4eb40 -Zb380a5dfca70b8b0 --maxrss 25769803776 -j1 test-pcs-shared-commitment -Doptimize=ReleaseSafe --summary all

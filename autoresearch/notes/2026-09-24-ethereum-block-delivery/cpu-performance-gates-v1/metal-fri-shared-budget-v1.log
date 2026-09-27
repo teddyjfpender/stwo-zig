@@ -1,0 +1,17 @@
+1/16 metal_fri_budget_test_root.test.FRI budget: cascade framing and folded ownership extents are exact...OK
+2/16 metal_fri_budget_test_root.test.FRI budget: shared arena survives root and releases one charge at last tree...OK
+3/16 metal_fri_budget_test_root.test.FRI budget: shared owner rejects foreign allocation before consumption...OK
+4/16 metal_fri_budget_test_root.test.FRI budget: inverse cache retains exact hits and drains typed owners...OK
+5/16 metal_fri_budget_test_root.test.FRI budget: replacement overlap and checked cancellation preserve old cache...OK
+6/16 metal_fri_budget_test_root.test.FRI budget: multi-buffer factory failure rolls back reservations and lock...OK
+7/16 metal_fri_budget_test_root.test.FRI budget: foreign budget and runtime mismatch cannot borrow cached inverses...OK
+8/16 metal_fri_budget_test_root.test.FRI budget: pending cache abort survives original allocator owner release...OK
+9/16 metal_fri_budget_test_root.test.FRI budget: failed checked completion cannot publish a generated inverse...OK
+10/16 metal_fri_budget_test_root.test.FRI budget: domain admission rejects active poles and matches scalar coordinates...OK
+11/16 metal_fri_budget_test_root.test.FRI budget: every requested inverse domain is admitted before factory work...OK
+12/16 metal_fri_budget_test_root.test.FRI budget: control allocation failures retain or release the correct charge...OK
+13/16 metal_fri_budget_test_root.test.FRI budget: resident storage uses owner context and preserves real device handle...OK
+14/16 metal_fri_budget_test_root.test.FRI budget: contending cache transactions reuse the same admitted buffers...OK
+15/16 metal_fri_budget_test_root.test.FRI budget: actual prover teardown keeps heap arrays alive after root owner release...OK
+16/16 metal_fri_budget_test_root.test.FRI budget: concurrent arena references keep a single external charge...OK
+All 16 tests passed.

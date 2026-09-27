@@ -1,0 +1,46 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "recursive-fixed-attachments-source-candidate-v2.json",
+  "authoritative_source_snapshot": "recursive-fixed-attachments-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "recursive-fixed-attachments-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 42.79255529202055,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 22,
+    "test_summary": [
+      "All 22 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-fixed-attachments-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-recursive-fixed-attachments-focused-v2",
+      "bytes": 66847648,
+      "sha256": "83c21642b26315879c20ffc4370cde906390e202cb71ad9fc6ae81d6562009df"
+    }
+  },
+  "behavioral_checks": 14,
+  "evidence_scope": [
+    "Original arithmetic emission reproduces actual MAIN identifiers including inactive rows",
+    "Single shared original compilation factories statically support alternative admitted shapes",
+    "Exact original scoped graph/namespace/signed supplier/<=4 attachment ports",
+    "Eight new attachment parity/resource/OOM checks plus six original fixed-roster regressions; actual factory bodies retained"
+  ],
+  "remaining": [
+    "Genuine bottom RAM/range/PAGE native shapes",
+    "Requester packed/public tuple/B5SS fixed source ports",
+    "Complete family context/preprocessed key commitments and standalone reusable expected setup",
+    "Complete accepted root and positive e2e qualification"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

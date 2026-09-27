@@ -1,0 +1,49 @@
+{
+  "proof_verified": false,
+  "execution_verified": true,
+  "vectors": 44,
+  "expected_compressions": 148,
+  "build_command": [
+    "cargo",
+    "+nightly-2026-08-08",
+    "build",
+    "--locked",
+    "--offline",
+    "-j",
+    "2",
+    "--release",
+    "--features",
+    "sha256-precompile",
+    "--bin",
+    "sha-native-vectors",
+    "--target",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/riscv32i-stwo.json",
+    "-Z",
+    "json-target-spec",
+    "-Z",
+    "build-std=core",
+    "-Z",
+    "build-std-features=compiler-builtins-mem"
+  ],
+  "execution_command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-execute-sha",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/sha-native-vectors-v1/guest.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/sha-native-vectors-v1/input.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/sha-native-vectors-v1/expected.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/sha-native-vectors-v1/execution.json",
+    "262144"
+  ],
+  "sha256": {
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_tests/Cargo.toml": "89ae76d44c610eecce4e582d1fdede28165a0ebff9fec59b9007436af05bcd82",
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_tests/Cargo.lock": "ec3efea385aceee0bfc57932b6ed64ba195ba5ffb91a065873e112f7e7f637e2",
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_tests/src/lib.rs": "7c58555071fee7bda200598a5ef00ab0edaa72d0fa42f58850aa17b578845321",
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_tests/src/native_vectors.rs": "3035de59533fd55f9b43646c3030f974e16a70efa47563b08fc35e235bb234c6",
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_v1.rs": "d7cbc62b1d4b8bf739c3c5722bb20e7dbe2ef99731cbce4e836d771e1aa6c0a7",
+    "autoresearch/benchmarks/guest_runtime/ethereum_admission_v1.rs": "18d5839040ccd42be3ccbf0a9545bc1c80db027df8a0b0e74ce5a941fc3afce6",
+    "autoresearch/benchmarks/guest_runtime/ethereum/linker.ld": "13bb0def76a8ea7c04aa73cddd17cf179e2cdb244ff1463f89b7f5f2df45bd07",
+    "autoresearch/benchmarks/guest_runtime/ethereum/riscv32i-stwo.json": "edeb9c26ce4e463572877a0c81889a18795876ac7bfa17c347715182e4aae3d5",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/sha-native-vectors-v1/guest.elf": "91e91fd31dbd3d90f07506006fccd3e599859cac2e0c6ceedebdf44ecedfc605",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/sha-native-vectors-v1/expected.bin": "5af7d98b06e00ba23f68ab2f5240fcd3879a67fafa2c43b6065ffad36b783718",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-execute-sha": "0bb29651a82ccae84a1733c23c53577c4b6d48875ed533d204fa34bab27927c3"
+  }
+}

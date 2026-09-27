@@ -1,0 +1,18 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "recursive-leaf-store-semantic-v2-result.json",
+  "focused": "recursive-leaf-store-focused-v1-result.json",
+  "checks": 20,
+  "named_behavioral_checks": 12,
+  "retained_families": 7,
+  "scope": "Shared provider/execution store with exact independently sealed sparse caller roster, original family grammar/errors, bounded zero-copy publication, synced exclusive ownership transfer, pinned fresh original verifier loading, sticky failed loads, tamper/resource/allocation/lifecycle guards. Actual original seven typed loader/publication bodies retained without successful proof invocation.",
+  "pending": [
+    "all-family canonical driver and hierarchy loaders",
+    "independent template/public-policy lifetime integration",
+    "fresh successful recursive proof and complete source/global bundle",
+    "block time and peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-source-page-durable-driver-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 63.1106591669959,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 18,
+  "test_summary": [
+    "All 18 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-source-page-durable-driver-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-source-page-durable-driver-focused-v1",
+    "bytes": 103160160,
+    "sha256": "80f4cc0dd54082527c941a2b1c23c1d8efcab49ac9ebd20eef61ea8d642a16e5"
+  }
+}

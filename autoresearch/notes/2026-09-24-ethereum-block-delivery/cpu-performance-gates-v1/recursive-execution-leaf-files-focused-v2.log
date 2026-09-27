@@ -1,0 +1,12 @@
+1/11 block_v5_recursive_execution_leaf_files_test_root.test_0...OK
+2/11 block_v5_recursive_execution_leaf_files_test_root.test.recursive execution files: all three original typed codec fresh receiver and publication bodies retained...OK
+3/11 prover.block_v5_recursive_execution_leaf_files_test_v1.test.recursive execution files: arithmetic proposals roundtrip without copying proof and clean all allocation failures...OK
+4/11 prover.block_v5_recursive_execution_leaf_files_test_v1.test.recursive execution files: envelope family index extent key policy and trailing bytes are independently rejected...OK
+5/11 prover.block_v5_recursive_execution_leaf_files_test_v1.test.recursive execution files: fused claims preserve distinct owned public frames through every allocation failure...OK
+6/11 prover.block_execution_external_trace_v2.test_0...OK
+7/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/11 air.semantic_eval.test_0...OK
+9/11 air.memory_commitment.poseidon2_air.test_0...OK
+10/11 air.lookups.tables.mod.test_0...OK
+11/11 air.lookups.tables.source_ingest.test_0...OK
+All 11 tests passed.

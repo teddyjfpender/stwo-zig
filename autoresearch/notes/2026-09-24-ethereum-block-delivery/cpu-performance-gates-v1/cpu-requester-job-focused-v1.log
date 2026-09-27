@@ -1,0 +1,15 @@
+1/14 block_v5_cpu_requester_job_test_root.test_0...OK
+2/14 block_v5_cpu_requester_job_test_root.test.cpu requester job: actual complete and requester fold producer receiver and retained job bodies without invocation...OK
+3/14 prover.block_v5_cpu_requester_job_test_v1.test.cpu requester job: static recipe uses distinct files and preserves complete wrapper...OK
+4/14 prover.block_v5_cpu_requester_job_test_v1.test.cpu requester job: subtype availability reports actual capacity and caller adapters without granting source authority...OK
+5/14 prover.block_v5_cpu_requester_job_test_v1.test.cpu requester job: invalid aggregate budget rejects before touching borrowed policies...OK
+6/14 prover.block_v5_cpu_requester_job_test_v1.test.cpu requester job: every empty owner allocation failure and repeated capture release preserves budget lifetime...OK
+7/14 prover.block_v5_cpu_requester_job_test_v1.test.cpu requester job: job allocation retains genuine aggregate allocator after coordinator release...OK
+8/14 prover.block_v5_recursive_coverage_plan_test_v1.test.cpu requester job: independently planned pending count distinguishes capacity from unsupported legacy fusion...OK
+9/14 prover.block_execution_external_trace_v2.test_0...OK
+10/14 air.lookups.tables.mod.test_0...OK
+11/14 air.semantic_eval.test_0...OK
+12/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/14 air.memory_commitment.poseidon2_air.test_0...OK
+14/14 air.lookups.tables.source_ingest.test_0...OK
+All 14 tests passed.

@@ -1,0 +1,39 @@
+test-blake3-leaves
++- run test stderr
+BLAKE3_METAL_LEAF columns=1 reuse=0 gpu_ms=0.035375007428228855
+BLAKE3_METAL_LEAF columns=1 reuse=1 gpu_ms=0.02824999683070928
+BLAKE3_METAL_LEAF columns=8 reuse=0 gpu_ms=0.031958334147930145
+BLAKE3_METAL_LEAF columns=8 reuse=1 gpu_ms=0.030499999411404133
+BLAKE3_METAL_LEAF columns=9 reuse=0 gpu_ms=0.03275000199209899
+BLAKE3_METAL_LEAF columns=9 reuse=1 gpu_ms=0.02912498894147575
+BLAKE3_METAL_LEAF columns=10 reuse=0 gpu_ms=0.05162500019650906
+BLAKE3_METAL_LEAF columns=10 reuse=1 gpu_ms=0.04808332596439868
+BLAKE3_METAL_LEAF columns=248 reuse=0 gpu_ms=0.4031249991385266
+BLAKE3_METAL_LEAF columns=248 reuse=1 gpu_ms=0.4216666566208005
+BLAKE3_METAL_LEAF columns=249 reuse=0 gpu_ms=0.41041665826924145
+BLAKE3_METAL_LEAF columns=249 reuse=1 gpu_ms=0.3896249982062727
+BLAKE3_METAL_LEAF columns=250 reuse=0 gpu_ms=0.4057916667079553
+BLAKE3_METAL_LEAF columns=250 reuse=1 gpu_ms=0.406291670515202
+BLAKE3_METAL_LEAF columns=505 reuse=0 gpu_ms=0.7485000096494332
+BLAKE3_METAL_LEAF columns=505 reuse=1 gpu_ms=0.7417500019073486
+BLAKE3_METAL_LEAF columns=506 reuse=0 gpu_ms=0.7598749944008887
+BLAKE3_METAL_LEAF columns=506 reuse=1 gpu_ms=0.7604583370266482
+BLAKE3_METAL_LEAF columns=761 reuse=0 gpu_ms=1.1053333437303081
+BLAKE3_METAL_LEAF columns=761 reuse=1 gpu_ms=1.1461249960120767
+BLAKE3_METAL_LEAF columns=762 reuse=0 gpu_ms=1.1286666704108939
+BLAKE3_METAL_LEAF columns=762 reuse=1 gpu_ms=1.1815416655736044
+BLAKE3_METAL_LEAF columns=1017 reuse=0 gpu_ms=1.625041666557081
+BLAKE3_METAL_LEAF columns=1017 reuse=1 gpu_ms=1.6499999910593033
+BLAKE3_METAL_LEAF columns=1018 reuse=0 gpu_ms=1.5521250024903566
+BLAKE3_METAL_LEAF columns=1018 reuse=1 gpu_ms=1.653374987654388
+BLAKE3_METAL_LEAF columns=2042 reuse=0 gpu_ms=3.354499989654869
+BLAKE3_METAL_LEAF columns=2042 reuse=1 gpu_ms=3.4030833339784294
+
+Build Summary: 6/6 steps succeeded; 24/24 tests passed
+test-blake3-leaves success
++- run test 18 passed 753ms MaxRSS:50M
+   +- compile test ReleaseSafe native success 5s MaxRSS:486M
+test-shader-authority success
++- run test 6 passed 11ms MaxRSS:3M
+   +- compile test ReleaseSafe native cached 53ms MaxRSS:34M
+

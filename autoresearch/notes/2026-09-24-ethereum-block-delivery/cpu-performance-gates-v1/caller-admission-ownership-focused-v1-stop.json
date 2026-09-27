@@ -1,0 +1,12 @@
+{
+  "status": "intentionally_stopped_unqualified",
+  "result": "caller-admission-ownership-focused-v1-result.json",
+  "process": 82310,
+  "signal": "SIGTERM",
+  "reason": "Profiling verified exhaustive wrapper fault injection repeatedly reconstructs original typed caller AIR graphs; earlier exhaustive original admission result is retained. New ownership checks will exercise actual owner/partial-owner/final validation allocation boundaries rather than duplicate all upstream IR allocation positions.",
+  "sample_path": "/tmp/stwo-caller-admission-ownership-test-sample.txt",
+  "sample_sha256": "4c9f7fb50e4524ccb86dc31c87cd6e6f799bbb43b0977fc2df66913de37a31b1",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

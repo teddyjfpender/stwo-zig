@@ -1,0 +1,34 @@
+In file included from src/backends/metal/runtime.m:6:
+src/backends/metal/runtime/compile_options.h:14:17: warning: 'fastMathEnabled' is deprecated: first deprecated in macOS 15.0 - Use mathMode instead [-Wdeprecated-declarations]
+   14 |         options.fastMathEnabled = NO;
+      |                 ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLLibrary.h:308:39: note: 'fastMathEnabled' has been explicitly marked deprecated here
+  308 | @property (readwrite, nonatomic) BOOL fastMathEnabled API_DEPRECATED("Use mathMode instead", macos(10.11, 15.0), ios(8.0, 18.0));
+      |                                       ^
+1 warning generated.
+{
+  "output": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-x0-polynomial-metal-aot-v2",
+  "version": 1,
+  "source_manifest_sha256": "bcda7a8844a490b0c859eb78d8714280083f7eb0e89bc4816f042cb12648e1b0",
+  "exporter_sha256": "5b215caf442fe72f357d92d2783d8d9354ef53f6d93590d2a79eb81f5f819fd0",
+  "zig_version": "0.15.2",
+  "program_count": 95,
+  "kernel_count": 94,
+  "local_zero_base_count": 17,
+  "local_zero_lookup_count": 17,
+  "device_compiled": true,
+  "device_executed": false,
+  "guest_executed": false,
+  "stark_proved": false,
+  "performance_measured": false,
+  "canonical_x0_activation": false,
+  "binary_sha256": "cdfc4fdc0a1c42b947e6f81ca3be4923f944f05da644da4caa80d8ee020379d4",
+  "metal_compiler": "/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/bin/metal",
+  "metal_version": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/metal/current/bin",
+  "compile_flags": [
+    "-std=metal3.1",
+    "-fno-fast-math",
+    "-Werror"
+  ],
+  "checked_in_sources_updated": true
+}

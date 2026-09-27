@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-scoped-job-selected-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 47.51867945800768,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 22,
+  "test_summary": [
+    "All 22 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-job-selected-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-scoped-job-selected-focused-v1",
+    "bytes": 86222920,
+    "sha256": "c880d48765de92f3368ef552bf9bae558efb7ecae5884db61c0280c383fe51b9"
+  }
+}

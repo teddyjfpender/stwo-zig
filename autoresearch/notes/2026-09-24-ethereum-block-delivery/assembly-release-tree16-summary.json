@@ -1,0 +1,17 @@
+{
+  "leaves": 16,
+  "recursive_proof_jobs": 31,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 21635,
+  "peak_bytes": 10834475354,
+  "process_peak_bytes": 9988894080,
+  "total_ns": 794597956958,
+  "baseline_peak_bytes": 19389625682,
+  "baseline_process_peak_bytes": 15461261384,
+  "baseline_total_ns": 678913719541,
+  "proof_byte_identical": true,
+  "proof_sha256": "1e505e87f1844a706c707fad552919f2eb28267d9667235a756410dae27a8fc3",
+  "memory_reduction_percent": 44.12230781712313,
+  "runtime_change_percent": 17.039608139781272
+}

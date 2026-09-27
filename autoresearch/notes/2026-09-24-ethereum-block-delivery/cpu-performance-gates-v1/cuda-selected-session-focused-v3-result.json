@@ -1,0 +1,23 @@
+{
+  "source_candidate": "cuda-selected-session-focused-v3-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.220987749984488,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "object_only": false,
+  "tests_run": true,
+  "discovered_tests": 8,
+  "test_summary": [
+    "All 8 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cuda-selected-session-focused-v3.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cuda-selected-session-focused-v3",
+    "bytes": 1622168,
+    "sha256": "f128d5b2391ce895ff8498b378eeb0da9ab0acdab4b55a03a509c73dd3758490"
+  }
+}

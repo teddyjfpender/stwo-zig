@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-25",
+  "scope": "Canonical q70/PoW26 two-segment CPU block-v4 real public-I/O fixture: staged two-pass producer, two custody-free recursive leaves, one dyadic parent, exact outer root, and fresh incremental complete receiver",
+  "security": {"fri_queries": 70, "pow_bits": 26, "profile": "csp_q70_pow26"},
+  "verification": {
+    "fresh_incremental_core": true,
+    "recursive_leaves_and_exact_root": true,
+    "complete_block_verified": true,
+    "receiver_allocator_live_bytes_after_teardown": 0,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "first_segment_external_events": 0,
+  "public_initial_image_bytes": 2040,
+  "public_first_touch_bytes": 590,
+  "staged_core_payload_bytes": 7911001,
+  "recursive_proof_bytes": {"leaf": [971827, 976652], "dyadic": 980608, "outer": 933914},
+  "staged_producer_elapsed_ns": 10147567000,
+  "recursive_proof_generation_elapsed_ns": 167261853625,
+  "fresh_complete_receiver_elapsed_ns": 5600397834,
+  "receiver_allocator_peak_bytes": 361924844,
+  "limits": [
+    "The receiver allocator peak excludes staged proof-byte buffers loaded through the producer-owned sink; it is not total process peak.",
+    "The receiver reconstructs native verifier shape with a third pinned guest replay. This is bounded but not yet succinct.",
+    "Recursive proof generation in this fixture still uses the bounded in-memory assembler. Staged leaf/forest proving is being integrated separately.",
+    "The test derives expected outer and forest pins from its generated proofs. A production receiver must receive those independently before opening proof files.",
+    "The public initial image and first-touch roster are verifier-visible. This is a two-segment qualification, not a mainnet block measurement."
+  ],
+  "command_filter": "block-v4 streaming canonical complete receiver crosses real IO and sparse external roster"
+}

@@ -1,0 +1,7 @@
+1/6 block_v5_native_capacity_store_test_root.test_0...OK
+2/6 prover.block_v5_native_capacity_store_test.test.capacity store real fresh capture loader and legacy I O bodies compile without invocation...OK
+3/6 prover.block_v5_cpu_bundle_store_test.test.block-v5 durable file roster is bounded canonical SHA pinned and single use...OK
+4/6 prover.block_v5_cpu_bundle_store_test.test_0...OK
+5/6 air.memory_commitment.poseidon2_air.test_0...OK
+6/6 air.semantic_eval.test_0...OK
+All 6 tests passed.

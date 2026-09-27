@@ -1,0 +1,14 @@
+extension_add {'comparison': 'goldilocks_cubic_vs_m31_quartic'} {'zisk': 6.918276309967041, 'stwo': 1.3039757013320923}
+extension_mul {'comparison': 'goldilocks_cubic_vs_m31_quartic'} {'zisk': 8.73224925994873, 'stwo': 11.348759174346924}
+extension_inv {'comparison': 'goldilocks_cubic_vs_m31_quartic'} {'zisk': 163.30496501922607, 'stwo': 60.848554611206055}
+batch_inverse {'n': 1024, 'comparison': 'different_base_fields', 'setup_included': False} {'zisk': 4290.986358642578, 'stwo': 1347.0421142578125}
+binary_merkle_canonical_words {'n': 1024, 'input_words_per_leaf': 8, 'comparison': 'identical_protocol_peer_production_tree_local_research_tree', 'workers': 1, 'setup_included': False} {'zisk': 131117.919921875, 'stwo': 145642.78125}
+batch_inverse {'n': 16384, 'comparison': 'different_base_fields', 'setup_included': False} {'zisk': 74163.7373046875, 'stwo': 20907.65380859375}
+binary_merkle_canonical_words {'n': 16384, 'input_words_per_leaf': 8, 'comparison': 'identical_protocol_peer_production_tree_local_research_tree', 'workers': 1, 'setup_included': False} {'zisk': 2100665.34375, 'stwo': 2319454.421875}
+batch_inverse {'n': 262144, 'comparison': 'different_base_fields', 'setup_included': False} {'zisk': 1340585.9375, 'stwo': 337626.296875}
+binary_merkle_canonical_words {'n': 262144, 'input_words_per_leaf': 8, 'comparison': 'identical_protocol_peer_production_tree_local_research_tree', 'workers': 1, 'setup_included': False} {'zisk': 33590145.75, 'stwo': 37122218.5}
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-component-suite/run_more.py", line 58, in <module>
+    assert list(roots['zisk'])==list(roots['stwo']),('root',n,cols)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('root', 16384, 64)

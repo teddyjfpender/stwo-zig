@@ -1,0 +1,164 @@
+{
+  "format_version": 1,
+  "scope": "Read-only production-source sizing audit for the first canonical v5 mainnet run; no new replay, proof, benchmark or measured mainnet peak.",
+  "recommendation": {
+    "maximum_segment_cycles": 2097152,
+    "approximate_balanced_execution_leaves": 67,
+    "global_tracked_limit_bytes": 42949672960,
+    "recursive_cache_aggregate_limit_bytes": 17179869184,
+    "recursive_worker_limit_bytes": 17179869184,
+    "retained_recursive_scratch_limit_bytes": 67108864,
+    "physical_host_bytes": 68719476736,
+    "reason": "2M reduces ordinary witness/LDE residency and native recursive verifier geometry relative to 4M while avoiding the approximately 133 leaves of a 1M schedule.",
+    "not_a_measured_guarantee": true
+  },
+  "actual_cli_policy": {
+    "global_cap_source": "src/frontends/riscv/ethereum_block_v5_cpu_produce.zig:19",
+    "recursive_16gib_overrides_source": "src/frontends/riscv/ethereum_block_v5_cpu_produce.zig:46",
+    "shared_default_recursive_cap_bytes": 8589934592,
+    "shared_defaults_source": "src/frontends/riscv/prover/block_v5_cpu_product_options_v1.zig:24",
+    "nested_budget_note": "Cache and worker allocations are backed by the driver allocator and remain charged to the global 40GiB budget; 16GiB is not an additional untracked allowance. Thread stacks, allocator overhead and external backend allocations are outside tracked byte accounting.",
+    "driver_cache_allocator_source": "src/frontends/riscv/prover/block_v5_cpu_driver_v1.zig:135",
+    "cache_budget_source": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig:41",
+    "worker_budget_source": "src/frontends/riscv/recursion/blake3_native_parent_worker.zig:38",
+    "retained_scratch_note": "64MiB limits retained reusable workspace, not the active proof's total allocations.",
+    "worker_workspace_source": "src/frontends/riscv/recursion/blake3_native_parent_worker.zig:41"
+  },
+  "conservative_ordinary_geometry": {
+    "opcode_families": 17,
+    "opcode_family_source": "src/frontends/riscv/opcode_manifest.zig:68",
+    "maximum_opcode_shard_rows": 65536,
+    "shard_source": "src/frontends/riscv/prover/opcode_trace.zig:17",
+    "maximum_native_components": 256,
+    "component_cap_source": "src/frontends/riscv/air/statement_geometry.zig:2",
+    "maximum_access_slots_per_opcode_row": 3,
+    "access_clock_source": "src/frontends/riscv/access_clock.zig:18",
+    "maximum_ordinary_slots": 1024,
+    "maximum_ordinary_witness_cells": 1073741824,
+    "ordinary_caps_source": "src/frontends/riscv/prover/block_v5_cpu_product_options_v1.zig:14",
+    "checked_witness_cell_sum_source": "src/frontends/riscv/prover/block_v5_native_memory_stage_v1.zig:58",
+    "witness_columns_per_access_slot": 48,
+    "witness_width_source": "src/frontends/riscv/prover/block_execution_integer_bridge_v2.zig:11",
+    "interaction_columns_per_access_slot": 49,
+    "interaction_width_formula": "9 transition + 28 byte-range + 12 opposite universal-memory columns",
+    "interaction_width_sources": [
+      "src/frontends/riscv/prover/block_execution_transition_interaction_v2.zig:11",
+      "src/frontends/riscv/prover/block_execution_byte_range_v2.zig:16",
+      "src/frontends/riscv/prover/block_v5_opcode_memory_interaction_v1.zig:12",
+      "src/frontends/riscv/prover/block_v5_opcode_sidecar_eval_v1.zig:10"
+    ],
+    "canonical_fri_lde_factor": 2,
+    "canonical_queries": 70,
+    "canonical_pow_bits": 26,
+    "canonical_config_source": "src/frontends/riscv/recursion/blake3_execution_parent_protocol.zig:23",
+    "bound_formulas": {
+      "native_shards": "floor(C / 65536) + 17; conservative bound allowing one remainder per family",
+      "access_slots": "3 * native_shards",
+      "padded_access_rows_A": "3 * (C + 17 * 65535); conservative padding overestimate",
+      "witness_cells": "48 * A",
+      "raw_plus_lde_column_storage_bytes": "4 * (48 + 49) * (1 + 2) * A"
+    },
+    "storage_bound_limitations": "The raw-plus-LDE figure only bounds ordinary witness and interaction column storage for the listed allocation categories. It excludes native columns, caller families, quotient/evaluation buffers, PCS/Merkle metadata, recursive preparation/proving, sorter buffers, allocator overhead and stacks; it is not a total host-memory bound or a measured peak.",
+    "choices": [
+      {
+        "cycles": 2097152,
+        "approximate_leaves": 67,
+        "native_shards_upper_bound": 49,
+        "access_slots_upper_bound": 147,
+        "padded_access_rows_upper_bound": 9633741,
+        "witness_cells_upper_bound": 462419568,
+        "raw_plus_lde_column_storage_upper_bound_bytes": 11213674524,
+        "maximum_local_access_clock": 8388607
+      },
+      {
+        "cycles": 4194304,
+        "approximate_leaves": 34,
+        "native_shards_upper_bound": 81,
+        "access_slots_upper_bound": 243,
+        "padded_access_rows_upper_bound": 15925197,
+        "witness_cells_upper_bound": 764409456,
+        "raw_plus_lde_column_storage_upper_bound_bytes": 18536929308,
+        "maximum_local_access_clock": 16777215
+      }
+    ],
+    "clock_predecessor_bound_exclusive": 67108864,
+    "clock_bound_source": "src/frontends/riscv/runner/state_chain.zig:19",
+    "clock_admission_source": "src/frontends/riscv/air/statement.zig:115",
+    "conclusion": "Both 2M and 4M fit these native/ordinary geometry and local clock caps. This does not prove their complete proof allocations fit the global or recursive budgets. Recursive OODS, PCS and Merkle circuit work increases with native shard/column geometry and the 70-query profile; no exact recursive peak was inferred without the actual roster."
+  },
+  "lookup_first_pass_gate": {
+    "request_limit_per_group": 500000000,
+    "policy_sources": [
+      "src/frontends/riscv/prover/block_v5_cpu_product_options_v1.zig:12",
+      "src/frontends/riscv/prover/block_v5_cpu_product_options_v1.zig:16"
+    ],
+    "exact_execution_demand": "Admitted native six-table bounds + admitted caller six-table bounds + 14 * (ordinary memory events + external caller memory events).",
+    "collection_source": "src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig:110",
+    "ordinary_event_query_source": "src/frontends/riscv/prover/block_v5_memory_byte_demand_v1.zig:36",
+    "single_execution_rejection_source": "src/frontends/riscv/prover/block_v5_cpu_lookup_groups_v1.zig:107",
+    "actual_2m_and_4m_lookup_rosters_known": false,
+    "failure_behavior": "The first collection pass rejects any single execution whose combined demand exceeds 500M before proof production. Greedy grouping only splits between executions and cannot rescue one oversized execution."
+  },
+  "full_image_source_audit": {
+    "writer_initial_and_final_roots_mandatory": true,
+    "root_pin_fields_source": "src/frontends/riscv/prover/block_v5_memory_source_writer_v1.zig:38",
+    "initial_full_image_check_source": "src/frontends/riscv/prover/block_v5_memory_source_writer_v1.zig:103",
+    "final_full_image_check_source": "src/frontends/riscv/prover/block_v5_memory_source_writer_v1.zig:160",
+    "max_writer_events": 1000000000,
+    "source_file_aggregate_cap_bytes": 536870912,
+    "writer_cap_source": "src/frontends/riscv/prover/block_v5_memory_source_writer_v1.zig:24",
+    "prior_host_only_census": {
+      "artifact": "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-memory-roster-v1/qualification.json",
+      "cycles": 139214856,
+      "memory_events": 356303914,
+      "first_touch_keys": 3142932,
+      "initial_nonzero_rw_words": 666708,
+      "program_first_touches": 0,
+      "scope": "Prior exact-schedule host-only census, not a new v5 canonical proof measurement or a per-segment lookup roster."
+    },
+    "memory_planning_independent_of_native_segment_size": true,
+    "maximum_packed_memory_log": 22,
+    "maximum_memory_instances": 8192,
+    "maximum_range_shards": 8192,
+    "memory_plan_caps_source": "src/frontends/riscv/prover/block_v5_cpu_product_options_v1.zig:17"
+  },
+  "existing_small_canonical_observation": {
+    "source": "Parent-reported standalone canonical CLI qualification before the mainnet launch",
+    "guest_cycles": 17,
+    "producer_forest_tracked_peak_bytes_rounded": 10708000000,
+    "measurement_value_is_rounded": true,
+    "scope": "Tiny real canonical proof pipeline; supports keeping explicit global headroom and reviewing independent recursion caps. This total scoped observation does not establish an independent cache/worker peak or predict mainnet memory use."
+  },
+  "structural_blocker_assessment": {
+    "unconditional_2m_blocker_found": false,
+    "remaining_gates": [
+      "Actual per-execution 500M lookup-demand admission during first collection pass",
+      "Actual recursive preparation/proving fit under the 16GiB nested caps and 40GiB global cap",
+      "Full-image root checks and all proof/transport resource caps remain enforced"
+    ],
+    "old_4m_commitment_trace_too_large_logs": "Those logs used the removed v4 per-leaf custody hash geometry and are not evidence of a native-v3 structural failure.",
+    "new_builds_or_runs_for_this_audit": false
+  },
+  "first_leaf_public_input_audit": {
+    "scope": "Read-only native-v3 recursive path audit; no new proof or measured peak.",
+    "approximate_first_leaf_input_bytes": 2700000,
+    "approximate_input_words": 675000,
+    "full_public_statement_hashed_on_host": true,
+    "host_digest_sources": [
+      "src/frontends/riscv/prover/block_v5_native_public_admission_v1.zig:75",
+      "src/frontends/riscv/prover/block_v5_native_template_protocol_v3.zig:84",
+      "src/frontends/riscv/recursion/block_v5_recursive_public_bus_v1.zig:52"
+    ],
+    "recursive_transcript_records_input_words": false,
+    "recursive_transcript_source": "src/frontends/riscv/recursion/air/block_v5_native_transcript_v3.zig:19",
+    "recursive_transcript_fields": "B5SS digest, ordinal/version header, template ID, instance ID, native roots, native claims and PCS/FRI transcript.",
+    "recursive_public_schedule_wire_cap": 128,
+    "public_schedule_cap_source": "src/frontends/riscv/recursion/block_v5_recursive_public_bus_v1.zig:100",
+    "recursive_public_composition_inputs": [
+      "PC/clock compensation",
+      "open sum"
+    ],
+    "composition_source": "src/frontends/riscv/recursion/air/block_v5_native_composition_v3.zig:89",
+    "conclusion": "The first leaf input contributes host hashing and public metadata, not a 675k-word public BLAKE3 circuit or schedule. No input-driven structural recursion bottleneck was found. The total native recursive geometry remains subject to the actual nested budget."
+  }
+}

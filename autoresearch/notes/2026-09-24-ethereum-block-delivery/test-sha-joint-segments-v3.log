@@ -1,0 +1,10 @@
+1/8 prover.blake3_ethereum_sha_proof_test.test.two real SHA segments share manifest relation challenges...SHA_JOINT_SEGMENTS verified=true segments=2 shared_relations=true job_admitted=true queries=70 pow_bits=26
+OK
+2/8 air.guest_precompile.relation_test.test_0...OK
+3/8 runner.mod.test_0...OK
+4/8 runner.decode.test_0...OK
+5/8 air.memory_commitment.poseidon2_air.test_0...OK
+6/8 air.semantic_eval.test_0...OK
+7/8 air.lookups.tables.source_ingest.test_0...OK
+8/8 diagnostics.mod.test_0...OK
+All 8 tests passed.

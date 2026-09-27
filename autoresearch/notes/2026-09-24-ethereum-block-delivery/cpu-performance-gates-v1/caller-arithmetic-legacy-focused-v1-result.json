@@ -1,0 +1,20 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 87.10131391696632,
+  "source_candidate": "caller-arithmetic-legacy-focused-v1-source.json",
+  "changed_source_pins": [],
+  "qualified": true,
+  "tests_run": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-arithmetic-legacy-focused-v1.log",
+  "test_summary": [
+    "All 0 tests passed."
+  ],
+  "binary": {
+    "path": "/tmp/block-v5-caller-arithmetic-legacy-focused-v1",
+    "bytes": 272528,
+    "sha256": "28e87ed5c5e3a22ff99fb1018600f23910b0e040a2485fc31066169b7f14365b"
+  }
+}

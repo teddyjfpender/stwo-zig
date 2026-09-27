@@ -1,0 +1,8 @@
+info: syncing channel updates for nightly-2026-08-08-aarch64-apple-darwin
+info: latest update on 2026-08-08 for version 1.99.0-nightly (1a98b1e13 2026-08-07)
+info: downloading 4 components
+
+  nightly-2026-08-08-aarch64-apple-darwin installed - rustc 1.99.0-nightly (1a98b1e13 2026-08-07)
+
+info: checking for self-update (current version: 1.29.0)
+info: downloading self-update (new version: 1.29.1)

@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 7/7 tests passed
+test-blake3-guest-proof success
++- BLAKE3 guest proof identity guard success
+   +- run test 2 passed 8s MaxRSS:1G
+      +- compile test ReleaseSafe native success 57s MaxRSS:4G
+test-blake3-protocol success
++- BLAKE3 protocol test guard success
+   +- run test 5 passed 553ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 9s MaxRSS:824M
+

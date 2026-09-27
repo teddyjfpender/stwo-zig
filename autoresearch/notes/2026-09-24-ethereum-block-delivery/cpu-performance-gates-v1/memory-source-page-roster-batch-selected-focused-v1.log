@@ -1,0 +1,9 @@
+1/8 block_v5_memory_source_page_join_test_root.test_0...OK
+2/8 block_v5_memory_source_page_join_test_root.test.source PAGE join: actual original PAGE lane range receivers setup ownership and closure bodies retained...OK
+3/8 prover.block_v5_memory_source_page_join_test_v1.test.source PAGE join: empty source still requires one original fold root and every raw chain zero...OK
+4/8 prover.block_v5_memory_source_page_join_test_v1.test.source PAGE join: indexed insertion before after and RAM endpoint signs close independently...OK
+5/8 prover.block_v5_memory_source_page_join_test_v1.test.source PAGE join: malformed raw field cannot cancel against opposite noncanonical proposal...OK
+6/8 prover.block_v5_memory_source_page_join_test_v1.test.source PAGE join: source pins and complete source plan remain independent admission authority...OK
+7/8 prover.block_v5_memory_source_page_join_test_v1.test.source PAGE join: resource admission and consumed lifecycle reject before touching original receipts...OK
+8/8 prover.block_v5_memory_source_page_join_test_v1.test.source PAGE join: batch resource rejection cannot take or accept any original proof...OK
+All 8 tests passed.

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-scoped-receive-guard-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 38.430015874968376,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 13,
+  "test_summary": [
+    "All 13 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-receive-guard-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-scoped-receive-guard-focused-v1",
+    "bytes": 67273248,
+    "sha256": "80a5b16d6eddd782dd424a3a70c42e276b1ea0dce5016a576c88625402bf5da7"
+  }
+}

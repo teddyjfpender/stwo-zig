@@ -1,0 +1,30 @@
+src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig:52:27: error: ambiguous reference
+            const tuple = sourceTuple(pair, witness);
+                          ^~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig:37:13: note: declared here
+        pub fn sourceTuple(pair: @import("block_execution_access_bridge_v2.zig").Pair(F), witness: [Integer.COLUMN_COUNT]F) [11]F {
+        ~~~~^~
+src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig:101:5: note: also declared here
+pub const sourceTuple = Algebra(Q).sourceTuple;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig:78:27: error: ambiguous reference
+            const tuple = sourceTuple(pair, witness);
+                          ^~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig:37:13: note: declared here
+        pub fn sourceTuple(pair: @import("block_execution_access_bridge_v2.zig").Pair(F), witness: [Integer.COLUMN_COUNT]F) [11]F {
+        ~~~~^~
+src/frontends/riscv/prover/block_v5_caller_readonly_component_v1.zig:101:5: note: also declared here
+pub const sourceTuple = Algebra(Q).sourceTuple;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_readonly_input_global_roster_v2.zig:217:33: error: capture shadows declaration of 'source'
+        for (expected.sources) |source| {
+                                ^~~~~~
+src/frontends/riscv/prover/block_v5_readonly_input_global_roster_v2.zig:295:9: note: declared here
+    pub fn source(self: *const Authority, ordinal: u32) !SourceRecord {
+    ~~~~^~
+src/frontends/riscv/prover/block_v5_readonly_input_test_policy_v1.zig:25:13: error: function parameter shadows declaration of 'selection'
+pub fn pins(selection: *const Selection.Owned) Selection.Pins {
+            ^~~~~~~~~
+src/frontends/riscv/prover/block_v5_readonly_input_test_policy_v1.zig:22:5: note: declared here
+pub fn selection(a: std.mem.Allocator, actual: Sources.Pins) !Selection.Owned {
+~~~~^~

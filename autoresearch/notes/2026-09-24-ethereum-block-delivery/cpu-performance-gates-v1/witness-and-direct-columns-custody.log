@@ -1,0 +1,28 @@
+1/27 block_v5_witness_columns_store_test_root.test_0...OK
+2/27 block_v5_caller_columns_stage_test_root.test_0...OK
+3/27 block_v5_recursive_direct_columns_test_root.test_0...OK
+4/27 prover.block_v5_witness_columns_store_test.test.witness proposal streams multiple buffers and canonical ordered columns...OK
+5/27 prover.block_v5_witness_columns_store_test.test.witness proposal rejects canonical tamper noncanonical words and changed length...OK
+6/27 prover.block_v5_witness_columns_store_test.test.witness proposal empty logical tree remains a scoped file not a receipt...OK
+7/27 prover.block_v5_native_columns_stage_test.test.native staged columns reconstruct real opcode aliases counters and original roots...OK
+8/27 prover.block_v5_cpu_staged_execution_source_test.test.staged native source moves one recommit and bounds replay lifetime without guest replay...OK
+9/27 prover.block_v5_cpu_staged_execution_source_test.test.staged witness aggregate cap is transactional...OK
+10/27 prover.block_v5_caller_columns_stage_test.test.staged full caller SHA and Keccak matrices selectors and signed counters recommit...OK
+11/27 prover.block_v5_caller_columns_stage_test.test.staged full caller genuine signer secp private matrices and Keccak recommit...OK
+12/27 recursion.air.blake3_direct_cohort_columns_v1.test.direct recursive columns preserve canonical scattered layout and fixed metadata...OK
+13/27 recursion.air.blake3_direct_cohort_columns_v1.test.direct recursive columns reject incomplete count and clean up cap failures...OK
+14/27 recursion.air.arithmetic_fusion_direct_columns_test.test.direct recursive arithmetic emitter matches legacy FMA inverse linear dot4 in both modes...OK
+15/27 recursion.air.blake3_direct_source_columns_test.test.direct PCS public source cohorts match legacy scattered columns and transfer ownership...OK
+16/27 recursion.air.blake3_direct_source_columns_test.test.direct source columns preserve fixed admission and fail incomplete geometry before transfer...OK
+17/27 recursion.air.native_pcs_fusion_rows.test.native query fusion admission rejects altered missing and duplicate sources...OK
+18/27 runner.mod.test_0...OK
+19/27 runner.decode.test_0...OK
+20/27 air.memory_commitment.poseidon2_air.test_0...OK
+21/27 air.semantic_eval.test_0...OK
+22/27 air.lookups.tables.source_ingest.test_0...OK
+23/27 diagnostics.mod.test_0...OK
+24/27 air.lookups.tables.mod.test_0...OK
+25/27 prover.block_execution_external_trace_v2.test_0...OK
+26/27 prover.block_execution_external_access_bridge_v2.test_0...OK
+27/27 prover.block_v5_committed_trace_column_v1.test_0...OK
+All 27 tests passed.

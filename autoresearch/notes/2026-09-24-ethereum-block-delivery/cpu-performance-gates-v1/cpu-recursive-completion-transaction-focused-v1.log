@@ -1,0 +1,21 @@
+1/20 block_v5_cpu_recursive_completion_test_root.test_0...OK
+2/20 block_v5_cpu_recursive_completion_test_root.test.cpu recursive completion: actual selected coordinator and both original driver bodies retained without running...OK
+3/20 air.lookups.tables.mod.test_0...OK
+4/20 prover.block_execution_external_trace_v2.test_0...OK
+5/20 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+6/20 air.semantic_eval.test_0...OK
+7/20 prover.block_execution_external_access_bridge_v2.test_0...OK
+8/20 runner.mod.test_0...OK
+9/20 runner.decode.test_0...OK
+10/20 air.memory_commitment.poseidon2_air.test_0...OK
+11/20 prover.block_v5_committed_trace_column_v1.test_0...OK
+12/20 air.lookups.tables.source_ingest.test_0...OK
+13/20 diagnostics.mod.test_0...OK
+14/20 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: required typed families source PAGE and exclusive topology reject before collection...OK
+15/20 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: aggregate and all four family resource policies fail before undefined sources...OK
+16/20 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: capacity selection exposes stage timings and durable final pin with explicit pending authority...OK
+17/20 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: original lane limits reject mismatch before any guest or prove loop...OK
+18/20 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: installed product selection derives matching limits and preserves canonical security...OK
+19/20 prover.block_v5_cpu_recursive_completion_rollback_test_v1.test.cpu recursive completion: cross stage rollback preserves originals and unowned destinations at every handoff...OK
+20/20 prover.block_v5_cpu_recursive_completion_rollback_test_v1.test.cpu recursive completion: rejected existing manifest and root destinations are never enrolled...OK
+All 20 tests passed.

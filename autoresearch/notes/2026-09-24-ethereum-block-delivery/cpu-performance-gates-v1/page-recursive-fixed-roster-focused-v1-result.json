@@ -1,0 +1,22 @@
+{
+  "source_candidate": "page-recursive-fixed-roster-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 37.097832790983375,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 18,
+  "test_summary": [
+    "All 18 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/page-recursive-fixed-roster-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-page-recursive-fixed-roster-focused-v1",
+    "bytes": 37545120,
+    "sha256": "b4da4368732fd2b244be79939e03df331d92bc236cb6d34b94b7634942f9cc76"
+  }
+}

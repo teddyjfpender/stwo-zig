@@ -1,0 +1,3 @@
+src/frontends/riscv/recursion/block_v5_ram_lanes_recursive_public_bus_v1.zig:43:34: error: invalid left-hand side to assignment
+        for (sums, 0..) |sum, i| for (sum.toM31Array(), 0..) |word, j| result[2 + 4 * i + j] = word.toU32();
+                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

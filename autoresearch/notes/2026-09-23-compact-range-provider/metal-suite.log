@@ -1,0 +1,17 @@
+metal-sha256-128 4.098316083
+metal-sha256-256 4.248658166
+metal-sha256-512 4.484166416
+metal-sha256-1024 4.652973625
+metal-sha256-2048 9.424748583
+metal-keccak-128 9.031566417
+metal-keccak-256 9.156699792
+metal-keccak-512 9.512179375
+metal-keccak-1024 9.799122084
+metal-keccak-2048 10.638965042
+metal-poseidon2_m31-2 1.466811417
+metal-poseidon2_m31-4 1.500964916
+metal-poseidon2_m31-8 1.824423375
+metal-poseidon2_m31-12 2.016272333
+metal-poseidon2_m31-16 2.317605375
+metal-ecdsa_secp256k1-32 2.195561833
+metal-ecdsa_secp256k1_bad_signature 62.730673416

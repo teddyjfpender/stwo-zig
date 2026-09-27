@@ -1,0 +1,12 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_median_seconds": 128.21420014600153,
+    "peak_physical_bytes": 45187164008
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_median_seconds": 72.28249639601563,
+    "peak_physical_bytes": 45152773464
+  }
+}

@@ -1,0 +1,32 @@
+1/8 prover.blake3_ethereum_sha_witness_test.test.SHA combined native leaf witness commits program fetches and closes every shared relation...SHA_COMBINED_WITNESS external=3 sha=2 keccak=1 shared_relations_closed=true proof_verified=false
+thread 5030926 panic: Invalid free
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/heap/debug_allocator.zig:875:49: 0x100a053af in free (root)
+            if (bucket.canary != config.canary) @panic("Invalid free");
+                                                ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem/Allocator.zig:147:25: 0x100bc0a57 in test.SHA combined native leaf witness commits program fetches and closes every shared relation (root)
+    return a.vtable.free(a.ptr, memory, alignment, ret_addr);
+                        ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x100a02787 in main (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:618:22: 0x100a007e3 in main (root)
+            root.main();
+                     ^
+???:?:?: 0x1865684e3 in ??? (???)
+???:?:?: 0x0 in ??? (???)
+error: the following test command crashed:
+.zig-cache/o/6c22d97b3302d2b91376e5e96d1aeddb/root --seed=0xda84d5aa
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_combined_admission.py", line 9, in <module>
+    runpy.run_path(str(script), run_name="__main__")
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 294, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 13, in <module>
+    subprocess.run([z,'test',*filter_args,'-OReleaseFast','-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig'],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'SHA combined native leaf witness', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '-Mroot=src/frontends/riscv/blake3_execution_commitment_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

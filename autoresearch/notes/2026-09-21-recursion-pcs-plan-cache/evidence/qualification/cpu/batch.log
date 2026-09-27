@@ -1,0 +1,115 @@
+DETACHED_PARENT_PCS_PHASE lane=1 selected_lane_only=true capture_ns=218176791 plans_ns=3249542 authority_ns=467301500 rows_ns=329371542
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=172334 transcript_ns=145125 pcs_ns=1018172583 boundary_ns=7850042 composition_ns=7187791
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1033552750
+DETACHED_PARENT_PCS_PHASE lane=2 selected_lane_only=true capture_ns=98232042 plans_ns=3224917 authority_ns=465492875 rows_ns=322607708
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=144458 transcript_ns=68667 pcs_ns=889597458 boundary_ns=7783417 composition_ns=6960625
+DETACHED_PARENT_CHILD lane=2 preparation_ns=1938130125
+riscv_detached_arithmetic_fusion lane=501 dot4_rows=395 multiply_add_rows=8779
+riscv_detached_arithmetic_fusion lane=511 dot4_rows=2616 multiply_add_rows=3495
+riscv_detached_arithmetic_fusion lane=412 dot4_rows=105869 multiply_add_rows=32356
+riscv_detached_arithmetic_fusion lane=402 dot4_rows=5790 multiply_add_rows=103659
+riscv_detached_arithmetic_fusion lane=502 dot4_rows=395 multiply_add_rows=8779
+riscv_detached_arithmetic_fusion lane=512 dot4_rows=2616 multiply_add_rows=3495
+riscv_detached_arithmetic_fusion lane=413 dot4_rows=105869 multiply_add_rows=32356
+riscv_detached_arithmetic_fusion lane=403 dot4_rows=5790 multiply_add_rows=103659
+riscv_detached_arithmetic_fusion lane=521 dot4_rows=2592 multiply_add_rows=2612
+DETACHED_PARENT_ROW row=0 rows=6378 logical_bytes=306144
+DETACHED_PARENT_ROW row=1 rows=2768 logical_bytes=531456
+DETACHED_PARENT_ROW row=2 rows=2768 logical_bytes=409664
+DETACHED_PARENT_ROW row=3 rows=206 logical_bytes=29664
+DETACHED_PARENT_ROW row=4 rows=20496 logical_bytes=1557696
+DETACHED_PARENT_ROW row=5 rows=18892 logical_bytes=1586928
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=61669 logical_bytes=5673548
+DETACHED_PARENT_ROW row=12 rows=0 logical_bytes=0
+DETACHED_PARENT_ROW row=13 rows=80125 logical_bytes=3205000
+DETACHED_PARENT_ROW row=14 rows=231932 logical_bytes=50097312
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=94956 logical_bytes=33044688
+DETACHED_PARENT_ROW row=24 rows=782056 logical_bytes=81333824
+DETACHED_PARENT_ROW row=25 rows=23160 logical_bytes=8708160
+DETACHED_PARENT_ROW row=26 rows=5790 logical_bytes=972720
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=141326 logical_bytes=16959120
+DETACHED_PARENT_ROW row=30 rows=678113 logical_bytes=73236204
+DETACHED_PARENT_ROW row=31 rows=36030 logical_bytes=4611840
+DETACHED_PARENT_ROW row=32 rows=217792 logical_bytes=44429568
+DETACHED_PARENT_ROW row=33 rows=49794 logical_bytes=9162096
+DETACHED_PARENT_PREPARATION rows_bytes=339039024 providers=176468 graph_ns=2232533958 snapshot_pending=true
+PARENT_MAIN_FINALIZE preflight_ns=321375 main_fill_ns=101720125 source_projection_ns=849299792 range_fill_ns=733958 closure_ns=185362708
+PARENT_INTERACTION_FILL preflight_ns=865958 typed_ns=1238063667 poseidon_ns=10389083 range_ns=2671958
+DETACHED_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"cpu","example":"detached-recursive-parent","stages":[{"id":"parent.fixed","label":"Fixed columns and key admission","seconds":0.831439,"children":null},{"id":"parent.main_fill","label":"Main column allocation","seconds":0.026163,"children":null},{"id":"parent.main_finalize","label":"Main filling, range construction and exact lookup closure","seconds":1.140355,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":0.95733,"children":null},{"id":"parent.interaction_fill","label":"Transcript and interaction columns","seconds":1.264689,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":0.619839,"children":null},{"id":"parent.components","label":"Typed component assembly","seconds":0.004221,"children":null},{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000002,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000009,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.697776,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.005044,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.115352,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000144,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.078803,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000679,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.294969,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.029099,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.028734,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.002338,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000305,"children":null},{"id":"parent.serialize","label":"Canonical proof serialization","seconds":0.004531,"children":null}]}
+DETACHED_PARENT_PCS_PHASE lane=1 selected_lane_only=true capture_ns=100783000 plans_ns=3241166 authority_ns=470270334 rows_ns=325533250
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=172083 transcript_ns=136084 pcs_ns=899860250 boundary_ns=7837833 composition_ns=7114375
+DETACHED_PARENT_CHILD lane=1 preparation_ns=915145750
+DETACHED_PARENT_PCS_PHASE lane=2 selected_lane_only=true capture_ns=98629166 plans_ns=3296875 authority_ns=470132084 rows_ns=318847291
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=144000 transcript_ns=69875 pcs_ns=890935792 boundary_ns=7849708 composition_ns=7018333
+DETACHED_PARENT_CHILD lane=2 preparation_ns=1821186292
+riscv_detached_arithmetic_fusion lane=501 dot4_rows=395 multiply_add_rows=8779
+riscv_detached_arithmetic_fusion lane=511 dot4_rows=2616 multiply_add_rows=3495
+riscv_detached_arithmetic_fusion lane=412 dot4_rows=105869 multiply_add_rows=32356
+riscv_detached_arithmetic_fusion lane=402 dot4_rows=5790 multiply_add_rows=103659
+riscv_detached_arithmetic_fusion lane=502 dot4_rows=395 multiply_add_rows=8779
+riscv_detached_arithmetic_fusion lane=512 dot4_rows=2616 multiply_add_rows=3495
+riscv_detached_arithmetic_fusion lane=413 dot4_rows=105869 multiply_add_rows=32356
+riscv_detached_arithmetic_fusion lane=403 dot4_rows=5790 multiply_add_rows=103659
+riscv_detached_arithmetic_fusion lane=521 dot4_rows=2592 multiply_add_rows=2612
+DETACHED_PARENT_ROW row=0 rows=6378 logical_bytes=306144
+DETACHED_PARENT_ROW row=1 rows=2768 logical_bytes=531456
+DETACHED_PARENT_ROW row=2 rows=2768 logical_bytes=409664
+DETACHED_PARENT_ROW row=3 rows=206 logical_bytes=29664
+DETACHED_PARENT_ROW row=4 rows=20496 logical_bytes=1557696
+DETACHED_PARENT_ROW row=5 rows=18892 logical_bytes=1586928
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=61669 logical_bytes=5673548
+DETACHED_PARENT_ROW row=12 rows=0 logical_bytes=0
+DETACHED_PARENT_ROW row=13 rows=80125 logical_bytes=3205000
+DETACHED_PARENT_ROW row=14 rows=231932 logical_bytes=50097312
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=94956 logical_bytes=33044688
+DETACHED_PARENT_ROW row=24 rows=782056 logical_bytes=81333824
+DETACHED_PARENT_ROW row=25 rows=23160 logical_bytes=8708160
+DETACHED_PARENT_ROW row=26 rows=5790 logical_bytes=972720
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=141326 logical_bytes=16959120
+DETACHED_PARENT_ROW row=30 rows=678113 logical_bytes=73236204
+DETACHED_PARENT_ROW row=31 rows=36030 logical_bytes=4611840
+DETACHED_PARENT_ROW row=32 rows=217792 logical_bytes=44429568
+DETACHED_PARENT_ROW row=33 rows=49794 logical_bytes=9162096
+DETACHED_PARENT_PREPARATION rows_bytes=339039024 providers=176468 graph_ns=2118926042 snapshot_pending=true
+PARENT_MAIN_FINALIZE preflight_ns=292750 main_fill_ns=101425792 source_projection_ns=855475875 range_fill_ns=728625 closure_ns=184067916
+PARENT_INTERACTION_FILL preflight_ns=847500 typed_ns=1243878708 poseidon_ns=10774958 range_ns=2742792
+DETACHED_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"cpu","example":"detached-recursive-parent","stages":[{"id":"parent.fixed","label":"Fixed columns and key admission","seconds":0.834877,"children":null},{"id":"parent.main_fill","label":"Main column allocation","seconds":0.025563,"children":null},{"id":"parent.main_finalize","label":"Main filling, range construction and exact lookup closure","seconds":1.145195,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":0.97906,"children":null},{"id":"parent.interaction_fill","label":"Transcript and interaction columns","seconds":1.270787,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":0.649234,"children":null},{"id":"parent.components","label":"Typed component assembly","seconds":0.004209,"children":null},{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000004,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000007,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.702382,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.00481,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.114492,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.00011,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.082039,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000738,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.303821,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.030504,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.029249,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.002661,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000306,"children":null},{"id":"parent.serialize","label":"Canonical proof serialization","seconds":0.004455,"children":null}]}
+{"endpoint":"detached_parent_batch","reports":[{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-parent-root-v2","publication_mode":"root","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":true,"child_key_sha256":[[214,60,24,215,93,161,32,69,64,54,137,18,21,60,2,66,153,247,215,93,214,71,196,191,90,67,15,158,29,129,78,111],[52,101,122,252,71,235,220,44,62,42,22,241,149,244,116,88,217,46,134,5,126,45,114,83,188,229,65,201,61,128,30,25]],"artifacts":{"key_sha256":[43,54,70,56,122,217,160,216,106,50,230,24,28,117,174,240,148,190,170,244,129,176,88,11,208,6,252,73,206,8,110,12],"claims_sha256":[49,178,150,212,209,141,148,238,219,93,40,66,239,70,211,225,229,134,73,248,37,59,245,119,205,108,37,34,142,53,78,179],"proof_sha256":[146,45,152,84,36,75,24,7,249,118,40,193,15,14,143,169,78,251,221,88,53,171,159,248,209,106,237,27,129,185,188,187],"proof_bytes":2297319},"candidate_root_words_sha256":[189,249,149,127,224,29,110,114,200,174,151,175,231,135,81,130,99,197,157,73,129,224,15,210,38,249,188,185,180,245,88,172],"circuit_identity":[71,179,224,242,26,78,39,100,147,248,87,173,160,231,54,27,230,179,68,85,24,188,217,151,168,142,210,196,246,195,105,67],"preparation_ns":2405497625,"key_preparation_ns":831445833,"proof_ns":5309096417,"request_ns":8739813500},{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-parent-root-v2","publication_mode":"root","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":true,"child_key_sha256":[[214,60,24,215,93,161,32,69,64,54,137,18,21,60,2,66,153,247,215,93,214,71,196,191,90,67,15,158,29,129,78,111],[52,101,122,252,71,235,220,44,62,42,22,241,149,244,116,88,217,46,134,5,126,45,114,83,188,229,65,201,61,128,30,25]],"artifacts":{"key_sha256":[43,54,70,56,122,217,160,216,106,50,230,24,28,117,174,240,148,190,170,244,129,176,88,11,208,6,252,73,206,8,110,12],"claims_sha256":[49,178,150,212,209,141,148,238,219,93,40,66,239,70,211,225,229,134,73,248,37,59,245,119,205,108,37,34,142,53,78,179],"proof_sha256":[146,45,152,84,36,75,24,7,249,118,40,193,15,14,143,169,78,251,221,88,53,171,159,248,209,106,237,27,129,185,188,187],"proof_bytes":2297319},"candidate_root_words_sha256":[189,249,149,127,224,29,110,114,200,174,151,175,231,135,81,130,99,197,157,73,129,224,15,210,38,249,188,185,180,245,88,172],"circuit_identity":[71,179,224,242,26,78,39,100,147,248,87,173,160,231,54,27,230,179,68,85,24,188,217,151,168,142,210,196,246,195,105,67],"preparation_ns":2292741875,"key_preparation_ns":834865334,"proof_ns":5387238041,"request_ns":8683769000}],"plan_builds":1,"pcs_plan_builds":1,"pcs_plan_hits":3,"pcs_plan_retained_bytes":35197331,"requests":2,"retained_scratch_bytes":0,"elapsed_ns":17423589708}
+       17.88 real       107.09 user         1.07 sys
+          3932766208  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1117929  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               46400  involuntary context switches
+       1586594581760  instructions retired
+        452869697980  cycles elapsed
+          3929264520  peak memory footprint

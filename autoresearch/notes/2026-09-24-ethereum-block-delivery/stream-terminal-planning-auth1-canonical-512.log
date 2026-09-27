@@ -1,0 +1,464 @@
+BLOCK_STREAM required_terminal_cycles=349 terminal_leaf_cycles=349
+BLOCK_STREAM preflight_cycles=21635 proof_segments=64 preflight_ns=8384500
+BLAKE3_NATIVE_QUERY_FUSION groups=19810 removed_scalars=79240
+BLAKE3_NATIVE_FUSION dot4=804835 fma=139074 arithmetic_rows=1385535
+BLOCK_STREAM proved_segments=1/64 paired=false retained_nodes=1 peak_bytes=9391621344 elapsed_ns=26987828042
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=2/64 paired=false retained_nodes=1 peak_bytes=10635297411 elapsed_ns=75006832333
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=3/64 paired=false retained_nodes=2 peak_bytes=10635297411 elapsed_ns=102908078917
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=4/64 paired=false retained_nodes=1 peak_bytes=10636674260 elapsed_ns=173578756417
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLOCK_STREAM proved_segments=5/64 paired=false retained_nodes=2 peak_bytes=10636674260 elapsed_ns=201718115083
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=6/64 paired=false retained_nodes=2 peak_bytes=10636683363 elapsed_ns=251734665292
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=7/64 paired=false retained_nodes=3 peak_bytes=10636683363 elapsed_ns=280269819042
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137187 arithmetic_rows=1365214
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLOCK_STREAM proved_segments=8/64 paired=false retained_nodes=1 peak_bytes=10638053913 elapsed_ns=374804899917
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137184 arithmetic_rows=1365212
+BLOCK_STREAM proved_segments=9/64 paired=false retained_nodes=2 peak_bytes=10638053913 elapsed_ns=403693295583
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=10/64 paired=false retained_nodes=2 peak_bytes=10638053913 elapsed_ns=454021659958
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLOCK_STREAM proved_segments=11/64 paired=false retained_nodes=3 peak_bytes=10638053913 elapsed_ns=482559640750
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=12/64 paired=false retained_nodes=2 peak_bytes=10638093207 elapsed_ns=554647145000
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=13/64 paired=false retained_nodes=3 peak_bytes=10638093207 elapsed_ns=583351641500
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=14/64 paired=false retained_nodes=3 peak_bytes=10638108907 elapsed_ns=633508615875
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=15/64 paired=false retained_nodes=4 peak_bytes=10638108907 elapsed_ns=662494958125
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=16/64 paired=false retained_nodes=1 peak_bytes=10639480840 elapsed_ns=777171146833
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLOCK_STREAM proved_segments=17/64 paired=false retained_nodes=2 peak_bytes=10639480840 elapsed_ns=805457921292
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=18/64 paired=false retained_nodes=2 peak_bytes=10639480840 elapsed_ns=855203741792
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=19/64 paired=false retained_nodes=3 peak_bytes=10639480840 elapsed_ns=883695045667
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=20/64 paired=false retained_nodes=2 peak_bytes=10639480840 elapsed_ns=954198870500
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=21/64 paired=false retained_nodes=3 peak_bytes=10639480840 elapsed_ns=982613372750
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=22/64 paired=false retained_nodes=3 peak_bytes=10639480840 elapsed_ns=1031918297875
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137188 arithmetic_rows=1365212
+BLOCK_STREAM proved_segments=23/64 paired=false retained_nodes=4 peak_bytes=10639480840 elapsed_ns=1059876080083
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137185 arithmetic_rows=1365210
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLOCK_STREAM proved_segments=24/64 paired=false retained_nodes=2 peak_bytes=10639516778 elapsed_ns=1151105311542
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=25/64 paired=false retained_nodes=3 peak_bytes=10639516778 elapsed_ns=1179068615458
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=26/64 paired=false retained_nodes=3 peak_bytes=10639516778 elapsed_ns=1228050034958
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=27/64 paired=false retained_nodes=4 peak_bytes=10639516778 elapsed_ns=1256008608083
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=28/64 paired=false retained_nodes=3 peak_bytes=10639534920 elapsed_ns=1326056319833
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLOCK_STREAM proved_segments=29/64 paired=false retained_nodes=4 peak_bytes=10639534920 elapsed_ns=1353922922000
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=30/64 paired=false retained_nodes=4 peak_bytes=10639544023 elapsed_ns=1402923182000
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=31/64 paired=false retained_nodes=5 peak_bytes=10639544023 elapsed_ns=1430808325083
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLOCK_STREAM proved_segments=32/64 paired=false retained_nodes=1 peak_bytes=10640925735 elapsed_ns=1563947140292
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLOCK_STREAM proved_segments=33/64 paired=false retained_nodes=2 peak_bytes=10640925735 elapsed_ns=1592085455500
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=34/64 paired=false retained_nodes=2 peak_bytes=10640925735 elapsed_ns=1641512181542
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137189 arithmetic_rows=1365213
+BLOCK_STREAM proved_segments=35/64 paired=false retained_nodes=3 peak_bytes=10640925735 elapsed_ns=1669926550208
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137186 arithmetic_rows=1365211
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=36/64 paired=false retained_nodes=2 peak_bytes=10640925735 elapsed_ns=1740043958583
+BLAKE3_NATIVE_QUERY_FUSION groups=19600 removed_scalars=78400
+BLAKE3_NATIVE_FUSION dot4=802965 fma=140085 arithmetic_rows=1385063
+BLOCK_STREAM proved_segments=37/64 paired=false retained_nodes=3 peak_bytes=10640925735 elapsed_ns=1768237412583
+BLAKE3_NATIVE_QUERY_FUSION groups=16240 removed_scalars=64960
+BLAKE3_NATIVE_FUSION dot4=791929 fma=137223 arithmetic_rows=1364696
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232313
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=38/64 paired=false retained_nodes=3 peak_bytes=10640925735 elapsed_ns=1817632387417
+BLAKE3_NATIVE_QUERY_FUSION groups=20370 removed_scalars=81480
+BLAKE3_NATIVE_FUSION dot4=806281 fma=140748 arithmetic_rows=1390478
+BLOCK_STREAM proved_segments=39/64 paired=false retained_nodes=4 peak_bytes=10640925735 elapsed_ns=1845871310708
+BLAKE3_NATIVE_QUERY_FUSION groups=21210 removed_scalars=84840
+BLAKE3_NATIVE_FUSION dot4=808085 fma=140587 arithmetic_rows=1392889
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLOCK_STREAM proved_segments=40/64 paired=false retained_nodes=2 peak_bytes=10797536446 elapsed_ns=1937852964292
+BLAKE3_NATIVE_QUERY_FUSION groups=19600 removed_scalars=78400
+BLAKE3_NATIVE_FUSION dot4=803467 fma=139576 arithmetic_rows=1384697
+BLOCK_STREAM proved_segments=41/64 paired=false retained_nodes=3 peak_bytes=10797536446 elapsed_ns=1965929614375
+BLAKE3_NATIVE_QUERY_FUSION groups=20510 removed_scalars=82040
+BLAKE3_NATIVE_FUSION dot4=806066 fma=140458 arithmetic_rows=1389839
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=42/64 paired=false retained_nodes=3 peak_bytes=10797536446 elapsed_ns=2015117940208
+BLAKE3_NATIVE_QUERY_FUSION groups=22050 removed_scalars=88200
+BLAKE3_NATIVE_FUSION dot4=809313 fma=141416 arithmetic_rows=1396265
+BLOCK_STREAM proved_segments=43/64 paired=false retained_nodes=4 peak_bytes=10797536446 elapsed_ns=2043277650500
+BLAKE3_NATIVE_QUERY_FUSION groups=22050 removed_scalars=88200
+BLAKE3_NATIVE_FUSION dot4=809241 fma=141910 arithmetic_rows=1397114
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=44/64 paired=false retained_nodes=3 peak_bytes=10806620463 elapsed_ns=2113290245833
+BLAKE3_NATIVE_QUERY_FUSION groups=21840 removed_scalars=87360
+BLAKE3_NATIVE_FUSION dot4=812127 fma=142367 arithmetic_rows=1401496
+BLOCK_STREAM proved_segments=45/64 paired=false retained_nodes=4 peak_bytes=10806620463 elapsed_ns=2141600034000
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137193 arithmetic_rows=1365267
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=46/64 paired=false retained_nodes=4 peak_bytes=10806620463 elapsed_ns=2190470903208
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792216 fma=137699 arithmetic_rows=1366098
+BLOCK_STREAM proved_segments=47/64 paired=false retained_nodes=5 peak_bytes=10806620463 elapsed_ns=2218499325375
+BLAKE3_NATIVE_QUERY_FUSION groups=22330 removed_scalars=89320
+BLAKE3_NATIVE_FUSION dot4=813424 fma=142343 arithmetic_rows=1403284
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=48/64 paired=false retained_nodes=2 peak_bytes=10835361718 elapsed_ns=2331505365500
+BLAKE3_NATIVE_QUERY_FUSION groups=19110 removed_scalars=76440
+BLAKE3_NATIVE_FUSION dot4=800366 fma=139193 arithmetic_rows=1379962
+BLOCK_STREAM proved_segments=49/64 paired=false retained_nodes=3 peak_bytes=10835361718 elapsed_ns=2359777344083
+BLAKE3_NATIVE_QUERY_FUSION groups=20300 removed_scalars=81200
+BLAKE3_NATIVE_FUSION dot4=807651 fma=140002 arithmetic_rows=1390906
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=50/64 paired=false retained_nodes=3 peak_bytes=10835361718 elapsed_ns=2408945707708
+BLAKE3_NATIVE_QUERY_FUSION groups=20300 removed_scalars=81200
+BLAKE3_NATIVE_FUSION dot4=807653 fma=139998 arithmetic_rows=1390891
+BLOCK_STREAM proved_segments=51/64 paired=false retained_nodes=4 peak_bytes=10835361718 elapsed_ns=2437113820208
+BLAKE3_NATIVE_QUERY_FUSION groups=19110 removed_scalars=76440
+BLAKE3_NATIVE_FUSION dot4=800295 fma=139696 arithmetic_rows=1380757
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=52/64 paired=false retained_nodes=3 peak_bytes=10835361718 elapsed_ns=2507160447417
+BLAKE3_NATIVE_QUERY_FUSION groups=20370 removed_scalars=81480
+BLAKE3_NATIVE_FUSION dot4=806426 fma=139723 arithmetic_rows=1388856
+BLOCK_STREAM proved_segments=53/64 paired=false retained_nodes=4 peak_bytes=10835361718 elapsed_ns=2534961189375
+BLAKE3_NATIVE_QUERY_FUSION groups=19110 removed_scalars=76440
+BLAKE3_NATIVE_FUSION dot4=800296 fma=139699 arithmetic_rows=1380791
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=54/64 paired=false retained_nodes=4 peak_bytes=10835361718 elapsed_ns=2583844647958
+BLAKE3_NATIVE_QUERY_FUSION groups=16870 removed_scalars=67480
+BLAKE3_NATIVE_FUSION dot4=794451 fma=138270 arithmetic_rows=1370222
+BLOCK_STREAM proved_segments=55/64 paired=false retained_nodes=5 peak_bytes=10835361718 elapsed_ns=2611865258083
+BLAKE3_NATIVE_QUERY_FUSION groups=19600 removed_scalars=78400
+BLAKE3_NATIVE_FUSION dot4=803396 fma=140083 arithmetic_rows=1385557
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLOCK_STREAM proved_segments=56/64 paired=false retained_nodes=3 peak_bytes=10835361718 elapsed_ns=2702797950000
+BLAKE3_NATIVE_QUERY_FUSION groups=20300 removed_scalars=81200
+BLAKE3_NATIVE_FUSION dot4=807579 fma=140500 arithmetic_rows=1391696
+BLOCK_STREAM proved_segments=57/64 paired=false retained_nodes=4 peak_bytes=10835361718 elapsed_ns=2730979200875
+BLAKE3_NATIVE_QUERY_FUSION groups=17220 removed_scalars=68880
+BLAKE3_NATIVE_FUSION dot4=795677 fma=138388 arithmetic_rows=1372116
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=58/64 paired=false retained_nodes=4 peak_bytes=10835361718 elapsed_ns=2779477594250
+BLAKE3_NATIVE_QUERY_FUSION groups=20370 removed_scalars=81480
+BLAKE3_NATIVE_FUSION dot4=806353 fma=140241 arithmetic_rows=1389730
+BLOCK_STREAM proved_segments=59/64 paired=false retained_nodes=5 peak_bytes=10835361718 elapsed_ns=2807568566208
+BLAKE3_NATIVE_QUERY_FUSION groups=18760 removed_scalars=75040
+BLAKE3_NATIVE_FUSION dot4=799140 fma=139077 arithmetic_rows=1378147
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=60/64 paired=false retained_nodes=4 peak_bytes=10835361718 elapsed_ns=2877540221708
+BLAKE3_NATIVE_QUERY_FUSION groups=16870 removed_scalars=67480
+BLAKE3_NATIVE_FUSION dot4=794451 fma=138269 arithmetic_rows=1370224
+BLOCK_STREAM proved_segments=61/64 paired=false retained_nodes=5 peak_bytes=10835361718 elapsed_ns=2905305029625
+BLAKE3_NATIVE_QUERY_FUSION groups=16870 removed_scalars=67480
+BLAKE3_NATIVE_FUSION dot4=794450 fma=138273 arithmetic_rows=1370225
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=62/64 paired=false retained_nodes=5 peak_bytes=10835361718 elapsed_ns=2954726451958
+BLAKE3_NATIVE_QUERY_FUSION groups=20510 removed_scalars=82040
+BLAKE3_NATIVE_FUSION dot4=806067 fma=140472 arithmetic_rows=1389875
+BLOCK_STREAM proved_segments=63/64 paired=false retained_nodes=6 peak_bytes=10835361718 elapsed_ns=2983081023917
+BLAKE3_NATIVE_QUERY_FUSION groups=16590 removed_scalars=66360
+BLAKE3_NATIVE_FUSION dot4=793092 fma=138111 arithmetic_rows=1368168
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=64/64 paired=false retained_nodes=1 peak_bytes=10835361718 elapsed_ns=3137626241292
+     3137.72 real     19470.86 user       916.38 sys
+          9953705984  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           607764298  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   3  voluntary context switches
+             5461304  involuntary context switches
+     255087979638671  instructions retired
+      81953901555600  cycles elapsed
+          9962792544  peak memory footprint

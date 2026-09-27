@@ -1,0 +1,28 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test 7/8 passed, 1 failed
+error: 'prover.compact_range_execution_test.test.compact range provider canonical recursive parent verifies' failed: BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=9520 removed_scalars=38080
+BLAKE3_NATIVE_FUSION dot4=19973 fma=59595 arithmetic_rows=172288
+COMPACT_PARENT_ERROR ParentWorkerHostBudgetExceeded
+error: while executing test 'diagnostics.mod.test_0', the following test command failed:
+./.zig-cache/products/riscv_cpu/o/7abb11768d84ff8408eddd9b2fe9f24e/test --cache-dir=./.zig-cache/products/riscv_cpu --seed=0x33c122ba --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 7/8 tests passed; 1 failed
+test-riscv-statement-codecs transitive failure
++- riscv test suite guard transitive failure
+   +- run test 7/8 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/c1b579a760efa999b930954cf0337832/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_cpu /Users/theodorepender/.cache/zig --seed 0x33c122ba -Z6d0df6c32a57721a test-riscv-statement-codecs -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 -Driscv-test-filter=compact range provider canonical recursive parent -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=0e1a2a9b11f1f885e52b4510fc0ddb5425e771551962c53e5691dd34c9c51619
+test-riscv-statement-codecs
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build test-riscv-statement-codecs --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 "-Driscv-test-filter=compact range provider canonical recursive parent" -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=0e1a2a9b11f1f885e52b4510fc0ddb5425e771551962c53e5691dd34c9c51619
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv-statement-codecs transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/851e45bb6fc1dbcb58ceb175863ab8de/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x19f202a2 -Zeae69a76fe0c8f44 --maxrss 25769803776 -j1 test-riscv-statement-codecs -Driscv-test-filter=compact range provider canonical recursive parent -Doptimize=ReleaseFast --summary all

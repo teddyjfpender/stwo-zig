@@ -25,11 +25,13 @@ pub const Opcode = enum {
     poseidon2_m31_permute_in_place_v1,
     keccakf_1600_permute_in_place_v1,
     secp256k1_recover_signer_v1,
+    sha256_compress_v1,
 };
 
 pub const Decoded = struct {
     opcode: Opcode,
     rs1: u5,
+    rs2: u5 = 0,
 };
 
 pub const DecodeError = error{
@@ -72,6 +74,10 @@ pub inline fn decode(profile: ExecutionProfile, word: u32) DecodeError!Decoded {
             .{ .opcode = .keccakf_1600_permute_in_place_v1, .rs1 = rs1 }
         else
             error.InvalidPrecompileEncoding,
+        .rv32im_zkvm_ethereum_sha_v1 => if (word == @import("sha256_compression_v1.zig").encode(rs1, @truncate(word >> 20)))
+            .{ .opcode = .sha256_compress_v1, .rs1 = rs1, .rs2 = @truncate(word >> 20) }
+        else
+            decode(.rv32im_zkvm_ethereum_v1, word),
         .rv32im_zkvm_ethereum_v1 => if (word == encodeKeccakf(rs1))
             .{ .opcode = .keccakf_1600_permute_in_place_v1, .rs1 = rs1 }
         else if (word == encodeSecp256k1Recover(rs1))

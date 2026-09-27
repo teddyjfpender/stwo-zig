@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-eth-auth-benchmark",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/eth-auth-zisk",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-1.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-1.expected",
+    "/tmp/stwo-zisk-guest-e2e-20260924/provingKey",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/peer-batch-1-prove-workers16.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/peer-batch-1-prove-workers16.json",
+    "prove"
+  ],
+  "side": "peer",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 900,
+  "hardware_track": "same-host CPU; no CUDA",
+  "sha256": {
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-eth-auth-benchmark": "b67aeda2b23c3eb68648dbad453713ba69e1866fa3c8d0d816c7f6b5b5e63cc4",
+    "guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/eth-auth-zisk": "18ab3192cba141913ff3578ff66ef5a1fecfe3352e0be3dd0d43850548afa305",
+    "fixtures/batch-1.input": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d",
+    "fixtures/batch-1.expected": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138"
+  },
+  "swap_before": "vm.swapusage: total = 2048.00M  used = 1192.56M  free = 855.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:09 remaining present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 420.176893958007,
+  "swap_after": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:30 remaining present: true\n",
+  "output_checked": true
+}

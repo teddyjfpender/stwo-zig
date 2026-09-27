@@ -1,0 +1,39 @@
+{
+  "queries": 70,
+  "pow_bits": 26,
+  "scope": "Authentication plus one recursive wrapper; not multi-segment or full block proving",
+  "single_observations": true,
+  "cohort_release_preserves_64_transaction_proof": true,
+  "results": [
+    {
+      "transactions": 16,
+      "execution_segments": 1,
+      "verified": true,
+      "process_peak_bytes": 16906402960,
+      "worker_peak_bytes": 17196556091,
+      "wall_seconds": 38.428929042012896,
+      "parent_seconds": 12.847449584,
+      "proof_sha256": "b50fcc72e9b1a2948738305faf10efc5b8cf5216071d017b58cbcdcc3dd5560d"
+    },
+    {
+      "transactions": 32,
+      "execution_segments": 1,
+      "verified": true,
+      "process_peak_bytes": 17817060392,
+      "worker_peak_bytes": 17815694163,
+      "wall_seconds": 41.9342493750155,
+      "parent_seconds": 13.637243667,
+      "proof_sha256": "a63a40b760f6c7bc0246960461e73d9d23fbf381355279de4ef35cf7e8edd2e6"
+    },
+    {
+      "transactions": 64,
+      "execution_segments": 1,
+      "verified": true,
+      "process_peak_bytes": 17688200088,
+      "worker_peak_bytes": 17823208113,
+      "wall_seconds": 47.84799475001637,
+      "parent_seconds": 14.165849833,
+      "proof_sha256": "6dd0479d95488cf6339a997d9a2554cf0c3c702a7e01c4a675af4dbf087ab10b"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "status": "qualified_nonproving_source_analysis",
+  "semantic": "caller-admission-cached-setup-semantic-v1-result.json",
+  "behavioral_evidence": [
+    "caller-admission-ownership-qualified-v1.json",
+    "sha-admission-setup-cache-qualified-v1.json"
+  ],
+  "scope": "Actual original staged/live caller and both recursive publisher bodies compile with stable borrowed policies against the new production SHA census cache. Historical21 ownership checks and current6 exact census/geometry/parity/allocator/concurrency checks have distinct source snapshots; the complete ownership fixture suite was not redundantly rerun.",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

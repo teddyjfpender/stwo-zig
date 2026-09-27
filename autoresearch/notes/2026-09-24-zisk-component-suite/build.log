@@ -1,0 +1,36 @@
+In file included from autoresearch/notes/2026-09-24-zisk-component-suite/peer.cpp:2:
+In file included from /tmp/stwo-recursion-peer-research-20260921/pil2-proofman/pil2-stark/src/starkpil/recursion_trace/gate_bands/gate_bands_blake3.hpp:22:
+In file included from /tmp/stwo-recursion-peer-research-20260921/pil2-proofman/pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp:6:
+/opt/homebrew/opt/gmp/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 2163 | inline mpz_class operator"" _mpz(const char* s)
+      |                  ~~~~~~~~~~~^~~~
+      |                  operator""_mpz
+/opt/homebrew/opt/gmp/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 2168 | inline mpq_class operator"" _mpq(const char* s)
+      |                  ~~~~~~~~~~~^~~~
+      |                  operator""_mpq
+/opt/homebrew/opt/gmp/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 2175 | inline mpf_class operator"" _mpf(const char* s)
+      |                  ~~~~~~~~~~~^~~~
+      |                  operator""_mpf
+In file included from autoresearch/notes/2026-09-24-zisk-component-suite/peer.cpp:2:
+/tmp/stwo-recursion-peer-research-20260921/pil2-proofman/pil2-stark/src/starkpil/recursion_trace/gate_bands/gate_bands_blake3.hpp:31:9: warning: 'B3_HD' macro redefined [-Wmacro-redefined]
+   31 | #define B3_HD
+      |         ^
+/tmp/stwo-recursion-peer-research-20260921/pil2-proofman/pil2-stark/src/goldilocks/src/blake3_core.hpp:22:9: note: previous definition is here
+   22 | #define B3_HD inline
+      |         ^
+4 warnings generated.
+src/frontends/riscv/zisk_component_benchmark.zig:16:37: error: type 'u3' cannot represent integer value '8'
+        h.update(bytes[0 .. count * 8]);
+                                    ^
+referenced by:
+    local_batch: src/frontends/riscv/zisk_component_benchmark.zig:50:23
+    local_batch: src/frontends/riscv/zisk_component_benchmark.zig:38:1
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+Traceback (most recent call last):
+  File "<stdin>", line 9, in <module>
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'build-lib', '-dynamic', '-OReleaseFast', '-mcpu=native', '--dep', 'stwo_core', '-Mroot=src/frontends/riscv/zisk_component_benchmark.zig', '-Mstwo_core=src/core/mod.zig', '-femit-bin=autoresearch/notes/2026-09-24-zisk-component-suite/local.dylib']' returned non-zero exit status 1.

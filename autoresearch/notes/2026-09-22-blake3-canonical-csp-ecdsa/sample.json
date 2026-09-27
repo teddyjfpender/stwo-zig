@@ -1,0 +1,18 @@
+{
+  "proof_suite": "blake3",
+  "backend": "cpu",
+  "optimize": "ReleaseFast",
+  "workers": 16,
+  "n_queries": 70,
+  "pow_bits": 26,
+  "log_blowup_factor": 1,
+  "fold_step": 1,
+  "execution_ns": 1978375,
+  "proving_ns": 2489485500,
+  "verification_ns": 188205792,
+  "cycles": 1828,
+  "proof_bytes": 3748258,
+  "artifact_version": 6,
+  "samples": 1,
+  "scope": "canonical full ECDSA precompile guest qualification, not full CSP suite or A/B comparison"
+}

@@ -1,0 +1,46 @@
+src/frontends/riscv/prover/block_v5_memory_source_packed_page_test_v1.zig:87:27: error: ambiguous reference
+        var denominator = wire().z.neg();
+                          ^~~~
+src/frontends/riscv/prover/block_v5_memory_source_packed_page_test_v1.zig:75:9: note: declared here
+    pub fn wire(self: *@This(), call: u32, node: u32, weight: u32, bytes: [4][8]Q, positive: bool) !void {
+    ~~~~^~
+src/frontends/riscv/prover/block_v5_memory_source_packed_page_test_v1.zig:41:1: note: also declared here
+fn wire() Air.Algebra(Q).Challenge {
+^~
+src/frontends/riscv/prover/block_v5_memory_source_packed_sha_replay_v1.zig:50:9: error: local variable is never mutated
+    var channel = Schema.Protocol.firstChannel(plan, page);
+        ^~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_packed_sha_replay_v1.zig:50:9: note: consider using 'const'
+src/core/fields/packed_qm31.zig:38:26: error: evaluation exceeded 1000 backwards branches
+            m31.addPacked(lhs.a, lhs.b),
+            ~~~~~~~~~~~~~^~~~~~~~~~~~~~
+src/core/fields/packed_qm31.zig:38:26: note: use @setEvalBranchQuota() to raise the branch limit from 1000
+src/core/fields/packed_qm31.zig:141:30: note: called inline here
+        const ac = lhs.c0.mul(rhs.c0);
+                   ~~~~~~~~~~^~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_sha_connector_air_v1.zig:198:58: note: called inline here
+                out[at] = delta.mul(left.denominator).mul(right.denominator).sub(left.numerator.mul(right.denominator)).sub(right.numerator.mul(left.denominator));
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+referenced by:
+    evaluatePacked: src/frontends/riscv/prover/block_v5_memory_source_sha_connector_component_v1.zig:34:46
+    run: src/frontends/riscv/prover/block_v5_word_domain_rows_v1.zig:60:67
+    12 reference(s) hidden; use '-freference-trace=14' to see all references
+src/frontends/riscv/prover/block_v5_memory_source_packed_sha_codec_v1.zig:57:29: error: expected type 'u32', found 'usize'
+    counts[6] = interaction + Air.INTERACTION_COUNT;
+                ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_packed_sha_codec_v1.zig:57:29: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+src/frontends/riscv/prover/block_v5_memory_source_packed_sha_proof_v1.zig:290:77: error: value with comptime-only type 'comptime_int' depends on runtime control flow
+            const width = if (tree == 2) Air.PREPROCESSED_COLUMN_COUNT else if (tree == 3) Air.PHYSICAL_MAIN_COLUMN_COUNT else Air.INTERACTION_COLUMN_COUNT;
+                                                                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_packed_sha_proof_v1.zig:290:36: note: runtime control flow here
+            const width = if (tree == 2) Air.PREPROCESSED_COLUMN_COUNT else if (tree == 3) Air.PHYSICAL_MAIN_COLUMN_COUNT else Air.INTERACTION_COLUMN_COUNT;
+                              ~~~~~^~~~
+src/frontends/riscv/prover/block_v5_memory_source_sha_connector_air_v1.zig:99:46: error: expected type '@Vector(4, u32)', found 'fields.m31.M31'
+            return S.fromBase(M.fromCanonical(value));
+                              ~~~~~~~~~~~~~~~^~~~~~~
+src/core/fields/m31.zig:10:17: note: struct declared here
+pub const M31 = struct {
+                ^~~~~~
+src/core/fields/packed_qm31.zig:77:35: note: parameter type declared here
+    pub inline fn fromBase(value: PackedM31) PackedQM31 {
+                                  ^~~~~~~~~

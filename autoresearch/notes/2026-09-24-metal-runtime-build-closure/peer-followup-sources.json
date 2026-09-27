@@ -1,0 +1,8 @@
+{
+  "commit": "d485fac207679076958b502554fb595568c2f954",
+  "files": {
+    "pil2-stark/src/starkpil/recursion_trace/gate_bands/gate_bands_blake3.hpp": "5feef30d7d7f1f6a45ccfb1094ef4145300c3b100aee5ee648c3c06c6697cff2",
+    "pil2-stark/src/starkpil/recursion_trace/gate_bands/gate_bands_blake3_cpu.hpp": "af4011bcdb644a60407f3720478803cc3f045dc26b5f398bbbe95eade7eeeca7",
+    "examples/hashes/README.md": "701fa3d4506b2bc3d0bf72fc90f0ec6f64e37350aefad61877d57e98c9909533"
+  }
+}

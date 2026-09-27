@@ -106,10 +106,14 @@ pub fn declareColumns(
         _ = index;
         column.* = arena.column("");
     }
+    // Recoverable scalar constructors latch OOM and return inert IDs. Do not
+    // dereference them while naming row leaves after a partial column graph.
+    try arena.checkAllocation();
     switch (family) {
         inline else => |f| {
             const Module = moduleOf(f);
             const row = try parse(Module, out);
+            try arena.checkAllocation();
             nameLeaves(Module.Row, row, "", arena);
         },
     }

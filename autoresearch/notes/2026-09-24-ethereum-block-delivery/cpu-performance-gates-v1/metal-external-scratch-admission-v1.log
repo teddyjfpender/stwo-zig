@@ -1,0 +1,7 @@
+1/6 metal_external_allocation_admission_test_root.test.external scratch: strict admission precedes factory and failure remains sticky...OK
+2/6 metal_external_allocation_admission_test_root.test.external scratch: buffered groups share combined heap and private copy cap...OK
+3/6 metal_external_allocation_admission_test_root.test.external scratch: bounded joined waves retain persistent scratch without cumulative growth...OK
+4/6 metal_external_allocation_admission_test_root.test.external scratch: zero-charge joined scope retains original heap allocator lifetime...OK
+5/6 metal_external_allocation_admission_test_root.test.external scratch: foreign owner and ordinary allocator cannot rebind live scope...OK
+6/6 metal_external_allocation_admission_test_root.test.external scratch: explicit uncapped compatibility checks overflow and strict policy...OK
+All 6 tests passed.

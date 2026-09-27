@@ -1,0 +1,15 @@
+1/14 block_v5_memory_source_page_transition_test_root.test_0...OK
+2/14 block_v5_memory_source_page_transition_test_root.test.source PAGE transition: actual original program composite PAGE lane range and memory hook bodies retained...OK
+3/14 air.memory_commitment.poseidon2_air.test_0...OK
+4/14 air.semantic_eval.test_0...OK
+5/14 prover.block_execution_external_trace_v2.test_0...OK
+6/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+7/14 air.lookups.tables.mod.test_0...OK
+8/14 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: independently pinned memory roots layout limits and exact roster reject changes...OK
+9/14 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: source proposals cannot change independently expected census plans or roots...OK
+10/14 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: genuine caller shape census includes ALL RW and ordinary overflow rejects...OK
+11/14 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: original hook accumulator rejects missing duplicate census and wrong transition sign...OK
+12/14 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: resource limits reject before undefined original proof authorities...OK
+13/14 prover.block_v5_memory_source_page_transition_test_v1.test.source PAGE transition: retained output allocation lease tears down on every allocation failure...OK
+14/14 air.lookups.tables.source_ingest.test_0...OK
+All 14 tests passed.

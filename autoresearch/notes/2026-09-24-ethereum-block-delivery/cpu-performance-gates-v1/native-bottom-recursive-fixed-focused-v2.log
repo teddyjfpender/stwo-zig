@@ -1,0 +1,16 @@
+1/15 block_v5_native_bottom_recursive_shape_test_root_v1.test_0...OK
+2/15 block_v5_native_bottom_recursive_shape_test_root_v1.test.native bottom fixed: actual original shape compiler body retention...OK
+3/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: original RAM and range masks geometry independent of parent roster...OK
+4/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: exact52 original draw pairs and public source coordinates...OK
+5/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: range shape and exact kernel construction rollback...OK
+6/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: original budget owner may release before shape graph teardown...OK
+7/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: actual raw and fold PAGE nine-tree typed log inventory...OK
+8/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: PAGE immutable static log construction allocation cleanup...OK
+9/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: genuine raw PAGE static masks and all original recorded equations parity...OK
+10/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: genuine fold PAGE static masks and all original recorded equations parity...OK
+11/15 prover.block_v5_native_bottom_recursive_shape_test_v1.test.native bottom fixed: immutable PAGE compiler custody mutation and construction OOM...OK
+12/15 air.lookups.tables.mod.test_0...OK
+13/15 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+14/15 air.memory_commitment.poseidon2_air.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

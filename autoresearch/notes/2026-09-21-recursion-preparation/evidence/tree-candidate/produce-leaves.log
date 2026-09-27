@@ -1,0 +1,514 @@
+SEGMENT_V2_NATIVE_METAL_AOT profile=recursive_framework_v1 manifest_sha256=d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899 source_sha256=1a094d24e90cb05a2ade40f2115b86cb70bbd1abe31dbaa3b291f4166d272a1c metallib_sha256=0f264c9df0747b7331e3f0cb69bb22b67d8feef4af854095e4d533cac2402de2 initialization_ns=63373625
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=128 loads=21 stores=22 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1200
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=192 loads=22 stores=21 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1300
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=256 loads=21 stores=21 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1400
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=320 loads=21 stores=22 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1500
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=384 loads=22 stores=21 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1600
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=448 loads=21 stores=21 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1700
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=34 cumulative_cycles=482 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1788
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.47270833601942286
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.3236249978945125
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.4374583331809845
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.3561249979829881
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.0898750004125759
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.03837500116787851
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.512
+info: resident RISC-V semantic composition: 7 components, 7 kernels, 0.634 ms GPU
+info: resident RISC-V lookup composition: 4 components, 4 kernels, 0.629 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485373812 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1322853 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=0 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=709443625 transport_ns=10940292 verify_ns=480606833 recursive_prepare_ns=947340959 proof_bytes=1322853 transcript_calls=1187 verifier_core_calls=58865 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=0 dispatches=109 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1792901667 poseidon_calls=60068 tree0_evaluation_bytes=187233536 tree1_evaluation_bytes=242904832 tree2_evaluation_bytes=110766080 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.03775000004679896
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.1640833324927371
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.14687499788124114
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.17899999875226058
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.046749999455641955
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.06454166941693984
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.14941666813683696
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.04149999949731864
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.28862500039394945
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.18187500245403498
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=6 gpu_ms=0.2336249999643769
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.1284166646655649
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.03033333268831484
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.05212500036577694
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.03891666710842401
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.13575000048149377
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.043750002078013495
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=1 gpu_ms=0.03212499723304063
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.046083332563284785
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.07662500138394535
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.28937499882886186
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.08945833542384207
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.23562500064144842
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.15324999912991188
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.1340000017080456
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.7792500000505242
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=0.9536249999655411
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.9248333335563075
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.13587500143330544
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.11462499969638884
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.09324999700766057
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.8624583315395284
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.8463333324471023
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.09850000060396269
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=1.3107916674925946
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.3495833334454801
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=8.082
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.042 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.146 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=0 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=0 first_cycle=0 retired_cycles=64 completed=false directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-0 native_backend=metal recursive_backend=metal proof_bytes=2492096 native_ingress_ns=2149533792 outer_prepare_ns=2151298875 outer_prove_ns=3465791625 transaction_ns=7786997708 producer_peak_bytes=2243468308 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.2573749989096541
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.3221249973867089
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.46566666787839495
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4931666664779186
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.07687499964958988
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.047999998059822246
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.553
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.875 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.273 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=1 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485357268 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1296479 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=1 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=670878708 transport_ns=10887000 verify_ns=479461708 recursive_prepare_ns=938357250 proof_bytes=1296479 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=1 dispatches=109 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1785968083 poseidon_calls=59049 tree0_evaluation_bytes=187335936 tree1_evaluation_bytes=242966272 tree2_evaluation_bytes=110880768 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.05437499930849299
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.15674999667680822
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.1484166677983012
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.1923749987327028
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.05758333281846717
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.12974999845027924
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.059333335229894146
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.050541668315418065
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.19500000053085387
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.11604166502365842
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=6 gpu_ms=0.16474999938509427
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.13195833525969647
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.16250000044237822
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.049916667194338515
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.06399999983841553
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.13612499969894998
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.04837500091525726
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=1 gpu_ms=0.08624999827588908
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.08912499833968468
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.06812500214437023
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.10274999658577144
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.038166668673511595
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.23158333351602778
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.11450000238255598
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.12862500079791062
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.7274166673596483
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=0.9844583328231238
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.8761249991948716
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.1466249996155966
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.2009999989240896
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.1561250028316863
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.743499997042818
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.9525000023131724
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.09337499795947224
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.7741666668152902
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.14308333265944384
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=7.525
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 11.439 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.221 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=1 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=1 first_cycle=64 retired_cycles=64 completed=false directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-1 native_backend=metal recursive_backend=metal proof_bytes=2491193 native_ingress_ns=2100748458 outer_prepare_ns=2144521333 outer_prove_ns=3308943334 transaction_ns=7574513292 producer_peak_bytes=2235464419 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.29058333529974334
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4024999982211739
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.6146249979792628
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.336375000391854
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.08900000102585182
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.050374997954349965
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.547
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.869 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.381 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=2 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485357268 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1283491 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=2 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=688026209 transport_ns=10729375 verify_ns=485893083 recursive_prepare_ns=938690667 proof_bytes=1283491 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=2 dispatches=109 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1794181750 poseidon_calls=59049 tree0_evaluation_bytes=187335936 tree1_evaluation_bytes=242966272 tree2_evaluation_bytes=110880768 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.059750000218627974
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.21425000159069896
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.18183333304477856
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.22437499865191057
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.0518749984621536
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.049250000301981345
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.0803333314252086
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.062166665884433314
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.19262500063632615
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.1772499999788124
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=6 gpu_ms=0.14433333490160294
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.13624999701278284
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.030625000363215804
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.05183333269087598
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.043708332668757066
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.1394166647514794
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.025749999622348696
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=1 gpu_ms=0.07145833296817727
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.021458334231283516
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.07491666474379599
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.14450000162469223
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.32966666549327783
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.2303749970451463
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.15187499957391992
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.2197499998146668
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.7489999989047647
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=1.0020000008807983
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.9940416675817687
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.1446249989385251
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.2013749981415458
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.1678333355812356
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.725499998225132
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.8021249996090773
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.10170833411393687
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=1.375583335175179
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.37762500141980127
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=7.709
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.186 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.146 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=2 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=2 first_cycle=128 retired_cycles=64 completed=false directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-2 native_backend=metal recursive_backend=metal proof_bytes=2496691 native_ingress_ns=2124489250 outer_prepare_ns=2149297459 outer_prove_ns=3301599791 transaction_ns=7595272958 producer_peak_bytes=2235464424 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.24970833328552544
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.3230000004114117
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.4403750026540365
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4897083347023
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.09250000221072696
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.04462500146473758
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.412
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.803 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.349 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=3 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485357268 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1280726 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=3 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=665632584 transport_ns=10649375 verify_ns=493141958 recursive_prepare_ns=942147958 proof_bytes=1280726 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=3 dispatches=109 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1775280083 poseidon_calls=59049 tree0_evaluation_bytes=187335936 tree1_evaluation_bytes=242966272 tree2_evaluation_bytes=110880768 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.03245833431719802
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.17245833078050055
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.1376250002067536
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.2177499991375953
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.06633333032368682
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.05383333336794749
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.06891666635056026
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.06074999691918492
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.13962500088382512
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.13962500088382512
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=6 gpu_ms=0.2579166684881784
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.16762499944888987
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.03537500015227124
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.05083333235234022
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.06599999687750824
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.13350000153877772
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.0457499991171062
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=1 gpu_ms=0.09387500176671892
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.021500000002561137
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.06724999911966734
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.28987499899812974
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.07495833051507361
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.2238749984826427
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.1343333351542242
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.1997500003199093
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.8308750002470333
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=0.974458333075745
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.7857083328417502
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.11525000081746839
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.08924999929149635
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.07587499931105413
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.9945416641130578
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.9761666660779156
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.08654166595079005
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=1.246708332473645
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.1883750010165386
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=7.307
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.081 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.143 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=3 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=3 first_cycle=192 retired_cycles=64 completed=false directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-3 native_backend=metal recursive_backend=metal proof_bytes=2498213 native_ingress_ns=2112725500 outer_prepare_ns=2131845708 outer_prove_ns=3292726542 transaction_ns=7557330500 producer_peak_bytes=2235464423 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.25008333250298165
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4261666656238958
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.429375002568122
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4472500006377231
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.08854166662786156
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.039958333218237385
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.794
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.857 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.247 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=4 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485357268 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1291705 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=4 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=666293875 transport_ns=10992125 verify_ns=472396666 recursive_prepare_ns=937521917 proof_bytes=1291705 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=4 dispatches=109 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1783277084 poseidon_calls=59049 tree0_evaluation_bytes=187335936 tree1_evaluation_bytes=242966272 tree2_evaluation_bytes=110880768 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.09933333421940915
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.19474999862723053
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.3305416648800019
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.13587499779532664
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.03912499960279092
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.039874998037703335
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.22991666628513485
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.0396249997720588
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.14279166498454288
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.16020833572838455
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=6 gpu_ms=0.14599999849451706
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.16033333304221742
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.11462499969638884
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.052458333811955526
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.07683333387831226
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.14150000060908496
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.047291665396187454
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=1 gpu_ms=0.09300000237999484
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.021374999050749466
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.029999999242136255
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.25295833256677724
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.07670833292650059
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.23074999990058132
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.1511249975010287
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.13000000035390258
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.6557499982591253
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=0.9874999996100087
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.9378750000905711
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.09787500312086195
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.19537499974831007
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.16320833310601301
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.6382083338394295
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.8509166691510472
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.09233333548763767
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=1.0487499966984615
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.09554166899761185
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=8.166
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.085 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.139 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=4 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=4 first_cycle=256 retired_cycles=64 completed=false directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-4 native_backend=metal recursive_backend=metal proof_bytes=2481011 native_ingress_ns=2088391792 outer_prepare_ns=2137100750 outer_prove_ns=3295686792 transaction_ns=7541137834 producer_peak_bytes=2235464426 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.25945833476725966
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.3248750001366716
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.45574999967357144
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.3423750024230685
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.09087500075111166
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.050625003495952114
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.684
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.935 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.326 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=5 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485357268 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1276458 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=5 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=677988916 transport_ns=10463209 verify_ns=475471750 recursive_prepare_ns=936615333 proof_bytes=1276458 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=5 dispatches=109 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1772856042 poseidon_calls=59049 tree0_evaluation_bytes=187335936 tree1_evaluation_bytes=242966272 tree2_evaluation_bytes=110880768 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.03304166966699995
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.12162499842816032
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.14529166583088227
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.1727083326841239
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.042499999835854396
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.12137500016251579
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.07562500104540959
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.039833332266425714
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.18095833365805447
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.1736249978421256
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=6 gpu_ms=0.1478749982197769
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.11325000014039688
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.030625000363215804
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.03237499913666397
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.035583332646638155
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.13537500126403756
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.051791666919598356
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=1 gpu_ms=0.08079166582319885
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.08650000017951243
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.06750000102329068
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.24020833370741457
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.07341666787397116
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.22454166901297867
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.14216666750144213
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.21962499886285514
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.765875000070082
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=1.133458332333248
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.8832499988784548
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.15249999705702066
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.08687499939696863
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.07262500002980232
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.6477083334175404
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.8070416661212221
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.08800000068731606
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.7851666669012047
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.15504166731261648
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=7.397
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.218 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.141 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=5 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=5 first_cycle=320 retired_cycles=64 completed=false directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-5 native_backend=metal recursive_backend=metal proof_bytes=2489822 native_ingress_ns=2101711209 outer_prepare_ns=2126781959 outer_prove_ns=3293452166 transaction_ns=7542044000 producer_peak_bytes=2235464429 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.2267499985464383
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4339999979711138
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.46012500024517067
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.3395416644925717
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.07804166671121493
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.049375001253793016
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.453
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.833 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.242 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=6 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485357268 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1284620 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=6 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=671209917 transport_ns=10588833 verify_ns=492800917 recursive_prepare_ns=939897041 proof_bytes=1284620 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=6 dispatches=109 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1787324209 poseidon_calls=59049 tree0_evaluation_bytes=187335936 tree1_evaluation_bytes=242966272 tree2_evaluation_bytes=110880768 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.05262499689706601
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.20904166740365326
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.2217083310824819
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.20079166642972268
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.0497083346999716
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.06579166802112013
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.07399999958579428
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.05937500100117177
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.1608333332114853
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.17437499991501682
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=6 gpu_ms=0.20958333334419876
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.11624999751802534
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.12341666661086492
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.03391666541574523
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.0657499986118637
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.13354166731005535
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.1349166668660473
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=1 gpu_ms=0.033749998692655936
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.04604166679200716
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.033708332921378314
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.2658333323779516
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.08191666711354628
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.23183333541965112
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.13170833335607313
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.21895833197049797
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.678250002238201
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=0.9532500007480849
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.8694166681380011
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.15883333253441378
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.10412499977974221
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.09991666593123227
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.7669166661798954
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.686958333972143
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.06441666846512817
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.9952916698239278
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.2001249995373655
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=7.822
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.061 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.146 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=6 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=6 first_cycle=384 retired_cycles=64 completed=false directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-6 native_backend=metal recursive_backend=metal proof_bytes=2485314 native_ingress_ns=2115653541 outer_prepare_ns=2145984084 outer_prove_ns=3311296833 transaction_ns=7593060292 producer_peak_bytes=2235464431 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2252 exact sparse-node calls, poseidon_log_size=12, merkle_log_size=12
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.2399166660325136
+NATIVE_TABLE_DEVICE_INTERACTION kind=bitwise rows=262144
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.322000000072876
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_20 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=1 gpu_ms=0.46495833521476015
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_11 rows=524288
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.5354166644101497
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8_4 rows=1048576
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=1 gpu_ms=0.0882500025909394
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_8_8 rows=65536
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.049124999350169674
+NATIVE_TABLE_DEVICE_INTERACTION kind=range_check_m31 rows=32768
+info: resident framework composition: components=6 groups=5 gpu_ms=1.228
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.844 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.308 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=7 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=485242588 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1289739 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=7 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=659075083 transport_ns=10830417 verify_ns=475822458 recursive_prepare_ns=936689792 proof_bytes=1289739 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=7 dispatches=106 poseidon_commits=9 table_interaction_dispatches=24
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1775816666 poseidon_calls=59049 tree0_evaluation_bytes=187335936 tree1_evaluation_bytes=242966272 tree2_evaluation_bytes=110880768 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.038166668673511595
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=3 gpu_ms=0.20558333199005574
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=7 gpu_ms=0.18270833243150264
+METAL_FRAMEWORK_INTERACTION rows=512 batches=6 gpu_ms=0.17287499940721318
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.04262500078766607
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.04074999742442742
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.06075000055716373
+METAL_FRAMEWORK_INTERACTION rows=16 batches=1 gpu_ms=0.040499999158782884
+METAL_FRAMEWORK_INTERACTION rows=16 batches=9 gpu_ms=0.14366666800924577
+METAL_FRAMEWORK_INTERACTION rows=64 batches=5 gpu_ms=0.15141666881390847
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=6 gpu_ms=0.2753750013653189
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.16224999853875488
+METAL_FRAMEWORK_INTERACTION rows=16 batches=2 gpu_ms=0.04920833453070372
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=2 gpu_ms=0.050999999075429514
+METAL_FRAMEWORK_INTERACTION rows=32 batches=2 gpu_ms=0.05333333319867961
+METAL_FRAMEWORK_INTERACTION rows=16 batches=7 gpu_ms=0.13962500088382512
+METAL_FRAMEWORK_INTERACTION rows=128 batches=1 gpu_ms=0.0470000013592653
+METAL_FRAMEWORK_INTERACTION rows=2048 batches=1 gpu_ms=0.06887500057928264
+METAL_FRAMEWORK_INTERACTION rows=64 batches=1 gpu_ms=0.02112500078510493
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.06650000068475492
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=5 gpu_ms=0.13170833335607313
+METAL_FRAMEWORK_INTERACTION rows=256 batches=1 gpu_ms=0.032500000088475645
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=17 gpu_ms=0.23175000023911707
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=1 gpu_ms=0.1095000006898772
+METAL_FRAMEWORK_INTERACTION rows=32 batches=5 gpu_ms=0.15162499767029658
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.7266249995154794
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=4 gpu_ms=0.9514999983366579
+METAL_FRAMEWORK_INTERACTION rows=65536 batches=7 gpu_ms=0.8254583335656207
+METAL_FRAMEWORK_INTERACTION rows=16384 batches=3 gpu_ms=0.14058333181310445
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=3 gpu_ms=0.08475000140606426
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.0709583364368882
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=5 gpu_ms=0.8036666658881586
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.6865833347546868
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=1 gpu_ms=0.09137499728240073
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.9203749978041742
+METAL_FRAMEWORK_INTERACTION rows=32768 batches=2 gpu_ms=0.13587499779532664
+DETACHED_LEAF_TYPED_DEVICE_INTERACTION components=36 inactive_zero_components=1 dispatches=144
+info: resident framework composition: components=38 groups=15 gpu_ms=7.802
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.092 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.138 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=7 dispatches=276 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=7 first_cycle=448 retired_cycles=34 completed=true directory=/private/tmp/stwo-recursion-research-20260921/tree-candidate/leaves/child-7 native_backend=metal recursive_backend=metal proof_bytes=2485462 native_ingress_ns=2083578750 outer_prepare_ns=2131034750 outer_prove_ns=3371692458 transaction_ns=7606657708 producer_peak_bytes=2235067794 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend=metal recursive_backend=metal owners_destroyed=true parent_proof_created=false

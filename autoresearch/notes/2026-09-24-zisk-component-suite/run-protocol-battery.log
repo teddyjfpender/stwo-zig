@@ -1,0 +1,4 @@
+native_transcript_absorb_draw8 8 {'zisk': 250.71080493927002, 'stwo': 1279.1642742156982}
+native_transcript_absorb_draw8 128 {'zisk': 1263.5227813720703, 'stwo': 2750.390365600586}
+native_transcript_absorb_draw8 4096 {'zisk': 37271.321533203125, 'stwo': 51473.134521484375}
+native_pow_candidate 8 {'zisk': 62.92191123962402, 'stwo': 22.098928689956665}

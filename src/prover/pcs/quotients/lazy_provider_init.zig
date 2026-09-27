@@ -161,9 +161,18 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             sampled_values: TreeVec([][]QM31),
             random_coeff: QM31,
             lifting_log_size: u32,
-            input_mode: InputMode,
+            requested_mode: InputMode,
             work_recorder: ?*quotient_work.WorkRecorder,
         ) !LazyQuotientProvider {
+            var coefficient_input = false;
+            for (columns.items) |tree| for (tree) |column| {
+                coefficient_input = coefficient_input or column.coefficient_values != null;
+            };
+            if (coefficient_input and requested_mode == .raw_backend)
+                return error.UnsupportedCompactPolynomialStorage;
+            const input_mode: InputMode = if (coefficient_input) .combined_compatibility else requested_mode;
+            // The existing logical work model does not count coefficient folding/FFT.
+            if (coefficient_input) if (work_recorder) |recorder| recorder.markIncomplete();
             if (columns.items.len != sampled_points.items.len) return QuotientOpsError.ShapeMismatch;
             if (columns.items.len != sampled_values.items.len) return QuotientOpsError.ShapeMismatch;
 
@@ -171,7 +180,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                 if (tree_columns.len != tree_points.len) return QuotientOpsError.ShapeMismatch;
                 if (tree_columns.len != tree_values.len) return QuotientOpsError.ShapeMismatch;
                 for (tree_columns, tree_points) |column, points| {
-                    try column.validate();
+                    try column.validateRetained();
                     if (points.len != 0 and column.log_size > lifting_log_size) {
                         return QuotientOpsError.InvalidColumnLogSize;
                     }

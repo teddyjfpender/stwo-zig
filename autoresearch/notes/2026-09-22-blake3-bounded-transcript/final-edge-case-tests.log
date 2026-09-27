@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-blake3-bounded-transcript success
++- BLAKE3 bounded transcript guard success
+   +- run test 1 passed 9s MaxRSS:504M
+      +- compile test ReleaseSafe native success 25s MaxRSS:1G
+

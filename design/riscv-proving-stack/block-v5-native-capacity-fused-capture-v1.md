@@ -1,0 +1,20 @@
+# Capacity-native fused capture v1
+
+Status: source frozen, unqualified. No compiler, test, PCS/STARK, guest, segment or device run was launched for this batch. This is the capture building block for later genuine fused recursive verification, not a closed block equation or a canonical activation.
+
+`block_v5_native_capacity_fused_proof_v1.ForBackend` now provides `verifyCaptureOwned` and `verifyCaptureBorrowed` with the exact existing `verifyOwned` policy arguments. All three methods share one `verifyInternal(capture,take)` implementation. Owned input transfers the proof and both claim arrays on every path; borrowed input remains immutable and owned by its caller. Successful `VerifiedCapture` owns its core proof capture, copied projection/access claims, slot inventory and four source-log lists, exact original Word/Bus challenges, final channel, and fresh typed projection/memory exports. No proof-byte clone, trace columns, borrowed source shape, public IO or receipt-policy pointers are retained. Deinit must precede destruction of its caller-supplied allocator owner.
+
+The shared preflight remains the original capacity-native recipe: exact shape/external/mode-derived projection/access slots, capacity activity-selector origin and main mask, fixed/main geometry, native exact geometry/instance/first roots/source seal, B5SS entries, complete typed claim counts, configuration and commitment count. Access proofs have fixed/main/access/interaction trees plus composition (five roots); projection-only proofs have fixed/main/interaction plus composition (four). Empty projection schedules require the existing separately admitted typed-absence receiver and cannot manufacture a capture.
+
+The original first-round registration uses `firstChannel`, with the actual B5CF version, capacity selector ABI, native identity and slot roster. The verifier then retains its original channel reset to `proofChannel(sealed)`: exact Word universal/suffix draws, B5CF phase3, full typed projection/access claims, interaction root, original composition/OODS/DEEP/FRI/Merkle/PoW verification. Components, degree/mask ordering, proof-wide composition split and receipt partition signs are unchanged.
+
+`CaptureAdmission` is independently supplied scoped policy. Its native value must come from the enclosing freshly verified B5CT call; a transported receipt is not native authority. `CaptureMetadata` is only deep-owned custody. `VerifiedCapture.validate` re-admits the independent policy, matches native/root/frame/mode/slot/log identity, replays actual Word/Bus challenges, checks capture root and FRI-extended trace-log geometry, independently recomputes typed exports from copied claims, and checks the mutation seal. The mutation seal covers actual core proof capture, native/geometry/roster/frame/config/claims/challenges and final channel; it cannot substitute for symbolic verifier equations.
+
+The later recursive adapter must consume this owner and constrain every actual projection/activity/access equation, full original channel and opening proof, and all exported partitions. It must also authenticate the separate B5CT native proof and match the same execution identity/roots. Current global provider/requester/register/source closure remains mandatory.
+
+Safe root qualification candidates:
+
+- `block_v5_native_capacity_fused_capture_test_root.zig`, filter `capacity fused capture:`: five nonproving custody/mutation/cap/early-rejection fixtures, including exhaustive allocation failure and source destruction. Literal envelopes are never accepted as successful captures.
+- `block_v5_native_capacity_fused_capture_codegen.zig`, export `stwo_capacity_fused_capture_body_gate`: actual old-owned, new-owned/new-borrowed verifier, full capture validation and teardown body retention, never invoked.
+
+The exact command arguments and source/dependency pins are in `native-capacity-fused-capture-source-candidate-v1.json`. A later successful fresh real proof is needed to qualify capture publication/recursive cryptographic composition; source fixtures alone cannot establish it.

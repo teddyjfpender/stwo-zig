@@ -1,0 +1,17 @@
+test-blake3-staged-leaves
++- run test stderr
+BLAKE3_STAGED columns=17 stages=3 state_words=24
+BLAKE3_STAGED columns=249 stages=28 state_words=24
+BLAKE3_STAGED columns=250 stages=28 state_words=32
+BLAKE3_STAGED columns=505 stages=55 state_words=32
+BLAKE3_STAGED columns=762 stages=83 state_words=40
+BLAKE3_STAGED columns=2042 stages=218 state_words=56
+
+Build Summary: 6/6 steps succeeded; 18/18 tests passed
+test-blake3-staged-leaves success
++- run test 12 passed 4s MaxRSS:58M
+   +- compile test ReleaseSafe native success 7s MaxRSS:474M
+test-shader-authority success
++- run test 6 passed 777ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 3s MaxRSS:317M
+

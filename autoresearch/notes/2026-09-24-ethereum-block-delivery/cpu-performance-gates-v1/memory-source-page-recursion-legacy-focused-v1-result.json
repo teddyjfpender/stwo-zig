@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-page-recursion-legacy-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 30.38707312499173,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-recursion-legacy-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-page-recursion-legacy-focused-v1",
+    "bytes": 45109496,
+    "sha256": "e4fd8169893632710fbe941a14d91580deae9293b08548a5a75ab749443b0258"
+  }
+}

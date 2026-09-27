@@ -1,0 +1,31 @@
+const std = @import("std");
+const Air = @import("ethereum_initial_input_lane_v1.zig");
+test "Ethereum initial input lane authenticates fixed shape and semantic seal" {
+    const identity = try Air.semanticIdentity(std.testing.allocator);
+    std.debug.print("ETHEREUM_INITIAL_INPUT_LANE_SEAL={s}\n", .{std.fmt.bytesToHex(identity.bytes, .lower)});
+    try std.testing.expectEqualStrings(Air.SEMANTIC_DIGEST_HEX, &std.fmt.bytesToHex(identity.bytes, .lower));
+    var definition = try Air.build(std.testing.allocator);
+    defer definition.deinit();
+    const plan = try Air.Relation.authenticate(&definition);
+    _ = plan;
+    const shape = try Air.Shape.init(675173);
+    try std.testing.expectEqual(@as(u32, 1048576), shape.role_capacity);
+    try std.testing.expectEqual(@as(u32, 675173), shape.max_input_words);
+    try std.testing.expectEqual(@as(u32, 1048575), try shape.wireSourceUses(0));
+    try std.testing.expectEqual(@as(u32, 1048576), try shape.wireSourceUses(Air.HEADER_SLOT));
+    try std.testing.expectEqual(@as(u32, 1), try shape.wireSourceUses(Air.PROGRAM_FIRST_SLOT + 4));
+    try std.testing.expectError(error.InvalidEthereumInitialInputSource, shape.wireSourceUses(Air.SUM_SLOT));
+    try std.testing.expectEqual(@as(u32, 1), try shape.claimSourceUses(256 + 3 * 675173 - 1));
+    try std.testing.expectEqual(@as(u32, 0), try shape.claimSourceUses(256 + 3 * 675173));
+    definition.events[1] = definition.events[0];
+    try std.testing.expectError(error.InvalidEthereumInitialInputAir, Air.Relation.authenticate(&definition));
+    const first = try shape.preprocessing(0);
+    const last = try shape.preprocessing(shape.role_capacity - 1);
+    try std.testing.expectEqual(@as(u32, 1), first[0].toU32());
+    try std.testing.expectEqual(@as(u32, 1), last[1].toU32());
+    try std.testing.expectEqual(@as(u32, 0), last[2].toU32());
+    try std.testing.expectError(error.InvalidEthereumInitialInputShape, shape.preprocessing(shape.role_capacity));
+    var malformed = shape;
+    malformed.role_capacity += 1;
+    try std.testing.expectError(error.InvalidEthereumInitialInputShape, malformed.preprocessing(0));
+}

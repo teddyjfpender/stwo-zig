@@ -1,0 +1,77 @@
+{
+  "decision": "Wider LogUp batching rejected as default: small memory saving and substantial proving-time regression. Cubic roster restored; streamed composition retained for coefficient-storage research.",
+  "rows": [
+    {
+      "candidate": "native-wide",
+      "transactions": 16,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 57761309541,
+      "parent_proving_ns": 31101244209,
+      "worker_peak_bytes": 29783152680,
+      "proof_bytes": 924390,
+      "proof_sha256": "d9a0c03de78e4e8199a3264f7a4ce018672e9d8dd0ba5996499e85b6e6d3094c"
+    },
+    {
+      "candidate": "native-wide-streamed",
+      "transactions": 16,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 58307050833,
+      "parent_proving_ns": 31792895542,
+      "worker_peak_bytes": 18000079016,
+      "proof_bytes": 924390,
+      "proof_sha256": "d9a0c03de78e4e8199a3264f7a4ce018672e9d8dd0ba5996499e85b6e6d3094c"
+    },
+    {
+      "candidate": "native-wide8",
+      "transactions": 16,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 54941746792,
+      "parent_proving_ns": 28833766583,
+      "worker_peak_bytes": 15179718345,
+      "proof_bytes": 1121953,
+      "proof_sha256": "fee80680de73c09c0e5b5433a5dfaf1c590f92e90e40a3149ce4b2229f70ba3d"
+    },
+    {
+      "candidate": "native-wide8",
+      "transactions": 32,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 58203578791,
+      "parent_proving_ns": 29101433334,
+      "worker_peak_bytes": 15865700041,
+      "proof_bytes": 1118616,
+      "proof_sha256": "d5f6a2cb3d26478b4ab2c3c8bc743e7cd0a0135eef4663d8a23bf64dc8a52b46"
+    },
+    {
+      "candidate": "native-wide8",
+      "transactions": 64,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 67108167417,
+      "parent_proving_ns": 31113400708,
+      "worker_peak_bytes": 16010403529,
+      "proof_bytes": 1121374,
+      "proof_sha256": "ebf71460534e2b794d49e81c8277c5e8b0b8ea6122b07af972a3905fb9977676"
+    },
+    {
+      "candidate": "cubic-streamed",
+      "transactions": 16,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 40298229959,
+      "parent_proving_ns": 13555792875,
+      "worker_peak_bytes": 15594615680,
+      "proof_bytes": 983171,
+      "proof_sha256": "b50fcc72e9b1a2948738305faf10efc5b8cf5216071d017b58cbcdcc3dd5560d"
+    }
+  ]
+}

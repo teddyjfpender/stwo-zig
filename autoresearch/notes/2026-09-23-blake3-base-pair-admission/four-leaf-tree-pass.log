@@ -1,0 +1,34 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 542s
+test-riscv-blake3-aggregation
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_NATIVE_QUERY_FUSION groups=1096 removed_scalars=4384
+BLAKE3_NATIVE_FUSION dot4=2465 fma=9559 arithmetic_rows=32206
+BLAKE3_NATIVE_QUERY_FUSION groups=1096 removed_scalars=4384
+BLAKE3_NATIVE_FUSION dot4=2465 fma=9561 arithmetic_rows=32202
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=130994
+BLAKE3_NATIVE_QUERY_FUSION groups=1064 removed_scalars=4256
+BLAKE3_NATIVE_FUSION dot4=2312 fma=9389 arithmetic_rows=31234
+BLAKE3_NATIVE_QUERY_FUSION groups=1208 removed_scalars=4832
+BLAKE3_NATIVE_FUSION dot4=2897 fma=9998 arithmetic_rows=34667
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=132374
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_TREE_PIPELINE verified=true jobs=2 cpu_tokens=3 reserved_bytes=25794988992 overlap_ns=10780157791 worker_peak_bytes=3862465628 worker_limit_bytes=8589934592 root_artifact_bytes=131497 plan_reused=true outputs_outlive_worker=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=669671752
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-aggregation success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 5m MaxRSS:6G
+

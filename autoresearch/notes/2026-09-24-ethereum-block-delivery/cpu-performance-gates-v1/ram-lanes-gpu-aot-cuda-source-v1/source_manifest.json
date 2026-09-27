@@ -1,0 +1,146 @@
+{
+  "version": 2,
+  "target": "cuda",
+  "word_protocol_version": 4,
+  "word_protocol_abi": "456e3aba189598a192d98e86decc235bd258097c8eecaec3425363deaa6af679",
+  "ram_lanes_protocol_version": 1,
+  "ram_lanes_protocol_abi": "4852c8591829c455ec07eeed7aaab04dcdd4e4685557d66b73903e77edfb0653",
+  "typed_authority": "3d46beab4f8e0ab5c63bfd13da4e378a2cd9d45db70fb723102ed7b07a9b5fe8",
+  "source_file": "kernels.cu",
+  "source_sha256": "53ef3f57b9a5031b8aab7cb2651b28e8420e7d60461d2b4e30d5e6d30c10fd6d",
+  "programs": [
+    {
+      "kind": "word_equations_v4",
+      "typed_authority": "16ca2f6a684c8abfef69c0c6ad10d9eeb6285656fb0eb29a7b96c4b3c8d4bcf3",
+      "program_identity": "67f0e0abec57191cd7a28912e4e260aa5d021f83710361142ee33c1f4178e53f",
+      "executable_identity": "8214de4d47bb484962ad1a34e8c9b9cbd924e3bb35526d8b8089d0825259ddfd",
+      "kernel": "stwo_cuda_secure_v1_8214de4d47bb484962ad1a34e8c9b9cbd924e3bb35526d8b8089d0825259ddfd",
+      "inputs": 184,
+      "parameters": 164,
+      "equations_or_buses": 63,
+      "abi_schema": 23,
+      "argument_count": 12,
+      "cache_key": 5280676478015378562
+    },
+    {
+      "kind": "word_fractions_v4",
+      "typed_authority": "16ca2f6a684c8abfef69c0c6ad10d9eeb6285656fb0eb29a7b96c4b3c8d4bcf3",
+      "program_identity": "05fe73bb398c8af970018f12d0997f5b79912a4513fcaaa55d62d8483bf728f9",
+      "executable_identity": "e583afa9ae7da7a72d334590fee9a288dca54624045931ab90bd6e2731b1171b",
+      "kernel": "stwo_cuda_secure_v1_e583afa9ae7da7a72d334590fee9a288dca54624045931ab90bd6e2731b1171b",
+      "inputs": 48,
+      "parameters": 76,
+      "equations_or_buses": 17,
+      "abi_schema": 24,
+      "argument_count": 12,
+      "cache_key": 12080762714569278437
+    },
+    {
+      "kind": "range16_equations_v4",
+      "typed_authority": "16ca2f6a684c8abfef69c0c6ad10d9eeb6285656fb0eb29a7b96c4b3c8d4bcf3",
+      "program_identity": "d98814e51ed95ab6210bb71aa702fc75c91b54226c70bb4721102072fe056fc5",
+      "executable_identity": "94eab6976f50fe5522863b825f4fc93c43efc70ec24abc0515f4d2e70d46e159",
+      "kernel": "stwo_cuda_secure_v1_94eab6976f50fe5522863b825f4fc93c43efc70ec24abc0515f4d2e70d46e159",
+      "inputs": 18,
+      "parameters": 4,
+      "equations_or_buses": 2,
+      "abi_schema": 23,
+      "argument_count": 12,
+      "cache_key": 6196478577525320340
+    },
+    {
+      "kind": "range16_fractions_v4",
+      "typed_authority": "16ca2f6a684c8abfef69c0c6ad10d9eeb6285656fb0eb29a7b96c4b3c8d4bcf3",
+      "program_identity": "fa1432504f80548bc16d572a07138ead1990e6b51dbc9238e889ee2944297611",
+      "executable_identity": "1b5d3f5e4e20d5b00c7f64ffe64068449d1c87c4aa953fcf090855467020e874",
+      "kernel": "stwo_cuda_secure_v1_1b5d3f5e4e20d5b00c7f64ffe64068449d1c87c4aa953fcf090855467020e874",
+      "inputs": 2,
+      "parameters": 1,
+      "equations_or_buses": 2,
+      "abi_schema": 24,
+      "argument_count": 12,
+      "cache_key": 12742126241675435291
+    },
+    {
+      "kind": "ram_lanes_equations_v1",
+      "typed_authority": "c8b63adb603eb03094dc6ccecd8aff411a9d85abdc4678b242578cbbbca2fb35",
+      "program_identity": "b928e0106c22bdd894497ac9cb92b097ea39f41d8916754469445987536a7252",
+      "executable_identity": "1d3a8074056dcca251456100acda79d52aac1c4358fbb201999415b726db4f9c",
+      "kernel": "stwo_cuda_secure_v1_1d3a8074056dcca251456100acda79d52aac1c4358fbb201999415b726db4f9c",
+      "inputs": 271,
+      "parameters": 264,
+      "equations_or_buses": 117,
+      "abi_schema": 23,
+      "argument_count": 12,
+      "cache_key": 11730870999590124061
+    },
+    {
+      "kind": "ram_lanes_fractions_v1",
+      "typed_authority": "c8b63adb603eb03094dc6ccecd8aff411a9d85abdc4678b242578cbbbca2fb35",
+      "program_identity": "38a846b2085e95c1a9cb1f004637dc2bfcefa68f839db36fc3f4dec9abb76337",
+      "executable_identity": "18d0c5cbaf5b33ef9814d7a4de8ba846ef417d5150635b487456cfbd8188c4c3",
+      "kernel": "stwo_cuda_secure_v1_18d0c5cbaf5b33ef9814d7a4de8ba846ef417d5150635b487456cfbd8188c4c3",
+      "inputs": 87,
+      "parameters": 98,
+      "equations_or_buses": 23,
+      "abi_schema": 24,
+      "argument_count": 12,
+      "cache_key": 17236221009473163288
+    }
+  ],
+  "cuda_helpers": [
+    {
+      "kernel": "stwo_cuda_range16_inverse_table_v1",
+      "executable_identity": "dee2fc3365db8a00978bb52d40a9be01ada4f941b3c89eeed66a40c268d2be95",
+      "cache_key": 39084774496461534,
+      "abi_schema": 25,
+      "argument_count": 2
+    },
+    {
+      "kernel": "stwo_cuda_secure_scan_block_v1",
+      "executable_identity": "08854f6c7775f91a9e790caf09f401fa06b24cfcfa6ca5ff360127534db34308",
+      "cache_key": 1943713869965788424,
+      "abi_schema": 26,
+      "argument_count": 5
+    },
+    {
+      "kernel": "stwo_cuda_secure_scan_carry_v1",
+      "executable_identity": "96e640ecf35f60a30bd2fdeef8a5108699febcb3a61a82e998b0e97f68a89328",
+      "cache_key": 11772514927191844502,
+      "abi_schema": 26,
+      "argument_count": 5
+    },
+    {
+      "kernel": "stwo_cuda_secure_totals_v1",
+      "executable_identity": "9bf6a5b3c4544d9bb5f755f62204b9298c31c5401c05847150196dee0d910809",
+      "cache_key": 11190693852889872027,
+      "abi_schema": 27,
+      "argument_count": 4
+    },
+    {
+      "kernel": "stwo_cuda_secure_mean_v1",
+      "executable_identity": "8615ad49d158b27dd37c268d475b935cfe86b1b81b38f03429a9c72ef250fce6",
+      "cache_key": 9057399456502977926,
+      "abi_schema": 27,
+      "argument_count": 4
+    },
+    {
+      "kernel": "stwo_cuda_word_memory_witness_v4",
+      "executable_identity": "26206257cdbb069f0bb187f3665c33fbc48075307c2e7b5434e7f85fda1b821b",
+      "cache_key": 11459052792499544102,
+      "abi_schema": 28,
+      "argument_count": 5
+    },
+    {
+      "kernel": "stwo_cuda_range16_witness_v4",
+      "executable_identity": "3a52398bae609a803b8e3c7f91687d818a40ca1ccb26097e96a23dd339e5764c",
+      "cache_key": 9266825486044582458,
+      "abi_schema": 29,
+      "argument_count": 3
+    }
+  ],
+  "dynamic_claims_and_challenges": true,
+  "proof_acceptance_authority": false,
+  "device_compiled": false,
+  "device_executed": false
+}

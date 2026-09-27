@@ -162,5 +162,6 @@ pub fn State(comptime profile: ExecutionProfile) type {
         .rv32im_zkvm_poseidon2_v1 => Poseidon2,
         .rv32im_zkvm_keccakf_v1 => Keccakf,
         .rv32im_zkvm_ethereum_v1 => Ethereum,
+        .rv32im_zkvm_ethereum_sha_v1 => @import("ethereum_sha.zig").State,
     };
 }

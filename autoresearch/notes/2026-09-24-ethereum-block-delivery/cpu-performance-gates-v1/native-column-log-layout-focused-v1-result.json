@@ -1,0 +1,22 @@
+{
+  "source_candidate": "native-column-log-layout-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 85.3475759170251,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 18,
+  "test_summary": [
+    "All 18 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-column-log-layout-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-native-column-log-layout-focused-v1",
+    "bytes": 10012992,
+    "sha256": "addc83dc6221f0e6252f641c8ef39c287b4a1e04718fc8d004fc3617499314e5"
+  }
+}

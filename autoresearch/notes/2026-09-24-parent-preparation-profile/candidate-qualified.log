@@ -1,0 +1,88 @@
+test-blake3-native-parent-pipeline-aot
++- run test stderr
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+PARENT_PREPARATION phase=validate ns=396583 thread=3564567
+PARENT_PREPARATION phase=composition ns=1448167 thread=3564567
+PARENT_PREPARATION phase=deep ns=17069375 thread=3564567
+PARENT_PREPARATION phase=fri ns=20097500 thread=3564567
+PARENT_PREPARATION phase=transcript_plan ns=7020792 thread=3564567
+PARENT_PREPARATION phase=payloads ns=4305625 thread=3564567
+PARENT_PREPARATION phase=challenges ns=6858625 thread=3564567
+PARENT_PREPARATION phase=terminal ns=4087291 thread=3564567
+PARENT_PREPARATION phase=queries ns=6913292 thread=3564567
+PARENT_PREPARATION phase=roots ns=2006083 thread=3564567
+PARENT_PREPARATION phase=hash_columns ns=67263584 thread=3564567
+PARENT_PREPARATION phase=transcript ns=29523416 thread=3564567
+PARENT_PATH_PREPARATION openings=1540 other_ns=37920823 live_ns=1585799788 trusted_ns=63398842 append_ns=87331672 thread=3564567
+PARENT_PREPARATION phase=paths ns=1774485167 thread=3564567
+PARENT_PREPARATION phase=path_reads ns=2628333 thread=3564567
+PARENT_PREPARATION phase=openings ns=5726167 thread=3564567
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+PARENT_PREPARATION phase=assemble ns=169238916 thread=3564567
+PARENT_PREPARATION phase=teardown ns=5755584 thread=3564567
+PARENT_PREPARATION phase=validate ns=418583 thread=3565012
+PARENT_PREPARATION phase=validate ns=402208 thread=3565014
+PARENT_PREPARATION phase=composition ns=1449458 thread=3565014
+PARENT_PREPARATION phase=deep ns=16963625 thread=3565014
+PARENT_PREPARATION phase=fri ns=19890584 thread=3565014
+PARENT_PREPARATION phase=transcript_plan ns=6801166 thread=3565014
+PARENT_PREPARATION phase=payloads ns=4324625 thread=3565014
+PARENT_PREPARATION phase=challenges ns=6778375 thread=3565014
+PARENT_PREPARATION phase=terminal ns=4320834 thread=3565014
+PARENT_PREPARATION phase=queries ns=6977958 thread=3565014
+PARENT_PREPARATION phase=roots ns=2042917 thread=3565014
+PARENT_PREPARATION phase=hash_columns ns=71300916 thread=3565014
+PARENT_PREPARATION phase=transcript ns=44974292 thread=3565014
+PARENT_PATH_PREPARATION openings=1540 other_ns=36133923 live_ns=1607151239 trusted_ns=64643110 append_ns=121032728 thread=3565014
+PARENT_PREPARATION phase=paths ns=1828978708 thread=3565014
+PARENT_PREPARATION phase=path_reads ns=2654667 thread=3565014
+PARENT_PREPARATION phase=openings ns=5715333 thread=3565014
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+PARENT_PREPARATION phase=assemble ns=177604667 thread=3565014
+PARENT_PREPARATION phase=teardown ns=5646375 thread=3565014
+PARENT_PREPARATION phase=validate ns=435042 thread=3565014
+PARENT_PREPARATION phase=composition ns=1532583 thread=3565014
+PARENT_PREPARATION phase=deep ns=18392750 thread=3565014
+PARENT_PREPARATION phase=fri ns=21489667 thread=3565014
+PARENT_PREPARATION phase=transcript_plan ns=10787916 thread=3565014
+PARENT_PREPARATION phase=payloads ns=5356375 thread=3565014
+PARENT_PREPARATION phase=challenges ns=9300792 thread=3565014
+PARENT_PREPARATION phase=terminal ns=4852708 thread=3565014
+PARENT_PREPARATION phase=queries ns=7616792 thread=3565014
+PARENT_PREPARATION phase=roots ns=2268583 thread=3565014
+PARENT_PREPARATION phase=hash_columns ns=83681500 thread=3565014
+PARENT_PREPARATION phase=transcript ns=95899792 thread=3565014
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=130.7540833367966
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=7.597374991746619
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=2.09424999775365
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=2.7938749990426004
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.5984999879729003
+PARENT_PATH_PREPARATION openings=1540 other_ns=52087141 live_ns=1781516886 trusted_ns=76985412 append_ns=164989019 thread=3565014
+PARENT_PREPARATION phase=paths ns=2075606042 thread=3565014
+PARENT_PREPARATION phase=path_reads ns=3067291 thread=3565014
+PARENT_PREPARATION phase=openings ns=5933625 thread=3565014
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+PARENT_PREPARATION phase=assemble ns=248193250 thread=3565014
+PARENT_PREPARATION phase=teardown ns=8402917 thread=3565014
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=124.96512499637902
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=7.584625011077151
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=2.0596250251401216
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=6.469958345405757
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.5546250031329691
+CANONICAL_PIPELINE_ARTIFACT index=0 sha256=87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b bytes=857591 independently_verified=true
+CANONICAL_PIPELINE_ARTIFACT index=1 sha256=87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b bytes=857591 independently_verified=true
+CANONICAL_EXECUTION_PIPELINE mode=overlapped jobs=2 workers=8 cpu_tokens=9 reserved_bytes=56523834968 wall_ns=11557063084 overlap_ns=2602837292 worker_peak_bytes=11994251838 worker_limit_bytes=25769803776 child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 plan_reused=true outputs_outlive_worker=true independently_verified=true
+CANONICAL_PIPELINE_SPAN run=0 index=0 prepare_start=12875 prepare_end=2206850666 prove_start=2206861333 prove_end=6988765708
+CANONICAL_PIPELINE_SPAN run=0 index=1 prepare_start=2206853791 prepare_end=4809698625 prove_start=7001572166 prove_end=11544531333
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-blake3-native-parent-pipeline-aot success
++- run test 7 passed 21s MaxRSS:26G
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+

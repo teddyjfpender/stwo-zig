@@ -1,0 +1,18 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "heterogeneous-open-recursion-legacy-semantic-v4-result.json",
+  "focused": "heterogeneous-open-recursion-legacy-focused-v1-result.json",
+  "checks": 16,
+  "named_checks": 9,
+  "scope": "Actual original typed child verifiers, original pairing equations lowered into common recursive parent rows, public-source closure, coordinate identity, provider-only span absence, exact census, allocation rollback and retained original production bodies.",
+  "pending": [
+    "selected policy qualification",
+    "genuine hierarchy beyond 32 native spans",
+    "complete semantic source mapping",
+    "complete detached bundle integration",
+    "successful cryptographic proof and block performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

@@ -1,0 +1,50 @@
+{
+  "base_qualification": "sha-combined-assembly-qualification.json",
+  "archive": "sha-combined-leaf-source.tar.gz",
+  "archive_sha256": "e69f1521fc231e836ca91d12abeafb63bfaf4077fb3e1d0e3d25f4dbcdf21827",
+  "source_sha256": {
+    "src/frontends/riscv/prover/blake3_extension_profile_api.zig": "07dc58d25dab36a47a289d5b43f16f320505e78c636a8d389b4907e6451844dc",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_protocol.zig": "9f6f59aac6018877ba07c47a3530ad9cf2035892224022c5e3565363167f40e0",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_statement.zig": "1f211e27baa40e52c9770e41ddd58bb4fbeda786740fd12360e5d88a14b5ef83",
+    "src/frontends/riscv/prover/compact_extension_contract.zig": "b8d1549cddfab96f3eb480092ebb511a6da8de0bb382d0a5bc47c7920435c110",
+    "src/frontends/riscv/prover/blake3_extension_prepared.zig": "b268ca1a9da96ee4bc34f0c06a620b5085bff8edf8f443cd8b606bb96dd6a1b5",
+    "src/frontends/riscv/prover/blake3_extension_proof.zig": "07d2485e15f2e160712da7e07501b5e161ca4bb32a68a43d7467b3bfabf1f49e",
+    "src/frontends/riscv/prover/blake3_extension_manifest.zig": "f6b82186127dae7c4d266781527c826ca69093caac8f82beee6cc7d4c91b2bdb",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_profile.zig": "86f1ca6ced9619c86dc7cf9395af1dbf0dd1befa64e7455ce43111a4501ca404",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_proof.zig": "8011adb99dbfbae13ceb960a699d3a2c8d0c0f50ff7a282037b98e734718360e",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_proof_test.zig": "223d89f44aefe7dd4e6fd09f5a7025779e968299d2c18616efb44af5657a418c",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_statement_wire.zig": "75649a3760b37f46afbfd8d90eb5a6e9543141b23ac5e15a0a9515a2a198a8f0",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_relations.zig": "5f6249acd55aa03a60e07f18166fc815e7a403409064e76003ede720e6ac4fb0",
+    "src/frontends/riscv/prover/blake3_profile_artifact.zig": "af1cc6787a502fa95dc9ef6180f10842a11a8d17b8db2554566984cde892ec5a",
+    "src/frontends/riscv/prover/blake3_execution_source.zig": "96d86e6f17a96a660887e8288748f1914485e4294e2ad83af2f7e62b75901743",
+    "src/frontends/riscv/blake3_execution_commitment_test_root.zig": "3116699842e8095c080ef5a2585f60d4f3e5bd09777e65857d44edc6d1450544"
+  },
+  "qualification_log": "test-sha-combined-leaf-5.log",
+  "qualification_log_sha256": "0ca2bd44b4a1a5c8daf3dba160b9dd4d2ec9fd4aa6e59a2b9ecd5ec98134c1d9",
+  "tests_passed": 9,
+  "queries": 70,
+  "pow_bits": 26,
+  "combined_sha_leaf_stark_verified": true,
+  "source_bound_artifact_verified": true,
+  "compact_providers_verified": true,
+  "combined_sha_recursive_root_verified": false,
+  "ethereum_sdk_sha_provider_enabled": false,
+  "full_ethereum_block_root_verified": false,
+  "legacy_regression_evidence": {
+    "log": "test-sha-combined-leaf-4.log",
+    "scope": "Existing Ethereum and guest-Poseidon full proofs passed; this whole run failed because its SHA fixture lacked production ABI symbols. The fixture is corrected and qualified in -5."
+  },
+  "qualification_timings": [
+    {
+      "compact": false,
+      "artifact_bytes": 4108400,
+      "elapsed_ns": 4647371334
+    },
+    {
+      "compact": true,
+      "artifact_bytes": 4031494,
+      "elapsed_ns": 2980226500
+    }
+  ],
+  "timing_scope": "correctness test including witness/key preparation, serialization, tamper rejection and multiple fresh verifications; not an isolated prover benchmark"
+}

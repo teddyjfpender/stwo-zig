@@ -1,0 +1,19 @@
+1/18 block_v5_native_column_log_layout_test_root.test_0...OK
+2/18 block_v5_native_column_log_layout_test_root.test.native column geometry: actual public parent producer and fresh receiver bodies retained...OK
+3/18 prover.block_v5_native_column_log_layout_test_v1.test.native column geometry: original descriptor domains and capacity tails remain exact...OK
+4/18 prover.block_v5_native_column_log_layout_test_v1.test.native column geometry: genuine empty frame keeps original geometry and external retirement checks...OK
+5/18 prover.block_v5_native_column_log_layout_test_v1.test.native column geometry: exact one-allocation arrays roll back every allocation failure...OK
+6/18 prover.block_v5_native_column_log_layout_test_v1.test.native column geometry: maximum original shard count remains bounded and exact...OK
+7/18 prover.block_v5_native_column_log_layout_test_v1.test.native column geometry: malformed independent descriptors fail before allocation...OK
+8/18 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: independent catalog admission owns geometry and fails closed on source public and root mutations...OK
+9/18 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: independent prepared geometry releases every failed allocation...OK
+10/18 prover.block_v5_native_capacity_recursive_test.test.native column geometry: actual prepared validation needs no scratch allocation and retains mutation rejection...OK
+11/18 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: independent empty policy binds retirement count through frame public supply...OK
+12/18 prover.block_execution_external_trace_v2.test_0...OK
+13/18 air.lookups.tables.mod.test_0...OK
+14/18 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+15/18 air.semantic_eval.test_0...OK
+16/18 prover.block_execution_external_access_bridge_v2.test_0...OK
+17/18 air.memory_commitment.poseidon2_air.test_0...OK
+18/18 air.lookups.tables.source_ingest.test_0...OK
+All 18 tests passed.

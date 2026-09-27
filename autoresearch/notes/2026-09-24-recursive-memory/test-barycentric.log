@@ -1,0 +1,10 @@
+1/9 poly.circle.evaluation.test.prover poly circle evaluation: generic type preserves host representation...OK
+2/9 poly.circle.evaluation.test.prover poly circle evaluation: barycentric evaluates constant column...OK
+3/9 poly.circle.evaluation.test.prover poly circle evaluation: barycentric evaluates x-coordinate column...OK
+4/9 poly.circle.evaluation.test.prover poly circle evaluation: rejects point on domain...OK
+5/9 poly.circle.evaluation.test.prover poly circle evaluation: context fast path matches reference weights...OK
+6/9 poly.circle.evaluation.test.prover poly circle evaluation: context fast eval matches reference eval...OK
+7/9 poly.circle.evaluation.test.prover poly circle evaluation: context rejects log-size mismatch...OK
+8/9 poly.circle.evaluation.test.prover poly circle evaluation: base-field context equals indexed extension-field reference...OK
+9/9 poly.circle.evaluation.test.prover poly circle evaluation: canonical derivative parity at production domains...OK
+All 9 tests passed.

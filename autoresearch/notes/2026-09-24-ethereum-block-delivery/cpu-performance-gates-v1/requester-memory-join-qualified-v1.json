@@ -1,0 +1,65 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "requester-memory-root-source-candidate-v1.json",
+  "successful_attempts": [
+    {
+      "attempt": "requester-memory-join-semantic-v2-result.json",
+      "source_candidate": "requester-memory-join-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.707470249966718,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-memory-join-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "attempt": "requester-memory-join-focused-v1-result.json",
+      "source_candidate": "requester-memory-join-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.199811332975514,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 13,
+      "test_summary": [
+        "All 13 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-memory-join-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-memory-join-focused-v1",
+        "bytes": 45505304,
+        "sha256": "bdf8a924a3cb7543ce35b2382d31195c565292ee68c90de6e1f5dd4ff42981ca"
+      }
+    }
+  ],
+  "authoritative_source_snapshot": "requester-memory-join-focused-v1-source.json",
+  "source_pin_count": 1937,
+  "behavioral_checks": 5,
+  "evidence_scope": [
+    "Two genuine original root verifier bodies compiled",
+    "Original signed packed T equality scalar/symbolic every-limb mutation/OOM fixtures",
+    "Exact security policy and statement/supplier schedule guards"
+  ],
+  "remaining": [
+    "Canonical CPU durable root assembler/selection",
+    "Complete closed-block receipt and all source requirements audited",
+    "Positive proof/end-to-end time/peak memory"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "positive_proof_run": false,
+  "segments_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "stwo.ethereum-block-delivery-progress.v1",
+  "full_block_root_verified": false,
+  "measurement_directory": "measurements-mainnet-24628607-sha-canonical-262144",
+  "last_observed_verified_segments": 17,
+  "planned_segments": 1024,
+  "first_segment_recursive_completion_ns": 143936252875,
+  "preflight_ns": 41585451125,
+  "tracked_peak_at_first_segment_bytes": 20064043363,
+  "first_segment_native_prover_stages_seconds": 27.322755,
+  "qualification_logs": [
+    "test-sha-terminal-planning-1.log",
+    "sha-native-vectors-v1/qualification.json",
+    "test-sha-recursive-parent-1.log",
+    "test-sha-recursive-segments-1.log"
+  ],
+  "guest_note_refactor_preserves_elf_bytes": true,
+  "warning": "Partial progress, not a whole-block benchmark or OS peak-memory measurement.",
+  "retained_nodes": 2,
+  "latest_tracked_peak_bytes": 21568911347,
+  "latest_elapsed_ns": 1774139916917,
+  "additional_audits": [
+    "GPU-READINESS.md",
+    "PRECOMPILE-INVENTORY.md"
+  ],
+  "pending_receiver_qualification": "block-receiver-pending.json",
+  "pending_normal_build": "canonical-block-products-pending.json",
+  "observation_unix_ns": 1790318481220275000,
+  "prefix_16_observation": "mainnet-prefix-16-observation.json",
+  "user_power_update": {
+    "reported_connected": true,
+    "observation_unix_ns": 1790318771554934000,
+    "preference": "Do not prompt about power again"
+  },
+  "sizing_followup": {
+    "time_unix": 1790319256.15286,
+    "state": "Full 512-leaf census complete: ten leaves exceed log24. Explicit schedule stream build and schedule unit tests pending; capacity-clipped 256-leaf work proposal to be replayed next.",
+    "next": "128/256/512 admission geometry followed by canonical representative full-custody recursion",
+    "stop_record": "measurements-mainnet-24628607-sha-canonical-262144/intentional-stop.json",
+    "proof_session": null,
+    "proof_pid": null,
+    "zisk_audit": "ZISK-SEGMENT-SIZING.md",
+    "census_session": null,
+    "census_pid": null,
+    "work_schedules": {
+      "qualification_session": null,
+      "schedule_tests_session": null,
+      "diagnostic_stream_build_session": null,
+      "state": "256-leaf geometry passed completely; unequal two-leaf canonical root + fresh receiver passed; large representative proof queue intentionally cancelled for architectural priority",
+      "scope": "variable cycle budgets with unchanged slot coverage and terminal checks; actual candidate geometry and proofs still pending",
+      "census_pid": null,
+      "explicit_root_session": null,
+      "representative_proof_session": null
+    },
+    "census_complete": true,
+    "census_summary": "segment-geometry-all-512-log25/invocation.json"
+  },
+  "active_direction": "Separate block memory, execution and precompile proving with a real joint PCS commitment barrier and actual-instance-count recursive closure",
+  "architecture_plan": "BLOCK-COMPONENT-ARCHITECTURE.md"
+}

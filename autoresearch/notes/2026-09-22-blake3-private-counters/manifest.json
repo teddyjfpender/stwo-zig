@@ -1,0 +1,16 @@
+{
+  "README.md": "1e0b781dcf744a0c18c76a23fe1ce6ca1f4999edca1190744f0054db2d9b4ddc",
+  "final-review-tests.log": "ad6a68ab0a316f361b5b4aa391b6572d9e369d28a19259758542e1cb4519ea5a",
+  "identity-generation.log": "6a650fbf9e0503b10f611a64f8138bc00eeb634ec807a0e76c8c930e61f91783",
+  "initial-type-check.log": "e1381f5afcdfb7aa714f458225f9564bf4c3da1019d5b83ad01b79e7d8fd96b6",
+  "integration-tests.log": "cf97e098b4b93d60086575ffc40226a4796ddbd8386a553d08dd42b3d7690401",
+  "sources/src/core/channel/blake3_frame.zig": "52057bbfa8381bde458c60a269dd0232058e5b15c1b9cd3b4b2f2e9ca0daca6e",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "02381711b91d49533886a44e8e709ab92978c9041fd9c8dbeea68cee04ea4cbe",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "e66c1fbdbe0bd997ebe49abd3a47ce27a565bc4945b50d0ffca12e0205629a11",
+  "sources/src/frontends/riscv/recursion/air/blake3_bounded_draw.zig": "704c220433f938533e5e8a37ee3bc867e1a464020016876bb060da9eb417f68a",
+  "sources/src/frontends/riscv/recursion/air/blake3_bounded_draw_test.zig": "b69de2135def326841ba354e4ec08b63fe18f4ad819a4e8823be64f5eb15abe4",
+  "sources/src/frontends/riscv/recursion/air/blake3_counter_step.zig": "125e9e46294f7f63f208c0440d115a7057cbc6b9df8635eb53f170e11e57c31a",
+  "sources/src/frontends/riscv/recursion/air/blake3_counter_step_test.zig": "be8c8425e8c9be88eb986d6209989f82cffd688bcd0492acfe7d4ec9f35844a4",
+  "sources/src/frontends/riscv/recursion/air/blake3_frame_route.zig": "34856ce23a3c60abdeeab6f271da189a9685a1649eaf62f504452b9c882de899",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "87f2c18cb63c9ca42538b5d63aa3cac2b907357a997ebe628056ee21f4a58395"
+}

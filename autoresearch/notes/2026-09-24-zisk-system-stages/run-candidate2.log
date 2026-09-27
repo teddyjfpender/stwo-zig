@@ -1,0 +1,11 @@
+keccak_permute {'comparison': 'identical_output', 'calls_per_item': 1} {'before': 4077.7848510742188, 'after': 120.53172302246094, 'zisk': 137.12501525878906}
+keccak_full_trace {'comparison': 'identical_output', 'calls_per_item': 1} {'before': 4587.301895141602, 'after': 346.55316162109375}
+keccak_paired_witness {'comparison': 'same_local_complete_stage', 'calls_per_item': 2} {'before': 25322.509765625, 'after': 16672.882080078125}
+keccak_paired_witness_validate_count {'comparison': 'same_local_complete_stage', 'calls_per_item': 2} {'before': 4158888.015625, 'after': 4244514.328125}
+transcript_absorb_draw8 {'input_bytes': 64, 'comparison': 'native_protocols_differ'} {'before': 1279.687240600586, 'after': 1189.213119506836, 'zisk': 250.77120971679688}
+transcript_absorb_draw8 {'input_bytes': 1024, 'comparison': 'native_protocols_differ'} {'before': 2784.6368255615234, 'after': 1963.1131439208984, 'zisk': 1264.4144744873047}
+transcript_absorb_draw8 {'input_bytes': 32768, 'comparison': 'native_protocols_differ'} {'before': 52195.882080078125, 'after': 27474.6806640625, 'zisk': 37353.454345703125}
+lde_commit_pipeline {'input_rows': 1024, 'columns': 8, 'expansion': 2, 'comparison': 'different_fields_native_protocols_and_layouts', 'stage_order': ['lde', 'commit']} {'before': 505002.5234375, 'after': 498038.41015625, 'zisk': 439448.8125}
+lde_commit_pipeline {'input_rows': 16384, 'columns': 8, 'expansion': 2, 'comparison': 'different_fields_native_protocols_and_layouts', 'stage_order': ['lde', 'commit']} {'before': 3522145.828125, 'after': 3526874.984375, 'zisk': 8663585.296875}
+lde_commit_pipeline {'input_rows': 65536, 'columns': 8, 'expansion': 2, 'comparison': 'different_fields_native_protocols_and_layouts', 'stage_order': ['lde', 'commit']} {'before': 7526005.1875, 'after': 7472445.28125, 'zisk': 38829165.375}
+lde_commit_pipeline {'input_rows': 16384, 'columns': 64, 'expansion': 2, 'comparison': 'different_fields_native_protocols_and_layouts', 'stage_order': ['lde', 'commit']} {'before': 8736970.0625, 'after': 8803002.59375, 'zisk': 44879485.6875}

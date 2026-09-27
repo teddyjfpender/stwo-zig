@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-recursive-join-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 15.548643625050317,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 14,
+  "test_summary": [
+    "All 14 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-recursive-join-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-recursive-join-focused-v1",
+    "bytes": 31587368,
+    "sha256": "4a57476d22b02a64011a859e44830dce4d96d01a02d7b8a78e2d1c1010456550"
+  }
+}

@@ -18,6 +18,7 @@ pub const process_runtime = @import("process_runtime.zig");
 pub const proof_assembly = @import("proof_assembly/mod.zig");
 pub const runtime_error = @import("error.zig");
 pub const session = @import("session.zig");
+pub const secure_polynomial_v1 = @import("secure_polynomial_v1.zig");
 pub const statements = struct {
     pub const state_machine = @import("statements/state_machine.zig");
 };

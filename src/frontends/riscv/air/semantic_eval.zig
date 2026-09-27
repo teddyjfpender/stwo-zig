@@ -18,6 +18,7 @@ pub fn Eval(comptime S: type) type {
 
         pub const MAX_CONSTRAINTS: usize = program.MAX_DIRECT_CONSTRAINTS;
         pub const Evaluation = program.DirectConstraints;
+        pub const RecipeEvaluation = @import("x0_native_envelope_v1.zig").Builder(S).Direct;
 
         pub fn mainColumnCount(family: trace.OpcodeFamily) usize {
             return program.mainColumnCount(family);
@@ -37,6 +38,19 @@ pub fn Eval(comptime S: type) type {
             return result;
         }
 
+        pub fn evaluateForRecipeInto(family: trace.OpcodeFamily, columns: []const S, is_active: S, local_zero: bool, result: *Self.RecipeEvaluation) !void {
+            if (!local_zero) {
+                var original: Self.Evaluation = undefined;
+                try Self.evaluateInto(family, columns, is_active, &original);
+                result.len = original.len;
+                @memcpy(result.values[0..result.len], original.values[0..original.len]);
+                return;
+            }
+            const evaluated = try @import("x0_native_envelope_v1.zig").Builder(S).direct(family, columns, is_active);
+            result.len = evaluated.len;
+            @memcpy(result.values[0..result.len], evaluated.values[0..evaluated.len]);
+        }
+
         /// Caller-owned production row evaluator. This prevents the maximum
         /// family result buffer from crossing a return boundary on every row.
         pub fn evaluateInto(
@@ -47,25 +61,7 @@ pub fn Eval(comptime S: type) type {
         ) !void {
             @setEvalBranchQuota(100_000);
             if (!isTraceCompatible(family)) return error.IncompatibleCommittedTrace;
-            return switch (family) {
-                .base_alu_imm => program.buildBaseAluImmDirectInto(columns, is_active, result),
-                .base_alu_reg => program.buildBaseAluRegDirectInto(columns, is_active, result),
-                .branch_eq => program.buildBranchEqDirectInto(columns, is_active, result),
-                .branch_lt => program.buildBranchLtDirectInto(columns, is_active, result),
-                .lt_imm => program.buildLtImmDirectInto(columns, is_active, result),
-                .lt_reg => program.buildLtRegDirectInto(columns, is_active, result),
-                .shifts_imm => program.buildShiftsImmDirectInto(columns, is_active, result),
-                .shifts_reg => program.buildShiftsRegDirectInto(columns, is_active, result),
-                .load_store => program.buildLoadStoreDirectInto(columns, is_active, result),
-                .mul => program.buildMulDirectInto(columns, is_active, result),
-                .mulh => program.buildMulhDirectInto(columns, is_active, result),
-                .div => program.buildDivDirectInto(columns, is_active, result),
-                .lui => program.buildLuiDirectInto(columns, is_active, result),
-                .auipc => program.buildAuipcDirectInto(columns, is_active, result),
-                .jalr => program.buildJalrDirectInto(columns, is_active, result),
-                .jal => program.buildJalDirectInto(columns, is_active, result),
-                .fence => program.buildFenceDirectInto(columns, is_active, result),
-            };
+            try program.buildDirectInto(family, columns, is_active, result);
         }
     };
 }
@@ -107,6 +103,9 @@ pub const BaseScalar = struct {
 
     pub inline fn mul(lhs: BaseScalar, rhs: BaseScalar) BaseScalar {
         return fromBase(lhs.value.mul(rhs.value));
+    }
+    pub inline fn neg(self: BaseScalar) BaseScalar {
+        return fromBase(self.value.neg());
     }
 };
 

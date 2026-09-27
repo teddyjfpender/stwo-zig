@@ -13,10 +13,27 @@ pub fn Ops(comptime Backend: type) type {
     return struct {
         const MerkleTree = Backend.MerkleTree;
         const FriLineCascadeResult = Backend.FriLineCascadeResult;
-        const allocateLineEvaluation = Backend.allocateLineEvaluation;
-        const allocateSecureColumn = Backend.allocateSecureColumn;
+        const allocateLineEvaluation = Backend.allocateLineEvaluationWithAllocator;
+        const allocateSecureColumn = Backend.allocateSecureColumnWithAllocator;
         const secureColumnForMerkle = Backend.secureColumnForMerkle;
         const commitMerkle = Backend.commitMerkle;
+
+        pub fn foldCircleResidentIntoLine(a: std.mem.Allocator, source: @import("stwo_prover_engine").secure_column.SecureColumnByCoords, destination: *@import("stwo_prover_engine").line.LineEvaluation, domain: @import("stwo_core").poly.circle.domain.CircleDomain, alpha: @import("stwo_core").fields.qm31.QM31, ledger: ?*work_profile.FriFoldExecutionLedger) !void {
+            if (source.len() != domain.size() or destination.len() * 2 != source.len()) return error.InvalidColumns;
+            var staged: ?@import("stwo_prover_engine").secure_column.SecureColumnByCoords = null;
+            defer if (staged) |*column| column.deinit(a);
+            const source_storage = source.resident_storage orelse blk: {
+                const acquired_source = try @import("runtime/fri_columns_v1.zig").fromHostOrdinary(a, source);
+                staged = acquired_source;
+                break :blk staged.?.resident_storage orelse unreachable;
+            };
+            const coset = domain.half_coset;
+            var lease = try shared_runtime.acquire();
+            defer lease.deinit();
+            const result = try @import("runtime/fri_resident_fold_v1.zig").foldWithPolicy(a, lease.runtime, source_storage, destination.resident_storage orelse return error.InvalidColumns, @intCast(source.len()), .circle, @intCast(coset.initial_index.v), @intCast(coset.step_size.v), alpha, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+            if (ledger) |active| active.observe(.{ .kind = .circle_to_line, .initial_count = source.len(), .fold_count = 1, .domain_log_size = coset.logSize(), .domain_initial_index = @intCast(coset.initial_index.v), .domain_step_size = @intCast(coset.step_size.v), .inverse_path = if (result.inverse_generated) .metal_direct else .retained, .alpha_squares = 0, .domain_doubles = 0, .optimized_zero_accumulator = true });
+            telemetry.record(.metal_fri_circle_fold_dispatch);
+        }
 
         pub fn foldCircleIntoLine(
             allocator: std.mem.Allocator,
@@ -187,8 +204,6 @@ pub fn Ops(comptime Backend: type) type {
             n_folds: u32,
             ledger: ?*work_profile.FriFoldExecutionLedger,
         ) !@import("stwo_prover_engine").line.LineEvaluation {
-            const initial_count = evaluation.len();
-            const initial_domain = evaluation.domain();
             var current = evaluation;
             var owns_current = false;
             var current_alpha = alpha;
@@ -196,30 +211,22 @@ pub fn Ops(comptime Backend: type) type {
             var step: u32 = 0;
             while (step < n_folds) : (step += 1) {
                 const destination_domain = current.domain().double();
-                var next = try allocateLineEvaluation(destination_domain);
+                var next = try allocateLineEvaluation(allocator, destination_domain);
                 errdefer next.deinit(allocator);
                 const destination_len = next.len();
-                try workspace.ensureCapacity(allocator, destination_len);
-                const x = workspace.x_values[0..destination_len];
-                const inverse_x = workspace.inv_x_values[0..destination_len];
-                try fold_inverses.prepare(x, inverse_x, current.domain().coset(), .x);
-                const source_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(current.values));
-                const destination_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(@constCast(next.values)));
-                const inverse_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(inverse_x));
-                const alpha_coords = current_alpha.toM31Array();
-                const alpha_words = [4]u32{ alpha_coords[0].v, alpha_coords[1].v, alpha_coords[2].v, alpha_coords[3].v };
+                const coset = current.domain().coset();
                 var lease = try shared_runtime.acquire();
                 defer lease.deinit();
-                const gpu_ms = try lease.runtime.foldFriLine(
-                    source_words.ptr,
-                    @intCast(current.len()),
-                    inverse_words,
-                    alpha_words,
-                    destination_words.ptr,
-                );
+                const result = try @import("runtime/fri_resident_fold_v1.zig").foldWithPolicy(allocator, lease.runtime, current.resident_storage orelse return error.InvalidColumns, next.resident_storage orelse return error.InvalidColumns, @intCast(current.len()), .line, @intCast(coset.initial_index.v), @intCast(coset.step_size.v), current_alpha, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(allocator));
+                const gpu_ms = result.gpu_ms;
+                if (ledger) |active| active.observe(.{ .kind = .line, .initial_count = current.len(), .fold_count = 1, .domain_log_size = current.domain().logSize(), .domain_initial_index = @intCast(coset.initial_index.v), .domain_step_size = @intCast(coset.step_size.v), .inverse_path = if (result.inverse_generated) .metal_direct else .retained, .alpha_squares = 1, .domain_doubles = 1 });
                 telemetry.record(.metal_fri_line_fold_dispatch);
                 std.log.debug("Metal FRI line fold: {d:.3}ms", .{gpu_ms});
                 if (fold_parity.enabled()) {
+                    try workspace.ensureCapacity(allocator, destination_len);
+                    const x = workspace.x_values[0..destination_len];
+                    const inverse_x = workspace.inv_x_values[0..destination_len];
+                    try fold_inverses.prepare(x, inverse_x, current.domain().coset(), .x);
                     const receipt = try fold_parity.validateLine(
                         current.values,
                         current.domain(),
@@ -233,20 +240,6 @@ pub fn Ops(comptime Backend: type) type {
                 current = next;
                 owns_current = true;
                 current_alpha = current_alpha.square();
-            }
-            if (ledger) |active| {
-                const coset = initial_domain.coset();
-                active.observe(.{
-                    .kind = .line,
-                    .initial_count = initial_count,
-                    .fold_count = n_folds,
-                    .domain_log_size = initial_domain.logSize(),
-                    .domain_initial_index = @intCast(coset.initial_index.v),
-                    .domain_step_size = @intCast(coset.step_size.v),
-                    .inverse_path = .host_batch,
-                    .alpha_squares = n_folds,
-                    .domain_doubles = n_folds,
-                });
             }
             return current;
         }
@@ -377,16 +370,18 @@ pub fn Ops(comptime Backend: type) type {
                 current_alpha = current_alpha.square();
             }
 
-            var folded = try allocateLineEvaluation(final_domain);
+            var folded = try allocateLineEvaluation(allocator, final_domain);
             errdefer folded.deinit(allocator);
-            var coordinates = try allocateSecureColumn(final_count);
+            var coordinates = try allocateSecureColumn(allocator, final_count);
             errdefer coordinates.deinit(allocator);
             const destination_storage = folded.resident_storage orelse return error.InvalidColumns;
             const coordinate_storage = coordinates.resident_storage orelse return error.InvalidColumns;
             const inverse_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(inverse_values));
             var lease = try shared_runtime.acquire();
             defer lease.deinit();
-            const result = try lease.runtime.foldFriLineAndCommitForHash(
+            const result = try @import("runtime/fri_fold_commit_budgeted_v1.zig").foldFriLineAndCommitForHashWithPolicy(
+                allocator,
+                lease.runtime,
                 source_storage.?.handle,
                 @intCast(evaluation.len()),
                 inverse_words,
@@ -397,6 +392,7 @@ pub fn Ops(comptime Backend: type) type {
                 domain.?.node_seed,
                 domain.?.domain_prefix_bytes,
                 @intFromEnum(domain.?.family),
+                @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(allocator),
             );
             const tree = try MerkleTree(H).fromSharedRuntime(result.tree);
             telemetry.record(.metal_fri_fold_commit_epoch);
@@ -492,11 +488,13 @@ pub fn Ops(comptime Backend: type) type {
             ledger: ?*work_profile.FriFoldExecutionLedger,
         ) !?FriLineCascadeResult(H) {
             const channel_blake2s = @import("stwo_core").channel.blake2s;
-            const M31 = @import("stwo_core").fields.m31.M31;
-            const maybe_domain = comptime hash_domain.blake2sParameters(H);
+            _ = workspace;
+            const blake3 = comptime H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher;
+            const maybe_domain = comptime hash_domain.directParameters(H);
             if (comptime maybe_domain == null) return null;
             const domain = maybe_domain.?;
-            if (comptime @TypeOf(channel.*) != channel_blake2s.Blake2sChannel) return null;
+            const ExpectedChannel = if (blake3) @import("stwo_core").channel.blake3.Channel else channel_blake2s.Blake2sChannel;
+            if (comptime @TypeOf(channel.*) != ExpectedChannel or domain.family == .poseidon2_m31) return null;
             if (fold_step != 1 or last_layer_size == 0 or
                 evaluation.len() <= last_layer_size or evaluation.resident_storage == null or
                 !std.math.isPowerOfTwo(evaluation.len()) or !std.math.isPowerOfTwo(last_layer_size) or
@@ -506,24 +504,10 @@ pub fn Ops(comptime Backend: type) type {
             }
             const layer_count: usize = std.math.log2_int(usize, evaluation.len() / last_layer_size);
             if (layer_count == 0 or layer_count >= 31) return null;
-            const inverse_count = evaluation.len() - last_layer_size;
-            const use_resident_inverse = evaluation.len() >= 1 << 13;
-            var inverse_values: ?[]M31 = null;
-            if (!use_resident_inverse) inverse_values = try allocator.alloc(M31, inverse_count);
-            defer if (inverse_values) |values| allocator.free(values);
             var current_domain = evaluation.domain();
             var current_count = evaluation.len();
-            var inverse_cursor: usize = 0;
             for (0..layer_count) |_| {
                 const destination_count = current_count >> 1;
-                if (inverse_values) |values| {
-                    try workspace.ensureCapacity(allocator, destination_count);
-                    const x = workspace.x_values[0..destination_count];
-                    const inverse_x = workspace.inv_x_values[0..destination_count];
-                    try fold_inverses.prepare(x, inverse_x, current_domain.coset(), .x);
-                    @memcpy(values[inverse_cursor .. inverse_cursor + destination_count], inverse_x);
-                }
-                inverse_cursor += destination_count;
                 current_count = destination_count;
                 current_domain = current_domain.double();
             }
@@ -539,18 +523,18 @@ pub fn Ops(comptime Backend: type) type {
             defer allocator.free(coordinate_handles);
             current_count = evaluation.len();
             for (columns, coordinate_handles) |*column, *handle| {
-                column.* = try allocateSecureColumn(current_count);
+                column.* = try allocateSecureColumn(allocator, current_count);
                 initialized_columns += 1;
                 handle.* = column.resident_storage.?.handle;
                 current_count >>= 1;
             }
 
-            var terminal = try allocateLineEvaluation(current_domain);
+            var terminal = try allocateLineEvaluation(allocator, current_domain);
             errdefer terminal.deinit(allocator);
             const terminal_storage = terminal.resident_storage orelse return error.InvalidColumns;
             const source_storage = evaluation.resident_storage.?;
 
-            var channel_state = [_]u32{0} ** 10;
+            var channel_state = [_]u32{0} ** (if (blake3) 11 else 10);
             for (0..8) |word| {
                 channel_state[word] = std.mem.readInt(
                     u32,
@@ -558,49 +542,31 @@ pub fn Ops(comptime Backend: type) type {
                     .little,
                 );
             }
-            channel_state[8] = channel.n_draws;
-            const inverse_words: ?[]const u32 = if (inverse_values) |values|
-                std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(values))
-            else
-                null;
+            channel_state[8] = @truncate(channel.n_draws);
+            if (blake3) channel_state[9] = @truncate(channel.n_draws >> 32);
             const initial_coset = evaluation.domain().coset();
 
             var lease = try shared_runtime.acquire();
             defer lease.deinit();
-            var runtime_result = if (ledger != null)
-                try lease.runtime.foldFriCircleLineCascadeWithReceipt(
-                    allocator,
-                    source_storage.handle,
-                    @intCast(evaluation.len()),
-                    circle_source,
-                    circle_alpha,
-                    inverse_words,
-                    @intCast(initial_coset.initial_index.v),
-                    @intCast(initial_coset.step_size.v),
-                    coordinate_handles,
-                    terminal_storage.handle,
-                    domain.leaf_seed,
-                    domain.node_seed,
-                    domain.domain_prefix_bytes,
-                    &channel_state,
-                )
-            else
-                try lease.runtime.foldFriCircleLineCascade(
-                    allocator,
-                    source_storage.handle,
-                    @intCast(evaluation.len()),
-                    circle_source,
-                    circle_alpha,
-                    inverse_words,
-                    @intCast(initial_coset.initial_index.v),
-                    @intCast(initial_coset.step_size.v),
-                    coordinate_handles,
-                    terminal_storage.handle,
-                    domain.leaf_seed,
-                    domain.node_seed,
-                    domain.domain_prefix_bytes,
-                    &channel_state,
-                );
+            var runtime_result = try @import("runtime.zig").Runtime.foldFriCircleLineCascadeForSuite(
+                blake3,
+                lease.runtime,
+                allocator,
+                source_storage.handle,
+                @intCast(evaluation.len()),
+                circle_source,
+                circle_alpha,
+                null,
+                @intCast(initial_coset.initial_index.v),
+                @intCast(initial_coset.step_size.v),
+                coordinate_handles,
+                terminal_storage.handle,
+                domain.leaf_seed,
+                domain.node_seed,
+                domain.domain_prefix_bytes,
+                &channel_state,
+                ledger != null,
+            );
             defer allocator.free(runtime_result.trees);
 
             var consumed_runtime_trees: usize = 0;
@@ -622,7 +588,7 @@ pub fn Ops(comptime Backend: type) type {
             for (0..8) |word| {
                 std.mem.writeInt(u32, channel.digest[word * 4 ..][0..4], channel_state[word], .little);
             }
-            channel.n_draws = channel_state[8];
+            channel.n_draws = if (blake3) @as(u64, channel_state[8]) | (@as(u64, channel_state[9]) << 32) else channel_state[8];
             telemetry.record(.metal_fri_fold_commit_epoch);
             for (0..layer_count) |_| telemetry.record(.resident_merkle_commit);
             std.log.debug(
@@ -660,9 +626,7 @@ pub fn Ops(comptime Backend: type) type {
                     .domain_log_size = receipt_domain.logSize(),
                     .domain_initial_index = @intCast(receipt_coset.initial_index.v),
                     .domain_step_size = @intCast(receipt_coset.step_size.v),
-                    .inverse_path = if (inverse_words != null)
-                        .host_batch
-                    else if (runtime_result.inverse_generation_mask & 2 != 0)
+                    .inverse_path = if (runtime_result.inverse_generation_mask & 2 != 0)
                         .metal_direct
                     else
                         .retained,

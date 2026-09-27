@@ -266,89 +266,21 @@ fn generateAndCommitInternal(
     projection: ?*const native_provider_omit.ProjectionV1,
     additional: anytype,
 ) !ethereum_types.ExtensionClaim {
-    var k0 = try keccak_interaction.generate(
-        allocator,
-        &extension.keccak_shard,
-        &prefix.relations.keccak,
-        pool,
-    );
-    defer k0.deinit(allocator);
-    var k1 = try keccak_table_interaction.generate(
-        allocator,
-        .chi,
-        &extension.keccak_counters,
-        &prefix.relations.keccak,
-        pool,
-    );
-    defer k1.deinit(allocator);
-    var k2 = try keccak_table_interaction.generate(
-        allocator,
-        .xor5,
-        &extension.keccak_counters,
-        &prefix.relations.keccak,
-        pool,
-    );
-    defer k2.deinit(allocator);
-
-    var s0 = try secp_interaction.generate(secp_bundle.ProductBase, allocator, &extension.secp.product_base, &prefix.relations.secp, pool);
-    defer s0.deinit(allocator);
-    var s1 = try secp_interaction.generate(secp_bundle.ProductScalar, allocator, &extension.secp.product_scalar, &prefix.relations.secp, pool);
-    defer s1.deinit(allocator);
-    var s2 = try secp_interaction.generate(secp_bundle.LinearBase, allocator, &extension.secp.linear_base, &prefix.relations.secp, pool);
-    defer s2.deinit(allocator);
-    var s3 = try secp_interaction.generate(secp_bundle.LinearScalar, allocator, &extension.secp.linear_scalar, &prefix.relations.secp, pool);
-    defer s3.deinit(allocator);
-    var s4 = try secp_interaction.generate(secp_config.Point, allocator, &extension.secp.point, &prefix.relations.secp, pool);
-    defer s4.deinit(allocator);
-    var s5 = try secp_interaction.generate(secp_config.Split, allocator, &extension.secp.split, &prefix.relations.secp, pool);
-    defer s5.deinit(allocator);
-    var s6 = try secp_interaction.generate(secp_config.ScalarProgram, allocator, &extension.secp.scalar, &prefix.relations.secp, pool);
-    defer s6.deinit(allocator);
-    var s7 = try secp_interaction.generate(secp_config.Table, allocator, &extension.secp.table, &prefix.relations.secp, pool);
-    defer s7.deinit(allocator);
-    var s8 = try secp_interaction.generate(secp_config.Recovery, allocator, &extension.secp.recovery, &prefix.relations.secp, pool);
-    defer s8.deinit(allocator);
-    var s9 = try secp_interaction.generate(secp_config.ByteTable, allocator, &extension.secp.byte, &prefix.relations.secp, pool);
-    defer s9.deinit(allocator);
-    var s10 = try secp_interaction.generate(secp_config.RecoveryCaller, allocator, &extension.recovery_caller, &prefix.relations.secp, pool);
-    defer s10.deinit(allocator);
-
-    const signer_empty = extension.secp_tape.recoveries.items.len == 0;
-    const claim = ethereum_types.ExtensionClaim{
-        .keccak_shard = try keccak_component.Claim.canonicalWithMaximumLogSize(&extension.keccak_shard, k0.claims, @import("../../air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size),
-        .keccak_chi_table = k1.claim,
-        .keccak_xor5_table = k2.claim,
-        .product_base = try secp_component.Claim(secp_bundle.ProductBase).canonicalLogical(&extension.secp.product_base, logicalRows(&extension.secp.product_base, signer_empty), s0.claims),
-        .product_scalar = try secp_component.Claim(secp_bundle.ProductScalar).canonicalLogical(&extension.secp.product_scalar, logicalRows(&extension.secp.product_scalar, signer_empty), s1.claims),
-        .linear_base = try secp_component.Claim(secp_bundle.LinearBase).canonicalLogical(&extension.secp.linear_base, logicalRows(&extension.secp.linear_base, signer_empty), s2.claims),
-        .linear_scalar = try secp_component.Claim(secp_bundle.LinearScalar).canonicalLogical(&extension.secp.linear_scalar, logicalRows(&extension.secp.linear_scalar, signer_empty), s3.claims),
-        .point = try secp_component.Claim(secp_config.Point).canonicalLogical(&extension.secp.point, logicalRows(&extension.secp.point, signer_empty), s4.claims),
-        .split = try secp_component.Claim(secp_config.Split).canonicalLogical(&extension.secp.split, logicalRows(&extension.secp.split, signer_empty), s5.claims),
-        .scalar = try secp_component.Claim(secp_config.ScalarProgram).canonicalLogical(&extension.secp.scalar, logicalRows(&extension.secp.scalar, signer_empty), s6.claims),
-        .table = try secp_component.Claim(secp_config.Table).canonicalLogical(&extension.secp.table, logicalRows(&extension.secp.table, signer_empty), s7.claims),
-        .recovery = try secp_component.Claim(secp_config.Recovery).canonicalLogical(&extension.secp.recovery, logicalRows(&extension.secp.recovery, signer_empty), s8.claims),
-        .byte = try secp_component.Claim(secp_config.ByteTable).canonical(&extension.secp.byte, s9.claims),
-        .recovery_caller = try secp_component.Claim(secp_config.RecoveryCaller).canonicalLogical(&extension.recovery_caller, logicalRows(&extension.recovery_caller, signer_empty), s10.claims),
-    };
-
+    var generated = try generate(allocator, extension, &prefix.relations, pool);
+    defer generated.deinit(allocator);
+    const claim = generated.claim;
     var columns: std.ArrayList(external_tree.OwnedColumn) = .empty;
     defer columns.deinit(allocator);
-    try appendColumns(allocator, &columns, extension.keccak_shard.log_size, &k0.columns);
-    try appendColumns(allocator, &columns, keccak_tables.logSize(.chi), &k1.columns);
-    try appendColumns(allocator, &columns, keccak_tables.logSize(.xor5), &k2.columns);
-    inline for (.{
-        .{ extension.secp.product_base.log_size, &s0.columns },
-        .{ extension.secp.product_scalar.log_size, &s1.columns },
-        .{ extension.secp.linear_base.log_size, &s2.columns },
-        .{ extension.secp.linear_scalar.log_size, &s3.columns },
-        .{ extension.secp.point.log_size, &s4.columns },
-        .{ extension.secp.split.log_size, &s5.columns },
-        .{ extension.secp.scalar.log_size, &s6.columns },
-        .{ extension.secp.table.log_size, &s7.columns },
-        .{ extension.secp.recovery.log_size, &s8.columns },
-        .{ extension.secp.byte.log_size, &s9.columns },
-        .{ extension.recovery_caller.log_size, &s10.columns },
-    }) |entry| try appendColumns(allocator, &columns, entry[0], entry[1]);
+    // The legacy commit API may consume individual slices; reflect transfers
+    // back into the owning result so each allocation is freed exactly once.
+    const values = try allocator.alloc([]M31, generated.columns.len);
+    defer allocator.free(values);
+    for (values, generated.columns) |*value, column| value.* = @constCast(column.values);
+    defer for (generated.columns, values) |*column, value| {
+        column.values = value;
+    };
+    try columns.ensureTotalCapacity(allocator, values.len);
+    for (generated.columns, values) |column, *value| columns.appendAssumeCapacity(.{ .log_size = column.log_size, .values = value });
     try additional.appendColumns(allocator, &columns);
 
     if (lookup_v2) |authority| {
@@ -428,6 +360,114 @@ fn generateAndCommitInternal(
         );
     }
     return claim;
+}
+
+/// Independently owned extension interactions, shared by legacy and BLAKE3
+/// orchestration. Generation performs no transcript mixing or commitment.
+pub const Generated = struct {
+    columns: []@import("stwo_prover_engine").pcs.ColumnEvaluation,
+    claim: ethereum_types.ExtensionClaim,
+    pub fn deinit(self: *Generated, a: std.mem.Allocator) void {
+        for (self.columns) |column| a.free(@constCast(column.values));
+        a.free(self.columns);
+        self.* = undefined;
+    }
+};
+pub fn generate(allocator: std.mem.Allocator, extension: *const ethereum_witness.Witness, relations: *const ethereum_transcript.Relations, pool: *work_pool.WorkPool) !Generated {
+    var k0 = try keccak_interaction.generate(
+        allocator,
+        &extension.keccak_shard,
+        &relations.keccak,
+        pool,
+    );
+    defer k0.deinit(allocator);
+    var k1 = try keccak_table_interaction.generate(
+        allocator,
+        .chi,
+        &extension.keccak_counters,
+        &relations.keccak,
+        pool,
+    );
+    defer k1.deinit(allocator);
+    var k2 = try keccak_table_interaction.generate(
+        allocator,
+        .xor5,
+        &extension.keccak_counters,
+        &relations.keccak,
+        pool,
+    );
+    defer k2.deinit(allocator);
+
+    var s0 = try secp_interaction.generate(secp_bundle.ProductBase, allocator, &extension.secp.product_base, &relations.secp, pool);
+    defer s0.deinit(allocator);
+    var s1 = try secp_interaction.generate(secp_bundle.ProductScalar, allocator, &extension.secp.product_scalar, &relations.secp, pool);
+    defer s1.deinit(allocator);
+    var s2 = try secp_interaction.generate(secp_bundle.LinearBase, allocator, &extension.secp.linear_base, &relations.secp, pool);
+    defer s2.deinit(allocator);
+    var s3 = try secp_interaction.generate(secp_bundle.LinearScalar, allocator, &extension.secp.linear_scalar, &relations.secp, pool);
+    defer s3.deinit(allocator);
+    var s4 = try secp_interaction.generate(secp_config.Point, allocator, &extension.secp.point, &relations.secp, pool);
+    defer s4.deinit(allocator);
+    var s5 = try secp_interaction.generate(secp_config.Split, allocator, &extension.secp.split, &relations.secp, pool);
+    defer s5.deinit(allocator);
+    var s6 = try secp_interaction.generate(secp_config.ScalarProgram, allocator, &extension.secp.scalar, &relations.secp, pool);
+    defer s6.deinit(allocator);
+    var s7 = try secp_interaction.generate(secp_config.Table, allocator, &extension.secp.table, &relations.secp, pool);
+    defer s7.deinit(allocator);
+    var s8 = try secp_interaction.generate(secp_config.Recovery, allocator, &extension.secp.recovery, &relations.secp, pool);
+    defer s8.deinit(allocator);
+    var s9 = try secp_interaction.generate(secp_config.ByteTable, allocator, &extension.secp.byte, &relations.secp, pool);
+    defer s9.deinit(allocator);
+    var s10 = try generateCallerInteraction(allocator, extension, &relations.secp, pool);
+    defer s10.deinit(allocator);
+
+    const signer_empty = extension.signerCount() == 0;
+    const claim = ethereum_types.ExtensionClaim{
+        .keccak_shard = try keccak_component.Claim.canonicalWithMaximumLogSize(&extension.keccak_shard, k0.claims, @import("../../air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size),
+        .keccak_chi_table = k1.claim,
+        .keccak_xor5_table = k2.claim,
+        .product_base = try secp_component.Claim(secp_bundle.ProductBase).canonicalLogical(&extension.secp.product_base, logicalRows(&extension.secp.product_base, signer_empty), s0.claims),
+        .product_scalar = try secp_component.Claim(secp_bundle.ProductScalar).canonicalLogical(&extension.secp.product_scalar, logicalRows(&extension.secp.product_scalar, signer_empty), s1.claims),
+        .linear_base = try secp_component.Claim(secp_bundle.LinearBase).canonicalLogical(&extension.secp.linear_base, logicalRows(&extension.secp.linear_base, signer_empty), s2.claims),
+        .linear_scalar = try secp_component.Claim(secp_bundle.LinearScalar).canonicalLogical(&extension.secp.linear_scalar, logicalRows(&extension.secp.linear_scalar, signer_empty), s3.claims),
+        .point = try secp_component.Claim(secp_config.Point).canonicalLogical(&extension.secp.point, logicalRows(&extension.secp.point, signer_empty), s4.claims),
+        .split = try secp_component.Claim(secp_config.Split).canonicalLogical(&extension.secp.split, logicalRows(&extension.secp.split, signer_empty), s5.claims),
+        .scalar = try secp_component.Claim(secp_config.ScalarProgram).canonicalLogical(&extension.secp.scalar, logicalRows(&extension.secp.scalar, signer_empty), s6.claims),
+        .table = try secp_component.Claim(secp_config.Table).canonicalLogical(&extension.secp.table, logicalRows(&extension.secp.table, signer_empty), s7.claims),
+        .recovery = try secp_component.Claim(secp_config.Recovery).canonicalLogical(&extension.secp.recovery, logicalRows(&extension.secp.recovery, signer_empty), s8.claims),
+        .byte = try secp_component.Claim(secp_config.ByteTable).canonical(&extension.secp.byte, s9.claims),
+        .recovery_caller = try callerClaim(extension, s10.claims, signer_empty),
+    };
+
+    var columns: std.ArrayList(@import("stwo_prover_engine").pcs.ColumnEvaluation) = .empty;
+    errdefer {
+        for (columns.items) |column| allocator.free(@constCast(column.values));
+        columns.deinit(allocator);
+    }
+    try takeColumns(allocator, &columns, extension.keccak_shard.log_size, &k0.columns);
+    try takeColumns(allocator, &columns, keccak_tables.logSize(.chi), &k1.columns);
+    try takeColumns(allocator, &columns, keccak_tables.logSize(.xor5), &k2.columns);
+    inline for (.{
+        .{ extension.secp.product_base.log_size, &s0.columns },
+        .{ extension.secp.product_scalar.log_size, &s1.columns },
+        .{ extension.secp.linear_base.log_size, &s2.columns },
+        .{ extension.secp.linear_scalar.log_size, &s3.columns },
+        .{ extension.secp.point.log_size, &s4.columns },
+        .{ extension.secp.split.log_size, &s5.columns },
+        .{ extension.secp.scalar.log_size, &s6.columns },
+        .{ extension.secp.table.log_size, &s7.columns },
+        .{ extension.secp.recovery.log_size, &s8.columns },
+        .{ extension.secp.byte.log_size, &s9.columns },
+        .{ extension.recoveryCallerLogSize(), &s10.columns },
+    }) |entry| try takeColumns(allocator, &columns, entry[0], entry[1]);
+    return .{ .columns = try columns.toOwnedSlice(allocator), .claim = claim };
+}
+fn takeColumns(a: std.mem.Allocator, destination: *std.ArrayList(@import("stwo_prover_engine").pcs.ColumnEvaluation), log_size: u32, columns: anytype) !void {
+    try destination.ensureUnusedCapacity(a, columns.len);
+    for (columns) |*values| {
+        destination.appendAssumeCapacity(.{ .log_size = log_size, .values = values.* });
+        values.* = &.{};
+    }
 }
 
 fn logicalRows(trace: anytype, empty: bool) u32 {
@@ -608,15 +648,22 @@ fn AdditionalExtension(
     };
 }
 
-fn appendColumns(
-    allocator: std.mem.Allocator,
-    destination: *std.ArrayList(external_tree.OwnedColumn),
-    log_size: u32,
-    columns: anytype,
-) !void {
-    try destination.ensureUnusedCapacity(allocator, columns.len);
-    for (columns) |*values| destination.appendAssumeCapacity(.{
-        .log_size = log_size,
-        .values = values,
-    });
+fn callerClaim(extension: *const @import("ethereum_witness.zig").Witness, claims: [secp_config.RecoveryCaller.batch_count]@import("stwo_core").fields.qm31.QM31, empty: bool) !secp_component.Claim(secp_config.RecoveryCaller) {
+    if (extension.recovery_caller_local_zero) |*owned| {
+        const fresh = try secp_component.Claim(secp_config.RecoveryCallerLocalZero).canonicalLogical(owned, logicalRows(owned, empty), claims);
+        // Wire claims retain their semantic batch roster; the separately
+        // admitted statement and component choose the physical local-zero AIR.
+        return .{ .log_size = fresh.log_size, .n_rows = fresh.n_rows, .batch_sums = fresh.batch_sums, .component_sum = fresh.component_sum };
+    }
+    return secp_component.Claim(secp_config.RecoveryCaller).canonicalLogical(&extension.recovery_caller, logicalRows(&extension.recovery_caller, empty), claims);
+}
+
+fn generateCallerInteraction(a: std.mem.Allocator, extension: *const ethereum_witness.Witness, relations: *const @import("../../air/guest_precompile/secp256k1_relations.zig").Relations, pool: *work_pool.WorkPool) !secp_interaction.Result(secp_config.RecoveryCaller) {
+    if (extension.recovery_caller_local_zero) |*owned| {
+        const generated = try secp_interaction.generate(secp_config.RecoveryCallerLocalZero, a, owned, relations, pool);
+        // Same semantic batch count; every owned buffer moves into the stable
+        // wire result. No trace or interaction values are regenerated.
+        return .{ .columns = generated.columns, .claims = generated.claims };
+    }
+    return secp_interaction.generate(secp_config.RecoveryCaller, a, &extension.recovery_caller, relations, pool);
 }

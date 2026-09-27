@@ -1,0 +1,26 @@
+1/25 air.block.memory_spool.test.memory spool heap merge carries singleton runs and records exact transport work...OK
+2/25 air.block.memory_spool.test.bounded memory spool sorts across runs with exact coverage and rejects duplicate clocks...OK
+3/25 air.block.memory_spool.test.run admission rejects truncated and surplus records before merge...OK
+4/25 air.block.memory_radix_sort.test.memory radix sort preserves exact unsigned space address and u64 clock order...OK
+5/25 prover.block_v5_open_forest_stream_test.test.open-v3 stream missing leaf finish joins waiting lanes and remains abortable...OK
+6/25 prover.block_v5_open_forest_stream_test.test.open-v3 stream abort wakes lanes without retaining policy or setup...OK
+7/25 prover.block_v5_open_forest_stream_test.test.open-v3 stream metadata and cache limits reject before producing files...OK
+8/25 prover.block_v5_register_windows_test.test.register window plan pins order endpoints clocks and x0...OK
+9/25 prover.block_v5_register_windows_test.test.register window native public pin comparison rejects substituted final data...OK
+10/25 prover.block_v5_native_table_join_v1.test.register windows reject cancellation between different local clock domains...OK
+11/25 prover.block_v5_memory_source_writer_test.test.RW-only source writer preserves untouched full image with zero RAM events...OK
+12/25 prover.block_v5_memory_source_writer_test.test.RW-only source writer rejects register stream and independently wrong roots...OK
+13/25 prover.block_v5_memory_source_writer_test.test.block-v5 streaming sparse roots reuse canonical topology and reject malformed streams...OK
+14/25 recursion.air.blake3_direct_cohort_columns_v1.test.direct recursive columns preserve canonical scattered layout and fixed metadata...OK
+15/25 recursion.air.blake3_direct_cohort_columns_v1.test.direct recursive columns reject incomplete count and clean up cap failures...OK
+16/25 recursion.air.arithmetic_fusion_direct_columns_test.test.direct recursive arithmetic emitter matches legacy FMA inverse linear dot4 in both modes...OK
+17/25 prover.block_v5_quotient_column_cache_test.test.block-v5 quotient cache preserves exact domains degree checks and bounded fallback...OK
+18/25 prover.block_v5_quotient_column_cache_test.test.block-v5 quotient cache shares immutable recovery across concurrent slots...OK
+19/25 prover.block_v5_rw_memory_scope_test.test.block-v5 RW scope uses authentic opcode space and preserves legacy slot ordering...OK
+20/25 prover.block_v5_rw_memory_scope_test.test.block-v5 RW conditional load store projection preserves native selectors at rows and OODS...OK
+21/25 prover.block_v5_rw_memory_scope_test.test.block-v5 RW caller scope excludes pointer registers with exact byte demand...OK
+22/25 air.semantic_eval.test_0...OK
+23/25 air.memory_commitment.poseidon2_air.test_0...OK
+24/25 prover.block_execution_external_trace_v2.test_0...OK
+25/25 prover.block_execution_external_access_bridge_v2.test_0...OK
+All 25 tests passed.

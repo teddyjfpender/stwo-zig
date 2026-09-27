@@ -1,0 +1,4 @@
+no step named 'update-abi-declaration-digests'
+  access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/4e89f13213f13e587e6c8ff0b7cd6c2c/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0xa0113c96 -Zfe1cbebff05660f9 --maxrss 25769803776 -j1 update-abi-declaration-digests -Doptimize=ReleaseSafe --summary all

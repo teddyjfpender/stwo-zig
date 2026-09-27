@@ -1,0 +1,4 @@
+1/2 air.guest_precompile.sha256_compression_proof_test.test.SHA canonical compression STARK verifies and rejects substituted digest admission...SHA_COMPRESSION_STARK verified=true queries=70 pow_bits=26 elapsed_ns=4691747833 cpu_memory_dispatch=false
+OK
+2/2 air.guest_precompile.sha256_compression_rows.test.SHA provider batches own only final rows and reconstruct private-independent topology...OK
+All 2 tests passed.

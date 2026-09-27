@@ -1,0 +1,7 @@
+{
+  "README.md": "84640b851f4241c19bf3876ffd2ebdeb1f2492cb2399c9f4c30fcaedb3ae863e",
+  "sources/autoresearch/notes/20260922-blake3-fri-arithmetic-capture-problem-match.md": "2b6ef5e515039e3c90355739131e828ec41e0e0c1f8d4e69a0545fcdbad9e65f",
+  "sources/src/frontends/riscv/recursion/air/blake3_fri_group_test.zig": "dabb0e7337ae69f1b6353c1f0786ef3f7d72a8ff802a9208a9a80cf2454802af",
+  "sources/src/frontends/riscv/recursion/fri_arithmetic_capture.zig": "ff25cfb1b928a2b154aece95d0cff05ebe000745f78bb5bcd36ef3ac40a32818",
+  "tests.log": "62bacc0776482e2ff10b98e3b22505c3acad0ca985fc51f5d10a99822034c9f5"
+}

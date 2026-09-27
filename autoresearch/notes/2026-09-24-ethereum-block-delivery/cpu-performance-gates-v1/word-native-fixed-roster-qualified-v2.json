@@ -1,0 +1,44 @@
+{
+  "status": "focused-nonproving-original-native-kernel-qualification-only",
+  "authoritative_source_snapshot": "word-native-fixed-roster-focused-v3-source.json",
+  "successful_attempt": {
+    "source_candidate": "word-native-fixed-roster-focused-v3-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 8.37774237501435,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 7,
+    "test_summary": [
+      "All 7 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-native-fixed-roster-focused-v3.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-word-native-fixed-roster-focused-v3",
+      "bytes": 11621856,
+      "sha256": "254859154028c4ef7ac5dc02e850a9c79e6b3a4d13efcf201f79ef8bff3b8178"
+    }
+  },
+  "source_pin_count": 1920,
+  "behavioral_checks": 3,
+  "scope": [
+    "Original private supplier emitter preserves external native first two roots/public graph inputs and 52-pair draw order",
+    "Real full native fixed append/fusion/partition kernel runs against independent native graphs/transcript/PCS outputs; complete G/XOR counts and fused arithmetic tails conserved",
+    "All source output allocator failures and retained aggregate budget custody",
+    "Actual typed native roster/context/fixed-key and original default source and complete roster API bodies retained, not invoked"
+  ],
+  "remaining": [
+    "Original full native fixed/live/commitment root parity with genuine admitted policies",
+    "Production expected-key integration and complete memory/global recursion closure",
+    "Positive proof and end-to-end time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "pcs_commitment_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

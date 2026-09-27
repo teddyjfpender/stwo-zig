@@ -1,0 +1,23 @@
+1/22 block_v5_recursive_fixed_attachments_test_root_v1.test_0...OK
+2/22 block_v5_recursive_fixed_attachments_test_root_v1.test.recursive fixed attachment: actual attachment and original production bodies retained...OK
+3/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: original rebase exact identity and inactive MAIN fail closed...OK
+4/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: original identifier emission parity for both selected modes...OK
+5/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: exact original graph rows wire uses and identity...OK
+6/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: graph compiler allocation rollback...OK
+7/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: original public read weights term ordinal and span rejection...OK
+8/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: original signed supplier boundary and join order...OK
+9/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: exact four child bound rejects fifth without mutation...OK
+10/22 prover.block_v5_recursive_fixed_attachments_test_v1.test.recursive fixed attachment: full allocation failure cleanup and original owner release...OK
+11/22 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: original full projection fixed-column parity and endpoints...OK
+12/22 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: original fused arithmetic complete fixed tails and cleanup...OK
+13/22 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: count admission rollback and original allocator release...OK
+14/22 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: G partition exact original geometry at physical boundaries...OK
+15/22 prover.block_v5_recursive_parent_fixed_roster_test_v1.test.recursive fixed roster: stable arithmetic plan outlives original budget owner...OK
+16/22 prover.block_execution_external_trace_v2.test_0...OK
+17/22 air.lookups.tables.mod.test_0...OK
+18/22 air.semantic_eval.test_0...OK
+19/22 recursion.air.native_pcs_fusion_rows.test.recursive fixed roster: original native PCS matcher parity mutation and allocation rollback...OK
+20/22 prover.block_execution_external_access_bridge_v2.test_0...OK
+21/22 air.memory_commitment.poseidon2_air.test_0...OK
+22/22 air.lookups.tables.source_ingest.test_0...OK
+All 22 tests passed.

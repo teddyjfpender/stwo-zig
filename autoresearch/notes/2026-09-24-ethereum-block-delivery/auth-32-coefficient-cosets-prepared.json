@@ -1,0 +1,230 @@
+{
+  "verified": true,
+  "recursive": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 286847,
+  "keccak_calls": 172,
+  "recovery_calls": 32,
+  "segments": 1,
+  "execution_ns": 15425958,
+  "witness_admission_ns": 2858292750,
+  "leaf_and_recursion_preparation_ns": 22201908291,
+  "parent_proving_ns": 25763593708,
+  "hash_partition_ns": 313835250,
+  "final_verification_ns": 10748084,
+  "total_ns": 55555735625,
+  "proof_bytes": 971396,
+  "worker_peak_bytes": 10290200512,
+  "preparation_retained_bytes": 4277650156,
+  "geometry": [
+    {
+      "index": 0,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822086864
+    },
+    {
+      "index": 1,
+      "name": "recursion.air.blake3_xor_call",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1980208,
+      "fixed_columns": 6,
+      "retained_bytes": 148188768
+    },
+    {
+      "index": 2,
+      "name": "recursion.air.blake3_boundary",
+      "main_columns": 4,
+      "main_rows": 2097152,
+      "fixed_rows": 1492152,
+      "fixed_columns": 8,
+      "retained_bytes": 81303456
+    },
+    {
+      "index": 3,
+      "name": "recursion.air.qm31_mul_add_v1",
+      "main_columns": 17,
+      "main_rows": 524288,
+      "fixed_rows": 390839,
+      "fixed_columns": 10,
+      "retained_bytes": 51285824
+    },
+    {
+      "index": 4,
+      "name": "recursion.air.qm31_inv",
+      "main_columns": 14,
+      "main_rows": 8192,
+      "fixed_rows": 4356,
+      "fixed_columns": 18,
+      "retained_bytes": 772944
+    },
+    {
+      "index": 5,
+      "name": "recursion.air.linear_ops",
+      "main_columns": 21,
+      "main_rows": 262144,
+      "fixed_rows": 239973,
+      "fixed_columns": 30,
+      "retained_bytes": 50817696
+    },
+    {
+      "index": 6,
+      "name": "recursion.air.blake3_challenge_block",
+      "main_columns": 71,
+      "main_rows": 256,
+      "fixed_rows": 168,
+      "fixed_columns": 15,
+      "retained_bytes": 85624
+    },
+    {
+      "index": 7,
+      "name": "recursion.air.blake3_byte_route",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1748883,
+      "fixed_columns": 45,
+      "retained_bytes": 415462716
+    },
+    {
+      "index": 8,
+      "name": "recursion.air.blake3_query_mask",
+      "main_columns": 8,
+      "main_rows": 128,
+      "fixed_rows": 71,
+      "fixed_columns": 10,
+      "retained_bytes": 7256
+    },
+    {
+      "index": 9,
+      "name": "recursion.air.blake3_private_word",
+      "main_columns": 4,
+      "main_rows": 262144,
+      "fixed_rows": 168594,
+      "fixed_columns": 4,
+      "retained_bytes": 6891968
+    },
+    {
+      "index": 10,
+      "name": "recursion.air.blake3_field_bytes",
+      "main_columns": 24,
+      "main_rows": 2097152,
+      "fixed_rows": 1057364,
+      "fixed_columns": 9,
+      "retained_bytes": 239392656
+    },
+    {
+      "index": 11,
+      "name": "recursion.air.qm31_pack_wire",
+      "main_columns": 4,
+      "main_rows": 65536,
+      "fixed_rows": 47066,
+      "fixed_columns": 8,
+      "retained_bytes": 2554848
+    },
+    {
+      "index": 12,
+      "name": "recursion.air.scalar_wire_source",
+      "main_columns": 1,
+      "main_rows": 2097152,
+      "fixed_rows": 1094964,
+      "fixed_columns": 6,
+      "retained_bytes": 34667784
+    },
+    {
+      "index": 13,
+      "name": "recursion.air.blake3_path_select",
+      "main_columns": 17,
+      "main_rows": 262144,
+      "fixed_rows": 194144,
+      "fixed_columns": 12,
+      "retained_bytes": 27145384
+    },
+    {
+      "index": 14,
+      "name": "recursion.air.blake3_retry_control",
+      "main_columns": 12,
+      "main_rows": 256,
+      "fixed_rows": 168,
+      "fixed_columns": 22,
+      "retained_bytes": 27552
+    },
+    {
+      "index": 15,
+      "name": "recursion.air.blake3_counter_step",
+      "main_columns": 24,
+      "main_rows": 256,
+      "fixed_rows": 177,
+      "fixed_columns": 9,
+      "retained_bytes": 31908
+    },
+    {
+      "index": 16,
+      "name": "recursion.air.readonly_consistency",
+      "main_columns": 19,
+      "main_rows": 1048576,
+      "fixed_rows": 1014580,
+      "fixed_columns": 6,
+      "retained_bytes": 104042456
+    },
+    {
+      "index": 17,
+      "name": "recursion.air.readonly_input",
+      "main_columns": 5,
+      "main_rows": 1048576,
+      "fixed_rows": 1014580,
+      "fixed_columns": 6,
+      "retained_bytes": 45321640
+    },
+    {
+      "index": 18,
+      "name": "recursion.air.detached_opening_accumulate4_v1",
+      "main_columns": 41,
+      "main_rows": 1048576,
+      "fixed_rows": 797703,
+      "fixed_columns": 13,
+      "retained_bytes": 213448660
+    },
+    {
+      "index": 19,
+      "name": "recursion.air.native_pcs_opening4_v1",
+      "main_columns": 29,
+      "main_rows": 32768,
+      "fixed_rows": 24780,
+      "fixed_columns": 13,
+      "retained_bytes": 5090808
+    },
+    {
+      "index": 20,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822086864
+    },
+    {
+      "index": 21,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822086864
+    },
+    {
+      "index": 22,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 1048576,
+      "fixed_rows": 639272,
+      "fixed_columns": 16,
+      "retained_bytes": 384849616
+    }
+  ],
+  "output": "0100000020000000e52c29c5edfe6dc5180e343c0ed7ccee9dabdd523a71b9b0c1725ca088d76a0da4794c167af60e5182a27e29085424adea8888ce2cc62bb731bdd574f90e3f16"
+}

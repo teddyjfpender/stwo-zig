@@ -1,0 +1,13 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 121s
+test-blake3-parent-join
++- BLAKE3 parent join guard
+   +- run test stderr
+BLAKE3_JOIN_PEAK borrowed_bytes=11409648 draining_bytes=7073360
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-blake3-parent-join success
++- BLAKE3 parent join guard success
+   +- run test 5 passed 39s MaxRSS:15M
+      +- compile test ReleaseSafe native success 7s MaxRSS:671M
+

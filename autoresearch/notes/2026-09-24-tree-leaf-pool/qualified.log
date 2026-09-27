@@ -1,0 +1,50 @@
+test-blake3-native-tree-aot
++- run test stderr
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56858 arithmetic_rows=160880
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56860 arithmetic_rows=160876
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=8889835625
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=255.22054167231545
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.424624989042059
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=2.9976250079926103
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9551666628103703
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.527333322679624
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=12708917958
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=918746 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=7560 removed_scalars=30240
+BLAKE3_NATIVE_FUSION dot4=14350 fma=56672 arithmetic_rows=159015
+BLAKE3_NATIVE_QUERY_FUSION groups=8820 removed_scalars=35280
+BLAKE3_NATIVE_FUSION dot4=18459 fma=58931 arithmetic_rows=168994
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=9150652875
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=252.46925000101328
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.945874999975786
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.0493333470076323
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=2.1657499892171472
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5480000108946115
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=13010836958
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=911657 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28602 fma=87565 arithmetic_rows=243970
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28530 fma=88069 arithmetic_rows=244817
+CANONICAL_TREE_PHASE phase=root_preparation ns=11806863833
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=258.78583334269933
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.8445000138599426
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=1 gpu_ms=9.968750004190952
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=2 gpu_ms=3.94249998498708
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5254583375062793
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=2 ns=14214111875
+BLAKE3_TREE_NODE verified=true height=2 artifact_bytes=904156 queries=70 pow_bits=26
+CANONICAL_TREE_BUDGET peak_bytes=30309734580 limit_bytes=51539607552
+BLAKE3_TREE_PARAMETERS leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 canonical=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=5110278888
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-blake3-native-tree-aot success
++- run test 7 passed 1m MaxRSS:42G
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+

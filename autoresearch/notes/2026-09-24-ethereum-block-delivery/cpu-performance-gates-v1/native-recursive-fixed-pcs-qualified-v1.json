@@ -1,0 +1,43 @@
+{
+  "status": "focused-nonproving-source-qualification-only",
+  "authoritative_source_snapshot": "native-recursive-fixed-pcs-focused-v1-source.json",
+  "successful_attempt": {
+    "source_candidate": "native-recursive-fixed-pcs-focused-v1-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 21.542189833009616,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 10,
+    "test_summary": [
+      "All 10 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-recursive-fixed-pcs-focused-v1.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-native-recursive-fixed-pcs-focused-v1",
+      "bytes": 22827328,
+      "sha256": "64b4ea2f2b137045b4ef3b66a59cb90ca30c1ed28ac1b2953782d006aef6a9c0"
+    }
+  },
+  "source_pin_count": 1916,
+  "behavioral_checks": 6,
+  "scope": [
+    "One original four/ten-tree native StarkPaths/query/projection/opening emitter with default parent API preserved",
+    "Typed original RAM/range shape and transcript validation before/after compilation",
+    "Original raw/fold PAGE nominal masks and FRI root geometry; PAGE complete setup remains fail-closed"
+  ],
+  "remaining": [
+    "Independent PAGE prefix/public/source/context ownership",
+    "Complete native fixed roster/context/key",
+    "Positive assembled proof, end-to-end time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "pcs_commitment_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

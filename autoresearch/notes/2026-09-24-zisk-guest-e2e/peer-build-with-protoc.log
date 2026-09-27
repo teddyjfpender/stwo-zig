@@ -1,0 +1,89 @@
+   Compiling tikv-jemalloc-sys v0.6.1+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7
+warning: zisk-sm-mem-planner@1.3.0-alpha: [BUILD INFO] mem-planner-cpp compiled with CPU-only support (feature enabled)
+   Compiling pil2-pilout v1.3.0-alpha
+   Compiling icu_normalizer v2.3.0
+   Compiling icu_properties v2.3.0
+   Compiling tikv-jemallocator v0.6.1
+   Compiling zisk-common v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/common)
+   Compiling rustix v0.38.44
+   Compiling zisk-sm-mem-common v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem-common)
+   Compiling zisk-sm-binary v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/binary)
+   Compiling zisk-sm-mem v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem)
+   Compiling zisk-sm-mem-planner v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem-cpp)
+   Compiling zisk-precomp-common v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/common)
+   Compiling zisk-asm-runner v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/emulator-asm/asm-runner)
+   Compiling zisk-sm-rom v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/rom)
+   Compiling zisk-precomp-arith-eq v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/arith_eq)
+   Compiling zisk-sm-arith v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/arith)
+   Compiling hyper-timeout v0.5.2
+   Compiling prost v0.13.5
+   Compiling prost v0.14.4
+   Compiling sysinfo v0.38.4
+   Compiling tokio-stream v0.1.19
+   Compiling num-format v0.4.4
+   Compiling async-trait v0.1.92
+   Compiling proofman-starks-src v1.3.0-alpha
+   Compiling winnow v1.0.4
+   Compiling camino v1.2.6
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling proofman-exps-codegen v1.3.0-alpha
+   Compiling tonic v0.14.6
+   Compiling ziskemu v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/emulator)
+   Compiling which v6.0.3
+   Compiling zisk-cluster-common v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/distributed/crates/cluster-common)
+   Compiling idna_adapter v1.2.2
+   Compiling zisk-coordinator-api v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/distributed/crates/coordinator-api)
+   Compiling pil2-stark-recurser v1.3.0-alpha
+   Compiling ziskos-hints v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/ziskos-hints)
+   Compiling form_urlencoded v1.2.2
+   Compiling blake3 v1.8.7
+   Compiling serde_spanned v1.1.1
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling arrayvec v0.7.8
+   Compiling constant_time_eq v0.4.2
+   Compiling toml v1.1.6+spec-1.1.0
+   Compiling zisk-precomp-hints v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/hints)
+   Compiling pil2-stark-setup v1.3.0-alpha
+   Compiling idna v1.1.0
+   Compiling tonic-prost v0.14.6
+   Compiling zisk-sm-main v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/main)
+   Compiling zisk-precomp-arith-eq-384 v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/arith_eq_384)
+   Compiling zisk-precomp-babyjubjub v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/babyjubjub)
+   Compiling prost-types v0.14.4
+   Compiling zisk-rom-setup v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/rom-setup)
+   Compiling zisk-precomp-evm v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/evm)
+   Compiling zisk-precomp-blake2 v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/blake2)
+   Compiling zisk-precomp-big-int v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/big_int)
+   Compiling zisk-precomp-dma v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/dma)
+   Compiling zisk-precomp-poseidon v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/poseidon)
+   Compiling zisk-precomp-sha256f v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/sha256f)
+   Compiling zisk-precomp-blake3 v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/blake3)
+   Compiling zisk-precomp-keccakf v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/keccakf)
+   Compiling zisk-build v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/ziskbuild)
+   Compiling futures-executor v0.3.34
+   Compiling arc-swap v1.9.2
+   Compiling crossbeam v0.8.5
+   Compiling cargo-platform v0.3.3
+   Compiling cargo_metadata v0.23.1
+   Compiling zisk-executor v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/executor)
+   Compiling futures v0.3.34
+   Compiling url v2.5.8
+   Compiling zisk-recurser v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/recurser)
+   Compiling cargo-config2 v0.1.45
+   Compiling zisk-program-macros v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/prover-backend/macros)
+   Compiling tokio-rustls v0.26.5
+   Compiling webpki-roots v1.0.9
+   Compiling unicode-width v0.2.2
+   Compiling target-lexicon v0.13.5
+   Compiling console v0.15.11
+   Compiling hyper-rustls v0.27.9
+   Compiling zisk-prover-backend v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/prover-backend)
+   Compiling zisk-coordinator-client v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/distributed/crates/coordinator-client)
+   Compiling tower-http v0.6.11
+   Compiling serde_urlencoded v0.7.1
+   Compiling cargo-zisk v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/cli)
+   Compiling number_prefix v0.4.0
+   Compiling indicatif v0.17.11
+   Compiling reqwest v0.12.28
+   Compiling zisk-sdk v1.3.0-alpha (/private/tmp/stwo-recursion-peer-research-20260921/zisk/sdk)
+    Finished `release` profile [optimized] target(s) in 55.73s

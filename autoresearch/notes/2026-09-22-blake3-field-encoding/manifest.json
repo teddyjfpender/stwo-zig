@@ -1,0 +1,12 @@
+{
+  "README.md": "8ccbe330f61f352f0c5d8d38158aa8c4bf32e1cd1e58ca550749a5941ca50748",
+  "sources/autoresearch/notes/20260922-blake3-canonical-field-encoding-problem-match.md": "2e971d810e51d6aea4665c8c56cfe6d19a792f6f1b13585786c74e91b8723588",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "ad93cce69d111fe9ada9f039c160c249a09103486546779802ae6120a8ae99c2",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "0b0a6f1138980cde3c56c68b7f873800bd5bb02ce68c73a3277d4384c25a6238",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "c5226cc1186029f9ae4c4ba9309101a348863fc452d64af5fcfeff1ad3590648",
+  "sources/src/frontends/riscv/recursion/air/blake3_field_bytes.zig": "fb9348c9b75f866940b48c595c3dc121e1d5110fce2f6f078b2f44216c76c003",
+  "sources/src/frontends/riscv/recursion/air/blake3_field_bytes_proof_test.zig": "d26d8b9a8d57ba99c46bf6c36a217d8af133b79825ecd04c595e3af258250575",
+  "sources/src/frontends/riscv/recursion/air/blake3_field_bytes_test.zig": "b7cfec91f08dd5b1306c862d746e9377c424f84ebf71c9a28ac442e76f16775e",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "8e95e97a1728b285d6577de947735fc44d77ddb63ba435fcd7b0c41e9f3775e3",
+  "tests.log": "423cf08a8e06d4f997584ad1264166bc46e2545dd3a5549b8fbd34077c9d70fd"
+}

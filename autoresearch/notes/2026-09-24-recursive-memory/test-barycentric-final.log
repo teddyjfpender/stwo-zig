@@ -1,0 +1,102 @@
+1/101 poly.circle.evaluation.test.prover poly circle evaluation: generic type preserves host representation...OK
+2/101 poly.circle.evaluation.test.prover poly circle evaluation: barycentric evaluates constant column...OK
+3/101 poly.circle.evaluation.test.prover poly circle evaluation: barycentric evaluates x-coordinate column...OK
+4/101 poly.circle.evaluation.test.prover poly circle evaluation: rejects point on domain...OK
+5/101 poly.circle.evaluation.test.prover poly circle evaluation: context fast path matches reference weights...OK
+6/101 poly.circle.evaluation.test.prover poly circle evaluation: context fast eval matches reference eval...OK
+7/101 poly.circle.evaluation.test.prover poly circle evaluation: context rejects log-size mismatch...OK
+8/101 poly.circle.evaluation.test.prover poly circle evaluation: base-field context equals indexed extension-field reference...OK
+9/101 poly.circle.evaluation.test.prover poly circle evaluation: canonical derivative parity at production domains...OK
+10/101 pcs.sampled_values_work_test.test.sampled-value allocation cleanup owns partial trees exactly once...OK
+11/101 pcs.sampled_values_work_test.test.prover pcs: parallel barycentric weights match reference with exact runtime receipt...OK
+12/101 pcs.sampled_values_work_test.test.prover pcs: parallel barycentric weights reject a domain point...OK
+13/101 pcs.sampled_values_work_test.test.prover pcs: barycentric workspace allocation failures retain one owner...OK
+14/101 pcs.sampled_values_work_test.test.sampled-value completion publishes exact work and fails closed without an audit...OK
+15/101 pcs.sampled_values_work_test.test.sampled-value parallelism requires explicit scoped authority in tests...OK
+16/101 pcs.sampled_values_work_test.test.sampled-value backend receipt is independently shape-validated...OK
+17/101 pcs.sampled_values_work_test.test.prover pcs: coefficient eval plan cache reuses duplicate point sets...OK
+18/101 pcs.sampled_values_work_test.test.prover pcs: barycentric plan constructs weights once per shared point...OK
+19/101 pcs.sampled_values_work_test.test.prover pcs: wide barycentric plan uses the scoped worker pool...OK
+20/101 pcs.sampled_values_work_test.test.prover pcs: barycentric plan transfers allocation ownership exactly once...OK
+21/101 pcs.commitment_tree.test.Merkle work records every ordinary internal node at its exact site...OK
+22/101 pcs.commitment_tree.test.Merkle work counts one reused constant parent per layer...OK
+23/101 pcs.commitment_tree.test.Merkle work does not claim constant reuse for an ordinary backend...OK
+24/101 pcs.commitment_tree.test.Merkle work fails closed when backend reuse semantics are unknown...OK
+25/101 pcs.commitment_tree.test.Merkle work fails closed for a non-binary leaf shape...OK
+26/101 pcs.commitment_tree.test.backing teardown token releases exactly once...OK
+27/101 pcs.quotient_ops.test.prover pcs bounded quotient provider releases partial state on allocation failure...OK
+28/101 pcs.quotient_ops.test.prover pcs quotient ops: compute fri quotients matches direct fri answers for legacy point-sample fixtures...OK
+29/101 pcs.quotient_ops.test.prover pcs quotient ops: strategy switches to streaming for medium-wide lifted workloads...OK
+30/101 pcs.quotient_ops.test.prover pcs quotient ops: forced materialized and streaming strategies match with sparse active columns...OK
+31/101 pcs.quotient_ops.test.prover pcs quotient ops: rejects invalid column length...OK
+32/101 pcs.quotient_ops.test.prover pcs quotient ops: rejects column log size above lifting...OK
+33/101 pcs.quotient_ops.test.prover pcs quotient ops: rejects shape mismatch...OK
+34/101 pcs.quotient_ops.test.prover pcs quotient ops: lazy provider matches materialized output...OK
+35/101 pcs.quotient_column_geometry.test.quotient column geometry preserves pair-aligned lifting order...OK
+36/101 pcs.quotient_column_geometry.test.quotient column geometry rejects invalid lengths and positions...OK
+37/101 pcs.quotient_column_geometry.test.quotient column tree geometry retains tree and column order...OK
+38/101 poly.circle.poly.test.prover poly circle poly: generic type preserves host representation...OK
+39/101 poly.circle.poly.test.prover poly circle poly: eval at point for constant polynomial...OK
+40/101 poly.circle.poly.test.prover poly circle poly: split-at-mid identity...OK
+41/101 poly.circle.poly.test.prover poly circle poly: eval at points folded batch matches scalar oracle...OK
+42/101 poly.circle.poly.test.prover poly circle poly: precomputed folded factors match scalar oracle...OK
+43/101 poly.circle.poly.test.prover poly circle poly: batched point evaluation matches scalar helper...OK
+44/101 poly.circle.poly.test.prover poly circle poly: evaluate on domain returns base values...OK
+45/101 poly.circle.poly.test.prover poly circle poly: interpolation roundtrip...OK
+46/101 poly.circle.poly.test.prover poly circle poly: evaluate with twiddles matches evaluate...OK
+47/101 poly.circle.poly.test.prover poly circle poly: interpolate with twiddles matches interpolate...OK
+48/101 vcs_lifted.parameters.test.lifted VCS boolean tuning values are explicit...OK
+49/101 vcs_lifted.parameters.test.lifted VCS worker count respects thresholds and overrides...OK
+50/101 vcs_lifted.columns.test.lifted VCS columns retain stable order within equal log sizes...OK
+51/101 pcs.sampled_value_work.test.sampled work: optimized folds factors and iterative evaluation are exact...OK
+52/101 pcs.sampled_value_work.test.sampled work: high-block subset schedule counts executed recomputation...OK
+53/101 pcs.sampled_value_work.test.sampled work: barycentric context and evaluation match the live schedule...OK
+54/101 pcs.sampled_value_work.test.sampled work: shared barycentric weights remove over 99 percent of inversions...OK
+55/101 pcs.sampled_value_work.test.sampled work: merge is fail-closed...OK
+56/101 pcs.sampled_value_plan_overlap.test.sampled-value overlap: exact normalized keys expose within and cross-tree reuse...OK
+57/101 pcs.sampled_value_plan_overlap.test.sampled-value overlap: allocation failures retain one owner...OK
+58/101 poly.circle.point_evaluation.test.point evaluation: packed high-block subset basis matches scalar products...OK
+59/101 poly.circle.point_evaluation.test.point evaluation: subset basis evaluation crosses packed high-block boundary...OK
+60/101 poly.circle.point_evaluation.test.circle point evaluation matches the monomial reference...OK
+61/101 poly.circle.point_evaluation.test.circle point evaluation iterative reduction matches recursive oracle...OK
+62/101 host_budget_allocator.test.host budget allocator admits the exact live-byte boundary...OK
+63/101 host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+64/101 host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+65/101 host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+66/101 host_budget_allocator.test.shared host budget lease survives original owner release...OK
+67/101 vcs_lifted.blake2_stream4.test.prover lifted BLAKE2s: direct continuation matches scalar streams...OK
+68/101 mmap_alloc.test.mmap_alloc: basic alloc and free...OK
+69/101 mmap_alloc.test.mmap_alloc: large allocation...OK
+70/101 mmap_alloc.test.releasePages on page-aligned mmap region...OK
+71/101 mmap_alloc.test.releasePagesSlice on typed data...OK
+72/101 mmap_alloc.test.prefetchPages does not crash...OK
+73/101 mmap_alloc.test.releasePages with sub-page region is no-op...OK
+74/101 mmap_alloc.test.releasePagesSlice with empty slice is no-op...OK
+75/101 pcs.quotients.planning.test.combined contribution vector kernels preserve scalar tails...OK
+76/101 pcs.quotients.planning.test.compact contribution plan groups lifted geometry and fails back on budget...OK
+77/101 pcs.quotient_row_executor.test.quotient row scratch rejects invalid, overflowing, and over-budget shapes...OK
+78/101 pcs.quotient_row_executor.test.quotient row inverses match scalar rows across batch counts and domains...OK
+79/101 pcs.quotient_row_executor.test.quotient row scratch reports a zero denominator...OK
+80/101 pcs.quotient_row_executor.test.quotient row scratch policy honors cost boundary and memory fallback...OK
+81/101 pcs.quotient_row_executor.test.quotient row worker partitions cover each domain exactly once...OK
+82/101 pcs.quotient_row_executor.test.quotient row workers propagate denominator failures...OK
+83/101 pcs.quotient_tile_executor.test.quotient tile scratch is bounded and rejects overflowing geometry...OK
+84/101 pcs.quotient_tile_executor.test.quotient tile input policy selects only the measured batched domain...OK
+85/101 pcs.quotient_tile_executor.test.lifted run accumulation matches scalar lifting across boundaries...OK
+86/101 pcs.quotient_tile_executor.test.packed finalize matches scalar finalizeRowQuotients for all batch counts...OK
+87/101 pcs.quotient_work_profile.test.CM31 batch inverse tally follows selected AArch64 widths...OK
+88/101 pcs.quotient_work_profile.test.bit-reversed walk tally matches the documented full-walk law...OK
+89/101 pcs.quotient_tile_sink.test.quotient tile validates coordinate shape...OK
+90/101 pcs.quotient_scalar_executor.test.quad finalize matches scalar finalizeRowQuotients for all batch counts...OK
+91/101 pcs.quotient_domain_walk.test.bit-reversed walk matches direct domain.at over full domains...OK
+92/101 pcs.quotient_domain_walk.test.bit-reversed walk matches direct domain.at from arbitrary starts...OK
+93/101 pcs.quotient_compact_groups.test.compact grouped lifting matches scalar member reduction with dot tail...OK
+94/101 poly.twiddles.test.twiddle tree: stores root coset and twiddles...OK
+95/101 poly.twiddles.test.twiddle tree: precompute m31 twiddles and inverses...OK
+96/101 poly.twiddles.test.twiddle tree: precompute m31 uses chunked inverse path for large domains...OK
+97/101 poly.twiddles.test.twiddle subtree borrows the exact freshly computed tower...OK
+98/101 poly.circle.fft_kernels.test.circle FFT layer kernels match scalar butterfly laws across lane regimes...OK
+99/101 poly.circle.fft_kernels.test.packed radix-8 pass matches three independent stages...OK
+100/101 poly.circle.fft_kernels.test.circle FFT geometry rejects out of range and overflow before SIMD access...OK
+101/101 poly.circle.fft_kernels.test.circle FFT pair kernels match scalar butterfly laws...OK
+All 101 tests passed.

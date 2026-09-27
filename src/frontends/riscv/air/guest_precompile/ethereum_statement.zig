@@ -23,6 +23,17 @@ const base_statement = @import("../statement.zig");
 const statement_v2 = @import("../statement_v2.zig");
 
 pub const schema_version: u16 = 1;
+pub const local_zero_schema_version: u16 = 2;
+pub const local_zero_abi_version: u16 = 2;
+pub fn localZeroSemanticDigest() [32]u8 {
+    var h = std.crypto.hash.sha2.Sha256.init(.{});
+    h.update("stwo-zig/ethereum/caller-local-zero/v1\x00");
+    h.update(&execution_profile.ethereum_semantic_digest);
+    h.update(&@import("x0_caller_envelope_v1.zig").abiId(.keccak));
+    h.update(&@import("x0_caller_envelope_v1.zig").abiId(.signer));
+    h.update(&@import("sha256_caller_local_zero_v1.zig").SEMANTIC_DIGEST);
+    return h.finalResult();
+}
 pub const component_count: usize = 14;
 pub const fixed_table_count: usize = component_order.LOOKUP_TABLE_COUNT;
 pub const field_modulus: u64 = m31.Modulus;
@@ -54,12 +65,15 @@ pub const Descriptor = struct {
     interaction_columns: u32,
 
     pub fn validate(self: Descriptor) Error!void {
+        return self.validateForRecipe(false);
+    }
+    pub fn validateForRecipe(self: Descriptor, local_zero: bool) Error!void {
         if (self.log_size == 0 or self.log_size >= 31 or
             @as(u64, self.n_rows) > (@as(u64, 1) << @intCast(self.log_size)))
         {
             return error.InvalidComponentGeometry;
         }
-        const expected = expectedColumnCounts(self.kind);
+        const expected = expectedColumnCountsForRecipe(self.kind, local_zero);
         if (self.preprocessed_columns != expected.preprocessed or
             self.main_columns != expected.main or
             self.interaction_columns != expected.interaction)
@@ -149,6 +163,31 @@ pub const Statement = struct {
         return result;
     }
 
+    /// Full-width execution uses a distinct boundary/provider certificate.
+    /// Callers must derive it from admitted BLAKE3 schedules, never a proof.
+    pub fn canonicalWithAdmission(keccak_calls: u32, signer_calls: u32, secp: SecpShapes, admission: Admission) Error!Statement {
+        return canonicalWithAdmissionForCircuitProfileV1(keccak_calls, signer_calls, secp, admission, .legacy_v4);
+    }
+
+    pub fn canonicalWithAdmissionForCircuitProfileV1(keccak_calls: u32, signer_calls: u32, secp: SecpShapes, admission: Admission, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!Statement {
+        var result = try initCanonical(keccak_calls, signer_calls, secp, admission, circuit_profile.keccakMaximumLogSize());
+        if (circuit_profile.localZeroCustody()) {
+            result.version = local_zero_schema_version;
+            result.abi_version = local_zero_abi_version;
+            result.semantic_digest = localZeroSemanticDigest();
+            result.components[0].main_columns += 2;
+            result.components[13].main_columns += 2;
+        }
+        try result.validateGeometryWithCircuitProfileV1(result.counts.external_retirements, circuit_profile);
+        return result;
+    }
+
+    /// Explicit allocation/receiver geometry policy; legacy callers retain16.
+    pub fn validateGeometryWithCircuitProfileV1(self: *const Statement, total_steps: u32, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!void {
+        try self.validateGeometryForRecipe(total_steps, circuit_profile.localZeroCustody());
+        try self.validateKeccakMaximumLogSize(circuit_profile.keccakMaximumLogSize());
+    }
+
     fn initCanonical(
         keccak_calls: u32,
         signer_calls: u32,
@@ -232,32 +271,7 @@ pub const Statement = struct {
         self: *const Statement,
         core: *const base_statement.RiscVStatement,
     ) Error!void {
-        if (self.version != schema_version) return error.StatementVersionMismatch;
-        if (self.profile_id != profile) return error.ProfileMismatch;
-        if (self.abi_version != execution_profile.ethereum_abi_version)
-            return error.AbiMismatch;
-        if (!std.mem.eql(
-            u8,
-            &self.semantic_digest,
-            &execution_profile.ethereum_semantic_digest,
-        )) return error.SemanticDigestMismatch;
-        const external = std.math.add(
-            u32,
-            self.counts.keccak_calls,
-            self.counts.signer_calls,
-        ) catch return error.ArithmeticOverflow;
-        if (external != self.counts.external_retirements or
-            external > core.total_steps or external >= field_modulus)
-        {
-            return error.CallCountMismatch;
-        }
-        for (self.components) |descriptor| try descriptor.validate();
-        inline for (componentKinds(), 0..) |kind, index| {
-            if (self.components[index].kind != kind)
-                return error.ComponentOrderMismatch;
-        }
-        try validateCountBoundGeometry(self);
-        try validateEmptyGeometry(self);
+        try self.validateGeometry(core.total_steps);
         const structural_admission = try canonicalAdmissionStructure(
             core,
             self.counts.keccak_calls,
@@ -276,6 +290,43 @@ pub const Statement = struct {
         {
             return error.AdmissionCertificateMismatch;
         }
+    }
+
+    /// Component geometry only. Boundary-specific coefficient admission is
+    /// required separately by every proof entry point.
+    pub fn localZeroCustody(self: *const Statement) bool {
+        return self.version == local_zero_schema_version;
+    }
+    pub fn validateGeometry(self: *const Statement, total_steps: u32) Error!void {
+        return self.validateGeometryForRecipe(total_steps, false);
+    }
+    fn validateGeometryForRecipe(self: *const Statement, total_steps: u32, local_zero: bool) Error!void {
+        if (self.version != (if (local_zero) local_zero_schema_version else schema_version)) return error.StatementVersionMismatch;
+        if (self.profile_id != profile) return error.ProfileMismatch;
+        if (self.abi_version != (if (local_zero) local_zero_abi_version else execution_profile.ethereum_abi_version))
+            return error.AbiMismatch;
+        if (!std.mem.eql(
+            u8,
+            &self.semantic_digest,
+            &(if (local_zero) localZeroSemanticDigest() else execution_profile.ethereum_semantic_digest),
+        )) return error.SemanticDigestMismatch;
+        const external = std.math.add(
+            u32,
+            self.counts.keccak_calls,
+            self.counts.signer_calls,
+        ) catch return error.ArithmeticOverflow;
+        if (external != self.counts.external_retirements or
+            external > total_steps or external >= field_modulus)
+        {
+            return error.CallCountMismatch;
+        }
+        for (self.components) |descriptor| try descriptor.validateForRecipe(local_zero);
+        inline for (componentKinds(), 0..) |kind, index| {
+            if (self.components[index].kind != kind)
+                return error.ComponentOrderMismatch;
+        }
+        try validateCountBoundGeometry(self);
+        try validateEmptyGeometry(self);
     }
 
     /// Domain-separated transcript frame mixed before Tree 0.
@@ -305,7 +356,7 @@ pub const Statement = struct {
         self.mixValidatedInto(channel);
     }
 
-    fn mixValidatedInto(self: *const Statement, channel: anytype) void {
+    pub fn mixValidatedInto(self: *const Statement, channel: anytype) void {
         channel.mixU32s(&.{
             0x4757_5453, // "STWG"
             0x3148_5445, // "ETH1"
@@ -470,6 +521,11 @@ fn validateEmptyGeometry(self: *const Statement) Error!void {
 
 const ColumnCounts = struct { preprocessed: u32, main: u32, interaction: u32 };
 
+fn expectedColumnCountsForRecipe(kind: Kind, local_zero: bool) ColumnCounts {
+    var result = expectedColumnCounts(kind);
+    if (local_zero and (kind == .keccak_shard_v1 or kind == .secp_recovery_caller_v1)) result.main += 2;
+    return result;
+}
 fn expectedColumnCounts(kind: Kind) ColumnCounts {
     return switch (kind) {
         .keccak_shard_v1 => .{

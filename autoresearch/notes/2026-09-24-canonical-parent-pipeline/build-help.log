@@ -1,0 +1,144 @@
+Usage: /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build [steps] [options]
+
+Steps:
+  install (default)            Copy build artifacts to prefix path
+  uninstall                    Remove build artifacts from prefix path
+  test-ethereum-wrapper-tree0  Compare the same admitted wrapper Tree0 on CPU and authenticated Metal PCS; no wrapper proof
+  check-ethereum-wrapper-tree0 Compile the explicit CPU/Metal Tree0 admission comparison
+  test                         Run device-free stwo_riscv_metal_integration contract tests
+  test-authenticated-aot       Run the guest Poseidon2 proof on a real device with authenticated AOT
+  test-secp256k1-precompile-proof Prove compact typed secp256k1 ECDSA on Metal and verify independently
+  test-keccakf-precompile-proof Prove compact typed Keccak-f on Metal and verify independently
+  test-stage101-leaf-autoresearch-v1 Test the isolated exact Poseidon/q193 Stage101 Metal contract
+  build-stage101-leaf-autoresearch-v1 Compile the isolated Stage101 Metal autoresearch command
+  install-stage101-leaf-autoresearch-v1 Materialize the isolated Stage101 Metal autoresearch command
+  benchmark-stage101-leaf-autoresearch-v1 Run one retained Stage101 leaf on authenticated-AOT Metal
+  test-ethereum-prepared-leaf-metal-v1 Test production prepared Metal leaf option and AOT admission
+  install-ethereum-prepared-leaf-metal-v1 Build the authenticated Metal full-leaf producer with independent CPU verification
+  test-stage101-degree5-provider-sweep-v1 Test the retained q193 D5 provider Metal sweep contract
+  build-stage101-degree5-provider-sweep-v1 Compile the retained q193 D5 provider Metal sweep command
+  install-stage101-degree5-provider-sweep-v1 Materialize the retained q193 D5 provider Metal sweep command
+  run-recursive-segment-v2-detached-leaf-producer Run the shared small recursive proof with explicit native CPU or authenticated Metal
+  check-recursive-segment-v2-detached-leaf-producer Compile the shared small recursive CPU/Metal proof driver
+  build-recursive-segment-v2-detached-leaf-producer Install the shared small recursive CPU/Metal proof driver
+  build-recursive-segment-v2-detached-parent-producer Build the shared detached parent transaction on authenticated Metal
+  run-ethereum-node-proof-v1   Prove Ethereum node callers and providers using authenticated Metal AOT
+  check                        Analyse both Stage101 Metal commands without emitting binaries
+  check-stage101-leaf-autoresearch-v1 Analyse the Stage101 leaf command without emitting a binary
+  check-stage101-degree5-provider-sweep-v1 Analyse the retained D5 provider sweep without emitting a binary
+  test-blake3-native-parent-aot Qualify the same canonical native parent fixture on authenticated Metal
+  test-blake3-native-parent-pipeline-aot Qualify bounded canonical execution-parent preparation/proving overlap on Metal
+  test-blake3-ethereum-parent-aot Qualify canonical full-width Ethereum leaf and recursive parent on Metal
+  test-blake3-poseidon-parent-aot Qualify canonical guest Poseidon leaf and recursive parent with BLAKE3 on Metal
+  test-blake3-ethereum-parent-smp-aot Qualify canonical Ethereum recursion with stateless SMP allocation on Metal
+  test-blake3-ethereum-full-jit Qualify full-width canonical BLAKE3 Ethereum on source-JIT Metal
+  test-blake3-ethereum-full-aot Qualify full-width canonical BLAKE3 Ethereum on authenticated AOT Metal
+  test-blake3-csp-ecdsa-aot    Qualify canonical BLAKE3 CSP on authenticated AOT Metal
+  test-blake3-csp-ecdsa-jit    Qualify canonical BLAKE3 CSP on diagnostic source-JIT Metal
+
+General Options:
+  -p, --prefix [path]          Where to install files (default: zig-out)
+  --prefix-lib-dir [path]      Where to install libraries
+  --prefix-exe-dir [path]      Where to install executables
+  --prefix-include-dir [path]  Where to install C header files
+
+  --release[=mode]             Request release mode, optionally specifying a
+                               preferred optimization mode: fast, safe, small
+
+  -fdarling,  -fno-darling     Integration with system-installed Darling to
+                               execute macOS programs on Linux hosts
+                               (default: no)
+  -fqemu,     -fno-qemu        Integration with system-installed QEMU to execute
+                               foreign-architecture programs on Linux hosts
+                               (default: no)
+  --libc-runtimes [path]       Enhances QEMU integration by providing dynamic libc
+                               (e.g. glibc or musl) built for multiple foreign
+                               architectures, allowing execution of non-native
+                               programs that link with libc.
+  -frosetta,  -fno-rosetta     Rely on Rosetta to execute x86_64 programs on
+                               ARM64 macOS hosts. (default: no)
+  -fwasmtime, -fno-wasmtime    Integration with system-installed wasmtime to
+                               execute WASI binaries. (default: no)
+  -fwine,     -fno-wine        Integration with system-installed Wine to execute
+                               Windows programs on Linux hosts. (default: no)
+
+  -h, --help                   Print this help and exit
+  -l, --list-steps             Print available steps
+  --verbose                    Print commands before executing them
+  --color [auto|off|on]        Enable or disable colored error messages
+  --prominent-compile-errors   Buffer compile errors and display at end
+  --summary [mode]             Control the printing of the build summary
+    all                        Print the build summary in its entirety
+    new                        Omit cached steps
+    failures                   (Default) Only print failed steps
+    none                       Do not print the build summary
+  -j<N>                        Limit concurrent jobs (default is to use all CPU cores)
+  --maxrss <bytes>             Limit memory usage (default is to use available memory)
+  --skip-oom-steps             Instead of failing, skip steps that would exceed --maxrss
+  --fetch[=mode]               Fetch dependency tree (optionally choose laziness) and exit
+    needed                     (Default) Lazy dependencies are fetched as needed
+    all                        Lazy dependencies are always fetched
+  --watch                      Continuously rebuild when source files are modified
+  --debounce <ms>              Delay before rebuilding after changed file detected
+  --webui[=ip]                 Enable the web interface on the given IP address
+  --fuzz                       Continuously search for unit test failures (implies '--webui')
+  --time-report                Force full rebuild and provide detailed information on
+                               compilation time of Zig source code (implies '--webui')
+     -fincremental             Enable incremental compilation
+  -fno-incremental             Disable incremental compilation
+
+Project-Specific Options:
+  -Dtarget=[string]            The CPU architecture, OS, and ABI to build for
+  -Dcpu=[string]               Target CPU features to add or subtract
+  -Dofmt=[string]              Target object format
+  -Ddynamic-linker=[string]    Path to interpreter on the target system
+  -Doptimize=[enum]            Prioritize performance, safety, or binary size
+                                 Supported Values:
+                                   Debug
+                                   ReleaseSafe
+                                   ReleaseFast
+                                   ReleaseSmall
+  -Derror-tracing=[bool]       Keep error return traces in the retained Stage101 commands (diagnostic builds only)
+  -Dqualification-debug-info=[bool] Emit debug symbols for BLAKE3 qualification tests
+  -Dmetal-core-aot-bundle=[string] Absolute authenticated core AOT bundle for real-device acceptance
+
+System Integration Options:
+  --search-prefix [path]       Add a path to look for binaries, libraries, headers
+  --sysroot [path]             Set the system root directory (usually /)
+  --libc [file]                Provide a file which specifies libc paths
+
+  --system [pkgdir]            Disable package fetching; enable all integrations
+  -fsys=[name]                 Enable a system integration
+  -fno-sys=[name]              Disable a system integration
+
+  Available System Integrations:                Enabled:
+  (none)                                        -
+
+Advanced Options:
+  -freference-trace[=num]      How many lines of reference trace should be shown per compile error
+  -fno-reference-trace         Disable reference trace
+  -fallow-so-scripts           Allows .so files to be GNU ld scripts
+  -fno-allow-so-scripts        (default) .so files must be ELF files
+  --build-file [file]          Override path to build.zig
+  --cache-dir [path]           Override path to local Zig cache directory
+  --global-cache-dir [path]    Override path to global Zig cache directory
+  --zig-lib-dir [arg]          Override path to Zig lib directory
+  --build-runner [file]        Override path to build runner
+  --seed [integer]             For shuffling dependency traversal order (default: random)
+  --build-id[=style]           At a minor link-time expense, embeds a build ID in binaries
+      fast                     8-byte non-cryptographic hash (COFF, ELF, WASM)
+      sha1, tree               20-byte cryptographic hash (ELF, WASM)
+      md5                      16-byte cryptographic hash (ELF)
+      uuid                     16-byte random UUID (ELF, WASM)
+      0x[hexstring]            Constant ID, maximum 32 bytes (ELF, WASM)
+      none                     (default) No build ID
+  --debug-log [scope]          Enable debugging the compiler
+  --debug-pkg-config           Fail if unknown pkg-config flags encountered
+  --debug-rt                   Debug compiler runtime libraries
+  --verbose-link               Enable compiler debug output for linking
+  --verbose-air                Enable compiler debug output for Zig AIR
+  --verbose-llvm-ir[=file]     Enable compiler debug output for LLVM IR
+  --verbose-llvm-bc=[file]     Enable compiler debug output for LLVM BC
+  --verbose-cimport            Enable compiler debug output for C imports
+  --verbose-cc                 Enable compiler debug output for C compilation
+  --verbose-llvm-cpu-features  Enable compiler debug output for LLVM CPU features

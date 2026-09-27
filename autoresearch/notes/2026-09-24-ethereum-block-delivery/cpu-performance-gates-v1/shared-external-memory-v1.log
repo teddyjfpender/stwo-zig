@@ -1,0 +1,12 @@
+1/11 shared_external_memory_test_root.test.shared external: heap and external bytes compete at the exact boundary...OK
+2/11 shared_external_memory_test_root.test.shared external: resident extent requires the actual charged local owner...OK
+3/11 shared_external_memory_test_root.test.shared external: overflow rollback and consuming lease survive root release...OK
+4/11 shared_external_memory_test_root.test.shared external: host resize cannot grow past an external reservation...OK
+5/11 shared_external_memory_test_root.test.shared external: heap and external admissions serialize under contention...OK
+6/11 shared_external_memory_test_root.test.shared external: factory rollback and invalid completion never admit a result...OK
+7/11 shared_external_memory_test_root.test.shared external: factory retained extent cannot exceed preallocation admission...OK
+8/11 shared_external_memory_test_root.test.shared external: pending scratch envelope shrinks only after join and moves once...OK
+9/11 shared_external_memory_test_root.test.shared external: unsupported allocator rejects before device factory...OK
+10/11 shared_external_memory_test_root.test.shared external: failed or cancelled device owners survive original root release...OK
+11/11 shared_external_memory_test_root.test.shared external: no-copy host lease is charged once and outlives root owner...OK
+All 11 tests passed.

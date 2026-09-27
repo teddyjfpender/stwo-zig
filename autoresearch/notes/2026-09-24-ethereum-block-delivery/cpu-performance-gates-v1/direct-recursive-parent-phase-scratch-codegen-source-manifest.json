@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "tests_passed": 2,
+  "declared_tests": 1,
+  "scope": "Actual native/execution direct parent bodies, hash-column owned and borrowed partition paths, source-release callbacks and phase-local scratch/matcher body generation. Address retention only, no preparation call/witness/proof/worker/device.",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/direct-recursive-parent-phase-scratch-codegen.log",
+    "sha256": "991142a43828daa5bd0f230e3df32530c91e68e7e18e0733e3d5023f98eb168a"
+  },
+  "sources": {
+    "src/frontends/riscv/block_v5_recursive_parent_codegen_test_root.zig": "ff91b5ce41921d4e47ae7cb2b5a64bfdb75bf7376189fc61a196adb4d231ca87",
+    "src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig": "810cfbb564b1879a3c6e804df455bf40ccc35e8f184fc04819acc097a60dd870",
+    "src/frontends/riscv/recursion/air/blake3_execution_parent_sources.zig": "74fbe89af0a2a8bbae10195e1665f1e8a260b2eff054c63c97abd8ef6987ea34",
+    "src/frontends/riscv/recursion/air/blake3_parent_input_inventory.zig": "1adb02e007bbbcbee86d9bad30e4a3ff4b1eb3c303f21d5d35b071282340e811",
+    "src/frontends/riscv/recursion/air/blake3_recursive_column_rows_v1.zig": "924c789a7d4865ff7670b0d6ab898f4fd60ba431325cb5896043e81b613504dc",
+    "src/frontends/riscv/recursion/air/blake3_direct_source_columns_v1.zig": "43801e153ee3a3d9d37813fc63bfb5b934dbbbd59489d05251829df3d65e30d4",
+    "src/frontends/riscv/recursion/air/native_pcs_fusion_rows.zig": "4296728079d720aeefab17302a58e65fb146035cd1ea0adc81526bffa4d51ec4"
+  }
+}

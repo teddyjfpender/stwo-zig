@@ -1,0 +1,25 @@
+src/frontends/riscv/prover/block_v5_cpu_scoped_job_receive_v1.zig:141:23: error: else prong required when switching on type '@Type(.enum_literal)'
+        const field = switch (family) {
+                      ^~~~~~
+referenced by:
+    verify: src/frontends/riscv/prover/block_v5_cpu_scoped_job_receive_v1.zig:50:38
+    stwo_cpu_scoped_job_body_gate: src/frontends/riscv/block_v5_cpu_scoped_job_codegen_v1.zig:22:229
+    2 reference(s) hidden; use '-freference-trace=4' to see all references
+src/frontends/riscv/prover/block_v5_cpu_scoped_job_sources_v1.zig:216:104: error: expected type 'recursion.block_v5_heterogeneous_leaf_definition_v1.ForSubtype(.caller_family11_v1).Open__struct_1796', found 'prover.block_v5_cpu_scoped_job_sources_v1.addExecutions__anon_23116__struct_23331'
+        const expected = @unionInit(Full.Expected, @tagName(subtype), .{ .admitted = policy.prepared, .proposal = proposal, .key = policy.template.key, .key_id = policy.template.key_id, .wires = policy.template.schedule });
+                                                                                                      ~^~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_cpu_scoped_job_sources_v1.zig:212:36: note: struct declared here
+            .caller_arithmetic => .{ .receipt = @import("block_v5_precompile_family_proof_v1.zig").OpenReceipt{ .binding = policy.prepared.binding, .open_sum = claims.componentSum() }, .claims = claims },
+                                  ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_leaf_definition_v1.zig:61:36: note: struct declared here
+            .caller_family11_v1 => struct {
+                                   ^~~~~~
+src/frontends/riscv/prover/block_v5_cpu_scoped_job_sources_v1.zig:224:37: error: else prong required when switching on type '@Type(.enum_literal)'
+        const kind: Coverage.Kind = switch (family) {
+                                    ^~~~~~
+src/frontends/riscv/prover/block_v5_cpu_scoped_job_test_v1.zig:156:36: error: struct 'prover.block_v5_recursive_leaf_store_core_v1.ForDefinition(prover.block_v5_recursive_execution_leaf_store_v1.ForFamily.Definition)' has no member named 'FilePin'
+    const expected_files = [_]Store.FilePin{.{ .index = 2, .byte_len = 99, .sha256 = @splat(11) }};
+                              ~~~~~^~~~~~~~
+src/frontends/riscv/prover/block_v5_recursive_leaf_store_core_v1.zig:21:12: note: struct declared here
+    return struct {
+           ^~~~~~

@@ -11,6 +11,12 @@ pub const base_name = base_profile.name;
 pub const poseidon2_name = "rv32im-zkvm-poseidon2-v1";
 pub const keccakf_name = "rv32im-zkvm-keccakf-v1";
 pub const ethereum_name = "rv32im-zkvm-ethereum-v1";
+pub const ethereum_sha_name = "rv32im-zkvm-ethereum-sha-v1";
+pub const sha256_capability = "stwo.sha256.compress@1";
+pub const sha256_capability_bit: u64 = 8;
+pub const ethereum_sha_capability_bits: u64 = ethereum_capability_bits | sha256_capability_bit;
+pub const ethereum_sha_abi_version: u16 = 1;
+pub const ethereum_sha_semantic_digest = [32]u8{ 0x5e, 0x73, 0xa6, 0xdc, 0x98, 0xa8, 0xc1, 0xe6, 0x59, 0x3a, 0x2f, 0x20, 0xb6, 0x7f, 0xf5, 0x72, 0x52, 0xcd, 0x4e, 0x63, 0x8f, 0xed, 0x39, 0xec, 0xaf, 0x66, 0x3d, 0xce, 0xa9, 0x8b, 0xa0, 0x85 };
 pub const poseidon2_capability = "stwo.poseidon2-m31.permute-in-place@1";
 pub const keccakf_capability = "stwo.keccakf-1600.permute-in-place@1";
 pub const secp256k1_recover_capability = "stwo.secp256k1.recover-signer@1";
@@ -72,6 +78,7 @@ pub const ExecutionProfile = enum(u16) {
     rv32im_zkvm_poseidon2_v1 = 1,
     rv32im_zkvm_keccakf_v1 = 2,
     rv32im_zkvm_ethereum_v1 = 3,
+    rv32im_zkvm_ethereum_sha_v1 = 4,
 
     pub fn name(self: ExecutionProfile) []const u8 {
         return switch (self) {
@@ -79,6 +86,7 @@ pub const ExecutionProfile = enum(u16) {
             .rv32im_zkvm_poseidon2_v1 => poseidon2_name,
             .rv32im_zkvm_keccakf_v1 => keccakf_name,
             .rv32im_zkvm_ethereum_v1 => ethereum_name,
+            .rv32im_zkvm_ethereum_sha_v1 => ethereum_sha_name,
         };
     }
 
@@ -88,6 +96,7 @@ pub const ExecutionProfile = enum(u16) {
             .rv32im_zkvm_poseidon2_v1 => poseidon2_capability_bit,
             .rv32im_zkvm_keccakf_v1 => keccakf_capability_bit,
             .rv32im_zkvm_ethereum_v1 => ethereum_capability_bits,
+            .rv32im_zkvm_ethereum_sha_v1 => ethereum_sha_capability_bits,
         };
     }
 };

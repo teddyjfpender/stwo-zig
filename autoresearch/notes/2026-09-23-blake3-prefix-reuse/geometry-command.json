@@ -1,0 +1,20 @@
+[
+  "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-blake3-prefix-reuse/candidate-products/bin/stwo-zig-riscv-cpu",
+  "bench",
+  "--elf",
+  "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+  "--input",
+  "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+  "--proof-out",
+  "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-blake3-prefix-reuse/geometry.b3proof",
+  "--report-out",
+  "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-blake3-prefix-reuse/geometry.json",
+  "--warmups",
+  "0",
+  "--samples",
+  "1",
+  "--backend",
+  "cpu",
+  "--protocol",
+  "secure"
+]

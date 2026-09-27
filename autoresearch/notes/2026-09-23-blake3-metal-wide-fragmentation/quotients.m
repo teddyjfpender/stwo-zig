@@ -1,0 +1,1093 @@
+bool stwo_zig_metal_compute_quotients(
+    void *runtime_ptr,
+    const uint32_t *flat_views, size_t flat_views_len,
+    const uint32_t *const *raw_columns, const size_t *raw_column_lengths,
+    uint32_t raw_column_count,
+    void *const *resident_tree_handles, uint32_t resident_tree_count,
+    const void *views, uint32_t view_count, bool raw_views,
+    const uint32_t *sample_components, const uint32_t *linear_terms,
+    uint32_t batch_count, bool cache_domain,
+    uint32_t domain_log_size, uint32_t domain_initial_index, uint32_t domain_step_size, const uint32_t *domain_x,
+    const uint32_t *domain_y, uint32_t row_count,
+    uint32_t *output, void *resident_output_ptr,
+    const uint32_t *leaf_seed, const uint32_t *node_seed,
+    uint32_t domain_prefix_bytes, uint32_t hash_family, void *fri_line_output_ptr,
+    void *const *fri_coordinate_ptrs, void *fri_final_destination_ptr,
+    uint32_t fri_layer_count, uint32_t fri_domain_initial_index, uint32_t fri_domain_step_size,
+    uint32_t *fri_channel_state, void **fri_tree_outputs, uint32_t *fri_inverse_generation_mask,
+    StwoZigCommandEpochStats *fri_stats, StwoZigQuotientWorkReceipt *quotient_work_receipt,
+    void *quotient_parity_context, StwoZigQuotientParityObserverV1 quotient_parity_observer,
+    void **tree_out, double *gpu_milliseconds, char *error_message, size_t error_message_len
+) {
+    bool fri_transaction = fri_line_output_ptr != NULL;
+    if (runtime_ptr == NULL || views == NULL || sample_components == NULL ||
+        linear_terms == NULL || (!cache_domain && (domain_x == NULL || domain_y == NULL)) ||
+        output == NULL || row_count == 0u || tree_out == NULL ||
+        (raw_views && (raw_columns == NULL || raw_column_lengths == NULL ||
+                       raw_column_count == 0u)) ||
+        (resident_tree_count != 0u && resident_tree_handles == NULL) ||
+        ((quotient_parity_context == NULL) != (quotient_parity_observer == NULL)) ||
+        (quotient_parity_observer != NULL && !raw_views) ||
+        (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u) ||
+        (!stwo_zig_valid_commitment_hash_family_v1(hash_family) &&
+         hash_family != StwoZigCommitmentHashFamilyBlake3V1) ||
+        (fri_transaction &&
+            (fri_coordinate_ptrs == NULL || fri_final_destination_ptr == NULL ||
+             fri_layer_count == 0u || fri_layer_count >= 31u ||
+             fri_channel_state == NULL || fri_tree_outputs == NULL || fri_stats == NULL ||
+             resident_output_ptr == NULL || leaf_seed == NULL || node_seed == NULL ||
+             row_count < 4u || (row_count >> 1u) >> fri_layer_count == 0u ||
+             (hash_family != StwoZigCommitmentHashFamilyBlake2sV1 &&
+              hash_family != StwoZigCommitmentHashFamilyBlake3V1))) ||
+        (!fri_transaction &&
+            (fri_coordinate_ptrs != NULL || fri_final_destination_ptr != NULL ||
+             fri_layer_count != 0u || fri_channel_state != NULL ||
+             fri_tree_outputs != NULL || fri_inverse_generation_mask != NULL ||
+             fri_stats != NULL)) ||
+        (cache_domain && ((row_count & (row_count - 1u)) != 0u ||
+                          domain_log_size >= 31u ||
+                          row_count != (1u << domain_log_size))))
+        return false;
+    if (hash_family == StwoZigCommitmentHashFamilyBlake3V1) {
+        if (domain_prefix_bytes != 0u) return false;
+        if (leaf_seed != NULL) for (uint32_t i = 0; i < 8u; ++i) if (leaf_seed[i] != 0u) return false;
+        if (node_seed != NULL) for (uint32_t i = 0; i < 8u; ++i) if (node_seed[i] != 0u) return false;
+        if (fri_transaction && fri_channel_state[10] != 0u) return false;
+    }
+
+    if (quotient_work_receipt != NULL)
+        memset(quotient_work_receipt, 0, sizeof(*quotient_work_receipt));
+    @autoreleasepool {
+        bool profile_quotient = getenv("STWO_ZIG_METAL_QUOTIENT_PROFILE") != NULL;
+        NSTimeInterval quotient_wall_start = [NSDate timeIntervalSinceReferenceDate];
+        *tree_out = NULL;
+        bool commit_tree = resident_output_ptr != NULL || leaf_seed != NULL || node_seed != NULL;
+        if (commit_tree && (resident_output_ptr == NULL || leaf_seed == NULL || node_seed == NULL))
+            return false;
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        NSMutableArray<StwoZigMetalTree *> *resident_trees =
+            [NSMutableArray arrayWithCapacity:resident_tree_count];
+        for (uint32_t i = 0u; i < resident_tree_count; ++i) {
+            StwoZigMetalTree *tree = (__bridge StwoZigMetalTree *)resident_tree_handles[i];
+            if (tree == nil || tree.runtimeOwner != runtime) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient residency handle belongs to another runtime");
+                return false;
+            }
+            [resident_trees addObject:tree];
+        }
+        NSArray<id<MTLBuffer>> *resident_quotient_sources = nil;
+        NSData *resident_quotient_views = nil;
+        NSData *resident_quotient_batch_offsets = nil;
+        bool resident_multi_source = false;
+        id<MTLBuffer> flat_buffer;
+        size_t raw_len = 0;
+        size_t raw_bytes = 0u;
+        size_t raw_source_runs = 0u;
+        bool gpu_raw_upload = false;
+        bool gpu_flat_pack = false;
+        if (raw_views) {
+            for (uint32_t i = 0; i < raw_column_count; ++i) {
+                if (raw_column_lengths[i] > SIZE_MAX - raw_len) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient raw input length overflow");
+                    return false;
+                }
+                raw_len += raw_column_lengths[i];
+            }
+            if (raw_len > SIZE_MAX / sizeof(uint32_t)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient raw input byte length overflow");
+                return false;
+            }
+            if (!stwo_zig_metal_validate_raw_quotient_source_views_v2(
+                    raw_column_lengths,
+                    raw_column_count,
+                    (const StwoZigRawQuotientSourceViewV2 *)views,
+                    view_count,
+                    row_count,
+                    batch_count)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient raw source-view authority is invalid");
+                return false;
+            }
+            raw_bytes = raw_len * sizeof(uint32_t);
+            bool resident_segment_candidate =
+                resident_tree_count != 0u &&
+                raw_bytes >= stwo_zig_quotient_resident_segment_min_bytes;
+            bool large_segment_candidate =
+                raw_bytes >= stwo_zig_quotient_gpu_flat_pack_min_bytes;
+            bool segmented_candidate =
+                resident_segment_candidate || large_segment_candidate;
+            if (segmented_candidate &&
+                !stwo_zig_quotient_raw_source_run_count_v2(
+                    raw_columns,
+                    raw_column_lengths,
+                    raw_column_count,
+                    resident_trees,
+                    &raw_source_runs)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient raw source-run planning failed");
+                return false;
+            }
+            gpu_raw_upload =
+                segmented_candidate &&
+                stwo_zig_metal_prefer_segmented_quotient_v2(raw_len, raw_source_runs);
+            resident_multi_source =
+                segmented_candidate &&
+                stwo_zig_prepare_resident_multi_source_quotient(
+                    raw_columns,
+                    raw_column_lengths,
+                    raw_column_count,
+                    resident_trees,
+                    views,
+                    view_count,
+                    row_count,
+                    batch_count,
+                    &resident_quotient_sources,
+                    &resident_quotient_views,
+                    &resident_quotient_batch_offsets
+                );
+            gpu_flat_pack =
+                large_segment_candidate && !resident_multi_source && !gpu_raw_upload;
+            if (quotient_parity_observer != NULL &&
+                (!gpu_raw_upload || resident_multi_source)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient internal parity requires the segmented raw path");
+                return false;
+            }
+            flat_buffer = (resident_multi_source || gpu_raw_upload)
+                ? [runtime.device newBufferWithLength:sizeof(uint32_t) options:MTLResourceStorageModeShared]
+                : [runtime.device newBufferWithLength:raw_len * sizeof(uint32_t)
+                                              options:gpu_flat_pack
+                                                  ? MTLResourceStorageModePrivate
+                                                  : MTLResourceStorageModeShared];
+            if (!resident_multi_source && !gpu_raw_upload && !gpu_flat_pack) {
+                uint32_t *destination = flat_buffer.contents;
+                size_t cursor = 0;
+                for (uint32_t i = 0; i < raw_column_count; ++i) {
+                    memcpy(destination + cursor, raw_columns[i], raw_column_lengths[i] * sizeof(uint32_t));
+                    cursor += raw_column_lengths[i];
+                }
+            }
+        } else {
+            flat_buffer = [runtime.device newBufferWithBytes:flat_views
+                                                     length:flat_views_len * sizeof(uint32_t)
+                                                    options:MTLResourceStorageModeShared];
+        }
+        id<MTLBuffer> view_buffer = raw_views ? nil :
+            [runtime.device newBufferWithBytes:views
+                                        length:(NSUInteger)view_count * 5u * sizeof(uint32_t)
+                                       options:MTLResourceStorageModeShared];
+        NSData *single_source_raw_views = nil;
+        NSData *single_source_batch_offsets = nil;
+        if (raw_views && !resident_multi_source && !gpu_raw_upload &&
+            !stwo_zig_prepare_raw_quotient_views_for_single_source(
+                views,
+                view_count,
+                row_count,
+                batch_count,
+                &single_source_raw_views,
+                &single_source_batch_offsets)) {
+            write_error(error_message, error_message_len,
+                        @"Metal quotient batch-index planning failed");
+            return false;
+        }
+        NSData *partial_view_data = nil;
+        NSData *partial_group_data = nil;
+        NSData *partial_row_start_data = nil;
+        NSData *partial_batch_group_data = nil;
+        uint32_t partial_group_count = 0u;
+        uint32_t partial_total_rows = 0u;
+        uint32_t partial_words = 0u;
+        bool gpu_grouped_partials = false;
+        if (resident_multi_source && raw_bytes >= stwo_zig_quotient_gpu_flat_pack_min_bytes &&
+            stwo_zig_prepare_resident_quotient_groups(
+                resident_quotient_views,
+                resident_quotient_batch_offsets,
+                view_count,
+                batch_count,
+                row_count,
+                &partial_view_data,
+                &partial_group_data,
+                &partial_row_start_data,
+                &partial_batch_group_data,
+                &partial_group_count,
+                &partial_total_rows,
+                &partial_words
+            )) {
+            const uint64_t partial_bytes = (uint64_t)partial_words * sizeof(uint32_t);
+            // Compare evaluated cells, not temporary bytes with input bytes.
+            // Mixed-log guest traces can have tiny source columns lifted over
+            // millions of quotient rows. Their grouped intermediate is larger
+            // than the inputs but avoids rereading each column at every row.
+            // Keep the established one-GiB cap and require at least a 2x work
+            // reduction before admitting the extra intermediate.
+            uint64_t direct_cells = 0u;
+            uint64_t grouped_cells = 0u;
+            bool bounded_work = stwo_zig_checked_mul_u64(row_count, view_count, &direct_cells) &&
+                stwo_zig_checked_mul_u64(row_count, partial_group_count, &grouped_cells);
+            const StwoZigResidentRawQuotientGroup *groups = partial_group_data.bytes;
+            for (uint32_t group = 0u; bounded_work && group < partial_group_count; ++group) {
+                uint64_t cells = 0u;
+                bounded_work = stwo_zig_checked_mul_u64(groups[group].row_count, groups[group].view_count, &cells) &&
+                    stwo_zig_checked_add_u64(grouped_cells, cells, &grouped_cells);
+            }
+            gpu_grouped_partials = bounded_work &&
+                partial_bytes <= UINT64_C(1024) * 1024u * 1024u &&
+                grouped_cells <= direct_cells / 2u;
+        }
+        if (profile_quotient) {
+            fprintf(stderr,
+                    "Metal quotient shape: raw_bytes=%zu columns=%u views=%u "
+                    "source_runs=%zu resident_sources=%lu resident_trees=%u "
+                    "batches=%u rows=%u path=%s groups=%u partial_bytes=%llu\n",
+                    raw_bytes, raw_column_count, view_count, raw_source_runs,
+                    (unsigned long)resident_quotient_sources.count,
+                    resident_tree_count, batch_count, row_count,
+                    gpu_grouped_partials ? "resident-partials" :
+                        (resident_multi_source ? "resident-direct" :
+                            (gpu_raw_upload ? "segmented" :
+                                (gpu_flat_pack ? "gpu-flat" : "cpu-flat"))),
+                    gpu_grouped_partials ? partial_group_count : 0u,
+                    (unsigned long long)(gpu_grouped_partials
+                        ? (uint64_t)partial_words * sizeof(uint32_t)
+                        : 0u));
+        }
+        NSData *resident_views_for_gpu = gpu_grouped_partials
+            ? partial_view_data
+            : resident_quotient_views;
+        id<MTLBuffer> raw_view_buffer = resident_multi_source
+            ? [runtime.device newBufferWithBytes:resident_views_for_gpu.bytes
+                                          length:resident_views_for_gpu.length
+                                         options:MTLResourceStorageModeShared]
+            : (single_source_raw_views != nil
+                ? [runtime.device newBufferWithBytes:single_source_raw_views.bytes
+                                              length:single_source_raw_views.length
+                                             options:MTLResourceStorageModeShared]
+                : nil);
+        NSData *raw_batch_offsets = resident_multi_source
+            ? resident_quotient_batch_offsets
+            : single_source_batch_offsets;
+        id<MTLBuffer> raw_batch_offset_buffer = raw_batch_offsets == nil
+            ? nil
+            : [runtime.device newBufferWithBytes:raw_batch_offsets.bytes
+                                          length:raw_batch_offsets.length
+                                         options:MTLResourceStorageModeShared];
+        id<MTLBuffer> partial_group_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithBytes:partial_group_data.bytes
+                                          length:partial_group_data.length
+                                         options:MTLResourceStorageModeShared]
+            : nil;
+        id<MTLBuffer> partial_row_start_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithBytes:partial_row_start_data.bytes
+                                          length:partial_row_start_data.length
+                                         options:MTLResourceStorageModeShared]
+            : nil;
+        id<MTLBuffer> partial_batch_group_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithBytes:partial_batch_group_data.bytes
+                                          length:partial_batch_group_data.length
+                                         options:MTLResourceStorageModeShared]
+            : nil;
+        id<MTLBuffer> partial_buffer = gpu_grouped_partials
+            ? [runtime.device newBufferWithLength:(NSUInteger)partial_words * sizeof(uint32_t)
+                                          options:MTLResourceStorageModePrivate]
+            : nil;
+        id<MTLBuffer> sample_buffer = [runtime.device newBufferWithBytes:sample_components
+                                                                  length:(NSUInteger)batch_count * 8u * sizeof(uint32_t)
+                                                                 options:MTLResourceStorageModeShared];
+        id<MTLBuffer> linear_buffer = [runtime.device newBufferWithBytes:linear_terms
+                                                                  length:(NSUInteger)batch_count * 8u * sizeof(uint32_t)
+                                                                 options:MTLResourceStorageModeShared];
+        NSUInteger domain_bytes = (NSUInteger)row_count * sizeof(uint32_t);
+        NSUInteger x_offset = 0u;
+        NSUInteger y_offset = 0u;
+        id<MTLBuffer> x_buffer = nil;
+        id<MTLBuffer> y_buffer = nil;
+        id<MTLBuffer> domain_cache_candidate = nil;
+        bool build_domain_cache = false;
+        if (cache_domain) {
+            // A local strong reference keeps a hit alive if another proof
+            // replaces the one-entry cache after this synchronized lookup.
+            @synchronized(runtime) {
+                if (runtime.quotientDomainCache != nil &&
+                    runtime.quotientDomainCacheRowCount == row_count &&
+                    runtime.quotientDomainCacheLogSize == domain_log_size &&
+                    runtime.quotientDomainCacheInitialIndex == domain_initial_index &&
+                    runtime.quotientDomainCacheStepSize == domain_step_size) {
+                    domain_cache_candidate = runtime.quotientDomainCache;
+                }
+            }
+            if (domain_cache_candidate == nil) {
+                domain_cache_candidate = [runtime.device newBufferWithLength:2u * domain_bytes
+                                                                      options:MTLResourceStorageModeShared];
+                build_domain_cache = true;
+            }
+            x_buffer = domain_cache_candidate;
+            y_buffer = domain_cache_candidate;
+            y_offset = domain_bytes;
+        } else {
+            x_buffer = [runtime.device newBufferWithBytes:domain_x length:domain_bytes
+                                                   options:MTLResourceStorageModeShared];
+            y_buffer = [runtime.device newBufferWithBytes:domain_y length:domain_bytes
+                                                   options:MTLResourceStorageModeShared];
+        }
+        size_t output_bytes = (size_t)row_count * 4u * sizeof(uint32_t);
+        size_t page_size = (size_t)getpagesize();
+        bool direct_output = ((uintptr_t)output % page_size) == 0u && (output_bytes % page_size) == 0u;
+        id<MTLBuffer> output_buffer = resident_output_ptr != NULL
+            ? (__bridge id<MTLBuffer>)resident_output_ptr
+            : (direct_output
+                ? [runtime.device newBufferWithBytesNoCopy:output
+                                                    length:output_bytes
+                                                   options:MTLResourceStorageModeShared
+                                               deallocator:nil]
+                : [runtime.device newBufferWithLength:output_bytes options:MTLResourceStorageModeShared]);
+        if (resident_output_ptr != NULL &&
+            (output_buffer.length != output_bytes || output_buffer.contents != output)) {
+            write_error(error_message, error_message_len, @"Resident quotient output shape mismatch");
+            return false;
+        }
+        if (flat_buffer == nil || (!raw_views && view_buffer == nil) ||
+            (resident_multi_source && raw_view_buffer == nil) ||
+            (raw_views && !resident_multi_source && !gpu_raw_upload && raw_view_buffer == nil) ||
+            (raw_views && !gpu_raw_upload && raw_batch_offset_buffer == nil) ||
+            (gpu_grouped_partials &&
+                (partial_group_buffer == nil || partial_row_start_buffer == nil ||
+                 partial_batch_group_buffer == nil || partial_buffer == nil)) ||
+            sample_buffer == nil ||
+            linear_buffer == nil || x_buffer == nil || y_buffer == nil || output_buffer == nil) {
+            write_error(error_message, error_message_len, @"Metal quotient allocation failed");
+            return false;
+        }
+
+        NSMutableArray<id<MTLBuffer>> *layers = nil;
+        id<MTLBuffer> hash_arena = nil;
+        id<MTLBuffer> root_readback = nil;
+        id<MTLBuffer> column_offsets = nil;
+        id<MTLBuffer> column_logs = nil;
+        id<MTLBuffer> leaf_seed_buffer = nil;
+        StwoZigMerkleParentChain *parent_plan = nil;
+        NSData *layer_word_offsets_data = nil;
+        NSData *layer_word_lengths_data = nil;
+        const uint32_t fri_state_word_offset = 0u;
+        const uint32_t fri_root_word_offset = 16u;
+        const uint32_t fri_alpha_word_offset = 24u;
+        id<MTLBuffer> fri_channel_buffer = nil;
+        uint32_t layer_word_offsets[31] = { 0u };
+        uint32_t layer_word_lengths[31] = { 0u };
+        uint32_t lifting_log_size = 0u;
+        if (commit_tree) {
+            if (row_count > UINT32_MAX / 4u || (row_count & (row_count - 1u)) != 0u) {
+                write_error(error_message, error_message_len, @"Resident quotient row count is invalid");
+                return false;
+            }
+            lifting_log_size = 31u - (uint32_t)__builtin_clz(row_count);
+            uint32_t offsets[4] = { 0u, row_count, 2u * row_count, 3u * row_count };
+            uint32_t logs[4] = { lifting_log_size, lifting_log_size, lifting_log_size, lifting_log_size };
+            column_offsets = [runtime.device newBufferWithBytes:offsets length:sizeof(offsets)
+                                                       options:MTLResourceStorageModeShared];
+            column_logs = [runtime.device newBufferWithBytes:logs length:sizeof(logs)
+                                                    options:MTLResourceStorageModeShared];
+            leaf_seed_buffer = [runtime.device newBufferWithBytes:leaf_seed length:8u * sizeof(uint32_t)
+                                                        options:MTLResourceStorageModeShared];
+            layers = [NSMutableArray arrayWithCapacity:lifting_log_size + 1u];
+            uint32_t layer_count = row_count;
+            uint64_t arena_words = 0u;
+            for (uint32_t level = 0u; level <= lifting_log_size; ++level) {
+                arena_words = (arena_words + 63u) & ~UINT64_C(63);
+                uint64_t length_words = (uint64_t)layer_count * 8u;
+                if (arena_words > UINT32_MAX || length_words > UINT32_MAX ||
+                    arena_words + length_words > UINT32_MAX) {
+                    write_error(error_message, error_message_len, @"Resident quotient Merkle arena exceeds word offsets");
+                    return false;
+                }
+                layer_word_offsets[level] = (uint32_t)arena_words;
+                layer_word_lengths[level] = (uint32_t)length_words;
+                arena_words += length_words;
+                layer_count >>= 1u;
+            }
+            hash_arena = [runtime.device newBufferWithLength:(NSUInteger)arena_words * sizeof(uint32_t)
+                                                     options:runtime.device.hasUnifiedMemory
+                                                         ? MTLResourceStorageModeShared
+                                                         : MTLResourceStorageModePrivate];
+            root_readback = runtime.device.hasUnifiedMemory ? hash_arena
+                : [runtime.device newBufferWithLength:32u options:MTLResourceStorageModeShared];
+            layer_word_offsets_data = [NSData dataWithBytes:layer_word_offsets
+                                                    length:(NSUInteger)(lifting_log_size + 1u) * sizeof(uint32_t)];
+            layer_word_lengths_data = [NSData dataWithBytes:layer_word_lengths
+                                                    length:(NSUInteger)(lifting_log_size + 1u) * sizeof(uint32_t)];
+            if (column_offsets == nil || column_logs == nil || leaf_seed_buffer == nil ||
+                hash_arena == nil || root_readback == nil || layer_word_offsets_data == nil ||
+                layer_word_lengths_data == nil) {
+                write_error(error_message, error_message_len, @"Resident quotient Merkle metadata allocation failed");
+                return false;
+            }
+            for (uint32_t level = 0u; level <= lifting_log_size; ++level) [layers addObject:hash_arena];
+
+            uint32_t child_offsets[30] = { 0u };
+            uint32_t destination_offsets[30] = { 0u };
+            uint32_t parent_counts[30] = { 0u };
+            for (uint32_t level = 0u; level < lifting_log_size; ++level) {
+                child_offsets[level] = layer_word_offsets[level];
+                destination_offsets[level] = layer_word_offsets[level + 1u];
+                parent_counts[level] = row_count >> (level + 1u);
+            }
+            void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare_v2(
+                runtime_ptr, child_offsets, destination_offsets, parent_counts,
+                lifting_log_size, node_seed, domain_prefix_bytes, hash_family,
+                error_message, error_message_len);
+            if (parent_plan_ptr != NULL)
+                parent_plan = (__bridge_transfer StwoZigMerkleParentChain *)parent_plan_ptr;
+            if (parent_plan == nil) {
+                write_error(error_message, error_message_len, @"Resident quotient parent-chain allocation failed");
+                return false;
+            }
+            if (fri_transaction) {
+                fri_channel_buffer = [runtime.device newBufferWithLength:
+                    (NSUInteger)(fri_alpha_word_offset + 4u) * sizeof(uint32_t)
+                    options:MTLResourceStorageModeShared];
+                if (fri_channel_buffer == nil) {
+                    write_error(error_message, error_message_len, @"Resident FRI transcript allocation failed");
+                    return false;
+                }
+                memset(fri_channel_buffer.contents, 0, fri_channel_buffer.length);
+                memcpy((uint32_t *)fri_channel_buffer.contents + fri_state_word_offset,
+                       fri_channel_state, (hash_family == StwoZigCommitmentHashFamilyBlake3V1 ? 11u : 10u) * sizeof(uint32_t));
+            }
+        }
+
+        NSMutableArray<id<MTLBuffer>> *raw_sources = [NSMutableArray array];
+        id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
+        double parity_completed_gpu_milliseconds = 0.0;
+        if (gpu_flat_pack &&
+            !stwo_zig_encode_quotient_flat_pack(
+                runtime,
+                command,
+                raw_columns,
+                raw_column_lengths,
+                raw_column_count,
+                resident_trees,
+                flat_buffer,
+                raw_sources
+            )) {
+            write_error(error_message, error_message_len,
+                        @"Metal quotient flat-pack encoding failed");
+            return false;
+        }
+        if (build_domain_cache) {
+            id<MTLComputeCommandEncoder> domain_encoder = [command computeCommandEncoder];
+            [domain_encoder setComputePipelineState:runtime.quotientDomainPointsResident];
+            [domain_encoder setBuffer:domain_cache_candidate offset:0u atIndex:0];
+            uint32_t destination_offset = 0u;
+            [domain_encoder setBytes:&destination_offset length:sizeof(destination_offset) atIndex:1];
+            [domain_encoder setBytes:&row_count length:sizeof(row_count) atIndex:2];
+            [domain_encoder setBytes:&domain_log_size length:sizeof(domain_log_size) atIndex:3];
+            [domain_encoder setBytes:&domain_initial_index length:sizeof(domain_initial_index) atIndex:4];
+            [domain_encoder setBytes:&domain_step_size length:sizeof(domain_step_size) atIndex:5];
+            uint32_t domain_mode = 0u;
+            [domain_encoder setBytes:&domain_mode length:sizeof(domain_mode) atIndex:6];
+            NSUInteger domain_width = MIN(runtime.quotientDomainPointsResident.maxTotalThreadsPerThreadgroup,
+                                          runtime.quotientDomainPointsResident.threadExecutionWidth * 8u);
+            [domain_encoder dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
+                      threadsPerThreadgroup:MTLSizeMake(domain_width, 1u, 1u)];
+            [domain_encoder endEncoding];
+        }
+        if (gpu_grouped_partials) {
+            id<MTLComputeCommandEncoder> partials = [command computeCommandEncoder];
+            partials.label = @"stwo_zig_quotient_partials_raw";
+            [partials setComputePipelineState:runtime.quotientPartialsRaw];
+            id<MTLBuffer> first_source = resident_quotient_sources[0];
+            for (NSUInteger source_slot = 0u;
+                 source_slot < stwo_zig_quotient_max_resident_sources;
+                 ++source_slot) {
+                id<MTLBuffer> source = source_slot < resident_quotient_sources.count
+                    ? resident_quotient_sources[source_slot]
+                    : first_source;
+                [partials setBuffer:source offset:0u atIndex:source_slot];
+            }
+            [partials setBuffer:raw_view_buffer offset:0u atIndex:4];
+            [partials setBuffer:partial_group_buffer offset:0u atIndex:5];
+            [partials setBuffer:partial_row_start_buffer offset:0u atIndex:6];
+            [partials setBytes:&partial_group_count length:sizeof(partial_group_count) atIndex:7];
+            [partials setBytes:&partial_total_rows length:sizeof(partial_total_rows) atIndex:8];
+            [partials setBuffer:partial_buffer offset:0u atIndex:9];
+            NSUInteger partial_width = MIN(runtime.quotientPartialsRaw.maxTotalThreadsPerThreadgroup,
+                                           runtime.quotientPartialsRaw.threadExecutionWidth * 8u);
+            [partials dispatchThreads:MTLSizeMake(partial_total_rows, 1u, 1u)
+                   threadsPerThreadgroup:MTLSizeMake(partial_width, 1u, 1u)];
+            [partials endEncoding];
+
+            id<MTLComputeCommandEncoder> combine = [command computeCommandEncoder];
+            combine.label = @"stwo_zig_quotient_combine_partials_raw";
+            [combine setComputePipelineState:runtime.quotientCombinePartialsRaw];
+            [combine setBuffer:partial_buffer offset:0u atIndex:0];
+            [combine setBuffer:partial_group_buffer offset:0u atIndex:1];
+            [combine setBuffer:partial_batch_group_buffer offset:0u atIndex:2];
+            [combine setBuffer:sample_buffer offset:0u atIndex:3];
+            [combine setBuffer:linear_buffer offset:0u atIndex:4];
+            [combine setBytes:&batch_count length:sizeof(batch_count) atIndex:5];
+            [combine setBuffer:x_buffer offset:x_offset atIndex:6];
+            [combine setBuffer:y_buffer offset:y_offset atIndex:7];
+            [combine setBuffer:output_buffer offset:0u atIndex:8];
+            [combine setBytes:&row_count length:sizeof(row_count) atIndex:9];
+            NSUInteger combine_width = MIN(runtime.quotientCombinePartialsRaw.maxTotalThreadsPerThreadgroup,
+                                           runtime.quotientCombinePartialsRaw.threadExecutionWidth * 8u);
+            [combine dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
+                  threadsPerThreadgroup:MTLSizeMake(combine_width, 1u, 1u)];
+            [combine endEncoding];
+        } else if (gpu_raw_upload && !resident_multi_source) {
+            id<MTLBuffer> numerators = [runtime.device newBufferWithLength:(NSUInteger)batch_count * row_count * 4u * sizeof(uint32_t)
+                                                                   options:quotient_parity_observer != NULL
+                                                                       ? MTLResourceStorageModeShared
+                                                                       : MTLResourceStorageModePrivate];
+            if (numerators == nil) {
+                write_error(error_message, error_message_len, @"Metal quotient numerator allocation failed");
+                return false;
+            }
+            id<MTLBlitCommandEncoder> clear = [command blitCommandEncoder];
+            [clear fillBuffer:numerators range:NSMakeRange(0, numerators.length) value:0u];
+            [clear endEncoding];
+            size_t column = 0;
+            size_t flat_offset = 0;
+            size_t page_size = (size_t)getpagesize();
+            uint32_t parity_segment_index = 0u;
+            while (column < raw_column_count) {
+                StwoZigRawQuotientSourceRunV2 run;
+                if (!stwo_zig_plan_raw_quotient_source_run_v2(
+                        raw_columns,
+                        raw_column_lengths,
+                        raw_column_count,
+                        resident_trees,
+                        column,
+                        &run)) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient raw source-run remint failed");
+                    return false;
+                }
+                const size_t run_start = run.first_column;
+                const size_t run_words = run.logical_word_count;
+                const bool resident_run = run.resident;
+                id<MTLBuffer> resident_source = run.resident_source;
+                column = run.end_column;
+                size_t run_bytes = run_words * sizeof(uint32_t);
+                uintptr_t address = (uintptr_t)raw_columns[run_start];
+                // Cache-skewed columns intentionally begin inside a VM page.
+                // Alias the complete page envelope and bind the logical byte
+                // offset instead of copying every non-page-aligned column.
+                uintptr_t alias_address = address - (address % page_size);
+                size_t source_binding_offset = resident_run
+                    ? run.resident_base_word * sizeof(uint32_t)
+                    : address - alias_address;
+                bool alias_shared = !resident_run && runtime.device.hasUnifiedMemory &&
+                    run_bytes <= SIZE_MAX - source_binding_offset;
+                size_t alias_length = 0u;
+                if (alias_shared) {
+                    size_t alias_span = source_binding_offset + run_bytes;
+                    alias_shared = alias_span <= SIZE_MAX - (page_size - 1u);
+                    if (alias_shared)
+                        alias_length = (alias_span + page_size - 1u) / page_size * page_size;
+                }
+                id<MTLBuffer> source = resident_run ? resident_source :
+                    (alias_shared
+                        ? [runtime.device newBufferWithBytesNoCopy:(void *)alias_address
+                                                            length:alias_length
+                                                           options:MTLResourceStorageModeShared
+                                                       deallocator:nil]
+                        : [runtime.device newBufferWithBytes:raw_columns[run_start]
+                                                      length:run_bytes
+                                                     options:MTLResourceStorageModeShared]);
+                if (source == nil || source_binding_offset > source.length) {
+                    write_error(error_message, error_message_len, @"Metal quotient upload allocation failed");
+                    return false;
+                }
+                [raw_sources addObject:source];
+                NSMutableData *run_view_data = [NSMutableData data];
+                const StwoZigRawQuotientSourceViewV2 *all_views =
+                    (const StwoZigRawQuotientSourceViewV2 *)views;
+                uint64_t min_original_offset = UINT64_MAX;
+                uint64_t max_original_offset = 0u;
+                uint64_t min_rebased_offset = UINT64_MAX;
+                uint64_t max_rebased_offset = 0u;
+                uint32_t min_batch = UINT32_MAX;
+                uint32_t max_batch = 0u;
+                for (uint32_t view_index = 0; view_index < view_count; ++view_index) {
+                    const StwoZigRawQuotientSourceViewV2 source_view = all_views[view_index];
+                    if (source_view.offset >= (uint64_t)flat_offset &&
+                        source_view.offset < (uint64_t)flat_offset + (uint64_t)run_words) {
+                        const uint64_t original_offset = source_view.offset;
+                        uint64_t local_offset = source_view.offset - (uint64_t)flat_offset;
+                        if (resident_run) {
+                            bool resident_view_mapped = false;
+                            size_t logical_column_start = flat_offset;
+                            for (size_t source_column = run_start; source_column < column; ++source_column) {
+                                size_t logical_column_end = logical_column_start + raw_column_lengths[source_column];
+                                if (source_view.offset < (uint64_t)logical_column_end) {
+                                    StwoZigResidentColumnBinding column_binding;
+                                    size_t row_offset =
+                                        (size_t)(source_view.offset - (uint64_t)logical_column_start);
+                                    if (!stwo_zig_tree_resident_column(
+                                            resident_trees, raw_columns[source_column],
+                                            raw_column_lengths[source_column], &column_binding) ||
+                                        column_binding.buffer != resident_source ||
+                                        column_binding.wordOffset < run.resident_base_word ||
+                                        column_binding.wordOffset - run.resident_base_word >
+                                            UINT64_MAX - row_offset) {
+                                        write_error(error_message, error_message_len,
+                                                    @"Metal quotient resident view mapping failed");
+                                        return false;
+                                    }
+                                    local_offset = (uint64_t)(
+                                        column_binding.wordOffset - run.resident_base_word
+                                    ) + (uint64_t)row_offset;
+                                    resident_view_mapped = true;
+                                    break;
+                                }
+                                logical_column_start = logical_column_end;
+                            }
+                            if (!resident_view_mapped) {
+                                write_error(error_message, error_message_len,
+                                            @"Metal quotient resident source-view is unbound");
+                                return false;
+                            }
+                        }
+                        StwoZigRawQuotientView view;
+                        if (!stwo_zig_metal_local_raw_quotient_view_v2(
+                                &source_view,
+                                local_offset,
+                                row_count,
+                                batch_count,
+                                &view)) {
+                            write_error(error_message, error_message_len,
+                                        @"Metal quotient local source-view overflow");
+                            return false;
+                        }
+                        min_original_offset = MIN(min_original_offset, original_offset);
+                        max_original_offset = MAX(max_original_offset, original_offset);
+                        min_rebased_offset = MIN(min_rebased_offset, (uint64_t)view.offset);
+                        max_rebased_offset = MAX(max_rebased_offset, (uint64_t)view.offset);
+                        min_batch = MIN(min_batch, view.batch);
+                        max_batch = MAX(max_batch, view.batch);
+                        [run_view_data appendBytes:&view length:sizeof(view)];
+                    }
+                }
+                uint32_t run_view_count = (uint32_t)(run_view_data.length / sizeof(StwoZigRawQuotientView));
+                if (run_view_count != 0u) {
+                    id<MTLBuffer> run_views = [runtime.device newBufferWithBytes:run_view_data.bytes
+                                                                         length:run_view_data.length
+                                                                        options:MTLResourceStorageModeShared];
+                    [raw_sources addObject:run_views];
+                    id<MTLComputeCommandEncoder> numerator_encoder = [command computeCommandEncoder];
+                    [numerator_encoder setComputePipelineState:runtime.quotientNumerator];
+                    [numerator_encoder setBuffer:source
+                                           offset:resident_run || alias_shared
+                                               ? source_binding_offset : 0u
+                                          atIndex:0];
+                    [numerator_encoder setBuffer:run_views offset:0 atIndex:1];
+                    [numerator_encoder setBytes:&run_view_count length:sizeof(run_view_count) atIndex:2];
+                    [numerator_encoder setBuffer:numerators offset:0 atIndex:3];
+                    [numerator_encoder setBytes:&batch_count length:sizeof(batch_count) atIndex:4];
+                    [numerator_encoder setBytes:&row_count length:sizeof(row_count) atIndex:5];
+                    NSUInteger numerator_width = MIN(runtime.quotientNumerator.maxTotalThreadsPerThreadgroup,
+                                                     runtime.quotientNumerator.threadExecutionWidth * 8u);
+                    [numerator_encoder dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
+                                 threadsPerThreadgroup:MTLSizeMake(numerator_width, 1u, 1u)];
+                    [numerator_encoder endEncoding];
+                    if (quotient_parity_observer != NULL) {
+                        [command commit];
+                        [command waitUntilCompleted];
+                        if (command.status == MTLCommandBufferStatusError) {
+                            write_error(error_message, error_message_len,
+                                        command.error.localizedDescription ?:
+                                            @"Metal quotient numerator parity dispatch failed");
+                            return false;
+                        }
+                        parity_completed_gpu_milliseconds +=
+                            (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+                        StwoZigQuotientParityEventV1 event = {
+                            .schema_version = 1u,
+                            .phase = StwoZigQuotientParityRawSegmentV1,
+                            .segment_index = parity_segment_index,
+                            .segment_count = (uint32_t)raw_source_runs,
+                            .first_column = (uint32_t)run_start,
+                            .column_count = (uint32_t)(column - run_start),
+                            .view_count = run_view_count,
+                            .batch_count = batch_count,
+                            .row_count = row_count,
+                            .flat_offset = flat_offset,
+                            .run_words = run_words,
+                            .source_binding_offset = resident_run || alias_shared
+                                ? source_binding_offset : 0u,
+                            .flags = (resident_run
+                                ? StwoZigQuotientParityResidentSourceV1 : 0u) |
+                                (!resident_run && alias_shared
+                                    ? StwoZigQuotientParityPageAliasSourceV1 : 0u),
+                            .min_batch = min_batch,
+                            .max_batch = max_batch,
+                            .reserved = 0u,
+                            .min_original_offset = min_original_offset,
+                            .max_original_offset = max_original_offset,
+                            .min_rebased_offset = min_rebased_offset,
+                            .max_rebased_offset = max_rebased_offset,
+                        };
+                        const uint32_t *actual_domain_x =
+                            (const uint32_t *)((const uint8_t *)x_buffer.contents + x_offset);
+                        const uint32_t *actual_domain_y =
+                            (const uint32_t *)((const uint8_t *)y_buffer.contents + y_offset);
+                        if (profile_quotient) {
+                            fprintf(stderr,
+                                    "Metal quotient parity source: segment=%u/%u "
+                                    "columns=%u+%u views=%u batches=%u rows=%llu "
+                                    "resident=%u page_alias=%u flat_offset=%llu "
+                                    "run_words=%llu binding_offset=%llu "
+                                    "original_offsets=%llu..%llu rebased_offsets=%llu..%llu "
+                                    "batch_coverage=%u..%u\n",
+                                    event.segment_index, event.segment_count,
+                                    event.first_column, event.column_count,
+                                    event.view_count, event.batch_count,
+                                    (unsigned long long)event.row_count,
+                                    (event.flags & StwoZigQuotientParityResidentSourceV1) != 0u,
+                                    (event.flags & StwoZigQuotientParityPageAliasSourceV1) != 0u,
+                                    (unsigned long long)event.flat_offset,
+                                    (unsigned long long)event.run_words,
+                                    (unsigned long long)event.source_binding_offset,
+                                    (unsigned long long)event.min_original_offset,
+                                    (unsigned long long)event.max_original_offset,
+                                    (unsigned long long)event.min_rebased_offset,
+                                    (unsigned long long)event.max_rebased_offset,
+                                    event.min_batch, event.max_batch);
+                        }
+                        if (actual_domain_x == NULL || actual_domain_y == NULL ||
+                            numerators.contents == NULL ||
+                            !quotient_parity_observer(
+                                quotient_parity_context,
+                                &event,
+                                run_view_data.bytes,
+                                actual_domain_x,
+                                actual_domain_y,
+                                numerators.contents,
+                                numerators.length / sizeof(uint32_t))) {
+                            write_error(error_message, error_message_len,
+                                        @"Metal quotient raw-segment parity failed");
+                            return false;
+                        }
+                        parity_segment_index += 1u;
+                        command = [runtime.queue commandBuffer];
+                        if (command == nil) {
+                            write_error(error_message, error_message_len,
+                                        @"Metal quotient parity command allocation failed");
+                            return false;
+                        }
+                    }
+                }
+                flat_offset += run_words;
+            }
+            if (quotient_parity_observer != NULL &&
+                parity_segment_index != raw_source_runs) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient parity source-run inventory mismatch");
+                return false;
+            }
+            id<MTLComputeCommandEncoder> finalize = [command computeCommandEncoder];
+            [finalize setComputePipelineState:runtime.quotientFinalize];
+            [finalize setBuffer:numerators offset:0 atIndex:0];
+            [finalize setBuffer:sample_buffer offset:0 atIndex:1];
+            [finalize setBuffer:linear_buffer offset:0 atIndex:2];
+            [finalize setBytes:&batch_count length:sizeof(batch_count) atIndex:3];
+            [finalize setBuffer:x_buffer offset:x_offset atIndex:4];
+            [finalize setBuffer:y_buffer offset:y_offset atIndex:5];
+            [finalize setBuffer:output_buffer offset:0 atIndex:6];
+            [finalize setBytes:&row_count length:sizeof(row_count) atIndex:7];
+            NSUInteger finalize_width = MIN(runtime.quotientFinalize.maxTotalThreadsPerThreadgroup,
+                                            runtime.quotientFinalize.threadExecutionWidth * 8u);
+            [finalize dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
+                   threadsPerThreadgroup:MTLSizeMake(finalize_width, 1u, 1u)];
+            [finalize endEncoding];
+            if (quotient_parity_observer != NULL) {
+                [command commit];
+                [command waitUntilCompleted];
+                if (command.status == MTLCommandBufferStatusError) {
+                    write_error(error_message, error_message_len,
+                                command.error.localizedDescription ?:
+                                    @"Metal quotient finalize parity dispatch failed");
+                    return false;
+                }
+                parity_completed_gpu_milliseconds +=
+                    (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+                StwoZigQuotientParityEventV1 event = {
+                    .schema_version = 1u,
+                    .phase = StwoZigQuotientParityFinalizedV1,
+                    .segment_index = parity_segment_index,
+                    .segment_count = (uint32_t)raw_source_runs,
+                    .first_column = 0u,
+                    .column_count = raw_column_count,
+                    .view_count = view_count,
+                    .batch_count = batch_count,
+                    .row_count = row_count,
+                    .flat_offset = 0u,
+                    .run_words = raw_len,
+                    .source_binding_offset = 0u,
+                    .flags = 0u,
+                    .min_batch = 0u,
+                    .max_batch = 0u,
+                    .reserved = 0u,
+                    .min_original_offset = 0u,
+                    .max_original_offset = 0u,
+                    .min_rebased_offset = 0u,
+                    .max_rebased_offset = 0u,
+                };
+                const uint32_t *actual_domain_x =
+                    (const uint32_t *)((const uint8_t *)x_buffer.contents + x_offset);
+                const uint32_t *actual_domain_y =
+                    (const uint32_t *)((const uint8_t *)y_buffer.contents + y_offset);
+                if (actual_domain_x == NULL || actual_domain_y == NULL ||
+                    output_buffer.contents == NULL ||
+                    !quotient_parity_observer(
+                        quotient_parity_context,
+                        &event,
+                        NULL,
+                        actual_domain_x,
+                        actual_domain_y,
+                        output_buffer.contents,
+                        output_buffer.length / sizeof(uint32_t))) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient finalized parity failed");
+                    return false;
+                }
+                command = [runtime.queue commandBuffer];
+                if (command == nil) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient post-parity command allocation failed");
+                    return false;
+                }
+            }
+        } else {
+            id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
+            id<MTLComputePipelineState> quotient_pipeline = raw_views ? runtime.rawQuotients : runtime.quotients;
+            [encoder setComputePipelineState:quotient_pipeline];
+            if (raw_views) {
+                id<MTLBuffer> first_source = resident_multi_source
+                    ? resident_quotient_sources[0]
+                    : flat_buffer;
+                for (NSUInteger source_slot = 0u;
+                     source_slot < stwo_zig_quotient_max_resident_sources;
+                     ++source_slot) {
+                    id<MTLBuffer> source = resident_multi_source &&
+                        source_slot < resident_quotient_sources.count
+                        ? resident_quotient_sources[source_slot]
+                        : first_source;
+                    [encoder setBuffer:source offset:0u atIndex:source_slot];
+                }
+                [encoder setBuffer:raw_view_buffer offset:0u atIndex:4];
+                [encoder setBytes:&view_count length:sizeof(view_count) atIndex:5];
+                [encoder setBuffer:sample_buffer offset:0u atIndex:6];
+                [encoder setBuffer:linear_buffer offset:0u atIndex:7];
+                [encoder setBytes:&batch_count length:sizeof(batch_count) atIndex:8];
+                [encoder setBuffer:x_buffer offset:x_offset atIndex:9];
+                [encoder setBuffer:y_buffer offset:y_offset atIndex:10];
+                [encoder setBuffer:output_buffer offset:0u atIndex:11];
+                [encoder setBytes:&row_count length:sizeof(row_count) atIndex:12];
+                [encoder setBuffer:raw_batch_offset_buffer offset:0u atIndex:13];
+            } else {
+                [encoder setBuffer:flat_buffer offset:0 atIndex:0];
+                [encoder setBuffer:view_buffer offset:0 atIndex:1];
+                [encoder setBytes:&view_count length:sizeof(view_count) atIndex:2];
+                [encoder setBuffer:sample_buffer offset:0 atIndex:3];
+                [encoder setBuffer:linear_buffer offset:0 atIndex:4];
+                [encoder setBytes:&batch_count length:sizeof(batch_count) atIndex:5];
+                [encoder setBuffer:x_buffer offset:x_offset atIndex:6];
+                [encoder setBuffer:y_buffer offset:y_offset atIndex:7];
+                [encoder setBuffer:output_buffer offset:0 atIndex:8];
+                [encoder setBytes:&row_count length:sizeof(row_count) atIndex:9];
+            }
+            NSUInteger width = MIN(quotient_pipeline.maxTotalThreadsPerThreadgroup,
+                                   quotient_pipeline.threadExecutionWidth * 8u);
+            [encoder dispatchThreads:MTLSizeMake(row_count, 1, 1)
+                    threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
+            [encoder endEncoding];
+        }
+        if (commit_tree) {
+            uint32_t column_count = 4u;
+            id<MTLComputeCommandEncoder> leaves = [command computeCommandEncoder];
+            if (leaves == nil) {
+                write_error(error_message, error_message_len, @"Resident quotient leaf encoder allocation failed");
+                return false;
+            }
+            id<MTLComputePipelineState> leaves_pipeline =
+                stwo_zig_commitment_leaves_pipeline(runtime, hash_family);
+            if (leaves_pipeline == nil) return false;
+            [leaves setComputePipelineState:leaves_pipeline];
+            [leaves setBuffer:output_buffer offset:0 atIndex:0];
+            [leaves setBuffer:column_offsets offset:0 atIndex:1];
+            [leaves setBuffer:column_logs offset:0 atIndex:2];
+            [leaves setBuffer:hash_arena
+                         offset:(NSUInteger)layer_word_offsets[0] * sizeof(uint32_t) atIndex:3];
+            [leaves setBytes:&column_count length:sizeof(column_count) atIndex:4];
+            [leaves setBytes:&lifting_log_size length:sizeof(lifting_log_size) atIndex:5];
+            [leaves setBuffer:leaf_seed_buffer offset:0 atIndex:6];
+            [leaves setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:7];
+            NSUInteger leaf_width = MIN(leaves_pipeline.maxTotalThreadsPerThreadgroup,
+                                        leaves_pipeline.threadExecutionWidth * 8u);
+            [leaves dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
+                  threadsPerThreadgroup:MTLSizeMake(leaf_width, 1u, 1u)];
+            [leaves endEncoding];
+            uint64_t parent_encoders = 0u, parent_dispatches = 0u;
+            if (!encode_merkle_parent_chain_prepared(runtime, hash_arena, parent_plan, command,
+                                                      &parent_encoders, &parent_dispatches)) {
+                write_error(error_message, error_message_len, @"Resident quotient parent-chain encoding failed");
+                return false;
+            }
+            if (!runtime.device.hasUnifiedMemory) {
+                id<MTLBlitCommandEncoder> root_copy = [command blitCommandEncoder];
+                if (root_copy == nil) {
+                    write_error(error_message, error_message_len, @"Resident quotient root encoder allocation failed");
+                    return false;
+                }
+                [root_copy copyFromBuffer:hash_arena
+                             sourceOffset:(NSUInteger)layer_word_offsets[lifting_log_size] * sizeof(uint32_t)
+                                 toBuffer:root_readback destinationOffset:0u size:32u];
+                [root_copy endEncoding];
+            }
+            if (fri_transaction) {
+                id<MTLBlitCommandEncoder> fri_root_copy = [command blitCommandEncoder];
+                if (fri_root_copy == nil) {
+                    write_error(error_message, error_message_len, @"Resident FRI root transfer encoder allocation failed");
+                    return false;
+                }
+                [fri_root_copy copyFromBuffer:hash_arena
+                                  sourceOffset:(NSUInteger)layer_word_offsets[lifting_log_size] * sizeof(uint32_t)
+                                      toBuffer:fri_channel_buffer
+                             destinationOffset:(NSUInteger)fri_root_word_offset * sizeof(uint32_t)
+                                          size:8u * sizeof(uint32_t)];
+                [fri_root_copy endEncoding];
+
+                id<MTLComputeCommandEncoder> fri_transcript = [command computeCommandEncoder];
+                if (fri_transcript == nil) {
+                    write_error(error_message, error_message_len, @"Resident FRI transcript encoder allocation failed");
+                    return false;
+                }
+                uint32_t source_words = 8u;
+                const bool blake3 = hash_family == StwoZigCommitmentHashFamilyBlake3V1;
+                uint32_t operation = 4u;
+                [fri_transcript setComputePipelineState:blake3 ? runtime.blake3Transcript : runtime.transcriptMixResident];
+                if (blake3) [fri_transcript setBytes:&operation length:sizeof(operation) atIndex:4];
+                [fri_transcript setBuffer:fri_channel_buffer offset:0u atIndex:0];
+                [fri_transcript setBytes:&fri_state_word_offset
+                                  length:sizeof(fri_state_word_offset) atIndex:1];
+                [fri_transcript setBytes:&fri_root_word_offset
+                                  length:sizeof(fri_root_word_offset) atIndex:2];
+                [fri_transcript setBytes:&source_words length:sizeof(source_words) atIndex:3];
+                [fri_transcript dispatchThreads:MTLSizeMake(1u, 1u, 1u)
+                         threadsPerThreadgroup:MTLSizeMake(1u, 1u, 1u)];
+                [fri_transcript memoryBarrierWithScope:MTLBarrierScopeBuffers];
+
+                uint32_t felt_count = 1u;
+                operation = 5u;
+                [fri_transcript setComputePipelineState:blake3 ? runtime.blake3Transcript : runtime.transcriptDrawSecureResident];
+                if (blake3) [fri_transcript setBytes:&operation length:sizeof(operation) atIndex:4];
+                [fri_transcript setBuffer:fri_channel_buffer offset:0u atIndex:0];
+                [fri_transcript setBytes:&fri_state_word_offset
+                                  length:sizeof(fri_state_word_offset) atIndex:1];
+                [fri_transcript setBytes:&fri_alpha_word_offset
+                                  length:sizeof(fri_alpha_word_offset) atIndex:2];
+                [fri_transcript setBytes:&felt_count length:sizeof(felt_count) atIndex:3];
+                [fri_transcript dispatchThreads:MTLSizeMake(1u, 1u, 1u)
+                         threadsPerThreadgroup:MTLSizeMake(1u, 1u, 1u)];
+                [fri_transcript endEncoding];
+            }
+        }
+        [command commit];
+        bool fri_ok = true;
+        if (fri_transaction) {
+            fri_ok = stwo_zig_metal_fri_line_cascade_v2(
+                runtime_ptr,
+                fri_line_output_ptr,
+                row_count >> 1u,
+                resident_output_ptr,
+                NULL,
+                (__bridge void *)fri_channel_buffer,
+                fri_state_word_offset,
+                fri_alpha_word_offset,
+                NULL,
+                (row_count >> 1u) - ((row_count >> 1u) >> fri_layer_count),
+                fri_domain_initial_index,
+                fri_domain_step_size,
+                fri_coordinate_ptrs,
+                fri_final_destination_ptr,
+                fri_layer_count,
+                leaf_seed,
+                node_seed,
+                domain_prefix_bytes,
+                hash_family,
+                fri_channel_state,
+                fri_tree_outputs,
+                fri_inverse_generation_mask,
+                fri_stats,
+                error_message,
+                error_message_len
+            );
+        } else {
+            [command waitUntilCompleted];
+        }
+        if (!fri_ok) return false;
+        if (command.status == MTLCommandBufferStatusError) {
+            write_error(error_message, error_message_len,
+                        command.error.localizedDescription ?: @"Metal quotient execution failed");
+            return false;
+        }
+        if (quotient_work_receipt != NULL &&
+            !stwo_zig_publish_quotient_work_receipt(
+                quotient_work_receipt, raw_views, gpu_grouped_partials,
+                gpu_raw_upload, resident_multi_source, row_count, batch_count,
+                view_count, partial_group_count, partial_group_data,
+                build_domain_cache, domain_log_size, domain_initial_index,
+                domain_step_size, error_message, error_message_len))
+            return false;
+        if (build_domain_cache) {
+            // Publish only completed data. Concurrent misses may duplicate
+            // this bounded computation, but can never observe a partial grid.
+            @synchronized(runtime) {
+                runtime.quotientDomainCache = domain_cache_candidate;
+                runtime.quotientDomainCacheRowCount = row_count;
+                runtime.quotientDomainCacheLogSize = domain_log_size;
+                runtime.quotientDomainCacheInitialIndex = domain_initial_index;
+                runtime.quotientDomainCacheStepSize = domain_step_size;
+            }
+        }
+        if (resident_output_ptr == NULL && !direct_output)
+            memcpy(output, output_buffer.contents, output_bytes);
+        if (gpu_milliseconds != NULL) {
+            *gpu_milliseconds = parity_completed_gpu_milliseconds +
+                (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+        }
+        if (profile_quotient) {
+            NSTimeInterval quotient_wall_end = [NSDate timeIntervalSinceReferenceDate];
+            fprintf(stderr,
+                    "Metal quotient timing: gpu_ms=%.3f wall_ms=%.3f path=%s "
+                    "source_runs=%zu resident_sources=%lu\n",
+                    parity_completed_gpu_milliseconds +
+                        (command.GPUEndTime - command.GPUStartTime) * 1000.0,
+                    (quotient_wall_end - quotient_wall_start) * 1000.0,
+                    gpu_grouped_partials ? "resident-partials" :
+                        (resident_multi_source ? "resident-direct" :
+                            (gpu_raw_upload ? "segmented" :
+                                (gpu_flat_pack ? "gpu-flat" : "cpu-flat"))),
+                    raw_source_runs,
+                    (unsigned long)resident_quotient_sources.count);
+        }
+        if (commit_tree) {
+            StwoZigMetalTree *tree = [StwoZigMetalTree new];
+            tree.runtimeOwner = runtime;
+            tree.layers = layers;
+            tree.layerWordOffsets = layer_word_offsets_data;
+            tree.layerWordLengths = layer_word_lengths_data;
+            tree.rootReadback = root_readback;
+            tree.rootReadbackWordOffset = runtime.device.hasUnifiedMemory
+                ? layer_word_offsets[lifting_log_size] : 0u;
+            tree.logSize = lifting_log_size;
+            tree.gpuMilliseconds = gpu_milliseconds != NULL ? *gpu_milliseconds : 0.0;
+            *tree_out = (__bridge_retained void *)tree;
+        }
+        return true;
+    }
+}

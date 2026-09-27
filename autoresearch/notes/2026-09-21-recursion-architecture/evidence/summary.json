@@ -1,0 +1,16 @@
+{
+  "scope": "diagnostic, three pairs per mode, no warmup, same GPU; no production scheduler qualification",
+  "median_pair_seconds": {
+    "serial": 10.822652542,
+    "parallel": 6.516081083
+  },
+  "speedup": 1.6609143447026071,
+  "binary_sha256": "8e730f64bff209b597e4e4729d4537b9a510fc73156e2de7375e7463932ad902",
+  "receipt_sha256": [
+    "cb8416e6034c12328ce81e0a019b9009a7baa26addbbcfbea5524b3d0ab3ef53",
+    "fbdde456006d931d189aec4badd58f8b61f8d0808ddd2b26331e1eeb888559af"
+  ],
+  "environment": {
+    "STWO_RISCV_RECURSIVE_PARENT_PROFILE": "1"
+  }
+}

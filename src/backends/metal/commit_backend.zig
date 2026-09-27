@@ -40,7 +40,13 @@ pub fn shutdown() MetalCommitBackend.ShutdownError!void {
 }
 
 pub const MetalCommitBackend = struct {
+    pub const RamLaneResident = @import("runtime/ram_lanes_producer_v1.zig");
+    /// Explicit independently pinned typed-secure AOT installation. Runtime
+    /// core initialization must already be authenticated; no JIT fallback.
+    pub const installSecurePolynomialAot = @import("runtime/secure_polynomial_composition_v1.zig").install;
+    pub const SecureCompositionLimits = @import("runtime/secure_polynomial_composition_v1.zig").Limits;
     pub const supportsFrameworkInteractions = @import("runtime/framework_interaction_host_bridge.zig").available;
+    pub const supportsFrameworkInteractionProgram = @import("runtime/framework_interaction_host_bridge.zig").availableFor;
     pub const generateFrameworkInteractionInto = @import("runtime/framework_interaction_host_bridge.zig").generateInto;
     pub const admitHostProving = @import("execution_policy.zig").admitHost;
     pub const capabilities: @import("stwo_backend_contracts").Capabilities = .{
@@ -81,6 +87,13 @@ pub const MetalCommitBackend = struct {
             var lease = try shared_runtime.acquire();
             errdefer lease.deinit();
             const runtime_batch = try lease.runtime.beginCircleLdeBatch();
+            return .{ .lease = lease, .runtime_batch = runtime_batch };
+        }
+
+        pub fn initWithAllocator(a: std.mem.Allocator) !CircleLdeBatch {
+            var lease = try shared_runtime.acquire();
+            errdefer lease.deinit();
+            const runtime_batch = try lease.runtime.beginCircleLdeBatchWithAllocator(a);
             return .{ .lease = lease, .runtime_batch = runtime_batch };
         }
 
@@ -222,6 +235,15 @@ pub const MetalCommitBackend = struct {
     /// Searches the exact BLAKE2s nonce space on the authenticated Metal
     /// runtime. The generic PCS layer revalidates the returned nonce against
     /// its transcript before publication.
+    pub fn grindBlake3ProofOfWork(cv: [8]u32, pow_bits: u32) !u64 {
+        const prefix = cv ++ ([_]u32{0} ** 8);
+        var lease = try shared_runtime.acquire();
+        defer lease.deinit();
+        const result = try lease.runtime.grindBlake3ProofOfWork(&prefix, pow_bits);
+        telemetry.recordN(.metal_proof_of_work_dispatch, result.dispatch_count);
+        return result.nonce;
+    }
+
     pub fn grindBlake2sProofOfWork(prefix: [32]u8, pow_bits: u32) !u64 {
         var prefix_words: [8]u32 = undefined;
         for (&prefix_words, 0..) |*word, index| {
@@ -279,9 +301,12 @@ pub const MetalCommitBackend = struct {
     }
 
     pub fn shutdown() ShutdownError!void {
+        // Completed inverse caches own resident resources and budget leases.
+        // Drain them before runtime admission; a live transaction returns busy.
+        try @import("runtime/fri_inverse_cache_v1.zig").drainAllForShutdown();
         // Pooled composition-domain scratch buffers belong to the live runtime;
         // release them before the runtime itself can be torn down.
-        base_polynomial_composition.releasePooledCompositionScratch();
+        try base_polynomial_composition.releasePooledCompositionScratch();
         return shared_runtime.shutdown();
     }
 
@@ -298,6 +323,9 @@ pub const MetalCommitBackend = struct {
             last_layer_evaluation: @import("stwo_prover_engine").line.LineEvaluation,
 
             pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+                const budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.fromAllocator(allocator);
+                if (budget) |owner| _ = owner.retain();
+                defer if (budget) |owner| owner.destroy();
                 for (self.columns) |*column| column.deinit(allocator);
                 allocator.free(self.columns);
                 for (self.trees) |*tree| tree.deinit(allocator);
@@ -308,48 +336,27 @@ pub const MetalCommitBackend = struct {
         };
     }
 
+    /// Historical general Metal APIs accept ordinary allocators explicitly
+    /// uncapped. Supplied shared budgets always retain strict aggregate charge.
+    pub fn allocateSecureColumnWithAllocator(a: std.mem.Allocator, count: usize) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
+        return @import("runtime/fri_columns_v1.zig").allocateSecureColumnWithPolicy(a, count, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+    }
+    pub fn allocateLineEvaluationWithAllocator(a: std.mem.Allocator, domain: @import("stwo_core").poly.line.LineDomain) !@import("stwo_prover_engine").line.LineEvaluation {
+        return @import("runtime/fri_columns_v1.zig").allocateLineEvaluationWithPolicy(a, domain, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+    }
+    pub fn secureColumnFromLineWithAllocator(a: std.mem.Allocator, value: @import("stwo_prover_engine").line.LineEvaluation) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
+        return @import("runtime/fri_columns_v1.zig").secureColumnFromLineWithPolicy(a, value, @import("runtime/fri_allocation_policy_v1.zig").ordinaryMetal(a));
+    }
+    pub const drainBudgetedFriCaches = @import("runtime/fri_inverse_cache_v1.zig").drain;
+
     pub fn allocateSecureColumn(column_len: usize) !@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
-        const M31 = @import("stwo_core").fields.m31.M31;
-        const DEGREE = @import("stwo_core").fields.qm31.SECURE_EXTENSION_DEGREE;
-        var lease = try shared_runtime.acquire();
-        defer lease.deinit();
-        var buffer = try lease.runtime.allocateResidentBuffer(column_len * DEGREE * @sizeOf(M31));
-        errdefer buffer.deinit();
-        const values: [*]M31 = @ptrCast(@alignCast(buffer.contents));
-        var columns: [DEGREE][]M31 = undefined;
-        for (0..DEGREE) |coordinate| {
-            columns[coordinate] = values[coordinate * column_len .. (coordinate + 1) * column_len];
-        }
-        shared_runtime.retainResidentResource();
-        errdefer shared_runtime.releaseResidentResource();
-        return @import("stwo_prover_engine").secure_column.SecureColumnByCoords.initResident(
-            columns,
-            .{
-                .handle = buffer.handle,
-                .destroyFn = shared_runtime.destroyResidentBuffer,
-            },
-        );
+        return @import("runtime/fri_columns_v1.zig").allocateSecureColumnWithPolicy(std.heap.page_allocator, column_len, .explicit_unbudgeted);
     }
 
     pub fn allocateLineEvaluation(
         domain: @import("stwo_core").poly.line.LineDomain,
     ) !@import("stwo_prover_engine").line.LineEvaluation {
-        const QM31 = @import("stwo_core").fields.qm31.QM31;
-        var lease = try shared_runtime.acquire();
-        defer lease.deinit();
-        var buffer = try lease.runtime.allocateResidentBuffer(domain.size() * @sizeOf(QM31));
-        errdefer buffer.deinit();
-        const values: [*]QM31 = @ptrCast(@alignCast(buffer.contents));
-        shared_runtime.retainResidentResource();
-        errdefer shared_runtime.releaseResidentResource();
-        return @import("stwo_prover_engine").line.LineEvaluation.initResident(
-            domain,
-            values[0..domain.size()],
-            .{
-                .handle = buffer.handle,
-                .destroyFn = shared_runtime.destroyResidentBuffer,
-            },
-        );
+        return @import("runtime/fri_columns_v1.zig").allocateLineEvaluationWithPolicy(std.heap.page_allocator, domain, .explicit_unbudgeted);
     }
 
     pub fn secureColumnFromLine(
@@ -384,7 +391,7 @@ pub const MetalCommitBackend = struct {
                 evaluation.values,
             );
         }
-        return secureColumnFromLine(evaluation);
+        return secureColumnFromLineWithAllocator(allocator, evaluation);
     }
 
     pub fn commitMerkle(
@@ -394,7 +401,7 @@ pub const MetalCommitBackend = struct {
     ) !MerkleTree(H) {
         var cells: usize = 0;
         for (columns) |column| cells = try std.math.add(usize, cells, column.len);
-        const resident_hash_supported = comptime hash_domain.parameters(H) != null;
+        const resident_hash_supported = comptime hash_domain.directParameters(H) != null;
         if (cells == 0) {
             const empty_tree = try merkle.MerkleProverLifted(H).commit(allocator, columns);
             return MerkleTree(H).fromHost(empty_tree);
@@ -424,7 +431,7 @@ pub const MetalCommitBackend = struct {
     ) !MerkleTree(H) {
         var cells: usize = 0;
         for (columns) |column| cells = try std.math.add(usize, cells, column.len);
-        const resident_hash_supported = comptime hash_domain.parameters(H) != null;
+        const resident_hash_supported = comptime hash_domain.directParameters(H) != null;
         if (cells == 0 or !commit_policy.usesResidentMerkle(cells) or
             backing_buffers.len == 0 or !resident_hash_supported)
         {
@@ -442,6 +449,8 @@ pub const MetalCommitBackend = struct {
         telemetry.record(.resident_merkle_commit);
         return resident_tree;
     }
+
+    pub const tryCommitStreamingMerkle = @import("runtime/blake3_streaming_leaves.zig").tryCommit;
 
     pub fn adoptHostMerkle(
         comptime H: type,
@@ -486,7 +495,7 @@ pub const MetalCommitBackend = struct {
         provider: anytype,
         out: anytype,
     ) !MerkleTree(H) {
-        const maybe_domain = comptime hash_domain.parameters(H);
+        const maybe_domain = comptime hash_domain.directParameters(H);
         if (comptime maybe_domain == null) {
             try computeLazyQuotients(allocator, provider, out);
             const columns = [_][]const @import("stwo_core").fields.m31.M31{
@@ -511,7 +520,7 @@ pub const MetalCommitBackend = struct {
         var lease = try shared_runtime.acquire();
         defer lease.deinit();
         const result: @import("runtime.zig").QuotientCommitResult = if (provider.rowWorkProfileEnabled()) blk: {
-            const profiled = try lease.runtime.computeQuotientsAndCommitWithReceiptForHash(
+            var profiled = try lease.runtime.computeQuotientsAndCommitWithReceiptForHash(
                 allocator,
                 provider,
                 out,
@@ -520,8 +529,8 @@ pub const MetalCommitBackend = struct {
                 domain.domain_prefix_bytes,
                 @intFromEnum(domain.family),
             );
-            try provider.completeMetalRowExecution(profiled.execution);
-            break :blk .{ .gpu_ms = profiled.gpu_ms, .tree = profiled.tree };
+            const accepted = try @import("runtime/quotient_result_ownership_v1.zig").acceptReceipt(allocator, provider, &profiled);
+            break :blk .{ .gpu_ms = accepted.gpu_ms, .tree = accepted.tree };
         } else try lease.runtime.computeQuotientsAndCommitForHash(
             allocator,
             provider,
@@ -540,7 +549,7 @@ pub const MetalCommitBackend = struct {
         return tree;
     }
 
-    fn validateQuotientOutputParity(
+    pub fn validateQuotientOutputParity(
         allocator: std.mem.Allocator,
         provider: anytype,
         out: anytype,
@@ -641,6 +650,18 @@ pub const MetalCommitBackend = struct {
         telemetry.record(.metal_sampled_value_dispatch);
         std.log.debug("Metal sampled-value batch epoch: {d:.3}ms", .{result.gpu_ms});
         return result.execution;
+    }
+
+    /// Host staging holds whole columns in a bounded 64 MiB slab. Larger
+    /// individual columns retain the generic fallback until row tiling exists.
+    pub fn supportsMixedSampledEvaluation() bool {
+        return !std.process.hasEnvVarConstant("STWO_ZIG_CPU_HOST_BARYCENTRIC");
+    }
+
+    pub fn supportsHostBarycentricColumns(columns: anytype) bool {
+        if (!supportsMixedSampledEvaluation()) return false;
+        for (columns) |column| if (column.log_size > 24) return false;
+        return true;
     }
 
     pub fn evaluateBarycentricTreePlans(
@@ -967,6 +988,7 @@ pub const MetalCommitBackend = struct {
     pub const ColumnType = host_primitives.ColumnType;
     pub const batchInverse = host_primitives.batchInverse;
     const FriOps = @import("commit_backend_fri.zig").Ops(@This());
+    pub const foldCircleResidentIntoLine = FriOps.foldCircleResidentIntoLine;
     pub const foldCircleIntoLine = FriOps.foldCircleIntoLine;
     pub const foldCircleIntoLineWithReceipt = FriOps.foldCircleIntoLineWithReceipt;
     pub const foldLineEvaluationN = FriOps.foldLineEvaluationN;
@@ -1023,4 +1045,38 @@ test "Metal commit backend exposes telemetry without constructing a runtime" {
         lifecycle.initialized,
         lifecycle.initialization_count > lifecycle.shutdown_count,
     );
+}
+
+test "metal BLAKE3 proof of work matches canonical nonces with device dispatch" {
+    const core = @import("stwo_core");
+    const Channel = core.channel.blake3.Channel;
+    const compression = core.crypto.blake3_compression;
+    const search = @import("stwo_prover_engine").pcs.proof_of_work;
+    try MetalCommitBackend.initializeRuntime(std.testing.allocator, .source_jit);
+    defer MetalCommitBackend.shutdown() catch unreachable;
+    for ([_]u32{ 8, 12, 21, 26 }) |bits| {
+        var channel = Channel{};
+        channel.mixU32s(&.{ 0x1234_5678, bits, 0xffff_ffff });
+        const cv = try channel.powChainingValue(bits);
+        for ([_]u64{ 0, 1, 0x1_0000_0000, std.math.maxInt(u64) }) |nonce| {
+            var block = [_]u32{0} ** 16;
+            block[0] = @truncate(nonce);
+            block[1] = @truncate(nonce >> 32);
+            const output = try compression.compress(cv, block, 0, 8, 10);
+            var actual_digest: [32]u8 = undefined;
+            for (output[0..8], 0..) |word, i| std.mem.writeInt(u32, actual_digest[4 * i ..][0..4], word, .little);
+            const expected_digest = (core.channel.blake3.Frame{ .pow = .{ .state = channel.digestBytes(), .bits = bits, .nonce = nonce } }).hash();
+            try std.testing.expectEqualSlices(u8, &expected_digest, &actual_digest);
+            try std.testing.expectEqual(channel.verifyPowNonce(bits, nonce), @ctz(output[0]) >= bits);
+        }
+        const expected = channel.grind(bits);
+        const before = try MetalCommitBackend.telemetrySnapshot();
+        const actual = try search.grindForBackend(MetalCommitBackend, &channel, bits);
+        const delta = (try MetalCommitBackend.telemetrySnapshot()).delta(before);
+        try std.testing.expectEqual(expected, actual);
+        try std.testing.expect(channel.verifyPowNonce(bits, actual));
+        try std.testing.expect(delta.counters.metal_proof_of_work_dispatches > 0);
+        try std.testing.expectEqual(@as(u64, 0), delta.counters.cpuFallbackTotal());
+        std.debug.print("BLAKE3_METAL_POW bits={d} nonce={d} dispatches={d}\n", .{ bits, actual, delta.counters.metal_proof_of_work_dispatches });
+    }
 }

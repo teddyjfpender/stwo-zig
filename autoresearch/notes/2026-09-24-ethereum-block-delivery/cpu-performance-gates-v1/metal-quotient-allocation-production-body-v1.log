@@ -1,0 +1,28 @@
+src/backends/metal/runtime/polynomial_operations.zig:380:28: error: expected type 'error{CircleTransformFailed,ColumnTooLarge,CommandEpochFailed,CommitmentFailed,CompositionEvaluationFailed,FrameworkPolynomialUnavailable,FrameworkPolynomialUnsupported,InvalidColumns,InvalidFrameworkPolynomialDispatch,OutOfMemory,PolynomialEvaluationFailed,ProofOfWorkFailed,QuotientFailed,RootReadFailed,RuntimeIdentityFailed,RuntimeInitializationFailed,TimerUnsupported,TraceGenerationFailed,WitnessFeedFailed}', found '@typeInfo(@typeInfo(@TypeOf(backends.metal.runtime.quotient_allocation_budget_v1.Scope.init)).@"fn".return_type.?).error_union.error_set'
+    var allocation_scope = try quotient_budget.Scope.init(allocator);
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/backends/metal/runtime/polynomial_operations.zig:380:28: note: 'error.SharedExternalBudgetRequired' not a member of destination error set
+referenced by:
+    computeQuotients__anon_1397: src/backends/metal/runtime/polynomial_operations.zig:115:50
+    bare: src/metal_quotient_allocation_budget_codegen.zig:10:33
+    6 reference(s) hidden; use '-freference-trace=8' to see all references
+src/backends/metal/runtime/polynomial_operations.zig:380:28: error: expected type 'error{CircleTransformFailed,ColumnTooLarge,CommandEpochFailed,CommitmentFailed,CompositionEvaluationFailed,FrameworkPolynomialUnavailable,FrameworkPolynomialUnsupported,InvalidColumns,InvalidFrameworkPolynomialDispatch,OutOfMemory,PolynomialEvaluationFailed,ProofOfWorkFailed,QuotientFailed,RootReadFailed,RuntimeIdentityFailed,RuntimeInitializationFailed,TimerUnsupported,TraceGenerationFailed,WitnessFeedFailed}', found '@typeInfo(@typeInfo(@TypeOf(backends.metal.runtime.quotient_allocation_budget_v1.Scope.init)).@"fn".return_type.?).error_union.error_set'
+    var allocation_scope = try quotient_budget.Scope.init(allocator);
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/backends/metal/runtime/polynomial_operations.zig:380:28: note: 'error.SharedExternalBudgetRequired' not a member of destination error set
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_word_gpu_aot.py", line 29, in build_zig
+    subprocess.run([
+    ~~~~~~~~~~~~~~^^
+        zig, kind, "-OReleaseFast", "-lc", "-mcpu=native",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<12 lines>...
+        "--dep", "stwo_core", "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ], cwd=ROOT, check=True)
+    ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'build-obj', '-OReleaseFast', '-lc', '-mcpu=native', '-femit-bin=/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/metal-quotient-allocation-production-body-v1.o', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '--dep', 'stwo_backend_contracts', '-Mroot=src/metal_quotient_allocation_budget_codegen.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

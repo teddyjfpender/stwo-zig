@@ -1,0 +1,90 @@
+{
+  "status": "qualified_nonproving_scoped_receiver_early_guard_snapshot",
+  "authored_candidate": "cpu-scoped-job-receive-guard-source-candidate-v1.json",
+  "evidence": {
+    "cpu-scoped-receive-guard-semantic-v1": {
+      "source_candidate": "cpu-scoped-receive-guard-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 8.121322957973462,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-receive-guard-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "cpu-scoped-receive-guard-focused-v1": {
+      "source_candidate": "cpu-scoped-receive-guard-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 38.430015874968376,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 13,
+      "test_summary": [
+        "All 13 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-receive-guard-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-scoped-receive-guard-focused-v1",
+        "bytes": 67273248,
+        "sha256": "80a5b16d6eddd782dd424a3a70c42e276b1ea0dce5016a576c88625402bf5da7"
+      }
+    },
+    "cpu-scoped-receive-guard-selected-semantic-v1": {
+      "source_candidate": "cpu-scoped-receive-guard-selected-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 8.209022584022023,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-receive-guard-selected-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    }
+  },
+  "focused_recipe": "legacy",
+  "selected_recipe": "actual receiver/transfer body compilation only",
+  "tests_passed": 13,
+  "authored_behavioral_checks": 4,
+  "body_markers": 1,
+  "source_pins": 1847,
+  "scope": [
+    "Pinned manifest hash/magic/exact length/count/index/nonzero individual and aggregate byte bounds before original source reconstruction or proof consumption",
+    "Actual early failures exercised with deliberately uninitialized original authority pointers",
+    "Every bounded manifest allocation failure releases transport storage",
+    "Actual independent receiver and genuine-input transfer harness bodies retained; harness not invoked"
+  ],
+  "shared_policy_revision": {
+    "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_policy_v1.zig",
+    "sha256": "a7accb2e11c18c3661c047840400947dc842d2b12292e38c83f755e54fee4b3b",
+    "change": "Private original normalization kernel reused only within Full.Policy.validate; whole-job coverage checked on entry and exit. Public normalize/verify boundaries and all original typed leaf checks retained.",
+    "successful_batch_coverage_passes_before": "1 + K",
+    "successful_batch_coverage_passes_after": 2,
+    "measurement": "code-path work count, no timing claim",
+    "runtime_positive_full_policy_fixture": false
+  },
+  "not_qualified": [
+    "Positive genuine full-policy JobSetup transfer and runtime batch-normalization parity",
+    "Shared input-tail and source/global recursive closure",
+    "Canonical activation, complete block proof or end-to-end performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

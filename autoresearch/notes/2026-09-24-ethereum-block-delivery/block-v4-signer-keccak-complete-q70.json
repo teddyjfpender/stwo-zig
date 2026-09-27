@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-25",
+  "scope": "One Ethereum-SHA-profile CPU segment with real secp256k1 recovery and Keccak callers; shared sorted-memory core, recursive leaf, exact singleton outer root, and fresh canonical complete receiver",
+  "security": {"fri_queries": 70, "pow_bits": 26, "profile": "csp_q70_pow26"},
+  "verification": {
+    "fresh_native_execution_and_both_sidecars": true,
+    "fresh_sorted_memory_and_range_tables": true,
+    "initial_image_and_global_transition_closure": true,
+    "fresh_recursive_leaf_and_exact_outer": true,
+    "complete_receiver_result": "complete_block_verified",
+    "wrong_outer_key_rejected": true,
+    "tests_passed": 8
+  },
+  "memory_events": 103,
+  "opcode_events": 9,
+  "external_events": {"signer": 43, "keccak": 51},
+  "proof_bytes": {"recursive_leaf": 978396, "recursive_exact_outer": 930940},
+  "timing_ns": {"recursive_leaf_prove": 33803855500, "recursive_exact_outer_prove": 13721626208, "core": null, "total": null},
+  "memory": {"tracked_recursion_peak_live_bytes": 13734106707, "whole_process_peak_bytes": null},
+  "fixture_limits": [
+    "The outer key and forest digest are filled from freshly produced proofs in this fixture; production admission must pin them independently before opening proof bytes.",
+    "This is a one-segment signer/Keccak guest, not an Ethereum block or mainnet throughput measurement.",
+    "The recorded stage timings exclude core proving, verification, guest execution, and setup."
+  ],
+  "command_filter": "block-v4 canonical complete receiver verifies signer Keccak memory and recursive root",
+  "reproduce_command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_memory_batch_verify_test_root.zig 'block-v4 canonical complete receiver verifies signer Keccak memory and recursive root'"
+}

@@ -1,0 +1,5 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 369s
+1/2 air.guest_precompile.sha256_compression.test.SHA compression arbitrary chaining states match independent standard library...OK
+2/2 air.guest_precompile.sha256_compression.test.SHA compression composes with message padding at block boundaries...OK
+All 2 tests passed.

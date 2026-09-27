@@ -1,0 +1,4 @@
+no step named 'riscv-cpu'
+  access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/4b953a98f8a34eccb3e170f2f682e01b/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x333930c1 -Z77b4eaea6cf86b65 --maxrss 25769803776 -j1 riscv-cpu -Doptimize=ReleaseFast --summary all

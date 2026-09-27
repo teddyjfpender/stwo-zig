@@ -466,6 +466,7 @@ fn proveExComponentsWithRecorder(
     };
 
     diagnostic_subphase.* = .evaluation;
+    @import("host_budget_allocator.zig").SharedHostBudget.reportStage(allocator, "core.evaluation");
     {
         const residency_handles = scheme.backendResidencyHandles(allocator) catch |err| {
             prover_api.EvaluationDiagnostic.recordFirst(evaluation_diagnostic, .{
@@ -524,10 +525,12 @@ fn proveExComponentsWithRecorder(
                 evaluation_diagnostic,
             );
         };
-        defer composition_eval.deinit(allocator);
+        var owns_composition_eval = true;
+        defer if (owns_composition_eval) composition_eval.deinit(allocator);
         completeAirCompositionWork(work_recorder, &composition_work_capture);
 
         diagnostic_subphase.* = .interpolation_split;
+        @import("host_budget_allocator.zig").SharedHostBudget.reportStage(allocator, "core.interpolation_split");
         var composition_split = blk: {
             var composition_interpolate_stage = try stage_profile.StageScope.begin(
                 recorder,
@@ -547,16 +550,27 @@ fn proveExComponentsWithRecorder(
                 work_recorder,
             );
         };
-        defer composition_split.deinit(allocator);
+        var owns_composition_split = true;
+        defer if (owns_composition_split) composition_split.deinit(allocator);
         var composition_chunks = try splitCompositionPair(
             allocator,
             composition_split,
             composition_log_split,
         );
         defer composition_chunks.deinit(allocator);
+        if (composition_chunks.owns_polynomials) {
+            // Deep splits copy all coordinates. The pair may borrow the
+            // evaluation (CPU/Metal in-place interpolation), so retain that
+            // owner until the independent chunks have been constructed.
+            composition_split.deinit(allocator);
+            owns_composition_split = false;
+            composition_eval.deinit(allocator);
+            owns_composition_eval = false;
+        }
 
         {
             diagnostic_subphase.* = .commitment;
+            @import("host_budget_allocator.zig").SharedHostBudget.reportStage(allocator, "core.commitment");
             var composition_commit_stage = try stage_profile.StageScope.begin(
                 recorder,
                 "composition_commit",
@@ -577,6 +591,7 @@ fn proveExComponentsWithRecorder(
     }
 
     diagnostic_phase.* = .openings;
+    @import("host_budget_allocator.zig").SharedHostBudget.reportStage(allocator, "core.openings");
     diagnostic_subphase.* = null;
     evaluation_diagnostic.* = null;
     var components_view = try component_provers.componentsView(allocator);
@@ -877,3 +892,32 @@ pub const testing = if (builtin.is_test) struct {
     pub const prepared = provePrepared;
     pub const sampledPoints = proveExSampledPoints;
 } else struct {};
+
+test "composition deep chunks outlive borrowed coefficient backing" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkCompositionChunkLifetime, .{});
+}
+fn checkCompositionChunkLifetime(a: std.mem.Allocator) !void {
+    const M = @import("stwo_core").fields.m31.M31;
+    const source = try a.alloc(M, 64);
+    var source_alive = true;
+    defer if (source_alive) a.free(source);
+    for (source, 0..) |*value, i| value.* = M.fromU64(i + 1);
+    var pair: prover_circle.SecureCirclePoly.SplitPair = undefined;
+    for (0..4) |coordinate| {
+        pair.left.polys[coordinate] = try prover_circle.CircleCoefficients.initBorrowed(source[coordinate * 16 ..][0..8]);
+        pair.right.polys[coordinate] = try prover_circle.CircleCoefficients.initBorrowed(source[coordinate * 16 + 8 ..][0..8]);
+    }
+    defer pair.deinit(a);
+    var chunks = try splitCompositionPair(a, pair, 2);
+    defer chunks.deinit(a);
+    try std.testing.expect(chunks.owns_polynomials);
+    a.free(source);
+    source_alive = false;
+    for (chunks.chunks, 0..) |chunk, index| {
+        for (chunk.polys, 0..) |coordinate, lane| {
+            for (coordinate.coefficients(), 0..) |value, offset| {
+                try std.testing.expectEqual(M.fromU64(lane * 16 + index * 4 + offset + 1).toU32(), value.toU32());
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+1/12 block_v5_caller_arithmetic_recursive_selected_test_root.test_0...OK
+2/12 block_v5_caller_arithmetic_recursive_selected_test_root.test.caller arithmetic recursion: independent local-zero product recipe is really selected...OK
+3/12 block_v5_caller_arithmetic_recursive_selected_test_root.test.caller arithmetic recursion: actual production verifier and publisher bodies are retained...OK
+4/12 prover.block_v5_caller_arithmetic_recursive_test_v1.test.caller arithmetic recursion: actual v5 Keccak log18 geometry is independently admitted with exact nonrounded caller census...expected 18, found 17
+FAIL (TestExpectedEqual)
+5/12 prover.block_v5_caller_arithmetic_recursive_test_v1.test.caller arithmetic recursion: real nineteen-component admission rejects changed roots recipe geometry and resource policy with clean allocation failures...OK
+6/12 prover.block_v5_caller_arithmetic_recursive_test_v1.test.caller arithmetic recursion: original empty-channel restart B5SS47 private14 and complete claim framing match exact native channel...OK
+7/12 prover.block_v5_caller_arithmetic_recursive_test_v1.test.caller arithmetic recursion: all nineteen original scalar OODS equations equal symbolic source and reject sample private SHA challenge and quotient mutation...OK
+8/12 prover.block_v5_caller_arithmetic_recursive_test_v1.test.caller arithmetic recursion: full typed detailed claims open sum binding and public schedule cannot relabel independent caller authority...OK
+9/12 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+10/12 air.memory_commitment.poseidon2_air.test_0...OK
+11/12 air.lookups.tables.mod.test_0...OK
+12/12 air.lookups.tables.source_ingest.test_0...OK
+11 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-caller-arithmetic-selected-focused-v2 --seed=0x39502bf7

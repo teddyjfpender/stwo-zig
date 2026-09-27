@@ -1,0 +1,18 @@
+{
+  "serial": {
+    "samples": 2,
+    "wall_median_seconds": 22.698065187505563,
+    "pipeline_median_seconds": 11.0797465835,
+    "overlap_median_seconds": 0.0,
+    "peak_rss_bytes": 21192785920,
+    "peak_physical_footprint_bytes": 26258142864
+  },
+  "overlapped": {
+    "samples": 2,
+    "wall_median_seconds": 20.978308770994772,
+    "pipeline_median_seconds": 9.601367687500002,
+    "overlap_median_seconds": 1.910779375,
+    "peak_rss_bytes": 21917696000,
+    "peak_physical_footprint_bytes": 28178414208
+  }
+}

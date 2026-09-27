@@ -1,0 +1,30 @@
+test-recursive-quotient-accumulation
++- Quotient accumulation guard
+   +- run test 0/3 passed, 3 failed
+error: 'recursion.air.qm31_quotient_accumulate_test.test.quotient accumulation pins degree two and semantic identity' failed: QUOTIENT_ACCUMULATE_DIGEST 4546ad4a7d14d5e7143930e6538d53faf4e8948431f3e443e8d54579e157ce75
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+45 46 AD 4A 7D 14 D5 E7  14 39 30 E6 53 8D 53 FA  EF.J}....90.S.S.
+F4 E8 94 84 31 F3 E4 43  E8 D5 45 79 E1 57 CE 75  ....1..C..Ey.W.u
+
+================================================
+error: 'recursion.air.qm31_quotient_accumulate_test.test.quotient accumulation rejects zero denominators and every main mutation' failed
+error: 'recursion.air.qm31_quotient_accumulate_test.test.quotient accumulation preserves inverse and FMA external lookup multiset' failed
+error: while executing test 'recursion.air.qm31_quotient_accumulate_test.test.quotient accumulation preserves inverse and FMA external lookup multiset', the following test command failed:
+./.zig-cache/o/7fe250e5233f3d395abe42240b700836/test --cache-dir=./.zig-cache --seed=0xfdda5083 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/3 tests passed; 3 failed
+test-recursive-quotient-accumulation transitive failure
++- Quotient accumulation guard transitive failure
+   +- run test 0/3 passed, 3 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:520M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/129b9b329c5c2ebcf28d76d3ccd86a68/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xfdda5083 -Z46d8b3eb1e861237 --maxrss 25769803776 -j1 test-recursive-quotient-accumulation -Doptimize=ReleaseSafe --summary all

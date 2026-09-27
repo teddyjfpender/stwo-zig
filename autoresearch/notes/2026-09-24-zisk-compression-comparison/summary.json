@@ -1,0 +1,17 @@
+{
+  "zisk_scalar": {
+    "samples": 4,
+    "calls_per_sample": 5000000,
+    "median_ns_per_call": 59.364729100000005
+  },
+  "stwo_author": {
+    "samples": 4,
+    "calls_per_sample": 5000000,
+    "median_ns_per_call": 47.040383399999996
+  },
+  "zig_native_xof": {
+    "samples": 4,
+    "calls_per_sample": 5000000,
+    "median_ns_per_call": 67.8780292
+  }
+}

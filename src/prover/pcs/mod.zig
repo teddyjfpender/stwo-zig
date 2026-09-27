@@ -26,6 +26,7 @@ pub const sampled_coefficient_plans = @import("sampled_coefficient_plans.zig");
 pub fn CommitmentTreeProver(comptime H: type) type {
     return scheme.CommitmentTreeProver(H);
 }
+pub const CommitmentTreeProverForBackend = @import("commitment_tree.zig").CommitmentTreeProverForBackend;
 
 pub fn TreeDecommitmentResult(comptime H: type) type {
     return scheme.TreeDecommitmentResult(H);

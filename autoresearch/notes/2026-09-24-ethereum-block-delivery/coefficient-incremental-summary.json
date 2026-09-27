@@ -1,0 +1,45 @@
+{
+  "scope": "Canonical transaction-authentication guest, one execution leaf and one recursive parent; not Ethereum block proving",
+  "status": "All 16/32/64 proofs verify and match prior artifacts. Coset composition experiment addresses the remaining composition peak.",
+  "rows": [
+    {
+      "transactions": 16,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 59138664084,
+      "parent_proving_ns": 32462375792,
+      "worker_peak_bytes": 11391489968,
+      "proof_bytes": 983171,
+      "process_peak_bytes": 13818278440,
+      "proof_sha256": "b50fcc72e9b1a2948738305faf10efc5b8cf5216071d017b58cbcdcc3dd5560d",
+      "proof_byte_identical": true
+    },
+    {
+      "transactions": 32,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 61613691792,
+      "parent_proving_ns": 33538510500,
+      "worker_peak_bytes": 11716253616,
+      "proof_bytes": 971396,
+      "process_peak_bytes": 14373417848,
+      "proof_sha256": "a63a40b760f6c7bc0246960461e73d9d23fbf381355279de4ef35cf7e8edd2e6",
+      "proof_byte_identical": true
+    },
+    {
+      "transactions": 64,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 65641233000,
+      "parent_proving_ns": 33394670958,
+      "worker_peak_bytes": 11716253616,
+      "proof_bytes": 982493,
+      "process_peak_bytes": 14693742248,
+      "proof_sha256": "6dd0479d95488cf6339a997d9a2554cf0c3c702a7e01c4a675af4dbf087ab10b",
+      "proof_byte_identical": true
+    }
+  ]
+}

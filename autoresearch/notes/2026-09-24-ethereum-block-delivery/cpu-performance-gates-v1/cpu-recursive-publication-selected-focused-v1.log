@@ -1,0 +1,20 @@
+1/19 block_v5_cpu_recursive_publication_selected_test_root.test_0...OK
+2/19 block_v5_cpu_recursive_publication_selected_test_root.test.cpu recursive publication: actual dual driver seven-family publication original setup derivation and fresh leaf receiver bodies retained...OK
+3/19 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: genuine sparse source binds once with owned schedule but no proof authority...OK
+4/19 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: every source template and schedule allocation failure unwinds...OK
+5/19 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: equal source copy wrong key and source census cannot bind independently retained owner...OK
+6/19 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: schedule cap fails before ownership transfer and binding stays pending...OK
+7/19 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: all seven original stages preserve absent callbacks and explicit option admission...OK
+8/19 prover.block_execution_external_trace_v2.test_0...OK
+9/19 air.lookups.tables.mod.test_0...OK
+10/19 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+11/19 prover.block_v5_cpu_recursive_receive_v1.test.cpu recursive publication: fixed transport records preserve sparse original indices and reject changed family order truncation and overflow...OK
+12/19 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/19 air.semantic_eval.test_0...OK
+14/19 runner.mod.test_0...OK
+15/19 runner.decode.test_0...OK
+16/19 air.memory_commitment.poseidon2_air.test_0...OK
+17/19 prover.block_v5_committed_trace_column_v1.test_0...OK
+18/19 air.lookups.tables.source_ingest.test_0...OK
+19/19 diagnostics.mod.test_0...OK
+All 19 tests passed.

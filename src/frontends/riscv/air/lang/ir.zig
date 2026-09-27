@@ -434,7 +434,7 @@ pub const Arena = struct {
         span: source_mod.SourceSpan,
     ) Error!types.ValueId {
         const index_node = self.node(word_index) orelse return error.UnknownValue;
-        if (!std.meta.eql(index_node.key.ty, types.Type.uint20))
+        if (!index_node.key.ty.isAlignedWordIndex())
             return error.InvalidMachineDerivedOperand;
         return self.internNode(.{
             .ty = .address,

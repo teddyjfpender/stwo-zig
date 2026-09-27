@@ -1,0 +1,15 @@
+1/10 block_v5_memory_source_auth_test_root.test.source auth root...OK
+2/10 prover.block_v5_memory_source_auth_test_v1.test.source auth crypto: full SHA padding and BLAKE3 tree frames match independent kernels...expected 227, found 121
+index 0 incorrect. expected 227, found 121
+FAIL (TestExpectedEqual)
+3/10 prover.block_v5_memory_source_auth_test_v1.test.source auth stream: complete image retains untouched word and authenticates full u64 endpoint...FAIL (UnsatisfiedMemorySourceEquation)
+4/10 prover.block_v5_memory_source_auth_test_v1.test.source auth metadata: canonical census identity caps and RAM-only classification fail closed...OK
+5/10 prover.block_v5_memory_source_auth_test_v1.test.source auth symbolic: endpoint byte clock bit claims and chunk admission are constrained...OK
+6/10 prover.block_v5_memory_source_auth_test_v1.test.source auth symbolic SHA: full pinned digest and canonical raw tail use actual compression equations...FAIL (UnsatisfiedMemorySourceEquation)
+7/10 prover.block_v5_memory_source_auth_test_v1.test.source auth fault: every record graph allocation failure releases partial owner...OK
+8/10 prover.block_v5_memory_source_auth_test_v1.test.source auth zero: empty files still hash and both image roots close without fake tree chunks...FAIL (UnsatisfiedMemorySourceEquation)
+9/10 prover.block_v5_memory_source_auth_test_v1.test.source auth mutations: pinned SHA and strict predecessor are equation authority...OK
+10/10 block_v5_memory_source_auth_codegen.test.source auth bodies: actual sealed admission and challenge circuit construction retained...OK
+6 passed; 0 skipped; 4 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-memory-source-auth-focused-v1 --seed=0xbd75d133

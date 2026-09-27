@@ -1,0 +1,23 @@
+1/8 air.guest_precompile.relation_test.test_0...OK
+2/8 prover.blake3_execution_trace_test.test.BLAKE3 execution commitment real runner proves and independently verifies...EXECUTION_PARENT_OPENINGS trace_trees=4 fri_layers=20 queries=8 scalar_sources=6136 path_g_rows=283360 path_xor_rows=80960
+BLAKE3_NATIVE_QUERY_FUSION groups=880 removed_scalars=3520
+BLAKE3_NATIVE_FUSION dot4=2555 fma=9574 arithmetic_rows=32322
+EXECUTION_PARENT_ASSEMBLY inputs=10992 retained_bytes=236982032
+EXECUTION_SPAN_ATTACHED verified_child=true entry_updates=0 exit_updates=2 retained_bytes=238640176
+PARENT_NAMESPACE_REBASE circuits=9155 first=1 end=9156 buffers_reused=true
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=131574 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_FUSION dot4=5008 fma=11283 arithmetic_rows=44914
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=131842 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+EXECUTION_PARENT_OF_PARENT verified=true distinct_keys=true levels=2 inputs=24348 retained_bytes=244028628
+CANONICAL_PARENT_WORKERS count=2 host_cpus=18
+CANONICAL_PARENT_MEMORY peak_bytes=1243305632 limit_bytes=8589934592
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=816874 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=46480 child_queries=8 child_pow_bits=0
+OK
+3/8 runner.mod.test_0...OK
+4/8 runner.decode.test_0...OK
+5/8 air.memory_commitment.poseidon2_air.test_0...OK
+6/8 air.semantic_eval.test_0...OK
+7/8 air.lookups.tables.source_ingest.test_0...OK
+8/8 diagnostics.mod.test_0...OK
+All 8 tests passed.

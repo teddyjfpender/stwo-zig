@@ -1,0 +1,9 @@
+{
+  "exit_code": 0,
+  "wall_seconds": 111.89867912500631,
+  "sha256": {
+    "block-leaf-release": "f14e4550152b85c855386271da953e7ca702648434b36f4fba8b3442bd61742d",
+    "ethereum-block.elf": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+    "fixture/stwo-runner-input.bin": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+  }
+}

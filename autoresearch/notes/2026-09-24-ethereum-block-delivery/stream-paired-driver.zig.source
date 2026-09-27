@@ -1,0 +1,194 @@
+//! Bounded preflight/replay and complete native recursive proof delivery.
+//! A preflight is never proof evidence; every replay leaf is proved and folded.
+const std = @import("std");
+const engine = @import("stwo_prover_engine");
+const Cpu = @import("stwo_cpu_backend").CpuBackend;
+const runner = @import("runner/mod.zig");
+const statement = @import("prover/blake3_segment_statement.zig");
+const parent = @import("recursion/blake3_execution_parent_proof.zig");
+const spans = @import("recursion/span_statement_blake3.zig");
+const Schedule = @import("runner/balanced_schedule.zig").Schedule;
+const Folder = @import("recursion/blake3_stream_prover.zig").ForBackend(Cpu);
+const Owner = @import("prover/blake3_ethereum_witness.zig").Owner;
+const Api = @import("prover/blake3_ethereum_proof.zig").ForBackend(Cpu);
+const Pipeline = @import("prover/blake3_segment_parent.zig").ForEthereumBackend(Cpu);
+const Preflight = struct { first: statement.Endpoint, last: statement.Endpoint, schedule: Schedule };
+
+pub fn main() !void {
+    const backing = std.heap.smp_allocator;
+    const args = try std.process.argsAlloc(backing);
+    defer std.process.argsFree(backing, args);
+    if (args.len != 8) return error.ExpectedElfInputOracleMaxCyclesProofReportProfile;
+    const profile: parent.protocol.Profile = if (std.mem.eql(u8, args[7], "canonical")) .csp_q70_pow26 else if (std.mem.eql(u8, args[7], "diagnostic")) .diagnostic_q8_pow0 else return error.InvalidProfile;
+    const limit = try std.fmt.parseInt(u32, args[4], 10);
+    if (limit == 0 or limit > 1 << 22) return error.InvalidSegmentBudget;
+    const budget = try engine.host_budget_allocator.SharedHostBudget.create(backing, 48 * 1024 * 1024 * 1024);
+    defer budget.destroy();
+    const a = budget.allocator();
+    const elf = try std.fs.cwd().readFileAlloc(a, args[1], 32 * 1024 * 1024);
+    defer a.free(elf);
+    const input = try std.fs.cwd().readFileAlloc(a, args[2], 64 * 1024 * 1024);
+    defer a.free(input);
+    const oracle = try std.fs.cwd().readFileAlloc(a, args[3], 1024 * 1024);
+    defer a.free(oracle);
+    var timer = try std.time.Timer.start();
+    const pre = try preflight(a, elf, input, oracle, limit);
+    const preflight_ns = timer.read();
+    const job = try statement.initJobFromEndpoints(profile.config(), pre.first, pre.last, pre.schedule.segments);
+    std.debug.print("BLOCK_STREAM preflight_cycles={d} proof_segments={d} preflight_ns={d}\n", .{ pre.last.cycle, pre.schedule.segments, preflight_ns });
+    var pool: engine.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 16, .backing_allocator = a });
+    defer pool.deinit();
+    var folder = Folder{
+        .allocator = a, .pool = &pool, .preparation_limit = 32 * 1024 * 1024 * 1024,
+        .worker_options = .{ .worker_count = 16, .host_byte_limit = 40 * 1024 * 1024 * 1024, .retained_scratch_limit = 64 * 1024 * 1024 },
+        .profile = profile, .retain_root_artifact = true,
+    };
+    defer folder.deinit();
+    var frontier = try @import("recursion/blake3_stream_frontier.zig").Frontier.init(job);
+    defer frontier.deinit();
+    var session = try initSession(a, elf, input);
+    defer session.deinit();
+    var current = try session.startSegment(try pre.schedule.budget(0));
+    var live = true;
+    defer if (live) current.deinit();
+    var proved: u32 = 0;
+    while (proved < pre.schedule.segments) {
+        const batch: u32 = if (pre.schedule.segments == 1) 1 else 2;
+        var continuation = current.base.continuation;
+        var fold = blk: {
+            var binding = try engine.work_pool.ScopedPoolBinding.init(&pool);
+            defer binding.deinit();
+            var owners: [2]Owner = undefined;
+            var owners_live: [2]bool = @splat(false);
+            defer for (&owners, owners_live) |*owner, owned| {
+                if (owned) owner.deinit();
+            };
+            var keys: [2]?*Api.PreparedVerifier = @splat(null);
+            defer for (keys) |key| {
+                if (key) |owned| owned.deinit();
+            };
+            var statements: [2]spans.SpanStatement = undefined;
+            for (0..batch) |j| {
+                const i = proved + @as(u32, @intCast(j));
+                if (current.base.segment_index != i or current.base.global_first_cycle != try pre.schedule.firstCycle(i) or current.base.cycle_count != try pre.schedule.budget(i)) return error.ReplayScheduleMismatch;
+                const last = i == pre.schedule.segments - 1;
+                if (current.base.isComplete() != last) return error.ReplayCompletionMismatch;
+                if (last and !std.mem.eql(u8, current.base.output orelse return error.MissingOutput, oracle)) return error.ReplayOutputMismatch;
+                statements[j] = try statement.leaf(a, job, &current.base);
+                owners[j] = try Owner.initCompactSegment(a, &current);
+                owners_live[j] = true;
+                keys[j] = try Api.PreparedVerifier.initCompact(a, &owners[j].native.statement, owners[j].statement, try owners[j].admission(), profile.config(), owners[j].native.compact_ranges.?.plan);
+                continuation = current.base.continuation;
+                // Owners copy all trace, memory and public-I/O data they need.
+                // Release each runner segment before starting the next one.
+                current.deinit();
+                live = false;
+                if (j + 1 < batch) {
+                    current = try session.resumeSegment(continuation orelse return error.MissingContinuation, try pre.schedule.budget(i + 1));
+                    live = true;
+                }
+            }
+            if (batch == 1) break :blk parent.aggregation.Fold{
+                .prepared = try Pipeline.prepareWithPool(a, &owners[0], keys[0].?, keys[0].?.id, statements[0], 2, &pool),
+                .statement = statements[0],
+            };
+            // This canonical API independently proves/verifies both executions,
+            // consumes both owners even on failure, and shares their final hash
+            // layout. No single-child recursive wrappers are materialized.
+            owners_live = @splat(false);
+            break :blk try Pipeline.preparePairOwnedWithPool(a, .{ &owners[0], &owners[1] }, .{ keys[0].?, keys[1].? }, .{ keys[0].?.id, keys[1].?.id }, statements, 2, &pool);
+        };
+        defer fold.deinit();
+        var node = try folder.provePrepared(&fold.prepared, fold.statement);
+        var node_live = true;
+        defer if (node_live) node.deinit();
+        try frontier.push(&node, &folder);
+        node_live = false;
+        proved += batch;
+        std.debug.print("BLOCK_STREAM proved_segments={d}/{d} paired=true retained_nodes={d} peak_bytes={d} elapsed_ns={d}\n", .{ proved, pre.schedule.segments, frontier.retainedNodes(), budget.snapshot().peak_live_bytes, timer.read() });
+        if (proved < pre.schedule.segments) {
+            current = try session.resumeSegment(continuation orelse return error.MissingContinuation, try pre.schedule.budget(proved));
+            live = true;
+        }
+    }
+    var root = try frontier.takeRoot();
+    defer root.deinit();
+    _ = try root.root();
+    if (!std.meta.eql(root.statement.job, job)) return error.UnexpectedRootJob;
+    var artifact = try folder.takeRootArtifact();
+    defer artifact.deinit();
+    var restored = try artifact.verify(a, root.admission, root.admission.expected_id);
+    defer restored.deinit();
+    if (!std.meta.eql(try root.root(), try restored.root())) return error.RootRoundtripMismatch;
+    const report = try std.json.Stringify.valueAlloc(a, .{
+        .complete_execution_proof_verified = true,
+        .paired_execution_leaves = true,
+        .recursive_proof_jobs = if (pre.schedule.segments == 1) @as(u32, 1) else pre.schedule.segments - 1,
+        .canonical = profile == .csp_q70_pow26,
+        .queries = profile.config().fri_config.n_queries, .pow_bits = profile.config().pow_bits,
+        .segments = pre.schedule.segments, .cycles = pre.last.cycle,
+        .preflight_ns = preflight_ns, .total_ns = timer.read(), .peak_bytes = budget.snapshot().peak_live_bytes,
+        .elf_sha256 = digest(elf), .input_sha256 = digest(input), .output_sha256 = digest(oracle),
+        .proof_sha256 = digest(artifact.bytes), .statement = root.statement,
+        // A receiver must independently pin this admission; the JSON itself
+        // does not establish program identity or verification-key authority.
+        .admission = root.admission,
+    }, .{ .whitespace = .indent_2 });
+    defer a.free(report);
+    try writeNew(args[5], artifact.bytes);
+    try writeNew(args[6], report);
+}
+fn initSession(a: std.mem.Allocator, elf: []const u8, input: []const u8) !runner.EthereumExecutionSession {
+    return runner.EthereumExecutionSession.init(a, elf, .{ .input = input, .strict_completion = true, .stop_on_halt_flag = true, .trace_retention = .segment_owned, .clock_frame = .leaf_local });
+}
+fn preflight(a: std.mem.Allocator, elf: []const u8, input: []const u8, oracle: []const u8, limit: u32) !Preflight {
+    var session = try initSession(a, elf, input);
+    defer session.deinit();
+    var current = try session.startSegment(limit);
+    var live = true;
+    defer if (live) current.deinit();
+    const first = try endpoint(a, &current.base, .entry);
+    var cycles: u64 = 0;
+    var index: u32 = 0;
+    while (true) {
+        if (current.base.segment_index != index or current.base.global_first_cycle != cycles + 1) return error.ExecutionDiscontinuity;
+        cycles = try std.math.add(u64, cycles, current.base.cycle_count);
+        if (current.base.continuation) |next| {
+            current.deinit();
+            live = false;
+            current = try session.resumeSegment(next, limit);
+            live = true;
+            index = try std.math.add(u32, index, 1);
+        } else {
+            if (!current.base.isComplete() or !std.mem.eql(u8, current.base.output orelse return error.MissingOutput, oracle)) return error.BlockOutputMismatch;
+            return .{ .first = first, .last = try endpoint(a, &current.base, .exit), .schedule = try Schedule.init(cycles, limit) };
+        }
+    }
+}
+fn endpoint(a: std.mem.Allocator, segment: *const @import("runner/result.zig").SegmentResult, side: @import("recursion/air/blake3_memory_snapshot.zig").Side) !statement.Endpoint {
+    var io = try @import("prover/blake3_segment_public.zig").Owned.init(a, segment);
+    defer io.deinit();
+    var program = try @import("air/program/blake3_commitment.zig").buildDeclared(a, @import("air/program/commitment.zig").DeclaredDecodeAuthority{ .profile = .rv32im_zkvm_ethereum_v1 }, .{}, segment.rw_memory.program_words, null);
+    defer program.deinit();
+    io.data.program_root = program.root;
+    const snapshot = @import("recursion/air/blake3_memory_snapshot.zig");
+    var initial = try snapshot.fromSnapshot(a, &segment.rw_memory, .entry, .ordinary_boundary);
+    defer initial.deinit();
+    var final = try snapshot.fromSnapshot(a, &segment.rw_memory, .exit, .ordinary_boundary);
+    defer final.deinit();
+    io.data.initial_rw_root = initial.root;
+    io.data.final_rw_root = final.root;
+    return statement.captureEndpoint(a, segment, &io.data, side);
+}
+fn digest(bytes: []const u8) [64]u8 {
+    var out: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(bytes, &out, .{});
+    return std.fmt.bytesToHex(out, .lower);
+}
+fn writeNew(path: []const u8, bytes: []const u8) !void {
+    var file = try std.fs.cwd().createFile(path, .{ .exclusive = true });
+    defer file.close();
+    try file.writeAll(bytes);
+    try file.sync();
+}

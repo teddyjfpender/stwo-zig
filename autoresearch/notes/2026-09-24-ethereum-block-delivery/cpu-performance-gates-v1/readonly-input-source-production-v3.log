@@ -1,0 +1,15 @@
+1/14 block_v5_readonly_input_unit_test_root.test_0...OK
+2/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input public values subset complement and authority reject relabeling...OK
+3/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input source census scalar equations and coherent forgeries reject...OK
+4/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input collection cleanup survives every allocation failure...OK
+5/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input geometry resource and immutable matrix borrows reject substitution...OK
+6/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input all mutable and all readonly partitions preserve exact census...OK
+7/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input arbitrary OODS SIMD masks preserve all source equations...OK
+8/14 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input producer fresh native caller receiver bodies compile without invocation...OK
+9/14 air.memory_commitment.poseidon2_air.test_0...OK
+10/14 air.semantic_eval.test_0...OK
+11/14 prover.block_execution_external_trace_v2.test_0...OK
+12/14 air.lookups.tables.mod.test_0...OK
+13/14 prover.block_execution_external_access_bridge_v2.test_0...OK
+14/14 air.lookups.tables.source_ingest.test_0...OK
+All 14 tests passed.

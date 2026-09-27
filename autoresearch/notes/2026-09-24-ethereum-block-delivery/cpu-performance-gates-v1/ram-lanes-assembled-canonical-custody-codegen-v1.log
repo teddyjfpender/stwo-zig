@@ -1,0 +1,26 @@
+1/25 block_v5_ram_lanes_assembled_unit_test_root.test_0...OK
+2/25 prover.block_v5_ram_lanes_lifecycle_unit_test.test.block-v5 ram lifecycle physical warm roots counters fixed reconstruction and phase custody...OK
+3/25 prover.block_v5_ram_lanes_lifecycle_unit_test.test.block-v5 ram lifecycle seal roots row frame counters transcript and v4 relabel swaps reject...OK
+4/25 prover.block_v5_ram_lanes_lifecycle_unit_test.test.block-v5 ram lifecycle independently plans field safe shards bounds and typed empty roster...OK
+5/25 prover.block_v5_ram_lanes_lifecycle_unit_test.test.block-v5 ram lifecycle artifact canonical claim envelope rejects stale policy ABI census and invalid STARK...OK
+6/25 prover.block_v5_ram_lanes_lifecycle_unit_test.test.block-v5 ram lifecycle concrete production proof receiver codec stage APIs codegen...OK
+7/25 prover.block_v5_ram_lanes_lifecycle_unit_test.test.block-v5 ram lifecycle physical FRI and allocation guards precede caller selected bytes...OK
+8/25 prover.block_v5_ram_lanes_lifecycle_unit_test.test.block-v5 ram lifecycle empty receiver authenticates untouched image and input without proof loaders...OK
+9/25 prover.block_v5_ram_lanes_production_unit_test.test.block-v5 RAM production replay derives real odd lane traces with exact sequential ownership...OK
+10/25 prover.block_v5_ram_lanes_production_unit_test.test.block-v5 RAM production planner driver fresh consumers codegen without proving...OK
+11/25 prover.block_v5_ram_lanes_production_unit_test.test_0...OK
+12/25 prover.block_v5_ram_lanes_production_unit_test.test.block-v5 RAM production tagged authority rejects mixed custody geometry and absence...OK
+13/25 prover.block_v5_ram_lanes_production_unit_test.test.block-v5 RAM production artifact rejects legacy and security metadata before allocation...OK
+14/25 prover.block_v5_ram_lanes_replay_plan_v1.test.block-v5 RAM lane replay sizes exact odd tails and non-power-of-two counts...OK
+15/25 air.lookups.tables.mod.test_0...OK
+16/25 air.memory_commitment.poseidon2_air.test_0...OK
+17/25 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+18/25 air.semantic_eval.test_0...OK
+19/25 prover.block_execution_external_trace_v2.test_0...OK
+20/25 prover.block_execution_external_access_bridge_v2.test_0...OK
+21/25 runner.mod.test_0...OK
+22/25 runner.decode.test_0...OK
+23/25 prover.block_v5_committed_trace_column_v1.test_0...OK
+24/25 air.lookups.tables.source_ingest.test_0...OK
+25/25 diagnostics.mod.test_0...OK
+All 25 tests passed.

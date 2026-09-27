@@ -18,7 +18,12 @@ pub const CpuCompositionContentionPolicy = enum {
 /// and passes the request through execution-aware CPU backends and prepared
 /// fallback paths; no executor implementation type crosses this stable API
 /// boundary.
+pub const CpuCompositionPreparation = enum { eager, streamed };
+
 pub const CpuCompositionExecutionRequest = struct {
+    /// Streamed mode releases each component's prepared evaluations before
+    /// preparing the next, while preserving its bounded parallel row work.
+    preparation: CpuCompositionPreparation = .eager,
     worker_count: usize,
     host_byte_budget: usize,
     contention_policy: CpuCompositionContentionPolicy = .strict,

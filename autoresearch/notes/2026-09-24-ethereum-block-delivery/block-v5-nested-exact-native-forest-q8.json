@@ -1,0 +1,82 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "status": "passed",
+  "tests_passed": 8,
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "native_version": 3,
+  "open_parent_version": 2,
+  "test": "block-v5 exact five native leaf forest proves nested open quartet and outer equations",
+  "native_leaves": 5,
+  "fold_levels": 2,
+  "exact_root_spans": [
+    4,
+    1
+  ],
+  "padding": false,
+  "native_perleaf_plan": false,
+  "reused_recursive_leaf_key_and_setup": true,
+  "actual_native_stark_verifier_equations": true,
+  "actual_recursive_child_stark_verifier_equations_at_every_level": true,
+  "pcs_transcript_deep_fri_merkle_verified": true,
+  "symbolic_public_supply_closed_at_every_level": true,
+  "constrained_four_coordinate_public_claim_packing": true,
+  "pc_cycle_index_continuity_constrained": true,
+  "proof_bytes": {
+    "native_recursive_leaves_total": 647207,
+    "quartet": 151500,
+    "exact_outer": 141474
+  },
+  "fixed_rows": {
+    "quartet": 2821160,
+    "exact_outer": 1471279
+  },
+  "public_wires": {
+    "quartet": 495,
+    "exact_outer": 1140
+  },
+  "production_receive_api": "recursion/block_v5_open_exact_forest_receiver_v1.verifyLoaded",
+  "receiver_reconstructs_independent_exact_topology": true,
+  "receiver_compares_native_export_total_to_fresh_base": true,
+  "negatives": {
+    "changed_native_export_total_rejected": true,
+    "changed_independent_final_pc_rejected": true,
+    "changed_outer_transport_sha256_rejected": true
+  },
+  "allocator_teardown": "std.testing.allocator clean",
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "complete_block_authority": false,
+  "global_relations_still_open": [
+    "program",
+    "ordinary universal memory",
+    "global lookup",
+    "precompile",
+    "RW/register/public endpoints"
+  ],
+  "scope": "Five real ordinary native-v3 ADDI segments with lightweight admission; five actual reusable native recursive leaf proofs, one actual quartet recursive proof and one actual exact outer proof covering 4+1 roots. The receiver rebuilds expected child policies and topology from independently supplied native admissions, fresh exported receipts, recursive key/schedule pins and public endpoints. The loader in this fixture copies in-memory outer proof bytes; length/SHA transport pins are checked before actual proof verification. Other family first-round entries are placeholders.",
+  "limitations": [
+    "Diagnostic q8/PoW0 only; no canonical q70, mainnet proof, elapsed time or tracked peak measured.",
+    "All global providers remain open; final complete kernel must close the attested native partitions and public endpoints.",
+    "Recursive setup reuse is exact geometry only; native active selector migration is separate.",
+    "This fixture exercises the typed loader API with in-memory bytes, not a detached file/process."
+  ],
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_open_nested_forest_test_root.zig 'block-v5 exact five native leaf forest proves nested open quartet and outer equations'",
+  "log": "/tmp/v5-nested-exact.log",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_open_nested_forest_test.zig": "54271b6460c83e5f63dacd225a8bca2c6fd334511b45b9e06b6230537c402f07",
+    "src/frontends/riscv/prover/block_v5_open_exact_forest_plan_v1.zig": "1a001cdcd7ad2da152f2d75eed38e40b5fe478bdc194bddcf7ee85600a8b0644",
+    "src/frontends/riscv/recursion/block_v5_open_exact_forest_receiver_v1.zig": "5c3a7fb2046e27a8c59e44e3e17324c826fa3b8e94101e8eb16a5512f28a71dd",
+    "src/frontends/riscv/recursion/block_v5_open_child_frames_v2.zig": "7f1765e39c66a0e1a8db02ebb64941b714a09e1f8060bbfe682f186db3a2f167",
+    "src/frontends/riscv/recursion/block_v5_open_parent_public_bus_v2.zig": "a33285352b9465a658e7dd01eb8278d757033298745c273977c91dedb55f6a3e",
+    "src/frontends/riscv/recursion/block_v5_open_parent_preparation_v2.zig": "de0099ad74c4081382e35849d46fa45f7a37ee3a996ef4956aee9da6b900c7de",
+    "src/frontends/riscv/recursion/block_v5_reusable_open_parent_protocol_v2.zig": "3b072fc61848063ae201afe3a3765b54b7b5994816796ba7e23fed66811bc702",
+    "src/frontends/riscv/recursion/block_v5_open_parent_receiver_v2.zig": "55e4ed033fd0ab07ba7050952cf2b2039f39473895544d3452fc711ce7b0ced8",
+    "src/frontends/riscv/recursion/air/block_v5_open_parent_composition_v2.zig": "e022cd3d93d2c2dc94a226b648fcd60b4ab4f142aa796cf01df421193c6c145e",
+    "src/frontends/riscv/recursion/air/block_v5_open_parent_transcript_v2.zig": "33d059316925b50918a8907482a56a1b5de2bc853381f04d9815d16e0cff8735",
+    "src/frontends/riscv/recursion/air/block_v5_open_parent_packed_sources_v2.zig": "4a7b6dc8addeb2d2a86b162d6f848e11781577dfab545362f322484c8d6836b7"
+  }
+}

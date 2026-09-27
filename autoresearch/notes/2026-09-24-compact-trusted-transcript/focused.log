@@ -1,0 +1,19 @@
+
+Build Summary: 16/16 steps succeeded; 5/5 tests passed
+test-blake3-frame-witness success
++- BLAKE3 frame witness guard success
+   +- run test 1 passed 961ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 4s MaxRSS:537M
+test-blake3-transcript-plan success
++- BLAKE3 transcript plan guard success
+   +- run test 2 passed 4s MaxRSS:9M
+      +- compile test ReleaseSafe native success 5s MaxRSS:572M
+test-blake3-bounded-draw success
++- BLAKE3 bounded draw guard success
+   +- run test 1 passed 1s MaxRSS:3M
+      +- compile test ReleaseSafe native success 4s MaxRSS:502M
+test-blake3-query-batch success
++- BLAKE3 query batch guard success
+   +- run test 1 passed 1s MaxRSS:3M
+      +- compile test ReleaseSafe native success 4s MaxRSS:477M
+

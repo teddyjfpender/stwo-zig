@@ -1,0 +1,13 @@
+{
+  "binary_sha256": "e79c369702810344b61c0612e862d5978780f480e6d8b273329ad76eda82eb16",
+  "source_binary": "src/integrations/riscv_metal/.zig-cache/o/9add69a0c3cea7fa31c043738a1e53d0/test",
+  "bundle": "../2026-09-24-canonical-parent-pipeline/core",
+  "parameters": {
+    "child_queries": 70,
+    "child_pow_bits": 26,
+    "parent_queries": 70,
+    "parent_pow_bits": 26,
+    "workers": 8,
+    "allocator": "smp"
+  }
+}

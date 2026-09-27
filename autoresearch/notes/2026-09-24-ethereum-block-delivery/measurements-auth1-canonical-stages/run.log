@@ -1,0 +1,23 @@
+BLOCK_STREAM required_terminal_cycles=349 terminal_leaf_cycles=21635
+BLOCK_STREAM preflight_cycles=21635 proof_segments=1 preflight_ns=9537542
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800
+BLAKE3_NATIVE_FUSION dot4=816515 fma=157703 arithmetic_rows=1440627
+BLOCK_STREAM proved_segments=1/1 paired=false retained_nodes=1 peak_bytes=10010117687 elapsed_ns=41189564000
+       41.90 real       298.73 user         9.42 sys
+         10139238400  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             6722514  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   2  voluntary context switches
+              114488  involuntary context switches
+       4918614453461  instructions retired
+       1251590942026  cycles elapsed
+         10138544520  peak memory footprint

@@ -1,0 +1,20 @@
+test-riscv-segment-v2-native-proof
++- native V2 segment proof identity guard
+   +- run test stderr
+V2_NATIVE_PROOF_SUITE suite=blake2s-default queries=1 pow_bits=0
+
+V2_NATIVE_PROOF nonfinal cycles=1 proof_estimate=24324 wire_bytes=26494 prove_ms=2393.527 verify_capture_ms=480.199
+  nonfinal_wire_id=519cdab9245f89df0d7c5afa51458609193bef2a2bca24e22770f74147d5cff9
+  nonfinal_authority_id=3e57497c585927f60f5de65f59e261ab5145d344500bb4c6620a54a95a07d775
+  nonfinal_relation_context_id=6cd8d169744f746938157d677e20add36922e12607c4977f7f1f57857147c35c
+  nonfinal_native_sums_id=37a8ffab547f4d35413f964b149ca1336d6c0a6730925d233c9abda542b63893
+V2_NATIVE_PROOF final cycles=2 proof_estimate=25240 prove_ms=2380.727 verify_ms=383.753
+  final_wire_id=14818a24796d13d31d55eafd2ab57d6d145ef1685aba28226cff64222dfc0dc6
+  final_authority_id=62aa079e6a77aa34687d22fb0378cbfc34a9a52c590df2501620050406cf0139
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-riscv-segment-v2-native-proof success
++- native V2 segment proof identity guard success
+   +- run test 2 passed 9s MaxRSS:1G
+      +- compile test ReleaseSafe native success 51s MaxRSS:3G
+

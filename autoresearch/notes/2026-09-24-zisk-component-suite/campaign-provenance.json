@@ -1,0 +1,17 @@
+{
+  "local_head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "local_tree": "dirty; source archive is the reproduction authority",
+  "machine": "Apple M5 Max",
+  "memory_bytes": 68719476736,
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+  "source_files": 2815,
+  "archive_bytes": 6151710,
+  "zisk": {
+    "commit": "5c5f81c96929abed88894473ec6060b1b545b5c5",
+    "status": ""
+  },
+  "pil2-proofman": {
+    "commit": "d485fac207679076958b502554fb595568c2f954",
+    "status": ""
+  }
+}

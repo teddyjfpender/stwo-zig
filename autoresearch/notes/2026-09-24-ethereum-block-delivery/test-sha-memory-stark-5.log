@@ -1,0 +1,20 @@
+1/14 prover.guest_precompile.ethereum_sha_relations.test.SHA provider combined relations preserve shared VM buses and replay all extension draws...OK
+2/14 air.guest_precompile.sha256_coefficient_bounds.test.SHA provider public coefficient bounds include padding and both memory polarities...OK
+3/14 recursion.air.universal_component_owner.test.SHA provider joined component owner keeps challenges alive after AST teardown...OK
+4/14 air.guest_precompile.sha256_lookup_registration.test.SHA provider shared lookup registration preserves counters on a late invalid tuple...OK
+5/14 air.guest_precompile.sha256_component_profile.test.SHA provider profile pins geometry semantics and checked component placement...OK
+6/14 air.guest_precompile.sha256_relations.test.SHA provider wires are independent while all VM tuple challenges remain shared...OK
+7/14 air.guest_precompile.sha256_memory_rows.test.SHA provider execution tape ownership and caller preflight...OK
+8/14 air.guest_precompile.sha256_memory_rows.test.SHA provider zero-call segment satisfies every AIR and emits only valid padding lookups...OK
+9/14 air.guest_precompile.sha256_preprocessed.test.SHA provider preprocessing matches independent topology and releases every failed allocation...SHA_PREPROCESSING calls=1 removed_placeholder_bytes=78016 final_fixed_value_bytes=9888
+SHA_PREPROCESSING calls=16 removed_placeholder_bytes=1248256 final_fixed_value_bytes=158208
+SHA_PREPROCESSING calls=64 removed_placeholder_bytes=4993024 final_fixed_value_bytes=632832
+SHA_PREPROCESSING calls=1024 removed_placeholder_bytes=79888384 final_fixed_value_bytes=10125312
+OK
+10/14 air.guest_precompile.sha256_memory_proof_test.test.SHA canonical memory call STARK verifies exact CPU and memory claims...SHA_MEMORY_STARK verified=true queries=70 pow_bits=26 elapsed_ns=24895695875 production_vm_profile=false
+OK
+11/14 air.guest_precompile.sha256_memory_proof_test.test.SHA provider combined session interleaves SHA and Keccak under one retirement authority...OK
+12/14 air.guest_precompile.sha256_memory_proof_test.test.SHA provider combined session releases every failed allocation...OK
+13/14 air.guest_precompile.sha256_compression_rows.test.SHA provider batches own only final rows and reconstruct private-independent topology...OK
+14/14 runner.decode.test_0...OK
+All 14 tests passed.

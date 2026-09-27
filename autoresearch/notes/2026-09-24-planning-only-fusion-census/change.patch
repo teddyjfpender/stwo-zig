@@ -1,0 +1,108 @@
+--- a/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
++++ b/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
+@@ -43,9 +43,14 @@
+ };
+ /// Read-only census of the exact graph lanes used by this assembler.
+ pub fn fusionCensus(a: std.mem.Allocator, sources: anytype) !void {
++    const graphs = sources.graphs();
++    return fusionCensusGraphs(a, &graphs, sources.deep);
++}
++/// Read-only planning diagnostic: no transcript/path witness columns required.
++pub fn fusionCensusGraphs(a: std.mem.Allocator, graphs: []const Graph, deep: anytype) !void {
+     var removed: usize = 0;
+     var original: usize = 0;
+-    for (sources.graphs(), 0..) |graph, i| {
++    for (graphs, 0..) |graph, i| {
+         const lane = lower.Lane{ .circuit_id = @intCast(1500 + 2 * i), .active_in = .segment, .circuit_identity = graph.identity_digest, .graph = graph };
+         const census = try @import("arithmetic_fusion_census.zig").inspect(a, lane);
+         std.debug.print("BLAKE3_RESIDUAL_FUSION_CENSUS lane={d} multiply={d} linear={d} inverse={d} quotient_accumulations={d} prelinear_products={d} prelinear_hidden_rows={d} prelinear_add={d} prelinear_sub={d} prelinear_neg={d} prelinear_both={d} candidate_only=true\n", .{ lane.circuit_id, census.remaining_multiply, census.remaining_linear, census.remaining_inverse, census.quotient_accumulations, census.prelinear_products, census.prelinear_hidden_rows, census.prelinear_add, census.prelinear_sub, census.prelinear_neg, census.prelinear_both_operands });
+@@ -53,7 +58,7 @@
+         removed += census.removedRows();
+         std.debug.print("BLAKE3_ARITHMETIC_CENSUS lane={d} nodes={d} multiply={d} linear={d} inverse={d} dot4={d} fma={d} removable_rows={d}\n", .{ lane.circuit_id, census.nodes, census.multiply, census.linear, census.inverse, census.dot4_matches, census.fma_matches, census.removedRows() });
+     }
+-    const pcs_census = try @import("detached_pcs_opening_plan.zig").censusGraph(a, sources.deep.graph.graph(), sources.deep.graph.bindings, &.{});
++    const pcs_census = try @import("detached_pcs_opening_plan.zig").censusGraph(a, deep.graph.graph(), deep.graph.bindings, &.{});
+     std.debug.print("BLAKE3_PCS_QUERY_FUSION_CENSUS nodes={d} query_inputs={d} single_use={d} shared={d} dot4={d} eligible={d} scope=pre_lowering_graph_candidates\n", .{ pcs_census.graph_nodes, pcs_census.queried_inputs, pcs_census.single_use_queried_inputs, pcs_census.shared_queried_inputs, pcs_census.opening4_groups, pcs_census.eligible_groups });
+     std.debug.print("BLAKE3_ARITHMETIC_CENSUS total_rows={d} removable_rows={d} removed_relation_events={d} scope=graph_match_census\n", .{ original, removed, 2 * removed });
+ }
+--- a/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
+@@ -208,6 +208,15 @@
+     transcript: ?@import("air/blake3_native_transcript.zig").Planned,
+     layout: @import("blake3_native_hash_layout.zig").Layout,
+     proof: *const core.verifier.ProofCapture(@import("blake3_engine_protocol.zig").Hasher),
++    /// Inspect authenticated arithmetic plans without emitting hash witnesses.
++    /// This neither consumes the plan nor substitutes for parent verification.
++    pub fn fusionCensus(self: *const Planned) !void {
++        const state = self.state orelse return error.ConsumedParentPlan;
++        const graphs = [_]@import("air/composition_circuit.zig").CircuitGraph{
++            state.composition.circuit.graph(), state.deep.graph.graph(), state.fri.graph.graph(),
++        };
++        try rows_mod.fusionCensusGraphs(state.allocator, &graphs, &state.deep);
++    }
+     pub fn deinit(self: *Planned) void {
+         if (self.transcript) |*transcript| transcript.deinit();
+         if (self.state) |state| state.deinitPlanning();
+--- a/src/frontends/riscv/prover/compact_range_execution_test.zig
++++ b/src/frontends/riscv/prover/compact_range_execution_test.zig
+@@ -132,11 +132,17 @@
+         return err;
+     };
+ }
++test "compact range provider canonical planning census excludes hash emission" {
++    try checkProofMode(false, true, @import("stwo_cpu_backend").CpuBackend);
++}
+ fn checkProof(comptime recurse: bool) !void {
+     return checkProofForBackend(recurse, @import("stwo_cpu_backend").CpuBackend);
+ }
+ /// Same admitted CPU child and parent checks, with only parent proving backend varied.
+ pub fn checkProofForBackend(comptime recurse: bool, comptime ParentBackend: type) !void {
++    return checkProofMode(recurse, false, ParentBackend);
++}
++fn checkProofMode(comptime recurse: bool, comptime census_only: bool, comptime ParentBackend: type) !void {
+     const a = if (recurse) try @import("blake3_parent_profile_test_support.zig").benchmarkAllocator() else std.testing.allocator;
+     const instructions = [_]u32{ 0x00500093, 0x00708093, 0x00100137, 0x00100193, 0x00312223, 0x00312423, 0x0000006f };
+     const elf = @import("../runner/guest_precompile/test_elf.zig").buildReleaseProgram(instructions.len, &instructions, 0, .rv32im_zkvm_v1);
+@@ -179,6 +185,20 @@
+     captured.compact_claims[0] = captured.compact_claims[0].add(core.fields.qm31.QM31.one());
+     try std.testing.expectError(error.InvalidExecutionCapture, captured.validate(prepared, prepared.id));
+     captured.compact_claims[0] = captured.compact_claims[0].sub(core.fields.qm31.QM31.one());
++    if (census_only) {
++        const preparation = @import("../recursion/blake3_execution_parent_preparation.zig");
++        var plan = try preparation.State.plan(a, prepared, &captured, prepared.id, 2);
++        defer plan.deinit();
++        const state = plan.state.?;
++        const proof = plan.proof;
++        try plan.fusionCensus();
++        try std.testing.expectEqual(state, plan.state.?);
++        try std.testing.expectEqual(proof, plan.proof);
++        plan.deinit();
++        try std.testing.expectError(error.ConsumedParentPlan, plan.fusionCensus());
++        std.debug.print("CANONICAL_PLANNING_CENSUS child_verified=true queries=70 pow_bits=26 parent_emitted=false parent_proved=false\n", .{});
++        return;
++    }
+     if (recurse) {
+         if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_PLAN_LIFECYCLE"))
+             try @import("blake3_parent_plan_test_support.zig").check(a, prepared, &captured, prepared.id);
+--- a/src/integrations/riscv_cpu/build_blake3_steps.zig
++++ b/src/integrations/riscv_cpu/build_blake3_steps.zig
+@@ -9,6 +9,19 @@
+     const cpu_backend = ctx.cpu_backend;
+     const frontend = ctx.frontend;
+     const integration = ctx.integration;
++    const census_root = support.createHarnessModule(b, "../../frontends/riscv/recursion_statement_codec_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
++    census_root.addImport("stwo_prover_engine", prover);
++    census_root.addImport("interop_postcard", ctx.postcard);
++    census_root.addImport("stwo_prover_api", ctx.prover_api);
++    const census_names: []const []const u8 = &.{"compact range provider canonical planning census excludes hash emission"};
++    const census_expected = census_names ++ &[_][]const u8{
++        "recursion_statement_codec_test_root.test_0", "runner.mod.test_0",        "runner.decode.test_0",
++        "air.memory_commitment.poseidon2_air.test_0", "air.semantic_eval.test_0", "air.lookups.tables.source_ingest.test_0",
++        "diagnostics.mod.test_0",
++    };
++    const census_tests = b.addTest(.{ .root_module = census_root, .filters = census_names });
++    b.step("test-blake3-planning-census", "Inspect canonical arithmetic fusion without parent hash emission or proving")
++        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(census_tests), census_expected, "Planning census guard"));
+     const join_root = support.createHarnessModule(b, "../../frontends/riscv/blake3_framework_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+     join_root.addImport("stwo_prover_engine", prover);
+     const join_names: []const []const u8 = &.{

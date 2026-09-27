@@ -1,0 +1,16 @@
+src/frontends/riscv/prover/block_v5_native_capacity_fused_artifact_receiver_v1.zig:32:15: error: local constant shadows declaration of 'expected'
+        const expected = Codec.Expected{ .shape = self.native.shape, .external_retirements = self.native.external_retirements, .template_id = self.native.template_id, .native_instance_id = native_id orelse return error.UntrustedCapacityFusedArtifactRoster, .fused_instance_id = fused_id orelse return error.UntrustedCapacityFusedArtifactRoster, .native_roots = roots, .witness_root = self.memory.witness_root, .sealed_digest = self.sealed.digest, .index = self.index, .frame = self.memory.frame, .register_custody_mode = self.sealed.register_custody_mode, .config = self.pins.config, .fused_limits = self.native.limits };
+              ^~~~~~~~
+src/frontends/riscv/prover/block_v5_native_capacity_fused_artifact_receiver_v1.zig:18:9: note: declared here
+    pub fn expected(self: Policy, a: std.mem.Allocator) !Codec.Expected {
+    ~~~~^~
+src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig:5:26: error: no module named 'interop_postcard' available within module 'root'
+const postcard = @import("interop_postcard");
+                         ^~~~~~~~~~~~~~~~~~
+referenced by:
+    encode: src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig:129:5
+    put: src/frontends/riscv/prover/block_v5_native_capacity_fused_store_v1.zig:110:37
+    2 reference(s) hidden; use '-freference-trace=4' to see all references
+src/frontends/riscv/prover/block_v5_native_capacity_fused_proof_v1.zig:486:14: error: cannot assign to constant
+        range.* = claim.range_claims;
+        ~~~~~^~

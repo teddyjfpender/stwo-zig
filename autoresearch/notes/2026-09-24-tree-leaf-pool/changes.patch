@@ -1,0 +1,56 @@
+--- control/blake3_segment_tree_test.zig
++++ candidate/blake3_segment_tree_test.zig
+@@ -60,7 +60,9 @@
+     try std.testing.expect(right.admission.key.context.aggregation != null);
+     try std.testing.expectError(error.AliasedAggregateChildren, tree.preparePair(a, &left, &left, 2));
+     try std.testing.expectError(error.SlotsNotAdjacent, tree.preparePair(a, &right, &left, 2));
++    var root_timer = try std.time.Timer.start();
+     var folded = try tree.preparePair(a, &left, &right, 2);
++    if (canonical) std.debug.print("CANONICAL_TREE_PHASE phase=root_preparation ns={d}\n", .{root_timer.read()});
+     defer folded.deinit();
+     try std.testing.expectEqual(@as(u8, 2), folded.statement.slots.height);
+     try std.testing.expectEqualSlices(u8, &left.admission.expected_id, &folded.prepared.context.child_key_id);
+@@ -124,13 +126,32 @@
+             return error.ExpectedAdmissionRejection;
+         } else |err| try std.testing.expectEqual(error.AliasedAggregateChildren, err);
+     }
+-    left_alive = false;
+-    right_alive = false;
+-    var folded = try pipeline.preparePairOwnedWithPool(a, .{ &left, &right }, .{ lv, rv }, .{ lv.id, rv.id }, statements, 2, null);
++    var timer = try std.time.Timer.start();
++    var folded = if (canonical) blk: {
++        const pools = @import("stwo_prover_engine").work_pool;
++        var pool: pools.WorkPool = undefined;
++        const workers = try @import("blake3_parent_profile_test_support.zig").benchmarkWorkerCount(a);
++        try pool.initInPlaceWithOptions(.{ .worker_count = workers, .backing_allocator = a });
++        defer pool.deinit();
++        var binding = try pools.ScopedPoolBinding.init(&pool);
++        defer binding.deinit();
++        // Transfer ownership only after fallible pool admission succeeds.
++        left_alive = false;
++        right_alive = false;
++        const result = try pipeline.preparePairOwnedWithPool(a, .{ &left, &right }, .{ lv, rv }, .{ lv.id, rv.id }, statements, 2, &pool);
++        std.debug.print("CANONICAL_TREE_LEAF_POOL workers={d}\n", .{pool.workerCount()});
++        break :blk result;
++    } else blk: {
++        left_alive = false;
++        right_alive = false;
++        break :blk try pipeline.preparePairOwnedWithPool(a, .{ &left, &right }, .{ lv, rv }, .{ lv.id, rv.id }, statements, 2, null);
++    };
++    if (canonical) std.debug.print("CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns={d}\n", .{timer.read()});
+     defer folded.deinit();
+     return proveFold(Backend, canonical, a, &folded);
+ }
+ fn proveFold(comptime Backend: type, comptime canonical: bool, a: std.mem.Allocator, folded: *const parent.aggregation.Fold) !tree.Node {
++    var timer = try std.time.Timer.start();
+     const Api = parent.ForBackend(Backend);
+     const key = if (canonical) try Api.deriveKeyWithProfile(a, &folded.prepared, .csp_q70_pow26) else try Api.deriveKey(a, &folded.prepared);
+     const expected = try key.identity();
+@@ -159,6 +180,7 @@
+     defer decoded.deinit();
+     const result = try tree.Node.verifyOwned(&decoded, admission, expected, folded.statement);
+     try std.testing.expect(decoded.proof == null);
++    if (canonical) std.debug.print("CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height={d} ns={d}\n", .{ folded.statement.slots.height, timer.read() });
+     std.debug.print("BLAKE3_TREE_NODE verified=true height={d} artifact_bytes={d} queries={d} pow_bits={d}\n", .{ folded.statement.slots.height, bytes.len, key.config.fri_config.n_queries, key.config.pow_bits });
+     return result;
+ }

@@ -1,0 +1,253 @@
+ETH_AUTH_EXECUTION cycles=140708 keccak=87 recoveries=16 output=010000001000000058fd7193c9c0d6e71780fd4723b240cedf505932233bae1d8e7790c225a9a2b6bd0575ce257a9043d57b5b6074042a8c86ee337744aa6ae620c0836f811b9140
+BLAKE3_SEGMENT_LEAF_TIMING proving_ns=7143094416 capture_verification_ns=41117167
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800
+BLAKE3_NATIVE_FUSION dot4=816079 fma=153620 arithmetic_rows=1434138
+BLAKE3_ETHEREUM_SEGMENTS_PREPARED segments=1 cycles=140708 retained_bytes=5894248296
+ETH_AUTH_RECURSIVE {
+  "verified": true,
+  "recursive": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 140708,
+  "keccak_calls": 87,
+  "recovery_calls": 16,
+  "segments": 1,
+  "execution_ns": 7399541,
+  "witness_admission_ns": 1138468834,
+  "leaf_and_recursion_preparation_ns": 24323953875,
+  "parent_proving_ns": 21613129500,
+  "hash_partition_ns": 511609458,
+  "final_verification_ns": 12014666,
+  "total_ns": 52550165666,
+  "proof_bytes": 1021568,
+  "worker_peak_bytes": 24815798895,
+  "preparation_retained_bytes": 5894248296,
+  "geometry": [
+    {
+      "index": 0,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 4194304,
+      "fixed_rows": 4194304,
+      "fixed_columns": 16,
+      "retained_bytes": 1644169136
+    },
+    {
+      "index": 1,
+      "name": "recursion.air.blake3_xor_call",
+      "main_columns": 12,
+      "main_rows": 4194304,
+      "fixed_rows": 3001968,
+      "fixed_columns": 6,
+      "retained_bytes": 273374112
+    },
+    {
+      "index": 2,
+      "name": "recursion.air.blake3_boundary",
+      "main_columns": 4,
+      "main_rows": 4194304,
+      "fixed_rows": 2461061,
+      "fixed_columns": 8,
+      "retained_bytes": 145862912
+    },
+    {
+      "index": 3,
+      "name": "recursion.air.qm31_mul_add_v1",
+      "main_columns": 17,
+      "main_rows": 524288,
+      "fixed_rows": 379219,
+      "fixed_columns": 10,
+      "retained_bytes": 50820752
+    },
+    {
+      "index": 4,
+      "name": "recursion.air.qm31_inv",
+      "main_columns": 14,
+      "main_rows": 4096,
+      "fixed_rows": 3944,
+      "fixed_columns": 18,
+      "retained_bytes": 513680
+    },
+    {
+      "index": 5,
+      "name": "recursion.air.linear_ops",
+      "main_columns": 21,
+      "main_rows": 262144,
+      "fixed_rows": 234896,
+      "fixed_columns": 30,
+      "retained_bytes": 50208120
+    },
+    {
+      "index": 6,
+      "name": "recursion.air.blake3_challenge_block",
+      "main_columns": 71,
+      "main_rows": 256,
+      "fixed_rows": 166,
+      "fixed_columns": 15,
+      "retained_bytes": 84368
+    },
+    {
+      "index": 7,
+      "name": "recursion.air.blake3_byte_route",
+      "main_columns": 12,
+      "main_rows": 4194304,
+      "fixed_rows": 2599534,
+      "fixed_columns": 45,
+      "retained_bytes": 669243000
+    },
+    {
+      "index": 8,
+      "name": "recursion.air.blake3_query_mask",
+      "main_columns": 8,
+      "main_rows": 128,
+      "fixed_rows": 71,
+      "fixed_columns": 10,
+      "retained_bytes": 7128
+    },
+    {
+      "index": 9,
+      "name": "recursion.air.blake3_private_word",
+      "main_columns": 4,
+      "main_rows": 524288,
+      "fixed_rows": 280552,
+      "fixed_columns": 4,
+      "retained_bytes": 12877536
+    },
+    {
+      "index": 10,
+      "name": "recursion.air.blake3_field_bytes",
+      "main_columns": 24,
+      "main_rows": 1048576,
+      "fixed_rows": 1044562,
+      "fixed_columns": 9,
+      "retained_bytes": 138268104
+    },
+    {
+      "index": 11,
+      "name": "recursion.air.qm31_pack_wire",
+      "main_columns": 4,
+      "main_rows": 65536,
+      "fixed_rows": 46374,
+      "fixed_columns": 8,
+      "retained_bytes": 2532640
+    },
+    {
+      "index": 12,
+      "name": "recursion.air.scalar_wire_source",
+      "main_columns": 1,
+      "main_rows": 2097152,
+      "fixed_rows": 1086098,
+      "fixed_columns": 6,
+      "retained_bytes": 34454984
+    },
+    {
+      "index": 13,
+      "name": "recursion.air.blake3_path_select",
+      "main_columns": 17,
+      "main_rows": 262144,
+      "fixed_rows": 179498,
+      "fixed_columns": 12,
+      "retained_bytes": 26442104
+    },
+    {
+      "index": 14,
+      "name": "recursion.air.blake3_retry_control",
+      "main_columns": 12,
+      "main_rows": 256,
+      "fixed_rows": 166,
+      "fixed_columns": 22,
+      "retained_bytes": 27184
+    },
+    {
+      "index": 15,
+      "name": "recursion.air.blake3_counter_step",
+      "main_columns": 24,
+      "main_rows": 256,
+      "fixed_rows": 175,
+      "fixed_columns": 9,
+      "retained_bytes": 31452
+    },
+    {
+      "index": 16,
+      "name": "recursion.air.readonly_consistency",
+      "main_columns": 19,
+      "main_rows": 1048576,
+      "fixed_rows": 1002190,
+      "fixed_columns": 6,
+      "retained_bytes": 103744792
+    },
+    {
+      "index": 17,
+      "name": "recursion.air.readonly_input",
+      "main_columns": 5,
+      "main_rows": 1048576,
+      "fixed_rows": 1002190,
+      "fixed_columns": 6,
+      "retained_bytes": 45024200
+    },
+    {
+      "index": 18,
+      "name": "recursion.air.detached_opening_accumulate4_v1",
+      "main_columns": 41,
+      "main_rows": 1048576,
+      "fixed_rows": 792629,
+      "fixed_columns": 13,
+      "retained_bytes": 213184156
+    },
+    {
+      "index": 19,
+      "name": "recursion.air.native_pcs_opening4_v1",
+      "main_columns": 29,
+      "main_rows": 32768,
+      "fixed_rows": 23450,
+      "fixed_columns": 13,
+      "retained_bytes": 5021184
+    },
+    {
+      "index": 20,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 4194304,
+      "fixed_rows": 4194304,
+      "fixed_columns": 16,
+      "retained_bytes": 1644169136
+    },
+    {
+      "index": 21,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822085552
+    },
+    {
+      "index": 22,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 32768,
+      "fixed_rows": 21128,
+      "fixed_columns": 16,
+      "retained_bytes": 12102064
+    }
+  ],
+  "output": "010000001000000058fd7193c9c0d6e71780fd4723b240cedf505932233bae1d8e7790c225a9a2b6bd0575ce257a9043d57b5b6074042a8c86ee337744aa6ae620c0836f811b9140"
+}
+       52.57 real       349.70 user        11.66 sys
+         24851972096  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             7267757  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   2  voluntary context switches
+              111147  involuntary context switches
+       4191195536452  instructions retired
+       1449557223765  cycles elapsed
+         24862155952  peak memory footprint

@@ -1,0 +1,6 @@
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:175:13: error: local variable shadows declaration of 'classification'
+        var classification = Q.zero();
+            ^~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:166:9: note: declared here
+    pub const classification = This.classification;
+    ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

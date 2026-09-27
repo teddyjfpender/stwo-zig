@@ -1,0 +1,347 @@
+{
+  "schema": "block-v5-heterogeneous-open-recursion-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "tests_run_by_agent": false,
+  "compiler_build_run_by_agent": false,
+  "stark_proved": false,
+  "recursive_proof_proved": false,
+  "guest_executed": false,
+  "device_executed": false,
+  "scope": "actual independently admitted original recursive leaves plus actual source-pairing parent AIR and optional independently pinned scoped aggregate graph; OPEN only",
+  "supported_kinds": 8,
+  "supported_subtypes": 9,
+  "rejected_subtype": "native_fused_v2 (no genuine NativeV3 fusion recursive adapter)",
+  "public_circuit": 4200012,
+  "graph_pre_rebase_circuit": 4200013,
+  "graph_namespace": "shared isolated graph template; each attach injectively relocates this into a distinct actual parent namespace",
+  "protocol_version": 1,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_leaf_definition_v1.zig",
+      "sha256": "8ad3e85bbcbd89d18023dd14e768d361bb86662672c73d5a765eca2319613473"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig",
+      "sha256": "5e3ee37863519676f4d680f8bc0dcb23a5b28321e9f5e6d9efa2e3c1b2d9395a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_policy_v1.zig",
+      "sha256": "f2f1ffac196543b420755f73242a7b7b1506771bbf814680977eabfbf0a7f8db"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_pairing_v1.zig",
+      "sha256": "adb9ebe5f8dc1b44da9ec5a69b90b704f9262b9eb662b6a243fe65e541f1cac1"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_graph_rows_v1.zig",
+      "sha256": "6ad38d27bf22b4b1a13049d1bcec61322706b2a191ecc4b154d1586815c54dcb"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_public_bus_v1.zig",
+      "sha256": "bf8bdfdc4d49e4e175e0c1515f39e8d8862fa82478d59ad88c0647395adab4b9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_heterogeneous_parent_protocol_v1.zig",
+      "sha256": "b85ad0608c056528d3341993c46e14c70de86d5ff0654b22a926694c0ddf1be3"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_parent_preparation_v1.zig",
+      "sha256": "051a71ad536abfef0ea00ed063699437f442e048711546ec33a9754d32d05c0c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_parent_receiver_v1.zig",
+      "sha256": "0f45f2b022f0a3cc80191fd99e154f97cccc8a8cd04863b9fafe24c435b8d124"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_heterogeneous_recursive_stage_v1.zig",
+      "sha256": "72e67a0078a97689cfb1b885eeffe8439eb6f3737e85466848031db8d5bce240"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_heterogeneous_child_test_v1.zig",
+      "sha256": "5d9522ec8f59af04b6c01f4a00079ed2a68b716cd6d8b33d28857927908ffd3f"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_heterogeneous_recursive_codegen_v1.zig",
+      "sha256": "e4df8e71a5854afc4b98307647644c425b67a25768f0bde8e8825996283e8689"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_heterogeneous_recursive_test_root.zig",
+      "sha256": "e097aa695073513ff52cfba756acbc9047a9b0b21b622cd8f1c7cc2d15f541fc"
+    }
+  ],
+  "shared_source_pins": [
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_open_parent_packed_sources_v2.zig",
+      "sha256": "df10d21efcf706dc89008f72de5835ef012f3744a8461c31d5330a8948cb6bfd"
+    }
+  ],
+  "integration_dependency_pins": [
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering.zig",
+      "sha256": "166b935ea546fd83d6ba90198437d96117e33352aa87b1130643cdceabf5abdd"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig",
+      "sha256": "929fa99677fa03ccbf06b2842b31bfedbe01ab9142c2335a2a12c894b0a30537"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_plan.zig",
+      "sha256": "b0753b65c9ef6661a32f362180d89c63495825d3328edcdd2e7669d09228a6f5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/arithmetic_fusion_rows.zig",
+      "sha256": "677ba25ac1091c81930b0f9572a575b43c4dc67016e88ee9c45057a088be2e8f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig",
+      "sha256": "3530c94eeeb5cadf97550571f1ef0ae2bd23c833e05dfa1cefa95cab906d5a12"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_rebase.zig",
+      "sha256": "bfe8f21c0f0ecb4048fd854a04fc1a04786e1804ee7265c1ab3d9e8be7f88f60"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_join.zig",
+      "sha256": "186c072269d4cee757e4680a0a173133d0bfb2be029f0b68370b9d24bbfa1e47"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_direct_cohort_columns_v1.zig",
+      "sha256": "55f6ad844e8f7f6be49905a872727838e02c417f9d1e522184f9e9ab9b3983db"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "76344962abd6b1ac8ecfcc21ccb0cfd9559f1d10db5da1b9b679dd9236dd3fc3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_coverage_plan_v1.zig",
+      "sha256": "5fe0a8b805730d882f289dc2cd48f2ddd64740d8950cccc060c61fbb7928c868"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_provider_definition_v1.zig",
+      "sha256": "fdb7cea2d081caf49723a0b64febf13e33964239fcfc83518e0958c9e324afe8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_join_algebra_v1.zig",
+      "sha256": "bf4752dbc17fc23ab21b8f41ef30c679aaf28727d1a96ac5b0484a09bf284588"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_global_join_composition_v1.zig",
+      "sha256": "3f12a589a0eae4c332bd59fdcda377d153584f1cfd74a1eb9279c033e3300daf"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_global_join_parent_preparation_v1.zig",
+      "sha256": "47dae3f98db0085f009df68aff9c4db83ad8a2390d5d20080af68f01d09e4cc4"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_execution_recipe_v1.zig",
+      "sha256": "6ba9a3c31a8116d710f598bc87b7d763dcef54647cb7dc5918b174fd0795959b"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recipe_test_runner.zig",
+      "sha256": "08d4bfb098a865b9388f26b8fdf5e510bfad065b280127cf25750843fd390639"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_x0_selected_test_runner.zig",
+      "sha256": "6dee3e701d14133a556a5a60d63d70446d86410c6a5f9674211d839e4eb083bc"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_policy_test_runner_v1.zig",
+      "sha256": "a2d41d9925bae7a1e051b5de388c172ad61a857ad430f28ffdc92d27aca8182c"
+    }
+  ],
+  "documentation_pin": {
+    "path": "design/riscv-proving-stack/block-v5-heterogeneous-open-recursion-v1.md",
+    "sha256": "cd672b30674014364087dfbcc556881442ed7f44319c74aaace724b6f434c513"
+  },
+  "source_changes": {
+    "shared_attach": "source parameter type generalized to anytype; exact original source.terms forwarding and Term[] implementation unchanged",
+    "pairing": "original root/cell scalar equality graph lowered into actual parent arithmetic cohorts with original zero/constant anchors and exact public input supply",
+    "inactive_schedule": "same authenticated graph supplies shared Reference inactive binary schedule; only segment terms emitted",
+    "absence": "independently derive original native projection+memory rosters and require both empty before accepting Coverage native_typed_absence",
+    "aggregate": "Options.aggregate selects real global_join_parent_preparation.prepare; absent stays OPEN child-verifier+pairing route"
+  },
+  "limits": {
+    "max_children": 1024,
+    "max_native_spans_per_cohort": 32,
+    "max_preparation_bytes_default": 4294967296,
+    "max_stage_owned_bytes_default": 4294967296,
+    "max_child_bytes_default": 134217728,
+    "max_parent_bytes_default": 536870912
+  },
+  "ownership": "original recursive bytes released after each actual fresh Leaf.verify; captures and deep original public frames live through common parent assembly; budget-charged graphs/cohorts destroyed on every error; sink output bytes/schedule allocated by backing allocator and consumed only on sink success",
+  "authored_named_checks": [
+    "heterogeneous recursion: actual original typed leaf and common parent bodies are retained",
+    "heterogeneous recursion: all eight genuine typed families preserve explicit subtype and missing legacy fusion",
+    "heterogeneous recursion: original root word frames and integer widths remain exact and cell mutation rejects",
+    "heterogeneous recursion: actual root pairing scalar graph rejects mismatched coordinate and preserves source ordinal",
+    "heterogeneous recursion: root pairing allocation failures and malformed source extent are clean",
+    "heterogeneous recursion: provider has no virtual PC span and public schedule rejects duplicate or relabeled coordinates",
+    "heterogeneous recursion: exact once bookkeeping fails incomplete census without asserting proof authority",
+    "heterogeneous recursion: original pairing equations lower to genuine parent rows and exact public tuple closure",
+    "heterogeneous recursion: graph lowering validates source identity evaluation ownership and allocation failures"
+  ],
+  "authored_named_check_count": 9,
+  "body_marker": "stwo_heterogeneous_recursive_body_gate",
+  "commands": {
+    "legacy_unit": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_proof_wire",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "block_v5_standard_test_runner",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mroot=src/frontends/riscv/block_v5_heterogeneous_recursive_test_root.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_api",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mblock_v5_standard_test_runner=/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig",
+      "-lc",
+      "--test-runner",
+      "src/frontends/riscv/block_v5_recipe_test_runner.zig",
+      "--test-filter",
+      "heterogeneous recursion:"
+    ],
+    "selected_unit": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_proof_wire",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "block_v5_standard_test_runner",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mroot=src/frontends/riscv/block_v5_heterogeneous_recursive_test_root.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_api",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "-OReleaseFast",
+      "-mcpu=native",
+      "-Mblock_v5_standard_test_runner=/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig",
+      "-lc",
+      "--test-runner",
+      "src/frontends/riscv/block_v5_x0_selected_test_runner.zig",
+      "--test-filter",
+      "heterogeneous recursion:"
+    ]
+  },
+  "pending_authorities": [
+    "independently derived semantically complete per-state/per-window/per-provider-group scoped aggregate mapping",
+    "ten exact Coverage source requirements need actual authenticated source/public/endpoint derivation; descriptor hashes alone never closure",
+    "heterogeneous-parent typed child/folding topology for >32 native spans",
+    "canonical driver recursive hooks, durable heterogeneous parent transport and independently reconstructed detached policy",
+    "no ClosedBlock receipt minted by any module in this batch"
+  ],
+  "paired_aggregate_candidate": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-join-recursion-source-candidate-v1.json",
+    "sha256": "d57d8fa0e9eecc5492afcd86ba695c8d51d0998a3d9f6684eafde150313bb52c"
+  }
+}

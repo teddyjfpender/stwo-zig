@@ -1,0 +1,21 @@
+test-csp-ecdsa-guest-proof
++- run test stderr
+CSP_ECDSA_GUEST suite=blake2s queries=70 pow_bits=26 execution_ns=897166 proving_ns=851908709 verify_ns=290427917 cycles=1828 proof_bytes=3748143
+test-blake3-csp-ecdsa
++- BLAKE3 canonical CSP ECDSA guard
+   +- run test stderr
+CSP_ECDSA_GUEST suite=blake3 queries=70 pow_bits=26 execution_ns=2078542 proving_ns=2506949417 verify_ns=191966625 cycles=1828 proof_bytes=3748258
+
+Build Summary: 11/11 steps succeeded; 8/8 tests passed
+test-blake3-protocol success
++- BLAKE3 protocol test guard success
+   +- run test 6 passed 524ms MaxRSS:2M
+      +- compile test ReleaseFast native success 8s MaxRSS:718M
+test-blake3-csp-ecdsa success
++- BLAKE3 canonical CSP ECDSA guard success
+   +- run test 1 passed 3s MaxRSS:1G
+      +- compile test ReleaseFast native success 58s MaxRSS:3G
+test-csp-ecdsa-guest-proof success
++- run test 1 passed 2s MaxRSS:1G
+   +- compile test ReleaseFast native success 58s MaxRSS:3G
+

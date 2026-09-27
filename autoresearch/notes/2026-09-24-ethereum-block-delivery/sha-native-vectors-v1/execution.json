@@ -1,0 +1,18 @@
+{
+  "execution_verified": true,
+  "execution_profile": "rv32im_zkvm_ethereum_sha_v1",
+  "pc_profiled": false,
+  "recovery_hint_collection": false,
+  "proof_verified": false,
+  "cycles": 38367,
+  "segments": 1,
+  "planned_proof_segments": 1,
+  "max_segment_cycles": 262144,
+  "keccak_calls": 0,
+  "recovery_calls": 0,
+  "sha256_compression_calls": 148,
+  "elapsed_ns": 1480750,
+  "elf_sha256": "91e91fd31dbd3d90f07506006fccd3e599859cac2e0c6ceedebdf44ecedfc605",
+  "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "output_sha256": "5af7d98b06e00ba23f68ab2f5240fcd3879a67fafa2c43b6065ffad36b783718"
+}

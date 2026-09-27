@@ -1,0 +1,22 @@
+{
+  "source_candidate": "heterogeneous-hierarchy-legacy-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 101.42152512498433,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/heterogeneous-hierarchy-legacy-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-heterogeneous-hierarchy-legacy-focused-v1",
+    "bytes": 11221776,
+    "sha256": "139a8fe9d9c3a6d5052932f6a14812f649cd26c5a99cba7bacfc41ce518cd5d1"
+  }
+}

@@ -403,7 +403,13 @@ pub fn hasMemoryCapability(arena: *const ir.Arena) bool {
     };
     for (arena.nodesView()) |node| switch (node.key.op) {
         .machine_derived => |derived| switch (derived) {
-            .aligned_word_address => return true,
+            // Twenty-bit indices belong to the fixed base load/store plan.
+            // A 28-bit component projection is validated by the universal
+            // component's closed consume/emit/range group instead.
+            .aligned_word_address => |address| {
+                const index = arena.node(address.word_index) orelse return true;
+                if (std.meta.eql(index.key.ty, types.Type.uint20)) return true;
+            },
             else => {},
         },
         else => {},

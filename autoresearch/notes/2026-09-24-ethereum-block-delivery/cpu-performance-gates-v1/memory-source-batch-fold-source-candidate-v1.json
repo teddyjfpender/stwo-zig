@@ -1,0 +1,297 @@
+{
+  "schema": "stwo-zig.memory-source-batch-fold-source-candidate.v1",
+  "status": "source_candidate_unqualified",
+  "scope": "Bounded sorted simultaneous full-image/final tree fold, exact source and coordinate/hash routing equations, genuine packed BLAKE3 G/XOR core witness emission and connector graphs; no actual source proof/receipt",
+  "owned_files": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_fold_v1.zig",
+      "sha256": "150b12ab961c450f0a1b47a8b68584461541fa79a153161c7ac86771f4000802",
+      "bytes": 15550
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_protocol_v1.zig",
+      "sha256": "13d28dcf5e5585b81764906e36ac718185566bf6f5995962bdd5298e59ae6d64",
+      "bytes": 3721
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_batch_equations_v1.zig",
+      "sha256": "784c0442c2b52697ec7bf702d80da9cdd720ed494a4ec41f0a7b0bb815211b66",
+      "bytes": 19955
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_hash_v1.zig",
+      "sha256": "e4230d5ff6662dfbac2fdbf401e14a01640c19fe734c25e1ae938bc4950f9233",
+      "bytes": 14984
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_records_v1.zig",
+      "sha256": "ae8614779edc9c730c85b604e0184abe5fe51980d706db0fffedfeb63c61d95f",
+      "bytes": 1771
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_circuit_v1.zig",
+      "sha256": "aeaafc368be380d11547eda270871777eca859d9e03f93ded08885c32ac01856",
+      "bytes": 4860
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_hash_circuit_v1.zig",
+      "sha256": "94cc6f8b8e95cce706c6e3d53ee80677e0096beffcfb21f943b7854996ce9f2a",
+      "bytes": 9349
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_defaults_v1.zig",
+      "sha256": "be657d0c50da12ba77a0256c767a5f2f3eecd66b8482dc40388d1147ba727429",
+      "bytes": 433
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_batch_test_v1.zig",
+      "sha256": "a7e6d278881193b068853b93667a3eb60340a071c9b7cf8787a4131c1efa9879",
+      "bytes": 33515
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_batch_codegen.zig",
+      "sha256": "e8ce50bfc9ec80399b95a4eecf2a35eb3907633b084cb0ad0af524300862c889",
+      "bytes": 2716
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_batch_test_root.zig",
+      "sha256": "9447fb5004d92f4e757e3fbf2c8b35162e0ac12699c18d2fe47d4f3efe10e8a9",
+      "bytes": 158
+    }
+  ],
+  "read_only_dependencies": [
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/blake3_state_tree.zig",
+      "sha256": "0dd721ae3c6cd3382af3dac3ef547c40e38da91b8b7f23dd07c6d19fb578cfa5",
+      "bytes": 9807
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/byte_tree_topology.zig",
+      "sha256": "ce28442b53dac9c61484976fbc9ab7e44a7ffeafd9e5f45ad13a5a5a1d6bcd39",
+      "bytes": 1436
+    },
+    {
+      "path": "src/frontends/riscv/runner/memory_state.zig",
+      "sha256": "cee865df94ce8ce8a665418b0f3b796d9dbac7a6a84cf0aaa4259103a18fb91b",
+      "bytes": 22327
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_initial_sources_v1.zig",
+      "sha256": "009840797a275e5bda57fdde35a8fccdedb92975c24e5a348f8453734a755a7e",
+      "bytes": 8978
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_rw_endpoint_sources_v1.zig",
+      "sha256": "36cf8e6a4c4d51a85eda0d29efe4a16a029f5140d2d87227762c82fb7871a584",
+      "bytes": 8973
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_auth_protocol_v1.zig",
+      "sha256": "3ad74ff12dbdae745180f9d7873685b1fd3fbfb7bfba08887ac151acc0ea5b3b",
+      "bytes": 6678
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_stream_v1.zig",
+      "sha256": "fbb558f68ef9ab4675798e64f993574e8e702519aabc2838e7244444947cf312",
+      "bytes": 11857
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_circuit_v1.zig",
+      "sha256": "f8eedd4b7f72bea27040ccb8bc3206087b5e2a48fab46a306c26670ca229c42f",
+      "bytes": 10525
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_equations_v1.zig",
+      "sha256": "d1611f6d0909bcbf868c086add3f9fc036f1fac86840eabdf18a7294e6f20b43",
+      "bytes": 24288
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_crypto_v1.zig",
+      "sha256": "2874910940db0025294b87ec90a49041fa3e3558680c636a56f568701cddcbd2",
+      "bytes": 11507
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_compression_plan.zig",
+      "sha256": "1128c84585974ab54a35e7becc929fb7a5be76f5b2ed93aab0b1f282e6e11246",
+      "bytes": 1766
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_compression_witness.zig",
+      "sha256": "14791739d3f85ee3fab1a2de801217032393c8577761eae989bdaccafdd5ae28",
+      "bytes": 2049
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_g_call.zig",
+      "sha256": "f79a881a4861c34f68c343babe8d42a7da92c931362a5e7febddfcad2298594b",
+      "bytes": 3833
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_g_packed.zig",
+      "sha256": "74ad40a477674a4486c4fc3982c8165e5c610767d8cbfe1664d45197315b2ccd",
+      "bytes": 11616
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_g_packed_witness.zig",
+      "sha256": "2bb5cbee7c5ebd5b7d8cda90497447c08db48097eeab4155a8ad3072e52b2773",
+      "bytes": 2376
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_xor_call.zig",
+      "sha256": "5528c51c4589201f9bf84cc3c0d5317512906486a21542ded48aa4568ff1f836",
+      "bytes": 4118
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder.zig",
+      "sha256": "393ac0d6b085c909aff81ca3dfc5b06dc5bb427a7d75fc45023d443cacea656d",
+      "bytes": 3485
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig",
+      "sha256": "7d561b47a36994ae68161030193418a11ac36bcb6c2b7fd69703849c0fb25f00",
+      "bytes": 20181
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_challenges.zig",
+      "sha256": "ae2943f6e296639dccf727a402c46478b5516edc4577d5657b8f68610018390f",
+      "bytes": 12066
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/test_support.zig",
+      "sha256": "7ebfda7e54516f166e9510f028394d733e4439628f4102faf40dd947d0eed24f",
+      "bytes": 3826
+    },
+    {
+      "path": "src/frontends/riscv/air/relation_challenges.zig",
+      "sha256": "c041011ea1f1b05a5e843c309b0bf4054ee83de141593d1cb843dbb70cdecd61",
+      "bytes": 10225
+    },
+    {
+      "path": "src/frontends/riscv/air/lang/relation.zig",
+      "sha256": "c3f1d30fdcf6354fc4a67ce2d7db63ed2d06e60276268297ea9b7ee595302ecb",
+      "bytes": 23388
+    },
+    {
+      "path": "src/frontends/riscv/air/lang/mod.zig",
+      "sha256": "f42b7b86e262dd48a6136aa7c83acaad4c2aa0f4ddcabd95943128a95221a366",
+      "bytes": 10472
+    },
+    {
+      "path": "src/frontends/riscv/air/lang/ir.zig",
+      "sha256": "90c723509aa56d6f0bb0916323ffe880ed751aa2c776f0892563cb7b61006dc1",
+      "bytes": 29741
+    },
+    {
+      "path": "src/core/crypto/blake3_compression.zig",
+      "sha256": "a19dce49effa9116a58ea2b6116fc9994f36a10e29484e4281cb8f2eda66a0e4",
+      "bytes": 3431
+    },
+    {
+      "path": "src/core/vcs/blake3_hash.zig",
+      "sha256": "aa3871ccfb1694b5f73af771b43fc1834450518d76535e8c22afb6825a7de5c0",
+      "bytes": 3863
+    },
+    {
+      "path": "src/core/fields/qm31.zig",
+      "sha256": "a60c2a5a6f10bf91b1bfab41a526e41b589d0d1d83275e0516cf68b7228be931",
+      "bytes": 12722
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "sha256": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+      "bytes": 16483
+    }
+  ],
+  "fixture_root": "src/frontends/riscv/block_v5_memory_source_batch_test_root.zig",
+  "test_filter": "source batch",
+  "intended_root_only_command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_memory_source_batch_test_root.zig",
+    "--optimize",
+    "ReleaseFast",
+    "source batch"
+  ],
+  "checks": [
+    "source batch fold: streaming dense union retains untouched leaves and exact original roots with linear unique work",
+    "source batch merge: before image input mutation clocks order missing duplicate space and resource mutations fail closed",
+    "source batch equations: exact old source record joins default/shared hash supplies and unique tree closure detect omissions",
+    "source batch symbolic: actual packed-mode source graph independent construction and private coordinate mutation",
+    "source batch faults: every operation graph owner allocation unwinds",
+    "source batch oracle: original BLAKE3 leaf and node equations constrain private digests and level coordinates",
+    "source batch hash connector: actual packed frame cores match independent BLAKE3 and reject header chain digest and nonboolean mutations",
+    "source batch hash wire closure: every original G XOR constraint table request and connector schedule cancel exactly",
+    "source batch records: exact SHA canonical records count excludes every old per-edit path and never reads an opening",
+    "source batch defaults and shared requests: all canonical default heights exact supply and duplicate multiplicity require real joins",
+    "source batch touched input: original initial public input authentication permits a different final RAM word",
+    "source batch indexed record joins: exact image and touch ordinal swaps fail despite unchanged counts and values",
+    "source batch hash symbolic: actual packed frame request graph pins framing public sums and private core output cells",
+    "source batch hash faults: every packed connector graph allocation unwinds",
+    "source batch zero image: canonical root default closes two operations and no hash or fake edit witness",
+    "source batch actual bodies: bounded construction packed core emission and owned graph destruction retained only",
+    "source batch root"
+  ],
+  "performed": [
+    "source inspection",
+    "source edits",
+    "zig fmt",
+    "source SHA256 capture"
+  ],
+  "not_performed": [
+    "compiler",
+    "tests",
+    "PCS commitments",
+    "STARK or recursive proofs",
+    "guest/segment execution",
+    "device dispatch",
+    "benchmarks"
+  ],
+  "working_memory": {
+    "stack_frames": 31,
+    "record_peeks": 3,
+    "core_compressions_resident": 1,
+    "whole_image_or_node_map": false,
+    "default_table": "canonical compile-time BLAKE3 memory defaults, no per-operation rehash"
+  },
+  "bus_widths": {
+    "original_insertion": 5,
+    "original_before": 4,
+    "original_after": 8,
+    "indexed_record": 13,
+    "coordinate_route": 67,
+    "framed_hash": 97,
+    "core_wire": 6
+  },
+  "equation_inputs": {
+    "operation_private_boolean_cells": 1859,
+    "operation_public_candidate_sums": 10,
+    "leaf_hash_connector_private_cells": 1824,
+    "node_hash_connector_private_cells": 3840,
+    "hash_connector_public_candidate_sums": 2
+  },
+  "hash_core_geometry": {
+    "per_compression_g_rows": 56,
+    "per_compression_xor_rows": 16,
+    "g_main": 82,
+    "g_fixed": 16,
+    "xor_main": 12,
+    "xor_fixed": 6,
+    "g_direct_equations": 32,
+    "xor_direct_equations": 0,
+    "g_events": 40,
+    "xor_events": 7,
+    "g_interaction_columns": 80,
+    "xor_interaction_columns": 16
+  },
+  "ownership": "Stable heap budget owner; all transient builder/symbol/evaluation allocations released; completed circuit published only after finish; sinks borrow one compression rows during callback only",
+  "remaining_authority": [
+    "Versioned record/fold/core page first-round geometry and durable matrix replay",
+    "Source9 after source main roots, then full requesting and core main roster before dedicated indexed/route/hash/wire challenge",
+    "Actual same-main private cell bindings for operation and packed connector arithmetic",
+    "Bounded page arithmetic plus original packed G/XOR and actual bitwise/range provider proofs",
+    "Fresh typed CPU verifier, capture, public bus and source recursive leaf",
+    "Exact-once page aggregation and all SHA/byte/input/order chain closure",
+    "Authenticated initial/endpoint sums joined to freshly verified sorted RAM at global receiver"
+  ],
+  "performance_claim": "Only proposed and fixture-predicted work counts. No measured speedup; worst sparse topology is still O(30*union_leaves). Generic bit hash mode remains oracle only."
+}

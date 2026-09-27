@@ -1,0 +1,9 @@
+{
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t99%; finishing charge; 0:16 remaining present: true\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t99%; finishing charge; 0:16 remaining present: true\n",
+  "constant_fold_checks": 6,
+  "binaries": {
+    "zisk": "988059eb547ad7f96da010742b8a61d4e8b28c65d5223f9bc5fe06c9faab1fa8",
+    "stwo": "02f914e6ec1fe9affa0423c058fcb7b8eb59664fa31a4871a4ee8168dcd425bf"
+  }
+}

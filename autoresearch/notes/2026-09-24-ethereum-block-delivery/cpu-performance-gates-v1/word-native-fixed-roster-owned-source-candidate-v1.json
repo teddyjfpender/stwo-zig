@@ -1,0 +1,52 @@
+{
+  "status": "owned-sources-frozen-unqualified-no-runs",
+  "root": "src/frontends/riscv/block_v5_word_fixed_sources_test_root_v1.zig",
+  "filter": "word fixed sources",
+  "behavioral_groups": 3,
+  "body_retention_groups": 1,
+  "sources": [
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig",
+      "sha256": "399835fe0539764ad30c234d91c7a99b367d23204c746ec256ede7911d5dee12"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig",
+      "sha256": "117f4d9edcd5e5aed96ee8e549e241b08f82cea51b78e2a4db539ecaf203114f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig",
+      "sha256": "9cbf5f6f2876b369f13f9a96a313f86e6754880a3cae75ae2bdcbb87d32da764"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_word_recursive_fixed_sources_v1.zig",
+      "sha256": "952558887c9085260ead791f2188ef9bd85e6d4799ed7c0a2d026e02a0f24c65"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_word_recursive_fixed_roster_v1.zig",
+      "sha256": "1e7afd49bc280a41843dca7c64c9425efc04923bb8946881bf356e585afe1362"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_fixed_sources_test_v1.zig",
+      "sha256": "e108c410338abdf9d2be53b45ec71bf950c2ce78b32b65c5aaf96259ad368741"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_word_fixed_sources_test_root_v1.zig",
+      "sha256": "8e488574d04feaaf6b61bd6f4305a3e0e01277b14c14975c552002711c32a0de"
+    }
+  ],
+  "scope": [
+    "Original default/packed parent and native Word source routing share a single emitter",
+    "Original parent/native append/fusion/partition and selector bodies shared",
+    "Full typed native expected roster/context/public schedule/key path retained only; structural native math fixtures run without proof/capture"
+  ],
+  "remaining": [
+    "Focused qualifier with immutable imported dependency closure",
+    "Actual genuine whole-family fixed/live/root-commitment parity",
+    "Production driver expected setup selection and complete native-memory/global recursion closure",
+    "Positive proof and end-to-end time/process peak memory"
+  ],
+  "segments_run": false,
+  "pcs_commitment_run": false,
+  "proof_run": false,
+  "device_run": false
+}

@@ -1,0 +1,45 @@
+1/41 block_v5_recursive_provider_test_root.test.provider bodies: actual four-family capture full verifier cache publication and strict fresh file receiver retained only...OK
+2/41 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: all117 scalar quotients match shared symbolic AIR masks and four split chunks...OK
+3/41 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: equation allocation failures release every graph and arena owner...OK
+4/41 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: lifted endpoints share unchanged direct order degrees and exact previous main mask...OK
+5/41 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: independent physical geometry seal endpoint and resource admission fails closed...OK
+6/41 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: original52 pairs lane pin and all90 claim words replay exactly...OK
+7/41 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: independently derived public inputs reject census endpoint schedule and claim substitution...expected error.UntrustedV5RamLanesRangeCensus, found error.InvalidRamPublicInputs
+FAIL (TestUnexpectedError)
+8/41 prover.block_v5_ram_lanes_recursive_test_v1.test.RAM recursion: actual borrowed verifier all adapters publication cache and fresh leaf bodies retained only...OK
+9/41 prover.block_v5_program_table_recursive_test_v1.test.ROM recursion: exact native compiler equation and split2 quotient match symbolic authority and reject claim tuple recurrence challenge and chunk mutations...OK
+10/41 prover.block_v5_program_table_recursive_test_v1.test.ROM recursion: compiler equation OOM preserves original error and releases all owned graph state...OK
+11/41 prover.block_v5_program_table_recursive_test_v1.test.ROM recursion: complete independent ROM census seal and domain policy reject mutations before proof loads...OK
+12/41 prover.block_v5_program_table_recursive_test_v1.test.ROM recursion: original two channels match exact draw and PCS framing with authenticated restart...OK
+13/41 prover.block_v5_program_table_recursive_test_v1.test.ROM recursion: two-channel recorder allocation failures release all prefix and policy state...OK
+14/41 prover.block_v5_program_table_recursive_test_v1.test.ROM recursion: shared setup public schedule rejects identity config and claim substitution...OK
+15/41 prover.block_v5_program_table_recursive_test_v1.test.ROM recursion: repeated channel restart authenticates initial state counters prior exports and version...OK
+16/41 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: all six original mixed-domain CPU equations and masks equal symbolic recurrence and split quotient...FAIL (UnsatisfiedCircuit)
+17/41 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: full equation graph allocation failures release arena owner and recorder...FAIL (UnsatisfiedCircuit)
+18/41 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: independent full table geometry group roots bounds and configuration reject substitutions...OK
+19/41 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: original B5SS universal and all six B5LT claim frames replay exact channel without restart...OK
+20/41 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: independent full group and six public claims reject key schedule closure or count relabel...OK
+21/41 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: all six actual counter schemas retain signed absolute census and allocation cleanup...OK
+22/41 prover.block_v5_native_lookup_recursive_test_v1.test.lookup recursion: leaf independent policy rejects stale recursive ID before proof decoding and stage profile before capture...OK
+23/41 prover.block_v5_range16_recursive_cache_test_v1.test.range cache: shared factory is one typed kernel and all changing public values replace admission...OK
+24/41 prover.block_v5_range16_recursive_cache_test_v1.test.range cache: exact structural schedule security and independently pinned key must match...OK
+25/41 prover.block_v5_range16_recursive_cache_test_v1.test.range cache: actual row validator checks every cohort fixed content inventory and log with allocation failures...OK
+26/41 prover.block_v5_range16_recursive_cache_test_v1.test.range cache: configured aggregate worker caps remain bounded and failed cache initialization cleans up...OK
+27/41 prover.block_v5_range16_recursive_cache_test_v1.test.range cache: consuming request rejection frees source rows retains public routing and never launches worker...OK
+28/41 prover.block_v5_range16_recursive_cache_test_v1.test.range cache: stage rejects cache profile before reading borrowed proof or publishing...OK
+29/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared owned templates survive borrowed schedule destruction and later insertion...OK
+30/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: every shared template allocation failure releases custody...OK
+31/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared template count and heap limits are enforced before retention...OK
+32/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared independent template and zero-copy proof framing retain structural claims only...OK
+33/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: encode decode metadata budgets and every allocation failure release owners...OK
+34/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: envelope cannot select family version index key schedule or trailing bytes...OK
+35/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: exact independent roster rejects omitted policies and malformed file pins...OK
+36/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: exclusive publication transfers ownership but literal proof never completes fresh reader...OK
+37/41 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: total-cap and tamper failures retain publisher ownership and fail reader closed...OK
+38/41 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+39/41 air.lookups.tables.mod.test_0...OK
+40/41 air.memory_commitment.poseidon2_air.test_0...OK
+41/41 air.lookups.tables.source_ingest.test_0...OK
+38 passed; 0 skipped; 3 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-provider-qualified-tests-v4 --seed=0xc5334851

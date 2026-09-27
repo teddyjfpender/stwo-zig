@@ -1,0 +1,35 @@
+test-blake3-combined-fri
++- BLAKE3 combined FRI guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig:87:100: error: expected type 'air.lang.relation.Domain', found 'air.lookups.entry.Domain'
+        const pair = logup.RowPairFor(S).single(entry.numerator, try challenges.get(f.schema.domain(table.kind)).combine(entry.values[0..arity]));
+                                                                                    ~~~~~~~~~~~~~~~^~~~~~~~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/air/lookups/entry.zig:22:20: note: enum declared here
+pub const Domain = enum(u8) {
+                   ^~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/air/lang/relation.zig:19:20: note: enum declared here
+pub const Domain = enum(u8) {
+                   ^~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:479:25: note: parameter type declared here
+        domain: relation.Domain,
+                ~~~~~~~~^~~~~~~
+referenced by:
+    runForParametersObserved__anon_37824: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig:127:66
+    test.BLAKE3 private FRI values join all paths and canonical arithmetic in one proof: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_combined_fri_test.zig:79:79
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_framework_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "BLAKE3 private FRI values join all paths and canonical arithmetic in one proof" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 4/8 steps succeeded; 1 failed; 1/1 tests passed
+test-blake3-combined-fri transitive failure
++- BLAKE3 combined FRI guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+test-blake3-fri-arithmetic-proof success
++- BLAKE3 FRI arithmetic guard success
+   +- run test 1 passed 3s MaxRSS:367M
+      +- compile test ReleaseSafe native success 23s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/1d6a259e0d36b13e4b87c05489d4edd6/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x67a61903 -Z88499ff9507adf93 --maxrss 25769803776 -j1 test-blake3-combined-fri test-blake3-fri-arithmetic-proof -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,7 @@
+1/6 borrowed_proof_capture_test_root.test_0...OK
+2/6 core.borrowed_proof_capture_test.test.borrowed proof capture preserves original PCS vectors on late rejection and every allocation failure...OK
+3/6 core.borrowed_proof_capture_test.test.borrowed proof capture preserves STARK input and publication on early rejection...OK
+4/6 core.borrowed_pcs_capture_success_test.test.borrowed proof capture successful constant PCS remains immutable through every allocation failure...OK
+5/6 core.borrowed_pcs_capture_success_test.test.borrowed proof capture matches owned verification and outlives poisoned original vectors...OK
+6/6 core.borrowed_pcs_capture_success_test.test.borrowed proof capture FRI multi-fold scratch releases every allocation failure...OK
+All 6 tests passed.

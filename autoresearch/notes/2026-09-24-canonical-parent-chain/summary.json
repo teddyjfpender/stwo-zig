@@ -1,0 +1,16 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_seconds": 23.381630374497036,
+    "preparation_seconds": 3.014061479,
+    "proof_and_checks_seconds": 5.8093094375,
+    "peak_physical_bytes": 30692212216
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_seconds": 23.37844077151385,
+    "preparation_seconds": 2.9838709375,
+    "proof_and_checks_seconds": 5.871819521,
+    "peak_physical_bytes": 30695439792
+  }
+}

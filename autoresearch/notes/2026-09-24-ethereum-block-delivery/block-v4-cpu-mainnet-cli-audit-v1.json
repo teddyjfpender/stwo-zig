@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-25",
+  "scope": "Static producer and detached-verifier CLI admission/resource audit against the proposed 218-segment Ethereum-SHA schedule; no mainnet block proof or benchmark",
+  "admitted_roster": {
+    "execution_segments": 218,
+    "execution_cap": 1024,
+    "maximum_segment_cycles": 4194304,
+    "cli_segment_cycle_cap": 4194304,
+    "sorted_memory_events": 356303914,
+    "planned_log20_memory_instances": 340,
+    "source_roster_entries": 220,
+    "source_roster_cap": 4096,
+    "first_touch_records": 3142932,
+    "first_touch_cap": 10000000,
+    "first_touch_file_bytes": 31429320,
+    "nonzero_initial_image_words": 666708,
+    "initial_image_cap_words": 4000000,
+    "initial_image_file_bytes": 5333664,
+    "per_file_cap_bytes": 268435456
+  },
+  "receiver_fix": {
+    "problem": "Detached rehydration used ArenaAllocator for replayed runner segments and staged proof-file loads, making per-segment free ineffective and retaining all 218 leaves' temporary allocations.",
+    "change": "runner.Source and one-at-a-time memory, execution, leaf and parent file loaders now use the bounded freeing host allocator; only borrowed metadata and at most 256 MiB of table proof bytes use the arena.",
+    "focused_bundle_tests_passed": 5,
+    "existing_one_segment_q70_bundle_freshly_reverified": true,
+    "post_fix_receiver_peak_rss_bytes": 523190272
+  },
+  "remaining_caps_and_risks": [
+    "Producer and verifier each use a fixed 40 GiB tracked host budget. The full 218-segment producer peak has not been measured; a 16 GiB candidate-roster attempt exhausted its budget at segment 29, while later candidate probes with a larger budget continued. Do not infer 40 GiB suffices for all native proofs.",
+    "Recursive forest and outer preparation each have a 24 GiB scoped limit. The one-segment producer reached 14.09 GiB tracked and 14.24 GiB process RSS; the mainnet maximum leaf may be larger.",
+    "Each staged memory STARK has a 64 MiB serialized limit; execution and recursive files have a 256 MiB per-file limit. A real log20 memory instance measured 406342 bytes, but no largest mainnet execution/recursive proof size has been measured.",
+    "Bundle and recursion-policy JSON each have a 16 MiB limit; exact 218-segment serialized metadata size is not yet measured. The detached receiver retains table proof bytes under a separate 256 MiB aggregate cap.",
+    "Producer and verifier now report normalized process peak RSS and elapsed nanoseconds. The read-only candidate-roster CLI still reports tracked allocator peak only; wrap any mainnet proposal command with OS process RSS timing."
+  ],
+  "qualification_boundary": "The 218-segment geometry and memory census are host-side admission evidence. Complete mainnet production and detached verification remain unproved."
+}

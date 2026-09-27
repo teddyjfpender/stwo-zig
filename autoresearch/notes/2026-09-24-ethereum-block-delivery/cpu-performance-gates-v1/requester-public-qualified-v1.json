@@ -1,0 +1,90 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "requester-public-source-candidate-v2.json",
+  "successful_attempts": [
+    {
+      "attempt": "requester-public-semantic-v2-result.json",
+      "source_candidate": "requester-public-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.628547874977812,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "attempt": "requester-public-focused-v1-result.json",
+      "source_candidate": "requester-public-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 24.879657625046093,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 12,
+      "test_summary": [
+        "All 12 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-public-focused-v1",
+        "bytes": 44387672,
+        "sha256": "a7f746a8229712c79ce560f2010a398c9eee628f1e686e8cfdba54a51ece967e"
+      }
+    },
+    {
+      "attempt": "requester-public-custody-focused-v1-result.json",
+      "source_candidate": "requester-public-custody-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 24.78770887502469,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 12,
+      "test_summary": [
+        "All 12 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-custody-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-public-custody-focused-v1",
+        "bytes": 44387680,
+        "sha256": "879be115ed095a258ab4718619938f3f6fe3dcf62b8440d24498f6107f6a0cd2"
+      }
+    }
+  ],
+  "authoritative_source_snapshot": "requester-public-custody-focused-v1-source.json",
+  "source_pin_count": 1849,
+  "behavioral_checks": 4,
+  "evidence_scope": [
+    "Requester-only public compensation graph, actual preparation/producer/strict receiver/Source bodies compiled and retained",
+    "Sorted retained-key lookup and missing/window/kind rejection fixtures",
+    "Distinct original schedule/hash guards, resource guards and complete-recipe rejection fixtures",
+    "Stable independently validated compact source seal/ref admission replaces pointer identity; positive custody lifetime proof not run"
+  ],
+  "remaining": [
+    "Positive actual same-parent public compensation graph and genuine requester proof",
+    "Canonical durable root assembler and driver selection",
+    "Complete independently reconstructed expected setup and source/global closure audit",
+    "End-to-end proving time and peak memory"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "positive_proof_run": false,
+  "segments_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

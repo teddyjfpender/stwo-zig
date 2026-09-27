@@ -1,0 +1,19 @@
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:171:19: error: local constant shadows declaration of 'base'
+            const base = self.admitted;
+                  ^~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:332:1: note: declared here
+const base = Base;
+^~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:190:19: error: local constant shadows declaration of 'base'
+            const base = if (subtype == .capacity_fused_v1) prepared.native else prepared;
+                  ^~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:332:1: note: declared here
+const base = Base;
+^~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_global_join_composition_v1.zig:208:13: error: error set is discarded
+        _ = failure;
+            ^~~~~~~
+referenced by:
+    states__anon_8294: src/frontends/riscv/prover/block_v5_global_join_algebra_v1.zig:36:47
+    equations__anon_8271: src/frontends/riscv/recursion/air/block_v5_global_join_composition_v1.zig:225:17
+    5 reference(s) hidden; use '-freference-trace=7' to see all references

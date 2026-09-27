@@ -75,3 +75,6 @@ test {
     _ = @import("extract/mod.zig");
     _ = @import("semantic_eval.zig");
 }
+
+/// Source-only authenticated inventory; its backend emitter is supplied by the caller.
+pub const native_polynomial_inventory_v1 = @import("native_polynomial_inventory_v1.zig");

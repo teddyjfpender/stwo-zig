@@ -1,0 +1,90 @@
+{
+  "trace_cache": {
+    "cpu": {
+      "control": {
+        "median_seconds": 11.233315937,
+        "samples_seconds": [
+          11.085962041,
+          11.380669833
+        ],
+        "tracked_peak_bytes": 3384010380,
+        "physical_peak_bytes": 3584299064
+      },
+      "candidate": {
+        "median_seconds": 7.526555479,
+        "samples_seconds": [
+          7.46693525,
+          7.586175708
+        ],
+        "tracked_peak_bytes": 3866887340,
+        "physical_peak_bytes": 4006858544
+      },
+      "speedup": 1.492490949989316
+    },
+    "metal": {
+      "control": {
+        "median_seconds": 11.430648999999999,
+        "samples_seconds": [
+          11.490549583,
+          11.370748417
+        ],
+        "tracked_peak_bytes": 3061591452,
+        "physical_peak_bytes": 5387866576
+      },
+      "candidate": {
+        "median_seconds": 7.702360792,
+        "samples_seconds": [
+          7.750283459,
+          7.654438125
+        ],
+        "tracked_peak_bytes": 3732669452,
+        "physical_peak_bytes": 5406347824
+      },
+      "speedup": 1.484044867370061
+    }
+  },
+  "complete_cache": {
+    "cpu": {
+      "control": {
+        "median_seconds": 11.094905707999999,
+        "samples_seconds": [
+          10.958174458,
+          11.231636958
+        ],
+        "tracked_peak_bytes": 3384010380,
+        "physical_peak_bytes": 3584299040
+      },
+      "candidate": {
+        "median_seconds": 6.349760395500001,
+        "samples_seconds": [
+          6.355628333,
+          6.343892458
+        ],
+        "tracked_peak_bytes": 3831857292,
+        "physical_peak_bytes": 3861237432
+      },
+      "speedup": 1.7472951760294493
+    },
+    "metal": {
+      "control": {
+        "median_seconds": 11.389569375,
+        "samples_seconds": [
+          11.460786708,
+          11.318352042
+        ],
+        "tracked_peak_bytes": 3061591452,
+        "physical_peak_bytes": 5389144600
+      },
+      "candidate": {
+        "median_seconds": 6.790643063,
+        "samples_seconds": [
+          6.761829209,
+          6.819456917
+        ],
+        "tracked_peak_bytes": 3731688788,
+        "physical_peak_bytes": 5335044704
+      },
+      "speedup": 1.6772445951485877
+    }
+  }
+}

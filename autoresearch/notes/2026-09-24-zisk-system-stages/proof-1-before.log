@@ -1,0 +1,3 @@
+1/1 keccakf_precompile_proof_test.test.Keccak-f typed shard and lookup tables prove and independently verify...Keccak-f proof timings: witness=10.542ms pp=6.027ms main=3.347ms interaction-gen=3.057ms interaction-commit=4.348ms prove=28.767ms verify=4.215ms
+OK
+All 1 tests passed.

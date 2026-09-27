@@ -1,0 +1,48 @@
+{
+  "status": "qualified_nonproving_column_owner",
+  "evidence": {
+    "source_candidate": "memory-source-packed-blake-columns-focused-v3-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 7.472623209003359,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 4,
+    "test_summary": [
+      "All 4 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-packed-blake-columns-focused-v3.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-memory-source-packed-blake-columns-focused-v3",
+      "bytes": 750392,
+      "sha256": "2182b4a90d1915fdd862d58312696b1b1775b1fa12ad9a85046be3f29d3b5f23"
+    }
+  },
+  "historical_attempts": [
+    "memory-source-packed-blake-columns-semantic-v1",
+    "memory-source-packed-blake-columns-focused-v1",
+    "memory-source-packed-blake-columns-semantic-v2",
+    "memory-source-packed-blake-columns-focused-v2"
+  ],
+  "scope": [
+    "Page-bounded heap-stable direct original G/Xor main and fixed columns",
+    "Original full-row oracle parity for shared/default/changed leaves and shared two-compression branch",
+    "Exact signed table counters including padded physical rows; 192-byte initial/output captures",
+    "Consecutive full-u64 operation ordinals, circuit namespace, compression/cell/metadata limits",
+    "Corrupted output digest rejection and allocator leak checks; production regeneration/cleanup bodies retained"
+  ],
+  "not_qualified": [
+    "Exhaustive allocation-failure sweep",
+    "Complete source or hash proof authority",
+    "Unified PAGE producer and fresh receiver",
+    "Cross-page closure, canonical driver or whole block proof"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

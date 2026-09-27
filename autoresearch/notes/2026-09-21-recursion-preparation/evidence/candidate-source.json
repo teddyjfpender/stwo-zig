@@ -1,0 +1,14 @@
+{
+  "src/frontends/riscv/recursion/air/composition_circuit_reference.zig": "b071f7dc7a5e9eea87382443de2293911fc21ddf0ebd0f8c1b79fbb51fc3da4d",
+  "src/frontends/riscv/recursion/air/framework_device_interaction.zig": "8c30ba3a65cc91f70fc3b1a6e7da586bd64fb636258b4c3ff789ab617db96184",
+  "src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_contract.zig": "ce605cafa1ff884809a3a02e0307abe41a6ddc5bc71f5ce12521d9456d3b819a",
+  "src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig": "e7f1e412e2cdbc8d30eac183862a850dabfa72e715a6d7c8f74f2fc7a9017f6f",
+  "src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig": "5b61faef051245191730e21e9d5841e671390dda387cb09636465037511b88e4",
+  "src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig": "8e9fa63c94b752fdb15ba0bdaa860a130b1c2c3615ddcc8ed49bcd67351bdd4f",
+  "src/frontends/riscv/recursion/air/trace_merkle_witness_contract.zig": "b15e4a13ba96bb05734ce8d8af25fec60a534d5218ff207b7db450ae8b6fe2ec",
+  "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig": "929fa99677fa03ccbf06b2842b31bfedbe01ab9142c2335a2a12c894b0a30537",
+  "src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig": "bfb68640b74e6e91d6192ecfd8c84c4e860e87ab224e2e483a97298c1967b1ee",
+  "src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig": "eef4140d1f4b5485da83e28a7dbe7ce3af3396d078d3ae547798d3ccf032161a",
+  "src/integrations/riscv_cpu/build_segment_steps.zig": "8dbdafbd1af1214d005af9d70b0e7104812964bbed5a2cf55cfe988accb864c8",
+  "src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test.zig": "0221fd6e28ada0d0f35286339c50d9d67863c53316c51a75036f34f192e71196"
+}

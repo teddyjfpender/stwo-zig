@@ -1,0 +1,9 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+EXECUTION_PARENT_OPENINGS trace_trees=4 fri_layers=20 queries=8 scalar_sources=7800 path_g_rows=324352 path_xor_rows=92672
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G
+

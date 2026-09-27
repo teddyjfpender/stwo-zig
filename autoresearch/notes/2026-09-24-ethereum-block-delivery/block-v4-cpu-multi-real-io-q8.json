@@ -1,0 +1,25 @@
+{
+  "date": "2026-09-25",
+  "scope": "CPU bounded two-segment Ethereum-SHA production assembler; first segment has zero precompile calls, second has Keccak caller accesses and terminal output publication; fresh v4 core verification",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic"},
+  "verification": {"fresh_core": true, "recursive_root": false, "tests_passed": 8},
+  "segments": 2,
+  "input_bytes": 4,
+  "output_bytes": 4,
+  "first_segment_external_events": 0,
+  "memory_events": 70,
+  "external_events": 51,
+  "memory_instances": 1,
+  "public_initial_image_bytes": 2040,
+  "public_first_touch_roster_bytes": 590,
+  "staged_and_execution_payload_bytes": 2010498,
+  "assembly_proof_core_verify_elapsed_ns": 8466805208,
+  "tracked_peak_bytes": 819815347,
+  "fixture_limits": [
+    "The input/output payloads are four bytes; the public initial image also includes initialized Keccak state.",
+    "The output stores remain in the terminal segment so the terminal native statement proves local output-address access.",
+    "This run fresh-verifies the complete v4 core but does not produce recursive leaves or an outer root.",
+    "The producer stages and releases each serialized execution artifact, then reopens and hashes the files for fresh core verification; the receiver still loads all execution wire bytes and retains execution owners across both segments. Mainnet-scale streaming remains under construction."
+  ],
+  "command_filter": "crosses real IO with a zero-call first leaf"
+}

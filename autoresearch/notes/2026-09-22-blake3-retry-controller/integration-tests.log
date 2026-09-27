@@ -1,0 +1,23 @@
+test-blake3-retry-control
++- BLAKE3 retry control guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.blake3_retry_control_test.test.BLAKE3 retry controller pins first acceptance and consumed count' failed
+error: while executing test 'recursion.air.blake3_retry_control_test.test.BLAKE3 retry controller pins first acceptance and consumed count', the following test command failed:
+./.zig-cache/o/2e9ff2d2185e3f609ba5f4d0b6609636/test --cache-dir=./.zig-cache --seed=0xecc947af --listen=-
+
+Build Summary: 9/12 steps succeeded; 1 failed; 3/4 tests passed; 1 failed
+test-blake3-retry-control transitive failure
++- BLAKE3 retry control guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:637M
+test-blake3-retry-proof success
++- BLAKE3 retry proof guard success
+   +- run test 1 passed 4s MaxRSS:349M
+      +- compile test ReleaseSafe native success 22s MaxRSS:1G
+test-blake3-draw success
++- BLAKE3 ordered draw guard success
+   +- run test 2 passed 495ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 4s MaxRSS:521M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/3258dcce5340aa5000f6a73e8bbc29da/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xecc947af -Ze9a143293b00c377 --maxrss 25769803776 -j1 test-blake3-retry-control test-blake3-retry-proof test-blake3-draw -Doptimize=ReleaseSafe --summary all

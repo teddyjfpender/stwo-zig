@@ -1,0 +1,13 @@
+{
+  "scope": "candidate from piecewise G-row density; requires independent full census and proofs",
+  "proof_verified": false,
+  "census_sha256": "aae649a0164ffa4958171c283a38d8b2be89010d8cf67cf4126b8311513f39fc",
+  "schedule_sha256": "1694c7df6f8508d9365a654bd4e489934b0b0007210aca7ff2c718f5e8910a0b",
+  "cycles": 139214856,
+  "leaves": 256,
+  "min_cycles": 94180,
+  "max_cycles": 4194304,
+  "source_G_rows": 2491043800,
+  "source_G_rows_per_target_leaf": 9730639.84375,
+  "required_terminal_cycles": 56
+}

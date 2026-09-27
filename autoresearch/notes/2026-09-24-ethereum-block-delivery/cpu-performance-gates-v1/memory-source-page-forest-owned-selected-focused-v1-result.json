@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-page-forest-owned-selected-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 33.10353024996584,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 17,
+  "test_summary": [
+    "All 17 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-forest-owned-selected-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-page-forest-owned-selected-focused-v1",
+    "bytes": 53350080,
+    "sha256": "2700c11d1c2431bce4a30795205d8fe06280e1538496888bc9dd581327fe2c17"
+  }
+}

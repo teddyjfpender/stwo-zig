@@ -1,0 +1,709 @@
+{
+  "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "power_before": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t86%; discharging; 14:10 remaining present: true\n",
+  "workers": 1,
+  "samples": 7,
+  "binaries": {
+    "local": "3128ef983ccb125ff3f04185ae930bd9daa2d1ef8a5899f052995037a632792f",
+    "peer": "2c0592c72b6d325b6b27cb4069f11947d5f12fb55d0d4e21b3f9544e2dfbeaa8",
+    "before": "3b325e9ae4b57e0a490006384a0a41c1145e81361d74cfc84816a4dc0ba843c2"
+  },
+  "cases": [
+    {
+      "log_rows": 10,
+      "rows": 1024,
+      "row_words": 4,
+      "input_bytes": 32768,
+      "input_sha256": "14edb0da4aee00c5844cb3e42a7c817d30f04ab4f8dc9a15436d9c0c136877dd",
+      "root": "b2ba29a4de1d727bcf185681fc9563b1fd6c6f6b42d981cb7ae552c7dbb7d737",
+      "qualification": "all nodes and paths equal; both cross-verifiers accept; corrupted path/root rejected",
+      "samples": {
+        "local": [
+          {
+            "commit_open_ns": 209042,
+            "verify_ns": 76875,
+            "total_ns": 285917
+          },
+          {
+            "commit_open_ns": 204500,
+            "verify_ns": 79833,
+            "total_ns": 284333
+          },
+          {
+            "commit_open_ns": 200583,
+            "verify_ns": 76833,
+            "total_ns": 277416
+          },
+          {
+            "commit_open_ns": 203792,
+            "verify_ns": 76916,
+            "total_ns": 280708
+          },
+          {
+            "commit_open_ns": 212291,
+            "verify_ns": 77000,
+            "total_ns": 289291
+          },
+          {
+            "commit_open_ns": 196750,
+            "verify_ns": 75625,
+            "total_ns": 272375
+          },
+          {
+            "commit_open_ns": 183750,
+            "verify_ns": 69000,
+            "total_ns": 252750
+          }
+        ],
+        "peer": [
+          {
+            "commit_open_ns": 236875,
+            "verify_ns": 97166,
+            "total_ns": 334041
+          },
+          {
+            "commit_open_ns": 236417,
+            "verify_ns": 97333,
+            "total_ns": 333750
+          },
+          {
+            "commit_open_ns": 235667,
+            "verify_ns": 96916,
+            "total_ns": 332583
+          },
+          {
+            "commit_open_ns": 236292,
+            "verify_ns": 97666,
+            "total_ns": 333958
+          },
+          {
+            "commit_open_ns": 236125,
+            "verify_ns": 97500,
+            "total_ns": 333625
+          },
+          {
+            "commit_open_ns": 211625,
+            "verify_ns": 87167,
+            "total_ns": 298792
+          },
+          {
+            "commit_open_ns": 219833,
+            "verify_ns": 87459,
+            "total_ns": 307292
+          }
+        ],
+        "before": [
+          {
+            "commit_open_ns": 285667,
+            "verify_ns": 106375,
+            "total_ns": 392042
+          },
+          {
+            "commit_open_ns": 290541,
+            "verify_ns": 106250,
+            "total_ns": 396791
+          },
+          {
+            "commit_open_ns": 284542,
+            "verify_ns": 106083,
+            "total_ns": 390625
+          },
+          {
+            "commit_open_ns": 291625,
+            "verify_ns": 106084,
+            "total_ns": 397709
+          },
+          {
+            "commit_open_ns": 287083,
+            "verify_ns": 106000,
+            "total_ns": 393083
+          },
+          {
+            "commit_open_ns": 254666,
+            "verify_ns": 95084,
+            "total_ns": 349750
+          },
+          {
+            "commit_open_ns": 256667,
+            "verify_ns": 95041,
+            "total_ns": 351708
+          }
+        ]
+      },
+      "median_ms": {
+        "local": {
+          "commit_open_ns": 0.203792,
+          "verify_ns": 0.076875,
+          "total_ns": 0.280708
+        },
+        "peer": {
+          "commit_open_ns": 0.236125,
+          "verify_ns": 0.097166,
+          "total_ns": 0.333625
+        },
+        "before": {
+          "commit_open_ns": 0.285667,
+          "verify_ns": 0.106083,
+          "total_ns": 0.392042
+        }
+      }
+    },
+    {
+      "log_rows": 16,
+      "rows": 65536,
+      "row_words": 4,
+      "input_bytes": 2097152,
+      "input_sha256": "ee103f19878bf828b0d0624871c35661c1251224da21bca5f5d8b044a4fd9471",
+      "root": "989c1310af72bcc597d5ef2858d1242e56244e36bd34fdff906fe3b89108a236",
+      "qualification": "all nodes and paths equal; both cross-verifiers accept; corrupted path/root rejected",
+      "samples": {
+        "local": [
+          {
+            "commit_open_ns": 6375584,
+            "verify_ns": 70625,
+            "total_ns": 6446209
+          },
+          {
+            "commit_open_ns": 6392125,
+            "verify_ns": 68708,
+            "total_ns": 6460833
+          },
+          {
+            "commit_open_ns": 6243625,
+            "verify_ns": 69416,
+            "total_ns": 6313041
+          },
+          {
+            "commit_open_ns": 6196875,
+            "verify_ns": 67750,
+            "total_ns": 6264625
+          },
+          {
+            "commit_open_ns": 6244375,
+            "verify_ns": 68292,
+            "total_ns": 6312667
+          },
+          {
+            "commit_open_ns": 6256333,
+            "verify_ns": 69459,
+            "total_ns": 6325792
+          },
+          {
+            "commit_open_ns": 6437333,
+            "verify_ns": 68250,
+            "total_ns": 6505583
+          }
+        ],
+        "peer": [
+          {
+            "commit_open_ns": 8399125,
+            "verify_ns": 95792,
+            "total_ns": 8494917
+          },
+          {
+            "commit_open_ns": 8480542,
+            "verify_ns": 89333,
+            "total_ns": 8569875
+          },
+          {
+            "commit_open_ns": 8525125,
+            "verify_ns": 85417,
+            "total_ns": 8610542
+          },
+          {
+            "commit_open_ns": 8398167,
+            "verify_ns": 85625,
+            "total_ns": 8483792
+          },
+          {
+            "commit_open_ns": 8456917,
+            "verify_ns": 87041,
+            "total_ns": 8543958
+          },
+          {
+            "commit_open_ns": 8531417,
+            "verify_ns": 85125,
+            "total_ns": 8616542
+          },
+          {
+            "commit_open_ns": 8424792,
+            "verify_ns": 85375,
+            "total_ns": 8510167
+          }
+        ],
+        "before": [
+          {
+            "commit_open_ns": 9322208,
+            "verify_ns": 92084,
+            "total_ns": 9414292
+          },
+          {
+            "commit_open_ns": 9307042,
+            "verify_ns": 94417,
+            "total_ns": 9401459
+          },
+          {
+            "commit_open_ns": 9268458,
+            "verify_ns": 94500,
+            "total_ns": 9362958
+          },
+          {
+            "commit_open_ns": 9358209,
+            "verify_ns": 94333,
+            "total_ns": 9452542
+          },
+          {
+            "commit_open_ns": 9270500,
+            "verify_ns": 93333,
+            "total_ns": 9363833
+          },
+          {
+            "commit_open_ns": 9278791,
+            "verify_ns": 93042,
+            "total_ns": 9371833
+          },
+          {
+            "commit_open_ns": 9222625,
+            "verify_ns": 92750,
+            "total_ns": 9315375
+          }
+        ]
+      },
+      "median_ms": {
+        "local": {
+          "commit_open_ns": 6.256333,
+          "verify_ns": 0.068708,
+          "total_ns": 6.325792
+        },
+        "peer": {
+          "commit_open_ns": 8.456917,
+          "verify_ns": 0.085625,
+          "total_ns": 8.543958
+        },
+        "before": {
+          "commit_open_ns": 9.278791,
+          "verify_ns": 0.093333,
+          "total_ns": 9.371833
+        }
+      }
+    },
+    {
+      "log_rows": 20,
+      "rows": 1048576,
+      "row_words": 4,
+      "input_bytes": 33554432,
+      "input_sha256": "c70d135c1ad9b77e6e1111005e7f62821af34c5f50720cc07b0af03986d3531a",
+      "root": "baba1b3be04acab6c5c487db479c8feffb2d80e9dc3d62b7ab962f64ef4ab7dc",
+      "qualification": "all nodes and paths equal; both cross-verifiers accept; corrupted path/root rejected",
+      "samples": {
+        "local": [
+          {
+            "commit_open_ns": 99604708,
+            "verify_ns": 96083,
+            "total_ns": 99700791
+          },
+          {
+            "commit_open_ns": 99304042,
+            "verify_ns": 95500,
+            "total_ns": 99399542
+          },
+          {
+            "commit_open_ns": 99382166,
+            "verify_ns": 96667,
+            "total_ns": 99478833
+          },
+          {
+            "commit_open_ns": 99219334,
+            "verify_ns": 96000,
+            "total_ns": 99315334
+          },
+          {
+            "commit_open_ns": 99528000,
+            "verify_ns": 100000,
+            "total_ns": 99628000
+          },
+          {
+            "commit_open_ns": 99807083,
+            "verify_ns": 104333,
+            "total_ns": 99911416
+          },
+          {
+            "commit_open_ns": 99568000,
+            "verify_ns": 98708,
+            "total_ns": 99666708
+          }
+        ],
+        "peer": [
+          {
+            "commit_open_ns": 134804250,
+            "verify_ns": 123291,
+            "total_ns": 134927541
+          },
+          {
+            "commit_open_ns": 134692541,
+            "verify_ns": 119125,
+            "total_ns": 134811666
+          },
+          {
+            "commit_open_ns": 134922000,
+            "verify_ns": 149000,
+            "total_ns": 135071000
+          },
+          {
+            "commit_open_ns": 134948333,
+            "verify_ns": 122333,
+            "total_ns": 135070666
+          },
+          {
+            "commit_open_ns": 134731041,
+            "verify_ns": 119167,
+            "total_ns": 134850208
+          },
+          {
+            "commit_open_ns": 134632792,
+            "verify_ns": 124333,
+            "total_ns": 134757125
+          },
+          {
+            "commit_open_ns": 134935125,
+            "verify_ns": 119875,
+            "total_ns": 135055000
+          }
+        ],
+        "before": [
+          {
+            "commit_open_ns": 148051709,
+            "verify_ns": 135958,
+            "total_ns": 148187667
+          },
+          {
+            "commit_open_ns": 147325958,
+            "verify_ns": 140917,
+            "total_ns": 147466875
+          },
+          {
+            "commit_open_ns": 147557292,
+            "verify_ns": 138667,
+            "total_ns": 147695959
+          },
+          {
+            "commit_open_ns": 147548833,
+            "verify_ns": 135334,
+            "total_ns": 147684167
+          },
+          {
+            "commit_open_ns": 147655417,
+            "verify_ns": 139958,
+            "total_ns": 147795375
+          },
+          {
+            "commit_open_ns": 147829208,
+            "verify_ns": 136042,
+            "total_ns": 147965250
+          },
+          {
+            "commit_open_ns": 147154667,
+            "verify_ns": 138750,
+            "total_ns": 147293417
+          }
+        ]
+      },
+      "median_ms": {
+        "local": {
+          "commit_open_ns": 99.528,
+          "verify_ns": 0.096667,
+          "total_ns": 99.628
+        },
+        "peer": {
+          "commit_open_ns": 134.80425,
+          "verify_ns": 0.122333,
+          "total_ns": 134.927541
+        },
+        "before": {
+          "commit_open_ns": 147.557292,
+          "verify_ns": 0.138667,
+          "total_ns": 147.695959
+        }
+      }
+    },
+    {
+      "log_rows": 16,
+      "rows": 65536,
+      "row_words": 32,
+      "input_bytes": 16777216,
+      "input_sha256": "8c930c86bc480c33f84fab5021cc5c909d3b59ec38eec6fd013192d1f8be37a6",
+      "root": "b91ad65ec42886d2971402954e5826dba4ac53e19e3eff6797870915e03b4d37",
+      "qualification": "all nodes and paths equal; both cross-verifiers accept; corrupted path/root rejected",
+      "samples": {
+        "local": [
+          {
+            "commit_open_ns": 15669208,
+            "verify_ns": 83333,
+            "total_ns": 15752541
+          },
+          {
+            "commit_open_ns": 15519584,
+            "verify_ns": 83333,
+            "total_ns": 15602917
+          },
+          {
+            "commit_open_ns": 15477459,
+            "verify_ns": 80500,
+            "total_ns": 15557959
+          },
+          {
+            "commit_open_ns": 15444583,
+            "verify_ns": 84708,
+            "total_ns": 15529291
+          },
+          {
+            "commit_open_ns": 15354167,
+            "verify_ns": 81250,
+            "total_ns": 15435417
+          },
+          {
+            "commit_open_ns": 15461917,
+            "verify_ns": 82250,
+            "total_ns": 15544167
+          },
+          {
+            "commit_open_ns": 15474375,
+            "verify_ns": 83666,
+            "total_ns": 15558041
+          }
+        ],
+        "peer": [
+          {
+            "commit_open_ns": 20787084,
+            "verify_ns": 119791,
+            "total_ns": 20906875
+          },
+          {
+            "commit_open_ns": 20927292,
+            "verify_ns": 101750,
+            "total_ns": 21029042
+          },
+          {
+            "commit_open_ns": 20994291,
+            "verify_ns": 108209,
+            "total_ns": 21102500
+          },
+          {
+            "commit_open_ns": 20701291,
+            "verify_ns": 99750,
+            "total_ns": 20801041
+          },
+          {
+            "commit_open_ns": 20924708,
+            "verify_ns": 104417,
+            "total_ns": 21029125
+          },
+          {
+            "commit_open_ns": 20758500,
+            "verify_ns": 100417,
+            "total_ns": 20858917
+          },
+          {
+            "commit_open_ns": 20752250,
+            "verify_ns": 99041,
+            "total_ns": 20851291
+          }
+        ],
+        "before": [
+          {
+            "commit_open_ns": 18647917,
+            "verify_ns": 105542,
+            "total_ns": 18753459
+          },
+          {
+            "commit_open_ns": 18654417,
+            "verify_ns": 106083,
+            "total_ns": 18760500
+          },
+          {
+            "commit_open_ns": 18620000,
+            "verify_ns": 105791,
+            "total_ns": 18725791
+          },
+          {
+            "commit_open_ns": 18598833,
+            "verify_ns": 106375,
+            "total_ns": 18705208
+          },
+          {
+            "commit_open_ns": 18539000,
+            "verify_ns": 105667,
+            "total_ns": 18644667
+          },
+          {
+            "commit_open_ns": 18566833,
+            "verify_ns": 105167,
+            "total_ns": 18672000
+          },
+          {
+            "commit_open_ns": 18773208,
+            "verify_ns": 108292,
+            "total_ns": 18881500
+          }
+        ]
+      },
+      "median_ms": {
+        "local": {
+          "commit_open_ns": 15.474375,
+          "verify_ns": 0.083333,
+          "total_ns": 15.557959
+        },
+        "peer": {
+          "commit_open_ns": 20.787084,
+          "verify_ns": 0.10175,
+          "total_ns": 20.906875
+        },
+        "before": {
+          "commit_open_ns": 18.62,
+          "verify_ns": 0.105791,
+          "total_ns": 18.725791
+        }
+      }
+    },
+    {
+      "log_rows": 16,
+      "rows": 65536,
+      "row_words": 128,
+      "input_bytes": 67108864,
+      "input_sha256": "061d45d349f6da999f1f709328cf83ab334a76bb9fa5cc04c55dd390c16ddeec",
+      "root": "f1b4fde615249e48eb8a54c3e66c3f699631079dd53a0b587ea5a9e843d4c92e",
+      "qualification": "all nodes and paths equal; both cross-verifiers accept; corrupted path/root rejected",
+      "samples": {
+        "local": [
+          {
+            "commit_open_ns": 52791542,
+            "verify_ns": 124708,
+            "total_ns": 52916250
+          },
+          {
+            "commit_open_ns": 53484750,
+            "verify_ns": 133208,
+            "total_ns": 53617958
+          },
+          {
+            "commit_open_ns": 52819084,
+            "verify_ns": 125541,
+            "total_ns": 52944625
+          },
+          {
+            "commit_open_ns": 52635791,
+            "verify_ns": 122542,
+            "total_ns": 52758333
+          },
+          {
+            "commit_open_ns": 52812166,
+            "verify_ns": 122542,
+            "total_ns": 52934708
+          },
+          {
+            "commit_open_ns": 52695417,
+            "verify_ns": 121500,
+            "total_ns": 52816917
+          },
+          {
+            "commit_open_ns": 52735959,
+            "verify_ns": 129125,
+            "total_ns": 52865084
+          }
+        ],
+        "peer": [
+          {
+            "commit_open_ns": 70797375,
+            "verify_ns": 163833,
+            "total_ns": 70961208
+          },
+          {
+            "commit_open_ns": 71537500,
+            "verify_ns": 164583,
+            "total_ns": 71702083
+          },
+          {
+            "commit_open_ns": 70620875,
+            "verify_ns": 161042,
+            "total_ns": 70781917
+          },
+          {
+            "commit_open_ns": 71081250,
+            "verify_ns": 161625,
+            "total_ns": 71242875
+          },
+          {
+            "commit_open_ns": 71010125,
+            "verify_ns": 160750,
+            "total_ns": 71170875
+          },
+          {
+            "commit_open_ns": 70649958,
+            "verify_ns": 161084,
+            "total_ns": 70811042
+          },
+          {
+            "commit_open_ns": 71109791,
+            "verify_ns": 168459,
+            "total_ns": 71278250
+          }
+        ],
+        "before": [
+          {
+            "commit_open_ns": 56967791,
+            "verify_ns": 156375,
+            "total_ns": 57124166
+          },
+          {
+            "commit_open_ns": 56618708,
+            "verify_ns": 149833,
+            "total_ns": 56768541
+          },
+          {
+            "commit_open_ns": 56676459,
+            "verify_ns": 149750,
+            "total_ns": 56826209
+          },
+          {
+            "commit_open_ns": 56838917,
+            "verify_ns": 151625,
+            "total_ns": 56990542
+          },
+          {
+            "commit_open_ns": 56541417,
+            "verify_ns": 154542,
+            "total_ns": 56695959
+          },
+          {
+            "commit_open_ns": 56655375,
+            "verify_ns": 148875,
+            "total_ns": 56804250
+          },
+          {
+            "commit_open_ns": 56830250,
+            "verify_ns": 158166,
+            "total_ns": 56988416
+          }
+        ]
+      },
+      "median_ms": {
+        "local": {
+          "commit_open_ns": 52.791542,
+          "verify_ns": 0.124708,
+          "total_ns": 52.91625
+        },
+        "peer": {
+          "commit_open_ns": 71.010125,
+          "verify_ns": 0.161625,
+          "total_ns": 71.170875
+        },
+        "before": {
+          "commit_open_ns": 56.676459,
+          "verify_ns": 0.151625,
+          "total_ns": 56.826209
+        }
+      }
+    }
+  ],
+  "power_after": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t86%; discharging; 14:10 remaining present: true\n"
+}

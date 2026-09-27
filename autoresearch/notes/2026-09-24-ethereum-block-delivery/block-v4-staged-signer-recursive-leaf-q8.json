@@ -1,0 +1,35 @@
+{
+  "schema": "stwo.block-v4.staged-recursive-leaf-qualification.v1",
+  "date": "2026-09-25",
+  "scope": "One diagnostic Ethereum-SHA execution leaf containing real signer recovery and Keccak calls, after fresh shared sorted-memory core verification; staged native bytes are reopened for a block-v3 recursive leaf proof",
+  "command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_memory_core_sha_test_root.zig",
+    "block-v4 staged signer leaf reopens native bytes"
+  ],
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "profile": "diagnostic"
+  },
+  "events": {
+    "total": 103,
+    "opcode": 9,
+    "signer_and_keccak_external": 94
+  },
+  "verification": {
+    "shared_core_fresh_verified_before_leaf": true,
+    "staged_native_artifact_fresh_verified": true,
+    "recursive_leaf_proved_and_fresh_verified": true,
+    "produced_node_reopened_and_validated": true,
+    "wrong_native_key_rejected": true,
+    "tests_passed": 8
+  },
+  "limits": [
+    "This is one diagnostic leaf, not a q70/PoW26 complete-block proof or a mainnet block measurement.",
+    "The helper returns proof bytes, admission, and a verified descriptor/node; exact-count forest folding, outer proof, and production artifact persistence are separate steps.",
+    "No time, proof-size, or tracked-memory measurement was captured by this focused test."
+  ]
+}

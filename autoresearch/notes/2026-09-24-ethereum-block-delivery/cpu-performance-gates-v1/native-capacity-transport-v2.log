@@ -1,0 +1,11 @@
+1/10 block_v5_native_capacity_transport_test_root.test_0...OK
+2/10 prover.block_v5_native_capacity_transport_test_v1.test.capacity transport one buffer preserves exact legacy native bytes and independently owned roundtrip...OK
+3/10 prover.block_v5_native_capacity_transport_test_v1.test.capacity transport literal envelope binds version capacities claims config and rejects old grammar before allocation...OK
+4/10 prover.block_v5_native_capacity_transport_test_v1.test.capacity transport all allocation failures preserve artifact and decoded proof ownership...OK
+5/10 prover.block_v5_native_capacity_transport_test_v1.test.capacity transport writer caps constructors and serializers before growing backing storage...OK
+6/10 prover.block_v5_native_capacity_transport_test_v1.test.capacity transport catalog count invariant capacity authority ordered ownership and independent caps...OK
+7/10 prover.block_v5_native_capacity_transport_test_v1.test.capacity transport real sealed catalog policy binds exact source counts without proof selected authority...OK
+8/10 prover.block_v5_native_capacity_transport_test_v1.test.capacity transport actual artifact fresh owned borrowed capture and catalog producer bodies compile only...OK
+9/10 air.memory_commitment.poseidon2_air.test_0...OK
+10/10 air.semantic_eval.test_0...OK
+All 10 tests passed.

@@ -1,0 +1,49 @@
+{
+  "status": "focused-nonproving-original-page-fixed-transcript-qualification-only",
+  "authoritative_source_snapshot": "page-recursive-fixed-transcript-focused-v3-source.json",
+  "successful_attempt": {
+    "source_candidate": "page-recursive-fixed-transcript-focused-v3-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 19.13804562500445,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 9,
+    "test_summary": [
+      "All 9 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/page-recursive-fixed-transcript-focused-v3.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-page-recursive-fixed-transcript-focused-v3",
+      "bytes": 22361712,
+      "sha256": "4915342a27f3f9f79804891534ac4cdddbd61fb884e1b68d349e111ff93ede64"
+    }
+  },
+  "source_pin_count": 1921,
+  "behavioral_checks": 5,
+  "scope": [
+    "Original raw/fold prefix and claim framing match independent original native-channel byte oracle",
+    "Count-only fixed layout, eight committed initial roots and original universal47 draws",
+    "Bounds, original two/three-root grammar, exhaustive allocation failures and retained-budget lease custody",
+    "Actual typed admitted raw/fold fixed transcript/ten-tree PCS and original live statement/claim bodies retained, not invoked"
+  ],
+  "repairs": [
+    "Fixture raw pin initialized with original Plan.config",
+    "Fixture raw pin requires matching original row-log1 limits",
+    "Compiler-only body-retention quota raised for both original PAGE families"
+  ],
+  "remaining": [
+    "Actual PAGE public/private source suppliers and complete context/fixed-roster/key assembly",
+    "Independent full memory-root expected setup and canonical driver activation",
+    "Genuine full fixed/live/root parity, standalone positive block proof and end-to-end time/peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "pcs_commitment_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

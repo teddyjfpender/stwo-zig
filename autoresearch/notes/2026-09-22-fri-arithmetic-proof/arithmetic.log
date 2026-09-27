@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-blake3-fri-arithmetic-proof success
++- BLAKE3 FRI arithmetic guard success
+   +- run test 1 passed 3s MaxRSS:367M
+      +- compile test ReleaseSafe native success 23s MaxRSS:1G
+

@@ -1,0 +1,46 @@
+{
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t97%; charging; 0:24 remaining present: true\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t97%; charging; 0:24 remaining present: true\n",
+  "field_checks": 6000,
+  "roundtrip_sizes": [
+    1024,
+    16384,
+    262144
+  ],
+  "setup_samples": [
+    {
+      "arm": "zisk",
+      "log_size": 10,
+      "elapsed_ns": 46458
+    },
+    {
+      "arm": "stwo",
+      "log_size": 10,
+      "elapsed_ns": 62084
+    },
+    {
+      "arm": "zisk",
+      "log_size": 14,
+      "elapsed_ns": 102333
+    },
+    {
+      "arm": "stwo",
+      "log_size": 14,
+      "elapsed_ns": 96334
+    },
+    {
+      "arm": "zisk",
+      "log_size": 18,
+      "elapsed_ns": 1470458
+    },
+    {
+      "arm": "stwo",
+      "log_size": 18,
+      "elapsed_ns": 1581125
+    }
+  ],
+  "binaries": {
+    "zisk": "7f737bd302916f55fcd83a6baf18306578b9811429dedbd78b89d11dcb674723",
+    "stwo": "f6bebfb231cbe1c10e1a8a5da8d7f0a120e94db9fd261358d6d0c965900c9f34"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "README.md": "b57b11ee1f0c656b6f2ae23f1c37e5dd564ca56eae3454f2518f22504d85e29e",
+  "sources/autoresearch/notes/20260922-blake3-query-batch-problem-match.md": "5d37ba72ead9539d4ffa16bf322816e590054472657c856bf2534fece28b40f0",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "327cb18dccd00e82019ba80a077b75ae95d11cd2b0e386be035977d3ac8a543b",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "66cbda73f6ed9c0ac24858bd41a7efdb1ba6d18122231f7c0ba00624604f78ff",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_proof_test.zig": "3bcda0b47c0fcb5f395e1e9f6aa8de5df0afd81333a6b2212196eab61c62025a",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_witness.zig": "f47905738da2d8bb8d357b851dcf122b4fbc87bd8b686438147936813940b3b1",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_witness_test.zig": "ac567e6931ac71038153340acef5020b56b45f490f1f8858bf9448db870bfe9a",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "c3c64ca35ceff667f12bcd681978f4dab06174625755de48782df832e86c6d26",
+  "tests.log": "09d72273f998d5e730b402a786a0f36742dd0fa72914e49fb35d6141e359a5b7"
+}

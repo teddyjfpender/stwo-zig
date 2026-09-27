@@ -1,0 +1,65 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "recursive-parent-fixed-roster-source-candidate-v2.json",
+  "successful_attempts": [
+    {
+      "attempt": "recursive-parent-fixed-roster-semantic-v3-result.json",
+      "source_candidate": "recursive-parent-fixed-roster-semantic-v3-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 4.069541708973702,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-parent-fixed-roster-semantic-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "attempt": "recursive-parent-fixed-roster-focused-v1-result.json",
+      "source_candidate": "recursive-parent-fixed-roster-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 19.219795458950102,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 15,
+      "test_summary": [
+        "All 15 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-parent-fixed-roster-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-recursive-parent-fixed-roster-focused-v1",
+        "bytes": 36326256,
+        "sha256": "0112b895173808c5c9354110c091f7515c932cd75658ed313d93313940028334"
+      }
+    }
+  ],
+  "authoritative_source_snapshot": "recursive-parent-fixed-roster-focused-v1-source.json",
+  "source_pin_count": 1898,
+  "behavioral_checks": 6,
+  "evidence_scope": [
+    "Actual complete lower fixed-roster factory/deinit/independent validator bodies compiled",
+    "Original projection/arithmetic/native PCS fixed ports match original encoder fixtures",
+    "Original G geometry and native PCS mutation/OOM regressions pass"
+  ],
+  "remaining": [
+    "Full factory positive runtime parity beyond focused ports",
+    "Independent <=4 child/family attachments and MAIN suppliers",
+    "Complete reusable or standalone closed-node key"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "positive_proof_run": false,
+  "segments_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

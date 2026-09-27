@@ -1,0 +1,162 @@
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:27:78: error: ambiguous reference
+            pub fn init(a: std.mem.Allocator, fresh: *const Receiver.Fresh) !Source {
+                                                                             ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:41:34: error: ambiguous reference
+            pub fn deinit(self: *Source) void {
+                                 ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:48:42: error: ambiguous reference
+            pub fn validate(self: *const Source) !void {
+                                         ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:56:38: error: ambiguous reference
+            pub fn cell(self: *const Source, index: u32) ![4]M {
+                                     ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:59:44: error: ambiguous reference
+            pub fn claimFirst(self: *const Source) u32 {
+                                           ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:62:39: error: ambiguous reference
+            pub fn claim(self: *const Source, index: u32) !Coordinate {
+                                      ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:66:48: error: ambiguous reference
+            pub fn sourceIdentity(self: *const Source) !Coordinate {
+                                               ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:69:42: error: ambiguous reference
+            pub fn pageSeal(self: *const Source) !Coordinate {
+                                         ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:72:45: error: ambiguous reference
+            pub fn sourceEpoch(self: *const Source) !Coordinate {
+                                            ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:75:42: error: ambiguous reference
+            pub fn baseSeal(self: *const Source) !Coordinate {
+                                         ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:78:48: error: ambiguous reference
+            pub fn recipeIdentity(self: *const Source) !Coordinate {
+                                               ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:81:36: error: ambiguous reference
+            fn rootAt(self: *const Source, index: u32) !Coordinate {
+                                   ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:85:45: error: ambiguous reference
+            pub fn sourceClaim(self: *const Source, comptime name: []const u8) !Coordinate {
+                                            ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:89:46: error: ambiguous reference
+            pub fn indexedClaim(self: *const Source) !Coordinate {
+                                             ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:92:43: error: ambiguous reference
+            pub fn foldClaim(self: *const Source, comptime name: []const u8) !Coordinate {
+                                          ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:96:50: error: ambiguous reference
+            pub fn rangeCoordinates(self: *const Source) !struct { first: u32, count: u32, raw_pages: u32, fold_pages: u32, raw_rows: u32, fold_rows: u32 } {
+                                                 ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:100:46: error: ambiguous reference
+            pub fn replayPublic(self: *const Source, recorder: *@import("air/blake3_native_recorder.zig").Recorder) void {
+                                             ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:106:28: error: ambiguous reference
+            source: *const Source,
+                           ^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:19:13: note: declared here
+        pub const Source = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig:152:5: note: also declared here
+pub const Source = Default.Source;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~

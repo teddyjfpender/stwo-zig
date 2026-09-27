@@ -1,0 +1,3 @@
+1/2 prover.block_v5_word_previous_columns_test.test.block-v5 authenticated previous openings preserve exact word and range OODS equations...OK
+2/2 prover.block_v5_word_previous_columns_test.test.block-v5 masked previous gathers preserve all scalar and packed quotient rows...OK
+All 2 tests passed.

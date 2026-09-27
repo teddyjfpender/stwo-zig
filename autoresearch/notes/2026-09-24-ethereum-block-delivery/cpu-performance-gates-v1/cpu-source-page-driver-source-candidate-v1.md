@@ -1,0 +1,11 @@
+# Opt-in CPU source PAGE path candidate v1
+
+Source-only and unqualified. Four nonproving behavioral fixtures, root import and retained actual capacity Driver/controller/loader/Join bodies are ready; no compiler, test, proof, guest, segment or device execution by the agent.
+
+The capacity Driver `source_pages` option defaults to null. When selected, it admits finalized first-pass sourcewriter pins against the actual B5SS seal immediately after assembly, independently derives the bounded fold census, collects/persists the real Job once, then publishes actual PAGE artifacts after the original workers join. Fresh loading consumes strict PAGE codecs and original bundle policies on the receiver-supplied bounded allocator, checks the independently sealed premix/descriptor inventory, and calls the original PAGE/lane/range/native/caller/ROM transition receiver. Sink scalars and artifact SHA do not grant authority. The original default Complete path and every other family remain intact.
+
+Join shares the job's immutable typed setups through actual leases. All setup/metadata/decoder/proof scratch charges the same job budget under the driver global shared budget. A durable fold loader reconstructs exact routing recipes from bounded compact operations without building core main matrices, then releases both rows and nested recipes before the live allocator is destroyed. The additive release callback retains the old flat/borrowed recipe convention.
+
+Driver totals include PAGE artifact files and bytes. Publication time includes replay/proving/encoding and initial fresh publication checks; it is not mislabeled isolated STARK time. Independent verification time includes the full fresh PAGE/lane/range/native/caller/ROM loop. No timing measurement is claimed.
+
+Remaining work is explicit: detached source policy/manifest instead of retained Job Context; replacing the old source/memory hook so the existing detached receiver does not repeat native/caller/ROM verification; recording compact operations during the census traversal instead of rebuilding the fold twice; actual proof qualification; and final recursive/global source authority. No ClosedBlock token or authority is derived from Result statistics.

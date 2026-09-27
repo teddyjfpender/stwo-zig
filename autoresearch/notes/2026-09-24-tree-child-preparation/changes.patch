@@ -1,0 +1,90 @@
+--- a/src/frontends/riscv/recursion/blake3_execution_tree.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_tree.zig
+@@ -43,16 +43,53 @@
+ /// direct joined columns are live; no earlier tree witnesses are retained.
+ /// The result still requires proving under a caller-admitted parent key.
+ pub fn preparePair(a: std.mem.Allocator, left: *const Node, right: *const Node, capacity: u32) !aggregate.Fold {
++    return preparePairWithPool(a, left, right, capacity, null);
++}
++/// Reuses a caller-owned pool, admitting at most one helper plus the coordinator.
++/// The allocator must support concurrent access and enforce the caller's shared
++/// preparation budget. Pool stacks belong to its separate caller reservation.
++/// Both borrowed nodes survive failure; all partial witnesses are destroyed.
++pub fn preparePairWithPool(a: std.mem.Allocator, left: *const Node, right: *const Node, capacity: u32, pool: ?*@import("stwo_prover_engine").work_pool.WorkPool) !aggregate.Fold {
+     if (left == right) return error.AliasedAggregateChildren;
+     try left.validate();
+     try right.validate();
+-    // Reject unrelated jobs, gaps and wrong levels before allocating witnesses.
+     _ = try spans.SpanStatement.fold(left.statement, right.statement);
+-    var l = try parent.prepare(a, &left.admission, &left.verified, left.admission.expected_id, capacity);
+-    var l_alive = true;
+-    defer if (l_alive) l.deinit();
+-    var r = try parent.prepare(a, &right.admission, &right.verified, right.admission.expected_id, capacity);
+-    // prepareOwned takes both distinct owners even when it returns an error.
+-    l_alive = false;
++    var jobs = [2]Preparation{
++        .{ .a = a, .node = left, .capacity = capacity },
++        .{ .a = a, .node = right, .capacity = capacity },
++    };
++    defer for (&jobs) |*job| if (job.owned) |*owned| owned.deinit();
++    if (pool) |workers| {
++        const pools = @import("stwo_prover_engine").work_pool;
++        var lease = try workers.acquire(try pools.WorkerBudget.init(@min(2, workers.workerCount())));
++        defer lease.deinit();
++        if (lease.helperCount() != 0) {
++            var done: std.Thread.WaitGroup = .{};
++            try lease.spawnWg(&done, Preparation.run, .{&jobs[0]});
++            jobs[1].run();
++            // Join even when either child failed, before reading helper results
++            // or releasing its lease, borrowed captures, allocator or witnesses.
++            done.wait();
++            lease.completeWave();
++        } else for (&jobs) |*job| job.run();
++    } else for (&jobs) |*job| job.run();
++    for (jobs) |job| if (job.failure) |err| return err;
++    var l = jobs[0].owned.?;
++    var r = jobs[1].owned.?;
++    jobs[0].owned = null;
++    jobs[1].owned = null;
+     return aggregate.prepareOwned(a, &l, &r, .{ left.statement, right.statement });
+ }
++const Preparation = struct {
++    a: std.mem.Allocator,
++    node: *const Node,
++    capacity: u32,
++    owned: ?parent.Prepared = null,
++    failure: ?anyerror = null,
++    fn run(self: *Preparation) void {
++        self.owned = parent.prepare(self.a, &self.node.admission, &self.node.verified, self.node.admission.expected_id, self.capacity) catch |err| {
++            self.failure = err;
++            return;
++        };
++    }
++};
+--- a/src/frontends/riscv/prover/blake3_segment_tree_test.zig
++++ b/src/frontends/riscv/prover/blake3_segment_tree_test.zig
+@@ -61,7 +61,23 @@
+     try std.testing.expectError(error.AliasedAggregateChildren, tree.preparePair(a, &left, &left, 2));
+     try std.testing.expectError(error.SlotsNotAdjacent, tree.preparePair(a, &right, &left, 2));
+     var root_timer = try std.time.Timer.start();
+-    var folded = try tree.preparePair(a, &left, &right, 2);
++    var folded = if (canonical) blk: {
++        const pools = @import("stwo_prover_engine").work_pool;
++        var pool: pools.WorkPool = undefined;
++        try pool.initInPlaceWithOptions(.{ .worker_count = 2, .backing_allocator = a });
++        defer pool.deinit();
++        // Exercise failure with both helper and coordinator active, then reuse
++        // the same pool for a successful preparation. Borrowed nodes survive.
++        const tiny = try Budget.create(a, 1);
++        defer tiny.destroy();
++        try std.testing.expectError(error.OutOfMemory, tree.preparePairWithPool(tiny.allocator(), &left, &right, 2, &pool));
++        try std.testing.expectEqual(@as(usize, 0), tiny.snapshot().live_bytes);
++        try std.testing.expectEqual(@as(usize, 2), pool.availableWorkers());
++        const result = try tree.preparePairWithPool(a, &left, &right, 2, &pool);
++        try std.testing.expectEqual(@as(usize, 2), pool.availableWorkers());
++        std.debug.print("CANONICAL_TREE_CHILD_PREPARATION workers=2 reused_after_failure=true\n", .{});
++        break :blk result;
++    } else try tree.preparePair(a, &left, &right, 2);
+     if (canonical) std.debug.print("CANONICAL_TREE_PHASE phase=root_preparation ns={d}\n", .{root_timer.read()});
+     defer folded.deinit();
+     try std.testing.expectEqual(@as(u8, 2), folded.statement.slots.height);

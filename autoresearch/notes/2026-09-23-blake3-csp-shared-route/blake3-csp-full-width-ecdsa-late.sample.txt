@@ -1,0 +1,728 @@
+Analysis of sampling stwo-zig-riscv-cpu (pid 69547) every 1 millisecond
+Process:         stwo-zig-riscv-cpu [69547]
+Path:            /Users/USER/*/stwo-zig-riscv-cpu
+Load Address:    0x10060c000
+Identifier:      stwo-zig-riscv-cpu
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  codex [3914]
+Target Type:     live task
+
+Date/Time:       2026-09-23 12:50:27.209 +0400
+Launch Time:     2026-09-23 12:44:11.484 +0400
+OS Version:      macOS 26.7 (25G229)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         81.2G
+Physical footprint (peak):  81.2G
+Idle exit:                  untracked
+----
+
+Call graph:
+    554 Thread_2593544   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 554 start  (in dyld) + 6992  [0x1865684e4]
+    +   554 main  (in stwo-zig-riscv-cpu) + 6612  [0x10079455c]  start.zig:602
+    +     554 proof_adapter.run__anon_62653  (in stwo-zig-riscv-cpu) + 288  [0x1008e7c28]  proof_adapter.zig:111
+    +       554 proof_adapter.blake3_execution_product.run__anon_66564  (in stwo-zig-riscv-cpu) + 2932  [0x1008e54c0]  blake3_execution_product.zig:57
+    +         554 proof_adapter.blake3_execution_request.execute__anon_66575  (in stwo-zig-riscv-cpu) + 10872  [0x1008e37b4]  blake3_execution_request.zig:59
+    +           554 pcs.commit_ops.CommitOps(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel,pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher,vcs_lifted.blake3_merkle.MerkleChannel)).commit__anon_59852  (in stwo-zig-riscv-cpu) + 1384  [0x1007ccef4]  commit_ops.zig:55
+    +             554 pcs.commitment_tree.CommitmentTreeProverForBackend(mod.CpuBackend,vcs_lifted.blake3_merkle.MerkleHasher).initOwnedWithBackingAndWorkRecorder  (in stwo-zig-riscv-cpu) + 656  [0x1007c7020]  commitment_tree.zig:243
+    +               554 mod.CpuBackend.commitMerkle__anon_59791  (in stwo-zig-riscv-cpu) + 5900  [0x1007c675c]  mod.zig:482
+    +                 485 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +                 ! 208 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +                 ! : 206 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,872,...  [0x100b61904,0x100b618cc,...]  blake3.zig:193
+    +                 ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 48  [0x100b61594]  blake3.zig:177
+    +                 ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1012  [0x100b61958]  blake3.zig:199
+    +                 ! 78 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +                 ! : 75 _platform_memmove  (in libsystem_platform.dylib) + 452,436,...  [0x18693d524,0x18693d514,...]
+    +                 ! : 3 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +                 ! 62 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,724,...  [0x1009a8e34,0x1009a8e28,...]  blake3.zig:454
+    +                 ! 33 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116,...  [0x1009a8bc4,0x1009a8bc8,...]  blake3.zig:444
+    +                 ! 30 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+    +                 ! 27 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,16,...  [0x1009a8b80,0x1009a8b64,...]  blake3.zig:439
+    +                 ! 15 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528  [0x1009a8d64]  blake3.zig:452
+    +                 ! 14 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +                 ! : 14 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 152,224,...  [0x100b615fc,0x100b61644,...]  blake3.zig:193
+    +                 ! 10 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +                 ! : 10 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 864,928,...  [0x100b618c4,0x100b61904,...]  blake3.zig:193
+    +                 ! 7 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552  [0x1009a8d80,0x1009a8d7c]  blake3.zig:453
+    +                 ! 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +                 22 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 852,860,...  [0x1009a8ea8,0x1009a8eb0,...]  blake3.zig:456
+    +                 13 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,484  [0x1007c3700,0x1007c370c]  leaves.zig:158
+    +                 12 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376  [0x1007c36a0]  leaves.zig:0
+    +                 10 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 368,396  [0x1007c3698,0x1007c36b4]  leaves.zig:147
+    +                 7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360,364  [0x1007c3690,0x1007c3694]  leaves.zig:145
+    +                 2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +                 2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +                 ! 1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+    +                 ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 372  [0x100b616d8]  blake3.zig:193
+    +                 ! 1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +                 !   1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 188  [0x100b61620]  blake3.zig:193
+    +                 1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 760  [0x1007c3820]  leaves.zig:175
+    554 Thread_2593545
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         477 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 195 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 191 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,872,...  [0x100b61904,0x100b618cc,...]  blake3.zig:193
+    +         ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1012,1068  [0x100b61958,0x100b61990]  blake3.zig:199
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 56  [0x100b6159c]  blake3.zig:179
+    +         ! 83 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 74 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 9 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 54 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 560,724,...  [0x1009a8d84,0x1009a8e28,...]  blake3.zig:454
+    +         ! 32 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,16,...  [0x1009a8b80,0x1009a8b64,...]  blake3.zig:439
+    +         ! 28 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116,...  [0x1009a8bc4,0x1009a8bc8,...]  blake3.zig:444
+    +         ! 24 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820,...  [0x1009a8bb0,0x1009a8e88,...]  blake3.zig:0
+    +         ! 17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 16 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 15 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,140,...  [0x100b61904,0x100b615f0,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 4  [0x100b61568]  blake3.zig:173
+    +         ! 16 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 15 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,548,...  [0x100b61904,0x100b61788,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 116  [0x100b615d8]  blake3.zig:181
+    +         ! 10 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552,...  [0x1009a8d80,0x1009a8d7c,...]  blake3.zig:453
+    +         ! 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         23 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 852,860,...  [0x1009a8ea8,0x1009a8eb0,...]  blake3.zig:456
+    +         15 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,476,...  [0x1007c3700,0x1007c3704,...]  leaves.zig:158
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,496  [0x1007c36a0,0x1007c3718]  leaves.zig:0
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368  [0x1007c36b4,0x1007c3698]  leaves.zig:147
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         8 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360,364  [0x1007c3690,0x1007c3694]  leaves.zig:145
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +         ! 2 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 692,928  [0x100b61818,0x100b61904]  blake3.zig:193
+    +         ! 1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +         !   1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 268  [0x100b61670]  blake3.zig:193
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 136  [0x1007c35b0]  leaves.zig:124
+    +           1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x18693d414]
+    554 Thread_2593546
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         484 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 211 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 205 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,872,...  [0x100b61904,0x100b618cc,...]  blake3.zig:193
+    +         ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1068,1012  [0x100b61990,0x100b61958]  blake3.zig:199
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 132  [0x100b615e8]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 8  [0x100b6156c]  blake3.zig:173
+    +         ! 82 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 74 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 8 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 50 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,724,...  [0x1009a8e34,0x1009a8e28,...]  blake3.zig:454
+    +         ! 31 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,16,...  [0x1009a8b80,0x1009a8b64,...]  blake3.zig:439
+    +         ! 27 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820,...  [0x1009a8bb0,0x1009a8e88,...]  blake3.zig:0
+    +         ! 24 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116,...  [0x1009a8bc4,0x1009a8bc8,...]  blake3.zig:444
+    +         ! 17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 16 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 16 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 520,836,...  [0x100b6176c,0x100b618a8,...]  blake3.zig:193
+    +         ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 13 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,152,...  [0x100b61904,0x100b615fc,...]  blake3.zig:193
+    +         ! 7 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552  [0x1009a8d80,0x1009a8d7c]  blake3.zig:453
+    +         ! 4 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 328  [0x1009a8c9c]  blake3.zig:447
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 524  [0x1009a8d60]  blake3.zig:448
+    +         23 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852,...  [0x1009a8eac,0x1009a8ea8,...]  blake3.zig:456
+    +         11 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 368,396,...  [0x1007c3698,0x1007c36b4,...]  leaves.zig:147
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480  [0x1007c3700,0x1007c3708]  leaves.zig:158
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376  [0x1007c36a0]  leaves.zig:0
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +         ! 3 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +         ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 692,900,...  [0x100b61818,0x100b618e8,...]  blake3.zig:193
+    +         ! 1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +         !   1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 872  [0x100b618cc]  blake3.zig:193
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 136  [0x1007c35b0]  leaves.zig:124
+    +           1 _platform_memmove  (in libsystem_platform.dylib) + 36  [0x18693d384]
+    554 Thread_2593547
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         485 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 224 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 221 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,872,...  [0x100b61904,0x100b618cc,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 380  [0x100b616e0]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 56  [0x100b6159c]  blake3.zig:179
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1068  [0x100b61990]  blake3.zig:199
+    +         ! 87 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 82 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 5 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 52 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 724,564,...  [0x1009a8e28,0x1009a8d88,...]  blake3.zig:454
+    +         ! 22 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 36,44,...  [0x1009a8b78,0x1009a8b80,...]  blake3.zig:439
+    +         ! 22 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116,...  [0x1009a8bc4,0x1009a8bc8,...]  blake3.zig:444
+    +         ! 19 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+    +         ! 18 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528  [0x1009a8d64]  blake3.zig:452
+    +         ! 17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 17 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 140,188,...  [0x100b615f0,0x100b61620,...]  blake3.zig:193
+    +         ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 13 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 140,576,...  [0x100b615f0,0x100b617a4,...]  blake3.zig:193
+    +         ! 7 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552,...  [0x1009a8d80,0x1009a8d7c,...]  blake3.zig:453
+    +         ! 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 508  [0x1009a8d50]  blake3.zig:448
+    +         19 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 852,860,...  [0x1009a8ea8,0x1009a8eb0,...]  blake3.zig:456
+    +         18 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368  [0x1007c36b4,0x1007c3698]  leaves.zig:147
+    +         10 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:158
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376  [0x1007c36a0]  leaves.zig:0
+    +         5 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 576  [0x100b617a4]  blake3.zig:193
+    554 Thread_2593548
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         476 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 210 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 201 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,900,...  [0x100b61904,0x100b618e8,...]  blake3.zig:193
+    +         ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 80,96,...  [0x100b615b4,0x100b615c4,...]  blake3.zig:0
+    +         ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 8  [0x100b6156c]  blake3.zig:173
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1064,1068  [0x100b6198c,0x100b61990]  blake3.zig:199
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 56  [0x100b6159c]  blake3.zig:179
+    +         ! 72 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 61 _platform_memmove  (in libsystem_platform.dylib) + 452,460,...  [0x18693d524,0x18693d52c,...]
+    +         ! : 11 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 67 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 704,564,...  [0x1009a8e14,0x1009a8d88,...]  blake3.zig:454
+    +         ! 38 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112  [0x1009a8bc4]  blake3.zig:444
+    +         ! 25 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 820,92,...  [0x1009a8e88,0x1009a8bb0,...]  blake3.zig:0
+    +         ! 18 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 18 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,548,...  [0x100b61904,0x100b61788,...]  blake3.zig:193
+    +         ! 17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 36,40,...  [0x1009a8b78,0x1009a8b7c,...]  blake3.zig:439
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528  [0x1009a8d64]  blake3.zig:452
+    +         ! 7 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 7 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 576,140,...  [0x100b617a4,0x100b615f0,...]  blake3.zig:193
+    +         ! 7 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556  [0x1009a8d80]  blake3.zig:453
+    +         ! 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 108  [0x1009a8bc0]  blake3.zig:441
+    +         30 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368,...  [0x1007c36b4,0x1007c3698,...]  leaves.zig:147
+    +         12 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380,...  [0x1007c36a0,0x1007c36a4,...]  leaves.zig:0
+    +         11 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,484,...  [0x1007c3700,0x1007c370c,...]  leaves.zig:158
+    +         8 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         7 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852  [0x1009a8eac,0x1009a8ea8]  blake3.zig:456
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +         ! 3 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+    +         ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 548,488  [0x100b61788,0x100b6174c]  blake3.zig:193
+    +         ! 1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +         !   1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 604  [0x100b617c0]  blake3.zig:193
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    554 Thread_2593549
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         484 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 219 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 215 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,900,...  [0x100b61904,0x100b618e8,...]  blake3.zig:193
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 4  [0x100b61568]  blake3.zig:173
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 52  [0x100b61598]  blake3.zig:179
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1064  [0x100b6198c]  blake3.zig:199
+    +         ! 75 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 64 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 11 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 63 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,724,...  [0x1009a8e34,0x1009a8e28,...]  blake3.zig:454
+    +         ! 26 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 23 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+    +         ! 22 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,80  [0x1009a8bc4,0x1009a8ba4]  blake3.zig:444
+    +         ! 17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 17 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 660,836,...  [0x100b617f8,0x100b618a8,...]  blake3.zig:193
+    +         ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 13 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 288,576,...  [0x100b61684,0x100b617a4,...]  blake3.zig:193
+    +         ! 12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 9 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556  [0x1009a8d80]  blake3.zig:453
+    +         ! 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1080,1088,...  [0x100b6199c,0x100b619a4,...]  blake3.zig:199
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 316  [0x1009a8c90]  blake3.zig:447
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 524  [0x1009a8d60]  blake3.zig:448
+    +         20 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368,...  [0x1007c36b4,0x1007c3698,...]  leaves.zig:147
+    +         12 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+    +         10 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         9 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852  [0x1009a8eac,0x1009a8ea8]  blake3.zig:456
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         6 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480  [0x1007c3700,0x1007c3708]  leaves.zig:158
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +           : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 900  [0x100b618e8]  blake3.zig:193
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 836  [0x100b618a8]  blake3.zig:193
+    554 Thread_2593550
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         486 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 225 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 221 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,900,...  [0x100b61904,0x100b618e8,...]  blake3.zig:193
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 68,128  [0x100b615a8,0x100b615e4]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 8  [0x100b6156c]  blake3.zig:173
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 56  [0x100b6159c]  blake3.zig:179
+    +         ! 87 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 81 _platform_memmove  (in libsystem_platform.dylib) + 452,436,...  [0x18693d524,0x18693d514,...]
+    +         ! : 6 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 63 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,564,...  [0x1009a8e34,0x1009a8d88,...]  blake3.zig:454
+    +         ! 23 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116  [0x1009a8bc4,0x1009a8bc8]  blake3.zig:444
+    +         ! 22 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 14 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820,...  [0x1009a8bb0,0x1009a8e88,...]  blake3.zig:0
+    +         ! 14 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 14 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 140,872,...  [0x100b615f0,0x100b618cc,...]  blake3.zig:193
+    +         ! 12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 12 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 872,140,...  [0x100b618cc,0x100b615f0,...]  blake3.zig:193
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556  [0x1009a8d80]  blake3.zig:453
+    +         ! 9 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532,...  [0x1009a8d64,0x1009a8d68,...]  blake3.zig:452
+    +         ! 6 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092,1084  [0x100b619a8,0x100b619a0]  blake3.zig:199
+    +         23 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368  [0x1007c36b4,0x1007c3698]  leaves.zig:147
+    +         11 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480,...  [0x1007c3700,0x1007c3708,...]  leaves.zig:158
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         6 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852  [0x1009a8eac,0x1009a8ea8]  blake3.zig:456
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +         ! 2 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+    +         !   2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 236,688  [0x100b61650,0x100b61814]  blake3.zig:193
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 544  [0x1007c3748]  leaves.zig:139
+    554 Thread_2593551
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         483 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 218 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 210 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,872,...  [0x100b61904,0x100b618cc,...]  blake3.zig:193
+    +         ! : 4 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 96,80,...  [0x100b615c4,0x100b615b4,...]  blake3.zig:0
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 52,56  [0x100b61598,0x100b6159c]  blake3.zig:179
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 8  [0x100b6156c]  blake3.zig:173
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1064  [0x100b6198c]  blake3.zig:199
+    +         ! 87 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 78 _platform_memmove  (in libsystem_platform.dylib) + 452,436,...  [0x18693d524,0x18693d514,...]
+    +         ! : 9 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 62 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,564,...  [0x1009a8e34,0x1009a8d88,...]  blake3.zig:454
+    +         ! 25 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,80,...  [0x1009a8bc4,0x1009a8ba4,...]  blake3.zig:444
+    +         ! 23 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 23 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,872,...  [0x100b61904,0x100b618cc,...]  blake3.zig:193
+    +         ! 16 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 15 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 820,92  [0x1009a8e88,0x1009a8bb0]  blake3.zig:0
+    +         ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 13 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 576,928,...  [0x100b617a4,0x100b61904,...]  blake3.zig:193
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 9 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552  [0x1009a8d80,0x1009a8d7c]  blake3.zig:453
+    +         ! 4 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         20 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368  [0x1007c36b4,0x1007c3698]  leaves.zig:147
+    +         14 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380,...  [0x1007c36a0,0x1007c36a4,...]  leaves.zig:0
+    +         13 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480  [0x1007c3700,0x1007c3708]  leaves.zig:158
+    +         11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852,...  [0x1009a8eac,0x1009a8ea8,...]  blake3.zig:456
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 188  [0x1007c35e4]  leaves.zig:172
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 808  [0x100b6188c]  blake3.zig:193
+    554 Thread_2593552
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         478 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 217 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 213 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,900,...  [0x100b61904,0x100b618e8,...]  blake3.zig:193
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 132,996  [0x100b615e8,0x100b61948]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 8  [0x100b6156c]  blake3.zig:173
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1064  [0x100b6198c]  blake3.zig:199
+    +         ! 81 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 564,736,...  [0x1009a8d88,0x1009a8e34,...]  blake3.zig:454
+    +         ! 64 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 54 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 10 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 28 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116  [0x1009a8bc4,0x1009a8bc8]  blake3.zig:444
+    +         ! 22 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 36,44,...  [0x1009a8b78,0x1009a8b80,...]  blake3.zig:439
+    +         ! 20 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+    +         ! 12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 12 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 548,576,...  [0x100b61788,0x100b617a4,...]  blake3.zig:193
+    +         ! 12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552  [0x1009a8d80,0x1009a8d7c]  blake3.zig:453
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 8 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 8 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 660,808,...  [0x100b617f8,0x100b6188c,...]  blake3.zig:193
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 220  [0x1009a8c30]  blake3.zig:445
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 336  [0x1009a8ca4]  blake3.zig:447
+    +         ! 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         32 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368  [0x1007c36b4,0x1007c3698]  leaves.zig:147
+    +         12 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380,...  [0x1007c36a0,0x1007c36a4,...]  leaves.zig:0
+    +         8 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480,...  [0x1007c3700,0x1007c3708,...]  leaves.zig:158
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         5 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 852,856  [0x1009a8ea8,0x1009a8eac]  blake3.zig:456
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           2 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +           : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 660,836  [0x100b617f8,0x100b618a8]  blake3.zig:193
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+    +           : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928  [0x100b61904]  blake3.zig:193
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 372  [0x100b616d8]  blake3.zig:193
+    554 Thread_2593553
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         484 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 208 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 206 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,660,...  [0x100b61904,0x100b617f8,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 96  [0x100b615c4]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 56  [0x100b6159c]  blake3.zig:179
+    +         ! 76 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 69 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 7 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 61 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,564,...  [0x1009a8e34,0x1009a8d88,...]  blake3.zig:454
+    +         ! 31 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 28 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116,...  [0x1009a8bc4,0x1009a8bc8,...]  blake3.zig:444
+    +         ! 23 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 820,92,...  [0x1009a8e88,0x1009a8bb0,...]  blake3.zig:0
+    +         ! 18 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 17 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,576,...  [0x100b61904,0x100b617a4,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 64  [0x100b615a4]  blake3.zig:188
+    +         ! 14 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 13 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 900,928,...  [0x100b618e8,0x100b61904,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 48  [0x100b61594]  blake3.zig:177
+    +         ! 12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532,...  [0x1009a8d64,0x1009a8d68,...]  blake3.zig:452
+    +         ! 8 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,548,...  [0x1009a8d80,0x1009a8d78,...]  blake3.zig:453
+    +         ! 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 108  [0x1009a8bc0]  blake3.zig:441
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 220  [0x1009a8c30]  blake3.zig:445
+    +         ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 96  [0x1009a8bb4]  blake3.zig:455
+    +         14 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 368,396  [0x1007c3698,0x1007c36b4]  leaves.zig:147
+    +         12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852  [0x1009a8eac,0x1009a8ea8]  blake3.zig:456
+    +         12 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+    +         12 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         8 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480,...  [0x1007c3700,0x1007c3708,...]  leaves.zig:158
+    +         5 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         5 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+    +           : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 548  [0x100b61788]  blake3.zig:193
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 476  [0x100b61740]  blake3.zig:193
+    554 Thread_2593554
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         487 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 216 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 204 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,900,...  [0x100b61904,0x100b618e8,...]  blake3.zig:193
+    +         ! : 5 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 96,68,...  [0x100b615c4,0x100b615a8,...]  blake3.zig:0
+    +         ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1068,1064  [0x100b61990,0x100b6198c]  blake3.zig:199
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 8,40  [0x100b6156c,0x100b6158c]  blake3.zig:173
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 52  [0x100b61598]  blake3.zig:179
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 116  [0x100b615d8]  blake3.zig:181
+    +         ! 77 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 63 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 14 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 70 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,788,...  [0x1009a8e34,0x1009a8e68,...]  blake3.zig:454
+    +         ! 34 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,80  [0x1009a8bc4,0x1009a8ba4]  blake3.zig:444
+    +         ! 21 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 36,44,...  [0x1009a8b78,0x1009a8b80,...]  blake3.zig:439
+    +         ! 17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+    +         ! 15 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 14 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 872,140,...  [0x100b618cc,0x100b615f0,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1064  [0x100b6198c]  blake3.zig:199
+    +         ! 15 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 11 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 764,900,...  [0x100b61860,0x100b618e8,...]  blake3.zig:193
+    +         ! 10 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552  [0x1009a8d80,0x1009a8d7c]  blake3.zig:453
+    +         ! 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         20 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368,...  [0x1007c36b4,0x1007c3698,...]  leaves.zig:147
+    +         13 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380,...  [0x1007c36a0,0x1007c36a4,...]  leaves.zig:0
+    +         11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852  [0x1009a8eac,0x1009a8ea8]  blake3.zig:456
+    +         9 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,484,...  [0x1007c3700,0x1007c370c,...]  leaves.zig:158
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 184  [0x100b6161c]  blake3.zig:193
+    554 Thread_2593555
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         483 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 223 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 219 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,836,...  [0x100b61904,0x100b618a8,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 996  [0x100b61948]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 4  [0x100b61568]  blake3.zig:173
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 56  [0x100b6159c]  blake3.zig:179
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1012  [0x100b61958]  blake3.zig:199
+    +         ! 78 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 74 _platform_memmove  (in libsystem_platform.dylib) + 452,436,...  [0x18693d524,0x18693d514,...]
+    +         ! : 4 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 66 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,564,...  [0x1009a8e34,0x1009a8d88,...]  blake3.zig:454
+    +         ! 26 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 20 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,80  [0x1009a8bc4,0x1009a8ba4]  blake3.zig:444
+    +         ! 16 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 16 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,632,...  [0x100b61904,0x100b617dc,...]  blake3.zig:193
+    +         ! 15 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+    +         ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 13 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 764,808,...  [0x100b61860,0x100b6188c,...]  blake3.zig:193
+    +         ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532,...  [0x1009a8d64,0x1009a8d68,...]  blake3.zig:452
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552  [0x1009a8d80,0x1009a8d7c]  blake3.zig:453
+    +         ! 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+    +         24 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368  [0x1007c36b4,0x1007c3698]  leaves.zig:147
+    +         18 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+    +         11 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480,...  [0x1007c3700,0x1007c3708,...]  leaves.zig:158
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         5 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 852,856,...  [0x1009a8ea8,0x1009a8eac,...]  blake3.zig:456
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         2 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           2 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +             2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 808,900  [0x100b6188c,0x100b618e8]  blake3.zig:193
+    554 Thread_2593556
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         483 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 214 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 212 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,548,...  [0x100b61904,0x100b61788,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 68  [0x100b615a8]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1064  [0x100b6198c]  blake3.zig:199
+    +         ! 86 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 76 _platform_memmove  (in libsystem_platform.dylib) + 452,436,...  [0x18693d524,0x18693d514,...]
+    +         ! : 10 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 70 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,564,...  [0x1009a8e34,0x1009a8d88,...]  blake3.zig:454
+    +         ! 29 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,80  [0x1009a8bc4,0x1009a8ba4]  blake3.zig:444
+    +         ! 21 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 21 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,660,...  [0x100b61904,0x100b617f8,...]  blake3.zig:193
+    +         ! 19 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 15 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 820,92  [0x1009a8e88,0x1009a8bb0]  blake3.zig:0
+    +         ! 12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556  [0x1009a8d80]  blake3.zig:453
+    +         ! 8 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 8 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 900,928,...  [0x100b618e8,0x100b61904,...]  blake3.zig:193
+    +         ! 7 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1076,1092  [0x100b61998,0x100b619a8]  blake3.zig:199
+    +         20 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368,...  [0x1007c36b4,0x1007c3698,...]  leaves.zig:147
+    +         16 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+    +         12 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852  [0x1009a8eac,0x1009a8ea8]  blake3.zig:456
+    +         8 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480,...  [0x1007c3700,0x1007c3708,...]  leaves.zig:158
+    +         5 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +         ! 2 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 340,836  [0x100b616b8,0x100b618a8]  blake3.zig:193
+    +         ! 1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928  [0x100b61904]  blake3.zig:193
+    +         ! 1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +         !   1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 224  [0x100b61644]  blake3.zig:193
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    554 Thread_2593557
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         482 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 228 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 224 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,576,...  [0x100b61904,0x100b617a4,...]  blake3.zig:193
+    +         ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 108,996  [0x100b615d0,0x100b61948]  blake3.zig:0
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 52  [0x100b61598]  blake3.zig:179
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1012  [0x100b61958]  blake3.zig:199
+    +         ! 77 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 71 _platform_memmove  (in libsystem_platform.dylib) + 452,436,...  [0x18693d524,0x18693d514,...]
+    +         ! : 6 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 53 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,788,...  [0x1009a8e34,0x1009a8e68,...]  blake3.zig:454
+    +         ! 27 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,80  [0x1009a8bc4,0x1009a8ba4]  blake3.zig:444
+    +         ! 23 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 19 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 18 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 900,928,...  [0x100b618e8,0x100b61904,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 72  [0x100b615ac]  blake3.zig:0
+    +         ! 18 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 820,92,...  [0x1009a8e88,0x1009a8bb0,...]  blake3.zig:0
+    +         ! 15 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 14 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 424,792,...  [0x100b6170c,0x100b6187c,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1012  [0x100b61958]  blake3.zig:199
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556  [0x1009a8d80]  blake3.zig:453
+    +         ! 9 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+    +         ! 2 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 372  [0x1009a8cc8]  blake3.zig:447
+    +         17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 856,852  [0x1009a8eac,0x1009a8ea8]  blake3.zig:456
+    +         17 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 368,396  [0x1007c3698,0x1007c36b4]  leaves.zig:147
+    +         13 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+    +         8 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480  [0x1007c3700,0x1007c3708]  leaves.zig:158
+    +         5 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         4 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 52  [0x100b61598]  blake3.zig:179
+    554 Thread_2593558
+    + 554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+    +   554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+    +     554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+    +       554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+    +         478 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+    +         ! 203 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+    +         ! : 200 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,576,...  [0x100b61904,0x100b617a4,...]  blake3.zig:193
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 8  [0x100b6156c]  blake3.zig:173
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 120  [0x100b615dc]  blake3.zig:181
+    +         ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1064  [0x100b6198c]  blake3.zig:199
+    +         ! 84 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+    +         ! : 73 _platform_memmove  (in libsystem_platform.dylib) + 452,12,...  [0x18693d524,0x18693d36c,...]
+    +         ! : 11 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+    +         ! 65 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,704,...  [0x1009a8e34,0x1009a8e14,...]  blake3.zig:454
+    +         ! 34 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,80  [0x1009a8bc4,0x1009a8ba4]  blake3.zig:444
+    +         ! 24 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+    +         ! 17 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+    +         ! : 17 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,200,...  [0x100b61904,0x100b6162c,...]  blake3.zig:193
+    +         ! 14 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+    +         ! 14 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+    +         ! : 14 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 576,660,...  [0x100b617a4,0x100b617f8,...]  blake3.zig:193
+    +         ! 11 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528  [0x1009a8d64]  blake3.zig:452
+    +         ! 9 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556,552  [0x1009a8d80,0x1009a8d7c]  blake3.zig:453
+    +         ! 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092,1076  [0x100b619a8,0x100b61998]  blake3.zig:199
+    +         18 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 396,368  [0x1007c36b4,0x1007c3698]  leaves.zig:147
+    +         14 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 852,856,...  [0x1009a8ea8,0x1009a8eac,...]  blake3.zig:456
+    +         13 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480  [0x1007c3700,0x1007c3708]  leaves.zig:158
+    +         10 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+    +         7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+    +         6 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+    +         6 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 504  [0x1007c3720]  leaves.zig:139
+    +         1 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+    +           1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+    +             1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 808  [0x100b6188c]  blake3.zig:193
+    554 Thread_2593559
+      554 thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+        554 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+          554 Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+            554 Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+              486 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+              ! 214 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+              ! : 207 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,900,...  [0x100b61904,0x100b618e8,...]  blake3.zig:193
+              ! : 3 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 52,56  [0x100b61598,0x100b6159c]  blake3.zig:179
+              ! : 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 124,132  [0x100b615e0,0x100b615e8]  blake3.zig:0
+              ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 44  [0x100b61590]  blake3.zig:175
+              ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1012  [0x100b61958]  blake3.zig:199
+              ! 75 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+              ! : 69 _platform_memmove  (in libsystem_platform.dylib) + 452,436,...  [0x18693d524,0x18693d514,...]
+              ! : 6 DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 4  [0x100cdfbfc]
+              ! 63 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 736,564,...  [0x1009a8e34,0x1009a8d88,...]  blake3.zig:454
+              ! 38 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 112,116,...  [0x1009a8bc4,0x1009a8bc8,...]  blake3.zig:444
+              ! 26 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 44,36,...  [0x1009a8b80,0x1009a8b78,...]  blake3.zig:439
+              ! 19 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 92,820  [0x1009a8bb0,0x1009a8e88]  blake3.zig:0
+              ! 16 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+              ! : 16 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 928,900,...  [0x100b61904,0x100b618e8,...]  blake3.zig:193
+              ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+              ! : 12 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 424,140,...  [0x100b6170c,0x100b615f0,...]  blake3.zig:193
+              ! : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 48  [0x100b61594]  blake3.zig:177
+              ! 13 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 528,532  [0x1009a8d64,0x1009a8d68]  blake3.zig:452
+              ! 6 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 556  [0x1009a8d80]  blake3.zig:453
+              ! 2 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 1092  [0x100b619a8]  blake3.zig:199
+              ! 1 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 504  [0x1009a8d4c]  blake3.zig:448
+              19 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 368,396,...  [0x1007c3698,0x1007c36b4,...]  leaves.zig:147
+              16 crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 852,856,...  [0x1009a8ea8,0x1009a8eac,...]  blake3.zig:456
+              8 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472,480,...  [0x1007c3700,0x1007c3708,...]  leaves.zig:158
+              7 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 376,380  [0x1007c36a0,0x1007c36a4]  leaves.zig:0
+              6 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 360  [0x1007c3690]  leaves.zig:145
+              6 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 436  [0x1007c36dc]  leaves.zig:160
+              3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 448  [0x1007c36e8]  leaves.zig:161
+              3 vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+                1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+                : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 576  [0x100b617a4]  blake3.zig:193
+                1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+                : 1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 632  [0x100b617dc]  blake3.zig:193
+                1 crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+                  1 crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 864  [0x100b618c4]  blake3.zig:193
+
+Total number in stack (recursive counted multiple, when >=5):
+        75       crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 0  [0x100b61564]  blake3.zig:193
+        31       crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 0  [0x100b61564]  blake3.zig:199
+        18       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x18693d360]
+        16       DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu) + 0  [0x100cdfbf8]
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 0  [0x1009a8b54]  blake3.zig:0
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 0  [0x1009a8b54]  blake3.zig:439
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 0  [0x1009a8b54]  blake3.zig:444
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 0  [0x1009a8b54]  blake3.zig:452
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 0  [0x1009a8b54]  blake3.zig:453
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 0  [0x1009a8b54]  blake3.zig:454
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 0  [0x1009a8b54]  blake3.zig:456
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 224  [0x1009a8c34]  blake3.zig:445
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 376  [0x1009a8ccc]  blake3.zig:447
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 652  [0x1009a8de0]  blake3.zig:454
+        16       crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu) + 772  [0x1009a8e58]  blake3.zig:454
+        16       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 0  [0x1007c3528]  leaves.zig:0
+        16       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 0  [0x1007c3528]  leaves.zig:145
+        16       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 0  [0x1007c3528]  leaves.zig:147
+        16       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 0  [0x1007c3528]  leaves.zig:158
+        16       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 0  [0x1007c3528]  leaves.zig:160
+        16       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 472  [0x1007c3700]  leaves.zig:160
+        16       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 752  [0x1007c3818]  leaves.zig:175
+        15       Thread.Pool.spawnWg__anon_120256.Closure.runFn  (in stwo-zig-riscv-cpu) + 32  [0x100ab0fb4]  Pool.zig:118
+        15       Thread.PosixThreadImpl.spawn__anon_79920.Instance.entryFn  (in stwo-zig-riscv-cpu) + 184  [0x100902660]  Thread.zig:781
+        15       _pthread_start  (in libsystem_pthread.dylib) + 136  [0x186933c58]
+        15       thread_start  (in libsystem_pthread.dylib) + 8  [0x18692ec1c]
+        13       crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 0  [0x100b61564]  blake3.zig:0
+        13       vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu) + 0  [0x1007c3528]  leaves.zig:161
+        12       crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 0  [0x100b61564]  blake3.zig:179
+        11       crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 352  [0x1009a9030]  blake3.zig:470
+        10       crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 492  [0x1009a90bc]  blake3.zig:475
+        10       crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu) + 0  [0x100b61564]  blake3.zig:173
+        7       crypto.blake3.Blake3.final  (in stwo-zig-riscv-cpu) + 200  [0x1009a8f98]  blake3.zig:470
+
+Sort by top of stack, same collapsed (when >= 5):
+        crypto.blake3.CompressGeneric.compress  (in stwo-zig-riscv-cpu)        3971
+        crypto.blake3.Blake3.update  (in stwo-zig-riscv-cpu)        2731
+        _platform_memmove  (in libsystem_platform.dylib)        1140
+        vcs_lifted.leaves.Operations(vcs_lifted.blake3_merkle.MerkleHasher).buildLeavesBatchedRange  (in stwo-zig-riscv-cpu)        892
+        DYLD-STUB$$memcpy  (in stwo-zig-riscv-cpu)        130
+
+Binary Images:
+       0x10060c000 -        0x100eac8e7 +stwo-zig-riscv-cpu (0) <0519FAEF-0291-3B9E-A04A-75469B7A7F29> /Users/*/stwo-zig-riscv-cpu
+       0x1864c0000 -        0x186512b4b  libobjc.A.dylib (951.7) <1D62B376-2303-376A-B993-9432A2004EB6> /usr/lib/libobjc.A.dylib
+       0x186513000 -        0x186547d58  libdyld.dylib (1387) <70073E6E-4CDD-314F-BBDF-EC7FF6CE2DFC> /usr/lib/system/libdyld.dylib
+       0x186548000 -        0x1865fb4ff  dyld (1.0.0 - 1387) <0263B88E-0B22-3B33-BBC0-483BE879B513> /usr/lib/dyld
+       0x1865fc000 -        0x1865ff228  libsystem_blocks.dylib (96) <B33F1440-9364-38E4-AF85-8A21BFF24324> /usr/lib/system/libsystem_blocks.dylib
+       0x186600000 -        0x18665455f  libxpc.dylib (3102.160.5) <E26A36A6-4B8F-321C-AE17-54353F9EEE84> /usr/lib/system/libxpc.dylib
+       0x186655000 -        0x1866759ff  libsystem_trace.dylib (1861.160.4) <314A8A89-4715-32B9-ABC2-B3087149C8B7> /usr/lib/system/libsystem_trace.dylib
+       0x186676000 -        0x1867245f7  libcorecrypto.dylib (1922.160.10) <057A41E9-2A2E-39CD-B198-387734EED870> /usr/lib/system/libcorecrypto.dylib
+       0x186725000 -        0x186775257  libsystem_malloc.dylib (812.160.5) <B7ED74D2-5A24-3F39-9296-EE5688FF4B63> /usr/lib/system/libsystem_malloc.dylib
+       0x186776000 -        0x1867bd23f  libdispatch.dylib (1542.160.2) <80E75F3F-333F-38A8-A3DD-6279FCDB771B> /usr/lib/system/libdispatch.dylib
+       0x1867be000 -        0x1867c0ffb  libsystem_featureflags.dylib (103) <5725BCFE-07F3-3629-9B44-551A435E2DE2> /usr/lib/system/libsystem_featureflags.dylib
+       0x1867c1000 -        0x1868421e7  libsystem_c.dylib (1752.160.4) <3498CA79-EF40-3587-AD44-75187CEE7D95> /usr/lib/system/libsystem_c.dylib
+       0x186843000 -        0x1868d3ae7  libc++.1.dylib (2100.43) <32327062-C3A2-389E-ABFE-68A9942422E3> /usr/lib/libc++.1.dylib
+       0x1868d4000 -        0x1868ee75f  libc++abi.dylib (2100.43) <CCDE1614-20B7-354C-B201-99C5C4CC589D> /usr/lib/libc++abi.dylib
+       0x1868ef000 -        0x18692c2f7  libsystem_kernel.dylib (12377.161.15.700.19) <EE805B14-29F2-360D-9A2C-3221A1211833> /usr/lib/system/libsystem_kernel.dylib
+       0x18692d000 -        0x186939b3b  libsystem_pthread.dylib (539.100.4) <A58BEABD-7AC0-35F8-BCFF-E4FFBD79E938> /usr/lib/system/libsystem_pthread.dylib
+       0x18693a000 -        0x186942963  libsystem_platform.dylib (375.120.2) <3AF14164-15FE-3623-9EE3-46DE29FD5B5A> /usr/lib/system/libsystem_platform.dylib
+       0x186943000 -        0x1869726eb  libsystem_info.dylib (600) <0037F576-2C50-36F0-9F36-6CB7A049D5B1> /usr/lib/system/libsystem_info.dylib
+       0x18a913000 -        0x18a91ce5f  libsystem_darwin.dylib (1752.160.4) <B808D04B-2798-36C9-96F6-35534BDFCF11> /usr/lib/system/libsystem_darwin.dylib
+       0x18ad7e000 -        0x18ad901b6  libsystem_notify.dylib (348.160.3) <922BDCF4-CD33-3EEB-BC56-9DCAE54F8F65> /usr/lib/system/libsystem_notify.dylib
+       0x18d04f000 -        0x18d069f7b  libsystem_networkextension.dylib (2226.161.1.700.2) <83F224A4-40C4-3106-A97B-788D1D961DCB> /usr/lib/system/libsystem_networkextension.dylib
+       0x18d0ec000 -        0x18d103fdf  libsystem_asl.dylib (406) <FF6BE113-1093-3D23-8A55-E0A5B327CA8E> /usr/lib/system/libsystem_asl.dylib
+       0x18eca5000 -        0x18ecad387  libsystem_symptoms.dylib (2169.160.3.701.1) <7F0D4E31-268A-3EBB-8A2C-30CCC771A5A5> /usr/lib/system/libsystem_symptoms.dylib
+       0x192f4a000 -        0x192f82373  libsystem_containermanager.dylib (725.160.3.701.2) <118BC21E-B17D-32A2-9B65-16256131974F> /usr/lib/system/libsystem_containermanager.dylib
+       0x19435c000 -        0x1943605d7  libsystem_configuration.dylib (1405.160.3.701.3) <7725D903-1D37-33E7-82AF-2260661C81A8> /usr/lib/system/libsystem_configuration.dylib
+       0x194361000 -        0x19436799f  libsystem_sandbox.dylib (2680.160.6.700.3) <7B54AAA3-EB32-3853-8F0E-EB956EC957A1> /usr/lib/system/libsystem_sandbox.dylib
+       0x1959bc000 -        0x1959bf1fb  libquarantine.dylib (196.160.2.700.3) <45146171-F0C1-3104-AE01-6AAD841A70B5> /usr/lib/system/libquarantine.dylib
+       0x19615b000 -        0x196161d03  libsystem_coreservices.dylib (191.5.1) <BF51842C-BC69-3725-9EB2-7A52804963F8> /usr/lib/system/libsystem_coreservices.dylib
+       0x1966ea000 -        0x196727a77  libsystem_m.dylib (3312.100.1) <A2858495-5B01-3D11-955D-FF6F25E88A6E> /usr/lib/system/libsystem_m.dylib
+       0x196729000 -        0x19672c527  libmacho.dylib (1387) <95DEC6C1-4480-3303-8A52-9AFC3D8C9219> /usr/lib/system/libmacho.dylib
+       0x196746000 -        0x1967533a7  libcommonCrypto.dylib (600035) <EBA6E4D0-4DD2-33BB-BF95-48A58591AAAD> /usr/lib/system/libcommonCrypto.dylib
+       0x196754000 -        0x19675dca3  libunwind.dylib (2100.2) <201827AE-90B0-38B1-9729-50455B607293> /usr/lib/system/libunwind.dylib
+       0x196766000 -        0x196770c1f  libcopyfile.dylib (240.160.2.702.1) <BA7266A8-BF4B-32BF-A323-F4B2EBCDC0B0> /usr/lib/system/libcopyfile.dylib
+       0x196771000 -        0x196774987  libcompiler_rt.dylib (103.3) <9EE26D98-97BF-3BE0-B6BE-425284AB2D24> /usr/lib/system/libcompiler_rt.dylib
+       0x196775000 -        0x19677978b  libsystem_collections.dylib (1752.160.4) <34CEFA68-1E15-32F2-A5B1-97C0170A77C5> /usr/lib/system/libsystem_collections.dylib
+       0x19677a000 -        0x19677d4cf  libsystem_secinit.dylib (168.100.7) <B6B286B6-6E08-3578-8AFC-E4C55697C760> /usr/lib/system/libsystem_secinit.dylib
+       0x19677e000 -        0x196780bf7  libremovefile.dylib (85.100.6) <33530415-3DB6-3556-A59A-24C22681D632> /usr/lib/system/libremovefile.dylib
+       0x196781000 -        0x196781f27  libkeymgr.dylib (31) <AD45B9EE-CE2B-3E1F-B96B-15F7F9FA3712> /usr/lib/system/libkeymgr.dylib
+       0x196782000 -        0x19678ae3f  libsystem_dnssd.dylib (2881.160.4.700.1) <71833E65-58B3-3C06-A4F3-D69D476CCC3C> /usr/lib/system/libsystem_dnssd.dylib
+       0x19678b000 -        0x19679009b  libcache.dylib (95) <A13AF0DC-5928-38BE-97FF-E04C29EF96AF> /usr/lib/system/libcache.dylib
+       0x196791000 -        0x196792ce3  libSystem.B.dylib (1356) <E9E4C9A6-16BB-392C-96AA-07797764E2A1> /usr/lib/libSystem.B.dylib
+       0x28a469000 -        0x28a470349  libRosetta.dylib (367.9) <3DBB2990-262D-3776-8FAC-B88C0373DCF0> /usr/lib/libRosetta.dylib
+       0x28c07c000 -        0x28c07fa4b  libsystem_darwindirectory.dylib (122) <6246210A-5279-391D-8F58-E62A87CAB309> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x28c080000 -        0x28c08a39b  libsystem_eligibility.dylib (319.160.17) <85C0486B-60BE-3E10-ABBF-DD74341B7376> /usr/lib/system/libsystem_eligibility.dylib
+       0x28c08b000 -        0x28c09288b  libsystem_sanitizers.dylib (26.1) <A8C4F7FC-3443-35F7-B306-068D06237ED0> /usr/lib/system/libsystem_sanitizers.dylib
+       0x28c093000 -        0x28c093bbf  libsystem_trial.dylib (474.2.18.2.1) <83FF8DEB-1153-35BA-99C3-2AEF9B7559CD> /usr/lib/system/libsystem_trial.dylib

@@ -1,0 +1,23 @@
+{
+  "README.md": "06e36cce0b626f519b23194365f63b36f0156023c4073b8b767bf8e250c9cf3d",
+  "edge-case-fixture-failure.log": "a68600f5e6dbaf95d4ef7dd8d551c9c914f238fabdf676d73532a6d913a20e57",
+  "final-edge-case-tests.log": "8339df6d8caf57fd4392e25b75f1ded41cb2ef46f94b21660890d76339a543b1",
+  "integration-tests.log": "008624f1df20cb5f689962150e19665e578da9c008c3c7fa217508b91755c4d7",
+  "sources/autoresearch/notes/20260922-blake3-bounded-transcript-problem-match.md": "9823d1ccd2aa473210eff45c2a6518fc52941c713e158d00966274c4c2d15b60",
+  "sources/src/core/channel/blake3.zig": "406b5c247df19c69d3625e77d5ad629437b0c81e6955f1c2f84c0b9ada9def21",
+  "sources/src/core/channel/blake3_frame.zig": "52057bbfa8381bde458c60a269dd0232058e5b15c1b9cd3b4b2f2e9ca0daca6e",
+  "sources/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig": "d5a0512f498fbb9c0654b18c7cd824f9c3bfeeee0dc24ba2a88995bec2a474a7",
+  "sources/src/frontends/riscv/recursion/air/blake3_bounded_draw.zig": "704c220433f938533e5e8a37ee3bc867e1a464020016876bb060da9eb417f68a",
+  "sources/src/frontends/riscv/recursion/air/blake3_counter_step.zig": "125e9e46294f7f63f208c0440d115a7057cbc6b9df8635eb53f170e11e57c31a",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "a449d5b620ceed55204b8bb143bd07fd98a8bf36663608b772a12e28b03ba68b",
+  "sources/src/frontends/riscv/recursion/air/blake3_frame_witness.zig": "4a17a073708a3cdb0cb7af12e0a6c56270b7a72e23bb5c55b920985dcb772a63",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "5bc007f4fef81d5395ed8c331038d2b8df1ae11a5e8ce385581028cb43f779d6",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_witness.zig": "87bda825df71e9fea14d0af3ebdb47bc3310cb0a7affd50dbf36a19057867788",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_witness_test.zig": "ac567e6931ac71038153340acef5020b56b45f490f1f8858bf9448db870bfe9a",
+  "sources/src/frontends/riscv/recursion/air/blake3_rejection_fixture.zig": "ce8d7969e36603d565859f5755a96bd31ba466e8f31f604b27eecbff887590dd",
+  "sources/src/frontends/riscv/recursion/air/blake3_retry_control.zig": "270bdf236cb936163abc5e1918a588ae570518bb2ff03ae5a1cad7044f83aec8",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig": "c2148740d31a7955c134235c96f4f2e4a59279da6fed8349f4f7d712274ae322",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig": "b2cafd5a8c56aa4d0b25c416d2bfccbf9070defc95d9aed6162758a856be515f",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "96f155341ec31f9ee92b1227f0c40daacf9b5bb5013a260efe0258f94a4c90aa",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "e67beb92dd0d9a115935ff117239ae5295ccfeaeefcb42968a3fe8fccade8f6d"
+}

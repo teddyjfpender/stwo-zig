@@ -1,0 +1,26 @@
+{
+  "scope": "one versioned local quartet proof over four of five real execution leaves; diagnostic q8/PoW0",
+  "verified": true,
+  "fresh_quartet_verification": true,
+  "reordered_children_rejected": true,
+  "children": 4,
+  "air_component_slots": 23,
+  "fixed_rows": [524288, 387328, 380487, 109592, 1143, 49942, 552, 313644, 36, 68600, 61404, 10068, 42336, 76864, 552, 556, 53024, 53024, 7514, 12448, 524288, 262144, 44928],
+  "fixed_rows_total": 2984762,
+  "padded_main_rows": [524288, 524288, 524288, 131072, 2048, 65536, 1024, 524288, 64, 131072, 65536, 16384, 65536, 131072, 1024, 1024, 65536, 65536, 8192, 16384, 524288, 262144, 65536],
+  "padded_main_rows_total": 3716160,
+  "preparation_ns": 3194586875,
+  "prove_ns": 18947282041,
+  "proof_bytes": 150835,
+  "scoped_tracked_peak_bytes": 3341447656,
+  "test_result": "7/7 passed",
+  "test_root": "src/frontends/riscv/block_v3_recursive_test_root.zig",
+  "test_filter": "block-v4 five real leaves stage a two-lane exact forest",
+  "source_sha256": {
+    "quartet": "180c13ab9cd2c90258ca3b4cd926ff03927df2e4746371ca6a24a3e10fd86fec",
+    "parent_preparation": "8574818a5ccbd096edf2415dc4be7552eef86a06e7c000213b59b8b185b2efbf",
+    "parent_protocol": "f2ed6c4fd1806b1169725b679a3aa8677d7d8d083219d0f38ccb3dac44db591e",
+    "fixture": "ad20765ebced51bc6ca2ad533f4653d4df481c98357527aca8c969fb4b48f34a"
+  },
+  "limitation": "Standalone quartet proof and provisional forest; no q70 or detached complete-block qualification"
+}

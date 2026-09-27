@@ -1,0 +1,22 @@
+1/7 prover.blake3_segment_tree_test.test.stream frontier real four-leaf recursive root...BLAKE3_NATIVE_QUERY_FUSION groups=720 removed_scalars=2880
+BLAKE3_NATIVE_FUSION dot4=1933 fma=8801 arithmetic_rows=28411
+BLAKE3_NATIVE_QUERY_FUSION groups=720 removed_scalars=2880
+BLAKE3_NATIVE_FUSION dot4=1933 fma=8803 arithmetic_rows=28407
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=142548 queries=8 pow_bits=0
+BLAKE3_NATIVE_QUERY_FUSION groups=688 removed_scalars=2752
+BLAKE3_NATIVE_FUSION dot4=1780 fma=8631 arithmetic_rows=27439
+BLAKE3_NATIVE_QUERY_FUSION groups=832 removed_scalars=3328
+BLAKE3_NATIVE_FUSION dot4=2345 fma=9386 arithmetic_rows=31261
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=142852 queries=8 pow_bits=0
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.

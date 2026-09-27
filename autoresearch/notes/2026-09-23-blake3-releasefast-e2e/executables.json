@@ -1,0 +1,6 @@
+{
+  "zig-out/bin/stwo-zig-riscv-cpu": "f72cded6e13ee5a3737fab511310775b519e4c810e52274d9cb37cc3187c1fcd",
+  ".zig-cache/products/riscv_cpu/o/a220a7c7cd2ec3c7ab3697284d14adf8/test": "c5778572ff4679918ce3dd3ae5f3a2c0dc3d01aec5f56504103029e90dd9b1e4",
+  "zig-out/bin/stwo-zig-riscv-metal": "f6bd0a0ad75800f6d803b05b97b59acb3c67d8da670d8ee8a6a8dccf889b008b",
+  ".zig-cache/products/riscv_cpu/o/fce694edddf95ecb293827faaa682480/test": "6642894db77d9f48b059e323bb9872633293b3c62965143acd2025692c32be12"
+}

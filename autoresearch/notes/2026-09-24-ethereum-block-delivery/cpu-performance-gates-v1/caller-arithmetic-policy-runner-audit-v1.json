@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "qualified": false,
+  "status": "focused_attempts_disqualified",
+  "reason": "Imported standard runner used its separate module builtin.test_functions; both binaries ran zero tests. Actual production-body LLVM retention is not proved by these binaries.",
+  "affected_attempts": [
+    "caller-arithmetic-legacy-focused-v1-result.json",
+    "caller-arithmetic-selected-focused-v1-result.json"
+  ],
+  "observed_summary": "All 0 tests passed.",
+  "replacement_required": "Executable-root test functions, zero-test failure, correct independent policy assertions and actual body retention under both recipes.",
+  "original_evidence_preserved": true,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

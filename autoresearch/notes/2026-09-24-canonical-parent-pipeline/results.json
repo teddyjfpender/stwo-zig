@@ -1,0 +1,186 @@
+[
+  {
+    "index": 0,
+    "mode": "serial",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-canonical-parent-pipeline/parent-test"
+    ],
+    "binary_sha256": "349c7c6f9e3088f05de818eb650f52dc3e2f4cec801dc26cda53966083fc5e0d",
+    "wall_seconds": 32.75139287498314,
+    "pipeline_seconds": 19.789010875,
+    "overlap_seconds": 0.0,
+    "receipt": {
+      "mode": "serial",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834304",
+      "wall_ns": "19789010875",
+      "overlap_ns": "0",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 24313102336,
+    "peak_physical_footprint_bytes": 30134565672
+  },
+  {
+    "index": 1,
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-canonical-parent-pipeline/parent-test"
+    ],
+    "binary_sha256": "349c7c6f9e3088f05de818eb650f52dc3e2f4cec801dc26cda53966083fc5e0d",
+    "wall_seconds": 35.533275957976,
+    "pipeline_seconds": 21.710153333,
+    "overlap_seconds": 8.241579709,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834968",
+      "wall_ns": "21710153333",
+      "overlap_ns": "8241579709",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 25802571776,
+    "peak_physical_footprint_bytes": 33114097640
+  },
+  {
+    "index": 2,
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-canonical-parent-pipeline/parent-test"
+    ],
+    "binary_sha256": "349c7c6f9e3088f05de818eb650f52dc3e2f4cec801dc26cda53966083fc5e0d",
+    "wall_seconds": 34.46598041700781,
+    "pipeline_seconds": 21.318285417,
+    "overlap_seconds": 7.917510958,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834968",
+      "wall_ns": "21318285417",
+      "overlap_ns": "7917510958",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 25775620096,
+    "peak_physical_footprint_bytes": 33114195440
+  },
+  {
+    "index": 3,
+    "mode": "serial",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-canonical-parent-pipeline/parent-test"
+    ],
+    "binary_sha256": "349c7c6f9e3088f05de818eb650f52dc3e2f4cec801dc26cda53966083fc5e0d",
+    "wall_seconds": 38.13544887502212,
+    "pipeline_seconds": 24.993018083,
+    "overlap_seconds": 0.0,
+    "receipt": {
+      "mode": "serial",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834304",
+      "wall_ns": "24993018083",
+      "overlap_ns": "0",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 24313151488,
+    "peak_physical_footprint_bytes": 30134729680
+  }
+]

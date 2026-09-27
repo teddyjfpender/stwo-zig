@@ -1,0 +1,69 @@
+{
+  "schema": "block-v5-ram-lanes-resource-selection-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "tests_run_by_agent": false,
+  "stark_proved": false,
+  "segments_run": false,
+  "device_executed": false,
+  "formatting": "zig fmt --check passed; no compiler invocation",
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_replay_plan_v1.zig",
+      "sha256": "0c78f3c3627a08f81b72c4a5c2ec1667adddb5da6860f42536829a76202761dd"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_replay_v1.zig",
+      "sha256": "0cc9d8507c1ad17dd7e7f91fe3db5a538fbcefa47df996e22bf3eb5229d0ea40"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_sorted_memory_replay_v1.zig",
+      "sha256": "4a7105bb8243b199d323c7e797f5851bcb944b01c7056501400269377170735e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_proof_v1.zig",
+      "sha256": "297f215ea2b2f4c452c876fa78968392a688b9a82c9977ca8015a7ce085737db"
+    },
+    {
+      "path": "src/frontends/riscv/air/block/word_memory_lanes_trace_v1.zig",
+      "sha256": "84b209e21f522f4f74be2c0e13c543cd5fd9567769bc8e52b2df835808e8fcf7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_global_plans_v1.zig",
+      "sha256": "dd008eed784f09bbb5d106afafa503520419b1e86bf97d4935281c73227681f8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_resource_plan_test_v1.zig",
+      "sha256": "4562ce80f072b04b62bd69ea916d5e9684b3c1b982d6ca9e5daa02f0ef049db4"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_ram_lanes_resource_plan_test_root.zig",
+      "sha256": "8a41b3feb8bd58eefa1407b8e4840f5df4b3fdef8fc378a25cd7fa7d155ce765"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-ram-lanes-resource-selection-v1.md",
+      "sha256": "969823a73773ddbd25bec89254b2ae441b30e43e9c29f73d40047c74ed9dbce8"
+    }
+  ],
+  "canonical_source_wired": true,
+  "selection": "Minimum exact instance count then total committed homogeneous row area, among row sizes admitted by existing exposed independent phase checks.",
+  "preserved": "Actual source/endpoints/census/roots/claims/proof configuration and all point-of-use resource checks; explicit mode0 and typed legacy/capacity-native routes.",
+  "qualification_command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_ram_lanes_resource_plan_test_root.zig",
+    "block-v5 RAM resource selection"
+  ],
+  "declared_tests": [
+    "block-v5 RAM resource selection admits trace fixed and interaction caps before count first geometry",
+    "block-v5 RAM resource selection preserves independent caps and exact nonrounded instance limits",
+    "block-v5 RAM resource selection respects exact FRI backend holes and resident ingress guards",
+    "block-v5 RAM resource selection exhaustive admitted masks minimize count then true row area",
+    "block-v5 RAM resource selection zero RAM impossible policy and allocation failures are bounded"
+  ],
+  "scope_limits": [
+    "No overall PCS/RSS or device scratch memory guarantee; retained columns, FFT scratch, actual DAG metadata and allocator budgets remain phase-checked.",
+    "Exact range provider census/grouping remains actual-source derived, not estimated.",
+    "Root compiler/pure fixture/production body qualification pending; no proof runtime claim."
+  ]
+}

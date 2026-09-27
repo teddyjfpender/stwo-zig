@@ -20,6 +20,8 @@ const prover_task_graph = @import("stwo_prover_engine").task_graph;
 const work_pool = @import("stwo_prover_engine").work_pool;
 const prepared_parallel = @import("../prepared_parallel.zig");
 const prepared_evaluation = @import("../prepared_evaluation_owner.zig");
+const checked_recovery = @import("../../recursion/air/universal_typed_component_contract.zig");
+const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const trace = @import("../../runner/trace.zig");
 const entry = @import("entry.zig");
 const opcode_interaction = @import("opcode_interaction.zig");
@@ -41,7 +43,7 @@ pub fn prepare(
     accumulator: *prover_air_accumulation.DomainEvaluationAccumulator,
 ) !prepared_domain.PreparedDomainEvaluation {
     if (trace_data.polys.items.len < 3) return error.InvalidProofShape;
-    const eval_log_size = std.math.add(u32, component.log_size, 1) catch
+    const eval_log_size = std.math.add(u32, component.log_size, if (component.mask_binding.local_zero) 2 else 1) catch
         return error.InvalidProofShape;
     if (component.log_size == 0 or
         eval_log_size > circle.M31_CIRCLE_LOG_ORDER - 1 or
@@ -75,20 +77,23 @@ pub fn prepare(
     const StateType = State(Component);
     if (n_sources > StateType.MAX_SOURCES) return error.InvalidProofShape;
     var owned_count: usize = 0;
-    owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+    owned_count += @intFromBool(try needsOwned(
+        component.mask_binding.local_zero,
         preprocessed[component.is_first_col_idx],
         component.log_size,
         eval_log_size,
     ));
     for (main[component.main_col_offset..main_end]) |poly| {
-        owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+        owned_count += @intFromBool(try needsOwned(
+            component.mask_binding.local_zero,
             poly,
             component.log_size,
             eval_log_size,
         ));
     }
     for (secure[component.interaction_col_offset..interaction_end]) |poly| {
-        owned_count += @intFromBool(try prepared_evaluation.needsOwned(
+        owned_count += @intFromBool(try needsOwned(
+            component.mask_binding.local_zero,
             poly,
             component.log_size,
             eval_log_size,
@@ -99,9 +104,20 @@ pub fn prepare(
         owned_count,
     );
     errdefer evaluation_owner.deinit();
+    var twiddles: ?prover_twiddles.TwiddleTree([]M31) = null;
+    defer if (twiddles) |*owned| prover_twiddles.deinitM31(allocator, owned);
+    if (component.mask_binding.local_zero and owned_count != 0)
+        twiddles = try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset);
+    const transform: ?prover_twiddles.TwiddleTree([]const M31) = if (twiddles) |owned|
+        prover_twiddles.TwiddleTree([]const M31).init(owned.root_coset, owned.twiddles, owned.itwiddles)
+    else
+        null;
     var evaluations = [_][]const M31{&.{}} ** StateType.MAX_SOURCES;
     var source: usize = 0;
-    evaluations[source] = try evaluation_owner.value(
+    evaluations[source] = try preparedValue(
+        &evaluation_owner,
+        component.mask_binding.local_zero,
+        transform,
         preprocessed[component.is_first_col_idx],
         component.log_size,
         eval_log_size,
@@ -109,7 +125,10 @@ pub fn prepare(
     );
     source += 1;
     for (main[component.main_col_offset..main_end]) |poly| {
-        evaluations[source] = try evaluation_owner.value(
+        evaluations[source] = try preparedValue(
+            &evaluation_owner,
+            component.mask_binding.local_zero,
+            transform,
             poly,
             component.log_size,
             eval_log_size,
@@ -118,7 +137,10 @@ pub fn prepare(
         source += 1;
     }
     for (secure[component.interaction_col_offset..interaction_end]) |poly| {
-        evaluations[source] = try evaluation_owner.value(
+        evaluations[source] = try preparedValue(
+            &evaluation_owner,
+            component.mask_binding.local_zero,
+            transform,
             poly,
             component.log_size,
             eval_log_size,
@@ -128,7 +150,9 @@ pub fn prepare(
     }
 
     std.debug.assert(source == n_sources);
-    try evaluation_owner.finish(eval_domain);
+    if (component.mask_binding.local_zero) {
+        if (transform) |ready| try evaluation_owner.finishWithTwiddles(eval_domain, ready) else if (evaluation_owner.initialized != 0) return error.InvalidProofShape;
+    } else try evaluation_owner.finish(eval_domain);
 
     const denominator_inv = try quotientDenominators(
         component.log_size,
@@ -165,6 +189,13 @@ pub fn prepare(
             .leaf,
         .resources = resources,
     };
+}
+
+fn needsOwned(recover: bool, poly: prover_component.Poly, trace_log: u32, eval_log: u32) !bool {
+    return if (recover) checked_recovery.sourceNeedsExtension(poly, trace_log, eval_log) else prepared_evaluation.needsOwned(poly, trace_log, eval_log);
+}
+fn preparedValue(owner: *prepared_evaluation.Owner, recover: bool, transform: ?prover_twiddles.TwiddleTree([]const M31), poly: prover_component.Poly, trace_log: u32, eval_log: u32, eval_size: usize) ![]const M31 {
+    return if (recover) owner.valueRecovering(poly, trace_log, eval_log, eval_size, transform) else owner.value(poly, trace_log, eval_log, eval_size);
 }
 
 pub fn runSerial(evaluation: *prepared_domain.PreparedDomainEvaluation) !void {

@@ -336,6 +336,34 @@ fn computePrepared(
             return error.ConstraintPowerRangeMismatch;
         }
         power_cursor = next_power_cursor;
+        if (execution.preparation == .streamed) {
+            var single = try task_graph.ComponentTaskGraph.init(allocator, 1);
+            defer single.deinit();
+            const planned_rows = try componentRows(worker.component);
+            if (execution.host_byte_budget != std.math.maxInt(usize))
+                try requireHeapBackedResources(worker.prepared.resources);
+            _ = try single.addTask(.{
+                .key = .{ .epoch = 0, .stage_rank = 0, .component_registry_index = @intCast(component_index), .shard_or_chunk_index = 0 },
+                .name = "composition-domain",
+                .stage_id = "composition_domain",
+                .component_kind = "generic_air_component",
+                .func = Worker.run,
+                .context = worker,
+                .class = worker.prepared.task_class,
+                .resources = worker.prepared.resources,
+                .work_estimate = try componentWorkEstimate(worker.component, planned_rows),
+                .work_unit = .rows,
+                .planned_work_units = planned_rows,
+            });
+            try executePreparedGraph(&single, execution, workers[component_index..][0..1]);
+            if (worker.accumulator.next_power_index != next_power_cursor)
+                return error.ConstraintPowerRangeMismatch;
+            // Graph execution joins all children before returning; no task or
+            // subsequent cohort borrows these source evaluation buffers.
+            worker.prepared.deinit();
+            worker.prepared_initialized = false;
+            if (component_index != 0) workers[0].accumulator.merge(&worker.accumulator);
+        }
     }
     if (power_cursor != 0) {
         prover_api.EvaluationDiagnostic.recordFirst(execution.evaluation_diagnostic, .{
@@ -345,6 +373,11 @@ fn computePrepared(
             .expected = 0,
         });
         return error.ConstraintPowerRangeMismatch;
+    }
+
+    if (execution.preparation == .streamed) {
+        workers[0].accumulator.next_power_index = 0;
+        return workers[0].accumulator.finalize();
     }
 
     var has_max_bucket = false;
@@ -410,61 +443,7 @@ fn computePrepared(
         });
     }
 
-    const adjusted = execution.adjustedForAvailablePool();
-    _ = graph.execute(.{
-        .worker_budget = adjusted.worker_budget,
-        .pool = adjusted.pool,
-        .ready_policy = .critical_path,
-        .task_profile_recorder = execution.task_recorder,
-        .task_profile_graph_id = "cpu_composition_generic",
-        .requested_worker_count = execution.requestedWorkerCount(),
-        .pool_capacity = execution.poolCapacity(),
-    }) catch |failure| switch (failure) {
-        // The ordinary prover does not promise exclusive ownership of the
-        // process-wide pool. Contention is therefore a scheduling decline,
-        // not a proof failure: no task has started when lease admission fails,
-        // so the exact prepared plan can execute serially without rebuilding
-        // or reallocating component state. This compatibility fallback is not
-        // an M7 scaling arm; the explicit request executor must report a lease
-        // decline rather than relabel it as the requested worker count.
-        error.WorkerBudgetUnavailable => if (!execution.isStrict())
-            graph.execute(.{
-                .worker_budget = work_pool.WorkerBudget.serial(),
-                .ready_policy = .critical_path,
-                .task_profile_recorder = execution.task_recorder,
-                .task_profile_graph_id = "cpu_composition_generic",
-                .requested_worker_count = execution.requestedWorkerCount(),
-                .pool_capacity = execution.poolCapacity(),
-            }) catch |retry_failure| {
-                if (firstWorkerError(workers)) |err| return err;
-                prover_api.EvaluationDiagnostic.recordFirst(
-                    execution.evaluation_diagnostic,
-                    .{
-                        .stage = if (retry_failure == error.WorkerBudgetUnavailable)
-                            .plan
-                        else
-                            .component_evaluation,
-                        .cause = retry_failure,
-                    },
-                );
-                return retry_failure;
-            }
-        else {
-            prover_api.EvaluationDiagnostic.recordFirst(
-                execution.evaluation_diagnostic,
-                .{ .stage = .plan, .cause = failure },
-            );
-            return failure;
-        },
-        else => {
-            if (firstWorkerError(workers)) |err| return err;
-            prover_api.EvaluationDiagnostic.recordFirst(execution.evaluation_diagnostic, .{
-                .stage = .component_evaluation,
-                .cause = failure,
-            });
-            return failure;
-        },
-    };
+    try executePreparedGraph(&graph, execution, workers);
 
     for (workers) |worker| {
         if (worker.accumulator.next_power_index != worker.expected_next_power_index) {
@@ -866,4 +845,63 @@ fn dominantDomainComponent(components: anytype) usize {
         }
     }
     return caller_index;
+}
+
+fn executePreparedGraph(graph: *task_graph.ComponentTaskGraph, execution: composition_execution.Execution, workers: anytype) !void {
+    const adjusted = execution.adjustedForAvailablePool();
+    _ = graph.execute(.{
+        .worker_budget = adjusted.worker_budget,
+        .pool = adjusted.pool,
+        .ready_policy = .critical_path,
+        .task_profile_recorder = execution.task_recorder,
+        .task_profile_graph_id = "cpu_composition_generic",
+        .requested_worker_count = execution.requestedWorkerCount(),
+        .pool_capacity = execution.poolCapacity(),
+    }) catch |failure| switch (failure) {
+        // The ordinary prover does not promise exclusive ownership of the
+        // process-wide pool. Contention is therefore a scheduling decline,
+        // not a proof failure: no task has started when lease admission fails,
+        // so the exact prepared plan can execute serially without rebuilding
+        // or reallocating component state. This compatibility fallback is not
+        // an M7 scaling arm; the explicit request executor must report a lease
+        // decline rather than relabel it as the requested worker count.
+        error.WorkerBudgetUnavailable => if (!execution.isStrict())
+            graph.execute(.{
+                .worker_budget = work_pool.WorkerBudget.serial(),
+                .ready_policy = .critical_path,
+                .task_profile_recorder = execution.task_recorder,
+                .task_profile_graph_id = "cpu_composition_generic",
+                .requested_worker_count = execution.requestedWorkerCount(),
+                .pool_capacity = execution.poolCapacity(),
+            }) catch |retry_failure| {
+                if (firstWorkerError(workers)) |err| return err;
+                prover_api.EvaluationDiagnostic.recordFirst(
+                    execution.evaluation_diagnostic,
+                    .{
+                        .stage = if (retry_failure == error.WorkerBudgetUnavailable)
+                            .plan
+                        else
+                            .component_evaluation,
+                        .cause = retry_failure,
+                    },
+                );
+                return retry_failure;
+            }
+        else {
+            prover_api.EvaluationDiagnostic.recordFirst(
+                execution.evaluation_diagnostic,
+                .{ .stage = .plan, .cause = failure },
+            );
+            return failure;
+        },
+        else => {
+            if (firstWorkerError(workers)) |err| return err;
+            prover_api.EvaluationDiagnostic.recordFirst(execution.evaluation_diagnostic, .{
+                .stage = .component_evaluation,
+                .cause = failure,
+            });
+            return failure;
+        },
+    };
+
 }

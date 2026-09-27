@@ -1,0 +1,101 @@
+--- control/blake3_bounded_draw.zig
++++ src/frontends/riscv/recursion/air/blake3_bounded_draw.zig
+@@ -97,7 +97,8 @@
+         const bindings = [_]frame.Binding{.{ .role = .state, .caller = s.state_source }};
+         const payload = frame.PayloadBinding{ .role = .draw_index, .caller = source, .word_count = 2 };
+         const out = if (columns != null) HashDestination{ .g_rows = &.{}, .xor_rows = &.{} } else HashDestination{ .g_rows = hash_rows.g_rows[i * plan.g.len ..][0..plan.g.len], .xor_rows = hash_rows.xor_rows[i * plan.xor.len ..][0..plan.xor.len] };
+-        var hash = if (columns) |target| try frame.prepareMainColumns(backing, hash_circuit, message, &bindings, payload, @splat(0), try target.slice(i * plan.g.len, plan.g.len, i * plan.xor.len, plan.xor.len)) else if (live) try frame.prepareInto(backing, hash_circuit, message, &bindings, payload, @splat(0), out) else try frame.trustedInto(backing, hash_circuit, message, &bindings, payload, @splat(0), out);
++        const column_out = if (columns) |target| try target.slice(i * plan.g.len, plan.g.len, i * plan.xor.len, plan.xor.len) else null;
++        var hash = try frame.destinationWithPlan(backing, hash_circuit, message, &bindings, payload, @splat(0), live, if (column_out == null) out else null, column_out, &plan);
+         defer hash.deinit();
+         for (&state_uses, hash.source_uses[0]) |*sum, uses| {
+             sum.* = try std.math.add(u32, sum.*, uses);
+--- control/blake3_draw_witness.zig
++++ src/frontends/riscv/recursion/air/blake3_draw_witness.zig
+@@ -135,7 +135,7 @@
+         var digest: ?[32]u8 = null;
+         if (s.state_source) |caller| {
+             const bindings = [_]frame_hash.Binding{.{ .role = .state, .caller = caller }};
+-            private = if (column_out) |target| try frame_hash.prepareMainColumns(backing, circuit, frame, &bindings, null, @splat(0), target) else if (live) try frame_hash.prepareInto(backing, circuit, frame, &bindings, null, @splat(0), out) else try frame_hash.trustedInto(backing, circuit, frame, &bindings, null, @splat(0), out);
++            private = try frame_hash.destinationWithPlan(backing, circuit, frame, &bindings, null, @splat(0), live, if (column_out == null) out else null, column_out, &plan);
+             source = private.?.rows;
+             digest = private.?.digest;
+             try rs.appendSlice(a, private.?.route_rows);
+@@ -147,8 +147,8 @@
+             public_boundaries = try backing.alloc(boundary.Row, plan.sources.len + 8);
+             const destination = hash.Destination{ .g_rows = out.g_rows, .xor_rows = out.xor_rows, .boundary_rows = public_boundaries.? };
+             if (column_out) |target| {
+-                digest = try hash.prepareMainColumns(backing, circuit, bytes.?, @splat(0), .{ .g_rows = target.g_rows, .xor_rows = target.xor_rows, .boundary_rows = public_boundaries.? });
+-            } else if (live) digest = try hash.prepareInto(backing, circuit, bytes.?, @splat(0), destination) else try hash.trustedInto(backing, circuit, bytes.?, @splat(0), destination);
++                digest = try hash.prepareMainColumnsWithPlan(backing, circuit, bytes.?, @splat(0), &plan, .{ .g_rows = target.g_rows, .xor_rows = target.xor_rows, .boundary_rows = public_boundaries.? });
++            } else if (live) digest = try hash.prepareIntoWithPlan(backing, circuit, bytes.?, @splat(0), &plan, destination) else try hash.trustedIntoWithPlan(circuit, bytes.?, @splat(0), &plan, destination);
+             source = .{ .g_rows = out.g_rows, .xor_rows = out.xor_rows, .boundary_rows = public_boundaries.? };
+         }
+         var row = try challenge.fixedRow(schedule);
+--- control/blake3_hash_test.zig
++++ src/frontends/riscv/recursion/air/blake3_hash_test.zig
+@@ -53,6 +53,14 @@
+         const saved = gs[0];
+         try std.testing.expectError(error.InvalidBlake3WitnessDestination, witness.prepareInto(a, 991, input[0..len], expected, short));
+         try std.testing.expectEqualSlices(M31, &saved, &gs[0]);
++        try std.testing.expectError(error.InvalidBlake3Input, witness.trustedIntoWithPlan(991, input[0..wrong_len], expected, &reusable, destination));
++        try std.testing.expectEqualSlices(M31, &saved, &gs[0]);
++        try std.testing.expectError(error.InvalidBlake3WitnessDestination, witness.trustedIntoWithPlan(991, input[0..len], expected, &reusable, short));
++        try std.testing.expectEqualSlices(M31, &saved, &gs[0]);
++        try witness.trustedIntoWithPlan(991, input[0..len], expected, &reusable, destination);
++        inline for (.{ gs, xs, bs }, .{ trusted.g_rows, trusted.xor_rows, trusted.boundary_rows }) |actual, wanted| {
++            for (actual, wanted) |x, y| try std.testing.expectEqualSlices(M31, &x, &y);
++        }
+         const chunks = @max(1, (len + 1023) / 1024);
+         try std.testing.expectEqual(@max(1, (len + 63) / 64) + chunks - 1, plan.calls.len);
+     }
+--- control/blake3_hash_witness.zig
++++ src/frontends/riscv/recursion/air/blake3_hash_witness.zig
+@@ -234,7 +234,12 @@
+ pub fn trustedInto(a: std.mem.Allocator, circuit: u32, input: []const u8, digest: [32]u8, destination: Destination) !void {
+     var plan = try graph.build(a, input.len);
+     defer plan.deinit();
+-    try fixedRowsInto(circuit, input, digest, &plan, destination);
++    try trustedIntoWithPlan(circuit, input, digest, &plan, destination);
++}
++/// Public input bytes remain bound when a batch reuses its immutable topology.
++pub fn trustedIntoWithPlan(circuit: u32, input: []const u8, digest: [32]u8, plan: *const graph.Plan, destination: Destination) !void {
++    if (plan.input_len != input.len) return error.InvalidBlake3Input;
++    try fixedRowsInto(circuit, input, digest, plan, destination);
+ }
+ /// Length-only fixed preprocessing for externally authenticated input bytes.
+ pub fn trustedShapeInto(a: std.mem.Allocator, circuit: u32, input_len: usize, digest: [32]u8, destination: Destination) !void {
+--- control/blake3_query_witness.zig
++++ src/frontends/riscv/recursion/air/blake3_query_witness.zig
+@@ -103,7 +103,8 @@
+         const bindings = [_]frame_hash.Binding{.{ .role = .state, .caller = s.state_source }};
+         const payload: ?frame_hash.PayloadBinding = if (final_counter) |source| .{ .role = .draw_index, .caller = source, .word_count = 2 } else null;
+         const out = if (columns != null) HashDestination{ .g_rows = &.{}, .xor_rows = &.{} } else HashDestination{ .g_rows = g_rows[block * plan.g.len ..][0..plan.g.len], .xor_rows = xor_rows[block * plan.xor.len ..][0..plan.xor.len] };
+-        var hash = if (columns) |target| try frame_hash.prepareMainColumns(backing, circuit, frame, &bindings, payload, @splat(0), try target.slice(block * plan.g.len, plan.g.len, block * plan.xor.len, plan.xor.len)) else if (live) try frame_hash.prepareInto(backing, circuit, frame, &bindings, payload, @splat(0), out) else try frame_hash.trustedInto(backing, circuit, frame, &bindings, payload, @splat(0), out);
++        const column_out = if (columns) |target| try target.slice(block * plan.g.len, plan.g.len, block * plan.xor.len, plan.xor.len) else null;
++        var hash = try frame_hash.destinationWithPlan(backing, circuit, frame, &bindings, payload, @splat(0), live, if (column_out == null) out else null, column_out, &plan);
+         defer hash.deinit();
+         if (payload) |binding| {
+             var uses: [2]u32 = undefined;
+--- control/blake3_transcript_witness.zig
++++ src/frontends/riscv/recursion/air/blake3_transcript_witness.zig
+@@ -200,7 +200,8 @@
+             var plan = try graph.build(backing, try frame.encodedSize());
+             defer plan.deinit();
+             const destination = try reserveHash(backing, &gs, &xs, columns, g_used, xor_used, plan.g.len, plan.xor.len);
+-            var prepared = if (columns) |out| try frame_hash.prepareMainColumns(backing, hash_circuit, frame, active, payload, @splat(0), try out.slice(g_used, plan.g.len, xor_used, plan.xor.len)) else if (live) try frame_hash.prepareInto(backing, hash_circuit, frame, active, payload, @splat(0), destination) else try frame_hash.trustedInto(backing, hash_circuit, frame, active, payload, @splat(0), destination);
++            const column_out = if (columns) |out| try out.slice(g_used, plan.g.len, xor_used, plan.xor.len) else null;
++            var prepared = try frame_hash.destinationWithPlan(backing, hash_circuit, frame, active, payload, @splat(0), live, if (column_out == null) destination else null, column_out, &plan);
+             defer prepared.deinit();
+             if (payload) |binding| try reads.append(a, .{ .operation = ordinal, .source = binding.caller, .uses = try a.dupe(u32, prepared.payload_uses) });
+             try addUses(xs.items, if (columns) |c| c.metadata() else null, producer, &initial_uses, prepared.source_uses[0]);
+@@ -231,7 +232,8 @@
+             var plan = try graph.build(backing, try frame.encodedSize());
+             defer plan.deinit();
+             const destination = try reserveHash(backing, &gs, &xs, columns, g_used, xor_used, plan.g.len, plan.xor.len);
+-            var prepared = if (columns) |out| try frame_hash.prepareMainColumns(backing, circuit, frame, &bindings, payload, @splat(0), try out.slice(g_used, plan.g.len, xor_used, plan.xor.len)) else if (live) try frame_hash.prepareInto(backing, circuit, frame, &bindings, payload, @splat(0), destination) else try frame_hash.trustedInto(backing, circuit, frame, &bindings, payload, @splat(0), destination);
++            const column_out = if (columns) |out| try out.slice(g_used, plan.g.len, xor_used, plan.xor.len) else null;
++            var prepared = try frame_hash.destinationWithPlan(backing, circuit, frame, &bindings, payload, @splat(0), live, if (column_out == null) destination else null, column_out, &plan);
+             defer prepared.deinit();
+             if (payload) |binding| try reads.append(a, .{ .operation = ordinal, .source = binding.caller, .uses = try a.dupe(u32, prepared.payload_uses) });
+             try addUses(xs.items, if (columns) |c| c.metadata() else null, producer, &initial_uses, prepared.source_uses[0]);

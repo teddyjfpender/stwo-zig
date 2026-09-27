@@ -1,0 +1,13 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem.zig:313:21: error: Only nullable and allowzero pointers can be set to zero.
+                    @compileError("Only nullable and allowzero pointers can be set to zero.");
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    zeroes__anon_19110: /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem.zig:290:63
+    init: src/frontends/riscv/prover/block_v5_native_capacity_fused_recursive_test_v1.zig:47:37
+    2 reference(s) hidden; use '-freference-trace=4' to see all references
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem.zig:313:21: error: Only nullable and allowzero pointers can be set to zero.
+                    @compileError("Only nullable and allowzero pointers can be set to zero.");
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem.zig:313:21: error: Only nullable and allowzero pointers can be set to zero.
+                    @compileError("Only nullable and allowzero pointers can be set to zero.");
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,0 +1,48 @@
+{
+  "status": "qualified-focused-memory-fixed-assembly-both-recipes",
+  "recipes": [
+    {
+      "recipe": "custody_v2",
+      "source": "source-ram-forest-join-fixed-focused-v2-source.json",
+      "source_sha256": "ae32d97a5f81f3374b3d4293ac8129805f5a6c1069dce75ff59acd44834306a0",
+      "result": "source-ram-forest-join-fixed-focused-v2-result.json",
+      "result_sha256": "ee9dd938380aa3c7c75a3e7cb3bfd811c79748f6cde1336a64a3dbcdad160c26",
+      "selected_checks": 21,
+      "source_pin_count": 2062,
+      "elapsed_seconds": 35.7536189579987,
+      "binary": {
+        "path": "/tmp/block-v5-source-ram-forest-join-fixed-focused-v2",
+        "bytes": 55525104,
+        "sha256": "ec7a86c7595547968680f0c6dcd6768421c6d082780cb9459407da32afa1e342"
+      }
+    },
+    {
+      "recipe": "local_zero_v1",
+      "source": "source-ram-forest-join-fixed-selected-focused-v1-source.json",
+      "source_sha256": "838db6262a4c631b46d18fab3f809e7f0677ffebf2ad0e071d4db7bc55a5a80c",
+      "result": "source-ram-forest-join-fixed-selected-focused-v1-result.json",
+      "result_sha256": "e5cff19c10f5c3840df5d4972535eb4252f412076015f558a2b37d865bdea012",
+      "selected_checks": 21,
+      "source_pin_count": 2062,
+      "elapsed_seconds": 36.05044574994827,
+      "binary": {
+        "path": "/tmp/block-v5-source-ram-forest-join-fixed-selected-focused-v1",
+        "bytes": 55525176,
+        "sha256": "39395494e7e2214254aa1188e41482a68217ffd5398509b6270397f8980d004d"
+      }
+    }
+  ],
+  "scope": [
+    "Independent genuine RAM19/PAGE16 fixed catalogues and authenticated selected Merkle inventory.",
+    "V20 borrowed authenticated catalogue and direct PUBLIC21/FINAL22 production bodies retained.",
+    "Coordinate/context/order/census/profile/control/key mutation rejection, early resource limits, OOM and allocator custody fixtures."
+  ],
+  "positive_full_fixed_live_root_parity": false,
+  "complete_source_authority": false,
+  "complete_block_authority": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "end_to_end_time_measured": false,
+  "peak_rss_measured": false
+}

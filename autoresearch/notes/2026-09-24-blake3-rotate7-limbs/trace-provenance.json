@@ -1,0 +1,13 @@
+{
+  "implementation_commit": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "implementation_dirty": false,
+  "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+  "witness_layout_sha256": "c3cea0d1311899cc998f896fe52fa3848146c9fa8a6fd136ad676cb4643fd000",
+  "surface": "public-values diagnostic provenance",
+  "build_identity_published": false,
+  "unvalidated": [
+    "target architecture, operating system, ABI, and CPU model",
+    "optimize mode"
+  ],
+  "unvalidated_reason": "the trace dumper publishes no `applications` registry, so the target and optimize checks the prover CLI receives have no source here; it contributes cycle counts, not timings"
+}

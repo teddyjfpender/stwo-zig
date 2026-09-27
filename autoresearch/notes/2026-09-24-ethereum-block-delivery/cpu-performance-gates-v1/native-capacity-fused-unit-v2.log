@@ -1,0 +1,40 @@
+1/22 block_v5_native_capacity_fused_unit_test_root.test_0...OK
+2/22 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused exact source ordinals mixed selector origins mask union and resource mutations...OK
+3/22 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused original projection and RW point domain equations retain every selector and shifted mask...OK
+4/22 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused protocol frame mode count seal and access-root identities reject exact-row relabel...OK
+5/22 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused genuine zero RW typed absence binds frame roots ordinals and rejects nonempty presence...OK
+6/22 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused selector links remain linear across every native recipe at arbitrary extension points...OK
+7/22 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused owned mask and source inventories survive every allocation failure...thread 6990802 panic: symbolic arena OOM
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/air/extract/symbolic.zig:72:47: 0x104f3d837 in declareColumns (root)
+        if (!self.recover_allocation_failure) @panic("symbolic arena OOM");
+                                              ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/air/extract/runtime_program.zig:124:29: 0x104f3fd73 in buildLookups (root)
+    try model.declareColumns(&arena, family, columns[0..main_column_count]);
+                            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/air/lookups/opcode_interaction.zig:57:153: 0x104f36f57 in slotsFromShapeForMode (root)
+        var program = if (local_zero) try @import("../x0_native_envelope_v1.zig").lookupProgram(allocator, family) else try runtime_program.buildLookups(allocator, family);
+                                                                                                                                                        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig:24:42: 0x104fb98df in allocationFailure (root)
+    return Original.slotsFromShapeForMode(a, shape, external, mode);
+                                         ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:1146:9: 0x104fbb6e7 in test.capacity fused owned mask and source inventories survive every allocation failure (root)
+        if (@call(.auto, test_fn, args)) |_| {
+        ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x104f0a677 in main (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:618:22: 0x104f087e3 in main (root)
+            root.main();
+                     ^
+???:?:?: 0x1865684e3 in ??? (???)
+???:?:?: 0x0 in ??? (???)
+error: the following test command crashed:
+.zig-cache/o/44db0bcd7ac75aed50c12e8709247717/root --seed=0xd62c3a67
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 24, in <module>
+    subprocess.run([z,'test',*filter_args,*runner_args,'-O' + args.optimize,'-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','--dep','stwo_backend_contracts','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig',*runner_modules],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'capacity fused', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '--dep', 'stwo_backend_contracts', '-Mroot=src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

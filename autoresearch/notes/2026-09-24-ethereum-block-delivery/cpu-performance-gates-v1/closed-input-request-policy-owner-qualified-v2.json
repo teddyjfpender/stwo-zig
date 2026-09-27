@@ -1,0 +1,94 @@
+{
+  "scope": "New genuine version5 durable Owner/CPU publish/reconstruct/fresh-root bodies compiled and retained; eight pure metadata/budget/namespace/census behavioral fixtures. No positive proof admission.",
+  "candidate": "closed-input-request-policy-owner-source-candidate-v1.json",
+  "candidate_sha256": "da8ddd1c32c9b278cba10eaba26b92dbde4dc4658e0fbcd019547036b2de1e4d",
+  "owned_sources": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-closed-input-request-policy-owner-v2.md",
+      "sha256": "3fb6228fbdaa087c41b9c90948d2d6d6012a89516cbb2760e9bb2755ec7a36f8",
+      "bytes": 4164
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_closed_input_request_policy_codegen_v2.zig",
+      "sha256": "014f0582b4e01cd81131759493dd9391c4c6ea259e4be998b1337115275e8321",
+      "bytes": 706
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_closed_input_request_policy_test_root_v2.zig",
+      "sha256": "b567a68b424bf681d53a0a2d90f0269caa146eeb2dceff6b59f705b21afd9fd0",
+      "bytes": 361
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_closed_input_request_policy_owner_v2.zig",
+      "sha256": "dc0000a6e671bf474f6b2aeccb3b313948732531e29bb1a265897bf4a8b3aabe",
+      "bytes": 22643
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_closed_input_request_policy_test_v2.zig",
+      "sha256": "1948fb7942649e9bb3aa954ffa49b098b2274490446ec67773b680a1221afce0",
+      "bytes": 7030
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_owned_closed_input_request_forest_v2.zig",
+      "sha256": "18680337f37ab82876df5385bcdc2a9c1f47e18a43ea0cb67157ad2072a54389",
+      "bytes": 1694
+    }
+  ],
+  "attempts": [
+    {
+      "name": "closed-input-policy-owner-v2-semantic-v1",
+      "source_candidate": "closed-input-policy-owner-v2-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 3.9972427090397105,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/closed-input-policy-owner-v2-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "closed-input-policy-owner-v2-focused-v1",
+      "source_candidate": "closed-input-policy-owner-v2-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 18.924318916979246,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/closed-input-policy-owner-v2-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-closed-input-policy-owner-v2-focused-v1",
+        "bytes": 36435888,
+        "sha256": "9c93c9e45d1d893bf995b9ec3058184f9e87371506529545d142b08224ad230b"
+      }
+    }
+  ],
+  "behavioral_tests": 8,
+  "actual_body_retention": true,
+  "external_node_schedule": "empty; separate v5 transport namespace; derives expected topological keys before parent decode",
+  "root_transfer": "Actual last Fresh root transfers with stable retained owner; no duplicate root publisher verification",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "canonical_enabled": false,
+  "complete_block_authority": false,
+  "remaining": [
+    "Positive original Snapshot/admissions and v5 proof execution",
+    "Shape-only independently reconstructible fixed setup and final standalone key interface",
+    "CPU Driver caller selection/global closure integration",
+    "Full canonical proof/time/peak-memory qualification"
+  ]
+}

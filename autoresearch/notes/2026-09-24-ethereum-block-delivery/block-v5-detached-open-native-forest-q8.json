@@ -1,0 +1,90 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "status": "passed",
+  "tests_passed": 8,
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "native_version": 3,
+  "open_parent_version": 2,
+  "transport_version": 1,
+  "test": "block-v5 detached staged five native leaf open forest proves exact outer equations",
+  "native_leaves": 5,
+  "fold_levels": 2,
+  "exact_root_spans": [
+    4,
+    1
+  ],
+  "parent_count": 1,
+  "padding": false,
+  "reused_recursive_leaf_key_and_setup": true,
+  "leaf_proofs_produced_once": true,
+  "actual_recursive_child_equations_at_every_level": true,
+  "all_child_public_supply_claims_closed": true,
+  "staged_leaf_parent_and_outer_files_hash_checked": true,
+  "fresh_receiver_reconstructs_exact_native_policy_and_topology": true,
+  "proof_bytes": {
+    "native_recursive_leaves_total": 647207,
+    "exact_outer": 141474
+  },
+  "allocator_teardown": "std.testing.allocator and retained SharedHostBudget clean",
+  "stage_owned_peak_bytes": 3182242484,
+  "stage_owned_host_limit_bytes": 12884901888,
+  "stage_owned_peak_scope": "All producer-stage-owned proof, snapshot, pin and schedule allocations through one shared bounded allocator. Borrowed native policies/owners and fixture initial leaf proving allocations are excluded. This is not total process RSS or detached receiver peak.",
+  "elapsed_ns": null,
+  "receiver_tracked_peak_bytes": null,
+  "negatives": {
+    "native_q8_recursive_q70_config_mismatch_before_decode_rejected": true,
+    "native_q8_recursive_child_q70_config_mismatch_before_decode_rejected": true,
+    "wrong_independent_outer_policy_id_rejected": true,
+    "wrong_manifest_sha_rejected": true,
+    "changed_outer_proof_byte_rejected": true
+  },
+  "complete_block_authority": false,
+  "global_relations_still_open": [
+    "program",
+    "ordinary universal memory",
+    "global lookup",
+    "precompile",
+    "RW/register/public endpoints"
+  ],
+  "scope": "Five real ordinary ADDI native-v3 segments, five actual reusable native verifier proofs staged once, one actual new OpenV2 quartet proof and one exact outer proof over 4+1 roots. Worker queue publishes fresh-verified durable proof files before releasing dependencies and retains canonical task-index metadata. Manifest read allocates new typed metadata, compares it against separately supplied keys/schedules/public endpoints and reopens all leaf/parent/outer files one at a time. Exact receiver internally checks the actual outer STARK. Input native/source first rounds for other provider families are placeholders.",
+  "limitations": [
+    "Diagnostic q8/PoW0 only; no canonical q70 or mainnet qualification.",
+    "Same-process detached metadata/file reopen; no separate CLI/process gate. Fixture recursive policies come from locally prepared setup before reading transport, rather than an out-of-band deployment policy.",
+    "Five leaves produce only one ready quartet, so this actual proof does not measure concurrent parent overlap; bounded ready queue source supports independent tasks.",
+    "Global claims remain open; the full complete receiver must obtain native receipts internally and close every global provider.",
+    "No elapsed time or full-process/receiver peak measured."
+  ],
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_open_nested_forest_test_root.zig 'block-v5 detached staged five native leaf open forest proves exact outer equations'",
+  "log": "/tmp/v5-open-file-forest.log",
+  "source_sha256_at_recording": {
+    "src/frontends/riscv/prover/block_v5_open_forest_stage_v1.zig": "99ad66e738b6043def27740111d649fe3fffb15153b438b85f9e9fda669dad9c",
+    "src/frontends/riscv/prover/block_v5_open_forest_queue_v1.zig": "d04e71a8100ef68d64ea8232bae0d0f6c9bf8eeff1f015104885501145ac079a",
+    "src/frontends/riscv/prover/block_v5_open_forest_manifest_v1.zig": "9bbcc876ee09bbe38cc19bf0e8a7dfd44a22e4ae0e03466170828be43a0d262c",
+    "src/frontends/riscv/prover/block_v5_open_nested_forest_test.zig": "8f8434bd62cfb6f0b66fbfad8fb0c8503913c9fe51b7ddf10cf45b947116d044",
+    "src/frontends/riscv/prover/block_v5_open_exact_forest_plan_v1.zig": "1a001cdcd7ad2da152f2d75eed38e40b5fe478bdc194bddcf7ee85600a8b0644",
+    "src/frontends/riscv/recursion/block_v5_open_exact_forest_receiver_v1.zig": "cbb5d906e74c175855696e11ef1eacef000aba0931be0f1962b4f08cec7754a4",
+    "src/frontends/riscv/recursion/block_v5_open_child_frames_v2.zig": "1f2d070737d17fe98acd8c70fbcd5e9d3ce2acb2b15b1fa01049db86070c5a57",
+    "src/frontends/riscv/recursion/block_v5_reusable_native_leaf_v1.zig": "e4f7d90eafb1b9a5138aba81e1feb79f71601bdffba4d6f370df06595b431ee0",
+    "src/frontends/riscv/recursion/block_v5_reusable_native_parent_protocol_v1.zig": "60b63b2b9ac5744c8b4c5833a88c103253c7cf97647d9670a8e77bd63562213a",
+    "src/frontends/riscv/recursion/block_v5_reusable_open_parent_protocol_v1.zig": "049b59ee39ef705d3dcca581921af14e862ceba0b264048a0e88b588af985ff6",
+    "src/frontends/riscv/recursion/block_v5_reusable_open_parent_protocol_v2.zig": "91c990bb0d4fa3a759176fe67141baeee4fd5e3436d77abc89da2772a67afd20"
+  },
+  "post_qualification_source_changes": {
+    "src/frontends/riscv/prover/block_v5_open_forest_manifest_v1.zig": [
+      "verifyDetachedPinned explicit independent outer transport pin",
+      "writeWire canonical serializer factoring"
+    ]
+  },
+  "post_qualification_source_change_validation": {
+    "status": "passed",
+    "gate": "root frozen global/API ordinary fresh Globals + Complete + CompleteDetached",
+    "expected_outer_file_pinned_wrapper_runtime": true,
+    "canonical_writeWire_runtime": true,
+    "security_config_child_config_key_negatives": true,
+    "scope": "Separate one-leaf ordinary complete-kernel fixture, reported by root; the five-leaf gate was not repeated."
+  }
+}

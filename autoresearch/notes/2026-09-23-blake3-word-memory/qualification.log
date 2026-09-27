@@ -1,0 +1,30 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test 1/2 passed, 1 failed
+error: 'recursion.air.blake3_memory_boundary_test.test.BLAKE3 Span memory boundary pins exact word clock and word source' failed: MEMORY_BOUNDARY_DIGEST=4fd4e22797641f3660d6d3e5f8732b62071f6d08b1cd73a7d50486194e813e95
+error: while executing test 'recursion.air.blake3_memory_boundary_test.test.BLAKE3 Span memory boundary pins exact word clock and word source', the following test command failed:
+./.zig-cache/products/riscv_cpu/o/fd68306c321652058e1017bf1ee96551/test --cache-dir=./.zig-cache/products/riscv_cpu --seed=0x435434df --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-riscv-statement-codecs transitive failure
++- riscv test suite guard transitive failure
+   +- run test 1/2 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/fa3f63267c4c1dbaa70c2853d35b1bd0/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_cpu /Users/theodorepender/.cache/zig --seed 0x435434df -Z4eaeb1411f808a30 test-riscv-statement-codecs -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 -Driscv-test-filter=BLAKE3 Span memory boundary -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=90c87fc3badac8c76cd4ed3635a99fc9ca9ea9cc01c3db920c11c3cc72f5a6aa
+test-riscv-statement-codecs
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build test-riscv-statement-codecs --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 "-Driscv-test-filter=BLAKE3 Span memory boundary" -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=90c87fc3badac8c76cd4ed3635a99fc9ca9ea9cc01c3db920c11c3cc72f5a6aa
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv-statement-codecs transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/2a527f83ef86cddd6590b96c12cdb237/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x626091b3 -Z851c93d27a9b6f48 --maxrss 25769803776 -j1 test-riscv-statement-codecs -Doptimize=ReleaseFast -Driscv-test-filter=BLAKE3 Span memory boundary --summary all
+
+Build Summary: 2/2 steps succeeded
+test-riscv-statement-codecs success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 5s MaxRSS:463M
+

@@ -1,0 +1,100 @@
+test-blake3-native-parent-aot
++- run test stderr
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+PARENT_PREPARATION phase=validate ns=372167 thread=3597527
+PARENT_PREPARATION phase=composition ns=1387500 thread=3597527
+PARENT_PREPARATION phase=deep ns=16841791 thread=3597527
+PARENT_PREPARATION phase=fri ns=19635459 thread=3597527
+PARENT_PREPARATION phase=transcript_plan ns=6851541 thread=3597527
+PARENT_PREPARATION phase=payloads ns=4315625 thread=3597527
+PARENT_PREPARATION phase=challenges ns=6639209 thread=3597527
+PARENT_PREPARATION phase=terminal ns=4144250 thread=3597527
+PARENT_PREPARATION phase=queries ns=6866916 thread=3597527
+PARENT_PREPARATION phase=roots ns=1913584 thread=3597527
+PARENT_PREPARATION phase=hash_columns ns=67715083 thread=3597527
+PARENT_PREPARATION phase=transcript ns=30347583 thread=3597527
+PARENT_PATH_PREPARATION openings=1540 other_ns=31636757 live_ns=1589962159 trusted_ns=64706673 append_ns=92679452 thread=3597527
+PARENT_PREPARATION phase=paths ns=1779041084 thread=3597527
+PARENT_PREPARATION phase=path_reads ns=2631958 thread=3597527
+PARENT_PREPARATION phase=openings ns=5540792 thread=3597527
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_QUOTIENT_FUSION rows=210 inverse_rows=1944
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59341 arithmetic_rows=171418
+PARENT_PREPARATION phase=assemble ns=155216958 thread=3597527
+PARENT_PREPARATION phase=teardown ns=4968542 thread=3597527
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=129.470958316233
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.172374981455505
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4235000126063824
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9534999737516046
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.27087502530775964
+CANONICAL_PARENT_WORKERS count=8 host_cpus=18
+NATIVE_PARENT_DEVICE_WORK host_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK resident_merkle_commits=23
+NATIVE_PARENT_DEVICE_WORK metal_quotient_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_proof_of_work_dispatches=39
+NATIVE_PARENT_DEVICE_WORK metal_framework_polynomial_dispatches=5
+NATIVE_PARENT_DEVICE_WORK metal_streaming_leaf_dispatches=1216
+NATIVE_PARENT_DEVICE_WORK metal_framework_interaction_dispatches=20
+NATIVE_PARENT_DEVICE_WORK metal_sampled_value_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_circle_transform_dispatches=2
+NATIVE_PARENT_DEVICE_WORK metal_circle_lde_dispatches=81
+NATIVE_PARENT_DEVICE_WORK metal_fri_circle_fold_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_fri_fold_commit_epochs=1
+NATIVE_PARENT_DEVICE_WORK cpu_streaming_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK cpu_composition_components=18
+NATIVE_PARENT_DEVICE_WORK metal_commit_source_uploads=81
+NATIVE_PARENT_METAL dispatches=1390 fallbacks=2
+CANONICAL_PARENT_MEMORY peak_bytes=11992978926 limit_bytes=25769803776
+PARENT_PREPARATION phase=validate ns=578416 thread=3597527
+PARENT_PREPARATION phase=composition ns=2801084 thread=3597527
+PARENT_PREPARATION phase=deep ns=27936875 thread=3597527
+PARENT_PREPARATION phase=fri ns=29501500 thread=3597527
+PARENT_PREPARATION phase=transcript_plan ns=8587916 thread=3597527
+PARENT_PREPARATION phase=payloads ns=6127334 thread=3597527
+PARENT_PREPARATION phase=challenges ns=9637083 thread=3597527
+PARENT_PREPARATION phase=terminal ns=5417000 thread=3597527
+PARENT_PREPARATION phase=queries ns=9355292 thread=3597527
+PARENT_PREPARATION phase=roots ns=2185875 thread=3597527
+PARENT_PREPARATION phase=hash_columns ns=70161291 thread=3597527
+PARENT_PREPARATION phase=transcript ns=45226000 thread=3597527
+PARENT_PATH_PREPARATION openings=1820 other_ns=51073518 live_ns=2241279993 trusted_ns=88301300 append_ns=138586647 thread=3597527
+PARENT_PREPARATION phase=paths ns=2519257750 thread=3597527
+PARENT_PREPARATION phase=path_reads ns=4166542 thread=3597527
+PARENT_PREPARATION phase=openings ns=8280667 thread=3597527
+BLAKE3_NATIVE_QUERY_FUSION groups=19950 removed_scalars=79800
+BLAKE3_NATIVE_QUOTIENT_FUSION rows=70 inverse_rows=2464
+BLAKE3_NATIVE_FUSION dot4=29048 fma=81698 arithmetic_rows=232372
+PARENT_PREPARATION phase=assemble ns=197695750 thread=3597527
+PARENT_PREPARATION phase=teardown ns=6529791 thread=3597527
+CANONICAL_NEXT_COHORT index=0 name=recursion.air.blake3_g_call live=3420032 padded=4194304 main_columns=112
+CANONICAL_NEXT_COHORT index=1 name=recursion.air.blake3_xor_call live=977152 padded=1048576 main_columns=12
+CANONICAL_NEXT_COHORT index=2 name=recursion.air.blake3_boundary live=988805 padded=1048576 main_columns=4
+CANONICAL_NEXT_COHORT index=3 name=recursion.air.qm31_mul_add_v1 live=172023 padded=262144 main_columns=17
+CANONICAL_NEXT_COHORT index=4 name=recursion.air.qm31_inv live=2464 padded=4096 main_columns=14
+CANONICAL_NEXT_COHORT index=5 name=recursion.air.linear_ops live=28767 padded=32768 main_columns=21
+CANONICAL_NEXT_COHORT index=6 name=recursion.air.blake3_challenge_block live=144 padded=256 main_columns=71
+CANONICAL_NEXT_COHORT index=7 name=recursion.air.blake3_byte_route live=739637 padded=1048576 main_columns=12
+CANONICAL_NEXT_COHORT index=8 name=recursion.air.blake3_query_mask live=71 padded=128 main_columns=8
+CANONICAL_NEXT_COHORT index=9 name=recursion.air.blake3_private_word live=193402 padded=262144 main_columns=4
+CANONICAL_NEXT_COHORT index=10 name=recursion.air.blake3_field_bytes live=90809 padded=131072 main_columns=24
+CANONICAL_NEXT_COHORT index=11 name=recursion.air.qm31_pack_wire live=7771 padded=8192 main_columns=4
+CANONICAL_NEXT_COHORT index=12 name=recursion.air.scalar_wire_source live=32918 padded=65536 main_columns=1
+CANONICAL_NEXT_COHORT index=13 name=recursion.air.blake3_path_select live=193200 padded=262144 main_columns=17
+CANONICAL_NEXT_COHORT index=14 name=recursion.air.blake3_retry_control live=144 padded=256 main_columns=12
+CANONICAL_NEXT_COHORT index=15 name=recursion.air.blake3_counter_step live=153 padded=256 main_columns=24
+CANONICAL_NEXT_COHORT index=16 name=recursion.air.readonly_consistency live=86310 padded=131072 main_columns=19
+CANONICAL_NEXT_COHORT index=17 name=recursion.air.readonly_input live=86310 padded=131072 main_columns=5
+CANONICAL_NEXT_COHORT index=18 name=recursion.air.detached_opening_accumulate4_v1 live=9098 padded=16384 main_columns=41
+CANONICAL_NEXT_COHORT index=19 name=recursion.air.native_pcs_opening4_v1 live=19950 padded=32768 main_columns=29
+CANONICAL_NEXT_COHORT index=20 name=recursion.air.qm31_quotient_accumulate_v1 live=70 padded=128 main_columns=21
+CANONICAL_NEXT_PREPARATION child_queries=70 child_pow_bits=26 preparation_ns=2953466416 retained_bytes=2511482140 main_bytes=2071488000 peak_bytes=4422412019 limit_bytes=25769803776 parent_proved=false
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=866453 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40992 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-blake3-native-parent-aot success
++- run test 7 passed 17s MaxRSS:20G
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+

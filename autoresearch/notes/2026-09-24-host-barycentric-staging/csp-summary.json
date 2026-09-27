@@ -1,0 +1,58 @@
+[
+  {
+    "case": "metal-ecdsa_secp256k1-32",
+    "control": {
+      "complete_median_seconds": 0.6588776249999999,
+      "execution_witness_proving_mean_seconds": 0.5183622433333334,
+      "peak_physical_footprint_bytes": 1844709656
+    },
+    "candidate": {
+      "complete_median_seconds": 0.6564648129999999,
+      "execution_witness_proving_mean_seconds": 0.5134039795,
+      "peak_physical_footprint_bytes": 1847216408
+    },
+    "complete_reduction_percent": 0.3662003243773859
+  },
+  {
+    "case": "metal-sha256-128",
+    "control": {
+      "complete_median_seconds": 1.4960552915,
+      "execution_witness_proving_mean_seconds": 1.0347427571666667,
+      "peak_physical_footprint_bytes": 4529016600
+    },
+    "candidate": {
+      "complete_median_seconds": 1.4982020624999999,
+      "execution_witness_proving_mean_seconds": 1.0421042291666667,
+      "peak_physical_footprint_bytes": 4529721136
+    },
+    "complete_reduction_percent": -0.14349543176626067
+  },
+  {
+    "case": "metal-sha256-2048",
+    "control": {
+      "complete_median_seconds": 2.4631288749999998,
+      "execution_witness_proving_mean_seconds": 1.8662848333333333,
+      "peak_physical_footprint_bytes": 8081872560
+    },
+    "candidate": {
+      "complete_median_seconds": 2.3526761875,
+      "execution_witness_proving_mean_seconds": 1.7559994373333332,
+      "peak_physical_footprint_bytes": 8081479032
+    },
+    "complete_reduction_percent": 4.4842431356743155
+  },
+  {
+    "case": "metal-keccak-128",
+    "control": {
+      "complete_median_seconds": 2.3849913750000002,
+      "execution_witness_proving_mean_seconds": 1.819912569,
+      "peak_physical_footprint_bytes": 7817975160
+    },
+    "candidate": {
+      "complete_median_seconds": 2.2698266455000002,
+      "execution_witness_proving_mean_seconds": 1.7036836735,
+      "peak_physical_footprint_bytes": 7816189136
+    },
+    "complete_reduction_percent": 4.828727294663693
+  }
+]

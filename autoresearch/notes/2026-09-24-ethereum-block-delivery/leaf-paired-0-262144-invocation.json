@@ -1,0 +1,11 @@
+{
+  "exit_code": 0,
+  "wall_seconds": 108.80133404099615,
+  "segment_index": 0,
+  "cycles": 262144,
+  "sha256": {
+    "block-leaf-paired": "31c98f8c9e45b9f2e26bc714d84cc67f93a59388d51b2af20b92dd17792f27fe",
+    "ethereum-block.elf": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+    "fixture/stwo-runner-input.bin": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+  }
+}

@@ -1,0 +1,17 @@
+1/16 block_v5_heterogeneous_recursive_test_root.test_0...OK
+2/16 block_v5_heterogeneous_recursive_test_root.test.heterogeneous recursion: actual original typed leaf and common parent bodies are retained...OK
+3/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: all eight genuine typed families preserve explicit subtype and missing legacy fusion...OK
+4/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: original root word frames and integer widths remain exact and cell mutation rejects...OK
+5/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: actual root pairing scalar graph rejects mismatched coordinate and preserves source ordinal...OK
+6/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: root pairing allocation failures and malformed source extent are clean...OK
+7/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: provider has no virtual PC span and public schedule rejects duplicate or relabeled coordinates...OK
+8/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: exact once bookkeeping fails incomplete census without asserting proof authority...OK
+9/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: original pairing equations lower to genuine parent rows and exact public tuple closure...OK
+10/16 prover.block_v5_heterogeneous_child_test_v1.test.heterogeneous recursion: graph lowering validates source identity evaluation ownership and allocation failures...OK
+11/16 prover.block_execution_external_trace_v2.test_0...OK
+12/16 air.lookups.tables.mod.test_0...OK
+13/16 air.semantic_eval.test_0...OK
+14/16 prover.block_execution_external_access_bridge_v2.test_0...OK
+15/16 air.memory_commitment.poseidon2_air.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+All 16 tests passed.

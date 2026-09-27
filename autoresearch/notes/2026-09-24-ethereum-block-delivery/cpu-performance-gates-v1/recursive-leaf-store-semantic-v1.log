@@ -1,0 +1,10 @@
+src/frontends/riscv/block_v5_recursive_leaf_store_codegen.zig:9:86: error: unable to resolve comptime value
+    inline for (std.meta.tags(Execution.Family)) |family| retain(Execution.ForFamily(family));
+                                                                                     ^~~~~~
+src/frontends/riscv/block_v5_recursive_leaf_store_codegen.zig:9:86: note: argument to comptime parameter must be comptime-known
+src/frontends/riscv/prover/block_v5_recursive_execution_leaf_store_v1.zig:23:18: note: parameter declared comptime here
+pub fn ForFamily(comptime family: Family) type {
+                 ^~~~~~~~
+referenced by:
+    stwo_recursive_leaf_store_body_gate: src/frontends/riscv/block_v5_recursive_leaf_store_codegen.zig:8:1
+    comptime: src/frontends/riscv/block_v5_recursive_leaf_store_test_root.zig:5:17

@@ -1,0 +1,13 @@
+1/8 blake3_frame_batch_test_root.test.BLAKE3 root integration compress4 matches all scalar output words...OK
+2/8 blake3_frame_batch_test_root.test.BLAKE3 root integration hashChunk4 matches independent std boundaries and caps...OK
+3/8 blake3_frame_batch_test_root.test.BLAKE3 root integration mixed Frame hash4 preserves canonical std digests...OK
+4/8 blake3_frame_batch_test_root.test.BLAKE3 optional diagnostic rejects limits before starting timed work...OK
+5/8 blake3_frame_batch_test_root.test.BLAKE3 bounded node and PoW kernel diagnostic...BLAKE3_BATCH_KERNEL sample=0 operations=16384 batch_first=false node_scalar_ns=4230750 node_batch4_ns=2703833 pow_scalar_ns=1265125 pow_batch4_ns=1058625
+BLAKE3_BATCH_KERNEL sample=1 operations=16384 batch_first=true node_scalar_ns=3106416 node_batch4_ns=2681083 pow_scalar_ns=1351625 pow_batch4_ns=913708
+BLAKE3_BATCH_KERNEL sample=2 operations=16384 batch_first=true node_scalar_ns=2721375 node_batch4_ns=2234583 pow_scalar_ns=861459 pow_batch4_ns=719917
+BLAKE3_BATCH_KERNEL sample=3 operations=16384 batch_first=false node_scalar_ns=2728667 node_batch4_ns=2013959 pow_scalar_ns=1107750 pow_batch4_ns=724500
+OK
+6/8 blake3_frame_batch_test_root.test.BLAKE3 batched tree layers and compact alias preserve scalar upper tails...OK
+7/8 pcs.blake3_pow_batch.test.BLAKE3 PoW batch matches streaming hash at nonce carries and full difficulty...OK
+8/8 vcs_lifted.compact_blake3_leaf.test.compact BLAKE3 leaf storage matches standard across every admitted column count...OK
+All 8 tests passed.

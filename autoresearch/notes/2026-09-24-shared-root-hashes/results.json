@@ -1,0 +1,258 @@
+[
+  {
+    "index": 0,
+    "variant": "control",
+    "binary_sha256": "38ba0f41ed374e24d3184674ebb9d72b244f120ccc9c835f7aa3e93dde861438",
+    "wall_seconds": 63.60105316701811,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "918746",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "911657",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "904156",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7128257583"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "12753189542"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7255757791"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "13178825792"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "8623008666"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "14261624583"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "30309734580",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 45152888104,
+    "peak_rss_bytes": 42840244224
+  },
+  {
+    "index": 1,
+    "variant": "candidate",
+    "binary_sha256": "f615c22fb69afd4d5b0e9f61eccebaf8bc58c799f53f00fd535d60672d2cd9ee",
+    "wall_seconds": 63.17701549999765,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909260",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909096",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "909371",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6852151583"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "12921084416"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7134005167"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "13125989792"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "8341012334"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "13826665084"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "29832517385",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 44783526920,
+    "peak_rss_bytes": 42471112704
+  },
+  {
+    "index": 2,
+    "variant": "candidate",
+    "binary_sha256": "f615c22fb69afd4d5b0e9f61eccebaf8bc58c799f53f00fd535d60672d2cd9ee",
+    "wall_seconds": 62.92149666597834,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909260",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909096",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "909371",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6903804417"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "13117156167"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7183479167"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "13172235042"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "8243885625"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "13915009125"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "29832517385",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 44783477720,
+    "peak_rss_bytes": 42471079936
+  },
+  {
+    "index": 3,
+    "variant": "control",
+    "binary_sha256": "38ba0f41ed374e24d3184674ebb9d72b244f120ccc9c835f7aa3e93dde861438",
+    "wall_seconds": 64.85609108299832,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "918746",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "911657",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "904156",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7310422375"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "13079244834"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7535787167"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "13306088709"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "8699376625"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "14537210833"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "30309734580",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 45152806136,
+    "peak_rss_bytes": 42838933504
+  }
+]

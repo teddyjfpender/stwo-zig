@@ -1,0 +1,58 @@
+{
+  "scope": "Canonical fold operand publication/load, atomic streaming artifact publisher; existing original spool consumer and real collect/Job bodies retained without invoking PAGE or STARK proofs.",
+  "candidate": "fold-operand-streaming-source-candidate-v1.json",
+  "attempts": [
+    {
+      "result": "fold-operand-streaming-semantic-v2-result.json",
+      "source_pins": 1723,
+      "tests": 0,
+      "seconds": 0.23851383302826434,
+      "binary": null
+    },
+    {
+      "result": "fold-operand-streaming-focused-v1-result.json",
+      "source_pins": 1723,
+      "tests": 6,
+      "seconds": 1.2704232500400394,
+      "binary": {
+        "path": "/tmp/block-v5-fold-operand-streaming-focused-v1",
+        "bytes": 1694344,
+        "sha256": "2ce8a7cedc8f8cda1f55c58e5a5cd3e3ad7977f341c4d7f49361cc3cc807d7f0"
+      }
+    },
+    {
+      "result": "fold-operand-streaming-consumer-semantic-v1-result.json",
+      "source_pins": 1821,
+      "tests": 0,
+      "seconds": 0.5747054169769399,
+      "binary": null
+    },
+    {
+      "result": "fold-operand-streaming-consumer-focused-v1-result.json",
+      "source_pins": 1821,
+      "tests": 5,
+      "seconds": 2.796188542037271,
+      "binary": {
+        "path": "/tmp/block-v5-fold-operand-streaming-consumer-focused-v1",
+        "bytes": 6136960,
+        "sha256": "6242473ecc85c1dddb7c07889796ba30c7994a7847555ef0b324f3979122f698"
+      }
+    }
+  ],
+  "failed_attempts": [
+    "fold-operand-streaming-semantic-v1-result.json"
+  ],
+  "streaming_behavioral_tests": 5,
+  "original_consumer_behavioral_tests": 3,
+  "total_checks": 11,
+  "buffer_bytes": 16000,
+  "eliminated_encoded_page_heap_bytes_at_4096_records": 1024096,
+  "format_and_pin_parity": "Complete previous-envelope oracle at1/63/64/65/129/4096 records; unchanged original record codec and SHA256 pins.",
+  "allocation_evidence": "Publication succeeds with allocator denying all allocation; loading succeeds with heap sized only for decoded operations plus alignment; complete allocation failure rollback.",
+  "speed_measured": false,
+  "process_peak_memory_measured": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "remaining": "Whole census spool and per-page operand files still duplicate durable record storage/IO; this change removes redundant heap staging only. Final source/global closure and canonical e2e measurements remain open."
+}

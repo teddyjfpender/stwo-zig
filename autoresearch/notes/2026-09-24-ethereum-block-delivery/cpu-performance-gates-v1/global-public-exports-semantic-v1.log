@@ -1,0 +1,14 @@
+src/frontends/riscv/air/public_logup_arithmetic.zig:83:74: error: type '[]const fields.m31.M31' does not support array initialization syntax
+    try addInverseFor(S, &result, relations.registers_state.combineBase(.{
+                                                                        ~^
+src/frontends/riscv/air/public_logup_arithmetic.zig:83:74: note: inferred array length is specified with an underscore: '[_]fields.m31.M31'
+referenced by:
+    derivedTerms__anon_18768: src/frontends/riscv/recursion/block_v5_global_public_export_policy_v1.zig:22:50
+    init: src/frontends/riscv/recursion/block_v5_global_public_export_policy_v1.zig:119:64
+    6 reference(s) hidden; use '-freference-trace=8' to see all references
+src/frontends/riscv/air/public_logup_arithmetic.zig:119:86: error: array literal requires address-of operator (&) to coerce to slice type '[]const fields.m31.M31'
+        try addInverseFor(S, &result, relations.memory_access.combineBase(memoryTuple(
+                                                                          ~~~~~~~~~~~^
+src/frontends/riscv/air/public_logup_arithmetic.zig:119:86: error: array literal requires address-of operator (&) to coerce to slice type '[]const fields.m31.M31'
+        try addInverseFor(S, &result, relations.memory_access.combineBase(memoryTuple(
+                                                                          ~~~~~~~~~~~^

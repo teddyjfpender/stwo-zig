@@ -1,0 +1,7 @@
+1/2 air.guest_precompile.sha256_compression_graph_test.test.SHA graph closes complete typed compression and rejects broken boundaries...OK
+2/2 air.guest_precompile.sha256_compression_graph_test.test.SHA graph is acyclic and all sources and operations have live consumers...SHA_CALL kind=round main=165 fixed=15 digest=42675e1965b802d02c19d20f693a0b1090cda59a5e132f37237a344e8e8aa09c
+SHA_CALL kind=schedule main=89 fixed=7 digest=f259f992cc18c0ea0f41b40df8e28430bda08fd782c92c0d39ab874e07a58ade
+SHA_CALL kind=feed_forward main=17 fixed=5 digest=ef76a5c1a9ee0912e6b9efde5e2f8368a24e88a178bfbe63b88242d5d40f1106
+SHA_SOURCE digest=0a79e0274e7ab21fac36ac10fc0034f10ec871e0128e0f9f29301272c60532b2
+OK
+All 2 tests passed.

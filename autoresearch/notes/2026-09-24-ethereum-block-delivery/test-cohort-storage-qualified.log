@@ -1,0 +1,4 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 28s
+1/1 recursion.air.blake3_parent_row_storage.test.consumed parent rows release all allocations and tolerate final cleanup...OK
+All 1 tests passed.

@@ -1,0 +1,17 @@
+{
+  "scope": "one terminal SHA/Keccak/SHA segment; not an Ethereum block",
+  "security": { "queries": 70, "pow_bits": 26 },
+  "fresh_verification": [
+    "native execution", "opcode access sidecar", "SHA/Keccak access sidecar",
+    "sorted memory", "public initial RW image", "memory byte-range tables",
+    "opcode byte-range tables", "extension byte-range tables",
+    "recursive leaf", "exact outer root"
+  ],
+  "accesses": { "opcode": 5, "extension": 103, "total": 108 },
+  "recursive_leaf_bytes": 977154,
+  "exact_outer_bytes": 936468,
+  "recursive_leaf_prove_ns": 34042364333,
+  "exact_outer_prove_ns": 14371372750,
+  "tracked_recursion_peak_bytes": 13729830183,
+  "validation": "ReleaseFast focused test: 8/8 passed"
+}

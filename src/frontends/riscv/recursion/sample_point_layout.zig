@@ -23,6 +23,9 @@ pub const Layout = enum(u8) {
     previous_current = 3,
     secp256k1_main = 4,
     keccak_state = 5,
+    /// Original fused Keccak state: exactly two samples, current and final
+    /// round (+27), with a separately authenticated physical slot step.
+    current_keccak_final = 6,
 
     pub fn offsets(self: Layout) []const isize {
         return switch (self) {
@@ -32,6 +35,7 @@ pub const Layout = enum(u8) {
             .previous_current => &.{ -1, 0 },
             .secp256k1_main => &masks.SECP256K1_MAIN_MASK_OFFSETS,
             .keccak_state => &masks.KECCAKF_STATE_MASK_OFFSETS,
+            .current_keccak_final => &.{ 0, 27 },
         };
     }
 
@@ -75,6 +79,13 @@ pub fn classifyColumn(
         },
         else => error.SamplePointLayoutMismatch,
     };
+}
+
+/// Explicit fused-only vocabulary. Existing generic mask admission remains
+/// unchanged, and callers must bind the physical step in their trusted profile.
+pub fn classifyKeccakPair(points: []const CirclePointQM31, current: CirclePointQM31, physical_previous: CirclePointQM31) Error!Layout {
+    if (points.len != 2 or !points[0].eql(current) or !points[1].eql(current.add(current.sub(physical_previous).mulSigned(27)))) return error.SamplePointLayoutMismatch;
+    return .current_keccak_final;
 }
 
 /// Accepts the complete protocol vocabulary for one sampled column:

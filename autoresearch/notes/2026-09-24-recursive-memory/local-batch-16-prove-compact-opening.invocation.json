@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-16.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-16.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-16-prove-compact-opening.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-16-prove-compact-opening.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 1800,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "bd19400b4d770b53892ad629e852b55ca6dee7910046938f9363c34fbca71ffb",
+    "eth-auth-stwo.elf": "988e26742a18c9d7fd2c073a0fa3b40fa80eeb14d30a1a7eb60486abad478e0a",
+    "fixtures/batch-16.input": "e961f296f550d5d6797f464ef01d1e032417642098100e57f3e593aa87df79af",
+    "fixtures/batch-16.expected": "7929a6d4808010177757936d0b8f241bd049f1d300a7969490919741a72d0c6b"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 2644.06M  free = 1451.94M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 87.67467604199192,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 2644.06M  free = 1451.94M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "output_checked": true
+}

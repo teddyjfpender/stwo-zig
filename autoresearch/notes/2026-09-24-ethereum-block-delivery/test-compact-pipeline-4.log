@@ -1,0 +1,9 @@
+1/8 coefficient_storage_test_root.test_0...OK
+2/8 coefficient_storage_test_root.test_1...OK
+3/8 pcs.coefficient_storage_test.test.coefficient storage openings preserve mixed columns, duplicates, pruned hashes and shared leases...OK
+4/8 pcs.coefficient_storage_test.test.coefficient storage cleans up every opening and compaction allocation failure...OK
+5/8 pcs.coefficient_storage_test.test.coefficient storage quotient folding matches full LDEs across domains and sample batches...OK
+6/8 pcs.coefficient_storage_test.test.coefficient storage lazy quotient pipeline matches bounded CPU including unsampled zero columns...OK
+7/8 pcs.coefficient_storage_test.test.coefficient storage incremental commitments match materialized roots and openings...OK
+8/8 vcs_lifted.compact_blake3_leaf.test.compact BLAKE3 leaf storage matches standard across every admitted column count...OK
+All 8 tests passed.

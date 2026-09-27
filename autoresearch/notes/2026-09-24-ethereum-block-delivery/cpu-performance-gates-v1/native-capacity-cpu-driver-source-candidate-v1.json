@@ -1,0 +1,218 @@
+{
+  "schema": "block-v5-capacity-cpu-driver-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "cli_default_changed": false,
+  "tests_run_by_agent": false,
+  "guest_executed": false,
+  "pcs_committed": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_driver_common_v1.zig",
+      "sha256": "c0dadc4dcbb76c9286958f2702f6cc6779cea5b7f2fb6b2b1006d38ba8eecb17"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_driver_v1.zig",
+      "sha256": "e7404a59404607582e771feaf4248fe319acfc60b4ae29126a5a1b12b4250186"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_driver_v1.zig",
+      "sha256": "21ed312dabb09a3d01acc4cdc45963417b5bedecf6e6fc944d5562e0a90bf563"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_driver_test_v1.zig",
+      "sha256": "ffbdf99c13c6656a7f24742f097dbe1f7dd4ac169e878381eecb3b212847c0b7"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_cpu_capacity_driver_test_root.zig",
+      "sha256": "f67a9e046b516146f1108ac6914599fc3ac77e1692d0084b7d5a3f93f0ec84de"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_cpu_capacity_driver_codegen.zig",
+      "sha256": "471a236ce77afce6a3953bba8cdbd882fa5c647fc3af3e47e96b203edc07bb5a"
+    }
+  ],
+  "integration_dependency_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_block_producer_v1.zig",
+      "sha256": "ad02b83186842b53c16e2e2de390b180d4826f3267a587a894dadd59840511a5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_staged_execution_source_v1.zig",
+      "sha256": "3b361ce0fc25a0f0644e62106ba640b492b352d3015a006d22df019cfb564d46"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_staged_execution_source_common_v1.zig",
+      "sha256": "54040340393ca33bab9b9f63f1babcad2590934ed206c724365cde22738f8ba0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_driver_admission_common_v1.zig",
+      "sha256": "fe265c7dc9a274cc45b3d1a32832feb162cc0bf3812a2bd26abddbd89744f96b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig",
+      "sha256": "e32d7f733363a4cea260bbf5032c0e330609107371ea30fda0d116a1c98921c5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig",
+      "sha256": "b4a9e9936646f95756068908f7b9676b646b939632802ef10642845c21d22eaf"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_first_round_v1.zig",
+      "sha256": "6cf30b695edb9888b617c7b2ec0f409615413d71e420c840832109eaad41b477"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_store_impl_v1.zig",
+      "sha256": "e3f2aff7e69174f12d661731052dfeaa62f991a1c23d05df9af3544f35980b44"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_policy_impl_v1.zig",
+      "sha256": "df41256ef3ca0652cf472ee4646b081682ea4c3478f981b2dd8b60c404fd9080"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_receiver_policy_file_impl_v1.zig",
+      "sha256": "c88fc063996709991d659a0204ad9aafc11ec4347063bc30aab7332fab2891f3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_detached_receive_impl_v1.zig",
+      "sha256": "7bc5dea0c5a7617d90163989f97d11d6864337fbc6152ccc049b267332afd7ea"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_stage_v1.zig",
+      "sha256": "f69b231137dec365bcc31b6141bbfe87a4ea00e926239caca2bbf845c20f0a07"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_stage_v1.zig",
+      "sha256": "e12e61843fcc7ea805e44811097dd841cbb1c136601ab25c16589be65108da6f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_admission_v1.zig",
+      "sha256": "a5468978cde896e3800f97053aa217c874d092e5debbfacdd6f82ff4b79d2da8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "9c312db9a8ca9c70a5d45b5abbe3baceb83739ec6e97390e4d4f5aa00b228cb9"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_open_forest_stage_v1.zig",
+      "sha256": "08e16fd492aa732ad35c71fd80b96b048c1ad821848a2cb105feadb5890aaa7d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_open_forest_manifest_v1.zig",
+      "sha256": "11282e3290fcc7bce74779d5b200de476c92afa34de40b40c756208a9cf566d3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_receiver_impl_v1.zig",
+      "sha256": "0f43e3fb6e60212cfe6fa7c1d34cbea4f436d07b3cd8f351bfaaffe79c04e75c"
+    }
+  ],
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "capacity driver:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_cpu_capacity_driver_test_root.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-capacity-cpu-driver-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_cpu_capacity_driver_codegen.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "pure_named_tests": 4,
+  "body_export": "stwo_capacity_cpu_driver_body_gate",
+  "body_executed": false,
+  "scope": "One shared actual CPU orchestrator with explicit genuine capacity warm fused/native recursive publication and mandatory fresh detached all-family verification; default NativeV3 preserved. Pure type/security/scheduling checks and actual dual run body retention only."
+}

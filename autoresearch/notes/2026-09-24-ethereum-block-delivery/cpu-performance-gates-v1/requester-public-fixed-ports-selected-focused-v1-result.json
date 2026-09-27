@@ -1,0 +1,22 @@
+{
+  "source_candidate": "requester-public-fixed-ports-selected-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 25.391422833956312,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 22,
+  "test_summary": [
+    "All 22 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-fixed-ports-selected-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-requester-public-fixed-ports-selected-focused-v1",
+    "bytes": 45083128,
+    "sha256": "877a9bdcc3076cbb5167ebc243db9ef9286b088d18b3251f14155c9b31638380"
+  }
+}

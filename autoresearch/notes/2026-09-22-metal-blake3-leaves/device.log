@@ -1,0 +1,69 @@
+test-blake3-parent-chain
++- run test stderr
+BLAKE3_METAL_PARENT depth=1 levels=1 reuse=0 gpu_ms=0.031416668207384646
+BLAKE3_METAL_PARENT depth=1 levels=1 reuse=1 gpu_ms=0.02937500539701432
+BLAKE3_METAL_PARENT depth=5 levels=5 reuse=0 gpu_ms=0.07558333163615316
+BLAKE3_METAL_PARENT depth=5 levels=5 reuse=1 gpu_ms=0.26375000015832484
+BLAKE3_METAL_PARENT depth=11 levels=11 reuse=0 gpu_ms=0.14625000767409801
+BLAKE3_METAL_PARENT depth=11 levels=11 reuse=1 gpu_ms=0.14749998808838427
+BLAKE3_METAL_PARENT depth=11 levels=1 reuse=0 gpu_ms=0.03199999628122896
+BLAKE3_METAL_PARENT depth=11 levels=1 reuse=1 gpu_ms=0.03191667201463133
+test-blake3-leaves
++- run test 16/18 passed, 2 failed
+error: 'shaders.aot_profile.test.Ethereum AOT profile preserves exact core authority and admits five separate declarations' failed: BLAKE3_METAL_LEAF columns=1 reuse=0 gpu_ms=0.033833333873189986
+BLAKE3_METAL_LEAF columns=1 reuse=1 gpu_ms=0.028416659915819764
+BLAKE3_METAL_LEAF columns=8 reuse=0 gpu_ms=0.03629167622420937
+BLAKE3_METAL_LEAF columns=8 reuse=1 gpu_ms=0.03533334529493004
+BLAKE3_METAL_LEAF columns=9 reuse=0 gpu_ms=0.036666664527729154
+BLAKE3_METAL_LEAF columns=9 reuse=1 gpu_ms=0.028541660867631435
+BLAKE3_METAL_LEAF columns=10 reuse=0 gpu_ms=0.048874993808567524
+BLAKE3_METAL_LEAF columns=10 reuse=1 gpu_ms=0.03845832543447614
+BLAKE3_METAL_LEAF columns=248 reuse=0 gpu_ms=0.779500012868084
+BLAKE3_METAL_LEAF columns=248 reuse=1 gpu_ms=0.39916667446959764
+BLAKE3_METAL_LEAF columns=249 reuse=0 gpu_ms=0.40299999818671495
+BLAKE3_METAL_LEAF columns=249 reuse=1 gpu_ms=0.3942500043194741
+BLAKE3_METAL_LEAF columns=250 reuse=0 gpu_ms=0.4092500021215528
+BLAKE3_METAL_LEAF columns=250 reuse=1 gpu_ms=0.4180416726740077
+BLAKE3_METAL_LEAF columns=505 reuse=0 gpu_ms=0.7341666641877964
+BLAKE3_METAL_LEAF columns=505 reuse=1 gpu_ms=0.7696250104345381
+BLAKE3_METAL_LEAF columns=506 reuse=0 gpu_ms=0.7862500060582533
+BLAKE3_METAL_LEAF columns=506 reuse=1 gpu_ms=0.8125000022118911
+BLAKE3_METAL_LEAF columns=761 reuse=0 gpu_ms=1.2161250051576644
+BLAKE3_METAL_LEAF columns=761 reuse=1 gpu_ms=1.107166666770354
+BLAKE3_METAL_LEAF columns=762 reuse=0 gpu_ms=1.2301249953452498
+BLAKE3_METAL_LEAF columns=762 reuse=1 gpu_ms=1.102458336390555
+BLAKE3_METAL_LEAF columns=1017 reuse=0 gpu_ms=1.4377499901456758
+BLAKE3_METAL_LEAF columns=1017 reuse=1 gpu_ms=1.4296666631707922
+BLAKE3_METAL_LEAF columns=1018 reuse=0 gpu_ms=1.4738750032847747
+BLAKE3_METAL_LEAF columns=1018 reuse=1 gpu_ms=1.4534583315253258
+BLAKE3_METAL_LEAF columns=2042 reuse=0 gpu_ms=3.1048333330545574
+BLAKE3_METAL_LEAF columns=2042 reuse=1 gpu_ms=2.857708328519948
+
+====== expected this output: =========
+c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786␃
+
+======== instead found this: =========
+ff9a1e6d776c7e6c310b5d1cfc014563dca83e3f245b8a90e7b6690985288153␃
+
+======================================
+First difference occurs on line 1:
+expected:
+c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786
+^ ('\x63')
+found:
+ff9a1e6d776c7e6c310b5d1cfc014563dca83e3f245b8a90e7b6690985288153
+^ ('\x66')
+error: 'shaders.aot_profile.test.recursive framework AOT profile preserves core authority and exact declaration coverage' failed
+error: while executing test 'shaders.abi_declaration_digest.test.kernel declaration lookup fails closed', the following test command failed:
+./.zig-cache/o/f20877a7a3ce36a4356b1d9b86bb3054/test --cache-dir=./.zig-cache --seed=0xe770d573 --listen=-
+
+Build Summary: 4/6 steps succeeded; 1 failed; 18/20 tests passed; 2 failed
+test-blake3-leaves transitive failure
++- run test 16/18 passed, 2 failed
+   +- compile test ReleaseSafe native success 5s MaxRSS:485M
+test-blake3-parent-chain success
++- run test 2 passed 3s MaxRSS:58M
+   +- compile test ReleaseSafe native success 3s MaxRSS:382M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/9eeecd2202d9e8bbaef33b77d97b734c/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0xe770d573 -Z5087f18546182059 --maxrss 25769803776 -j1 test-blake3-leaves test-blake3-parent-chain -Doptimize=ReleaseSafe --summary all

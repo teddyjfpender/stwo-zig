@@ -1,0 +1,8 @@
+{'arm': 'after', 'witness_ms': 2.037, 'prove_production_ms': 83.023, 'verify_ms': 8.642, 'total_ms': 91.66499999999999, 'stages_ms': [2.037, 10.071, 5.718, 1.823, 6.538, 56.836, 8.642]}
+{'arm': 'before', 'witness_ms': 10.298, 'prove_production_ms': 92.764, 'verify_ms': 8.139, 'total_ms': 100.90299999999999, 'stages_ms': [10.298, 13.511, 6.981, 2.723, 7.534, 51.717, 8.139]}
+{'arm': 'before', 'witness_ms': 4.511, 'prove_production_ms': 72.365, 'verify_ms': 7.915, 'total_ms': 80.28, 'stages_ms': [4.511, 7.474, 5.227, 1.763, 6.338, 47.052, 7.915]}
+{'arm': 'after', 'witness_ms': 0.609, 'prove_production_ms': 68.578, 'verify_ms': 7.883, 'total_ms': 76.461, 'stages_ms': [0.609, 7.437, 5.287, 1.825, 6.245, 47.175, 7.883]}
+{'arm': 'before', 'witness_ms': 4.31, 'prove_production_ms': 73.50699999999999, 'verify_ms': 7.973, 'total_ms': 81.47999999999999, 'stages_ms': [4.31, 7.326, 5.225, 1.776, 6.207, 48.663, 7.973]}
+{'arm': 'after', 'witness_ms': 0.616, 'prove_production_ms': 68.294, 'verify_ms': 8.092, 'total_ms': 76.386, 'stages_ms': [0.616, 7.236, 5.415, 1.784, 6.319, 46.924, 8.092]}
+{'arm': 'after', 'witness_ms': 0.608, 'prove_production_ms': 67.893, 'verify_ms': 8.242, 'total_ms': 76.135, 'stages_ms': [0.608, 7.197, 5.241, 1.736, 6.355, 46.756, 8.242]}
+{'arm': 'before', 'witness_ms': 4.671, 'prove_production_ms': 73.854, 'verify_ms': 7.976, 'total_ms': 81.83, 'stages_ms': [4.671, 7.326, 5.29, 1.766, 6.181, 48.62, 7.976]}

@@ -1,0 +1,70 @@
+1/7 blake3_metal_qualification_test_root.test.Metal canonical four-leaf BLAKE3 aggregation tree...BLAKE3_NATIVE_HASH_DEVICE covered=8/8
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_NATIVE_QUERY_FUSION groups=7280 removed_scalars=29120
+BLAKE3_NATIVE_FUSION dot4=14929 fma=56644 arithmetic_rows=159724
+BLAKE3_NATIVE_QUERY_FUSION groups=7280 removed_scalars=29120
+BLAKE3_NATIVE_FUSION dot4=14929 fma=56646 arithmetic_rows=159720
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=5826858667
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=28 gpu_ms=116.39162499341182
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.4177083182148635
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.0015000083949417
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9698750111274421
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.2721250057220459
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=5599158250
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=845993 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=7420 removed_scalars=29680
+BLAKE3_NATIVE_FUSION dot4=13774 fma=56458 arithmetic_rows=157859
+BLAKE3_NATIVE_QUERY_FUSION groups=8260 removed_scalars=33040
+BLAKE3_NATIVE_FUSION dot4=17883 fma=58717 arithmetic_rows=167838
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=6279394083
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=28 gpu_ms=116.28149999887682
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.43450000602752
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.007499995874241
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9638750236481428
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.28062501223757863
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=5505953417
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=849496 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=17570 removed_scalars=70280
+BLAKE3_NATIVE_QUERY_FUSION groups=17570 removed_scalars=70280
+BLAKE3_NATIVE_FUSION dot4=27604 fma=81749 arithmetic_rows=230269
+BLAKE3_NATIVE_FUSION dot4=27604 fma=81749 arithmetic_rows=230269
+CANONICAL_TREE_CHILD_PREPARATION workers=2 reused_after_failure=true
+CANONICAL_TREE_PHASE phase=root_preparation ns=3414876625
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=28 gpu_ms=232.2111249959562
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.585083341225982
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=2.9914166661910713
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=2 gpu_ms=3.970000019762665
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5424166738521308
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=2 ns=10367912333
+BLAKE3_TREE_NODE verified=true height=2 artifact_bytes=889364 queries=70 pow_bits=26
+CANONICAL_TREE_BUDGET peak_bytes=26459992736 limit_bytes=51539607552
+BLAKE3_TREE_PARAMETERS leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 canonical=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=4199425192
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       37.36 real        68.07 user        10.39 sys
+         37116903424  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             9965327  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   1  voluntary context switches
+               42144  involuntary context switches
+        839316277025  instructions retired
+        327575271346  cycles elapsed
+         39160848120  peak memory footprint

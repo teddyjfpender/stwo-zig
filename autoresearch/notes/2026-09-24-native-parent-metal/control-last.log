@@ -1,0 +1,51 @@
+1/7 blake3_metal_qualification_test_root.test.Metal compact canonical native BLAKE3 parent matches CPU qualification...BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.013237,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":4.671844,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":1.77475,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":5.774622,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":1.743456,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":5.269888,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000004,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.00002,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.765366,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.006417,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.034306,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.015006,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":4.000569,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000062,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.306315,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.011931,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.031136,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.040454,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000089,"children":null}]}]}
+NATIVE_PARENT_DEVICE_WORK host_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK resident_merkle_commits=23
+NATIVE_PARENT_DEVICE_WORK metal_quotient_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_proof_of_work_dispatches=38
+NATIVE_PARENT_DEVICE_WORK metal_framework_polynomial_dispatches=5
+NATIVE_PARENT_DEVICE_WORK metal_streaming_leaf_dispatches=1216
+NATIVE_PARENT_DEVICE_WORK metal_circle_transform_dispatches=2
+NATIVE_PARENT_DEVICE_WORK metal_circle_lde_dispatches=79
+NATIVE_PARENT_DEVICE_WORK metal_fri_circle_fold_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_fri_fold_commit_epochs=1
+NATIVE_PARENT_DEVICE_WORK cpu_streaming_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK cpu_sampled_value_evaluations=1
+NATIVE_PARENT_DEVICE_WORK cpu_composition_components=17
+NATIVE_PARENT_DEVICE_WORK metal_commit_source_uploads=79
+NATIVE_PARENT_METAL dispatches=1366 fallbacks=3
+CANONICAL_PARENT_MEMORY peak_bytes=12412536622 limit_bytes=25769803776
+BLAKE3_PARENT_ARTIFACT_SHA256 87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=857591 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40432 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       31.94 real        41.61 user         3.20 sys
+         20884848640  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2905408  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               11073  involuntary context switches
+        673506127259  instructions retired
+        196135542423  cycles elapsed
+         27381526816  peak memory footprint

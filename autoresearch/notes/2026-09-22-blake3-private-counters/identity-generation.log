@@ -1,0 +1,28 @@
+test-blake3-counter-step
++- BLAKE3 counter step guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.blake3_counter_step_test.test.BLAKE3 counter step pins checked u64 byte carries' failed: counter digest: ffff10e710fb18dd0e9d0f442ed4ac62a7458e774d90e8f22e05f060377794dd
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+FF FF 10 E7 10 FB 18 DD  0E 9D 0F 44 2E D4 AC 62  ...........D...b
+A7 45 8E 77 4D 90 E8 F2  2E 05 F0 60 37 77 94 DD  .E.wM......`7w..
+
+================================================
+error: while executing test 'recursion.air.blake3_counter_step_test.test.BLAKE3 counter step pins checked u64 byte carries', the following test command failed:
+./.zig-cache/o/b55a7def8bba8dfb9fb4f4423b86f58c/test --cache-dir=./.zig-cache --seed=0x959dfe9f --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-blake3-counter-step transitive failure
++- BLAKE3 counter step guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:633M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/343c1c44d604f0e59f09103fc3fb01e7/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x959dfe9f -Z5998f7e3817ae76d --maxrss 25769803776 -j1 test-blake3-counter-step -Doptimize=ReleaseSafe --summary all

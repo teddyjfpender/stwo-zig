@@ -1,0 +1,4 @@
+1/3 metal_resident_budget_test_root.test.resident budget: private Merkle extent matches every padded layer...OK
+2/3 metal_resident_budget_test_root.test.resident budget: no-copy aliases cost zero only for exact aligned extents...OK
+3/3 metal_resident_budget_test_root.test.resident budget: interaction envelopes retain only output after checked scan completion...OK
+All 3 tests passed.

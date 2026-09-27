@@ -104,12 +104,17 @@ pub fn logicalRow(schedule: Schedule, accumulator: QM31, lhs: [TERM_COUNT]QM31, 
         result[21 + term * 4 ..][0..4].* = right.toM31Array();
     }
     result[37..41].* = output.toM31Array();
-    const pp = result[PHYSICAL_MAIN_COLUMN_COUNT..];
+    result[PHYSICAL_MAIN_COLUMN_COUNT..].* = try fixedRow(schedule);
+    return result;
+}
+/// Original opening wire schedule without any private arithmetic operands.
+pub fn fixedRow(schedule: Schedule) ![PREPROCESSED_COLUMN_COUNT]M31 {
+    var pp: [PREPROCESSED_COLUMN_COUNT]M31 = undefined;
     pp[0] = M31.one();
     const words = .{ schedule.circuit, schedule.accumulator } ++ schedule.lhs ++ schedule.rhs ++ .{ schedule.output, schedule.uses };
     for (pp[1..], words) |*field, word| {
         if (word >= core.fields.m31.Modulus) return error.InvalidDetachedOpeningAccumulate4;
         field.* = M31.fromCanonical(word);
     }
-    return result;
+    return pp;
 }

@@ -1,0 +1,15 @@
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:64:30: error: ambiguous reference
+        const expected = try init(self.policy);
+                             ^~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:57:9: note: declared here
+    pub fn init(policy: Policy) !Summary {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:288:5: note: also declared here
+pub const init = Owner.init;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_plan_v1.zig:166:42: error: capture shadows declaration of 'node'
+        for (geometry.nodes, summaries) |node, *summary| {
+                                         ^~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_plan_v1.zig:204:9: note: declared here
+    pub fn node(self: *const Owned, index: u32, expected: [32]u8) !Node {
+    ~~~~^~

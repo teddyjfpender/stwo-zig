@@ -1,0 +1,127 @@
+BLOCK_STREAM preflight_cycles=21635 proof_segments=16 preflight_ns=9258541
+BLAKE3_NATIVE_QUERY_FUSION groups=19810 removed_scalars=79240
+BLAKE3_NATIVE_FUSION dot4=804835 fma=139068 arithmetic_rows=1385458
+BLOCK_STREAM proved_segments=1/16 paired=false retained_nodes=1 peak_bytes=16788764268 elapsed_ns=24465467500
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137183 arithmetic_rows=1365168
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=2/16 paired=false retained_nodes=1 peak_bytes=19010161948 elapsed_ns=66772037333
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137183 arithmetic_rows=1365168
+BLOCK_STREAM proved_segments=3/16 paired=false retained_nodes=2 peak_bytes=19010161948 elapsed_ns=91607882833
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137183 arithmetic_rows=1365168
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=4/16 paired=false retained_nodes=1 peak_bytes=19011588200 elapsed_ns=153342134916
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137185 arithmetic_rows=1365170
+BLOCK_STREAM proved_segments=5/16 paired=false retained_nodes=2 peak_bytes=19011588200 elapsed_ns=179130048375
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137182 arithmetic_rows=1365168
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=6/16 paired=false retained_nodes=2 peak_bytes=19011623286 elapsed_ns=223037740791
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137183 arithmetic_rows=1365168
+BLOCK_STREAM proved_segments=7/16 paired=false retained_nodes=3 peak_bytes=19011623286 elapsed_ns=248835082833
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792288 fma=137186 arithmetic_rows=1365170
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLOCK_STREAM proved_segments=8/16 paired=false retained_nodes=1 peak_bytes=19013031709 elapsed_ns=328437831000
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792289 fma=137183 arithmetic_rows=1365168
+BLOCK_STREAM proved_segments=9/16 paired=false retained_nodes=2 peak_bytes=19013031709 elapsed_ns=353921902000
+BLAKE3_NATIVE_QUERY_FUSION groups=21910 removed_scalars=87640
+BLAKE3_NATIVE_FUSION dot4=812199 fma=141510 arithmetic_rows=1399851
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=10/16 paired=false retained_nodes=2 peak_bytes=19370012990 elapsed_ns=397662780875
+BLAKE3_NATIVE_QUERY_FUSION groups=22050 removed_scalars=88200
+BLAKE3_NATIVE_FUSION dot4=809314 fma=141193 arithmetic_rows=1395738
+BLOCK_STREAM proved_segments=11/16 paired=false retained_nodes=3 peak_bytes=19370012990 elapsed_ns=423076963750
+BLAKE3_NATIVE_QUERY_FUSION groups=22330 removed_scalars=89320
+BLAKE3_NATIVE_FUSION dot4=813498 fma=141618 arithmetic_rows=1401904
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=12/16 paired=false retained_nodes=2 peak_bytes=19389625682 elapsed_ns=485478309000
+BLAKE3_NATIVE_QUERY_FUSION groups=20300 removed_scalars=81200
+BLAKE3_NATIVE_FUSION dot4=807433 fma=141727 arithmetic_rows=1393874
+BLOCK_STREAM proved_segments=13/16 paired=false retained_nodes=3 peak_bytes=19389625682 elapsed_ns=511893794291
+BLAKE3_NATIVE_QUERY_FUSION groups=20300 removed_scalars=81200
+BLAKE3_NATIVE_FUSION dot4=807508 fma=141006 arithmetic_rows=1392488
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLOCK_STREAM proved_segments=14/16 paired=false retained_nodes=3 peak_bytes=19389625682 elapsed_ns=555489378791
+BLAKE3_NATIVE_QUERY_FUSION groups=20300 removed_scalars=81200
+BLAKE3_NATIVE_FUSION dot4=807506 fma=141230 arithmetic_rows=1393159
+BLOCK_STREAM proved_segments=15/16 paired=false retained_nodes=4 peak_bytes=19389625682 elapsed_ns=580706665666
+BLAKE3_NATIVE_QUERY_FUSION groups=20510 removed_scalars=82040
+BLAKE3_NATIVE_FUSION dot4=806003 fma=141022 arithmetic_rows=1390816
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232316
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_FUSION dot4=36716 fma=76727 arithmetic_rows=232325
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLAKE3_NATIVE_FUSION dot4=36644 fma=77231 arithmetic_rows=233169
+BLOCK_STREAM proved_segments=16/16 paired=false retained_nodes=1 peak_bytes=19389625682 elapsed_ns=678899909583
+      679.75 real      4804.25 user       147.74 sys
+         15452831744  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+           101614750  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   2  voluntary context switches
+             1379159  involuntary context switches
+      51591057991828  instructions retired
+      19964030505939  cycles elapsed
+         15461261384  peak memory footprint

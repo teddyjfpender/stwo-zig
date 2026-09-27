@@ -1,0 +1,180 @@
+//! Internal universal typed component authority shard; use universal_typed_component.zig publicly.
+
+pub const std = @import("std");
+pub const stwo_core = @import("stwo_core");
+pub const core_air_accumulation = stwo_core.air.accumulation;
+pub const core_air_components = stwo_core.air.components;
+pub const core_air_derive = stwo_core.air.derive;
+pub const core_constraints = stwo_core.constraints;
+pub const circle = stwo_core.circle;
+pub const M31 = stwo_core.fields.m31.M31;
+pub const QM31 = stwo_core.fields.qm31.QM31;
+pub const canonic = stwo_core.poly.circle.canonic;
+pub const utils = stwo_core.utils;
+pub const prover_air_accumulation = @import("stwo_prover_engine").air.accumulation;
+pub const prover_component = @import("stwo_prover_engine").air.component_prover;
+pub const prepared_domain = @import("stwo_prover_engine").air.prepared_domain;
+pub const prover_circle = @import("stwo_prover_engine").poly.circle;
+pub const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
+pub const prover_task_graph = @import("stwo_prover_engine").task_graph;
+pub const prover_work_pool = @import("stwo_prover_engine").work_pool;
+pub const direct_program = @import("direct_constraint_program.zig");
+pub const logup = @import("../../air/logup.zig");
+pub const types = @import("../../air/lang/types.zig");
+pub const default_manifest = @import("universal_adapter_manifest.zig");
+pub const universal = @import("universal_challenges.zig");
+
+pub const CirclePointQM31 = circle.CirclePointQM31;
+
+pub const manifestGeometryForAir = @import("universal_typed_geometry.zig").manifestGeometryForAir;
+pub const protocolMaximumConstraintDegree = @import("universal_typed_geometry.zig").protocolMaximumConstraintDegree;
+
+pub const sampledSecure = @import("universal_typed_verifier_support.zig").sampledSecure;
+pub const secureAt = @import("universal_typed_verifier_support.zig").secureAt;
+pub const emptyOrFilledLogs = @import("universal_typed_verifier_support.zig").emptyOrFilledLogs;
+pub const currentPointColumns = @import("universal_typed_verifier_support.zig").currentPointColumns;
+pub const freePointColumns = @import("universal_typed_verifier_support.zig").freePointColumns;
+pub const checkedEnd = @import("universal_typed_verifier_support.zig").checkedEnd;
+
+pub fn sourceNeedsExtension(
+    poly: prover_component.Poly,
+    trace_log_size: u32,
+    eval_log_size: u32,
+) !bool {
+    try poly.validate();
+    if (poly.log_size == eval_log_size) return false;
+    if (poly.coefficients) |coefficients| {
+        if (coefficients.logSize() != trace_log_size)
+            return error.InvalidProofShape;
+        return true;
+    }
+    // Missing coefficients can be recovered from the entire committed LDE in
+    // the already-required quotient buffer. Larger source domains deliberately
+    // remain unsupported: they would require an additional scratch owner.
+    if (trace_log_size == 0 or trace_log_size > poly.log_size or
+        poly.log_size > eval_log_size or eval_log_size >= circle.M31_CIRCLE_LOG_ORDER)
+        return error.InvalidProofShape;
+    return true;
+}
+
+pub fn evaluationValues(
+    allocator: std.mem.Allocator,
+    poly: prover_component.Poly,
+    trace_log_size: u32,
+    eval_log_size: u32,
+    eval_size: usize,
+    twiddles: ?prover_twiddles.TwiddleTree([]const M31),
+    owned_buffers: [][]M31,
+    owned_initialized: *usize,
+) ![]const M31 {
+    if (poly.log_size == eval_log_size) return poly.values;
+    if (owned_initialized.* >= owned_buffers.len)
+        return error.InvalidProofShape;
+    const values = if (poly.coefficients) |coefficients| blk: {
+        const source = coefficients.coefficients();
+        if (source.len > eval_size) return error.InvalidProofShape;
+        const result = try allocator.alloc(M31, eval_size);
+        @memcpy(result[0..source.len], source);
+        @memset(result[source.len..], M31.zero());
+        break :blk result;
+    } else blk: {
+        _ = try sourceNeedsExtension(poly, trace_log_size, eval_log_size);
+        const source_domain = canonic.CanonicCoset.new(poly.log_size).circleDomain();
+        const transform = twiddles orelse return error.InvalidProofShape;
+        if (!source_domain.half_coset.isDoublingOf(transform.root_coset) or
+            eval_size != @as(usize, 1) << @intCast(eval_log_size))
+            return error.InvalidProofShape;
+        const result = try allocator.alloc(M31, eval_size);
+        errdefer allocator.free(result);
+        @memcpy(result[0..poly.values.len], poly.values);
+        try prover_circle.poly.interpolateBuffersWithTwiddles(
+            &.{result[0..poly.values.len]},
+            source_domain,
+            transform,
+        );
+        const native_size = @as(usize, 1) << @intCast(trace_log_size);
+        // Truncation is sound only after validating the full recovered degree.
+        // Never silently discard high coefficients or interpolate an LDE prefix
+        // as though it were the native canonical evaluation domain.
+        for (result[native_size..poly.values.len]) |coefficient| {
+            if (!coefficient.isZero()) return error.InvalidProofShape;
+        }
+        @memset(result[native_size..], M31.zero());
+        break :blk result;
+    };
+    owned_buffers[owned_initialized.*] = values;
+    owned_initialized.* += 1;
+    return values;
+}
+
+pub fn quotientDenominators(
+    comptime count: usize,
+    log_size: u32,
+    eval_log_size: u32,
+    eval_domain: anytype,
+) ![count]M31 {
+    if (eval_log_size <= log_size or
+        eval_log_size - log_size >= @bitSizeOf(usize))
+    {
+        return error.InvalidProofShape;
+    }
+    if (count != @as(usize, 1) << @intCast(eval_log_size - log_size))
+        return error.InvalidProofShape;
+    var result: [count]M31 = undefined;
+    const coset = canonic.CanonicCoset.new(log_size).coset();
+    for (&result, 0..) |*inverse, index| {
+        inverse.* = try core_constraints.cosetVanishing(
+            M31,
+            coset,
+            eval_domain.at(utils.bitReverseIndex(
+                index,
+                @intCast(eval_log_size - log_size),
+            )),
+        ).inv();
+    }
+    return result;
+}
+
+pub fn preparedResources(
+    eval_size: usize,
+    owned_count: usize,
+    state_bytes: usize,
+) !prover_task_graph.ResourceReservation {
+    const final_output_bytes = std.math.mul(usize, eval_size, @sizeOf(QM31)) catch
+        return error.ResourceReservationOverflow;
+    const owned_views = std.math.mul(usize, owned_count, @sizeOf([]M31)) catch
+        return error.ResourceReservationOverflow;
+    const owned_values = std.math.mul(usize, owned_count, eval_size) catch
+        return error.ResourceReservationOverflow;
+    const owned_bytes = std.math.mul(usize, owned_values, @sizeOf(M31)) catch
+        return error.ResourceReservationOverflow;
+    var resident = std.math.add(usize, state_bytes, owned_views) catch
+        return error.ResourceReservationOverflow;
+    resident = std.math.add(usize, resident, owned_bytes) catch
+        return error.ResourceReservationOverflow;
+    return .{
+        .final_output_bytes = final_output_bytes,
+        .shared_resident_bytes = resident,
+        .worker_stack_bytes = prepared_domain.ROW_EVALUATOR_STACK_BYTES,
+    };
+}
+
+pub fn serialTaskContext(
+    context: *anyopaque,
+    cancellation: *const prover_task_graph.CancellationToken,
+) prover_task_graph.TaskContext {
+    return .{
+        .user_context = context,
+        .cancellation = cancellation,
+        .key = .{
+            .epoch = 0,
+            .stage_rank = 0,
+            .component_registry_index = 0,
+            .shard_or_chunk_index = 0,
+        },
+        .worker_budget = prover_work_pool.WorkerBudget.serial(),
+        .task_class = .leaf,
+        .exclusive_lease = null,
+        .child_wait_group = null,
+    };
+}

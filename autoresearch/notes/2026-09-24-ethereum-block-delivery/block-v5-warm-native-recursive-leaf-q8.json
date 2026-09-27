@@ -1,0 +1,55 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "status": "passed",
+  "tests_passed": 9,
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "test": "block-v5 warm native lookup and recursive leaf stages publish genuine file without consuming native",
+  "native_version": 3,
+  "ordinary_instances": 1,
+  "projection_slots": 6,
+  "native_proofs_produced": 1,
+  "leaf_file_bytes": 127603,
+  "production_hooks_type": "block_v5_block_producer_v1.ForLightweightBackend(Cpu).Hooks",
+  "composed_callbacks": [
+    "on_first_round: native lookup projection",
+    "on_proof: actual native recursive leaf"
+  ],
+  "immutable_fixed_main_leases_shared": true,
+  "original_native_scheme_preserved": true,
+  "strict_native_v3_codec_clone": true,
+  "fresh_native_capture_before_recursion": true,
+  "genuine_recursive_native_verifier_equation": true,
+  "fresh_recursive_leaf_before_publication": true,
+  "owned_leaf_file_hash_length_reload_verified": true,
+  "original_native_proof_fresh_verified_after_callback": true,
+  "fresh_same_root_projection_verified": true,
+  "registers_state_pc_compensation_closed": true,
+  "wrong_warm_ordinal_before_staging_rejected": true,
+  "mismatched_recursive_profile_before_clone_rejected": true,
+  "sink_success_transfers_typed_leaf_ownership": true,
+  "borrowed_trace_or_capture_escapes_callback": false,
+  "allocator_teardown": "std.testing.allocator clean",
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "complete_block_authority": false,
+  "scope": "One actual ADDI ordinary lightweight native-v3 instance. Explicitly composed actual production Hooks emit a lookup projection while first fixed/main trees are warm and a genuine recursive native verifier leaf after the same native proof is produced. The latter clones the immutable proof through B5NEART3 strict wire, freshly captures/verifies it against admission/template/catalog/B5SS, derives matching recursive setup, proves and freshly verifies the actual equation, and transfers only owned bytes/schedule plus value policy fields to a file sink. Fixture reopens and verifies the leaf, original native and projection. Other provider entries are placeholders; native global relations remain open.",
+  "limitations": [
+    "No complete block, canonical q70 or mainnet qualification.",
+    "Fixture calls the actual typed production hooks directly; whole producer replay/program/memory orchestration is separate.",
+    "Empty external-only native publication is not qualified; the zero-component engine needs a separately sound native frame path.",
+    "Locally derived recursive key/schedule proposals require independent complete receiver admission; staged pins alone confer no authority.",
+    "No elapsed time or tracked peak measured.",
+    "This original gate used uncached setup initialization. The later optional bounded production cache is separately qualified by block-v5-native-recursive-stage-cache-q8.json; its result does not change this gate's original scope."
+  ],
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_native_lookup_stage_test_root.zig 'block-v5 warm native lookup and recursive leaf stages publish genuine file without consuming native'",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_native_recursive_leaf_stage_v1.zig": "151d069376ebcf6303b175e7088350fc2cc6adeb3375d2a89a43940d04e9d1ea",
+    "src/frontends/riscv/prover/block_v5_native_lookup_stage_v1.zig": "9cf8a12572c72a2e5237c97c7a4e51bcbcb579ca436b40bea3af4d78b8472e38",
+    "src/frontends/riscv/prover/block_v5_native_lookup_stage_test.zig": "870330f21c3662b0905cd173786a1fd7030acc2a538921d0e1e4447521c18734",
+    "src/frontends/riscv/prover/block_v5_native_codec_v3.zig": "bde4ac5e9d166bc36ed2b73e53a16106eb9f8b8c9fc1b651b343938d771e556b"
+  }
+}

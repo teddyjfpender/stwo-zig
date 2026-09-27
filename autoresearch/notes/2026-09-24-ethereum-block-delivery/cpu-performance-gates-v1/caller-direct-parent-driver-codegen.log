@@ -1,0 +1,14 @@
+1/13 block_v5_cpu_family_queue_test_root.test.v5 independent family driver body codegen without execution or segment proving...OK
+2/13 block_v5_cpu_family_queue_test_root.test.v5 independent family CLI body codegen without execution or segment proving...OK
+3/13 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+4/13 air.lookups.tables.mod.test_0...OK
+5/13 runner.mod.test_0...OK
+6/13 runner.decode.test_0...OK
+7/13 air.memory_commitment.poseidon2_air.test_0...OK
+8/13 air.semantic_eval.test_0...OK
+9/13 prover.block_execution_external_trace_v2.test_0...OK
+10/13 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/13 prover.block_v5_committed_trace_column_v1.test_0...OK
+12/13 air.lookups.tables.source_ingest.test_0...OK
+13/13 diagnostics.mod.test_0...OK
+All 13 tests passed.

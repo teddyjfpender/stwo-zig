@@ -1,0 +1,75 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "cpu-final-job-source-candidate-v1.json",
+  "successful_attempts": [
+    {
+      "attempt": "cpu-final-job-legacy-focused-v1-result.json",
+      "source_candidate": "cpu-final-job-legacy-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 26.203209917002823,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 20,
+      "test_summary": [
+        "All 20 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-final-job-legacy-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-final-job-legacy-focused-v1",
+        "bytes": 46734328,
+        "sha256": "1b9be2d7b23f29cf77caf78582d69b82cb5f04f61d232a5bca1d2bcbf98909d1"
+      }
+    },
+    {
+      "attempt": "cpu-final-job-selected-focused-v1-result.json",
+      "source_candidate": "cpu-final-job-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 26.63644920900697,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 20,
+      "test_summary": [
+        "All 20 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-final-job-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-final-job-selected-focused-v1",
+        "bytes": 46734392,
+        "sha256": "3d8ffdd858ad382219fb4a3766c14f686b597574d430b9f1b08b758b7e294323"
+      }
+    }
+  ],
+  "authoritative_source_snapshots": [
+    "cpu-final-job-legacy-focused-v1-source.json",
+    "cpu-final-job-selected-focused-v1-source.json"
+  ],
+  "behavioral_checks": 12,
+  "evidence_scope": [
+    "Actual PUBLIC21 and FINAL22 consuming producers and fresh receivers retained for both independently selected recipes",
+    "Typed manifest bindings/key proposals fail closed against independently derived expectations",
+    "Exact source metadata windows and allocator lifetime guards",
+    "Success-only PAGE/RAM transfer and capture release callback inventory"
+  ],
+  "remaining": [
+    "Positive actual proof/lifecycle qualification",
+    "Complete source/global closure and CompleteBlock authority",
+    "Standalone/reusable expected setup",
+    "Canonical default activation and end-to-end time/peak memory"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

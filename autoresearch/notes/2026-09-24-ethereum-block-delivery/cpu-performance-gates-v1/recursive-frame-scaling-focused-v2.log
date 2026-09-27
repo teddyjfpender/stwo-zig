@@ -1,0 +1,6 @@
+1/5 block_v5_recursive_frame_scaling_test_root.test_0...OK
+2/5 recursion.air.block_v5_recursive_frame_scaling_test_v1.test.recursive frame scaling: original tracked native offsets still enforce exact32 root limit...OK
+3/5 recursion.air.block_v5_recursive_frame_scaling_test_v1.test.recursive frame scaling: exact PUBLIC21 recorder covers67 and4096 window roots with original replay digest and transition...OK
+4/5 recursion.air.block_v5_recursive_frame_scaling_test_v1.test.recursive frame scaling: aggregate words felts and steps still enforce exact original limits...OK
+5/5 recursion.air.block_v5_recursive_frame_scaling_test_v1.test.recursive frame scaling: every aggregate recording allocation failure releases exact original frame ownership...OK
+All 5 tests passed.

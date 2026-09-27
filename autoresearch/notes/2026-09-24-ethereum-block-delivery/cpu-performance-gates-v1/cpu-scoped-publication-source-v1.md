@@ -1,0 +1,11 @@
+# Scoped node publication rollback source candidate v1
+
+Source-frozen, qualification pending. No compiler, tests, proofs, guest, segment, device or benchmark runs by the agent. Root owns all qualification. Prior requester qualification evidence is preserved.
+
+The same original consuming/fresh fold now installs a success-only publication Tracker after actual node census admission and before metadata, child, producer or verifier allocations. The original exclusive Files publisher succeeds before created count advances; advancement precedes the observational put_open callback. Any subsequent error, including callback and final normative owner construction failures, triggers rollback of only that successfully created prefix. setup.finish success disarms rollback directly before returning the Result. Reconstruct never records a publication and preserves every input file.
+
+Both exact filename recipes and public path signatures remain unchanged: block-v5-cpu-scoped-node-{d}.proof and block-v5-cpu-requester-node-{d}.proof. The allocator-free helper centralizes those recipes. Genuine keys, child verification, consuming producer, early capture/row release and retained requester root are unchanged. Callback outputs remain provisional until the entire run succeeds. Best-effort deletion preserves the original error; callers must not rename or replace tracked files while the transaction lives.
+
+Seven transport-only fixtures cover callback failure at each prefix position, later failure, preexisting destination collision, opposite recipe preservation, preexisting private inode failure, bounded/sequential rejection before filesystem access, commit/idempotence and reconstruct absence. They publish tiny literal byte strings, never proofs or verification receipts. The root also retains actual complete/requester Fold.run and requester Job.build bodies without invoking them.
+
+Root: src/frontends/riscv/block_v5_cpu_scoped_publication_test_root.zig. Filter: cpu scoped publication. Candidate: cpu-scoped-publication-source-candidate-v1.json. Cross-stage PAGE/RAM/final completion rollback is a separate root-owned cohort. No complete-block authority, proof success or timing claim follows from this transport qualification.

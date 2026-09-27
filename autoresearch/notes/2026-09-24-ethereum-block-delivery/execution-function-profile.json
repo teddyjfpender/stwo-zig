@@ -1,0 +1,2390 @@
+{
+  "scope": "Guest base instruction counts attributed to containing ELF symbols; not inclusive call costs or host precompile/prover timings",
+  "cycles": 253646998,
+  "base_instructions": 253614097,
+  "keccak_calls": 32835,
+  "recovery_calls": 66,
+  "elf_sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+  "functions": [
+    {
+      "name": "<k256::arithmetic::field::field_10x26::FieldElement10x26>::mul",
+      "instructions": 71089560,
+      "percent_total": 28.026966832069505
+    },
+    {
+      "name": "compiler_builtins::mem::memcpy",
+      "instructions": 48085240,
+      "percent_total": 18.957543506980517
+    },
+    {
+      "name": "<k256::arithmetic::field::FieldElement>::square",
+      "instructions": 11505600,
+      "percent_total": 4.536067878083068
+    },
+    {
+      "name": "sha2::sha256::compress256",
+      "instructions": 11356884,
+      "percent_total": 4.477436787956781
+    },
+    {
+      "name": "<revm_handler::mainnet_handler::MainnetHandler<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>, revm_handler::frame::EthFrame> as revm_handler::handler::Handler>::execution",
+      "instructions": 10989510,
+      "percent_total": 4.332600064913837
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache> as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 7335399,
+      "percent_total": 2.891971542277035
+    },
+    {
+      "name": "revm_bytecode::legacy::analysis::analyze_legacy",
+      "instructions": 6846967,
+      "percent_total": 2.6994078597374136
+    },
+    {
+      "name": "<k256::arithmetic::projective::ProjectivePoint as subtle::ConditionallySelectable>::conditional_select",
+      "instructions": 6473544,
+      "percent_total": 2.5521863262895783
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::resolve_digests::<alloy_primitives::bytes_::Bytes>",
+      "instructions": 6174309,
+      "percent_total": 2.434213315625364
+    },
+    {
+      "name": "<k256::arithmetic::projective::ProjectivePoint>::add",
+      "instructions": 5441280,
+      "percent_total": 2.1452175830600604
+    },
+    {
+      "name": "native_keccak256",
+      "instructions": 4897632,
+      "percent_total": 1.9308850641315298
+    },
+    {
+      "name": "<k256::arithmetic::scalar::Scalar>::mul",
+      "instructions": 4079592,
+      "percent_total": 1.6083738550692408
+    },
+    {
+      "name": "memset",
+      "instructions": 2903715,
+      "percent_total": 1.144785872845221
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<1, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 2663828,
+      "percent_total": 1.0502107342110156
+    },
+    {
+      "name": "memcmp",
+      "instructions": 2154298,
+      "percent_total": 0.8493291925339483
+    },
+    {
+      "name": "<k256::arithmetic::affine::AffinePoint as ecdsa::hazmat::VerifyPrimitive<k256::Secp256k1>>::verify_prehashed",
+      "instructions": 1752113,
+      "percent_total": 0.6907682778883115
+    },
+    {
+      "name": "<k256::arithmetic::projective::ProjectivePoint>::double",
+      "instructions": 1714176,
+      "percent_total": 0.6758116648398101
+    },
+    {
+      "name": "revm_interpreter::instructions::memory::mstore::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1638464,
+      "percent_total": 0.6459623070327053
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<2, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1473024,
+      "percent_total": 0.5807378015962168
+    },
+    {
+      "name": "<indexmap::map::IndexMap<alloy_primitives::bits::fixed::FixedBytes<32>, alloy_primitives::bytes_::Bytes, alloy_primitives::map::fixed::FbBuildHasher<32>>>::insert_full",
+      "instructions": 1396356,
+      "percent_total": 0.5505115420289737
+    },
+    {
+      "name": "revm_interpreter::instructions::memory::mload::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1367258,
+      "percent_total": 0.5390396932669395
+    },
+    {
+      "name": "__rustc::__rust_alloc",
+      "instructions": 1345837,
+      "percent_total": 0.5305944917984009
+    },
+    {
+      "name": "<ruint::Uint<256, 4>>::div_rem_by_ref",
+      "instructions": 1324797,
+      "percent_total": 0.5222994990857334
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::add::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1318422,
+      "percent_total": 0.5197861636036394
+    },
+    {
+      "name": "revm_interpreter::instructions::control::jumpi::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1184997,
+      "percent_total": 0.46718353039605065
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloc::boxed::Box<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>>",
+      "instructions": 1180371,
+      "percent_total": 0.4653597358956324
+    },
+    {
+      "name": "<alloc::raw_vec::RawVecInner>::finish_grow",
+      "instructions": 1166056,
+      "percent_total": 0.4597160657111345
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::rlp_encoded",
+      "instructions": 1159571,
+      "percent_total": 0.4571593628717025
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<1, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1155658,
+      "percent_total": 0.4556166676965757
+    },
+    {
+      "name": "<zeth_mpt::mpt::rlp::NodeRef as alloy_rlp::encode::Encodable>::encode",
+      "instructions": 1124256,
+      "percent_total": 0.44323646992265997
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<2, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1083472,
+      "percent_total": 0.4271574308165082
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::shl::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 961390,
+      "percent_total": 0.37902676064788277
+    },
+    {
+      "name": "<k256::arithmetic::mul::LookupTable>::select",
+      "instructions": 826848,
+      "percent_total": 0.3259837516389609
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::exp::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 807248,
+      "percent_total": 0.31825647705871923
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::memoize",
+      "instructions": 743758,
+      "percent_total": 0.29322562690057935
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::mul::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 739277,
+      "percent_total": 0.29145899846210677
+    },
+    {
+      "name": "revm_interpreter::instructions::control::jump::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 733488,
+      "percent_total": 0.28917669272001395
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::shr::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 706170,
+      "percent_total": 0.27840660664945066
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<3, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 699385,
+      "percent_total": 0.2757316291990966
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::get",
+      "instructions": 672202,
+      "percent_total": 0.26501476670344826
+    },
+    {
+      "name": "memcpy",
+      "instructions": 628986,
+      "percent_total": 0.24797691475142158
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::bitand::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 612255,
+      "percent_total": 0.24138073970029797
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::sub::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 593427,
+      "percent_total": 0.23395782511882912
+    },
+    {
+      "name": "revm_interpreter::interpreter::shared_memory::resize_memory_cold::<revm_interpreter::interpreter::shared_memory::SharedMemory>",
+      "instructions": 510147,
+      "percent_total": 0.20112479312686365
+    },
+    {
+      "name": "<hashbrown::map::HashMap<alloy_primitives::bits::address::Address, revm_state::Account, alloy_primitives::map::fixed::FbBuildHasher<20>>>::get::<alloy_primitives::bits::address::Address>",
+      "instructions": 502843,
+      "percent_total": 0.19824520059961442
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<2, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 498540,
+      "percent_total": 0.19654874843028894
+    },
+    {
+      "name": "<revm_context_interface::journaled_state::account::JournaledAccount<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>::sload_concrete_error",
+      "instructions": 496757,
+      "percent_total": 0.1958458029927088
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<1, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 489748,
+      "percent_total": 0.19308251383286626
+    },
+    {
+      "name": "revm_interpreter::instructions::system::calldataload::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 464183,
+      "percent_total": 0.18300354573879088
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::eq::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 462678,
+      "percent_total": 0.1824102014406652
+    },
+    {
+      "name": "libssz_merkle::merkleize::<libssz_merkle::Sha2Hasher>",
+      "instructions": 401875,
+      "percent_total": 0.15843869754768397
+    },
+    {
+      "name": "<revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>::storage",
+      "instructions": 394378,
+      "percent_total": 0.15548301502074155
+    },
+    {
+      "name": "<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame> as revm_handler::evm::EvmTr>::frame_init",
+      "instructions": 389257,
+      "percent_total": 0.15346406741230187
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<4, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 373051,
+      "percent_total": 0.1470748729302919
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<3, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 350420,
+      "percent_total": 0.13815263053103433
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::insert",
+      "instructions": 344250,
+      "percent_total": 0.1357201160330705
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<&[u8]>>::grow_one",
+      "instructions": 341973,
+      "percent_total": 0.13482241173617202
+    },
+    {
+      "name": "subtle::black_box::<u8>",
+      "instructions": 339820,
+      "percent_total": 0.13397359427845465
+    },
+    {
+      "name": "zeth_mpt::mpt::rlp::encode_list_header",
+      "instructions": 332819,
+      "percent_total": 0.1312134591082367
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::iszero::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 327584,
+      "percent_total": 0.12914956714764667
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::lt::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 313120,
+      "percent_total": 0.1234471539063908
+    },
+    {
+      "name": "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::list::SszList<u8, 1024>>::{closure#1}>, core::result::Result<core::convert::Infallible, libssz::error::DecodeError>> as core::iter::traits::iterator::Iterator>::next",
+      "instructions": 308439,
+      "percent_total": 0.1216016757273035
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::gt::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 307270,
+      "percent_total": 0.12114079899341051
+    },
+    {
+      "name": "<revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>::load_cache_account_with",
+      "instructions": 304432,
+      "percent_total": 0.12002192117408778
+    },
+    {
+      "name": "<revm_handler::mainnet_handler::MainnetHandler<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>, revm_handler::frame::EthFrame> as revm_handler::handler::Handler>::validate",
+      "instructions": 277116,
+      "percent_total": 0.10925262360093062
+    },
+    {
+      "name": "revm_interpreter::instructions::host::sstore::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 275120,
+      "percent_total": 0.10846570318959581
+    },
+    {
+      "name": "<ruint::Uint<256, 4> as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 274807,
+      "percent_total": 0.10834230334553378
+    },
+    {
+      "name": "<revm_context::journal::inner::JournalInner<revm_context_interface::journaled_state::entry::JournalEntry>>::load_account_mut_optional::<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>",
+      "instructions": 267845,
+      "percent_total": 0.1055975438747357
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::signextend::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 266763,
+      "percent_total": 0.10517096677801012
+    },
+    {
+      "name": "<libssz_types::progressive_list::ProgressiveList<u8> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 261097,
+      "percent_total": 0.10293715362639537
+    },
+    {
+      "name": "alloy_eips::eip4844::fake_exponential (.781)",
+      "instructions": 258911,
+      "percent_total": 0.10207532596147659
+    },
+    {
+      "name": "revm_interpreter::instructions::system::keccak256::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 255516,
+      "percent_total": 0.10073685161454188
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<5, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 250847,
+      "percent_total": 0.09889610441989145
+    },
+    {
+      "name": "<revm_database::states::transition_state::TransitionState>::add_transition",
+      "instructions": 238157,
+      "percent_total": 0.09389308837788808
+    },
+    {
+      "name": "<revm_database::states::cache::CacheState>::apply_account_state",
+      "instructions": 235120,
+      "percent_total": 0.0926957550666537
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<4, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 232320,
+      "percent_total": 0.09159185869804774
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<4, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 225064,
+      "percent_total": 0.08873119010854605
+    },
+    {
+      "name": "compiler_builtins::mem::memmove",
+      "instructions": 223065,
+      "percent_total": 0.08794308695110202
+    },
+    {
+      "name": "<ruint::Uint<256, 4>>::mul_mod_by_ref",
+      "instructions": 217708,
+      "percent_total": 0.085831096648737
+    },
+    {
+      "name": "<tries::zeth::SparseState as tries::StatelessTrie>::calculate_state_root",
+      "instructions": 211886,
+      "percent_total": 0.08353578069944277
+    },
+    {
+      "name": "bytes::bytes::promotable_even_drop",
+      "instructions": 201876,
+      "percent_total": 0.07958935118167651
+    },
+    {
+      "name": "<reth_evm::execute::BasicBlockExecutor<&reth_evm_ethereum::EthEvmConfig, stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>> as reth_evm::execute::Executor<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>::execute_one",
+      "instructions": 200458,
+      "percent_total": 0.07903030652071821
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<20, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 195048,
+      "percent_total": 0.0768974210370903
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<32, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 190482,
+      "percent_total": 0.07509728145885645
+    },
+    {
+      "name": "revm_interpreter::instructions::host::sload::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 187351,
+      "percent_total": 0.07386288876953316
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<6, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 173990,
+      "percent_total": 0.06859533184776742
+    },
+    {
+      "name": "revm_interpreter::instructions::contract::call_helpers::load_acc_and_calc_gas::<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 168943,
+      "percent_total": 0.0666055586433552
+    },
+    {
+      "name": "<indexmap::map::IndexMap<alloy_primitives::bits::fixed::FixedBytes<32>, tries::zeth::RlpTrie<ruint::Uint<256, 4>>, alloy_primitives::map::fixed::FbBuildHasher<32>>>::entry",
+      "instructions": 157981,
+      "percent_total": 0.06228380436026292
+    },
+    {
+      "name": "<reth_trie_common::hashed_state::HashedPostState as core::iter::traits::collect::FromIterator<(alloy_primitives::bits::fixed::FixedBytes<32>, core::option::Option<reth_primitives_traits::account::Account>, core::option::Option<reth_trie_common::hashed_state::HashedStorage>)>>::from_iter::<core::iter::adapters::map::Map<hashbrown::map::Iter<alloy_primitives::bits::address::Address, revm_database::states::bundle_account::BundleAccount>, stateless::validation::stateless_validation_recovered_with_trie<tries::zeth::SparseState, reth_chainspec::spec::ChainSpec, reth_evm_ethereum::EthEvmConfig>::{closure#2}>>",
+      "instructions": 154373,
+      "percent_total": 0.060861355039573545
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::div::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 144060,
+      "percent_total": 0.05679546816477599
+    },
+    {
+      "name": "<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame> as revm_handler::evm::EvmTr>::frame_return_result",
+      "instructions": 143009,
+      "percent_total": 0.05638111277784569
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, ruint::Uint<256, 4>)>>::reserve_rehash::<hashbrown::map::make_hasher<ruint::Uint<256, 4>, ruint::Uint<256, 4>, alloy_primitives::map::fixed::FbBuildHasher<32>>::{closure#0}>",
+      "instructions": 139230,
+      "percent_total": 0.054891246928930736
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::pop::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 138796,
+      "percent_total": 0.05472014299179681
+    },
+    {
+      "name": "k256::arithmetic::mul::lincomb",
+      "instructions": 134784,
+      "percent_total": 0.05313841719506572
+    },
+    {
+      "name": "reth_ethereum_consensus::validation::validate_block_post_execution_with_bal_hashes::<alloy_consensus::block::Block<alloy_consensus::transaction::envelope::EthereumTxEnvelope<alloy_consensus::transaction::eip4844::TxEip4844>>, alloy_consensus::receipt::receipt2::EthereumReceipt, alloc::sync::Arc<reth_chainspec::spec::ChainSpec>>",
+      "instructions": 128926,
+      "percent_total": 0.050828908292460846
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<5, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 127232,
+      "percent_total": 0.050161050989454246
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, revm_state::EvmStorageSlot)>>::reserve_rehash::<hashbrown::map::make_hasher<ruint::Uint<256, 4>, revm_state::EvmStorageSlot, alloy_primitives::map::fixed::FbBuildHasher<32>>::{closure#0}>",
+      "instructions": 124222,
+      "percent_total": 0.04897436239320285
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::slt::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 119147,
+      "percent_total": 0.04697355022510458
+    },
+    {
+      "name": "<alloy_trie::hash_builder::HashBuilder>::update",
+      "instructions": 114626,
+      "percent_total": 0.045191151838509046
+    },
+    {
+      "name": "<alloy_consensus::receipt::receipts::ReceiptWithBloom<&alloy_consensus::receipt::receipt2::EthereumReceipt> as alloy_eips::eip2718::Encodable2718>::encode_2718",
+      "instructions": 108517,
+      "percent_total": 0.04278268651143271
+    },
+    {
+      "name": "stateless_validator_reth::guest::verify_stateless_new_payload",
+      "instructions": 105701,
+      "percent_total": 0.041672482163577586
+    },
+    {
+      "name": "<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>> as revm_database_interface::Database>::basic",
+      "instructions": 103241,
+      "percent_total": 0.040702630354016646
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<7, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 101928,
+      "percent_total": 0.04018498180688107
+    },
+    {
+      "name": "nybbles::nibbles::smallvec_with::<36, alloy_trie::nodes::encode_path_leaf::{closure#0}>",
+      "instructions": 101734,
+      "percent_total": 0.04010849755848481
+    },
+    {
+      "name": "compiler_builtins::int::specialized_div_rem::u64_div_rem",
+      "instructions": 98965,
+      "percent_total": 0.03901682289967414
+    },
+    {
+      "name": "<tries::zeth::RlpTrie<alloy_trie::account::TrieAccount>>::get::<alloy_primitives::bits::fixed::FixedBytes<32>>",
+      "instructions": 98040,
+      "percent_total": 0.0386521428493311
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::bitor::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 97920,
+      "percent_total": 0.03860483300496227
+    },
+    {
+      "name": "libssz::decode::decode_list_with_max::<libssz_types::list::SszList<u8, 1024>>",
+      "instructions": 96553,
+      "percent_total": 0.03806589502786073
+    },
+    {
+      "name": "revm_interpreter::instructions::contract::call::<241, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 94288,
+      "percent_total": 0.03717292171539913
+    },
+    {
+      "name": "<revm_context_interface::journaled_state::account::JournaledAccount<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>::sstore_concrete_error",
+      "instructions": 93313,
+      "percent_total": 0.03678852922990242
+    },
+    {
+      "name": "<tries::zeth::SparseState as tries::StatelessTrie>::new",
+      "instructions": 91802,
+      "percent_total": 0.03619281943955828
+    },
+    {
+      "name": "core::ptr::drop_glue::<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>",
+      "instructions": 88934,
+      "percent_total": 0.03506211415914333
+    },
+    {
+      "name": "__udivdi3",
+      "instructions": 87668,
+      "percent_total": 0.03456299530105221
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<6, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 86968,
+      "percent_total": 0.034287021208900724
+    },
+    {
+      "name": "revm_interpreter::instructions::contract::call_helpers::get_memory_input_and_out_ranges::<revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 86566,
+      "percent_total": 0.03412853323026516
+    },
+    {
+      "name": "<alloy_consensus::transaction::eip1559::TxEip1559 as alloy_consensus::transaction::rlp::RlpEcdsaEncodableTx>::rlp_encoded_fields_length",
+      "instructions": 79700,
+      "percent_total": 0.03142162163496214
+    },
+    {
+      "name": "<revm_handler::frame::EthFrame>::process_next_action::<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_context_interface::context::ContextError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>>",
+      "instructions": 78054,
+      "percent_total": 0.03077268826970308
+    },
+    {
+      "name": "<hashbrown::raw::RawTableInner>::fallible_with_capacity::<allocator_api2::stable::alloc::global::Global>",
+      "instructions": 78027,
+      "percent_total": 0.030762043554720092
+    },
+    {
+      "name": "core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::list::SszList<u8, 1024>>::{closure#1}>, libssz_types::list::SszList<u8, 1024>, core::result::Result<core::convert::Infallible, libssz::error::DecodeError>, <core::result::Result<alloc::vec::Vec<libssz_types::list::SszList<u8, 1024>>, libssz::error::DecodeError> as core::iter::traits::collect::FromIterator<core::result::Result<libssz_types::list::SszList<u8, 1024>, libssz::error::DecodeError>>>::from_iter<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::list::SszList<u8, 1024>>::{closure#1}>>::{closure#0}, alloc::vec::Vec<libssz_types::list::SszList<u8, 1024>>>",
+      "instructions": 77346,
+      "percent_total": 0.030493560187927003
+    },
+    {
+      "name": "<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>> as revm_database_interface::Database>::code_by_hash",
+      "instructions": 76969,
+      "percent_total": 0.030344928426868274
+    },
+    {
+      "name": "<revm_database::states::bundle_account::BundleAccount>::update_and_create_revert",
+      "instructions": 76393,
+      "percent_total": 0.030117841173897906
+    },
+    {
+      "name": "<libssz_merkle::Sha2Hasher as libssz_merkle::Sha256Hasher>::hash",
+      "instructions": 75465,
+      "percent_total": 0.02975197837744565
+    },
+    {
+      "name": "<revm_context::journal::Journal<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>> as revm_context_interface::journaled_state::JournalTr>::tstore",
+      "instructions": 75041,
+      "percent_total": 0.029584816927342463
+    },
+    {
+      "name": "stateless::recover_block::verify_and_compute_sender",
+      "instructions": 74666,
+      "percent_total": 0.029436973663689883
+    },
+    {
+      "name": "<ruint::Uint<256, 4> as alloy_rlp::encode::Encodable>::encode",
+      "instructions": 73874,
+      "percent_total": 0.02912472869085563
+    },
+    {
+      "name": "revm_interpreter::instructions::host::log::<3, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 72899,
+      "percent_total": 0.028740336205358912
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<7, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 72380,
+      "percent_total": 0.02853572112846374
+    },
+    {
+      "name": "<alloy_consensus::transaction::eip1559::TxEip1559 as alloy_consensus::transaction::rlp::RlpEcdsaEncodableTx>::rlp_encode_signed",
+      "instructions": 71783,
+      "percent_total": 0.02830035465272883
+    },
+    {
+      "name": "<k256::arithmetic::projective::ProjectivePoint>::to_affine",
+      "instructions": 69048,
+      "percent_total": 0.027222084449822662
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<8, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 68089,
+      "percent_total": 0.026843999943575125
+    },
+    {
+      "name": "<k256::arithmetic::scalar::Scalar as elliptic_curve::ops::Invert>::invert",
+      "instructions": 67752,
+      "percent_total": 0.02671113813063934
+    },
+    {
+      "name": "<hashbrown::map::HashMap<ruint::Uint<256, 4>, ruint::Uint<256, 4>, alloy_primitives::map::fixed::FbBuildHasher<32>>>::insert",
+      "instructions": 65347,
+      "percent_total": 0.025762969999747445
+    },
+    {
+      "name": "<revm_state::Account as core::convert::From<revm_state::account_info::AccountInfo>>::from",
+      "instructions": 63785,
+      "percent_total": 0.025147153525546556
+    },
+    {
+      "name": "<nybbles::nibbles::Nibbles>::extend",
+      "instructions": 63006,
+      "percent_total": 0.02484003378585226
+    },
+    {
+      "name": "revm_interpreter::instructions::control::return_inner::<revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 61928,
+      "percent_total": 0.024415033683938967
+    },
+    {
+      "name": "<hashbrown::map::HashMap<ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot, alloy_primitives::map::fixed::FbBuildHasher<32>>>::entry",
+      "instructions": 60682,
+      "percent_total": 0.023923799799909322
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push0::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 59158,
+      "percent_total": 0.023322964776425228
+    },
+    {
+      "name": "<k256::arithmetic::scalar::wide::WideScalar>::mul_shift_vartime",
+      "instructions": 55968,
+      "percent_total": 0.022065311413620593
+    },
+    {
+      "name": "<revm_context::journal::inner::JournalInner<revm_context_interface::journaled_state::entry::JournalEntry>>::transfer_loaded",
+      "instructions": 55021,
+      "percent_total": 0.02169195789180994
+    },
+    {
+      "name": "<hashbrown::map::HashMap<ruint::Uint<256, 4>, revm_database::states::reverts::RevertToSlot, alloy_primitives::map::fixed::FbBuildHasher<32>>>::insert",
+      "instructions": 54096,
+      "percent_total": 0.021327277841466905
+    },
+    {
+      "name": "revm_interpreter::instructions::control::jumpdest::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 54028,
+      "percent_total": 0.021300468929657902
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot)>>::reserve_rehash::<hashbrown::map::make_hasher<ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot, alloy_primitives::map::fixed::FbBuildHasher<32>>::{closure#0}>",
+      "instructions": 52905,
+      "percent_total": 0.020857727636106303
+    },
+    {
+      "name": "<revm_context::journal::Journal<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>> as revm_context_interface::journaled_state::JournalTr>::tload",
+      "instructions": 52594,
+      "percent_total": 0.020735116289450427
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::sar::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 51400,
+      "percent_total": 0.020264383337980606
+    },
+    {
+      "name": "revm_interpreter::instructions::contract::call::<250, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 50913,
+      "percent_total": 0.020072384219583784
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<9, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 50553,
+      "percent_total": 0.019930454686477306
+    },
+    {
+      "name": "revm_interpreter::instructions::system::caller::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 50268,
+      "percent_total": 0.019818093806101344
+    },
+    {
+      "name": "<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>> as revm_database_interface::Database>::storage",
+      "instructions": 49358,
+      "percent_total": 0.019459327486304412
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::not::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 49120,
+      "percent_total": 0.019365496294972907
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, revm_database::states::reverts::RevertToSlot)>>::reserve_rehash::<hashbrown::map::make_hasher<ruint::Uint<256, 4>, revm_database::states::reverts::RevertToSlot, alloy_primitives::map::fixed::FbBuildHasher<32>>::{closure#0}>",
+      "instructions": 48572,
+      "percent_total": 0.0191494480056886
+    },
+    {
+      "name": "<zeth_mpt::mpt::nibbles::NibbleSlice>::split_common_prefix::<nybbles::nibbles::Nibbles>",
+      "instructions": 46762,
+      "percent_total": 0.01843585785312547
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<16, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 45880,
+      "percent_total": 0.018088130497014594
+    },
+    {
+      "name": "<k256::arithmetic::mul::Radix16Decomposition<33>>::new",
+      "instructions": 43872,
+      "percent_total": 0.017296479101242903
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::fixed::FixedBytes<32>, revm_bytecode::bytecode::Bytecode)>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::fixed::FixedBytes<32>, revm_bytecode::bytecode::Bytecode, alloy_primitives::map::fixed::FbBuildHasher<32>>::{closure#0}>",
+      "instructions": 41690,
+      "percent_total": 0.01643622843113641
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, revm_state::Account)>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, revm_state::Account, alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 41554,
+      "percent_total": 0.016382610607518406
+    },
+    {
+      "name": "<nybbles::nibbles::Nibbles>::slice::<core::ops::range::RangeFrom<usize>>",
+      "instructions": 40586,
+      "percent_total": 0.016000977862943206
+    },
+    {
+      "name": "libssz_merkle::pack",
+      "instructions": 40480,
+      "percent_total": 0.015959187500417412
+    },
+    {
+      "name": "revm_interpreter::instructions::system::calldatacopy::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 40375,
+      "percent_total": 0.015917791386594687
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<8, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 40208,
+      "percent_total": 0.015851951853181404
+    },
+    {
+      "name": "<alloy_primitives::bits::bloom::Bloom>::accrue_log",
+      "instructions": 38655,
+      "percent_total": 0.015239683617308177
+    },
+    {
+      "name": "<alloy_rlp::header::Header>::encode (.764)",
+      "instructions": 38355,
+      "percent_total": 0.015121409006386111
+    },
+    {
+      "name": "<k256::arithmetic::affine::AffinePoint as elliptic_curve::point::DecompressPoint<k256::Secp256k1>>::decompress",
+      "instructions": 36900,
+      "percent_total": 0.014547777143414093
+    },
+    {
+      "name": "<revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>> as revm_database_interface::DatabaseCommit>::commit",
+      "instructions": 36559,
+      "percent_total": 0.01441333833566601
+    },
+    {
+      "name": "<[u8; 32] as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 36113,
+      "percent_total": 0.014237503414095206
+    },
+    {
+      "name": "<k256::arithmetic::scalar::Scalar>::add",
+      "instructions": 36096,
+      "percent_total": 0.014230801186142956
+    },
+    {
+      "name": "revm_interpreter::instructions::system::returndatacopy::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 36090,
+      "percent_total": 0.014228435693924514
+    },
+    {
+      "name": "<ruint::Uint<512, 8>>::div_rem_by_ref",
+      "instructions": 35928,
+      "percent_total": 0.0141645674040266
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<8, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 35658,
+      "percent_total": 0.01405812025419674
+    },
+    {
+      "name": "<revm_context::journal::inner::JournalInner<revm_context_interface::journaled_state::entry::JournalEntry>>::load_account_optional::<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>",
+      "instructions": 35494,
+      "percent_total": 0.013993463466892677
+    },
+    {
+      "name": "<hashbrown::map::HashMap<ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot, alloy_primitives::map::fixed::FbBuildHasher<32>>>::insert",
+      "instructions": 35123,
+      "percent_total": 0.013847197198052389
+    },
+    {
+      "name": "<revm_database::states::bundle_account::BundleAccount>::update_and_create_revert::{closure#0}",
+      "instructions": 33762,
+      "percent_total": 0.013310624713169284
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, revm_database::states::cache_account::CacheAccount)>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, revm_database::states::cache_account::CacheAccount, alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 33666,
+      "percent_total": 0.013272776837674223
+    },
+    {
+      "name": "foldhash::hash_bytes_long",
+      "instructions": 33536,
+      "percent_total": 0.013221524506274661
+    },
+    {
+      "name": "revm_interpreter::instructions::system::calldatasize::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 33452,
+      "percent_total": 0.013188407615216483
+    },
+    {
+      "name": "<revm_handler::mainnet_handler::MainnetHandler<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>, revm_handler::frame::EthFrame> as revm_handler::handler::Handler>::post_execution",
+      "instructions": 33164,
+      "percent_total": 0.013074863988731299
+    },
+    {
+      "name": "core::ptr::drop_glue::<tries::zeth::SparseState>",
+      "instructions": 32184,
+      "percent_total": 0.012688500259719218
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<10, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 29455,
+      "percent_total": 0.011612595549031494
+    },
+    {
+      "name": "<revm_handler::mainnet_handler::MainnetHandler<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>, revm_handler::frame::EthFrame> as revm_handler::handler::Handler>::first_frame_input",
+      "instructions": 28447,
+      "percent_total": 0.011215192856333352
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot)>>::insert::<hashbrown::map::make_hasher<ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot, alloy_primitives::map::fixed::FbBuildHasher<32>>::{closure#0}>",
+      "instructions": 28425,
+      "percent_total": 0.011206519384865733
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<9, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 28336,
+      "percent_total": 0.011171431250292187
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<3, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 27032,
+      "percent_total": 0.010657330941484276
+    },
+    {
+      "name": "<revm_handler::mainnet_handler::MainnetHandler<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>, revm_handler::frame::EthFrame> as revm_handler::handler::Handler>::execution_result",
+      "instructions": 26963,
+      "percent_total": 0.0106301277809722
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::mulmod::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 26945,
+      "percent_total": 0.010623031304316875
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, revm_database::states::bundle_account::BundleAccount)>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, revm_database::states::bundle_account::BundleAccount, alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 25635,
+      "percent_total": 0.010106565503290522
+    },
+    {
+      "name": "<alloy_consensus::transaction::eip1559::TxEip1559 as alloy_consensus::transaction::rlp::RlpEcdsaDecodableTx>::rlp_decode_signed",
+      "instructions": 25520,
+      "percent_total": 0.010061226902437064
+    },
+    {
+      "name": "<hashbrown::map::HashMap<ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot, alloy_primitives::map::fixed::FbBuildHasher<32>> as core::clone::Clone>::clone",
+      "instructions": 25312,
+      "percent_total": 0.009979223172197764
+    },
+    {
+      "name": "<revm_context::journal::warm_addresses::WarmAddresses>::is_warm",
+      "instructions": 23348,
+      "percent_total": 0.009204918719361308
+    },
+    {
+      "name": "revm_interpreter::instructions::contract::call::<244, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 22534,
+      "percent_total": 0.008884000275059435
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<10, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 22456,
+      "percent_total": 0.008853248876219699
+    },
+    {
+      "name": "<hashbrown::raw::RawTableInner>::find_insert_index (.625)",
+      "instructions": 21165,
+      "percent_total": 0.008344273800551742
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<13, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 21098,
+      "percent_total": 0.008317859137445814
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<29, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 21087,
+      "percent_total": 0.008313522401712004
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<11, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 20860,
+      "percent_total": 0.008224027946114308
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::sgt::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 20554,
+      "percent_total": 0.0081033878429738
+    },
+    {
+      "name": "<k256::arithmetic::field::field_10x26::FieldElement10x26>::normalize",
+      "instructions": 19872,
+      "percent_total": 0.007834510227477639
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<11, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 19728,
+      "percent_total": 0.007777738414235047
+    },
+    {
+      "name": "revm_interpreter::instructions::system::returndatasize::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 19665,
+      "percent_total": 0.007752900745941413
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::bitxor::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 19635,
+      "percent_total": 0.007741073284849206
+    },
+    {
+      "name": "<alloy_trie::hash_builder::HashBuilder>::add_leaf",
+      "instructions": 19040,
+      "percent_total": 0.007506495306520442
+    },
+    {
+      "name": "<revm_context_interface::journaled_state::account::JournaledAccount<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>> as revm_context_interface::journaled_state::account::JournaledAccountTr>::incr_balance",
+      "instructions": 18828,
+      "percent_total": 0.007422914581468849
+    },
+    {
+      "name": "alloy_consensus::proofs::calculate_withdrawals_root",
+      "instructions": 18812,
+      "percent_total": 0.007416606602219673
+    },
+    {
+      "name": "revm_interpreter::instructions::system::codecopy::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 18446,
+      "percent_total": 0.007272311576894752
+    },
+    {
+      "name": "<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>",
+      "instructions": 18020,
+      "percent_total": 0.007104361629385419
+    },
+    {
+      "name": "<revm_handler::mainnet_handler::MainnetHandler<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>, revm_handler::frame::EthFrame> as revm_handler::handler::Handler>::pre_execution",
+      "instructions": 17931,
+      "percent_total": 0.007069273494811872
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<12, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 17304,
+      "percent_total": 0.006822079557984755
+    },
+    {
+      "name": "revm_interpreter::instructions::system::address::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 16614,
+      "percent_total": 0.006550047952864004
+    },
+    {
+      "name": "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<alloc::vec::into_iter::IntoIter<alloy_primitives::bytes_::Bytes>, <alloy_rpc_types_engine::payload::ExecutionPayload>::try_into_block_with_sidecar<alloy_consensus::transaction::envelope::EthereumTxEnvelope<alloy_consensus::transaction::eip4844::TxEip4844>>::{closure#0}>, core::result::Result<core::convert::Infallible, alloy_rpc_types_engine::error::PayloadError>> as core::iter::traits::iterator::Iterator>::next",
+      "instructions": 16382,
+      "percent_total": 0.00645858225375094
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, revm_database::states::cache_account::CacheAccount)>>::insert::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, revm_database::states::cache_account::CacheAccount, alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 16340,
+      "percent_total": 0.00644202380822185
+    },
+    {
+      "name": "__sync_fetch_and_sub_4",
+      "instructions": 15565,
+      "percent_total": 0.0061364810633398464
+    },
+    {
+      "name": "alloy_consensus::crypto::secp256k1::recover_signer_unchecked",
+      "instructions": 15312,
+      "percent_total": 0.006036736141462238
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::sdiv::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 14948,
+      "percent_total": 0.005893229613543465
+    },
+    {
+      "name": "<revm_context::tx::TxEnvBuilder>::build",
+      "instructions": 14910,
+      "percent_total": 0.00587824816282667
+    },
+    {
+      "name": "revm_interpreter::instructions::host::extcodesize::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 14874,
+      "percent_total": 0.005864055209516022
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<12, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 14796,
+      "percent_total": 0.0058333038106762845
+    },
+    {
+      "name": "<alloy_consensus::block::Block<alloy_consensus::transaction::envelope::EthereumTxEnvelope<alloy_consensus::transaction::eip4844::TxEip4844>> as reth_primitives_traits::block::Block>::rlp_length",
+      "instructions": 14755,
+      "percent_total": 0.005817139613850269
+    },
+    {
+      "name": "<u64 as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 14664,
+      "percent_total": 0.005781262981870576
+    },
+    {
+      "name": "<hashbrown::map::HashMap<alloy_primitives::bits::address::Address, hashbrown::set::HashSet<ruint::Uint<256, 4>, alloy_primitives::map::hasher::DefaultHashBuilder>, alloy_primitives::map::fixed::FbBuildHasher<20>>>::get::<alloy_primitives::bits::address::Address>",
+      "instructions": 14654,
+      "percent_total": 0.00577732049483984
+    },
+    {
+      "name": "<revm_precompile::interface::DefaultCrypto as revm_precompile::interface::Crypto>::secp256k1_ecrecover",
+      "instructions": 14304,
+      "percent_total": 0.005639333448764097
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<13, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 13748,
+      "percent_total": 0.005420131169855202
+    },
+    {
+      "name": "<alloy_rpc_types_engine::payload::ExecutionPayloadV1>::into_block_raw_with_transactions_root_opt",
+      "instructions": 13040,
+      "percent_total": 0.005141003088079126
+    },
+    {
+      "name": "revm_interpreter::instructions::system::callvalue::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 12717,
+      "percent_total": 0.005013660756986369
+    },
+    {
+      "name": "revm_interpreter::instructions::system::gas::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 12705,
+      "percent_total": 0.005008929772549487
+    },
+    {
+      "name": "__sync_fetch_and_add_4",
+      "instructions": 12685,
+      "percent_total": 0.005001044798488015
+    },
+    {
+      "name": "<u128 as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 12680,
+      "percent_total": 0.004999073554972647
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<14, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 12404,
+      "percent_total": 0.004890260912924347
+    },
+    {
+      "name": "<alloy_rlp::header::Header>::encode (.134)",
+      "instructions": 12082,
+      "percent_total": 0.004763312830534663
+    },
+    {
+      "name": "core::ptr::drop_glue::<revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>",
+      "instructions": 12068,
+      "percent_total": 0.0047577933486916335
+    },
+    {
+      "name": "<bytes::bytes::Bytes as core::convert::From<alloc::vec::Vec<u8>>>::from",
+      "instructions": 11610,
+      "percent_total": 0.0045772274426839465
+    },
+    {
+      "name": "revm_interpreter::instructions::host::load_account::<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 11448,
+      "percent_total": 0.004513359152786031
+    },
+    {
+      "name": "<alloc::vec::Vec<alloy_primitives::bits::fixed::FixedBytes<32>> as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 11418,
+      "percent_total": 0.004501531691693824
+    },
+    {
+      "name": "<k256::arithmetic::affine::AffinePoint as elliptic_curve::sec1::ToEncodedPoint<k256::Secp256k1>>::to_encoded_point",
+      "instructions": 11352,
+      "percent_total": 0.004475511277290969
+    },
+    {
+      "name": "bytes::bytes::shallow_clone_vec",
+      "instructions": 11190,
+      "percent_total": 0.004411642987393054
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::rem::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 11088,
+      "percent_total": 0.004371429619679552
+    },
+    {
+      "name": "ruint::algorithms::sub_fallback (.772)",
+      "instructions": 10859,
+      "percent_total": 0.004281146666675708
+    },
+    {
+      "name": "revm_interpreter::instructions::host::tload::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 10638,
+      "percent_total": 0.004194017703296453
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<7, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 10363,
+      "percent_total": 0.004085599309951226
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, revm_state::EvmStorageSlot)>>::insert_tagged_at_index",
+      "instructions": 10131,
+      "percent_total": 0.003994133610838162
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<16, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 9996,
+      "percent_total": 0.003940910035923232
+    },
+    {
+      "name": "revm_interpreter::instructions::host::tstore::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 9976,
+      "percent_total": 0.003933025061861761
+    },
+    {
+      "name": "core::ptr::drop_glue::<revm_database::states::bundle_state::BundleState>",
+      "instructions": 9839,
+      "percent_total": 0.0038790129895406845
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::fixed::FixedBytes<32>, revm_bytecode::bytecode::Bytecode)>>::insert::<hashbrown::map::make_hasher<alloy_primitives::bits::fixed::FixedBytes<32>, revm_bytecode::bytecode::Bytecode, alloy_primitives::map::fixed::FbBuildHasher<32>>::{closure#0}>",
+      "instructions": 9751,
+      "percent_total": 0.003844319103670212
+    },
+    {
+      "name": "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::list::SszList<u8, 65536>>::{closure#1}>, core::result::Result<core::convert::Infallible, libssz::error::DecodeError>> as core::iter::traits::iterator::Iterator>::next",
+      "instructions": 9582,
+      "percent_total": 0.0037776910728507815
+    },
+    {
+      "name": "<stwo_ethereum_guest::NativeTransactionRecovery as alloy_consensus::crypto::backend::CryptoProvider>::recover_signer_unchecked",
+      "instructions": 9438,
+      "percent_total": 0.0037209192596081896
+    },
+    {
+      "name": "<[u64; 4] as core::hash::Hash>::hash::<foldhash::fast::FoldHasher>",
+      "instructions": 9088,
+      "percent_total": 0.0035829322135324465
+    },
+    {
+      "name": "<revm_context::journal::Journal<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>> as revm_context_interface::journaled_state::JournalTr>::load_account_with_code_mut",
+      "instructions": 9014,
+      "percent_total": 0.0035537578095050037
+    },
+    {
+      "name": "<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame> as revm_handler::api::ExecuteEvm>::finalize",
+      "instructions": 8820,
+      "percent_total": 0.0034772735611087345
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<14, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 8768,
+      "percent_total": 0.0034567726285489094
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<28, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 8736,
+      "percent_total": 0.0034441566700505557
+    },
+    {
+      "name": "<revm_context::tx::TxEnv as revm_context_interface::transaction::Transaction>::max_balance_spending",
+      "instructions": 8712,
+      "percent_total": 0.0034346947011767905
+    },
+    {
+      "name": "<hashbrown::map::HashMap<ruint::Uint<256, 4>, (), alloy_primitives::map::hasher::DefaultHashBuilder>>::insert",
+      "instructions": 8361,
+      "percent_total": 0.003296313406397974
+    },
+    {
+      "name": "<alloc::vec::Vec<alloy_eip2930::AccessListItem> as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 8185,
+      "percent_total": 0.003226925634657028
+    },
+    {
+      "name": "libssz_merkle::merkleize_progressive_inner::<libssz_merkle::Sha2Hasher>",
+      "instructions": 8158,
+      "percent_total": 0.0032162809196740424
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<usize>>::reserve_rehash::<indexmap::inner::get_hash<alloy_primitives::bits::fixed::FixedBytes<32>, tries::zeth::RlpTrie<ruint::Uint<256, 4>>>::{closure#0}>",
+      "instructions": 8126,
+      "percent_total": 0.0032036649611756887
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<5, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 7980,
+      "percent_total": 0.00314610465052695
+    },
+    {
+      "name": "<reth_chainspec::spec::ChainSpec as core::convert::From<alloy_genesis::Genesis>>::from",
+      "instructions": 7957,
+      "percent_total": 0.0031370369303562583
+    },
+    {
+      "name": "<alloy_consensus::transaction::legacy::TxLegacy as alloy_consensus::transaction::rlp::RlpEcdsaEncodableTx>::eip2718_encode_with_type",
+      "instructions": 7741,
+      "percent_total": 0.003051879210492371
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::smod::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 7372,
+      "percent_total": 0.00290640143905823
+    },
+    {
+      "name": "core::ptr::drop_glue::<core::option::Option<revm_interpreter::interpreter_action::InterpreterAction>>",
+      "instructions": 7344,
+      "percent_total": 0.0028953624753721707
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<17, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 7308,
+      "percent_total": 0.0028811695220615227
+    },
+    {
+      "name": "<alloy_primitives::bytes_::Bytes as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 7106,
+      "percent_total": 0.002801531284040665
+    },
+    {
+      "name": "<alloy_consensus::transaction::legacy::TxLegacy as alloy_consensus::transaction::rlp::RlpEcdsaEncodableTx>::rlp_header_signed",
+      "instructions": 6976,
+      "percent_total": 0.0027502789526411033
+    },
+    {
+      "name": "<alloc::sync::Arc<revm_bytecode::bytecode::BytecodeInner>>::drop_slow",
+      "instructions": 6841,
+      "percent_total": 0.0026970553777261735
+    },
+    {
+      "name": "core::ptr::drop_glue::<zeth_mpt::mpt::children::Children<zeth_mpt::mpt::memoize::Cache>>",
+      "instructions": 6739,
+      "percent_total": 0.0026568420100126712
+    },
+    {
+      "name": "revm_interpreter::instructions::memory::mcopy::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 6514,
+      "percent_total": 0.002568136051821122
+    },
+    {
+      "name": "revm_interpreter::instructions::host::log::<2, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 6370,
+      "percent_total": 0.0025113642385785305
+    },
+    {
+      "name": "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::progressive_list::ProgressiveList<u8>>::{closure#1}>, core::result::Result<core::convert::Infallible, libssz::error::DecodeError>> as core::iter::traits::iterator::Iterator>::next",
+      "instructions": 6238,
+      "percent_total": 0.0024593234097728214
+    },
+    {
+      "name": "core::iter::adapters::map::map_fold::<&alloy_primitives::bits::fixed::FixedBytes<32>, ruint::Uint<256, 4>, (), revm_handler::pre_execution::load_accounts<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>>::{closure#0}, core::iter::adapters::map::map_fold<ruint::Uint<256, 4>, (ruint::Uint<256, 4>, ()), (), <hashbrown::set::HashSet<ruint::Uint<256, 4>, alloy_primitives::map::hasher::DefaultHashBuilder> as core::iter::traits::collect::Extend<ruint::Uint<256, 4>>>::extend<core::iter::adapters::map::Map<core::slice::iter::Iter<alloy_primitives::bits::fixed::FixedBytes<32>>, revm_handler::pre_execution::load_accounts<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>>::{closure#0}>>::{closure#0}, core::iter::traits::iterator::Iterator::for_each::call<(ruint::Uint<256, 4>, ()), <hashbrown::map::HashMap<ruint::Uint<256, 4>, (), alloy_primitives::map::hasher::DefaultHashBuilder> as core::iter::traits::collect::Extend<(ruint::Uint<256, 4>, ())>>::extend<core::iter::adapters::map::Map<core::iter::adapters::map::Map<core::slice::iter::Iter<alloy_primitives::bits::fixed::FixedBytes<32>>, revm_handler::pre_execution::load_accounts<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>>::{closure#0}>, <hashbrown::set::HashSet<ruint::Uint<256, 4>, alloy_primitives::map::hasher::DefaultHashBuilder> as core::iter::traits::collect::Extend<ruint::Uint<256, 4>>>::extend<core::iter::adapters::map::Map<core::slice::iter::Iter<alloy_primitives::bits::fixed::FixedBytes<32>>, revm_handler::pre_execution::load_accounts<revm_context::evm::Evm<revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_inspector::noop::NoOpInspector, revm_handler::instructions::EthInstructions<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>, alloy_evm::precompiles::PrecompilesMap, revm_handler::frame::EthFrame>, revm_context_interface::result::EVMError<revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>>::{closure#0}>>::{closure#0}>>::{closure#0}>::{closure#0}>::{closure#0}>::{closure#0}",
+      "instructions": 6174,
+      "percent_total": 0.002434091492776114
+    },
+    {
+      "name": "<foldhash::fast::RandomState as core::hash::BuildHasher>::hash_one::<&ruint::Uint<256, 4>>",
+      "instructions": 6144,
+      "percent_total": 0.0024222640316839076
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<usize>>::insert::<indexmap::inner::get_hash<alloy_primitives::bits::fixed::FixedBytes<32>, tries::zeth::RlpTrie<ruint::Uint<256, 4>>>::{closure#0}>",
+      "instructions": 6103,
+      "percent_total": 0.0024060998348578917
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::dup::<15, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 5936,
+      "percent_total": 0.0023402603014446082
+    },
+    {
+      "name": "revm_interpreter::instructions::tx_info::origin::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 5751,
+      "percent_total": 0.0022673242913760013
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloc::vec::Vec<alloy_consensus::receipt::receipt2::EthereumReceipt>>",
+      "instructions": 5747,
+      "percent_total": 0.002265747296563707
+    },
+    {
+      "name": "<hashbrown::map::HashMap<alloy_primitives::bits::address::Address, revm_precompile::Precompile, alloy_primitives::map::fixed::FbBuildHasher<20>>>::insert",
+      "instructions": 5614,
+      "percent_total": 0.0022133122190549246
+    },
+    {
+      "name": "<alloy_primitives::common::TxKind as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 5544,
+      "percent_total": 0.002185714809839776
+    },
+    {
+      "name": "<alloy_primitives::signature::sig::Signature>::decode_rlp_vrs::<<bool as alloy_rlp::decode::Decodable>::decode>",
+      "instructions": 5120,
+      "percent_total": 0.0020185533597365897
+    },
+    {
+      "name": "bytes::bytes::promotable_even_clone",
+      "instructions": 4735,
+      "percent_total": 0.0018667676090532717
+    },
+    {
+      "name": "<reth_ethereum_forks::hardforks::ChainHardforks>::new",
+      "instructions": 4732,
+      "percent_total": 0.001865584862944051
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::remove",
+      "instructions": 4687,
+      "percent_total": 0.0018478436713057413
+    },
+    {
+      "name": "memmove",
+      "instructions": 4528,
+      "percent_total": 0.0017851581275170464
+    },
+    {
+      "name": "<once_cell::race::once_box::OnceBox<revm_precompile::Precompiles>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<revm_precompile::Precompiles>>::get_or_init<<revm_primitives::once_lock::no_std_impl::OnceLock<revm_precompile::Precompiles>>::get_or_init<<revm_precompile::Precompiles>::new::{closure#0}>::{closure#0}>::{closure#0}>",
+      "instructions": 4416,
+      "percent_total": 0.0017410022727728084
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<15, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 4384,
+      "percent_total": 0.0017283863142744547
+    },
+    {
+      "name": "<hashbrown::map::HashMap<alloy_primitives::bits::address::Address, (), alloy_primitives::map::fixed::FbBuildHasher<20>>>::insert",
+      "instructions": 4354,
+      "percent_total": 0.0017165588531822481
+    },
+    {
+      "name": "bytes::bytes::shared_drop",
+      "instructions": 4348,
+      "percent_total": 0.001714193360963807
+    },
+    {
+      "name": "<revm_interpreter::interpreter::Interpreter>::halt",
+      "instructions": 4290,
+      "percent_total": 0.001691326936185541
+    },
+    {
+      "name": "<indexmap::inner::Core<alloy_primitives::bits::fixed::FixedBytes<32>, tries::zeth::RlpTrie<ruint::Uint<256, 4>>>>::push_entry",
+      "instructions": 4119,
+      "percent_total": 0.0016239104079599632
+    },
+    {
+      "name": "<alloy_evm::eth::block::EthBlockExecutor<alloy_evm::eth::EthEvm<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>, revm_inspector::noop::NoOpInspector, alloy_evm::precompiles::PrecompilesMap>, &alloc::sync::Arc<reth_chainspec::spec::ChainSpec>, &reth_evm_ethereum::receipt::RethReceiptBuilder> as alloy_evm::block::BlockExecutor>::finish",
+      "instructions": 4086,
+      "percent_total": 0.001610900200758536
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, revm_state::Account)>>::insert_tagged_at_index",
+      "instructions": 3978,
+      "percent_total": 0.0015683213408265923
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, ruint::Uint<256, 4>)>>::insert_tagged_at_index",
+      "instructions": 3975,
+      "percent_total": 0.0015671385947173717
+    },
+    {
+      "name": "revm_precompile::secp256k1::ecrecover_precompile",
+      "instructions": 3964,
+      "percent_total": 0.0015628018589835626
+    },
+    {
+      "name": "<k256::arithmetic::affine::AffinePoint as subtle::ConditionallySelectable>::conditional_select",
+      "instructions": 3792,
+      "percent_total": 0.0014949910820549117
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<15, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 3780,
+      "percent_total": 0.0014902600976180289
+    },
+    {
+      "name": "core::slice::sort::stable::quicksort::quicksort::<(&str, alloy_hardforks::forkcondition::ForkCondition), <[(&str, alloy_hardforks::forkcondition::ForkCondition)]>::sort_by<<alloc::collections::btree::map::BTreeMap<&str, alloy_hardforks::forkcondition::ForkCondition> as core::iter::traits::collect::FromIterator<(&str, alloy_hardforks::forkcondition::ForkCondition)>>::from_iter<core::iter::adapters::map::Map<core::slice::iter::Iter<(alloc::boxed::Box<dyn alloy_hardforks::hardfork::Hardfork>, alloy_hardforks::forkcondition::ForkCondition)>, <reth_ethereum_forks::hardforks::ChainHardforks>::new::{closure#0}>>::{closure#0}>::{closure#0}>",
+      "instructions": 3720,
+      "percent_total": 0.0014666051754336157
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, hashbrown::set::HashSet<ruint::Uint<256, 4>, alloy_primitives::map::hasher::DefaultHashBuilder>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, hashbrown::set::HashSet<ruint::Uint<256, 4>, alloy_primitives::map::hasher::DefaultHashBuilder>, alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 3571,
+      "percent_total": 0.0014078621186756565
+    },
+    {
+      "name": "<reth_evm_ethereum::EthEvmConfig as reth_evm::ConfigureEvm>::executor::<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>",
+      "instructions": 3448,
+      "percent_total": 0.0013593695281976096
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<libssz_types::list::SszList<u8, 65536>>>",
+      "instructions": 3360,
+      "percent_total": 0.0013246756423271368
+    },
+    {
+      "name": "revm_interpreter::instructions::host::log::<1, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 3285,
+      "percent_total": 0.0012951069895966204
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<14, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 3240,
+      "percent_total": 0.0012773657979583105
+    },
+    {
+      "name": "<zeth_mpt::mpt::node::Node<zeth_mpt::mpt::memoize::Cache>>::hash",
+      "instructions": 3009,
+      "percent_total": 0.0011862943475483198
+    },
+    {
+      "name": "<hashbrown::map::HashMap<alloy_primitives::bits::address::Address, u128, alloy_primitives::map::fixed::FbBuildHasher<20>>>::entry",
+      "instructions": 3003,
+      "percent_total": 0.0011839288553298786
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<21, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 2925,
+      "percent_total": 0.0011531774564901415
+    },
+    {
+      "name": "<alloc::vec::Vec<alloy_eip2930::AccessListItem> as core::clone::Clone>::clone",
+      "instructions": 2909,
+      "percent_total": 0.0011468694772409646
+    },
+    {
+      "name": "<revm_precompile::Precompiles>::extend::<[revm_precompile::Precompile; 4]>",
+      "instructions": 2846,
+      "percent_total": 0.001122031808947331
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<24, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 2788,
+      "percent_total": 0.0010991653841690647
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<12, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 2756,
+      "percent_total": 0.0010865494256707112
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::Withdrawal>>",
+      "instructions": 2744,
+      "percent_total": 0.0010818184412338284
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<13, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 2585,
+      "percent_total": 0.0010191328974451335
+    },
+    {
+      "name": "core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::list::SszList<u8, 65536>>::{closure#1}>, libssz_types::list::SszList<u8, 65536>, core::result::Result<core::convert::Infallible, libssz::error::DecodeError>, <core::result::Result<alloc::vec::Vec<libssz_types::list::SszList<u8, 65536>>, libssz::error::DecodeError> as core::iter::traits::collect::FromIterator<core::result::Result<libssz_types::list::SszList<u8, 65536>, libssz::error::DecodeError>>>::from_iter<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::list::SszList<u8, 65536>>::{closure#1}>>::{closure#0}, alloc::vec::Vec<libssz_types::list::SszList<u8, 65536>>>",
+      "instructions": 2532,
+      "percent_total": 0.0009982377161822354
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, ())>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, (), alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 2388,
+      "percent_total": 0.0009414659029396437
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, revm_precompile::Precompile)>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, revm_precompile::Precompile, alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 2388,
+      "percent_total": 0.0009414659029396437
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloy_consensus::transaction::envelope::EthereumTxEnvelope<alloy_consensus::transaction::eip4844::TxEip4844>>",
+      "instructions": 2354,
+      "percent_total": 0.0009280614470351429
+    },
+    {
+      "name": "core::ptr::drop_glue::<revm_context::tx::TxEnv>",
+      "instructions": 2315,
+      "percent_total": 0.0009126857476152744
+    },
+    {
+      "name": "<alloy_consensus::transaction::legacy::TxLegacy as alloy_consensus::transaction::rlp::RlpEcdsaDecodableTx>::rlp_decode_with_signature",
+      "instructions": 2296,
+      "percent_total": 0.0009051950222568768
+    },
+    {
+      "name": "bytes::bytes::shared_clone",
+      "instructions": 2240,
+      "percent_total": 0.0008831170948847579
+    },
+    {
+      "name": "revm_interpreter::instructions::block_info::coinbase::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 2201,
+      "percent_total": 0.0008677413954648893
+    },
+    {
+      "name": "<core::iter::adapters::take::Take<core::slice::iter::Iter<[u8; 32]>> as core::iter::traits::iterator::Iterator>::nth",
+      "instructions": 2199,
+      "percent_total": 0.0008669528980587422
+    },
+    {
+      "name": "<revm_context::journal::inner::JournalInner<revm_context_interface::journaled_state::entry::JournalEntry>>::eip7708_transfer_log",
+      "instructions": 2048,
+      "percent_total": 0.0008074213438946358
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<31, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1957,
+      "percent_total": 0.0007715447119149426
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<libssz_types::progressive_list::ProgressiveList<u8>>>",
+      "instructions": 1902,
+      "percent_total": 0.0007498610332458971
+    },
+    {
+      "name": "revm_interpreter::instructions::control::ret::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1896,
+      "percent_total": 0.0007474955410274558
+    },
+    {
+      "name": "<revm_handler::frame::EthFrame as core::default::Default>::default",
+      "instructions": 1883,
+      "percent_total": 0.0007423703078874996
+    },
+    {
+      "name": "core::ptr::drop_glue::<reth_ethereum_forks::hardforks::ChainHardforks>",
+      "instructions": 1883,
+      "percent_total": 0.0007423703078874996
+    },
+    {
+      "name": "revm_precompile::identity::identity_precompile",
+      "instructions": 1880,
+      "percent_total": 0.000741187561778279
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<10, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1794,
+      "percent_total": 0.0007072821733139534
+    },
+    {
+      "name": "<alloy_consensus::block::header::Header as alloy_primitives::sealed::Sealable>::hash_slow",
+      "instructions": 1740,
+      "percent_total": 0.0006859927433479815
+    },
+    {
+      "name": "revm_interpreter::instructions::block_info::timestamp::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1701,
+      "percent_total": 0.0006706170439281131
+    },
+    {
+      "name": "<alloy_trie::hash_builder::HashBuilder>::resize_masks",
+      "instructions": 1696,
+      "percent_total": 0.0006686458004127452
+    },
+    {
+      "name": "stateless_validator_reth::guest::convert::to_alloy_payload_v3",
+      "instructions": 1610,
+      "percent_total": 0.0006347404119484198
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<9, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1548,
+      "percent_total": 0.0006102969923578595
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<alloy_primitives::log::Log>>::grow_one",
+      "instructions": 1547,
+      "percent_total": 0.0006099027436547859
+    },
+    {
+      "name": "<k256::arithmetic::field::field_10x26::FieldElement10x26>::from_bytes_unchecked",
+      "instructions": 1500,
+      "percent_total": 0.0005913730546103289
+    },
+    {
+      "name": "core::iter::adapters::try_process::<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::progressive_list::ProgressiveList<u8>>::{closure#1}>, libssz_types::progressive_list::ProgressiveList<u8>, core::result::Result<core::convert::Infallible, libssz::error::DecodeError>, <core::result::Result<alloc::vec::Vec<libssz_types::progressive_list::ProgressiveList<u8>>, libssz::error::DecodeError> as core::iter::traits::collect::FromIterator<core::result::Result<libssz_types::progressive_list::ProgressiveList<u8>, libssz::error::DecodeError>>>::from_iter<core::iter::adapters::map::Map<core::slice::iter::Windows<usize>, libssz::decode::decode_variable_length_items_with_max<libssz_types::progressive_list::ProgressiveList<u8>>::{closure#1}>>::{closure#0}, alloc::vec::Vec<libssz_types::progressive_list::ProgressiveList<u8>>>",
+      "instructions": 1452,
+      "percent_total": 0.0005724491168627985
+    },
+    {
+      "name": "revm_interpreter::instructions::bitwise::byte::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1443,
+      "percent_total": 0.0005689008785351365
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloc::borrow::Cow<revm_state::Account>>",
+      "instructions": 1435,
+      "percent_total": 0.000565746888910548
+    },
+    {
+      "name": "<ruint::Uint<256, 4>>::div_rem_bits_plus_one",
+      "instructions": 1430,
+      "percent_total": 0.0005637756453951803
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, ())>>::reserve_rehash::<hashbrown::map::make_hasher<ruint::Uint<256, 4>, (), alloy_primitives::map::hasher::DefaultHashBuilder>::{closure#0}>",
+      "instructions": 1421,
+      "percent_total": 0.0005602274070675183
+    },
+    {
+      "name": "<alloy_evm::eth::EthEvm<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>, revm_inspector::noop::NoOpInspector, alloy_evm::precompiles::PrecompilesMap> as alloy_evm::evm::Evm>::transact_system_call",
+      "instructions": 1380,
+      "percent_total": 0.0005440632102415026
+    },
+    {
+      "name": "revm_interpreter::instructions::system::codesize::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1344,
+      "percent_total": 0.0005298702569308547
+    },
+    {
+      "name": "<reth_chainspec::spec::ChainSpec as alloy_hardforks::hardfork::ethereum::EthereumHardforks>::is_ethereum_fork_active_at_block",
+      "instructions": 1330,
+      "percent_total": 0.000524350775087825
+    },
+    {
+      "name": "<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::Withdrawal> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 1318,
+      "percent_total": 0.0005196197906509424
+    },
+    {
+      "name": "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<core::slice::iter::Iter<alloy_primitives::bytes_::Bytes>, stateless::validation::stateless_validation_recovered_with_trie<tries::zeth::SparseState, reth_chainspec::spec::ChainSpec, reth_evm_ethereum::EthEvmConfig>::{closure#0}>, core::result::Result<core::convert::Infallible, stateless::validation::StatelessValidationError>> as core::iter::traits::iterator::Iterator>::next",
+      "instructions": 1315,
+      "percent_total": 0.0005184370445417217
+    },
+    {
+      "name": "<alloy_consensus::block::header::Header>::hash_slow",
+      "instructions": 1253,
+      "percent_total": 0.0004939936249511614
+    },
+    {
+      "name": "<alloy_consensus::block::header::Header>::header_payload_length",
+      "instructions": 1197,
+      "percent_total": 0.0004719156975790425
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<23, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 1131,
+      "percent_total": 0.00044589528317618804
+    },
+    {
+      "name": "<libssz_types::progressive_list::ProgressiveList<libssz_types::progressive_list::ProgressiveList<u8>> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 961,
+      "percent_total": 0.0003788730036536841
+    },
+    {
+      "name": "<k256::arithmetic::scalar::Scalar as core::ops::arith::Neg>::neg",
+      "instructions": 924,
+      "percent_total": 0.00036428580163996264
+    },
+    {
+      "name": "<alloy_consensus::transaction::legacy::TxLegacy as alloy_consensus::transaction::rlp::RlpEcdsaDecodableTx>::rlp_decode_fields",
+      "instructions": 904,
+      "percent_total": 0.00035640082757849156
+    },
+    {
+      "name": "<k256::arithmetic::projective::ProjectivePoint as core::convert::From<k256::arithmetic::affine::AffinePoint>>::from",
+      "instructions": 888,
+      "percent_total": 0.00035009284832931476
+    },
+    {
+      "name": "__sync_val_compare_and_swap_4",
+      "instructions": 870,
+      "percent_total": 0.00034299637167399077
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<6, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 840,
+      "percent_total": 0.0003311689105817842
+    },
+    {
+      "name": "<stateless_validator_common::guest::input::new_payload_request::ExecutionPayloadV3 as libssz::decode::SszDecode>::from_ssz_bytes",
+      "instructions": 808,
+      "percent_total": 0.00031855295208343054
+    },
+    {
+      "name": "<k256::arithmetic::projective::ProjectivePoint as group::Group>::is_identity",
+      "instructions": 804,
+      "percent_total": 0.0003169759572711363
+    },
+    {
+      "name": "<alloy_evm::eth::block::EthBlockExecutor<alloy_evm::eth::EthEvm<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>, revm_inspector::noop::NoOpInspector, alloy_evm::precompiles::PrecompilesMap>, &alloc::sync::Arc<reth_chainspec::spec::ChainSpec>, &reth_evm_ethereum::receipt::RethReceiptBuilder> as alloy_evm::block::BlockExecutor>::apply_pre_execution_changes",
+      "instructions": 773,
+      "percent_total": 0.0003047542474758562
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<11, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 765,
+      "percent_total": 0.00030160025785126775
+    },
+    {
+      "name": "bytes::bytes::static_drop",
+      "instructions": 732,
+      "percent_total": 0.0002885900506498405
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<25, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 696,
+      "percent_total": 0.00027439709733919265
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloy_evm::eth::EthEvm<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>, revm_inspector::noop::NoOpInspector, alloy_evm::precompiles::PrecompilesMap>>",
+      "instructions": 674,
+      "percent_total": 0.0002657236258715745
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<18, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 660,
+      "percent_total": 0.0002602041440285447
+    },
+    {
+      "name": "guest_main",
+      "instructions": 654,
+      "percent_total": 0.00025783865181010343
+    },
+    {
+      "name": "revm_interpreter::instructions::host::selfbalance::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 616,
+      "percent_total": 0.00024285720109330842
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(ruint::Uint<256, 4>, revm_database::states::plain_account::StorageSlot)>>::insert_tagged_at_index",
+      "instructions": 578,
+      "percent_total": 0.00022787575037651342
+    },
+    {
+      "name": "revm_interpreter::instructions::host::extcodecopy::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 572,
+      "percent_total": 0.0002255102581580721
+    },
+    {
+      "name": "<alloy_hardforks::hardfork::ethereum::EthereumHardfork as alloy_hardforks::hardfork::Hardfork>::name",
+      "instructions": 572,
+      "percent_total": 0.0002255102581580721
+    },
+    {
+      "name": "bytes::bytes::static_clone (.237)",
+      "instructions": 567,
+      "percent_total": 0.00022353901464270434
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::swap::<16, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 548,
+      "percent_total": 0.00021604828928430684
+    },
+    {
+      "name": "revm_interpreter::instructions::host::log::<4, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 529,
+      "percent_total": 0.00020855756392590934
+    },
+    {
+      "name": "revm_interpreter::instructions::block_info::chainid::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 528,
+      "percent_total": 0.0002081633152228358
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<alloy_primitives::bits::fixed::FixedBytes<32>>>::grow_one",
+      "instructions": 516,
+      "percent_total": 0.00020343233078595315
+    },
+    {
+      "name": "<&alloy_hardforks::hardfork::ethereum::EthereumHardfork as alloy_hardforks::hardfork::Hardfork>::name",
+      "instructions": 504,
+      "percent_total": 0.00019870134634907054
+    },
+    {
+      "name": "core::slice::sort::shared::smallsort::sort4_stable::<(&str, alloy_hardforks::forkcondition::ForkCondition), <[(&str, alloy_hardforks::forkcondition::ForkCondition)]>::sort_by<<alloc::collections::btree::map::BTreeMap<&str, alloy_hardforks::forkcondition::ForkCondition> as core::iter::traits::collect::FromIterator<(&str, alloy_hardforks::forkcondition::ForkCondition)>>::from_iter<core::iter::adapters::map::Map<core::slice::iter::Iter<(alloc::boxed::Box<dyn alloy_hardforks::hardfork::Hardfork>, alloy_hardforks::forkcondition::ForkCondition)>, <reth_ethereum_forks::hardforks::ChainHardforks>::new::{closure#0}>>::{closure#0}>::{closure#0}>",
+      "instructions": 484,
+      "percent_total": 0.00019081637228759947
+    },
+    {
+      "name": "bytes::bytes::static_clone (.773)",
+      "instructions": 483,
+      "percent_total": 0.00019042212358452593
+    },
+    {
+      "name": "core::slice::sort::stable::drift::sort::<(&str, alloy_hardforks::forkcondition::ForkCondition), <[(&str, alloy_hardforks::forkcondition::ForkCondition)]>::sort_by<<alloc::collections::btree::map::BTreeMap<&str, alloy_hardforks::forkcondition::ForkCondition> as core::iter::traits::collect::FromIterator<(&str, alloy_hardforks::forkcondition::ForkCondition)>>::from_iter<core::iter::adapters::map::Map<core::slice::iter::Iter<(alloc::boxed::Box<dyn alloy_hardforks::hardfork::Hardfork>, alloy_hardforks::forkcondition::ForkCondition)>, <reth_ethereum_forks::hardforks::ChainHardforks>::new::{closure#0}>>::{closure#0}>::{closure#0}>",
+      "instructions": 480,
+      "percent_total": 0.00018923937747530525
+    },
+    {
+      "name": "core::ptr::drop_glue::<zeth_mpt::mpt::children::OccupiedEntry<zeth_mpt::mpt::memoize::Cache>>",
+      "instructions": 480,
+      "percent_total": 0.00018923937747530525
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<alloy_trie::nodes::rlp::RlpNode>>::grow_one",
+      "instructions": 473,
+      "percent_total": 0.0001864796365537904
+    },
+    {
+      "name": "<revm_precompile::Precompiles>::extend::<[revm_precompile::Precompile; 1]>",
+      "instructions": 466,
+      "percent_total": 0.00018371989563227553
+    },
+    {
+      "name": "<zeth_mpt::mpt::CachedTrie>::try_remove::<&alloy_primitives::bits::fixed::FixedBytes<32>>",
+      "instructions": 465,
+      "percent_total": 0.00018332564692920196
+    },
+    {
+      "name": "revm_interpreter::instructions::host::balance::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 448,
+      "percent_total": 0.0001766234189769516
+    },
+    {
+      "name": "alloc::boxed::box_new_uninit",
+      "instructions": 405,
+      "percent_total": 0.0001596707247447888
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloy_consensus::block::BlockBody<alloy_consensus::transaction::envelope::EthereumTxEnvelope<alloy_consensus::transaction::eip4844::TxEip4844>>>",
+      "instructions": 390,
+      "percent_total": 0.00015375699419868552
+    },
+    {
+      "name": "revm_interpreter::instructions::host::log::<0, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>, revm_interpreter::interpreter::EthInterpreter>",
+      "instructions": 373,
+      "percent_total": 0.00014705476624643512
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<stateless_validator_common::guest::input::new_payload_request::NewPayloadRequestElectraFulu>",
+      "instructions": 366,
+      "percent_total": 0.00014429502532492026
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<26, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 360,
+      "percent_total": 0.00014192953310647894
+    },
+    {
+      "name": "<libssz_types::list::SszList<u8, 32> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 320,
+      "percent_total": 0.00012615958498353685
+    },
+    {
+      "name": "<hashbrown::map::Entry<alloy_primitives::bits::address::Address, u128, alloy_primitives::map::fixed::FbBuildHasher<20>>>::or_default",
+      "instructions": 315,
+      "percent_total": 0.00012418834146816907
+    },
+    {
+      "name": "<alloc::rc::Rc<core::cell::RefCell<alloc::vec::Vec<u8>>>>::drop_slow",
+      "instructions": 315,
+      "percent_total": 0.00012418834146816907
+    },
+    {
+      "name": "revm_interpreter::instructions::arithmetic::addmod::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 312,
+      "percent_total": 0.00012300559535894843
+    },
+    {
+      "name": "<foldhash::seed::SharedSeed>::from_u64",
+      "instructions": 301,
+      "percent_total": 0.00011866885962513935
+    },
+    {
+      "name": "<indexmap::inner::Core<alloy_primitives::bits::fixed::FixedBytes<32>, alloy_primitives::bytes_::Bytes>>::with_capacity",
+      "instructions": 290,
+      "percent_total": 0.00011433212389133026
+    },
+    {
+      "name": "<zeth_mpt::mpt::children::Children<zeth_mpt::mpt::memoize::Cache>>::take_single_child",
+      "instructions": 279,
+      "percent_total": 0.00010999538815752119
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloy_trie::hash_builder::HashBuilder>",
+      "instructions": 278,
+      "percent_total": 0.00010960113945444763
+    },
+    {
+      "name": "<revm_context_interface::cfg::gas_params::GasParams>::new_spec_inner",
+      "instructions": 267,
+      "percent_total": 0.00010526440372063856
+    },
+    {
+      "name": "<core::iter::adapters::GenericShunt<core::iter::adapters::map::Map<hashbrown::map::IntoIter<alloy_primitives::bits::address::Address, u128>, <&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>> as revm_database_interface::DatabaseCommitExt>::increment_balances<hashbrown::map::HashMap<alloy_primitives::bits::address::Address, u128, alloy_primitives::map::fixed::FbBuildHasher<20>>>::{closure#0}>, core::result::Result<core::convert::Infallible, revm_database_interface::bal::EvmDatabaseError<tries::error::WitnessDbError>>> as core::iter::traits::iterator::Iterator>::next",
+      "instructions": 265,
+      "percent_total": 0.00010447590631449145
+    },
+    {
+      "name": "revm_interpreter::instructions::control::stop::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 260,
+      "percent_total": 0.00010250466279912368
+    },
+    {
+      "name": "stateless::validation::compute_ancestor_hashes",
+      "instructions": 252,
+      "percent_total": 9.935067317453527e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<hashbrown::map::HashMap<alloy_primitives::bits::address::Address, hashbrown::set::HashSet<ruint::Uint<256, 4>, alloy_primitives::map::hasher::DefaultHashBuilder>, alloy_primitives::map::fixed::FbBuildHasher<20>>>",
+      "instructions": 252,
+      "percent_total": 9.935067317453527e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<stateless_validator_common::guest::input::ExecutionWitness>",
+      "instructions": 244,
+      "percent_total": 9.619668354994684e-05
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, revm_database::states::cache_account::CacheAccount)>>::insert_tagged_at_index",
+      "instructions": 238,
+      "percent_total": 9.383119133150553e-05
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::fixed::FixedBytes<32>, revm_bytecode::bytecode::Bytecode)>>::insert_tagged_at_index",
+      "instructions": 238,
+      "percent_total": 9.383119133150553e-05
+    },
+    {
+      "name": "<stateless_validator_common::guest::input::new_payload_request::ExecutionPayloadV3 as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 220,
+      "percent_total": 8.673471467618158e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::read_variable_offset",
+      "instructions": 211,
+      "percent_total": 8.31864763485196e-05
+    },
+    {
+      "name": "reth_consensus_common::validation::validate_against_parent_4844::<alloy_consensus::block::header::Header>",
+      "instructions": 210,
+      "percent_total": 8.279222764544605e-05
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<revm_context_interface::journaled_state::entry::JournalEntry>>::grow_one",
+      "instructions": 209,
+      "percent_total": 8.23979789423725e-05
+    },
+    {
+      "name": "<hashbrown::raw::RawTableInner>::find_insert_index (.839)",
+      "instructions": 204,
+      "percent_total": 8.042673542700474e-05
+    },
+    {
+      "name": "<reth_chainspec::spec::ChainSpec as alloy_hardforks::hardfork::ethereum::EthereumHardforks>::is_prague_active_at_timestamp",
+      "instructions": 197,
+      "percent_total": 7.766699450548987e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<stateless_validator_common::guest::input::new_payload_request::ExecutionRequestsElectraFulu>",
+      "instructions": 188,
+      "percent_total": 7.41187561778279e-05
+    },
+    {
+      "name": "<alloy_eips::eip7685::Requests>::requests_hash",
+      "instructions": 185,
+      "percent_total": 7.293601006860724e-05
+    },
+    {
+      "name": "<reth_chainspec::spec::ChainSpec as reth_chainspec::api::EthChainSpec>::blob_params_at_timestamp",
+      "instructions": 180,
+      "percent_total": 7.096476655323947e-05
+    },
+    {
+      "name": "revm_interpreter::instructions::memory::mstore8::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 177,
+      "percent_total": 6.978202044401882e-05
+    },
+    {
+      "name": "revm_interpreter::instructions::block_info::block_number::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 162,
+      "percent_total": 6.386828989791553e-05
+    },
+    {
+      "name": "revm_interpreter::instructions::tx_info::gasprice::<revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 160,
+      "percent_total": 6.307979249176843e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloy_genesis::Genesis>",
+      "instructions": 154,
+      "percent_total": 6.0714300273327106e-05
+    },
+    {
+      "name": "<revm_context_interface::local::OutFrame<revm_handler::frame::EthFrame>>::do_init::<<revm_handler::frame::EthFrame>::invalid>",
+      "instructions": 154,
+      "percent_total": 6.0714300273327106e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_fixed::<[u8; 32]>",
+      "instructions": 146,
+      "percent_total": 5.7560310648738685e-05
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<alloy_eip2930::AccessListItem>>::grow_one",
+      "instructions": 146,
+      "percent_total": 5.7560310648738685e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<reth_consensus::ConsensusError>",
+      "instructions": 140,
+      "percent_total": 5.519481843029737e-05
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<usize>>::insert_tagged_at_index",
+      "instructions": 126,
+      "percent_total": 4.9675336587267635e-05
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<usize>>::grow_one",
+      "instructions": 125,
+      "percent_total": 4.928108788419408e-05
+    },
+    {
+      "name": "<alloy_trie::hash_builder::HashBuilder>::root",
+      "instructions": 120,
+      "percent_total": 4.7309844368826313e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<revm_context::journal::inner::JournalInner<revm_context_interface::journaled_state::entry::JournalEntry>>",
+      "instructions": 118,
+      "percent_total": 4.652134696267921e-05
+    },
+    {
+      "name": "<revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>::take_bundle",
+      "instructions": 116,
+      "percent_total": 4.5732849556532106e-05
+    },
+    {
+      "name": "<[u8; 256] as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 106,
+      "percent_total": 4.179036252579658e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<revm_context_interface::result::ExecutionResult>",
+      "instructions": 104,
+      "percent_total": 4.100186511964948e-05
+    },
+    {
+      "name": "<once_cell::race::once_box::OnceBox<revm_bytecode::bytecode::Bytecode>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<revm_bytecode::bytecode::Bytecode>>::get_or_init<<revm_primitives::once_lock::no_std_impl::OnceLock<revm_bytecode::bytecode::Bytecode>>::get_or_init<<revm_bytecode::bytecode::Bytecode>::default_ref::{closure#0}>::{closure#0}>::{closure#0}>",
+      "instructions": 102,
+      "percent_total": 4.021336771350237e-05
+    },
+    {
+      "name": "<reth_chainspec::spec::ChainSpec as alloy_hardforks::hardfork::ethereum::EthereumHardforks>::is_amsterdam_active_at_timestamp",
+      "instructions": 98,
+      "percent_total": 3.8636372901208156e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<revm_context::journal::warm_addresses::WarmAddresses>",
+      "instructions": 94,
+      "percent_total": 3.705937808891395e-05
+    },
+    {
+      "name": "<&mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>> as revm_database_interface::DatabaseCommit>::commit_iter",
+      "instructions": 88,
+      "percent_total": 3.4693885870472635e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<[u8; 65]>>",
+      "instructions": 86,
+      "percent_total": 3.390538846432553e-05
+    },
+    {
+      "name": "<alloy_rpc_types_engine::payload::ExecutionPayloadV2>::into_block_raw_with_transactions_root_opt",
+      "instructions": 84,
+      "percent_total": 3.311689105817842e-05
+    },
+    {
+      "name": "<core::iter::adapters::flatten::FlatMap<core::iter::adapters::flatten::Flatten<core::array::iter::IntoIter<core::option::Option<alloc::vec::Vec<u8>>, 3>>, [u8; 32], stateless_validator_reth::guest::convert::compute_requests_hash<[core::option::Option<alloc::vec::Vec<u8>>; 3], libssz_merkle::Sha2Hasher>::{closure#0}> as core::iter::traits::iterator::Iterator>::next",
+      "instructions": 82,
+      "percent_total": 3.2328393652031314e-05
+    },
+    {
+      "name": "<alloc::sync::Arc<reth_chainspec::spec::ChainSpec>>::drop_slow",
+      "instructions": 79,
+      "percent_total": 3.114564754281066e-05
+    },
+    {
+      "name": "<stateless_validator_common::guest::output::StatelessValidationResult as libssz::encode::SszEncode>::ssz_append",
+      "instructions": 78,
+      "percent_total": 3.0751398839737106e-05
+    },
+    {
+      "name": "<alloc::raw_vec::RawVecInner>::try_allocate_in",
+      "instructions": 77,
+      "percent_total": 3.0357150136663553e-05
+    },
+    {
+      "name": "<foldhash::seed::global::GlobalSeed>::init_slow",
+      "instructions": 77,
+      "percent_total": 3.0357150136663553e-05
+    },
+    {
+      "name": "<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::DepositRequest> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 76,
+      "percent_total": 2.996290143359e-05
+    },
+    {
+      "name": "<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::ConsolidationRequest> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 76,
+      "percent_total": 2.996290143359e-05
+    },
+    {
+      "name": "<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::WithdrawalRequest> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 76,
+      "percent_total": 2.996290143359e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::list::SszList<u8, 32>>",
+      "instructions": 75,
+      "percent_total": 2.956865273051645e-05
+    },
+    {
+      "name": "revm_interpreter::instructions::stack::push::<19, revm_interpreter::interpreter::EthInterpreter, revm_context::context::Context<revm_context::block::BlockEnv, revm_context::tx::TxEnv, revm_context::cfg::CfgEnv, &mut revm_database::states::state::State<stateless::witness_db::WitnessDatabase<tries::zeth::SparseState>>>>",
+      "instructions": 71,
+      "percent_total": 2.799165791822224e-05
+    },
+    {
+      "name": "<libssz_types::progressive_list::ProgressiveList<[u8; 32]> as libssz_merkle::HashTreeRoot>::hash_tree_root::<libssz_merkle::Sha2Hasher>",
+      "instructions": 70,
+      "percent_total": 2.7597409215148685e-05
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, hashbrown::map::HashMap<ruint::Uint<256, 4>, ruint::Uint<256, 4>, alloy_primitives::map::fixed::FbBuildHasher<32>>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloy_primitives::bits::address::Address, hashbrown::map::HashMap<ruint::Uint<256, 4>, ruint::Uint<256, 4>, alloy_primitives::map::fixed::FbBuildHasher<32>>, alloy_primitives::map::fixed::FbBuildHasher<20>>::{closure#0}>",
+      "instructions": 70,
+      "percent_total": 2.7597409215148685e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_fixed::<u64>",
+      "instructions": 68,
+      "percent_total": 2.6808911809001578e-05
+    },
+    {
+      "name": "<[u8; 8] as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 64,
+      "percent_total": 2.5231916996707367e-05
+    },
+    {
+      "name": "core::slice::sort::stable::driftsort_main::<(&str, alloy_hardforks::forkcondition::ForkCondition), <[(&str, alloy_hardforks::forkcondition::ForkCondition)]>::sort_by<<alloc::collections::btree::map::BTreeMap<&str, alloy_hardforks::forkcondition::ForkCondition> as core::iter::traits::collect::FromIterator<(&str, alloy_hardforks::forkcondition::ForkCondition)>>::from_iter<core::iter::adapters::map::Map<core::slice::iter::Iter<(alloc::boxed::Box<dyn alloy_hardforks::hardfork::Hardfork>, alloy_hardforks::forkcondition::ForkCondition)>, <reth_ethereum_forks::hardforks::ChainHardforks>::new::{closure#0}>>::{closure#0}>::{closure#0}, alloc::vec::Vec<(&str, alloy_hardforks::forkcondition::ForkCondition)>>",
+      "instructions": 60,
+      "percent_total": 2.3654922184413157e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::WithdrawalRequest>>",
+      "instructions": 56,
+      "percent_total": 2.207792737211895e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::DepositRequest>>",
+      "instructions": 56,
+      "percent_total": 2.207792737211895e-05
+    },
+    {
+      "name": "__umoddi3",
+      "instructions": 56,
+      "percent_total": 2.207792737211895e-05
+    },
+    {
+      "name": "<once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn revm_precompile::interface::Crypto>>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn revm_precompile::interface::Crypto>>>::get_or_init<<revm_primitives::once_lock::no_std_impl::OnceLock<alloc::boxed::Box<dyn revm_precompile::interface::Crypto>>>::get_or_init<revm_precompile::interface::crypto::{closure#0}>::{closure#0}>::{closure#0}>",
+      "instructions": 54,
+      "percent_total": 2.1289429965971842e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<stateless_validator_common::guest::input::new_payload_request::ConsolidationRequest>>",
+      "instructions": 54,
+      "percent_total": 2.1289429965971842e-05
+    },
+    {
+      "name": "<alloy_trie::hash_builder::HashBuilder as core::default::Default>::default",
+      "instructions": 53,
+      "percent_total": 2.089518126289829e-05
+    },
+    {
+      "name": "<reth_chainspec::spec::ChainSpec as reth_chainspec::api::EthChainSpec>::base_fee_params_at_timestamp",
+      "instructions": 50,
+      "percent_total": 1.9712435153677632e-05
+    },
+    {
+      "name": "<revm_context_interface::cfg::gas_params::GasParams>::new_spec",
+      "instructions": 50,
+      "percent_total": 1.9712435153677632e-05
+    },
+    {
+      "name": "<[u8; 20] as alloy_rlp::decode::Decodable>::decode",
+      "instructions": 49,
+      "percent_total": 1.9318186450604078e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloc::vec::Vec<reth_primitives_traits::header::sealed::SealedHeader>>",
+      "instructions": 48,
+      "percent_total": 1.8923937747530528e-05
+    },
+    {
+      "name": "reth_consensus_common::validation::validate_4844_header_standalone::<alloy_consensus::block::header::Header>",
+      "instructions": 46,
+      "percent_total": 1.813544034138342e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloc::collections::btree::map::BTreeMap<u64, alloy_primitives::bits::fixed::FixedBytes<32>>>",
+      "instructions": 45,
+      "percent_total": 1.7741191638309868e-05
+    },
+    {
+      "name": "<alloc::collections::btree::map::IntoIter<alloc::string::String, serde_json::value::Value>>::dying_next",
+      "instructions": 45,
+      "percent_total": 1.7741191638309868e-05
+    },
+    {
+      "name": "<indexmap::inner::Core<alloy_primitives::bits::fixed::FixedBytes<32>, alloy_primitives::bytes_::Bytes>>::reserve",
+      "instructions": 44,
+      "percent_total": 1.7346942935236317e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<revm_state::types::TransientStorage>",
+      "instructions": 42,
+      "percent_total": 1.655844552908921e-05
+    },
+    {
+      "name": "<once_cell::race::once_box::OnceBox<revm_context_interface::cfg::gas_params::GasParams>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<revm_context_interface::cfg::gas_params::GasParams>>::get_or_init<<revm_primitives::once_lock::no_std_impl::OnceLock<revm_context_interface::cfg::gas_params::GasParams>>::get_or_init<<revm_context_interface::cfg::gas_params::GasParams>::new_spec::{closure#8}>::{closure#0}>::{closure#0}>",
+      "instructions": 42,
+      "percent_total": 1.655844552908921e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::list::SszList<libssz_types::list::SszList<u8, 1024>, 256>>",
+      "instructions": 39,
+      "percent_total": 1.5375699419868553e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<reth_primitives_traits::block::recovered::RecoveredBlock<alloy_consensus::block::Block<alloy_consensus::transaction::envelope::EthereumTxEnvelope<alloy_consensus::transaction::eip4844::TxEip4844>>>>",
+      "instructions": 38,
+      "percent_total": 1.4981450716795e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<libssz_types::progressive_list::ProgressiveList<[u8; 32]>>",
+      "instructions": 36,
+      "percent_total": 1.4192953310647894e-05
+    },
+    {
+      "name": "reth_ethereum_consensus::validation::compare_receipts_root_and_logs_bloom",
+      "instructions": 35,
+      "percent_total": 1.3798704607574343e-05
+    },
+    {
+      "name": "<hashbrown::raw::RawTable<(alloy_primitives::bits::address::Address, hashbrown::map::HashMap<ruint::Uint<256, 4>, ruint::Uint<256, 4>, alloy_primitives::map::fixed::FbBuildHasher<32>>)>>::insert_tagged_at_index",
+      "instructions": 34,
+      "percent_total": 1.3404455904500789e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<reth_evm_ethereum::EthEvmConfig>",
+      "instructions": 28,
+      "percent_total": 1.1038963686059475e-05
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<alloc::vec::Vec<(alloy_primitives::bits::address::Address, revm_database::states::reverts::AccountRevert)>>>::grow_one",
+      "instructions": 27,
+      "percent_total": 1.0644714982985921e-05
+    },
+    {
+      "name": "<alloc::raw_vec::RawVec<(u64, alloy_eips::eip7840::BlobParams)>>::grow_one",
+      "instructions": 27,
+      "percent_total": 1.0644714982985921e-05
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloy_rpc_types_engine::sidecar::ExecutionPayloadSidecar>",
+      "instructions": 26,
+      "percent_total": 1.025046627991237e-05
+    },
+    {
+      "name": "<libssz::decode::ContainerDecoder>::decode_variable::<stateless_validator_common::guest::input::new_payload_request::ExecutionPayloadV3>",
+      "instructions": 21,
+      "percent_total": 8.279222764544605e-06
+    },
+    {
+      "name": "<bitvec::domain::Domain<wyz::comu::Mut>>::partial_tail",
+      "instructions": 18,
+      "percent_total": 7.096476655323947e-06
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloy_evm::block::error::BlockValidationError>",
+      "instructions": 18,
+      "percent_total": 7.096476655323947e-06
+    },
+    {
+      "name": "core::ptr::drop_glue::<core::option::Option<libssz_types::progressive_list::ProgressiveList<libssz_types::progressive_list::ProgressiveList<u8>>>>",
+      "instructions": 16,
+      "percent_total": 6.307979249176842e-06
+    },
+    {
+      "name": "core::ptr::drop_glue::<alloc::collections::btree::map::BTreeMap<alloc::string::String, alloy_eips::eip7840::BlobParams>>",
+      "instructions": 16,
+      "percent_total": 6.307979249176842e-06
+    },
+    {
+      "name": "<unmapped>",
+      "instructions": 6,
+      "percent_total": 2.365492218441316e-06
+    },
+    {
+      "name": "__sync_val_compare_and_swap_1",
+      "instructions": 5,
+      "percent_total": 1.9712435153677633e-06
+    },
+    {
+      "name": "core::ptr::drop_glue::<core::option::Option<stateless_validator_common::guest::input::new_payload_request::ExecutionRequestsElectraFulu>>",
+      "instructions": 4,
+      "percent_total": 1.5769948122942105e-06
+    },
+    {
+      "name": "core::ptr::drop_glue::<core::option::Option<alloc::vec::Vec<alloy_eip7928::account_changes::AccountChanges>>>",
+      "instructions": 4,
+      "percent_total": 1.5769948122942105e-06
+    }
+  ]
+}

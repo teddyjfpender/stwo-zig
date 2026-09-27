@@ -1,0 +1,9 @@
+{
+  "README.md": "4aa2f8226762ae55fb4089cf58a847607d33bb54b0f07fc9dcb5a3137ab956bd",
+  "combined.log": "65b65135e0cee8a43ec4f6c6a0274f97a872ef8396b1268bff10b1a563217d0f",
+  "regression.log": "06d77bdde44b5de553345c755fc02bde509c7264bf0c85551f8f9e803ea7a54a",
+  "sources/autoresearch/notes/20260922-blake3-combined-deep-problem-match.md": "072b1c64b5fd4a6a448883e52ed34ed89c3d64b357f2c932e7a9a9fd1a17cca3",
+  "sources/src/frontends/riscv/recursion/air/blake3_combined_fri_test.zig": "ba068ffc9964d04d670cef7614e241decb32dbf5bd3c4f072dc61455d58ab8a0",
+  "sources/src/frontends/riscv/recursion/air/blake3_deep_fixture.zig": "54380c1569e9b7ad6ff70407513c50a541ea881b4a62a597124f4c558d397a80",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_capture_test.zig": "523dab74dccfdc245b5dd64dd43b2b62ec32ed1d4173201c009b124ceb2419f4"
+}

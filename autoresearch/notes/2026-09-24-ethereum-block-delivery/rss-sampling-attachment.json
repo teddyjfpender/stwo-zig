@@ -1,0 +1,7 @@
+{
+  "script_sha256": "6624f3fe7f2cc8a37b8b46ba9f04e570f745418c4218e62e35d8aa3b633a45c9",
+  "process_pid": 61230,
+  "run_directory": "measurements-mainnet-24628607-sha-canonical-262144",
+  "validated_samples": 9,
+  "scope": "read-only supplementary RSS sampling; no proof or full-interval memory qualification"
+}

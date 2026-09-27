@@ -1,0 +1,14 @@
+1/9 prover.blake3_ethereum_sha_proof_test.test.SHA combined canonical production leaf serializes and freshly verifies...BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+SHA_COMBINED_LEAF verified=true compact=false source_artifact_verified=true sha_calls=2 keccak_calls=1 queries=70 pow_bits=26 artifact_bytes=4108400 elapsed_ns=6998338917 witness_released=true fresh_key=true recursion_verified=false
+OK
+2/9 prover.blake3_ethereum_sha_proof_test.test.SHA combined canonical compact production leaf serializes and freshly verifies...BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+SHA_COMBINED_LEAF verified=true compact=true source_artifact_verified=true sha_calls=2 keccak_calls=1 queries=70 pow_bits=26 artifact_bytes=4031494 elapsed_ns=5062556708 witness_released=true fresh_key=true recursion_verified=false
+OK
+3/9 air.guest_precompile.relation_test.test_0...OK
+4/9 runner.mod.test_0...OK
+5/9 runner.decode.test_0...OK
+6/9 air.memory_commitment.poseidon2_air.test_0...OK
+7/9 air.semantic_eval.test_0...OK
+8/9 air.lookups.tables.source_ingest.test_0...OK
+9/9 diagnostics.mod.test_0...OK
+All 9 tests passed.

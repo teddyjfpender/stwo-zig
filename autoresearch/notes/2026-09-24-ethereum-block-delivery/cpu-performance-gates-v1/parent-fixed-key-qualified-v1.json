@@ -1,0 +1,44 @@
+{
+  "status": "focused-nonproving-fixed-key-primitive-only",
+  "authoritative_source_snapshot": "parent-fixed-key-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "parent-fixed-key-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1.8048150000395253,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 5,
+    "test_summary": [
+      "All 5 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/parent-fixed-key-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-parent-fixed-key-focused-v2",
+      "bytes": 2839720,
+      "sha256": "5d304efda1e8c6d48be7992ea42dd653a953836eda71f76297fe25837676ffa2"
+    }
+  },
+  "source_pin_count": 1728,
+  "behavioral_checks": 3,
+  "scope": [
+    "Original parent producer and additive fixed-only API delegate ONE original root-only streaming fixed-commitment body",
+    "Original fixed cohort/lookup projection and coefficient-never policy retained",
+    "Exact zero/one/nonpower row geometry including already joined G shard geometry",
+    "Invalid domain counts/context rejected before allocation; original live/fixed CPU bodies retained"
+  ],
+  "remaining": [
+    "Genuine complete family fixed/context/schedule assembly before expected-key authority",
+    "Runtime commitment-root parity and positive final receiver proof",
+    "End-to-end time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "pcs_commitment_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

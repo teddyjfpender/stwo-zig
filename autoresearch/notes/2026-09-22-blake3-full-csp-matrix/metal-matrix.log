@@ -1,0 +1,37 @@
+[scope] precompile full guest proofs; secure 70 queries / 26 PoW bits
+[power] CSP-comparable timings require AC power (observed: Battery Power)
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/stwo-blake3-csp-20260922-mjvs0bdj/metal-csp.evidence-c9adkfdt
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/16] sha256/128: execute, prove, verify
+  prove=0.421s verify=0.095s proof=820.5KiB rss=1.82GiB
+[2/16] sha256/256: execute, prove, verify
+  prove=0.452s verify=0.096s proof=818.3KiB rss=1.83GiB
+[3/16] sha256/512: execute, prove, verify
+  prove=0.423s verify=0.093s proof=812.2KiB rss=1.84GiB
+[4/16] sha256/1024: execute, prove, verify
+  prove=0.509s verify=0.093s proof=819.7KiB rss=1.86GiB
+[5/16] sha256/2048: execute, prove, verify
+  prove=0.459s verify=0.093s proof=839.6KiB rss=1.90GiB
+[6/16] keccak/128: execute, prove, verify
+  prove=0.413s verify=0.099s proof=810.3KiB rss=1.82GiB
+[7/16] keccak/256: execute, prove, verify
+  prove=0.408s verify=0.096s proof=822.9KiB rss=1.83GiB
+[8/16] keccak/512: execute, prove, verify
+  prove=0.443s verify=0.093s proof=827.8KiB rss=1.85GiB
+[9/16] keccak/1024: execute, prove, verify
+  prove=0.473s verify=0.095s proof=828.1KiB rss=1.89GiB
+[10/16] keccak/2048: execute, prove, verify
+  prove=0.471s verify=0.106s proof=877.8KiB rss=1.98GiB
+[11/16] poseidon2_m31/2: execute, prove, verify
+  prove=0.479s verify=0.098s proof=847.6KiB rss=1.73GiB
+[12/16] poseidon2_m31/4: execute, prove, verify
+  prove=0.520s verify=0.098s proof=879.2KiB rss=1.78GiB
+[13/16] poseidon2_m31/8: execute, prove, verify
+  prove=0.514s verify=0.108s proof=902.7KiB rss=1.87GiB
+[14/16] poseidon2_m31/12: execute, prove, verify
+  prove=0.551s verify=0.099s proof=994.3KiB rss=1.92GiB
+[15/16] poseidon2_m31/16: execute, prove, verify
+  prove=0.606s verify=0.099s proof=1059.6KiB rss=2.01GiB
+[16/16] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.908s verify=0.092s proof=3660.4KiB rss=1.67GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/stwo-blake3-csp-20260922-mjvs0bdj/metal-csp.json

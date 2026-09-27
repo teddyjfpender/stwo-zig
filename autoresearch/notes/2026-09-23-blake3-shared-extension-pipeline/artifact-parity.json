@@ -1,0 +1,7 @@
+{
+  "cpu_metal_byte_identical": true,
+  "published_artifact_bytes": 1091213,
+  "sha256": "11d9e81632a5f7131edf5e42f3b37a87d9b2d3385456b8338531f0e128c33385",
+  "cpu_verifies_metal": true,
+  "metal_verifies_cpu_without_device_runtime": true
+}

@@ -1,0 +1,27 @@
+src/frontends/riscv/recursion/air/blake3_g_packed.zig:5:22: error: import of file outside module path
+const lang = @import("../../air/lang/definition.zig");
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/blake3_g_packed.zig:6:26: error: import of file outside module path
+const relation = @import("../../air/lang/relation.zig");
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/relation_effect.zig:9:20: error: import of file outside module path
+const ir = @import("../../air/lang/ir.zig");
+                   ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/relation_effect.zig:10:25: error: import of file outside module path
+const program = @import("../../air/lang/program.zig");
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/relation_effect.zig:11:26: error: import of file outside module path
+const relation = @import("../../air/lang/relation.zig");
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/relation_effect.zig:12:24: error: import of file outside module path
+const source = @import("../../air/lang/source.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/relation_effect.zig:13:23: error: import of file outside module path
+const types = @import("../../air/lang/types.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/relation_effect.zig:54:35: error: import of file outside module path
+        var field_types: [@import("../../air/lang/effects.zig").MAX_ARITY]types.Type =
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/relation_effect.zig:108:30: error: import of file outside module path
+    const validate = @import("../../air/lang/validate.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~

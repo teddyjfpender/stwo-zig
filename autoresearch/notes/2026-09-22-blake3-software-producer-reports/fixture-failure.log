@@ -1,0 +1,12 @@
+1/9 proof_adapter.test_0...OK
+2/9 proof_adapter.benchmark_report.test.unprofiled child report preserves the exact riscv_prove_v1 field set...OK
+3/9 proof_adapter.benchmark_report.test.profiled child reports require their distinct internal schema...OK
+4/9 proof_adapter.benchmark_report.test.resident telemetry aggregation is checked and atomic...OK
+5/9 proof_adapter.benchmark_report.test.unprofiled native benchmark preserves its exact recursion-disabled field set...OK
+6/9 proof_adapter.benchmark_report.test.native stage contract rejects recursive outer stages at any depth...OK
+7/9 proof_adapter.benchmark_report.test.ordinary execution options contain no active policy or recursion hook...OK
+8/9 proof_adapter.benchmark_report.test.BLAKE3 child report validation rejects legacy and mixed receipts...FAIL (ImplementationIdentityMismatch)
+9/9 proof_adapter.report_transcript.test.report transcript admits one canonical suite and rejects ambiguous fields...OK
+8 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/6acbbbc0a8094bcbf1e6f47e6d988b8c/test --seed=0xec06b0a0

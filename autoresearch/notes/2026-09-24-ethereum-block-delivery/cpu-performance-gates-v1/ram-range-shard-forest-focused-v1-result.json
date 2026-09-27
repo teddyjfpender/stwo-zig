@@ -1,0 +1,22 @@
+{
+  "source_candidate": "ram-range-shard-forest-focused-v1-source.json",
+  "exit_code": 1,
+  "elapsed_seconds": 17.23616208304884,
+  "changed_source_pins": [],
+  "qualified": false,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 16,
+  "test_summary": [
+    "14 passed; 0 skipped; 2 failed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/ram-range-shard-forest-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-ram-range-shard-forest-focused-v1",
+    "bytes": 31340040,
+    "sha256": "b83bccaf91b1f5a79fa2a0c0d05ac240664207a4aad03b1143eb170ba6df3158"
+  }
+}

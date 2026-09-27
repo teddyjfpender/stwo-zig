@@ -1,0 +1,21 @@
+1/20 block_v5_readonly_input_proposal_test_root.test_0...OK
+2/20 prover.block_v5_readonly_input_proposal_test.test.block-v5 readonly proposal shares immutable selection and actual late source derivation...OK
+3/20 prover.block_v5_readonly_input_proposal_test.test.block-v5 readonly proposal rejects stale source layout bytes subset caps roots and census...OK
+4/20 prover.block_v5_readonly_input_proposal_test.test.block-v5 readonly proposal real borrowed prefix and classifier commitments replay without STARK...OK
+5/20 prover.block_v5_readonly_input_proposal_test.test.block-v5 readonly proposal empty subset zero source and all readonly preserve typed census...OK
+6/20 prover.block_v5_readonly_input_proposal_test.test.block-v5 readonly proposal selection trace actual source binding allocation failures clean...OK
+7/20 prover.block_v5_readonly_input_proposal_test.test.block-v5 readonly proposal actual collection binding and post seal bodies compile only...OK
+8/20 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input public values subset complement and authority reject relabeling...OK
+9/20 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input source census scalar equations and coherent forgeries reject...OK
+10/20 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input collection cleanup survives every allocation failure...OK
+11/20 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input geometry resource and immutable matrix borrows reject substitution...OK
+12/20 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input all mutable and all readonly partitions preserve exact census...OK
+13/20 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input arbitrary OODS SIMD masks preserve all source equations...OK
+14/20 prover.block_v5_readonly_input_unit_test.test.block-v5 readonly input producer fresh native caller receiver bodies compile without invocation...OK
+15/20 air.memory_commitment.poseidon2_air.test_0...OK
+16/20 air.semantic_eval.test_0...OK
+17/20 prover.block_execution_external_trace_v2.test_0...OK
+18/20 air.lookups.tables.mod.test_0...OK
+19/20 prover.block_execution_external_access_bridge_v2.test_0...OK
+20/20 air.lookups.tables.source_ingest.test_0...OK
+All 20 tests passed.

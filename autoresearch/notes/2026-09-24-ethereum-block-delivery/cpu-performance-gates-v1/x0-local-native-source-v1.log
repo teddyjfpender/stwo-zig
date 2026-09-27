@@ -1,0 +1,13 @@
+1/12 prover.block_v5_x0_native_unit_test.test.block-v5 x0 native symbolic degree and authenticated masks cover every family...OK
+2/12 prover.block_v5_x0_native_unit_test.test.block-v5 x0 native real instruction cells and signed table census preserve all ordinals...OK
+3/12 prover.block_v5_x0_native_unit_test.test.block-v5 x0 native quotient recovery preserves discarded LDE degree and source ownership...OK
+4/12 air.x0_local_custody_v1.test.block-v5 x0 local algebra rejects coherent source write and hint forgeries without a chain...OK
+5/12 air.x0_local_custody_v1.test.block-v5 x0 local algebra preserves nonzero register and RW fractions all ordinals...OK
+6/12 air.x0_native_envelope_v1.test.block-v5 x0 native envelope retains authentic schedules domains roles and ordinals...OK
+7/12 air.semantic_eval.test_0...OK
+8/12 runner.mod.test_0...OK
+9/12 runner.decode.test_0...OK
+10/12 air.memory_commitment.poseidon2_air.test_0...OK
+11/12 air.lookups.tables.source_ingest.test_0...OK
+12/12 diagnostics.mod.test_0...OK
+All 12 tests passed.

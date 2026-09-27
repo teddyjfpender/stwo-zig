@@ -229,4 +229,14 @@ pub const Type = union(enum) {
             else => false,
         };
     }
+
+    /// Exact admitted indices for a 4-byte-aligned address. The operation's
+    /// access plan must still prove the declared range; the type is no oracle.
+    pub fn isAlignedWordIndex(self: Type) bool {
+        return switch (self) {
+            .uint20 => true,
+            .bounded_uint => |bounded| bounded.bits == 28 and bounded.representation == .canonical_field,
+            else => false,
+        };
+    }
 };

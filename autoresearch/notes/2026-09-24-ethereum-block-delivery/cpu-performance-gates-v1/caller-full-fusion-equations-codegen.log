@@ -1,0 +1,12 @@
+1/11 block_v5_caller_fused_unit_test_root.test_0...OK
+2/11 prover.block_v5_caller_fused_unit_test.test.block-v5 caller fused nonproving exact schedules masks OODS and domains match separate families...OK
+3/11 prover.block_v5_caller_fused_unit_test.test.block-v5 caller fused nonproving identity binds both schedules roots frame mode and rejects old program...OK
+4/11 prover.block_v5_caller_fused_unit_test.test.block-v5 caller fused nonproving claim census and sparse absence reject missing swapped obligations...OK
+5/11 prover.block_v5_caller_fused_unit_test.test.block-v5 caller fused nonproving warm producer and fresh receiver bodies compile...OK
+6/11 prover.block_v5_caller_fused_unit_test.test.block-v5 caller fused nonproving independent seal admission rejects swapped old and missing roots...OK
+7/11 prover.block_execution_external_trace_v2.test_0...OK
+8/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+9/11 air.lookups.tables.mod.test_0...OK
+10/11 prover.block_v5_committed_trace_column_v1.test_0...OK
+11/11 air.lookups.tables.source_ingest.test_0...OK
+All 11 tests passed.

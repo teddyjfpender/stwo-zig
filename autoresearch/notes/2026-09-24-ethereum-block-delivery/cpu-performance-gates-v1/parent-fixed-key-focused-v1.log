@@ -1,0 +1,5 @@
+src/frontends/riscv/prover/block_v5_parent_fixed_key_test_v1.zig:36:26: error: type '[][16]fields.m31.M31' does not support struct initialization syntax
+    fixed[0] = .{ .ptr = @ptrFromInt(@alignOf(Storage.FixedRow(Storage.Airs[0])) * 1024), .len = (@as(usize, 1) << 30) + 1 };
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    test_0: src/frontends/riscv/block_v5_parent_fixed_key_test_root.zig:2:17

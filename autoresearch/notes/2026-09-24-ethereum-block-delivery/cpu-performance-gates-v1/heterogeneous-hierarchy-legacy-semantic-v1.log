@@ -1,0 +1,30 @@
+src/frontends/riscv/recursion/air/block_v5_heterogeneous_hierarchy_exports_v1.zig:58:30: error: capture shadows declaration of 'word'
+        for (&result, 0..) |*word, i| for (word, 0..) |*index, part| {
+                             ^~~~
+src/frontends/riscv/recursion/air/block_v5_heterogeneous_hierarchy_exports_v1.zig:64:1: note: declared here
+fn word(symbols: []const S, indices: [4]usize) S {
+^~
+src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_plan_v1.zig:27:23: error: local constant shadows declaration of 'bounds'
+                const bounds = try self.bounds(child);
+                      ^~~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_plan_v1.zig:45:9: note: declared here
+    pub fn bounds(self: Plan, ref: Ref) !Bounds {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_plan_v1.zig:64:92: error: capture shadows declaration of 'span'
+        for (self.full.children[extent.first..][0..extent.count]) |child| if (child.span) |span| {
+                                                                                           ^~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_plan_v1.zig:61:9: note: declared here
+    pub fn span(self: Plan, ref: Ref) !?Spans.Span {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_plan_v1.zig:80:15: error: local constant shadows declaration of 'span'
+        const span = try self.span(.{ .node = index });
+              ^~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_hierarchy_plan_v1.zig:61:9: note: declared here
+    pub fn span(self: Plan, ref: Ref) !?Spans.Span {
+    ~~~~^~
+src/frontends/riscv/block_v5_heterogeneous_hierarchy_test_root.zig:6:92: error: root source file struct 'test_runner' has no member named 'BLOCK_V5_EXECUTION_RECIPE'
+    try @import("std").testing.expectEqual(@as(recipes.Recipe, @enumFromInt(@import("root").BLOCK_V5_EXECUTION_RECIPE)), recipes.canonical);
+                                                                            ~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:1:1: note: struct declared here
+//! Default test runner for unit tests.
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

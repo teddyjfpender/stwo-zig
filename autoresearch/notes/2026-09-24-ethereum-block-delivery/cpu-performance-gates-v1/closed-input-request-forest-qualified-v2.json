@@ -1,0 +1,126 @@
+{
+  "scope": "Genuine version5 full child verifier/setup/producer/fresh receiver bodies compiled and retained; ten pure AIR/interaction/custody/topology behavioral fixtures. No positive proof execution.",
+  "candidate": "closed-input-request-forest-source-candidate-v2.json",
+  "candidate_sha256": "f47555fc0353e0152aaab15186abfce52ebbc7d9554c94b250acbd97b878d4d4",
+  "owned_source_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-closed-input-request-forest-v2.md",
+      "sha256": "6432926cbb0bb6651abda8c69529a02d08cbcc7fd04864947d1273a26b58ef4b",
+      "bytes": 6803
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_closed_input_request_forest_codegen_v2.zig",
+      "sha256": "8241c0709c17407f1e342841e9bf62652d9c111a23f72d4af81739af20d3c18b",
+      "bytes": 1300
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_closed_input_request_forest_test_root_v2.zig",
+      "sha256": "471813c8dc99abcbb704044180453d69da931e5c48b4d26d7cf7909980a6a21f",
+      "bytes": 377
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_closed_input_request_forest_setup_v2.zig",
+      "sha256": "9f0505e83980c6138bb1527f2606e136ac66636058def8197b4fdc0aac00018c",
+      "bytes": 1770
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_closed_input_request_forest_stage_v2.zig",
+      "sha256": "c95ff920f9a304d57bc0b961ed54046c5b224903d1607f287474db4f950d7881",
+      "bytes": 6696
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_closed_input_request_forest_test_v2.zig",
+      "sha256": "3a59ed51e546f73b84f04a2e30d39707ef959812a0760116661fb463f2572db8",
+      "bytes": 12273
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_closed_public_supply_v1.zig",
+      "sha256": "29ee47caef6751a2ac0e55f4df31b613e62e706647cf530542f10cd0fc723019",
+      "bytes": 2991
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_closed_input_request_forest_bus_v2.zig",
+      "sha256": "65c9bcabc8c362ad5b7dcd2b0b541adf73a0e8a3517aa34b7fc2e780196c5e86",
+      "bytes": 12209
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_closed_input_request_forest_preparation_v2.zig",
+      "sha256": "0a199dc2f854820268432054428aa500cc5db998af691aa10a1fde652d2c803f",
+      "bytes": 10468
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_closed_input_request_forest_protocol_v2.zig",
+      "sha256": "3c6c9eb19c03ec8532a2c35909769a58b9cf3beeb158844287ec3d109e1039bc",
+      "bytes": 2428
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_closed_input_request_forest_receiver_v2.zig",
+      "sha256": "1dbfeb34124be863c469afd959c31c7e15aca5010e1ec7f77644526870a23508",
+      "bytes": 1869
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_closed_input_request_forest_source_v2.zig",
+      "sha256": "61b301b42b048a88a4b32acb3cee3d555bd8bad6a7955a660bde3f015c5f39f8",
+      "bytes": 8400
+    }
+  ],
+  "attempts": [
+    {
+      "name": "closed-input-request-forest-v2-semantic-v1",
+      "source_candidate": "closed-input-request-forest-v2-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 3.895659457950387,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/closed-input-request-forest-v2-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "closed-input-request-forest-v2-focused-v1",
+      "source_candidate": "closed-input-request-forest-v2-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 18.51290012500249,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 16,
+      "test_summary": [
+        "All 16 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/closed-input-request-forest-v2-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-closed-input-request-forest-v2-focused-v1",
+        "bytes": 35365216,
+        "sha256": "4a5f3bab6a93a536b9fcc417695a6e9c3d2b0780c19ad71cbd4deb071ae53157"
+      }
+    }
+  ],
+  "behavioral_tests": 10,
+  "body_retention": true,
+  "external_schedule": "exactly empty in new source/protocol and setup spec; node child_term rejects",
+  "closed_inside_air": "Exact signed/multiplicity tuple suppliers use original enabled four-coordinate main=fixed Boundary constraints and genuine interaction sum",
+  "unchanged": "Original child AIR/DEEP/FRI/PoW and transcripts; old v4 routes and Driver defaults",
+  "performance_claim": "No timed proof result. Nested transport removes descendant terms structurally. Current local setup still instance-pinned and admission guards still can revisit whole policies.",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "canonical_enabled": false,
+  "complete_block_authority": false,
+  "remaining": [
+    "New version5 durable/topological owner and explicit CPU selection",
+    "Capture-independent reusable authenticated fixed geometry and self-contained final expected key",
+    "Complete PAGE/RAM/range/caller/register/ROM/lookup/accounting global closure",
+    "Positive canonical end-to-end proof and timing/peak-memory qualification"
+  ]
+}

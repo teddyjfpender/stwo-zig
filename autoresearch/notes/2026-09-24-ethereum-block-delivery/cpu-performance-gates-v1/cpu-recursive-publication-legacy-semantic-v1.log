@@ -1,0 +1,15 @@
+src/frontends/riscv/block_v5_cpu_recursive_publication_codegen_v1.zig:16:56: error: 'stwo_capacity_cpu_driver_body_gate' is not marked 'pub'
+    @import("block_v5_cpu_capacity_driver_codegen.zig").stwo_capacity_cpu_driver_body_gate();
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/block_v5_cpu_capacity_driver_codegen.zig:17:8: note: declared here
+export fn stwo_capacity_cpu_driver_body_gate() void {
+~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    stwo_cpu_recursive_publication_body_gate: src/frontends/riscv/block_v5_cpu_recursive_publication_codegen_v1.zig:15:1
+    test.cpu recursive publication: actual dual driver seven-family publication original setup derivation and fresh leaf receiver bodies retained: src/frontends/riscv/block_v5_cpu_recursive_publication_test_root.zig:7:13
+src/frontends/riscv/block_v5_cpu_recursive_publication_test_root.zig:7:65: error: 'stwo_cpu_recursive_publication_body_gate' is not marked 'pub'
+    @import("block_v5_cpu_recursive_publication_codegen_v1.zig").stwo_cpu_recursive_publication_body_gate();
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/block_v5_cpu_recursive_publication_codegen_v1.zig:15:8: note: declared here
+export fn stwo_cpu_recursive_publication_body_gate() void {
+~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

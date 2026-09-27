@@ -1,0 +1,57 @@
+{
+  "scope": "Full execution of mainnet block 24628607 with pinned stateless validator, 66 transactions. Exact 43-byte oracle verified; not a block proof.",
+  "hints": {
+    "count": 12,
+    "successful": 12,
+    "canonical_ssz_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+    "augmented_input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "hints_are_untrusted": true
+  },
+  "variants": [
+    {
+      "variant": "execution",
+      "cycles": 253646998,
+      "elapsed_ns": 79523622208,
+      "keccak_calls": 32835,
+      "recovery_calls": 66,
+      "elf_sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+      "input_sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+    },
+    {
+      "variant": "evm-collector",
+      "cycles": 253650566,
+      "elapsed_ns": 81357281083,
+      "keccak_calls": 32835,
+      "recovery_calls": 66,
+      "elf_sha256": "d7f7f12b0e5e71b7c150cd940e9024921dd664b4c8f5e9f4a0a1a5e0ebd0e1de",
+      "input_sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+    },
+    {
+      "variant": "evm-native-execution",
+      "cycles": 141105392,
+      "elapsed_ns": 43400075209,
+      "keccak_calls": 32835,
+      "recovery_calls": 78,
+      "elf_sha256": "f08e4b00a647e461a804aea612997c7091852bb3b138f7263622aa083eeb6254",
+      "input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82"
+    },
+    {
+      "variant": "evm-fast-memory-execution",
+      "cycles": 139213662,
+      "elapsed_ns": 40312321625,
+      "keccak_calls": 32835,
+      "recovery_calls": 78,
+      "elf_sha256": "b65cd7e296f8d7dfbd0c9eae44daecb40e47ead7203cc3d149cc7e8a3e0aa8ac",
+      "input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82"
+    },
+    {
+      "variant": "evm-final-execution",
+      "cycles": 139213662,
+      "elapsed_ns": 39916791458,
+      "keccak_calls": 32835,
+      "recovery_calls": 78,
+      "elf_sha256": "b65cd7e296f8d7dfbd0c9eae44daecb40e47ead7203cc3d149cc7e8a3e0aa8ac",
+      "input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82"
+    }
+  ]
+}

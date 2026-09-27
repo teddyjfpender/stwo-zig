@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-25",
+  "scope": "CPU two continuous Ethereum-SHA-profile segments; original unpadded guest with SHA-256 and Keccak callers; zero ordinary opcode access slots in terminal leaf; fresh v4 core plus two v3 recursive leaves, dyadic parent, and exact outer root",
+  "security": {"fri_queries": 70, "pow_bits": 26, "profile": "csp_q70_pow26"},
+  "verification": {
+    "fresh_core": true,
+    "fresh_recursive_leaves_parent_and_outer": true,
+    "complete_receiver_result": "complete_block_verified",
+    "changed_zero_opcode_sentinel_rejected": true,
+    "nonempty_zero_opcode_sidecar_bytes_rejected": true,
+    "nonempty_zero_opcode_sidecar_claims_rejected": true,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 108,
+  "external_events_by_segment": [26, 77],
+  "second_segment_opcode_events": 0,
+  "proof_bytes": {
+    "recursive_leaf_by_segment": [983464, 976391],
+    "recursive_dyadic": 971783,
+    "recursive_exact_outer": 930577
+  },
+  "timing_ns": {
+    "core": 10907437625,
+    "recursive_leaf_by_segment": [33355700166, 33778846500],
+    "recursive_dyadic": 28603232583,
+    "recursive_exact_outer": 13772085250,
+    "recursive_phase_elapsed": 165352295958
+  },
+  "memory": {"tracked_recursion_peak_live_bytes": 13730014495, "whole_process_peak_bytes": null},
+  "fixture_limits": [
+    "The public input and output payloads are empty; first/last boundary digest placement is checked.",
+    "Both segments contain external caller accesses. Sparse zero-external segment coverage is separate.",
+    "The expected outer key and forest digest are populated from newly produced proofs in this fixture; production admission must pin them independently before proof-byte access.",
+    "This is a two-segment fixture, not an Ethereum block or mainnet throughput measurement."
+  ],
+  "command_filter": "block-v4 canonical unpadded two-segment SHA Keccak complete receiver"
+}

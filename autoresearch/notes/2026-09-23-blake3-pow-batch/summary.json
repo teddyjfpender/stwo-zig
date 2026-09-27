@@ -1,0 +1,13 @@
+{
+  "baseline": {
+    "median_seconds": 3.1299566045000002,
+    "pow_median_seconds": 0.791831
+  },
+  "candidate": {
+    "median_seconds": 2.5037905205,
+    "pow_median_seconds": 0.148075
+  },
+  "speedup": 1.2500872492619537,
+  "pow_speedup": 5.3474995779165955,
+  "proof_sha256": "6c03a7daeac2914fd7ce2f8fc81337986a179c31ed5f27ed5c2b6d8fb9f6d103"
+}

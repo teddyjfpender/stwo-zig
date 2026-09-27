@@ -414,7 +414,10 @@ fn FriFirstLayerVerifier(comptime H: type) type {
                 column_query_evals,
                 self.proof.fri_witness,
                 fold_step,
-            ) catch return FriVerificationError.FirstLayerEvaluationsInvalid;
+            ) catch |err| switch (err) {
+                error.OutOfMemory => return error.OutOfMemory,
+                else => return FriVerificationError.FirstLayerEvaluationsInvalid,
+            };
             errdefer rebuilt.deinit(allocator);
 
             if (rebuilt.consumed_witness != self.proof.fri_witness.len) {
@@ -447,7 +450,10 @@ fn FriFirstLayerVerifier(comptime H: type) type {
                     merkle_inputs.columns,
                     self.proof.decommitment,
                     &merkle_capture,
-                ) catch return FriVerificationError.FirstLayerCommitmentInvalid;
+                ) catch |err| switch (err) {
+                    error.OutOfMemory => return error.OutOfMemory,
+                    else => return FriVerificationError.FirstLayerCommitmentInvalid,
+                };
                 defer merkle_capture.deinit(allocator);
 
                 destination.* = try buildFriLayerQueryCapture(
@@ -469,7 +475,10 @@ fn FriFirstLayerVerifier(comptime H: type) type {
                     merkle_inputs.positions,
                     merkle_inputs.columns,
                     self.proof.decommitment,
-                ) catch return FriVerificationError.FirstLayerCommitmentInvalid;
+                ) catch |err| switch (err) {
+                    error.OutOfMemory => return error.OutOfMemory,
+                    else => return FriVerificationError.FirstLayerCommitmentInvalid,
+                };
             }
 
             allocator.free(rebuilt.decommitment_positions);
@@ -532,7 +541,10 @@ fn FriInnerLayerVerifier(comptime H: type) type {
                 evals_at_queries,
                 self.proof.fri_witness,
                 self.fold_step,
-            ) catch return FriVerificationError.InnerLayerEvaluationsInvalid;
+            ) catch |err| switch (err) {
+                error.OutOfMemory => return error.OutOfMemory,
+                else => return FriVerificationError.InnerLayerEvaluationsInvalid,
+            };
             errdefer rebuilt.deinit(allocator);
 
             if (rebuilt.consumed_witness != self.proof.fri_witness.len) {
@@ -565,7 +577,10 @@ fn FriInnerLayerVerifier(comptime H: type) type {
                     merkle_inputs.columns,
                     self.proof.decommitment,
                     &merkle_capture,
-                ) catch return FriVerificationError.InnerLayerCommitmentInvalid;
+                ) catch |err| switch (err) {
+                    error.OutOfMemory => return error.OutOfMemory,
+                    else => return FriVerificationError.InnerLayerCommitmentInvalid,
+                };
                 defer merkle_capture.deinit(allocator);
 
                 destination.* = try buildFriLayerQueryCapture(
@@ -587,7 +602,10 @@ fn FriInnerLayerVerifier(comptime H: type) type {
                     merkle_inputs.positions,
                     merkle_inputs.columns,
                     self.proof.decommitment,
-                ) catch return FriVerificationError.InnerLayerCommitmentInvalid;
+                ) catch |err| switch (err) {
+                    error.OutOfMemory => return error.OutOfMemory,
+                    else => return FriVerificationError.InnerLayerCommitmentInvalid,
+                };
             }
 
             var folded_queries = try queries.fold(allocator, self.fold_step);

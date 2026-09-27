@@ -1,0 +1,48 @@
+{
+  "scope": "canonical_child_planning_only",
+  "counts": {
+    "prelinear_add": 27,
+    "prelinear_sub": 6800,
+    "prelinear_neg": 2,
+    "prelinear_products": 6829
+  },
+  "cohorts": [
+    {
+      "name": "linear",
+      "width": 59,
+      "before_rows": 22923,
+      "after_rows": 16123,
+      "before_domain": 32768,
+      "after_domain": 16384,
+      "base_field_element_delta": -966656
+    },
+    {
+      "name": "multiply_fma",
+      "width": 35,
+      "before_rows": 126358,
+      "after_rows": 119558,
+      "before_domain": 131072,
+      "after_domain": 131072,
+      "base_field_element_delta": 0
+    },
+    {
+      "name": "proposed_subtract_product",
+      "width": 32,
+      "before_rows": 0,
+      "after_rows": 6800,
+      "before_domain": 0,
+      "after_domain": 8192,
+      "base_field_element_delta": 262144
+    }
+  ],
+  "base_field_byte_delta": -2818048,
+  "excludes": [
+    "LDE and FRI geometry",
+    "composition columns",
+    "Merkle trees",
+    "next-level verifier/hash work",
+    "allocator peak",
+    "runtime"
+  ],
+  "candidate_implemented": false
+}

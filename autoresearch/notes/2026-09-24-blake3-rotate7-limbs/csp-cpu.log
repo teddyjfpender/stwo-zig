@@ -1,0 +1,2 @@
+[scope] precompile full guest proofs; secure 70 queries / 26 PoW bits
+error: trace executable was built from a dirty worktree; its cycle counts and negative-case evidence are not reproducible

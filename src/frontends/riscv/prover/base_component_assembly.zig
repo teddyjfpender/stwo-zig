@@ -315,6 +315,23 @@ pub fn assembleInto(
     );
 }
 
+/// Shared native execution assembly for a BLAKE3 commitment join.
+pub fn assembleBlake3ExecutionInto(
+    comptime direction: Direction,
+    workspace: anytype,
+    statement: *const statement_mod.Blake3ExecutionStatement,
+    claim: *const statement_mod.RiscVInteractionClaim,
+    relations: *const relation_challenges.Relations,
+) !void {
+    return assembleBlake3ExecutionWithExternalInto(direction, workspace, statement, claim, relations, 0);
+}
+/// Native prefix only; the caller must independently admit and append the AIR
+/// that proves these external retirements.
+pub fn assembleBlake3ExecutionWithExternalInto(comptime direction: Direction, workspace: anytype, statement: *const statement_mod.Blake3ExecutionStatement, claim: *const statement_mod.RiscVInteractionClaim, relations: *const relation_challenges.Relations, external_retirements: u32) !void {
+    try statement.validateBlake3ExecutionWithExternal(external_retirements);
+    return assembleIntoInternal(direction, workspace, statement, claim, relations, statement.nMainColumns(), statement.nInteractionColumns(), null, .legacy_role_filtered_v1, .legacy_v4);
+}
+
 /// Append-only construction boundary for the authenticated variable-partition
 /// lookup statement. Existing callers remain on `assembleInto` and therefore
 /// cannot activate V2 accidentally.
@@ -405,7 +422,7 @@ const LookupV2Admission = struct {
 fn assembleIntoInternal(
     comptime direction: Direction,
     workspace: anytype,
-    statement: *const statement_mod.RiscVStatement,
+    statement: anytype,
     claim: *const statement_mod.RiscVInteractionClaim,
     relations: *const relation_challenges.Relations,
     n_main: usize,
@@ -452,25 +469,25 @@ fn assembleIntoInternal(
             if (opcode_rank < previous) return types.ProverError.InvalidStatement;
         }
         previous_opcode_rank = opcode_rank;
-        const placement = opcode_cursor.append(
+        const local_zero = statement.localZeroCustody();
+        const placement = opcode_cursor.appendForRecipe(
             desc.family,
             @intCast(desc.n_columns),
+            local_zero,
         ) catch return types.ProverError.InvalidStatement;
         if (placement.component_index != index or
             components.active().len != placement.semantic_adapter_index)
         {
             return types.ProverError.InvalidStatement;
         }
-        components.semantic[index] = try semantic_component.SemanticComponent.init(
-            desc.family,
-            desc.log_size,
-            placement.is_active_column,
-            placement.main_column_offset,
-        );
+        components.semantic[index] = if (local_zero) try semantic_component.SemanticComponent.initLocalZero(desc.family, desc.log_size, placement.is_active_column, placement.main_column_offset) else try semantic_component.SemanticComponent.init(desc.family, desc.log_size, placement.is_active_column, placement.main_column_offset);
         push(direction, components, &components.semantic[index]);
         if (components.active().len != placement.lookup_adapter_index)
             return types.ProverError.InvalidStatement;
-        if (lookup_v2) |authenticated| {
+        if (local_zero) {
+            if (lookup_v2 != null) return error.InvalidX0NativeRecipe;
+            components.opcode_lookup[index] = try opcode_component.OpcodeLookupComponent.initLocalZero(desc.family, desc.log_size, placement.is_first_column, placement.main_column_offset, placement.interaction_column_offset, relations, try claim.opcodeClaims(desc.family, index));
+        } else if (lookup_v2) |authenticated| {
             const physical = authenticated.manifest.entryForFamily(desc.family);
             const batch_count: usize = @intCast(physical.detailed_claim_count);
             if (batch_count > claim.opcode_claims[index].len) {

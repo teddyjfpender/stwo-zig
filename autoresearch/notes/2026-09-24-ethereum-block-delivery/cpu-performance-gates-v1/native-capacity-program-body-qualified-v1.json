@@ -1,0 +1,159 @@
+{
+  "schema": "block-v5-capacity-program-closure-body-qualified-v1",
+  "status": "actual_body_compilation_only",
+  "exit_code": 0,
+  "command": [
+    "/opt/homebrew/opt/zig@0.15/bin/zig",
+    "build-obj",
+    "-OReleaseFast",
+    "-femit-bin=/tmp/block-v5-native-capacity-program-body.o",
+    "-lc",
+    "-mcpu=native",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_prover_engine",
+    "--dep",
+    "stwo_cpu_backend",
+    "--dep",
+    "interop_postcard",
+    "--dep",
+    "stwo_prover_api",
+    "--dep",
+    "stwo_backend_contracts",
+    "-Mroot=src/frontends/riscv/block_v5_native_capacity_program_codegen.zig",
+    "-Mstwo_core=src/core/mod.zig",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_backend_contracts",
+    "--dep",
+    "stwo_prover_api",
+    "-Mstwo_prover_engine=src/prover/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-Mstwo_backend_contracts=src/backend/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-Mstwo_prover_api=src/prover_api/mod.zig",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_prover_engine",
+    "--dep",
+    "stwo_backend_contracts",
+    "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_proof_wire",
+    "-Minterop_postcard=src/interop/postcard.zig",
+    "--dep",
+    "stwo_core",
+    "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+  ],
+  "object": {
+    "path": "/tmp/block-v5-native-capacity-program-body.o",
+    "bytes": 29179936,
+    "sha256": "596c36f3903e3901a1bf28246397ad0aa1f9d3db311abedd32c8895eeee0bc44",
+    "export": "stwo_capacity_program_closure_body_gate"
+  },
+  "log": "native-capacity-program-body-v1.log",
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_batch_common_v1.zig",
+      "sha256": "c8f7742fd48488a228f4810a496f9a65760de5a7decad38ee86c03e4933d38c9"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_capacity_batch_receiver_v1.zig",
+      "sha256": "17d35ade32bb91b7b53677d2dc295ae26f75dd330730651807129ab03bc6ebef"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_batch_receiver_v3.zig",
+      "sha256": "668330bc4527f1a69a9e80bb31fa1ba6bda95a65fa589dc5e991049b24146da9"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_program_codegen.zig",
+      "sha256": "4ceef4e69fa153f266741eaa9e8e3cd5782f95020554b4b44b2ee5abacebda44"
+    }
+  ],
+  "dependency_snapshot": {
+    "version": 1,
+    "status": "source_only_unqualified_revision_2",
+    "protocol": "B5CF v1",
+    "source_date": "2026-09-27",
+    "root": "src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig",
+    "safe_filter": "capacity fused",
+    "authored_checks": 15,
+    "note": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-fused-source-v1.md",
+    "files": [
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_artifact_receiver_v1.zig",
+        "sha256": "60322f075d296e377c47f28f6b9ec6ebd0ebd16833b0a9b3e11d217d4bf390c8"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig",
+        "sha256": "49b178f03bd131e2257620c2b59ca36b0dc4f68439fcec2cfa8f7a5879cab825"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_component_v1.zig",
+        "sha256": "9423bf824a75147c8e8ec0fa76f2378ef527ce3ae7552750e8bc0fc9e687cf17"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_proof_v1.zig",
+        "sha256": "ddcc163caf00edc7af6c544f9805e16d9af067db375819ff8dc0d977ebfd6007"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_receiver_v1.zig",
+        "sha256": "3f2c33700dec25dea98a2b32b5a7ad30c02ef17fb49499904003d0d034587d22"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig",
+        "sha256": "922e24feb49c0493e2d811b5d6adfdfeb7b1723163214d37917920afdbcfcdfe"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_stage_v1.zig",
+        "sha256": "f69b231137dec365bcc31b6141bbfe87a4ea00e926239caca2bbf845c20f0a07"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_store_v1.zig",
+        "sha256": "da2a6992c0a25042306a9c15c8504139b0505807280cd9b53be88b773ecd482c"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_fixture_v1.zig",
+        "sha256": "3776d4827590450c7d46a31552fe492112deb3a43211d70f1e103c04562f59a3"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_test_v1.zig",
+        "sha256": "eddfac7488ce4c861a0d4d1dfc8bd2f195d0e311c6c6d70541d8f4bf861310c6"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_unit_test.zig",
+        "sha256": "09791542998f2a612610bd30981ca9d3e7dc7dcc1bf92324c5ee23cb54d8f472"
+      },
+      {
+        "path": "src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig",
+        "sha256": "dbb1b0701b66684c17b38725e38690ed3f321306aed723dfc555ad55c5bfddc0"
+      }
+    ],
+    "source_revision": 2,
+    "previous_snapshot": "native-capacity-fused-source-original-v1.json",
+    "previous_snapshot_sha256": "b4780df7d25b4240bde93194e5defbfa2d47cd29651a1ed70daa48b8fa8ab1bb",
+    "corrections": [
+      "Policy.expected fully derived value renamed to derived",
+      "receipt range accumulation only iterates mutable allocated slice when present; zero memory stays null/no allocation"
+    ],
+    "agent_executed_builds_tests_proofs_guests_devices_benchmarks": false
+  },
+  "scope": "Real default NativeV3 and typed capacity/B5CF program, caller, ROM/provider fresh-verification function bodies and shared independent admitRoster compile without invoking any proof or file callback. This is not cryptographic acceptance, fresh proof qualification, or canonical driver activation.",
+  "stark_proved": false,
+  "segments_executed": false,
+  "device_executed": false,
+  "postbuild_shared_dependency_snapshot": [
+    {
+      "path": "src/frontends/riscv/air/extract/runtime_program.zig",
+      "sha256": "cf7d3c19422a6d0bc1703f8639d41261d07d38f60cc642f4f32a76cf38818123"
+    }
+  ],
+  "snapshot_limitation": "Program wrapper/common sources were stable. Shared lookup allocation-error handling was being updated during this compilation; postbuild_shared_dependency_snapshot is not asserted to identify the object's lookup-extraction version. The stable-revision3 dual Global compilation is the final dependency followup."
+}

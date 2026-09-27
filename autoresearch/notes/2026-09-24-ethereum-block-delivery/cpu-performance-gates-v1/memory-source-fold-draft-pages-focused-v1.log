@@ -1,0 +1,13 @@
+src/frontends/riscv/prover/block_v5_memory_source_fold_draft_pages_v1.zig:28:41: error: unable to resolve comptime value
+    return std.fmt.bufPrint(buffer, if (published) "source-page-fold-{d}.operands" else "source-page-fold-{d}.operands.draft", .{index});
+                                        ^~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_fold_draft_pages_v1.zig:28:37: note: argument to comptime parameter must be comptime-known
+    return std.fmt.bufPrint(buffer, if (published) "source-page-fold-{d}.operands" else "source-page-fold-{d}.operands.draft", .{index});
+                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/fmt.zig:612:28: note: parameter declared comptime here
+pub fn bufPrint(buf: []u8, comptime fmt: []const u8, args: anytype) BufPrintError![]u8 {
+                           ^~~~~~~~
+referenced by:
+    removeDrafts: src/frontends/riscv/prover/block_v5_memory_source_fold_draft_pages_v1.zig:139:28
+    collect: src/frontends/riscv/prover/block_v5_memory_source_fold_draft_pages_v1.zig:178:26
+    2 reference(s) hidden; use '-freference-trace=4' to see all references

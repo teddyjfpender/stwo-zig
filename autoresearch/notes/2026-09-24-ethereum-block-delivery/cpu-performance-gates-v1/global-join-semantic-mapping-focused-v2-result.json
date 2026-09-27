@@ -1,0 +1,22 @@
+{
+  "source_candidate": "global-join-semantic-mapping-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 35.206284040992614,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 17,
+  "test_summary": [
+    "All 17 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-join-semantic-mapping-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-global-join-semantic-mapping-focused-v2",
+    "bytes": 3698816,
+    "sha256": "0e08d68a2c1fc367c959b4221ffc293d3d7e0c9387d3c766506b7fe3f473e6d9"
+  }
+}

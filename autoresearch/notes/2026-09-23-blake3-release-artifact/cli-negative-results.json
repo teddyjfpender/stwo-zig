@@ -1,0 +1,32 @@
+[
+  {
+    "case": "wrong statement",
+    "exit_code": 1,
+    "diagnostic": "error: UntrustedExecutionManifest"
+  },
+  {
+    "case": "wrong ELF",
+    "exit_code": 1,
+    "diagnostic": "error: ExecutionSourceMismatch"
+  },
+  {
+    "case": "wrong policy",
+    "exit_code": 1,
+    "diagnostic": "error: InvalidExecutionConfig"
+  },
+  {
+    "case": "wrong suite",
+    "exit_code": 1,
+    "diagnostic": "error: ProofSuiteMismatch"
+  },
+  {
+    "case": "truncation",
+    "exit_code": 1,
+    "diagnostic": "error: InvalidExecutionArtifactLength"
+  },
+  {
+    "case": "proof mutation",
+    "exit_code": 1,
+    "diagnostic": "error: PCS Merkle verification failed for tree 0: WitnessTooLong\nerror: WitnessTooLong"
+  }
+]

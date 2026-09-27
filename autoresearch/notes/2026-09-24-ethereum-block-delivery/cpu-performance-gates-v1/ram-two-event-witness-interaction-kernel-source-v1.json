@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "scope": "CPU witness construction and interaction only; no commitments, STARK, FRI, recursion, guest or GPU",
+  "passed": true,
+  "tests": 1,
+  "events": 32768,
+  "shared_inverse_setup_included": false,
+  "counter_setup_included": false,
+  "process_peak_memory_measured": false,
+  "end_to_end_proving_measured": false,
+  "exact_aggregate_bus_counter_parity": true,
+  "word_interaction_median_ns": 32326771,
+  "lane_interaction_median_ns": 21500270,
+  "word_trace_interaction_bytes": 14024704,
+  "lane_trace_interaction_bytes": 11141120,
+  "log_sha256": "00d2f1e85d5c4f6784a661eb10e331d130314bd7dbbce64a5a3f89499f3e2a78",
+  "source_sha256": {
+    "src/frontends/riscv/block_v5_ram_lanes_kernel_bench_root.zig": "dbe93294867f9362f71d42ce742450da515f20c3ddbb6f2447098c6b6754df3c",
+    "src/frontends/riscv/air/block/memory_transition.zig": "ae7a000a3fc5c385e742ebc5babae61de1eb75311706ba2d09f11a6fa684b795",
+    "src/frontends/riscv/air/block/word_memory_trace_v5.zig": "41297fd9887fe73464a96cf9769301b01a55b686b863d6ea59deb8dcb0f54da2",
+    "src/frontends/riscv/air/block/word_memory_lanes_trace_v1.zig": "2971fa33abb9099f4d44017451e47d57e55ff8476805fc043cd5f8d6d12c137e",
+    "src/frontends/riscv/air/block/word_memory_v5.zig": "ffe03169bec7d86d9a554cb889cd580b9a0a7696b05ce7e331600057494c89aa",
+    "src/frontends/riscv/air/block/word_memory_lanes_v1.zig": "e977143009ab01533481193d3f12196628f9177c35d88e625d0101d15bb32fe2",
+    "src/frontends/riscv/prover/block_v5_word_memory_interaction_v1.zig": "2493ff75640f13623972e1d7653f0bf1710997e728ee476616421bdf22fdfba5",
+    "src/frontends/riscv/prover/block_v5_ram_lanes_interaction_v1.zig": "0b1a84ac92ba760d4a872a017d63bda986ac9768002fcd5fd32564fb89992313",
+    "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig": "78d813387486020d2f0b8246b5d7ac0dd2b5f4646f7fde99d2b5e250cdb709b7",
+    "src/frontends/riscv/prover/block_v5_ram_lanes_protocol_v1.zig": "2c3a1438e1cd3fb84737efc764f125c8d37f949e7b6cc23df08ca43924a30efb",
+    "src/frontends/riscv/prover/block_v5_range16_v1.zig": "6f452eacd5f6d7ccbab8fa088d3043950f00f301d1f580ce234873f8bc7f66b8"
+  }
+}

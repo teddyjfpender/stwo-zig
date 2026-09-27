@@ -1,0 +1,3 @@
+src/frontends/riscv/prover/block_v5_memory_source_circuit_v1.zig:11:24: error: import of file outside module path
+const Budget = @import("../../../prover/host_budget_allocator.zig").HostBudgetAllocator;
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

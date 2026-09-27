@@ -1,0 +1,46 @@
+{
+  "schema": "stwo.cpu-block-measurements.v1",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-sha-preflight-v2",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+    "262144",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/measurements-mainnet-24628607-sha-canonical-262144/root.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/measurements-mainnet-24628607-sha-canonical-262144/proof-report.json",
+    "canonical"
+  ],
+  "hardware": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "logical_cpus": 18
+  },
+  "complete_execution_proof_verified": false,
+  "inputs": {
+    "binary": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-sha-preflight-v2",
+      "sha256": "56cc4a5ef1750656a1dc8e8afe26164e83fb918e8bee62c1ffca0b4de6eade1b"
+    },
+    "elf": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+      "sha256": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688"
+    },
+    "input": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+      "sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82"
+    },
+    "expected_output": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+      "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+    }
+  },
+  "power_before": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t100%; discharging; 12:49 remaining present: true",
+  "process_wall_ns": 2134136501833,
+  "exit_code": -15,
+  "power_after": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t65%; discharging; 1:06 remaining present: true",
+  "peak_rss_bytes": 21570093056,
+  "peak_physical_footprint_bytes": 21586729288,
+  "measurement_error": "prover exited with -15; see run.log"
+}

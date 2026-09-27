@@ -178,6 +178,8 @@ pub const UniversalRelations = struct {
     }
 };
 
+/// Fixed emitters validate the same frozen relation schema without draws.
+pub const requireDrawSchema = validateRegistryOrder;
 fn validateRegistryOrder() Error!void {
     const actual = std.fmt.bytesToHex(registryOrderDigest(), .lower);
     if (!std.mem.eql(u8, &actual, relation.REGISTRY_ORDER_DIGEST_HEX))

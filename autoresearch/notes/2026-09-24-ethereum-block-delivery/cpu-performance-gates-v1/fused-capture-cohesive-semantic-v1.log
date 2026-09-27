@@ -1,0 +1,5 @@
+src/frontends/riscv/prover/block_v5_caller_capture_unit_test.zig:221:27: error: else prong required when switching on type '@Type(.enum_literal)'
+            const count = switch (tree) {
+                          ^~~~~~
+referenced by:
+    comptime: src/frontends/riscv/block_v5_recursive_fused_capture_test_root.zig:5:17

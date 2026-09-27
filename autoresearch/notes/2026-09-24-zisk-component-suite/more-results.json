@@ -1,0 +1,732 @@
+[
+  {
+    "name": "extension_add",
+    "rounds": 4194304,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 28499667,
+        "ns_per_call": 6.79485011100769,
+        "checksum": 578228905217884160
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 5514875,
+        "ns_per_call": 1.3148486614227295,
+        "checksum": 7203864186982528
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 5490292,
+        "ns_per_call": 1.3089876174926758,
+        "checksum": 7203864186982528
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 28298333,
+        "ns_per_call": 6.7468483448028564,
+        "checksum": 578228905217884160
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 5514375,
+        "ns_per_call": 1.3147294521331787,
+        "checksum": 7203864186982528
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 28290708,
+        "ns_per_call": 6.745030403137207,
+        "checksum": 578228905217884160
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 28443167,
+        "ns_per_call": 6.781379461288452,
+        "checksum": 578228905217884160
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 5487125,
+        "ns_per_call": 1.3082325458526611,
+        "checksum": 7203864186982528
+      }
+    ],
+    "median_ns": {
+      "zisk": 6.764113903045654,
+      "stwo": 1.3118585348129272
+    },
+    "comparison": "goldilocks_cubic_vs_m31_quartic"
+  },
+  {
+    "name": "extension_mul",
+    "rounds": 4194304,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 36264667,
+        "ns_per_call": 8.646170377731323,
+        "checksum": 18124876578231725518
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 47417917,
+        "ns_per_call": 11.305312395095825,
+        "checksum": 18010309095001892
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 47442292,
+        "ns_per_call": 11.311123847961426,
+        "checksum": 18010309095001892
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 36456292,
+        "ns_per_call": 8.69185733795166,
+        "checksum": 18124876578231725518
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 47911750,
+        "ns_per_call": 11.423051357269287,
+        "checksum": 18010309095001892
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 36782208,
+        "ns_per_call": 8.769561767578125,
+        "checksum": 18124876578231725518
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 36763208,
+        "ns_per_call": 8.765031814575195,
+        "checksum": 18124876578231725518
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 48011666,
+        "ns_per_call": 11.446873188018799,
+        "checksum": 18010309095001892
+      }
+    ],
+    "median_ns": {
+      "zisk": 8.728444576263428,
+      "stwo": 11.367087602615356
+    },
+    "comparison": "goldilocks_cubic_vs_m31_quartic"
+  },
+  {
+    "name": "extension_inv",
+    "rounds": 524288,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 96130709,
+        "ns_per_call": 183.3547763824463,
+        "checksum": 6785507773184661072
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 32084167,
+        "ns_per_call": 61.19569206237793,
+        "checksum": 2251243833887572
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 32082542,
+        "ns_per_call": 61.19259262084961,
+        "checksum": 2251243833887572
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 95160417,
+        "ns_per_call": 181.50409126281738,
+        "checksum": 6785507773184661072
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 31993375,
+        "ns_per_call": 61.02252006530762,
+        "checksum": 2251243833887572
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 93044209,
+        "ns_per_call": 177.4677448272705,
+        "checksum": 6785507773184661072
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 94318417,
+        "ns_per_call": 179.89810371398926,
+        "checksum": 6785507773184661072
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 31819167,
+        "ns_per_call": 60.69024467468262,
+        "checksum": 2251243833887572
+      }
+    ],
+    "median_ns": {
+      "zisk": 180.70109748840332,
+      "stwo": 61.10755634307861
+    },
+    "comparison": "goldilocks_cubic_vs_m31_quartic"
+  },
+  {
+    "name": "batch_inverse",
+    "rounds": 16384,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72450750,
+        "ns_per_call": 4422.0428466796875,
+        "checksum": 10888620183218061312
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 22366750,
+        "ns_per_call": 1365.1580810546875,
+        "checksum": 17901453798866944
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21973500,
+        "ns_per_call": 1341.156005859375,
+        "checksum": 17901453798866944
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 71280917,
+        "ns_per_call": 4350.641906738281,
+        "checksum": 10888620183218061312
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 22068167,
+        "ns_per_call": 1346.9340209960938,
+        "checksum": 17901453798866944
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 73299125,
+        "ns_per_call": 4473.823547363281,
+        "checksum": 10888620183218061312
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 74024584,
+        "ns_per_call": 4518.10205078125,
+        "checksum": 10888620183218061312
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 22528917,
+        "ns_per_call": 1375.0559692382812,
+        "checksum": 17901453798866944
+      }
+    ],
+    "median_ns": {
+      "zisk": 4447.933197021484,
+      "stwo": 1356.0460510253906
+    },
+    "n": 1024,
+    "comparison": "different_base_fields",
+    "setup_included": false
+  },
+  {
+    "name": "binary_merkle_canonical_words",
+    "rounds": 512,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67345541,
+        "ns_per_call": 131534.259765625,
+        "checksum": 7920654381408494504
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74221541,
+        "ns_per_call": 144963.947265625,
+        "checksum": 7920654381408494504
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74172541,
+        "ns_per_call": 144868.244140625,
+        "checksum": 7920654381408494504
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67538792,
+        "ns_per_call": 131911.703125,
+        "checksum": 7920654381408494504
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 77199333,
+        "ns_per_call": 150779.947265625,
+        "checksum": 7920654381408494504
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67522750,
+        "ns_per_call": 131880.37109375,
+        "checksum": 7920654381408494504
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67449208,
+        "ns_per_call": 131736.734375,
+        "checksum": 7920654381408494504
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74413250,
+        "ns_per_call": 145338.37890625,
+        "checksum": 7920654381408494504
+      }
+    ],
+    "median_ns": {
+      "zisk": 131808.552734375,
+      "stwo": 145151.1630859375
+    },
+    "n": 1024,
+    "input_words_per_leaf": 8,
+    "comparison": "identical_protocol_peer_production_tree_local_research_tree",
+    "workers": 1,
+    "setup_included": false
+  },
+  {
+    "name": "batch_inverse",
+    "rounds": 1024,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 71434708,
+        "ns_per_call": 69760.45703125,
+        "checksum": 15530554308315865088
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21269375,
+        "ns_per_call": 20770.8740234375,
+        "checksum": 17952048802030592
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21163750,
+        "ns_per_call": 20667.724609375,
+        "checksum": 17952048802030592
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72506666,
+        "ns_per_call": 70807.291015625,
+        "checksum": 15530554308315865088
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21329875,
+        "ns_per_call": 20829.9560546875,
+        "checksum": 17952048802030592
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72943084,
+        "ns_per_call": 71233.48046875,
+        "checksum": 15530554308315865088
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72456042,
+        "ns_per_call": 70757.853515625,
+        "checksum": 15530554308315865088
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21383666,
+        "ns_per_call": 20882.486328125,
+        "checksum": 17952048802030592
+      }
+    ],
+    "median_ns": {
+      "zisk": 70782.572265625,
+      "stwo": 20800.4150390625
+    },
+    "n": 16384,
+    "comparison": "different_base_fields",
+    "setup_included": false
+  },
+  {
+    "name": "binary_merkle_canonical_words",
+    "rounds": 32,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67228291,
+        "ns_per_call": 2100884.09375,
+        "checksum": 17983418719412130398
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74248250,
+        "ns_per_call": 2320257.8125,
+        "checksum": 17983418719412130398
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74300958,
+        "ns_per_call": 2321904.9375,
+        "checksum": 17983418719412130398
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67190500,
+        "ns_per_call": 2099703.125,
+        "checksum": 17983418719412130398
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74305291,
+        "ns_per_call": 2322040.34375,
+        "checksum": 17983418719412130398
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67196166,
+        "ns_per_call": 2099880.1875,
+        "checksum": 17983418719412130398
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67140125,
+        "ns_per_call": 2098128.90625,
+        "checksum": 17983418719412130398
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74367792,
+        "ns_per_call": 2323993.5,
+        "checksum": 17983418719412130398
+      }
+    ],
+    "median_ns": {
+      "zisk": 2099791.65625,
+      "stwo": 2321972.640625
+    },
+    "n": 16384,
+    "input_words_per_leaf": 8,
+    "comparison": "identical_protocol_peer_production_tree_local_research_tree",
+    "workers": 1,
+    "setup_included": false
+  },
+  {
+    "name": "batch_inverse",
+    "rounds": 64,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 85212375,
+        "ns_per_call": 1331443.359375,
+        "checksum": 8908811986043710016
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21623000,
+        "ns_per_call": 337859.375,
+        "checksum": 17979973633217408
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21502833,
+        "ns_per_call": 335981.765625,
+        "checksum": 17979973633217408
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 85292375,
+        "ns_per_call": 1332693.359375,
+        "checksum": 8908811986043710016
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21565708,
+        "ns_per_call": 336964.1875,
+        "checksum": 17979973633217408
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 84732333,
+        "ns_per_call": 1323942.703125,
+        "checksum": 8908811986043710016
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 85290208,
+        "ns_per_call": 1332659.5,
+        "checksum": 8908811986043710016
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 21513583,
+        "ns_per_call": 336149.734375,
+        "checksum": 17979973633217408
+      }
+    ],
+    "median_ns": {
+      "zisk": 1332051.4296875,
+      "stwo": 336556.9609375
+    },
+    "n": 262144,
+    "comparison": "different_base_fields",
+    "setup_included": false
+  },
+  {
+    "name": "binary_merkle_canonical_words",
+    "rounds": 2,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67208333,
+        "ns_per_call": 33604166.5,
+        "checksum": 3571355535060243060
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74301875,
+        "ns_per_call": 37150937.5,
+        "checksum": 3571355535060243060
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74263875,
+        "ns_per_call": 37131937.5,
+        "checksum": 3571355535060243060
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67194583,
+        "ns_per_call": 33597291.5,
+        "checksum": 3571355535060243060
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74492708,
+        "ns_per_call": 37246354.0,
+        "checksum": 3571355535060243060
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67124250,
+        "ns_per_call": 33562125.0,
+        "checksum": 3571355535060243060
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67050541,
+        "ns_per_call": 33525270.5,
+        "checksum": 3571355535060243060
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 74469916,
+        "ns_per_call": 37234958.0,
+        "checksum": 3571355535060243060
+      }
+    ],
+    "median_ns": {
+      "zisk": 33579708.25,
+      "stwo": 37192947.75
+    },
+    "n": 262144,
+    "input_words_per_leaf": 8,
+    "comparison": "identical_protocol_peer_production_tree_local_research_tree",
+    "workers": 1,
+    "setup_included": false
+  },
+  {
+    "name": "binary_merkle_canonical_words",
+    "rounds": 8,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 74858834,
+        "ns_per_call": 9357354.25,
+        "checksum": 11415308303886521033
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 62796083,
+        "ns_per_call": 7849510.375,
+        "checksum": 11415308303886521033
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 62752875,
+        "ns_per_call": 7844109.375,
+        "checksum": 11415308303886521033
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 74710416,
+        "ns_per_call": 9338802.0,
+        "checksum": 11415308303886521033
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 62788292,
+        "ns_per_call": 7848536.5,
+        "checksum": 11415308303886521033
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 74611833,
+        "ns_per_call": 9326479.125,
+        "checksum": 11415308303886521033
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 74720333,
+        "ns_per_call": 9340041.625,
+        "checksum": 11415308303886521033
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 62993084,
+        "ns_per_call": 7874135.5,
+        "checksum": 11415308303886521033
+      }
+    ],
+    "median_ns": {
+      "zisk": 9339421.8125,
+      "stwo": 7849023.4375
+    },
+    "n": 16384,
+    "input_words_per_leaf": 64,
+    "comparison": "identical_protocol_peer_production_tree_local_research_tree",
+    "workers": 1,
+    "setup_included": false
+  },
+  {
+    "name": "native_node_hash",
+    "rounds": 1048576,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 66470834,
+        "ns_per_call": 63.39152717590332,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 124384084,
+        "ns_per_call": 118.62190628051758,
+        "checksum": 9878082237184928102
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 123893833,
+        "ns_per_call": 118.1543664932251,
+        "checksum": 9878082237184928102
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 66611708,
+        "ns_per_call": 63.525875091552734,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 123776292,
+        "ns_per_call": 118.04227066040039,
+        "checksum": 9878082237184928102
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 67361625,
+        "ns_per_call": 64.24105167388916,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 66307459,
+        "ns_per_call": 63.23572063446045,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 123996541,
+        "ns_per_call": 118.25231647491455,
+        "checksum": 9878082237184928102
+      }
+    ],
+    "median_ns": {
+      "zisk": 63.45870113372803,
+      "stwo": 118.20334148406982
+    },
+    "comparison": "different_protocol_framing_and_inputs"
+  },
+  {
+    "name": "native_leaf_64_payload_bytes",
+    "rounds": 1048576,
+    "samples": [
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72193833,
+        "ns_per_call": 68.84940433502197,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 135222459,
+        "ns_per_call": 128.95818614959717,
+        "checksum": 9905731193583508779
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 135099417,
+        "ns_per_call": 128.8408441543579,
+        "checksum": 9905731193583508779
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72138709,
+        "ns_per_call": 68.7968339920044,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 135142125,
+        "ns_per_call": 128.881573677063,
+        "checksum": 9905731193583508779
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72205750,
+        "ns_per_call": 68.86076927185059,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "zisk",
+        "elapsed_ns": 72033416,
+        "ns_per_call": 68.69641876220703,
+        "checksum": 11199947619325229731
+      },
+      {
+        "arm": "stwo",
+        "elapsed_ns": 135260041,
+        "ns_per_call": 128.99402713775635,
+        "checksum": 9905731193583508779
+      }
+    ],
+    "median_ns": {
+      "zisk": 68.82311916351318,
+      "stwo": 128.91987991333008
+    },
+    "comparison": "different_protocol_framing_and_inputs"
+  }
+]

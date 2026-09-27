@@ -1,0 +1,3 @@
+1/2 build_runtime_source.test.runtime closure changes for transitive edits and handles repeated imports...OK
+2/2 build_runtime_source.test.runtime closure refuses unresolved include syntax...OK
+All 2 tests passed.

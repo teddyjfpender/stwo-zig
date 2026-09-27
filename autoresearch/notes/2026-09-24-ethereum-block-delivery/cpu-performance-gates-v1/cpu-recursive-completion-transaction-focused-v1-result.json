@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-recursive-completion-transaction-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 65.73616079200292,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 20,
+  "test_summary": [
+    "All 20 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-completion-transaction-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-recursive-completion-transaction-focused-v1",
+    "bytes": 111161480,
+    "sha256": "d583f623cf1b67faa96fc76996eb36f3af6ef5a21a967880b995fcebc2fa8658"
+  }
+}

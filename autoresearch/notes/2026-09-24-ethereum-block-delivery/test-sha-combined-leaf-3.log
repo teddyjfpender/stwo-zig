@@ -1,0 +1,35 @@
+1/12 prover.blake3_ethereum_sha_proof_test.test.SHA combined canonical production leaf serializes and freshly verifies...FAIL (MissingReleaseAbiSymbol)
+2/12 prover.blake3_ethereum_sha_proof_test.test.SHA combined canonical compact production leaf serializes and freshly verifies...FAIL (MissingReleaseAbiSymbol)
+3/12 air.guest_precompile.relation_test.test_0...OK
+4/12 prover.blake3_poseidon_witness_test.test.BLAKE3 execution commitment guest Poseidon full proof independently verifies...BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_GUEST_POSEIDON_PROOF verified=true queries=70 pow_bits=26 artifact_bytes=901131 witness_released=true fresh_key=true capture_mutations_rejected=true outer_artifact_verified=true source_and_pin_mutations_rejected=true
+OK
+5/12 prover.blake3_ethereum_witness_test.test.BLAKE3 execution commitment Ethereum full proof independently verifies...BLAKE3_ETHEREUM_WITNESS_READY external_retirements=2
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_ETHEREUM_PROOF verified=true keccak=1 signer=1 queries=70 pow_bits=26 witness_released=true admission_independent=true artifact_roundtrip=true capture_mutations_rejected=true
+BLAKE3_ETHEREUM_WITNESS keccak=1 signer=1 external_retirements=2 legacy_commitments=0 base_protocol_rejects=true relations_closed=true
+OK
+6/12 runner.mod.test_0...OK
+7/12 runner.decode.test_0...OK
+8/12 air.memory_commitment.poseidon2_air.test_0...OK
+9/12 air.semantic_eval.test_0...OK
+10/12 air.lookups.tables.source_ingest.test_0...OK
+11/12 diagnostics.mod.test_0...OK
+12/12 runner.guest_precompile.mod.test_0...OK
+10 passed; 0 skipped; 2 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/164c61b813df2fc904c131a336e77046/root --seed=0xf23ade16
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_combined_admission.py", line 9, in <module>
+    runpy.run_path(str(script), run_name="__main__")
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 294, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 13, in <module>
+    subprocess.run([z,'test',*filter_args,'-OReleaseFast','-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig'],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'SHA combined canonical', '--test-filter', 'BLAKE3 execution commitment Ethereum full proof independently verifies', '--test-filter', 'BLAKE3 execution commitment guest Poseidon full proof independently verifies', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '-Mroot=src/frontends/riscv/blake3_execution_commitment_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

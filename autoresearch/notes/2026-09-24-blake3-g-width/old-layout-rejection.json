@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-g-width/candidate-products/bin/stwo-zig-riscv-metal",
+    "ecdsa-csp-verify",
+    "--artifact",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-overlapped-metal-stream-leaves/metal-ecdsa_secp256k1-32-candidate-first.b3proof",
+    "--elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_odd.elf",
+    "--input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1.bin",
+    "--expect-statement-digest",
+    "dfdd6da5c6d9e2c43cd1b9e43d56c4294cb7e3e7b45eac9809fefb5f248d80cb"
+  ],
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "error: UntrustedCommitmentPlan\n"
+}

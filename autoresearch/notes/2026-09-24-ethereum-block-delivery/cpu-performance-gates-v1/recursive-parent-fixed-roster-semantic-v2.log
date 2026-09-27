@@ -1,0 +1,10 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem.zig:704:20: error: operator != not allowed for type 'fields.m31.M31'
+        if (a_elem != b_elem) return false;
+            ~~~~~~~^~~~~~~~~
+src/core/fields/m31.zig:10:17: note: struct declared here
+pub const M31 = struct {
+                ^~~~~~
+referenced by:
+    validateAgainst: src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:162:69
+    stwo_recursive_parent_fixed_roster_body_gate: src/frontends/riscv/block_v5_recursive_parent_fixed_roster_codegen_v1.zig:4:97
+    2 reference(s) hidden; use '-freference-trace=4' to see all references

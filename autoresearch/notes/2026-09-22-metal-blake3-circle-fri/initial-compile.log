@@ -1,0 +1,17 @@
+test-blake3-fri-cascade
++- run test
+   +- compile test ReleaseSafe native 1 errors
+tests/fri_fold_commit.zig:741:9: error: local variable is never mutated
+    var gpu_column = try MetalBackend.allocateSecureColumn(values.len);
+        ^~~~~~~~~~
+tests/fri_fold_commit.zig:741:9: note: consider using 'const'
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -cflags -fobjc-arc -fblocks -- /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/runtime.m -lobjc -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/blake3_cascade_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -framework Foundation -framework Metal -lc --test-filter "metal: BLAKE3 FRI cascade preserves roots transcript and folds in one submission" --test-filter "metal: BLAKE3 backend cascade admits resident inverse domains" --test-filter "metal: BLAKE3 circle FRI prover matches CPU commitments and openings" --test-filter "metal: line FRI cascade preserves every root, challenge, and final value" --test-filter "opening bindings retain canonical shared ABI parameter types" --test-filter "Ethereum AOT profile preserves exact core authority and admits five separate declarations" --test-filter "recursive framework AOT profile preserves core authority and exact declaration coverage" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-blake3-fri-cascade transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/3b80551e51aa3025737ad0b6d7aaf98a/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x71446695 -Z99cb7dc9741d27b3 --maxrss 25769803776 -j1 test-blake3-fri-cascade -Doptimize=ReleaseSafe --summary all

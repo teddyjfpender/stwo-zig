@@ -1,0 +1,237 @@
+1/7 blake3_metal_qualification_test_root.test.Metal canonical four-leaf BLAKE3 aggregation tree...CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_HASH_METADATA g_rows=2230704 xor_rows=637344 full_row_bytes=1188009216 compact_bytes=158061312 removed_bytes=1029947904
+BLAKE3_PATH_SHARING kind=trace tree=0 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=trace tree=1 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=trace tree=2 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=trace tree=3 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=fri tree=0 depth=18 openings=70 unique_groups=70 upper_hashes=1260 unique_upper_hashes=841
+BLAKE3_PATH_SHARING kind=fri tree=1 depth=17 openings=70 unique_groups=70 upper_hashes=1190 unique_upper_hashes=771
+BLAKE3_PATH_SHARING kind=fri tree=2 depth=16 openings=70 unique_groups=70 upper_hashes=1120 unique_upper_hashes=701
+BLAKE3_PATH_SHARING kind=fri tree=3 depth=15 openings=70 unique_groups=70 upper_hashes=1050 unique_upper_hashes=631
+BLAKE3_PATH_SHARING kind=fri tree=4 depth=14 openings=70 unique_groups=70 upper_hashes=980 unique_upper_hashes=561
+BLAKE3_PATH_SHARING kind=fri tree=5 depth=13 openings=70 unique_groups=70 upper_hashes=910 unique_upper_hashes=491
+BLAKE3_PATH_SHARING kind=fri tree=6 depth=12 openings=70 unique_groups=70 upper_hashes=840 unique_upper_hashes=421
+BLAKE3_PATH_SHARING kind=fri tree=7 depth=11 openings=70 unique_groups=69 upper_hashes=770 unique_upper_hashes=352
+BLAKE3_PATH_SHARING kind=fri tree=8 depth=10 openings=70 unique_groups=69 upper_hashes=700 unique_upper_hashes=283
+BLAKE3_PATH_SHARING kind=fri tree=9 depth=9 openings=70 unique_groups=65 upper_hashes=630 unique_upper_hashes=218
+BLAKE3_PATH_SHARING kind=fri tree=10 depth=8 openings=70 unique_groups=61 upper_hashes=560 unique_upper_hashes=157
+BLAKE3_PATH_SHARING kind=fri tree=11 depth=7 openings=70 unique_groups=54 upper_hashes=490 unique_upper_hashes=103
+BLAKE3_PATH_SHARING kind=fri tree=12 depth=6 openings=70 unique_groups=43 upper_hashes=420 unique_upper_hashes=60
+BLAKE3_PATH_SHARING kind=fri tree=13 depth=5 openings=70 unique_groups=29 upper_hashes=350 unique_upper_hashes=31
+BLAKE3_PATH_SHARING kind=fri tree=14 depth=4 openings=70 unique_groups=16 upper_hashes=280 unique_upper_hashes=15
+BLAKE3_PATH_SHARING kind=fri tree=15 depth=3 openings=70 unique_groups=8 upper_hashes=210 unique_upper_hashes=7
+BLAKE3_PATH_SHARING kind=fri tree=16 depth=2 openings=70 unique_groups=4 upper_hashes=140 unique_upper_hashes=3
+BLAKE3_PATH_SHARING kind=fri tree=17 depth=1 openings=70 unique_groups=2 upper_hashes=70 unique_upper_hashes=1
+BLAKE3_PATH_SHARING_TOTAL upper_hashes=17290 unique_upper_hashes=9291 node_g_rows=112 gross_candidate_g_rows=725872 path_g_rows=2197664 shared_root_g_rows=170016 remaining_sharing_implemented=false
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1170413056 compact_bytes=155720192 removed_bytes=1014692864
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56858 arithmetic_rows=160880
+BLAKE3_HASH_METADATA g_rows=2230704 xor_rows=637344 full_row_bytes=1188009216 compact_bytes=158061312 removed_bytes=1029947904
+BLAKE3_PATH_SHARING kind=trace tree=0 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=921
+BLAKE3_PATH_SHARING kind=trace tree=1 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=921
+BLAKE3_PATH_SHARING kind=trace tree=2 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=921
+BLAKE3_PATH_SHARING kind=trace tree=3 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=921
+BLAKE3_PATH_SHARING kind=fri tree=0 depth=18 openings=70 unique_groups=70 upper_hashes=1260 unique_upper_hashes=851
+BLAKE3_PATH_SHARING kind=fri tree=1 depth=17 openings=70 unique_groups=70 upper_hashes=1190 unique_upper_hashes=781
+BLAKE3_PATH_SHARING kind=fri tree=2 depth=16 openings=70 unique_groups=70 upper_hashes=1120 unique_upper_hashes=711
+BLAKE3_PATH_SHARING kind=fri tree=3 depth=15 openings=70 unique_groups=70 upper_hashes=1050 unique_upper_hashes=641
+BLAKE3_PATH_SHARING kind=fri tree=4 depth=14 openings=70 unique_groups=70 upper_hashes=980 unique_upper_hashes=571
+BLAKE3_PATH_SHARING kind=fri tree=5 depth=13 openings=70 unique_groups=70 upper_hashes=910 unique_upper_hashes=501
+BLAKE3_PATH_SHARING kind=fri tree=6 depth=12 openings=70 unique_groups=70 upper_hashes=840 unique_upper_hashes=431
+BLAKE3_PATH_SHARING kind=fri tree=7 depth=11 openings=70 unique_groups=70 upper_hashes=770 unique_upper_hashes=361
+BLAKE3_PATH_SHARING kind=fri tree=8 depth=10 openings=70 unique_groups=70 upper_hashes=700 unique_upper_hashes=291
+BLAKE3_PATH_SHARING kind=fri tree=9 depth=9 openings=70 unique_groups=70 upper_hashes=630 unique_upper_hashes=221
+BLAKE3_PATH_SHARING kind=fri tree=10 depth=8 openings=70 unique_groups=64 upper_hashes=560 unique_upper_hashes=157
+BLAKE3_PATH_SHARING kind=fri tree=11 depth=7 openings=70 unique_groups=56 upper_hashes=490 unique_upper_hashes=101
+BLAKE3_PATH_SHARING kind=fri tree=12 depth=6 openings=70 unique_groups=42 upper_hashes=420 unique_upper_hashes=59
+BLAKE3_PATH_SHARING kind=fri tree=13 depth=5 openings=70 unique_groups=28 upper_hashes=350 unique_upper_hashes=31
+BLAKE3_PATH_SHARING kind=fri tree=14 depth=4 openings=70 unique_groups=16 upper_hashes=280 unique_upper_hashes=15
+BLAKE3_PATH_SHARING kind=fri tree=15 depth=3 openings=70 unique_groups=8 upper_hashes=210 unique_upper_hashes=7
+BLAKE3_PATH_SHARING kind=fri tree=16 depth=2 openings=70 unique_groups=4 upper_hashes=140 unique_upper_hashes=3
+BLAKE3_PATH_SHARING kind=fri tree=17 depth=1 openings=70 unique_groups=2 upper_hashes=70 unique_upper_hashes=1
+BLAKE3_PATH_SHARING_TOTAL upper_hashes=17290 unique_upper_hashes=9418 node_g_rows=112 gross_candidate_g_rows=711648 path_g_rows=2197664 shared_root_g_rows=170016 remaining_sharing_implemented=false
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1170413056 compact_bytes=155720192 removed_bytes=1014692864
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56860 arithmetic_rows=160876
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=6388074375
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=255.79916668357328
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.855958337429911
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.0869999900460243
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.948749995790422
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5224166670814157
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.026176,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":0.951296,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":2.135112,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":1.281889,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":1.942073,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":4.996771,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000006,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":1.352949,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.014925,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.076701,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000072,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.710427,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000036,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":2.684205,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.007272,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.004099,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.007738,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000084,"children":null}]}]}
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=12520257959
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=909260 queries=70 pow_bits=26
+BLAKE3_HASH_METADATA g_rows=2222024 xor_rows=634864 full_row_bytes=1183386496 compact_bytes=157446272 removed_bytes=1025940224
+BLAKE3_PATH_SHARING kind=trace tree=0 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=trace tree=1 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=trace tree=2 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=trace tree=3 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=911
+BLAKE3_PATH_SHARING kind=fri tree=0 depth=18 openings=70 unique_groups=70 upper_hashes=1260 unique_upper_hashes=841
+BLAKE3_PATH_SHARING kind=fri tree=1 depth=17 openings=70 unique_groups=70 upper_hashes=1190 unique_upper_hashes=771
+BLAKE3_PATH_SHARING kind=fri tree=2 depth=16 openings=70 unique_groups=70 upper_hashes=1120 unique_upper_hashes=701
+BLAKE3_PATH_SHARING kind=fri tree=3 depth=15 openings=70 unique_groups=70 upper_hashes=1050 unique_upper_hashes=631
+BLAKE3_PATH_SHARING kind=fri tree=4 depth=14 openings=70 unique_groups=70 upper_hashes=980 unique_upper_hashes=561
+BLAKE3_PATH_SHARING kind=fri tree=5 depth=13 openings=70 unique_groups=69 upper_hashes=910 unique_upper_hashes=492
+BLAKE3_PATH_SHARING kind=fri tree=6 depth=12 openings=70 unique_groups=69 upper_hashes=840 unique_upper_hashes=423
+BLAKE3_PATH_SHARING kind=fri tree=7 depth=11 openings=70 unique_groups=68 upper_hashes=770 unique_upper_hashes=355
+BLAKE3_PATH_SHARING kind=fri tree=8 depth=10 openings=70 unique_groups=67 upper_hashes=700 unique_upper_hashes=288
+BLAKE3_PATH_SHARING kind=fri tree=9 depth=9 openings=70 unique_groups=67 upper_hashes=630 unique_upper_hashes=221
+BLAKE3_PATH_SHARING kind=fri tree=10 depth=8 openings=70 unique_groups=61 upper_hashes=560 unique_upper_hashes=160
+BLAKE3_PATH_SHARING kind=fri tree=11 depth=7 openings=70 unique_groups=55 upper_hashes=490 unique_upper_hashes=105
+BLAKE3_PATH_SHARING kind=fri tree=12 depth=6 openings=70 unique_groups=44 upper_hashes=420 unique_upper_hashes=61
+BLAKE3_PATH_SHARING kind=fri tree=13 depth=5 openings=70 unique_groups=30 upper_hashes=350 unique_upper_hashes=31
+BLAKE3_PATH_SHARING kind=fri tree=14 depth=4 openings=70 unique_groups=16 upper_hashes=280 unique_upper_hashes=15
+BLAKE3_PATH_SHARING kind=fri tree=15 depth=3 openings=70 unique_groups=8 upper_hashes=210 unique_upper_hashes=7
+BLAKE3_PATH_SHARING kind=fri tree=16 depth=2 openings=70 unique_groups=4 upper_hashes=140 unique_upper_hashes=3
+BLAKE3_PATH_SHARING kind=fri tree=17 depth=1 openings=70 unique_groups=2 upper_hashes=70 unique_upper_hashes=1
+BLAKE3_PATH_SHARING_TOTAL upper_hashes=17290 unique_upper_hashes=9311 node_g_rows=112 gross_candidate_g_rows=723632 path_g_rows=2189824 shared_root_g_rows=170016 remaining_sharing_implemented=false
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1166237696 compact_bytes=155164672 removed_bytes=1011073024
+BLAKE3_NATIVE_QUERY_FUSION groups=7560 removed_scalars=30240
+BLAKE3_NATIVE_FUSION dot4=14350 fma=56672 arithmetic_rows=159015
+BLAKE3_HASH_METADATA g_rows=2264976 xor_rows=647136 full_row_bytes=1206261504 compact_bytes=160489728 removed_bytes=1045771776
+BLAKE3_PATH_SHARING kind=trace tree=0 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=924
+BLAKE3_PATH_SHARING kind=trace tree=1 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=924
+BLAKE3_PATH_SHARING kind=trace tree=2 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=924
+BLAKE3_PATH_SHARING kind=trace tree=3 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=924
+BLAKE3_PATH_SHARING kind=fri tree=0 depth=18 openings=70 unique_groups=70 upper_hashes=1260 unique_upper_hashes=854
+BLAKE3_PATH_SHARING kind=fri tree=1 depth=17 openings=70 unique_groups=70 upper_hashes=1190 unique_upper_hashes=784
+BLAKE3_PATH_SHARING kind=fri tree=2 depth=16 openings=70 unique_groups=70 upper_hashes=1120 unique_upper_hashes=714
+BLAKE3_PATH_SHARING kind=fri tree=3 depth=15 openings=70 unique_groups=70 upper_hashes=1050 unique_upper_hashes=644
+BLAKE3_PATH_SHARING kind=fri tree=4 depth=14 openings=70 unique_groups=70 upper_hashes=980 unique_upper_hashes=574
+BLAKE3_PATH_SHARING kind=fri tree=5 depth=13 openings=70 unique_groups=70 upper_hashes=910 unique_upper_hashes=504
+BLAKE3_PATH_SHARING kind=fri tree=6 depth=12 openings=70 unique_groups=70 upper_hashes=840 unique_upper_hashes=434
+BLAKE3_PATH_SHARING kind=fri tree=7 depth=11 openings=70 unique_groups=70 upper_hashes=770 unique_upper_hashes=364
+BLAKE3_PATH_SHARING kind=fri tree=8 depth=10 openings=70 unique_groups=69 upper_hashes=700 unique_upper_hashes=295
+BLAKE3_PATH_SHARING kind=fri tree=9 depth=9 openings=70 unique_groups=68 upper_hashes=630 unique_upper_hashes=227
+BLAKE3_PATH_SHARING kind=fri tree=10 depth=8 openings=70 unique_groups=66 upper_hashes=560 unique_upper_hashes=161
+BLAKE3_PATH_SHARING kind=fri tree=11 depth=7 openings=70 unique_groups=58 upper_hashes=490 unique_upper_hashes=103
+BLAKE3_PATH_SHARING kind=fri tree=12 depth=6 openings=70 unique_groups=43 upper_hashes=420 unique_upper_hashes=60
+BLAKE3_PATH_SHARING kind=fri tree=13 depth=5 openings=70 unique_groups=29 upper_hashes=350 unique_upper_hashes=31
+BLAKE3_PATH_SHARING kind=fri tree=14 depth=4 openings=70 unique_groups=16 upper_hashes=280 unique_upper_hashes=15
+BLAKE3_PATH_SHARING kind=fri tree=15 depth=3 openings=70 unique_groups=8 upper_hashes=210 unique_upper_hashes=7
+BLAKE3_PATH_SHARING kind=fri tree=16 depth=2 openings=70 unique_groups=4 upper_hashes=140 unique_upper_hashes=3
+BLAKE3_PATH_SHARING kind=fri tree=17 depth=1 openings=70 unique_groups=2 upper_hashes=70 unique_upper_hashes=1
+BLAKE3_PATH_SHARING_TOTAL upper_hashes=17290 unique_upper_hashes=9471 node_g_rows=112 gross_candidate_g_rows=705712 path_g_rows=2229024 shared_root_g_rows=170016 remaining_sharing_implemented=false
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1187114496 compact_bytes=157942272 removed_bytes=1029172224
+BLAKE3_NATIVE_QUERY_FUSION groups=8820 removed_scalars=35280
+BLAKE3_NATIVE_FUSION dot4=18459 fma=58931 arithmetic_rows=168994
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=6807384917
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=256.72274999669753
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.6782916761003435
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.0157500004861504
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9474583386909217
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5390416772570461
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.024859,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":1.095331,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":2.146046,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":1.330244,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":1.963212,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":5.158738,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000003,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":1.317326,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.015322,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.080891,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000066,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.706995,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000035,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":2.873427,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.011795,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.003873,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.009009,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000077,"children":null}]}]}
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=12907007125
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=909096 queries=70 pow_bits=26
+BLAKE3_HASH_METADATA g_rows=3426752 xor_rows=979072 full_row_bytes=1824990208 compact_bytes=242809856 removed_bytes=1582180352
+BLAKE3_PATH_SHARING kind=trace tree=0 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1267
+BLAKE3_PATH_SHARING kind=trace tree=1 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1267
+BLAKE3_PATH_SHARING kind=trace tree=2 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1267
+BLAKE3_PATH_SHARING kind=trace tree=3 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1267
+BLAKE3_PATH_SHARING kind=fri tree=0 depth=23 openings=70 unique_groups=70 upper_hashes=1610 unique_upper_hashes=1197
+BLAKE3_PATH_SHARING kind=fri tree=1 depth=22 openings=70 unique_groups=70 upper_hashes=1540 unique_upper_hashes=1127
+BLAKE3_PATH_SHARING kind=fri tree=2 depth=21 openings=70 unique_groups=70 upper_hashes=1470 unique_upper_hashes=1057
+BLAKE3_PATH_SHARING kind=fri tree=3 depth=20 openings=70 unique_groups=70 upper_hashes=1400 unique_upper_hashes=987
+BLAKE3_PATH_SHARING kind=fri tree=4 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=917
+BLAKE3_PATH_SHARING kind=fri tree=5 depth=18 openings=70 unique_groups=70 upper_hashes=1260 unique_upper_hashes=847
+BLAKE3_PATH_SHARING kind=fri tree=6 depth=17 openings=70 unique_groups=70 upper_hashes=1190 unique_upper_hashes=777
+BLAKE3_PATH_SHARING kind=fri tree=7 depth=16 openings=70 unique_groups=70 upper_hashes=1120 unique_upper_hashes=707
+BLAKE3_PATH_SHARING kind=fri tree=8 depth=15 openings=70 unique_groups=70 upper_hashes=1050 unique_upper_hashes=637
+BLAKE3_PATH_SHARING kind=fri tree=9 depth=14 openings=70 unique_groups=70 upper_hashes=980 unique_upper_hashes=567
+BLAKE3_PATH_SHARING kind=fri tree=10 depth=13 openings=70 unique_groups=69 upper_hashes=910 unique_upper_hashes=498
+BLAKE3_PATH_SHARING kind=fri tree=11 depth=12 openings=70 unique_groups=68 upper_hashes=840 unique_upper_hashes=430
+BLAKE3_PATH_SHARING kind=fri tree=12 depth=11 openings=70 unique_groups=68 upper_hashes=770 unique_upper_hashes=362
+BLAKE3_PATH_SHARING kind=fri tree=13 depth=10 openings=70 unique_groups=68 upper_hashes=700 unique_upper_hashes=294
+BLAKE3_PATH_SHARING kind=fri tree=14 depth=9 openings=70 unique_groups=66 upper_hashes=630 unique_upper_hashes=228
+BLAKE3_PATH_SHARING kind=fri tree=15 depth=8 openings=70 unique_groups=63 upper_hashes=560 unique_upper_hashes=165
+BLAKE3_PATH_SHARING kind=fri tree=16 depth=7 openings=70 unique_groups=58 upper_hashes=490 unique_upper_hashes=107
+BLAKE3_PATH_SHARING kind=fri tree=17 depth=6 openings=70 unique_groups=48 upper_hashes=420 unique_upper_hashes=59
+BLAKE3_PATH_SHARING kind=fri tree=18 depth=5 openings=70 unique_groups=29 upper_hashes=350 unique_upper_hashes=30
+BLAKE3_PATH_SHARING kind=fri tree=19 depth=4 openings=70 unique_groups=15 upper_hashes=280 unique_upper_hashes=15
+BLAKE3_PATH_SHARING kind=fri tree=20 depth=3 openings=70 unique_groups=8 upper_hashes=210 unique_upper_hashes=7
+BLAKE3_PATH_SHARING kind=fri tree=21 depth=2 openings=70 unique_groups=4 upper_hashes=140 unique_upper_hashes=3
+BLAKE3_PATH_SHARING kind=fri tree=22 depth=1 openings=70 unique_groups=2 upper_hashes=70 unique_upper_hashes=1
+BLAKE3_PATH_SHARING_TOTAL upper_hashes=26040 unique_upper_hashes=16087 node_g_rows=112 gross_candidate_g_rows=906080 path_g_rows=3385984 shared_root_g_rows=208656 remaining_sharing_implemented=false
+BLAKE3_PATH_PLAN_REUSE openings=1890 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1803278336 compact_bytes=239921152 removed_bytes=1563357184
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28602 fma=87565 arithmetic_rows=243970
+BLAKE3_HASH_METADATA g_rows=3426752 xor_rows=979072 full_row_bytes=1824990208 compact_bytes=242809856 removed_bytes=1582180352
+BLAKE3_PATH_SHARING kind=trace tree=0 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1269
+BLAKE3_PATH_SHARING kind=trace tree=1 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1269
+BLAKE3_PATH_SHARING kind=trace tree=2 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1269
+BLAKE3_PATH_SHARING kind=trace tree=3 depth=24 openings=70 unique_groups=70 upper_hashes=1680 unique_upper_hashes=1269
+BLAKE3_PATH_SHARING kind=fri tree=0 depth=23 openings=70 unique_groups=70 upper_hashes=1610 unique_upper_hashes=1199
+BLAKE3_PATH_SHARING kind=fri tree=1 depth=22 openings=70 unique_groups=70 upper_hashes=1540 unique_upper_hashes=1129
+BLAKE3_PATH_SHARING kind=fri tree=2 depth=21 openings=70 unique_groups=70 upper_hashes=1470 unique_upper_hashes=1059
+BLAKE3_PATH_SHARING kind=fri tree=3 depth=20 openings=70 unique_groups=70 upper_hashes=1400 unique_upper_hashes=989
+BLAKE3_PATH_SHARING kind=fri tree=4 depth=19 openings=70 unique_groups=70 upper_hashes=1330 unique_upper_hashes=919
+BLAKE3_PATH_SHARING kind=fri tree=5 depth=18 openings=70 unique_groups=70 upper_hashes=1260 unique_upper_hashes=849
+BLAKE3_PATH_SHARING kind=fri tree=6 depth=17 openings=70 unique_groups=70 upper_hashes=1190 unique_upper_hashes=779
+BLAKE3_PATH_SHARING kind=fri tree=7 depth=16 openings=70 unique_groups=70 upper_hashes=1120 unique_upper_hashes=709
+BLAKE3_PATH_SHARING kind=fri tree=8 depth=15 openings=70 unique_groups=70 upper_hashes=1050 unique_upper_hashes=639
+BLAKE3_PATH_SHARING kind=fri tree=9 depth=14 openings=70 unique_groups=70 upper_hashes=980 unique_upper_hashes=569
+BLAKE3_PATH_SHARING kind=fri tree=10 depth=13 openings=70 unique_groups=70 upper_hashes=910 unique_upper_hashes=499
+BLAKE3_PATH_SHARING kind=fri tree=11 depth=12 openings=70 unique_groups=70 upper_hashes=840 unique_upper_hashes=429
+BLAKE3_PATH_SHARING kind=fri tree=12 depth=11 openings=70 unique_groups=70 upper_hashes=770 unique_upper_hashes=359
+BLAKE3_PATH_SHARING kind=fri tree=13 depth=10 openings=70 unique_groups=70 upper_hashes=700 unique_upper_hashes=289
+BLAKE3_PATH_SHARING kind=fri tree=14 depth=9 openings=70 unique_groups=70 upper_hashes=630 unique_upper_hashes=219
+BLAKE3_PATH_SHARING kind=fri tree=15 depth=8 openings=70 unique_groups=63 upper_hashes=560 unique_upper_hashes=156
+BLAKE3_PATH_SHARING kind=fri tree=16 depth=7 openings=70 unique_groups=56 upper_hashes=490 unique_upper_hashes=100
+BLAKE3_PATH_SHARING kind=fri tree=17 depth=6 openings=70 unique_groups=41 upper_hashes=420 unique_upper_hashes=59
+BLAKE3_PATH_SHARING kind=fri tree=18 depth=5 openings=70 unique_groups=28 upper_hashes=350 unique_upper_hashes=31
+BLAKE3_PATH_SHARING kind=fri tree=19 depth=4 openings=70 unique_groups=16 upper_hashes=280 unique_upper_hashes=15
+BLAKE3_PATH_SHARING kind=fri tree=20 depth=3 openings=70 unique_groups=8 upper_hashes=210 unique_upper_hashes=7
+BLAKE3_PATH_SHARING kind=fri tree=21 depth=2 openings=70 unique_groups=4 upper_hashes=140 unique_upper_hashes=3
+BLAKE3_PATH_SHARING kind=fri tree=22 depth=1 openings=70 unique_groups=2 upper_hashes=70 unique_upper_hashes=1
+BLAKE3_PATH_SHARING_TOTAL upper_hashes=26040 unique_upper_hashes=16083 node_g_rows=112 gross_candidate_g_rows=906528 path_g_rows=3385984 shared_root_g_rows=208656 remaining_sharing_implemented=false
+BLAKE3_PATH_PLAN_REUSE openings=1890 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1803278336 compact_bytes=239921152 removed_bytes=1563357184
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28530 fma=88069 arithmetic_rows=244817
+CANONICAL_TREE_PHASE phase=root_preparation ns=8095209709
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=255.31791668618098
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=5.031416658312082
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=2.9982500127516687
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=2 gpu_ms=4.01187501847744
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.52954166312702
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.038861,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":1.633536,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":2.2293,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":1.442512,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":1.995185,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":4.857832,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000001,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000003,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":1.316195,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.015131,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.077347,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000074,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.754375,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000038,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":2.518762,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.020643,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.003783,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.009504,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000078,"children":null}]}]}
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=2 ns=13634130958
+BLAKE3_TREE_NODE verified=true height=2 artifact_bytes=909371 queries=70 pow_bits=26
+CANONICAL_TREE_BUDGET peak_bytes=29832518649 limit_bytes=51539607552
+BLAKE3_TREE_PARAMETERS leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 canonical=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=5038525504
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       60.73 real        91.03 user        14.98 sys
+         42471555072  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            15848434  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   4  voluntary context switches
+               58236  involuntary context switches
+       1145629816502  instructions retired
+        457408649880  cycles elapsed
+         44783936448  peak memory footprint

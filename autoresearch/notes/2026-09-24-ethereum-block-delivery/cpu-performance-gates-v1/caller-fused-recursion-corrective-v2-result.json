@@ -1,0 +1,20 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 29.171393917000387,
+  "source_candidate": "caller-fused-recursion-corrective-v2-source.json",
+  "changed_source_pins": [],
+  "qualified": true,
+  "tests_run": true,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-fused-recursion-corrective-v2.log",
+  "test_summary": [
+    "All 4 tests passed."
+  ],
+  "binary": {
+    "path": "/tmp/block-v5-caller-fused-recursion-corrective-v2",
+    "bytes": 1679680,
+    "sha256": "265d1d32314feaaeaeb71b58c43f54f671f846aaaf52e14dec1d1b2181596fd2"
+  }
+}

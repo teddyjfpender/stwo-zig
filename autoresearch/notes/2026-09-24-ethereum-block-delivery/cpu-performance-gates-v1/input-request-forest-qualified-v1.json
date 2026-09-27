@@ -1,0 +1,183 @@
+{
+  "status": "qualified_nonproving_actual_bodies_and_focused_contracts",
+  "evidence": {
+    "input-request-forest-semantic-v1": {
+      "source_candidate": "input-request-forest-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 3.7086224170052446,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "input-request-forest-semantic-v2": {
+      "source_candidate": "input-request-forest-semantic-v2-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 3.6277882080175914,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "input-request-forest-semantic-v3": {
+      "source_candidate": "input-request-forest-semantic-v3-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 3.9136103749624453,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-semantic-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "input-request-forest-focused-v1": {
+      "source_candidate": "input-request-forest-focused-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 19.410727375012357,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 18,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-input-request-forest-focused-v1",
+        "bytes": 35295528,
+        "sha256": "c99a6433017c5505eca0849b958f17d7bcaaa373e8026d0a54c0694c475a6c9b"
+      }
+    },
+    "input-request-forest-focused-v2": {
+      "source_candidate": "input-request-forest-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 18.3187509579584,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 18,
+      "test_summary": [
+        "All 18 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-input-request-forest-focused-v2",
+        "bytes": 35295800,
+        "sha256": "ea014317ef5b11ee2dea7bbb069ca9ead4819777510db69f86dd9127b1bee2b9"
+      }
+    },
+    "input-request-forest-cohesive-focused-v1": {
+      "source_candidate": "input-request-forest-cohesive-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 20.20456037495751,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 44,
+      "test_summary": [
+        "All 44 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-cohesive-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-input-request-forest-cohesive-focused-v1",
+        "bytes": 38509200,
+        "sha256": "e2c9d5bb85ac89a127c191c5dc508adc4075939cf4dcee8fbca3acbcdbe6394a"
+      }
+    },
+    "stable-global-public-graph-focused-v1": {
+      "source_candidate": "stable-global-public-graph-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.3680528749828227,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 12,
+      "test_summary": [
+        "All 12 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/stable-global-public-graph-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-stable-global-public-graph-focused-v1",
+        "bytes": 2189872,
+        "sha256": "5d42301bdced5dcedffced9f59d21404ca55ebaf62a34e839940ff331cf6e1ca"
+      }
+    },
+    "input-request-forest-minimum-plan-focused-v1": {
+      "source_candidate": "input-request-forest-minimum-plan-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 18.309895332960878,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 19,
+      "test_summary": [
+        "All 19 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-minimum-plan-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-input-request-forest-minimum-plan-focused-v1",
+        "bytes": 35297080,
+        "sha256": "3083cb88f01deba182bdf7e1239aaf4860b3e0c655e05859de8ae6722a3728f4"
+      }
+    }
+  },
+  "scope": [
+    "Real bounded Run/Stage/Fresh receiver and same-parent request/coverage graph bodies compile and are retained, never proof-invoked",
+    "Original WM/v2 leaves, exact original window ranges/counts/leaves, full-u64 adjacency and one actual tail carrier at final root",
+    "Exact canonical/extended original packed PcsConfig transcript prefix framing; added missing mixFelts method and test",
+    "Actual allocation-failure crash exposed moved stack ArenaAllocator retained by Circuit.allocator; stable_graph_arena_v1 shared by forest, ancestor, Wide/v2 and original global public export graph eliminates dangling allocator control",
+    "18 baseline,44 cohesive original forest/window/tail/provider,12 global export and19 minimum-plan focused checks pass with unchanged literal source pins per successful gate",
+    "Short remainder references carry to next level; exact minimum merge count ceil((leaves-1)/3) plus one carrier proved for16 sizes1..257, exactonce leaf/node custody and no unary merges",
+    "17-leaf/65-window routing fixture changes9->7 total proof nodes; count improvement only, actual proof time unmeasured",
+    "All failed semantic and allocator-crash attempts preserved; changed root-owned graph arena implementation does not alter original equation/graph/transcript math",
+    "Original source-only v1 manifest topology checkpoint predates minimum-plan optimization; immutable actual qualification source snapshots are authoritative"
+  ],
+  "not_qualified": [
+    "Positive actual WM/v2, interior/carrier and complete forest proof verification",
+    "Canonical Driver caller hookup and independently reconstructed upper-parent root source",
+    "Subtree-independent public-wire grammar: current open child_term schedules inherit descendant terms; bounded fan-in alone does not bound this inherited work",
+    "Self-contained final root authority and all source/global/scoped compensation",
+    "Complete block proving, end-to-end time and peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_claim": null
+}

@@ -1,0 +1,7 @@
+1/6 block_v5_ram_lanes_unit_test_root.test_0...OK
+2/6 prover.block_v5_ram_lanes_unit_test.test.block-v5 ram lanes preserves word-v4 row equations fractions counters public partitions and padding...OK
+3/6 prover.block_v5_ram_lanes_unit_test.test.block-v5 ram lanes rejects value clock order lane permutation register and census mutations...OK
+4/6 prover.block_v5_ram_lanes_unit_test.test.block-v5 ram lanes every direct and combined two-request plane has explicit degree at most four...OK
+5/6 prover.block_v5_ram_lanes_unit_test.test.block-v5 ram lanes bounded component masks scalar packed parity and concrete API codegen...OK
+6/6 prover.block_v5_ram_lanes_unit_test.test.block-v5 ram lanes streams beyond inverse batch boundary preserves odd tail and rejects prefix ordinal tampering...OK
+All 6 tests passed.

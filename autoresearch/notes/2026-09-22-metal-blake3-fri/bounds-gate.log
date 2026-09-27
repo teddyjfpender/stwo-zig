@@ -1,0 +1,26 @@
+test-blake3-fri-tree
++- run test stderr
+METAL_FRI_TREE family=blake3 prefix=0 packing=0 reuse=0 gpu_ms=0.1626250013941899
+METAL_FRI_TREE family=blake3 prefix=0 packing=0 reuse=1 gpu_ms=0.17475000640843064
+METAL_FRI_TREE family=blake3 prefix=0 packing=1 reuse=0 gpu_ms=0.159624993102625
+METAL_FRI_TREE family=blake3 prefix=0 packing=1 reuse=1 gpu_ms=0.15983333287294954
+METAL_FRI_TREE family=blake3 prefix=0 packing=2 reuse=0 gpu_ms=0.15529166557826102
+METAL_FRI_TREE family=blake3 prefix=0 packing=2 reuse=1 gpu_ms=0.13074999151285738
+METAL_FRI_TREE family=blake2s prefix=64 packing=0 reuse=0 gpu_ms=0.26074999186675996
+METAL_FRI_TREE family=blake2s prefix=64 packing=0 reuse=1 gpu_ms=0.20862500241491944
+METAL_FRI_TREE family=blake2s prefix=64 packing=1 reuse=0 gpu_ms=0.23445833357982337
+METAL_FRI_TREE family=blake2s prefix=64 packing=1 reuse=1 gpu_ms=0.2145000034943223
+METAL_FRI_TREE family=blake2s prefix=64 packing=2 reuse=0 gpu_ms=0.20458332437556237
+METAL_FRI_TREE family=blake2s prefix=64 packing=2 reuse=1 gpu_ms=0.18795832875184715
+METAL_FRI_TREE family=blake2s prefix=0 packing=0 reuse=0 gpu_ms=0.22033334244042635
+METAL_FRI_TREE family=blake2s prefix=0 packing=0 reuse=1 gpu_ms=0.19799999427050352
+METAL_FRI_TREE family=blake2s prefix=0 packing=1 reuse=0 gpu_ms=0.1729166688164696
+METAL_FRI_TREE family=blake2s prefix=0 packing=1 reuse=1 gpu_ms=0.8359166677109897
+METAL_FRI_TREE family=blake2s prefix=0 packing=2 reuse=0 gpu_ms=0.16591667372267693
+METAL_FRI_TREE family=blake2s prefix=0 packing=2 reuse=1 gpu_ms=0.15949999215081334
+
+Build Summary: 3/3 steps succeeded; 24/24 tests passed
+test-blake3-fri-tree success
++- run test 24 passed 723ms MaxRSS:55M
+   +- compile test ReleaseSafe native success 7s MaxRSS:492M
+

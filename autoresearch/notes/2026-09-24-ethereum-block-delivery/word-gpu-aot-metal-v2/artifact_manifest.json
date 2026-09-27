@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "target": "metal",
+  "source_manifest_sha256": "7be076506c5917497ed9cb5fe115ff8ee003eb36dc7759108da7ec03a673f90b",
+  "exporter_sha256": "b9254b97a9ace3dbdda4b6ae80e7eaabc1ef51c32bfc2ecc281efcfc13f0a0f1",
+  "zig_version": "0.15.2",
+  "device_compiled": true,
+  "device_executed": false,
+  "stark_proved": false,
+  "performance_measured": false,
+  "zig_bridge_compiled": true,
+  "objective_c_runtime_syntax_checked": true,
+  "build_sources": {
+    "src/block_v5_word_gpu_aot_export.zig": "c7a72ba251a2bcfd3ef4f9b3e341712636e0c2bb0eb8ceaaa33dea7302858bca",
+    "src/block_v5_word_gpu_runtime_codegen.zig": "4d4b4f6f149683b5b2c0c921742370a0e24c9e1eb809e9638aa7264a8efc35b0",
+    "scripts/riscv_word_gpu_aot.py": "ebad0c6543aee972209204fa1ba53ecf93f1bee37edbbd6828f16a1201ce4337",
+    "src/backends/metal/runtime/secure_polynomial_v1.zig": "5b1ae605f7f3865666b95449d604e6c51f2546386afd0bee7fc53b48e7c6e73f",
+    "src/backends/metal/runtime/secure_polynomial_catalog_v1.m": "0a05bdb49a6e982c5e19191ac1604eed333ed5c35a5fcd9cde907b270c41c269",
+    "src/backends/metal/runtime/secure_equations_v1.m": "698276a2d60b4df9cde454bcf810fa5f778dd2d24e832b40b5ed500165e819c4",
+    "src/backends/metal/runtime/secure_interaction_v1.m": "ae846c6b130526dbdbb2a8930e6643d8d5903bdaf4cd69edd41153462239a1f0",
+    "src/frontends/riscv/prover/block_v5_word_gpu_witness_v1.zig": "a3875391daef00fced29e6668a50b18bcadf81f454831f41e50f8ad2737ce3e7"
+  },
+  "bridge_object_sha256": "bcdeb8c19fdf0fd4cee46e05ac8d50e320ed6a9205e4392c36b23c2990e8142d",
+  "metal_compiler": "/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/bin/metal",
+  "metal_version": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/metal/current/bin",
+  "binary_file": "kernels.metallib",
+  "binary_sha256": "4b8aea82750c4e4fe3f9feed46d436e80d74ca327cfa0130d36e1afffa4344af"
+}

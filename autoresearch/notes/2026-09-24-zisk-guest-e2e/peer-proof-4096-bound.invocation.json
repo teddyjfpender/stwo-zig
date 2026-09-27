@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-large-guest-benchmark",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-guest-e2e/guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/sha256-chain-peer-guest",
+    "4096",
+    "/tmp/stwo-zisk-guest-e2e-20260924/provingKey",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-guest-e2e/peer-4096-bound.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-guest-e2e/peer-4096-bound.json"
+  ],
+  "binary_sha256": "efa687a5a5c910492ce25a4612ff52b9e941d16bb49e98eb52c9995c562a2b43",
+  "elf_sha256": "d4ef1f67b51b4d21bdc51e05b46fb46523006079412bd86dacaf4e3c97091b53",
+  "requested_rayon_threads": 16,
+  "requested_omp_threads": 16,
+  "timeout_seconds": 600,
+  "power_before": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t64%; discharging; 7:25 remaining present: true\n",
+  "exit_code": 0,
+  "wall_seconds": 268.18606341598206,
+  "power_after": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t56%; discharging; 5:55 remaining present: true\n",
+  "independent_public_output_check": true,
+  "profiled": false
+}

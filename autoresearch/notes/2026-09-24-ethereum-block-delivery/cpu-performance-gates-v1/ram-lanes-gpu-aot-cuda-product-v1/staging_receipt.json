@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "scope": "Actual six-program typed source export and existing production source admission; no NVCC, cubin, link, device execution or STARK",
+  "source_manifest_sha256": "bfedbd714b634e721ad1f31a1e6af463fbe6eb04c4617114862e15acd5e5a113",
+  "field_sha256": "8634cb0aa351e3fa7ef7a6d975f082e98ce5c2931bd1239d129947e9b8e86563",
+  "entry_count": 13,
+  "passed": true,
+  "device_compiled": false,
+  "device_executed": false,
+  "performance_measured": false,
+  "validator_source_sha256": {
+    "scripts/cuda_build_lib/secure_identity.py": "38ceeb5ebb103e38da091f154bbc4d0c61c66335443dd22fc30b1aa0229c0a42",
+    "scripts/cuda_build_lib/secure_product.py": "d6300e55b07cce3cf8dfd2e9266d85a774c6dae0d6c62f9f1216ffb70f7a39c1",
+    "scripts/cuda_build_lib/product_selection.py": "db68538d253b26fefd1f60d9911a5b1f0ae1da8bf069681270ddf9dd4bc74e64",
+    "scripts/tests/test_cuda_secure_product.py": "d68db48e6dee19cd3ce5ea7ea63797768674088399302df9afc849540392f133"
+  }
+}

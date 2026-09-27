@@ -1,0 +1,10 @@
+0000000100000780 T _stwo_recursive_provider_transport_body_gate
+0000000100000a90 t _prover.block_v5_range16_recursive_stage_v1.ForBackend(mod.CpuBackend).publish
+0000000100004248 t _prover.block_v5_ram_lanes_recursive_stage_v1.ForBackend(mod.CpuBackend).publish
+00000001002ce6b8 t _prover.block_v5_ram_lanes_recursive_stage_v1.ForBackend(mod.CpuBackend).publishFromVerifiedCapture
+0000000100005d34 t _prover.block_v5_program_table_recursive_stage_v1.ForBackend(mod.CpuBackend).publish
+000000010000a9e8 t _prover.block_v5_native_lookup_recursive_stage_v1.ForBackend(mod.CpuBackend).publish
+000000010000e5a4 t _prover.block_v5_recursive_provider_store_v1.ForFamily(.native_lookup).Store.takeFresh
+000000010000a1b8 t _prover.block_v5_recursive_provider_store_v1.ForFamily(.program_table).Store.takeFresh
+0000000100005550 t _prover.block_v5_recursive_provider_store_v1.ForFamily(.ram_lanes).Store.takeFresh
+0000000100003dfc t _prover.block_v5_recursive_provider_store_v1.ForFamily(.range16).Store.takeFresh

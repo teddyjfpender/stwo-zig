@@ -1,0 +1,10 @@
+{
+  "control": {
+    "path": "autoresearch/notes/2026-09-24-shared-leaf-emission/control-tree-test",
+    "sha256": "cb2b155e86236745057b6838c0c45139cc097fbb6c65e8790ec5f6bd8037faf8"
+  },
+  "candidate": {
+    "path": "autoresearch/notes/2026-09-24-shared-leaf-emission/candidate-tree-test",
+    "sha256": "44c348f0bd4c1eb435abcc9ae78c876826cf199f2914fec3a15e320eb6f5a587"
+  }
+}

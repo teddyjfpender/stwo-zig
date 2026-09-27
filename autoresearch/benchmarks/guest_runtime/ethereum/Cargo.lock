@@ -2988,6 +2988,7 @@ dependencies = [
  "alloy-primitives",
  "critical-section",
  "k256",
+ "revm-precompile",
  "stateless-validator-reth",
 ]
 

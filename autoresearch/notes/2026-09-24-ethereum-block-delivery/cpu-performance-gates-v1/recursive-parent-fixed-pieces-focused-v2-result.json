@@ -1,0 +1,22 @@
+{
+  "source_candidate": "recursive-parent-fixed-pieces-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 18.970876042032614,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 11,
+  "test_summary": [
+    "All 11 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-parent-fixed-pieces-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-recursive-parent-fixed-pieces-focused-v2",
+    "bytes": 35759216,
+    "sha256": "a50851d4388d93bb7feac0ec738e285d2f80d0e8cb51f39a65e3b94430db1ad9"
+  }
+}

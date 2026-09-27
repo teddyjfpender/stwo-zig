@@ -1,0 +1,12 @@
+src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig:91:20: error: evaluation exceeded 1000 backwards branches
+            inline for (0..W) |i| {
+            ~~~~~~~^~~
+src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig:91:20: note: use @setEvalBranchQuota() to raise the branch limit from 1000
+referenced by:
+    evaluateConstraintQuotientsAtPoint: src/frontends/riscv/prover/block_v5_memory_source_binding_component_v1.zig:122:58
+    evaluateConstraintQuotientsAtPoint: src/core/air/derive.zig:108:64
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig:113:20: error: evaluation exceeded 1000 backwards branches
+            inline for (0..W) |i| {
+            ~~~~~~~^~~
+src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig:113:20: note: use @setEvalBranchQuota() to raise the branch limit from 1000

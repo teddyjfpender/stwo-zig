@@ -1,0 +1,22 @@
+{
+  "source_candidate": "requester-summary-debug-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 25.322148874984123,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 14,
+  "test_summary": [
+    "All 14 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-summary-debug-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-requester-summary-debug-v1",
+    "bytes": 45154256,
+    "sha256": "2bbc6758db88bf90ed116b2a78a5b89fcbf35c15c0bb201c5784927f567b5ecf"
+  }
+}

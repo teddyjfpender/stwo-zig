@@ -1,0 +1,4 @@
+   Compiling compiler_builtins v0.1.160 (/Users/theodorepender/.rustup/toolchains/nightly-2026-08-08-aarch64-apple-darwin/lib/rustlib/src/rust/library/compiler-builtins/compiler-builtins)
+   Compiling core v0.0.0 (/Users/theodorepender/.rustup/toolchains/nightly-2026-08-08-aarch64-apple-darwin/lib/rustlib/src/rust/library/core)
+   Compiling stwo-sha256-precompile-guest-tests v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/benchmarks/guest_runtime/sha256_precompile_tests)
+    Finished `release` profile [optimized] target(s) in 4.40s

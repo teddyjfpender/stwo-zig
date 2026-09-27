@@ -1,0 +1,25 @@
+{
+  "proof_verified": false,
+  "scope": "commitment trace geometry only; prover and recursive memory remain unqualified",
+  "segments": 512,
+  "target": 202,
+  "maximum_cycles": 524288,
+  "cycles": 271904,
+  "global_first_cycle": 54924617,
+  "keccak_calls": 32,
+  "recovery_calls": 1,
+  "sha_calls": 0,
+  "commitment_rows": [
+    2325344,
+    664384,
+    780066,
+    414990,
+    18336,
+    10784,
+    10784,
+    818809
+  ],
+  "commitment_trace_fits": true,
+  "sizing_peak_bytes": 432624217,
+  "sizing_ns": 38607857167
+}

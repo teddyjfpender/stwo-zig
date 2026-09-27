@@ -1,0 +1,57 @@
+1/41 block_v5_global_readonly_collection_test_root_v2.test_0...OK
+2/41 block_v5_global_readonly_collection_test_root_v2.test.global readonly collection: real CPU driver CLI and callbacks retained...OK
+3/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: one vector exact greedy groups and every allocation unwind...OK
+4/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: multi-billion census remains integer exact and each group field safe...OK
+5/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: changed counters duplicate sparse caller and sink failure reject without release...expected error.InvalidReadonlyCounterSourceOrder, found error.ReadonlyCounterCollectionClosed
+FAIL (TestUnexpectedError)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_readonly_input_counter_collection_v2.zig:88:86: 0x100ee8be3 in requireAppend (root)
+        if (self.poisoned or self.finished or self.source_count == self.sources.len) return error.ReadonlyCounterCollectionClosed;
+                                                                                     ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_readonly_input_counter_collection_v2.zig:137:9: 0x1057e1eeb in appendCaller__anon_651537 (root)
+        try self.requireAppend(.caller, index, census);
+        ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:64:13: 0x1057e2637 in expectError__anon_651547 (root)
+            return error.TestUnexpectedError;
+            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_readonly_input_global_collection_test_v2.zig:97:5: 0x1057e2d97 in test.global readonly collection: changed counters duplicate sparse caller and sink failure reject without release (root)
+    try std.testing.expectError(error.InvalidReadonlyCounterSourceOrder, owned.appendCaller(0, physical, &slots));
+    ^
+6/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: impossible metadata limits reject before allocation...OK
+7/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: streamed fragment transport scope hash non-overwrite and bounded reader...OK
+8/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: zero census stages exact absence and file cap leaves no artifact...OK
+9/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: exact roster pins source provider range geometry census and mass groups...OK
+10/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: actual late Plan epoch immutable ownership and every allocation failure...OK
+11/41 prover.block_v5_readonly_input_global_collection_test_v2.test.global readonly collection: real collection owner staged sink lifetime and allocation rollback...OK
+12/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: owned source late binding and every allocation rollback...OK
+13/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: independent input selection source and census mutations...OK
+14/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: original spool retains mutable input and complete global clocks...OK
+15/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: selected mutation poisons candidate but original mutable default accepts...OK
+16/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: source equation rejects count sign and overflow mutations...OK
+17/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: transport counter census rejected before denied allocation...OK
+18/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: roster exact sparse census absence and ordered roots...OK
+19/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: seal binds classifier roots before word challenges and keeps writable bytes...OK
+20/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: genuine policy roster reconstruction every allocation rollback...OK
+21/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: detached policy cannot change classifier roots census plan or epoch...OK
+22/41 prover.block_v5_readonly_input_collection_bodies_test_v1.test.readonly collection: actual canonical collection staged replay fresh closure and transport bodies retained...OK
+23/41 prover.block_v5_readonly_input_provider_test_v2.test.readonly global provider: fragmented integer carry scalar SIMD and original provider oracle...OK
+24/41 prover.block_v5_readonly_input_provider_test_v2.test.readonly global provider: padding exact range supply and group separation...OK
+25/41 prover.block_v5_readonly_input_provider_test_v2.test.readonly global provider: coherent prefix count padding and public census mutations fail...OK
+26/41 prover.block_v5_readonly_input_provider_test_v2.test.readonly global provider: complete column interaction and range allocation failures...OK
+27/41 prover.block_v5_readonly_input_provider_test_v2.test.readonly global provider: invalid order zero fragments group mass and budget reject...OK
+28/41 prover.block_v5_readonly_input_provider_test_v2.test.readonly global provider: original unsigned equations symbolic parity mutation and every graph allocation fault...OK
+29/41 prover.block_v5_readonly_input_provider_test_v2.test.readonly global provider: streaming large multiplicities exact exhaustion census...OK
+30/41 prover.block_v5_readonly_input_provider_bodies_test_v2.test.readonly global provider: actual native provider range capture and fresh bodies retained...OK
+31/41 runner.mod.test_0...OK
+32/41 runner.decode.test_0...OK
+33/41 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+34/41 air.lookups.tables.mod.test_0...OK
+35/41 air.memory_commitment.poseidon2_air.test_0...OK
+36/41 air.semantic_eval.test_0...OK
+37/41 prover.block_execution_external_trace_v2.test_0...OK
+38/41 prover.block_execution_external_access_bridge_v2.test_0...OK
+39/41 prover.block_v5_committed_trace_column_v1.test_0...OK
+40/41 air.lookups.tables.source_ingest.test_0...OK
+41/41 diagnostics.mod.test_0...OK
+40 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-global-readonly-collection-focused-v3 --seed=0x53f29543

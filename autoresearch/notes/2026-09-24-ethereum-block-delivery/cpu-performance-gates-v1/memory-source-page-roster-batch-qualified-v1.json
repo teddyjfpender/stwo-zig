@@ -1,0 +1,110 @@
+{
+  "status": "qualified_nonproving_actual_page_roster_batch",
+  "evidence": {
+    "memory-source-page-roster-batch-semantic-v1": {
+      "source_candidate": "memory-source-page-roster-batch-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.0641901249764487,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-roster-batch-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-roster-batch-focused-v1": {
+      "source_candidate": "memory-source-page-roster-batch-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 17.61123595800018,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 8,
+      "test_summary": [
+        "All 8 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-roster-batch-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-roster-batch-focused-v1",
+        "bytes": 22830240,
+        "sha256": "08ba0fd4f48aeb714191ef7bc75622b5668b82fbd14401ef0889e6c5d9b7ed1b"
+      }
+    },
+    "memory-source-page-roster-batch-selected-focused-v1": {
+      "source_candidate": "memory-source-page-roster-batch-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 17.326044916000683,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 8,
+      "test_summary": [
+        "All 8 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-roster-batch-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-roster-batch-selected-focused-v1",
+        "bytes": 22830288,
+        "sha256": "dfb79bcc91fd7514de3d472304ff4da1c8854ea975a0937b9d86c0defe30a099"
+      }
+    }
+  },
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_unified_page_proof_v1.zig",
+      "sha256": "1b451252f76ebe85f733e78cc2b4114134172a65bd11f126bf0f7c7e9286f78a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_join_owner_v1.zig",
+      "sha256": "e3f7dc77120192593181657664319dfae0bac255c25fcb006136db57947c7b36"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_join_test_v1.zig",
+      "sha256": "d532385ae15fbd6daf51145d406b2b1ae0b5d463d28a95c7e1274b91570d7b28"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-memory-source-page-join-v1.md",
+      "sha256": "f8eeed7a693c29f1baff9bbc3a61eb98255618110b9f4fef2c31a7ede4544456"
+    }
+  ],
+  "tests_passed_per_recipe": 8,
+  "source_snapshots": [
+    "memory-source-page-roster-batch-focused-v1-source.json",
+    "memory-source-page-roster-batch-selected-focused-v1-source.json"
+  ],
+  "literal_dependency_pins_per_recipe": 1722,
+  "work_count": {
+    "before_successful_join": "1 + raw_pages + fold_pages",
+    "after_successful_join": 5,
+    "scope": "full SOURCE/Word roster reconstruction only; code-path count, not timing"
+  },
+  "scope": [
+    "Consuming exact-roster batch with original epoch reconstruction at entry and exit",
+    "Private actual proof verification kernel; public single-page admission unchanged",
+    "Exact original pin/descriptor/fixed root/transcript/AIR/FRI verification remains per page",
+    "Actual join now uses batch verifier and provisional independently guarded accumulation",
+    "Batch zero-budget rejection cannot take any proof or accept any receipt"
+  ],
+  "not_qualified": [
+    "Genuine positive batch of freshly verified PAGE proofs",
+    "Full-policy timing and peak-memory comparison",
+    "Production source-page driver activation and final recursive source/global/public closure"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

@@ -1,0 +1,34 @@
+[ethereum-block-receiver-qualification] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-block-receiver-qualification] acquired after 188s
+[
+  {
+    "case": "valid-canonical-root",
+    "exit_code": 0,
+    "expected_success": true
+  },
+  {
+    "case": "wrong-key-before-proof-open",
+    "exit_code": 1,
+    "expected_success": false
+  },
+  {
+    "case": "malformed-key-before-proof-open",
+    "exit_code": 1,
+    "expected_success": false
+  },
+  {
+    "case": "changed-security",
+    "exit_code": 1,
+    "expected_success": false
+  },
+  {
+    "case": "truncated-proof",
+    "exit_code": 1,
+    "expected_success": false
+  },
+  {
+    "case": "corrupted-proof",
+    "exit_code": 1,
+    "expected_success": false
+  }
+]

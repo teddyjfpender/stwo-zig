@@ -1,0 +1,25 @@
+1/21 block_v5_recursive_leaf_store_test_root.test.leaf store root...OK
+2/21 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: exact sparse source roster and publication preserve original execution index...OK
+3/21 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: independent sparse pins reject duplication reorder overflow omissions and family limits...OK
+4/21 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: reader and writer admission allocations unwind without changing exact roster...OK
+5/21 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: split input fits exact payload budget detaches proof and unwinds every I/O allocation...OK
+6/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared owned templates survive borrowed schedule destruction and later insertion...OK
+7/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: every shared template allocation failure releases custody...OK
+8/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared template count and heap limits are enforced before retention...OK
+9/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared independent template and zero-copy proof framing retain structural claims only...OK
+10/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: encode decode metadata budgets and every allocation failure release owners...OK
+11/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: envelope cannot select family version index key schedule or trailing bytes...OK
+12/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: exact independent roster rejects omitted policies and malformed file pins...OK
+13/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: exclusive publication transfers ownership but literal proof never completes fresh reader...OK
+14/21 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: total-cap and tamper failures retain publisher ownership and fail reader closed...expected error.TamperedV5BundleFileHash, found error.InvalidRecursiveProviderEnvelope
+FAIL (TestUnexpectedError)
+15/21 block_v5_recursive_leaf_store_codegen.test.leaf store bodies: all seven typed publication and original fresh-loading routes retained only...OK
+16/21 prover.block_execution_external_trace_v2.test_0...OK
+17/21 prover.block_execution_external_access_bridge_v2.test_0...OK
+18/21 air.lookups.tables.mod.test_0...OK
+19/21 air.semantic_eval.test_0...OK
+20/21 air.memory_commitment.poseidon2_air.test_0...OK
+21/21 air.lookups.tables.source_ingest.test_0...OK
+20 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-recursive-leaf-store-split-focused-v1 --seed=0xf77c7237

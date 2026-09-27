@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-blake3-query-batch success
++- BLAKE3 query batch guard success
+   +- run test 1 passed 509ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 3s MaxRSS:443M
+test-blake3-query-proof success
++- BLAKE3 raw query proof guard success
+   +- run test 1 passed 3s MaxRSS:350M
+      +- compile test ReleaseSafe native success 21s MaxRSS:1G
+

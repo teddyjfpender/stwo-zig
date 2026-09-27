@@ -1,0 +1,11 @@
+{
+  "time_unix": 1790320004.008062,
+  "status": "boundary test and stream build passed; large canonical recursive proof pending",
+  "sha256": {
+    "src/frontends/riscv/prover/blake3_commitment_geometry.zig": "e33e25a74e01a81fe1cf4da3e58e3333a96e5df1f4bee537905cbf3609b69610",
+    "src/frontends/riscv/prover/blake3_commitment_columns.zig": "22d657f0e1cb2d013163c0277cc9c5d2425f2f89e8eff97a871486411f7c2105",
+    "src/frontends/riscv/prover/blake3_execution_key.zig": "08bb6849b2a6610b156903b18bfad6587836f4f3a3961c1132cfdd13960d9dc3",
+    "src/frontends/riscv/prover/blake3_execution_protocol.zig": "f73d2cf539b6217202ded332dca133b74cd52e688bf1b597c85550d934a49a98",
+    "src/frontends/riscv/prover/blake3_extension_bounds.zig": "10451ea2ee736c198f6af6ce624ebca4131e1f633c1ffe75134ff6c00b5dc7be"
+  }
+}

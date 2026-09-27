@@ -1,0 +1,58 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "status": "passed",
+  "tests_passed": 8,
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "test": "block-v5 cached production native leaf stage rebinds two real same-key worker instances",
+  "native_version": 3,
+  "ordinary_instances": 2,
+  "native_proofs_produced": 2,
+  "recursive_leaf_proof_bytes": [
+    128792,
+    126041
+  ],
+  "cache_entries_limit": 1,
+  "cache_cold_misses": 1,
+  "cache_setup_hits": 1,
+  "cache_aggregate_host_byte_limit": 12884901888,
+  "cache_worker_host_byte_limit": 8589934592,
+  "cache_retained_scratch_limit": 67108864,
+  "cache_owned_peak_bytes": 390119752,
+  "cache_peak_exclusions": [
+    "Borrowed native owners/captures and native/recursive source rows.",
+    "Caller pool, thread stacks, allocator overhead and independently allocated transport/output bytes.",
+    "Fresh receiver allocations after callback publication."
+  ],
+  "fixed_root_derivation_and_plan_initialization_skipped_on_hit": true,
+  "immutable_worker_and_fixed_commitment_reused": true,
+  "same_key_dynamic_admission_rebound": true,
+  "full_context_schedule_and_fixed_row_fingerprints_required": true,
+  "owned_cache_schedule_and_separate_owned_output_schedules": true,
+  "caller_scoped_pool_preserved": true,
+  "recursive_proving_uses_one_joined_lane": true,
+  "both_original_native_proofs_verified_after_callbacks": true,
+  "both_leaf_files_hash_reopened_and_fresh_verified_after_second_admission": true,
+  "allocator_teardown": "std.testing.allocator and nested cache/worker budgets clean",
+  "elapsed_ns": null,
+  "complete_block_authority": false,
+  "scope": "Two actual differing ADDI instances call the production native recursive leaf on_proof hook using one producer-lifetime cache. The second changes B5SS seal, ordinal, main root and full public/open tuple while retaining the same recursive key/worker/fixed setup. The corrected worker always rebinds admission, including same-key requests. The cache hit skips root derivation and Plan initialization after exact context/config/routing/fixed fingerprint checks. Both original natives remain usable. Both owned leaf files are freshly verified after the second callback, under independently reconstructed native policies. No separate serial comparative proof cycle is run. Other provider entries are placeholders and global relations remain open.",
+  "limitations": [
+    "No complete block, canonical q70 or mainnet qualification.",
+    "Actual active-count geometry still belongs to distinct native templates; this exact-geometry cache does not make all 218 old catalog entries share one setup.",
+    "Cold setup still derives and initializes its fixed commitment separately.",
+    "Fixture invokes actual typed production callbacks directly; whole producer replay/program/memory orchestration remains separate.",
+    "Empty external-only native publication remains a separate frame qualification.",
+    "Scoped cached peak is not total process/receiver RSS; elapsed time not measured."
+  ],
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_native_recursive_stage_cache_test_root.zig 'block-v5 cached production native leaf stage rebinds two real same-key worker instances'",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig": "38d62427a2e37951e26e97cbdce60d7af839d8f5d2de5f5c06b84fcc8af13407",
+    "src/frontends/riscv/prover/block_v5_native_recursive_leaf_stage_v1.zig": "e59ecf127b4dd16c1671ba1af4547489123245d3e009eabf82fe1ecc67a4d32b",
+    "src/frontends/riscv/recursion/blake3_native_parent_worker.zig": "401b6ea643479d12e60ff9f5b40bdf3bcb2b995a13e4390b1143bd0341c4ccb7",
+    "src/frontends/riscv/prover/block_v5_native_recursive_stage_cache_test.zig": "583e489835796b0274317bf5fd64d34c76b3b98dfa4acc5d16a83d1f34d7832a"
+  }
+}

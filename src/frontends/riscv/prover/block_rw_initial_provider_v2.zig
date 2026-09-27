@@ -1,0 +1,46 @@
+//! Canonical block-v2 RW initial provider API.
+//! Typed AIR, bounded chunk planning, and fixed/interaction traces live in
+//! separate files to keep each proof boundary auditable.
+const air = @import("block_rw_initial_air_v2.zig");
+const plan = @import("block_rw_initial_plan_v2.zig");
+const trace = @import("block_rw_initial_trace_v2.zig");
+pub const Layout = air.Layout;
+pub const Row = air.Row;
+pub const PHYSICAL_MAIN_COLUMN_COUNT = air.PHYSICAL_MAIN_COLUMN_COUNT;
+pub const PREPROCESSED_COLUMN_COUNT = air.PREPROCESSED_COLUMN_COUNT;
+pub const LOGICAL_INPUT_COUNT = air.LOGICAL_INPUT_COUNT;
+pub const DIRECT_CONSTRAINT_COUNT = air.DIRECT_CONSTRAINT_COUNT;
+pub const RELATION_EVENT_COUNT = air.RELATION_EVENT_COUNT;
+pub const LOOKUP_BATCH_SIZE = air.LOOKUP_BATCH_SIZE;
+pub const INTERACTION_BATCH_COUNT = air.INTERACTION_BATCH_COUNT;
+pub const INTERACTION_COLUMN_COUNT = air.INTERACTION_COLUMN_COUNT;
+pub const MAXIMUM_CONSTRAINT_DEGREE = air.MAXIMUM_CONSTRAINT_DEGREE;
+pub const MAX_FIRST_TOUCH_KEYS_PER_CHUNK = air.MAX_FIRST_TOUCH_KEYS_PER_CHUNK;
+pub const SEMANTIC_DIGEST = air.SEMANTIC_DIGEST;
+pub const TRANSCRIPT_TAG = air.TRANSCRIPT_TAG;
+pub const Definition = air.Definition;
+pub const Claim = air.Claim;
+pub const Interaction = air.Interaction;
+pub const Point = air.Point;
+pub const build = air.build;
+pub const interactionConstraints = air.interactionConstraints;
+pub const tupleFromRow = air.tupleFromRow;
+pub const fixedRow = air.fixedRow;
+pub const Plan = plan.Plan;
+pub const Census = plan.Census;
+pub const censusAddresses = plan.censusAddresses;
+pub const censusCompleteSparseAddresses = plan.censusCompleteSparseAddresses;
+pub const censusZeroQueryAddresses = plan.censusZeroQueryAddresses;
+pub const sparse_shards = @import("block_rw_initial_sparse_shards_v2.zig");
+pub const Trace = trace.Trace;
+pub const FixedTrace = trace.FixedTrace;
+pub const digestRoster = trace.digestRoster;
+pub const digestCompleteSparseRoster = trace.digestCompleteSparseRoster;
+pub const digestZeroQueryRoster = trace.digestZeroQueryRoster;
+pub const digestSparseShardRoster = trace.digestSparseShardRoster;
+pub const digestRosterSet = trace.digestRosterSet;
+pub const trustedFixedTrace = trace.trustedFixedTrace;
+pub const trustedCompleteSparseFixedTrace = trace.trustedCompleteSparseFixedTrace;
+pub const trustedZeroQueryFixedTrace = trace.trustedZeroQueryFixedTrace;
+pub const trustedSparseShardFixedTrace = trace.trustedSparseShardFixedTrace;
+pub const readSecure = trace.readSecure;

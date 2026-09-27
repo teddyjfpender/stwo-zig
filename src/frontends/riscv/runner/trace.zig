@@ -353,7 +353,8 @@ pub const Trace = struct {
 /// Maximum committed opcode width, derived from the same typed authorities
 /// that own composition geometry.  Keeping this as a compile-time constant
 /// preserves fixed stack storage in every hot trace/prover consumer.
-pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS;
+/// Capacity includes canonical local-zero hints; legacy family widths are unchanged.
+pub const MAX_FAMILY_COLUMNS: usize = composition_manifest.MAX_MAIN_COLUMNS + 6;
 
 pub const TraceColumns = struct {
     columns: [MAX_FAMILY_COLUMNS][]M31,

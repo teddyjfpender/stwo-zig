@@ -1,3 +1,4 @@
+pub const coset_partition = @import("coset_partition.zig");
 pub const CanonicCoset = @import("stwo_core").poly.circle.canonic.CanonicCoset;
 pub const CircleDomain = @import("stwo_core").poly.circle.domain.CircleDomain;
 pub const evaluation = @import("evaluation.zig");

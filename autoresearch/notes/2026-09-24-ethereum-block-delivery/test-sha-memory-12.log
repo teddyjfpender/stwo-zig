@@ -1,0 +1,19 @@
+1/17 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller binds disjoint pointers and exact bounded access clocks...SHA_MEMORY_CALLER constraints=63 events=189 digest=e6a6504bd77f318065725524cd55e3378c71bced21c6bf1fc3c4260d8a067ed9
+OK
+2/17 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller closes the complete compression graph and exact memory tuples...OK
+3/17 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller uses the full address range and rejects malformed closed access groups...OK
+4/17 isa.sha256_compression_v1.test.SHA compression encoding preserves both registers and rejects reserved bits...OK
+5/17 runner.guest_precompile.sha256_compression_v1_test.test.SHA transaction commits exact memory and is atomic at every allocation failure...OK
+6/17 air.lang.access_schedule_memory_test.test.fixed memory plans preserve exact streams and prepared physical order...OK
+7/17 air.lang.access_schedule_memory_test.test.aligned address and load/store clocks replay at uint20 boundaries...OK
+8/17 air.lang.access_schedule_memory_test.test.whole-program validation rejects malformed memory plans...OK
+9/17 air.lang.access_schedule_memory_test.test.memory identity v4 is stable under exact node reuse history...OK
+10/17 air.lang.access_schedule_memory_test.test.fixed memory plan rollback is exact under every allocation failure...OK
+11/17 air.lang.access_schedule_memory_test.test.prepared memory plan validation allocates zero bytes...OK
+12/17 air.lang.effects_test.test.typed effect constructors reject semantic type errors before mutation...OK
+13/17 air.lang.effects_test.test.whole-program validation rejects forged relation bindings and liveness...OK
+14/17 air.lang.effects_test.test.state retirement pairing rejects reversal splitting and activation drift...OK
+15/17 air.lang.effects_test.test.typed effects use explicit manifest v4 and semantic digest v2 identities...OK
+16/17 air.lang.effects_test.test.typed effect construction releases every partial allocation...OK
+17/17 runner.decode.test_0...OK
+All 17 tests passed.

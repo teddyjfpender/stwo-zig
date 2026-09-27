@@ -1,0 +1,22 @@
+{
+  "source_candidate": "recursive-frame-scaling-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.5771464999997988,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 5,
+  "test_summary": [
+    "All 5 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-frame-scaling-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-recursive-frame-scaling-focused-v2",
+    "bytes": 1661288,
+    "sha256": "999baee06ea4f34dd7ac4e159932c157776b79d49c1de786996ff9e0355da27e"
+  }
+}

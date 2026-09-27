@@ -1,0 +1,394 @@
+diff --git a/src/frontends/riscv/recursion/air/composition_circuit_reference.zig b/src/frontends/riscv/recursion/air/composition_circuit_reference.zig
+index ce64fa106..faf232ce2 100644
+--- a/src/frontends/riscv/recursion/air/composition_circuit_reference.zig
++++ b/src/frontends/riscv/recursion/air/composition_circuit_reference.zig
+@@ -658,7 +658,7 @@ pub fn hashRecursionSource(hash: anytype, source_value: RecursionSource) void {
+     hashInt(hash, u32, indices[1]);
+ }
+ 
+-pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
++pub inline fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
+     var encoded: [@sizeOf(T)]u8 = undefined;
+     std.mem.writeInt(T, &encoded, @intCast(value), .little);
+     hash.update(&encoded);
+diff --git a/src/frontends/riscv/recursion/air/framework_device_interaction.zig b/src/frontends/riscv/recursion/air/framework_device_interaction.zig
+index 627d43eca..7c488da66 100644
+--- a/src/frontends/riscv/recursion/air/framework_device_interaction.zig
++++ b/src/frontends/riscv/recursion/air/framework_device_interaction.zig
+@@ -11,9 +11,20 @@ const framework = @import("framework_interaction.zig");
+ /// Destination is already zeroed so absent logical rows retain AIR padding.
+ pub fn writeColumns(comptime Air: type, rows: []const [Air.LOGICAL_INPUT_COUNT]M31, log: u32, tree: usize, destination: []const []M31) void {
+     const start = if (tree == 0) Air.PHYSICAL_MAIN_COLUMN_COUNT else 0;
+-    for (rows, 0..) |row, logical| {
+-        const physical = framework.committedRow(logical, log);
+-        for (destination, 0..) |column, index| column[physical] = row[start + index];
++    const size = @as(usize, 1) << @intCast(log);
++    const tile_size = 32;
++    var first: usize = 0;
++    while (first < size) : (first += tile_size) {
++        const count = @min(tile_size, size - first);
++        var logical_rows: [tile_size]usize = undefined;
++        for (logical_rows[0..count], 0..) |*logical, offset| {
++            logical.* = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(first + offset, log), log);
++        }
++        for (destination, 0..) |column, index| {
++            for (logical_rows[0..count], column[first..][0..count]) |logical, *cell| {
++                if (logical < rows.len) cell.* = rows[logical][start + index];
++            }
++        }
+     }
+ }
+ 
+@@ -54,3 +65,33 @@ pub fn generateInto(
+         else => err,
+     };
+ }
++
++pub fn testColumnProjection() !void {
++    const Air = struct {
++        pub const LOGICAL_INPUT_COUNT = 11;
++        pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 4;
++    };
++    for ([_]u32{ 1, 4, 5, 6, 9 }) |log| {
++        const size = @as(usize, 1) << @intCast(log);
++        const rows = try std.testing.allocator.alloc([Air.LOGICAL_INPUT_COUNT]M31, size);
++        defer std.testing.allocator.free(rows);
++        for (rows, 0..) |*row, i| for (row, 0..) |*value, j| {
++            value.* = M31.fromU64(i * 19 + j + 1);
++        };
++        for ([_]usize{ 0, 1, size / 2, size - 1, size }) |length| {
++            for (0..2) |tree| {
++                var columns: [4][]M31 = undefined;
++                const data = try std.testing.allocator.alloc(M31, 4 * size);
++                defer std.testing.allocator.free(data);
++                @memset(data, M31.zero());
++                for (&columns, 0..) |*column, i| column.* = data[i * size ..][0..size];
++                writeColumns(Air, rows[0..length], log, tree, &columns);
++                const start = if (tree == 0) Air.PHYSICAL_MAIN_COLUMN_COUNT else 0;
++                for (0..size) |logical| for (columns, 0..) |column, i| {
++                    const expected = if (logical < length) rows[logical][start + i] else M31.zero();
++                    try std.testing.expectEqual(expected, column[framework.committedRow(logical, log)]);
++                };
++            }
++        }
++    }
++}
+diff --git a/src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_contract.zig b/src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_contract.zig
+index 0c3b7f68a..c16c6cabd 100644
+--- a/src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_contract.zig
++++ b/src/frontends/riscv/recursion/air/fri_merkle_leaf_witness_contract.zig
+@@ -562,7 +562,7 @@ pub fn hashSlot(hash: anytype, slot: anytype) void {
+     hashInt(hash, u8, @intFromEnum(slot.source));
+ }
+ 
+-pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
++pub inline fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
+     var bytes: [@sizeOf(T)]u8 = undefined;
+     std.mem.writeInt(T, &bytes, @intCast(value), .little);
+     hash.update(&bytes);
+diff --git a/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig b/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig
+index aa97ab9c2..eb783da96 100644
+--- a/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig
++++ b/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig
+@@ -175,6 +175,35 @@ pub const Executor = struct {
+         return preprocessing.generatePreprocessedInto(reference, columns, self);
+     }
+ 
++    /// Bulk admission is identical to the column writer; output is owned and
++    /// only the selected lane is materialized. No per-row authority rescans.
++    pub fn generateLogicalForLane(
++        self: *const Executor,
++        allocator: std.mem.Allocator,
++        preprocessing: *const Preprocessed,
++        reference: Reference,
++        evaluations: Evaluations,
++        kind: ProofKind,
++        verifier_id: u32,
++    ) Error![][component.LOGICAL_INPUT_COUNT]M31 {
++        _ = self;
++        if (verifier_id != 1 and verifier_id != 2) return error.InvalidWitness;
++        try preprocessing.validateAgainst(reference);
++        try validateEvaluationsHot(reference, evaluations, kind);
++        var count: usize = 0;
++        for (preprocessing.rows) |row| count += @intFromBool(row.verifier_id == verifier_id);
++        const result = try allocator.alloc([component.LOGICAL_INPUT_COUNT]M31, count);
++        errdefer allocator.free(result);
++        var cursor: usize = 0;
++        for (preprocessing.rows) |row| {
++            if (row.verifier_id != verifier_id) continue;
++            const value = evaluations.at(row.lane).values[row.node_id].tryIntoM31() catch return error.InputIsNotBaseField;
++            result[cursor] = logicalInputs(.{ M31.one(), value }, row.values(), kind);
++            cursor += 1;
++        }
++        return result;
++    }
++
+     pub fn generateMainInto(
+         self: *const Executor,
+         preprocessing: *const Preprocessed,
+@@ -751,7 +780,7 @@ fn hashSlot(hash: anytype, slot: anytype) void {
+     hashInt(hash, u8, @intFromEnum(slot.source));
+ }
+ 
+-fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
++inline fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
+     var bytes: [@sizeOf(T)]u8 = undefined;
+     std.mem.writeInt(T, &bytes, @intCast(value), .little);
+     hash.update(&bytes);
+diff --git a/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig b/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig
+index 48db8a59b..0dfdb70e3 100644
+--- a/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig
++++ b/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig
+@@ -59,6 +59,34 @@ pub const Executor = struct {
+         return preprocessing.generatePreprocessedInto(reference, columns, self);
+     }
+ 
++    /// Admit the complete schedule and witness once, then materialize only the
++    /// requested lane directly in logical-row order. Internally allocated output
++    /// cannot alias the borrowed authority or witness.
++    pub fn generateLogicalForLane(
++        self: *const Executor,
++        allocator: std.mem.Allocator,
++        preprocessing: *const Preprocessed,
++        reference: Reference,
++        input_witness: InputWitness,
++        proof_kind: ProofKind,
++        verifier_id: u32,
++    ) Error![][component.LOGICAL_INPUT_COUNT]M31 {
++        _ = self;
++        if (verifier_id != 1 and verifier_id != 2) return error.InvalidWitness;
++        try preprocessing.validateAgainst(reference);
++        try validateWitness(reference, input_witness, proof_kind);
++        var count: usize = 0;
++        for (preprocessing.rows) |row| count += @intFromBool(row.verifier_id == verifier_id);
++        const result = try allocator.alloc([component.LOGICAL_INPUT_COUNT]M31, count);
++        var cursor: usize = 0;
++        for (preprocessing.rows) |row| {
++            if (row.verifier_id != verifier_id) continue;
++            result[cursor] = logicalInputs(.{ M31.one(), input_witness.lanes[row.lane].input_values[row.binding] }, row.values(), proof_kind);
++            cursor += 1;
++        }
++        return result;
++    }
++
+     pub fn generateMainInto(
+         self: *const Executor,
+         preprocessing: *const Preprocessed,
+diff --git a/src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig b/src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig
+index aa2a4783a..77f122695 100644
+--- a/src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig
++++ b/src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig
+@@ -596,7 +596,7 @@ pub fn hashSlot(hash: anytype, slot: anytype) void {
+     hashInt(hash, u8, @intFromEnum(slot.source));
+ }
+ 
+-pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
++pub inline fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
+     var bytes: [@sizeOf(T)]u8 = undefined;
+     std.mem.writeInt(T, &bytes, @intCast(value), .little);
+     hash.update(&bytes);
+diff --git a/src/frontends/riscv/recursion/air/trace_merkle_witness_contract.zig b/src/frontends/riscv/recursion/air/trace_merkle_witness_contract.zig
+index 106a6e51d..e8c0aee92 100644
+--- a/src/frontends/riscv/recursion/air/trace_merkle_witness_contract.zig
++++ b/src/frontends/riscv/recursion/air/trace_merkle_witness_contract.zig
+@@ -597,7 +597,7 @@ pub fn hashSlot(hash: anytype, slot: anytype) void {
+     hashInt(hash, u8, @intFromEnum(slot.source));
+ }
+ 
+-pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
++pub inline fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
+     var bytes: [@sizeOf(T)]u8 = undefined;
+     std.mem.writeInt(T, &bytes, @intCast(value), .little);
+     hash.update(&bytes);
+diff --git a/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig b/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig
+index 472ea1ae9..c6eca5eb0 100644
+--- a/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig
++++ b/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig
+@@ -580,7 +580,7 @@ pub fn checkedAdd(lhs: usize, rhs: usize) Error!usize {
+     return std.math.add(usize, lhs, rhs) catch error.ArithmeticOverflow;
+ }
+ 
+-pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
++pub inline fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
+     var bytes: [@sizeOf(T)]u8 = undefined;
+     std.mem.writeInt(T, &bytes, @intCast(value), .little);
+     hash.update(&bytes);
+diff --git a/src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig b/src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig
+index b11c3c073..ea21b9def 100644
+--- a/src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig
++++ b/src/frontends/riscv/recursion/compact_tuple_ledger_v1.zig
+@@ -1,7 +1,8 @@
+ //! Backend-neutral exact tuple preparation for the row35 range provider:
+ //! Ethereum cohorts and detached recursive parents. CSP diagnostic storage stays
+ //! unchanged. Range tuples use their exact table index; other domains retain the
+-//! shared canonical SHA-256 grouping. Initial38 histogram admission is optional.
++//! canonical SHA-256 grouping for long/extension tuples and injective packed
++//! keys for short base tuples. Initial38 histogram admission is optional.
+ const std = @import("std");
+ const core = @import("stwo_core");
+ const relation = @import("air/relation_interaction.zig");
+@@ -23,6 +24,8 @@ const PROVIDER_COMPONENT = 35;
+ pub const Owner = struct {
+     allocator: std.mem.Allocator,
+     maps: [universal.RELATION_COUNT]Map = @splat(.empty),
++    // Separate namespaces: a packed tuple can never collide with a SHA digest.
++    packed_maps: [universal.RELATION_COUNT]Map = @splat(.empty),
+     source_counter: table_counter.Counter,
+     range_residual: []M31,
+     initial_histogram: ?[]u32,
+@@ -47,6 +50,7 @@ pub const Owner = struct {
+ 
+     pub fn deinit(self: *Owner) void {
+         for (&self.maps) |*map| map.deinit(self.allocator);
++        for (&self.packed_maps) |*map| map.deinit(self.allocator);
+         self.source_counter.deinit(self.allocator);
+         self.allocator.free(self.range_residual);
+         if (self.initial_histogram) |bins| self.allocator.free(bins);
+@@ -94,6 +98,7 @@ pub const Owner = struct {
+     pub fn metrics(self: *const Owner) Metrics {
+         var capacity: usize = 0;
+         for (self.maps) |map| capacity += map.capacity();
++        for (self.packed_maps) |map| capacity += map.capacity();
+         return .{ .contribution_count = self.contribution_count, .source_range_contribution_count = self.source_range_contribution_count, .live_entries = self.live_entries, .peak_entries = self.peak_entries, .capacity_entries = capacity, .retained_bytes = capacity * (@sizeOf([32]u8) + @sizeOf(QM31) + 1) + TABLE_SIZE * (@sizeOf(M31) * 2 + if (self.initial_histogram != null) @as(usize, @sizeOf(u32)) else 0) };
+     }
+ 
+@@ -112,8 +117,9 @@ pub const Owner = struct {
+             };
+             return;
+         }
+-        const key = relation.TupleLedger.canonicalHash(domain, values);
+-        const map = &self.maps[@intFromEnum(domain)];
++        const packed_key = packedKey(values);
++        const key = packed_key orelse relation.TupleLedger.canonicalHash(domain, values);
++        const map = if (packed_key != null) &self.packed_maps[@intFromEnum(domain)] else &self.maps[@intFromEnum(domain)];
+         if (map.getEntry(key)) |retained| {
+             const next = retained.value_ptr.add(weight);
+             if (next.isZero()) {
+@@ -158,8 +164,9 @@ pub const Owner = struct {
+         var result = relation.TupleClosureReport{ .contribution_count = self.contribution_count, .unmatched_tuple_count = 0, .unmatched_by_domain = @splat(0) };
+         for (self.maps, 0..) |map, domain| {
+             // Zero balances are removed immediately.
+-            result.unmatched_by_domain[domain] = map.count();
+-            result.unmatched_tuple_count += map.count();
++            const count = map.count() + self.packed_maps[domain].count();
++            result.unmatched_by_domain[domain] = count;
++            result.unmatched_tuple_count += count;
+         }
+         for (self.range_residual) |value| if (!value.isZero()) {
+             result.unmatched_by_domain[@intFromEnum(Domain.range_check_8_8)] += 1;
+@@ -183,15 +190,15 @@ pub const Owner = struct {
+     fn printUnmatchedErased(context: *anyopaque, limit: usize) void {
+         const self: *Owner = @ptrCast(@alignCast(context));
+         if (self.first_error) |err| std.debug.print("ETHEREUM_COMPACT_TUPLE_ERROR error={s}\n", .{@errorName(err)});
+-        for (&self.maps, 0..) |*map, domain| {
++        inline for (.{ "maps", "packed_maps" }) |namespace| for (&@field(self, namespace), 0..) |*map, domain| {
+             var iterator = map.iterator();
+             var printed: usize = 0;
+             while (iterator.next()) |entry| {
+                 if (printed == limit) break;
+-                std.debug.print("TUPLE_UNMATCHED domain={s} hash={s} residual={any} compact=true\n", .{ @tagName(@as(Domain, @enumFromInt(domain))), std.fmt.bytesToHex(entry.key_ptr.*, .lower), entry.value_ptr.toM31Array() });
++                std.debug.print("TUPLE_UNMATCHED domain={s} key={s} residual={any} compact=true namespace={s}\n", .{ @tagName(@as(Domain, @enumFromInt(domain))), std.fmt.bytesToHex(entry.key_ptr.*, .lower), entry.value_ptr.toM31Array(), namespace });
+                 printed += 1;
+             }
+-        }
++        };
+         var printed: usize = 0;
+         for (self.range_residual, 0..) |value, index| if (!value.isZero()) {
+             if (printed == limit) break;
+@@ -200,3 +207,16 @@ pub const Owner = struct {
+         };
+     }
+ };
++
++/// Injective encoding within the packed namespace. Hash-table equality compares
++/// all bytes; no digest or probabilistic fingerprint replaces tuple equality.
++fn packedKey(values: []const QM31) ?[32]u8 {
++    if (values.len > 7) return null;
++    var key: [32]u8 = @splat(0);
++    std.mem.writeInt(u32, key[0..4], @intCast(values.len), .little);
++    for (values, 0..) |value, index| {
++        const base = value.tryIntoM31() catch return null;
++        std.mem.writeInt(u32, key[4 + index * 4 ..][0..4], base.toU32(), .little);
++    }
++    return key;
++}
+diff --git a/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig b/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig
+index 3715f57b4..79128e04b 100644
+--- a/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig
++++ b/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig
+@@ -250,9 +250,13 @@ fn buildRows(value: *OwnedV1.Storage, child: anytype, comptime selected_lane_onl
+     else
+         try prepared.trace_merkle_executor.generateMainInto(&prepared.trace_merkle_preprocessing, prepared.trace_merkle_reference, &trace_merkle.columns, trace);
+     value.view_value.trace_merkle = try selectRows(A.trace_merkle, allocator, value.lane, prepared.trace_merkle_preprocessing.rows, trace_merkle.columns, try W.trace_merkle.logicalRow(prepared.trace_merkle_reference, &prepared.trace_merkle_preprocessing, 0, trace));
+-    var pcs_deep = try Columns(W.pcs_deep).init(scratch, prepared.pcs_preprocessing.log_size);
+-    try prepared.pcs_executor.generateMainInto(&prepared.pcs_preprocessing, prepared.pcs_reference, &pcs_deep.columns, prepared.pcs_inputs, .binary_node);
+-    value.view_value.pcs_deep = try selectRows(A.pcs_deep, allocator, value.lane, prepared.pcs_preprocessing.rows, pcs_deep.columns, try W.pcs_deep.logicalRow(prepared.pcs_reference, &prepared.pcs_preprocessing, 0, prepared.pcs_inputs, .binary_node));
++    if (selected_lane_only) {
++        value.view_value.pcs_deep = try prepared.pcs_executor.generateLogicalForLane(allocator, &prepared.pcs_preprocessing, prepared.pcs_reference, prepared.pcs_inputs, .binary_node, value.lane);
++    } else {
++        var pcs_deep = try Columns(W.pcs_deep).init(scratch, prepared.pcs_preprocessing.log_size);
++        try prepared.pcs_executor.generateMainInto(&prepared.pcs_preprocessing, prepared.pcs_reference, &pcs_deep.columns, prepared.pcs_inputs, .binary_node);
++        value.view_value.pcs_deep = try selectRows(A.pcs_deep, allocator, value.lane, prepared.pcs_preprocessing.rows, pcs_deep.columns, try W.pcs_deep.logicalRow(prepared.pcs_reference, &prepared.pcs_preprocessing, 0, prepared.pcs_inputs, .binary_node));
++    }
+     var fri_leaf = try Columns(W.fri_leaf).init(scratch, prepared.fri_leaf_preprocessing.log_size);
+     if (selected_lane_only)
+         try prepared.fri_leaf_executor.generateMainForLaneInto(&prepared.fri_leaf_preprocessing, prepared.fri_reference, &fri_leaf.columns, fri, value.lane)
+@@ -274,9 +278,13 @@ fn buildRows(value: *OwnedV1.Storage, child: anytype, comptime selected_lane_onl
+     var fri_control = try Columns(W.fri_control).init(scratch, prepared.control_preprocessing.log_size);
+     try prepared.control_executor.generateMainInto(&prepared.control_preprocessing, prepared.control_reference, &fri_control.columns, query);
+     value.view_value.fri_control = try selectRows(A.fri_control, allocator, value.lane, prepared.control_preprocessing.rows, fri_control.columns, try W.fri_control.logicalRow(prepared.control_reference, &prepared.control_preprocessing, 0, query));
+-    var fri_input = try Columns(W.fri_input).init(scratch, prepared.input_preprocessing.log_size);
+-    try prepared.input_executor.generateMainInto(&prepared.input_preprocessing, prepared.input_reference, &fri_input.columns, evaluations, .binary_node);
+-    value.view_value.fri_input = try selectRows(A.fri_input, allocator, value.lane, prepared.input_preprocessing.rows, fri_input.columns, try W.fri_input.logicalRow(prepared.input_reference, &prepared.input_preprocessing, 0, evaluations, .binary_node));
++    if (selected_lane_only) {
++        value.view_value.fri_input = try prepared.input_executor.generateLogicalForLane(allocator, &prepared.input_preprocessing, prepared.input_reference, evaluations, .binary_node, value.lane);
++    } else {
++        var fri_input = try Columns(W.fri_input).init(scratch, prepared.input_preprocessing.log_size);
++        try prepared.input_executor.generateMainInto(&prepared.input_preprocessing, prepared.input_reference, &fri_input.columns, evaluations, .binary_node);
++        value.view_value.fri_input = try selectRows(A.fri_input, allocator, value.lane, prepared.input_preprocessing.rows, fri_input.columns, try W.fri_input.logicalRow(prepared.input_reference, &prepared.input_preprocessing, 0, evaluations, .binary_node));
++    }
+     value.view_value.pcs_metadata = try selectedMetadata(W.pcs_deep.Row, allocator, value.lane, prepared.pcs_preprocessing.rows);
+     value.view_value.fri_metadata = try selectedMetadata(W.fri_input.Row, allocator, value.lane, prepared.input_preprocessing.rows);
+     var control: std.ArrayList(air.control_witness.Row) = .empty;
+diff --git a/src/integrations/riscv_cpu/build_segment_steps.zig b/src/integrations/riscv_cpu/build_segment_steps.zig
+index bef9577e7..ce9fa24e5 100644
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -1096,6 +1096,7 @@ pub fn add(ctx: anytype) void {
+         "Recursive runtime ownership guard",
+     ));
+     const compact_ledger_names = [_][]const u8{
++        "Recursive blocked columns preserve committed permutation and padding",
+         "Recursive shared interaction preparation preserves audited columns and failure cleanup",
+         "Recursive streamed tuple projection matches every parent diagnostic entry",
+         "Ethereum compact tuple ledger cleans up provider failures after source sealing",
+diff --git a/src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test.zig b/src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test.zig
+index e451c9316..578aec0bc 100644
+--- a/src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test.zig
++++ b/src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test.zig
+@@ -32,6 +32,17 @@ test "Ethereum compact tuple ledger matches canonical records and range provider
+     defer sink.deinit();
+     try appendBoth(&ordinary, &sink, .recursion_wire, 2, q(2), &.{q(19)});
+     try appendBoth(&ordinary, &sink, .recursion_wire, 3, q(2).neg(), &.{q(19)});
++    // Packed-key boundary: empty, trailing zero, seven base limbs, fallback
++    // eighth limb, and extension values must retain separate tuple identities.
++    const boundary = [_]QM31{ q(0), q(3), q(5), q(7), q(11), q(13), q(17), q(0) };
++    for ([_]usize{ 0, 1, 7, 8 }) |length| {
++        try appendBoth(&ordinary, &sink, .recursion_wire, 2, q(3), boundary[0..length]);
++        try std.testing.expectEqualDeep(ordinary.classify(), try compact.classify());
++    }
++    for ([_]usize{ 8, 7, 1, 0 }) |length| {
++        try appendBoth(&ordinary, &sink, .recursion_wire, 3, q(3).neg(), boundary[0..length]);
++        try std.testing.expectEqualDeep(ordinary.classify(), try compact.classify());
++    }
+     // Distinct domain, arity and extension-field coordinates cannot cancel.
+     try appendBoth(&ordinary, &sink, .recursion_wire, 2, q(1), &.{ q(1), q(2) });
+     try appendBoth(&ordinary, &sink, .recursion_wire, 3, q(1).neg(), &.{q(1)});
+@@ -266,3 +277,7 @@ fn sharedInteractionCase(allocator: std.mem.Allocator) !void {
+         try expected_ledger.append(event.domain, 18, event.ordinal, event.role, event.numerator, event.values[0..event.arity]);
+     try std.testing.expectEqualDeep(expected_ledger.contributions.items, ledger.contributions.items);
+ }
++
++test "Recursive blocked columns preserve committed permutation and padding" {
++    try frontend.recursion.air.framework_device_interaction.testColumnProjection();
++}

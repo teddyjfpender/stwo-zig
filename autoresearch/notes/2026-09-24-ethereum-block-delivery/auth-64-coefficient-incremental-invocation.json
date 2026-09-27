@@ -1,0 +1,10 @@
+{
+  "exit_code": 0,
+  "wall_seconds": 65.69062337500509,
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/auth-host-coefficient-incremental": "b7da7c8e0ef3958c0b9aba56942f0c91ecbeef58bd3c83532b9f3377f9615a27",
+    "autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-64.input": "e48f448a2910a8fa81999b4faec99f38dff86e180fe578857c74fd08a4b205a8",
+    "autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-64.expected": "e9ee0be037b223d0a2a120bd035c98ef50b10d8cc52e59eafccaca63906d76f1"
+  }
+}

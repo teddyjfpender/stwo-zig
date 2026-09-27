@@ -1,0 +1,11 @@
+test-blake3-round-precompile
++- BLAKE3 round precompile guard
+   +- run test stderr
+BLAKE3_ROUND_TYPED main=832 fixed=66 constraints=448 events=432 digest=301e6f13749bcdeff36551bfbaefcd5444baf3896cb2578dcf7d586c50dd6904
+
+Build Summary: 4/4 steps succeeded; 4/4 tests passed
+test-blake3-round-precompile success
++- BLAKE3 round precompile guard success
+   +- run test 4 passed 10s MaxRSS:346M
+      +- compile test ReleaseSafe native success 1m MaxRSS:2G
+

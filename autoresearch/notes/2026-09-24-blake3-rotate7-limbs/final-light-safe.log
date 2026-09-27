@@ -1,0 +1,48 @@
+1/18 blake3_rotation_test_root.test_0...OK
+2/18 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G matches typed bit reference and canonical lookup schemas...OK
+3/18 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G rejects coordinate mutations and requires lookup bounds...OK
+4/18 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G covers all seven rounds of a native compression trace...OK
+5/18 recursion.air.blake3_compression_partition_test.test.compression partitions preserve all native transitions and exact external uses...OK
+6/18 recursion.air.blake3_compression_partition_test.test.compression partition admission rejects changed schedules and weights...OK
+7/18 recursion.air.direct_constraint_program.test.R-012 direct compiler evaluates control roots identically over M31 and QM31...OK
+8/18 recursion.air.direct_constraint_program.test.R-012 direct execution pruning preserves every parent catalog root over base and extension fields...DIRECT_EXECUTION_PRUNING row=0 canonical_nodes=7 executed_nodes=3
+DIRECT_EXECUTION_PRUNING row=1 canonical_nodes=40 executed_nodes=29
+DIRECT_EXECUTION_PRUNING row=2 canonical_nodes=49 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=3 canonical_nodes=41 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=4 canonical_nodes=12 executed_nodes=10
+DIRECT_EXECUTION_PRUNING row=5 canonical_nodes=10 executed_nodes=9
+DIRECT_EXECUTION_PRUNING row=6 canonical_nodes=314 executed_nodes=314
+DIRECT_EXECUTION_PRUNING row=7 canonical_nodes=12 executed_nodes=8
+DIRECT_EXECUTION_PRUNING row=8 canonical_nodes=23 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=9 canonical_nodes=55 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=10 canonical_nodes=41 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=11 canonical_nodes=21 executed_nodes=21
+DIRECT_EXECUTION_PRUNING row=12 canonical_nodes=36 executed_nodes=35
+DIRECT_EXECUTION_PRUNING row=13 canonical_nodes=1 executed_nodes=1
+DIRECT_EXECUTION_PRUNING row=14 canonical_nodes=149 executed_nodes=149
+DIRECT_EXECUTION_PRUNING row=20 canonical_nodes=289 executed_nodes=231
+DIRECT_EXECUTION_PRUNING row=21 canonical_nodes=166 executed_nodes=166
+DIRECT_EXECUTION_PRUNING row=22 canonical_nodes=22 executed_nodes=14
+DIRECT_EXECUTION_PRUNING row=23 canonical_nodes=121 executed_nodes=99
+DIRECT_EXECUTION_PRUNING row=24 canonical_nodes=20 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=25 canonical_nodes=125 executed_nodes=102
+DIRECT_EXECUTION_PRUNING row=26 canonical_nodes=46 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=27 canonical_nodes=17 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=28 canonical_nodes=16 executed_nodes=13
+DIRECT_EXECUTION_PRUNING row=29 canonical_nodes=21 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=30 canonical_nodes=49 executed_nodes=49
+DIRECT_EXECUTION_PRUNING row=31 canonical_nodes=74 executed_nodes=73
+DIRECT_EXECUTION_PRUNING row=32 canonical_nodes=106 executed_nodes=106
+DIRECT_EXECUTION_PRUNING row=33 canonical_nodes=43 executed_nodes=39
+OK
+9/18 recursion.air.direct_constraint_program.test.R-012 direct execution pruning retains gates and the complete arena seal...OK
+10/18 recursion.air.relation_interaction_tuple_ledger.test.R-012 canonical tuple hash batches exactly the existing byte stream...OK
+11/18 recursion.air.relation_effect.test.R-012 universal relation group authors multiple schemas atomically...OK
+12/18 recursion.air.relation_effect.test.R-012 universal relation authoring fails closed on base Merkle ABI gap...OK
+13/18 recursion.air.relation_effect.test.R-012 universal relation authoring rejects every group before mutation...OK
+14/18 recursion.air.relation_effect.test.R-012 universal relation group releases every allocation failure...OK
+15/18 air.lang.mod.test.typed AIR language: isolated kernel has an explicit logical version...OK
+16/18 recursion.air.universal_roster.test.R-012 universal roster pins exact order and honest completion layers...OK
+17/18 recursion.air.universal_roster.test.R-012 no universal row remains unresolved...OK
+18/18 recursion.air.universal_roster.test.R-012 authenticated providers close rows without duplicate typed ownership...OK
+All 18 tests passed.

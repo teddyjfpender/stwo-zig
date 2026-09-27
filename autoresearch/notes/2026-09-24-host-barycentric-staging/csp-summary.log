@@ -1,0 +1,4 @@
+metal-ecdsa_secp256k1-32 0.658878 -> 0.656465 0.4% prove metric 0.513404
+metal-sha256-128 1.496055 -> 1.498202 -0.1% prove metric 1.042104
+metal-sha256-2048 2.463129 -> 2.352676 4.5% prove metric 1.755999
+metal-keccak-128 2.384991 -> 2.269827 4.8% prove metric 1.703684

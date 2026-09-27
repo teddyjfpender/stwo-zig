@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-blake3-field-bytes success
++- BLAKE3 field bytes guard success
+   +- run test 1 passed 501ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:638M
+test-blake3-field-bytes-proof success
++- BLAKE3 field bytes proof guard success
+   +- run test 1 passed 3s MaxRSS:349M
+      +- compile test ReleaseSafe native success 21s MaxRSS:1G
+

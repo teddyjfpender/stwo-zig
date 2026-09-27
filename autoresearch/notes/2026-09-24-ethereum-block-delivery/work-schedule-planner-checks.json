@@ -1,0 +1,6 @@
+{
+  "exact_coverage": true,
+  "capacity_clipping": true,
+  "impossible_capacity_rejected": true,
+  "scope": "planner checks only, independent replay and proving still required"
+}

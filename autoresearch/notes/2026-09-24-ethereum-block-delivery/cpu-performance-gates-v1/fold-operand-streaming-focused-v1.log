@@ -1,0 +1,7 @@
+1/6 block_v5_memory_source_fold_operand_stream_test_root.test.fold operand stream root...OK
+2/6 prover.block_v5_memory_source_fold_operand_stream_test_v1.test.fold operand stream: previous envelope bytes and pin survive all buffer boundaries with bounded allocation...OK
+3/6 prover.block_v5_memory_source_fold_operand_stream_test_v1.test.fold operand stream: late encoder failure and existing destination never publish or replace bytes...OK
+4/6 prover.block_v5_memory_source_fold_operand_stream_test_v1.test.fold operand stream: digest guards precede decoded proposals and all load allocations roll back...OK
+5/6 prover.block_v5_memory_source_fold_operand_stream_test_v1.test.fold operand stream: caps and overflow reject before allocation or filesystem access...OK
+6/6 prover.block_v5_memory_source_fold_operand_stream_test_v1.test.fold operand stream: failed emitters clean only their own unpublished inode...OK
+All 6 tests passed.

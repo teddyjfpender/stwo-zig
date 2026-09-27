@@ -1,0 +1,8 @@
+1/7 blake3_frame_batch_test_root.test.BLAKE3 root integration compress4 matches all scalar output words...OK
+2/7 blake3_frame_batch_test_root.test.BLAKE3 root integration hashChunk4 matches independent std boundaries and caps...OK
+3/7 blake3_frame_batch_test_root.test.BLAKE3 root integration mixed Frame hash4 preserves canonical std digests...OK
+4/7 blake3_frame_batch_test_root.test.BLAKE3 optional diagnostic rejects limits before starting timed work...OK
+5/7 blake3_frame_batch_test_root.test.BLAKE3 batched tree layers and compact alias preserve scalar upper tails...OK
+6/7 pcs.blake3_pow_batch.test.BLAKE3 PoW batch matches streaming hash at nonce carries and full difficulty...OK
+7/7 vcs_lifted.compact_blake3_leaf.test.compact BLAKE3 leaf storage matches standard across every admitted column count...OK
+All 7 tests passed.

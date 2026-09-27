@@ -1,0 +1,24 @@
+{
+  "status": "qualified_combined_nonproving_snapshot",
+  "full_retained_body_and_checks": "caller-arithmetic-selected-focused-v2-result.json",
+  "full_result": "11 of12 passed; sole genuine log18 census fixture failed",
+  "corrective": "caller-arithmetic-selected-geometry-corrective-v3-result.json",
+  "corrective_result": "3of3 passed including exact policy selection and repaired genuine log18 fixture",
+  "distinct_checks": 12,
+  "source_changes_since_full": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_arithmetic_recursive_test_v1.zig",
+      "sha256": "1ea36e37bea338201d2ec94829d1944528a39e226481ec094df20d0b02874946"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_open_parent_packed_sources_v2.zig",
+      "sha256": "df10d21efcf706dc89008f72de5835ef012f3744a8461c31d5330a8948cb6bfd"
+    }
+  ],
+  "change_scope": "fixture now derives9039 calls from canonical29-row/2-operation Keccak geometry; unrelated shared packed-source attach genericization requires its own parent gate",
+  "prior_zero_test_attempt_disqualified": "caller-arithmetic-policy-runner-audit-v1.json",
+  "scope": "Both real policy recipes independently exercised; original nineteen AIR equations, SHA challenges, transcript, public claims and actual capture/publish/fresh-leaf bodies. Full LLVM retained snapshot plus narrow fixture correction, not a new complete full-suite run.",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

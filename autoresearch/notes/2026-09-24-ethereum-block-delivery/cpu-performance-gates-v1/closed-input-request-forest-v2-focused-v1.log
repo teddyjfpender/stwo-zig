@@ -1,0 +1,17 @@
+1/16 block_v5_closed_input_request_forest_test_root_v2.test_0...OK
+2/16 block_v5_closed_input_request_forest_test_root_v2.test.closed input forest: retain real closed producer receiver setup and full child verifier bodies without invocation...OK
+3/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: bounded synchronous lookup guards entry and exit only...OK
+4/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: admission session detects value or schedule mutation...OK
+5/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: all four coordinates are constrained by original boundary AIR...OK
+6/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: genuine interaction claim preserves both original signs and multiplicities...OK
+7/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: interaction construction allocation failures clean up...OK
+8/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: closure appends exact committed rows without losing original boundary...OK
+9/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: appended closure rolls back every allocation failure...OK
+10/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: version5 node prefix preserves canonical config and separate domain...OK
+11/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: foreign allocator and resource rejection preserve old row custody...OK
+12/16 prover.block_v5_closed_input_request_forest_test_v2.test.closed input forest: zero external terms stay bounded across minimum topology sizes...OK
+13/16 air.semantic_eval.test_0...OK
+14/16 air.memory_commitment.poseidon2_air.test_0...OK
+15/16 air.lookups.tables.mod.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+All 16 tests passed.

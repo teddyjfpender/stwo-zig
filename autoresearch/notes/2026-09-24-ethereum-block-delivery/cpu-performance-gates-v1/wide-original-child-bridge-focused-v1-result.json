@@ -1,0 +1,22 @@
+{
+  "source_candidate": "wide-original-child-bridge-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 98.60769987496315,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/wide-original-child-bridge-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-wide-original-child-bridge-focused-v1",
+    "bytes": 11036000,
+    "sha256": "3369d31925a37f17f08ad121b76f07aa7806200ee93bff44118ab72c791e9ebe"
+  }
+}

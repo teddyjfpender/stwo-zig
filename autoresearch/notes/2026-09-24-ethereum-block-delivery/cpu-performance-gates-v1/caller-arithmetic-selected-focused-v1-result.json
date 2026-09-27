@@ -1,0 +1,20 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 87.22981545800576,
+  "source_candidate": "caller-arithmetic-selected-focused-v1-source.json",
+  "changed_source_pins": [],
+  "qualified": true,
+  "tests_run": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-arithmetic-selected-focused-v1.log",
+  "test_summary": [
+    "All 0 tests passed."
+  ],
+  "binary": {
+    "path": "/tmp/block-v5-caller-arithmetic-selected-focused-v1",
+    "bytes": 272528,
+    "sha256": "5cd632a4141c358b2c2a0d338be7bbb7a97097a963048f473cfb0931d0e85f14"
+  }
+}

@@ -1,0 +1,9 @@
+1/8 block_v5_word_fixed_transcript_test_root.test_0...OK
+2/8 block_v5_word_fixed_transcript_test_root.test.word fixed transcript: actual original policy derivation and live replay bodies are retained only...OK
+3/8 prover.block_v5_word_fixed_transcript_test_v1.test.word fixed transcript: both original live framing channel draws and trusted fixed plans agree...OK
+4/8 prover.block_v5_word_fixed_transcript_test_v1.test.word fixed transcript: native four-tree PCS suffix retains original slots draws routing and terminal counts...OK
+5/8 prover.block_v5_word_fixed_transcript_test_v1.test.word fixed transcript: changing received geometry cannot append partial PCS operations...OK
+6/8 prover.block_v5_word_fixed_transcript_test_v1.test.word fixed transcript: PCS grammar allocation failures preserve caller prefix...OK
+7/8 prover.block_v5_word_fixed_transcript_test_v1.test.word fixed transcript: genuine native shape records compact plans without MAIN columns or native execution...OK
+8/8 prover.block_v5_word_fixed_transcript_test_v1.test.word fixed transcript: sink preserves errors and original skipped-root guards...OK
+All 8 tests passed.

@@ -1,0 +1,49 @@
+pkg-config --list-all
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -lobjc -fstrip -OReleaseFast --dep stwo_core --dep stwo_prover_engine --dep stwo_prover_api --dep stwo_riscv_frontend --dep stwo_metal_backend --dep stwo_cpu_backend --dep interop_postcard --dep blake3_runtime -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_metal_qualification_test_root.zig -OReleaseFast -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseFast --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseFast --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -cflags -fobjc-arc -fblocks -- /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/runtime.m -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_metal_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseFast --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseFast -Mblake3_runtime=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal/blake3_runtime.zig -OReleaseFast --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseFast -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseFast -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseFast -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseFast --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig -framework Foundation -framework Metal -lc --test-filter "Metal canonical four-leaf BLAKE3 aggregation tree" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+STWO_RISCV_METAL_AOT_BUNDLE=/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/core STWO_BLAKE3_CSP_RUNTIME=authenticated_aot ./.zig-cache/o/fd8f6dc149554bb94f4ff527148f2d57/test --cache-dir=./.zig-cache --seed=0xaab73edf --listen=-
+test-blake3-native-tree-aot
++- run test stderr
+BLAKE3_NATIVE_HASH_DEVICE covered=8/8
+CANONICAL_PARENT_ALLOCATOR mode=testing
+BLAKE3_NATIVE_QUERY_FUSION groups=7280 removed_scalars=29120
+BLAKE3_NATIVE_FUSION dot4=14929 fma=56644 arithmetic_rows=159724
+BLAKE3_NATIVE_QUERY_FUSION groups=7280 removed_scalars=29120
+BLAKE3_NATIVE_FUSION dot4=14929 fma=56646 arithmetic_rows=159720
+CANONICAL_TREE_LEAF_POOL workers=2
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=10601879334
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=28 gpu_ms=116.8981250084471
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=11.738666653400287
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=4.008166666608304
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=5.9017500025220215
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=1.2193750008009374
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=9604684125
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=845993 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=7420 removed_scalars=29680
+BLAKE3_NATIVE_FUSION dot4=13774 fma=56458 arithmetic_rows=157859
+BLAKE3_NATIVE_QUERY_FUSION groups=8260 removed_scalars=33040
+BLAKE3_NATIVE_FUSION dot4=17883 fma=58717 arithmetic_rows=167838
+CANONICAL_TREE_LEAF_POOL workers=2
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=9732145875
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=28 gpu_ms=115.92250000103377
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=11.586125008761883
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.7612500018440187
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=5.99449998117052
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=1.191166666103527
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=9379925334
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=849496 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=17570 removed_scalars=70280
+BLAKE3_NATIVE_FUSION dot4=27604 fma=81749 arithmetic_rows=230269
+BLAKE3_NATIVE_QUERY_FUSION groups=17570 removed_scalars=70280
+BLAKE3_NATIVE_FUSION dot4=27604 fma=81749 arithmetic_rows=230269
+CANONICAL_TREE_CHILD_PREPARATION workers=2 reused_after_failure=true
+CANONICAL_TREE_PHASE phase=root_preparation ns=7348811333
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=28 gpu_ms=231.21425000135787
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=9.890499990433455
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=4.127916676225141
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=2 gpu_ms=10.293916653608903
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5372499872464687
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=2 ns=19720295417
+BLAKE3_TREE_NODE verified=true height=2 artifact_bytes=889364 queries=70 pow_bits=26
+CANONICAL_TREE_BUDGET peak_bytes=26459992688 limit_bytes=51539607552
+BLAKE3_TREE_PARAMETERS leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 canonical=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=4199425192

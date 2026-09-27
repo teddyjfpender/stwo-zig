@@ -1,0 +1,1104 @@
+//! Typed base/lookup polynomial programs and backend capability contracts.
+
+const std = @import("std");
+const m31 = @import("stwo_core").fields.m31;
+const M31 = m31.M31;
+const QM31 = @import("stwo_core").fields.qm31.QM31;
+
+pub const BasePolynomialOp = enum(u8) { constant, column, add, sub, mul, neg };
+
+pub const BasePolynomialNode = struct {
+    op: BasePolynomialOp,
+    lhs: u32 = 0,
+    rhs: u32 = 0,
+    value: u32 = 0,
+};
+
+pub const OwnedBasePolynomialProgram = struct {
+    allocator: std.mem.Allocator,
+    nodes: []BasePolynomialNode,
+    roots: []u32,
+    column_count: usize,
+
+    pub fn deinit(self: *OwnedBasePolynomialProgram) void {
+        self.allocator.free(self.roots);
+        self.allocator.free(self.nodes);
+        self.* = undefined;
+    }
+
+    pub fn validate(self: OwnedBasePolynomialProgram) !void {
+        if (self.column_count == 0 or self.nodes.len == 0 or self.roots.len == 0)
+            return error.InvalidBasePolynomialProgram;
+        for (self.nodes, 0..) |node, index| switch (node.op) {
+            .constant => {},
+            .column => if (node.value >= self.column_count)
+                return error.InvalidBasePolynomialProgram,
+            .add, .sub, .mul => if (node.lhs >= index or node.rhs >= index)
+                return error.InvalidBasePolynomialProgram,
+            .neg => if (node.lhs >= index)
+                return error.InvalidBasePolynomialProgram,
+        };
+        for (self.roots) |root| if (root >= self.nodes.len)
+            return error.InvalidBasePolynomialProgram;
+    }
+};
+
+/// A committed base-polynomial component that a backend may evaluate from the
+/// proof's own residency handles. The selector is the final program input;
+/// preceding inputs are the contiguous main-column block. The exporter is
+/// invoked only during proving and must derive its program from the production
+/// evaluator rather than maintain an independent constraint transcription.
+pub const BasePolynomialCapabilityV1 = struct {
+    program_id: u64,
+    trace_log_size: u32,
+    selector_tree_index: usize,
+    selector_column: usize,
+    main_tree_index: usize,
+    first_main_column: usize,
+    main_column_count: usize,
+    export_program: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!OwnedBasePolynomialProgram,
+};
+
+pub const MAX_LOOKUP_POLYNOMIAL_ARITY: usize = 32;
+
+pub const LookupPolynomialEntry = struct {
+    numerator: u32,
+    values: [MAX_LOOKUP_POLYNOMIAL_ARITY]u32 = undefined,
+    arity: u8,
+};
+
+pub const OwnedLookupPolynomialProgram = struct {
+    allocator: std.mem.Allocator,
+    nodes: []BasePolynomialNode,
+    entries: []LookupPolynomialEntry,
+    column_count: usize,
+    batch_size: usize,
+
+    pub fn deinit(self: *OwnedLookupPolynomialProgram) void {
+        self.allocator.free(self.entries);
+        self.allocator.free(self.nodes);
+        self.* = undefined;
+    }
+
+    pub fn batchCount(self: OwnedLookupPolynomialProgram) usize {
+        return (self.entries.len + self.batch_size - 1) / self.batch_size;
+    }
+
+    pub fn parameterCount(self: OwnedLookupPolynomialProgram) usize {
+        var count = self.batchCount();
+        for (self.entries) |entry| count += 1 + entry.arity;
+        return count;
+    }
+
+    pub fn validate(self: OwnedLookupPolynomialProgram) !void {
+        if (self.column_count == 0 or self.nodes.len == 0 or
+            self.entries.len == 0 or (self.batch_size != 1 and self.batch_size != 2))
+            return error.InvalidLookupPolynomialProgram;
+        for (self.nodes, 0..) |node, index| switch (node.op) {
+            .constant => {},
+            .column => if (node.value >= self.column_count)
+                return error.InvalidLookupPolynomialProgram,
+            .add, .sub, .mul => if (node.lhs >= index or node.rhs >= index)
+                return error.InvalidLookupPolynomialProgram,
+            .neg => if (node.lhs >= index)
+                return error.InvalidLookupPolynomialProgram,
+        };
+        for (self.entries) |entry| {
+            if (entry.arity == 0 or entry.arity > MAX_LOOKUP_POLYNOMIAL_ARITY or
+                entry.numerator >= self.nodes.len)
+                return error.InvalidLookupPolynomialProgram;
+            for (entry.values[0..entry.arity]) |value| if (value >= self.nodes.len)
+                return error.InvalidLookupPolynomialProgram;
+        }
+    }
+};
+
+/// Append-only variable-partition lookup layout. V1 stores one uniform
+/// `batch_size`; V2 records the exact ordered singleton/pair partition chosen
+/// for one component. The fixed header is suitable for a future physical
+/// manifest, while the degree and batch slices remain part of the
+/// content-addressed program authority.
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_FORMAT_VERSION: u16 = 2;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_BATCH_SIZE: u8 = 2;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_INTERACTION_COORDINATES: u8 = 4;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_DEGREE: u32 = 16;
+pub const LOOKUP_POLYNOMIAL_LAYOUT_V2_IDENTITY_DOMAIN =
+    "stwo/prover/lookup-polynomial-layout/v2\x00";
+pub const LOOKUP_POLYNOMIAL_PROGRAM_V2_IDENTITY_DOMAIN =
+    "stwo/prover/lookup-polynomial-program/v2\x00";
+pub const LookupPolynomialIdentity = [32]u8;
+
+pub const LookupPolynomialProgramV2Error = error{
+    CountOverflow,
+    DegreeOverflow,
+    InvalidAuthorityGeometry,
+    InvalidAuthorityVersion,
+    InvalidBatchCount,
+    InvalidBatchCoverage,
+    InvalidBatchDegree,
+    InvalidBatchWidth,
+    InvalidColumnCapacity,
+    InvalidComponentIdentity,
+    InvalidDegreeCap,
+    InvalidEntry,
+    InvalidEntryCount,
+    InvalidEventDegree,
+    InvalidEventOrder,
+    InvalidInteractionCapacity,
+    InvalidLayoutIdentity,
+    InvalidLayoutVersion,
+    InvalidMaximumDegree,
+    InvalidNode,
+    InvalidPartitionIdentity,
+    InvalidProgramIdentity,
+};
+
+/// Degree certificate for one relation event in its immutable transcript
+/// order. Ordinals are explicit so a partition cannot cover the right count
+/// while silently permuting relation parameters.
+pub const LookupPolynomialEventDegreeV2 = struct {
+    ordinal: u32,
+    numerator_degree: u32,
+    denominator_degree: u32,
+};
+
+/// One exact contiguous range in the relation-event sequence. The stored
+/// interaction degree is independently recomputed during validation.
+pub const LookupPolynomialBatchV2 = struct {
+    first_entry: u32,
+    entry_count: u8,
+    interaction_degree: u32,
+};
+
+pub const LookupPolynomialLayoutV2 = struct {
+    format_version: u16 = LOOKUP_POLYNOMIAL_LAYOUT_V2_FORMAT_VERSION,
+    maximum_batch_size: u8 = LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_BATCH_SIZE,
+    interaction_coordinates_per_batch: u8 =
+        LOOKUP_POLYNOMIAL_LAYOUT_V2_INTERACTION_COORDINATES,
+    /// Identity of the typed component/relation program whose ordered entries
+    /// are being partitioned.
+    component_identity: LookupPolynomialIdentity,
+    /// Identity of the deterministic selection policy, degree schedule, and
+    /// exact chosen partition.
+    partition_identity: LookupPolynomialIdentity,
+    column_count: u32,
+    entry_count: u32,
+    batch_count: u32,
+    interaction_column_count: u32,
+    degree_cap: u32,
+    maximum_interaction_degree: u32,
+    layout_identity: LookupPolynomialIdentity,
+
+    pub fn init(
+        component_identity: LookupPolynomialIdentity,
+        partition_identity: LookupPolynomialIdentity,
+        column_count: usize,
+        degree_cap: u32,
+        events: []const LookupPolynomialEventDegreeV2,
+        batches: []const LookupPolynomialBatchV2,
+    ) LookupPolynomialProgramV2Error!LookupPolynomialLayoutV2 {
+        const entry_count = std.math.cast(u32, events.len) orelse
+            return error.CountOverflow;
+        const batch_count = std.math.cast(u32, batches.len) orelse
+            return error.CountOverflow;
+        const columns = std.math.cast(u32, column_count) orelse
+            return error.CountOverflow;
+        const interaction_columns = std.math.mul(
+            u32,
+            batch_count,
+            LOOKUP_POLYNOMIAL_LAYOUT_V2_INTERACTION_COORDINATES,
+        ) catch return error.CountOverflow;
+        var maximum_degree: u32 = 0;
+        for (batches) |batch|
+            maximum_degree = @max(maximum_degree, batch.interaction_degree);
+
+        var result = LookupPolynomialLayoutV2{
+            .component_identity = component_identity,
+            .partition_identity = partition_identity,
+            .column_count = columns,
+            .entry_count = entry_count,
+            .batch_count = batch_count,
+            .interaction_column_count = interaction_columns,
+            .degree_cap = degree_cap,
+            .maximum_interaction_degree = maximum_degree,
+            .layout_identity = .{0} ** 32,
+        };
+        try result.validateStructure(events, batches);
+        result.layout_identity = result.identityDigest(events, batches);
+        try result.validate(events, batches);
+        return result;
+    }
+
+    pub fn validate(
+        self: *const LookupPolynomialLayoutV2,
+        events: []const LookupPolynomialEventDegreeV2,
+        batches: []const LookupPolynomialBatchV2,
+    ) LookupPolynomialProgramV2Error!void {
+        try self.validateStructure(events, batches);
+        const actual = self.identityDigest(events, batches);
+        if (!std.mem.eql(u8, &actual, &self.layout_identity))
+            return error.InvalidLayoutIdentity;
+    }
+
+    fn validateStructure(
+        self: *const LookupPolynomialLayoutV2,
+        events: []const LookupPolynomialEventDegreeV2,
+        batches: []const LookupPolynomialBatchV2,
+    ) LookupPolynomialProgramV2Error!void {
+        if (self.format_version != LOOKUP_POLYNOMIAL_LAYOUT_V2_FORMAT_VERSION or
+            self.maximum_batch_size !=
+                LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_BATCH_SIZE or
+            self.interaction_coordinates_per_batch !=
+                LOOKUP_POLYNOMIAL_LAYOUT_V2_INTERACTION_COORDINATES)
+        {
+            return error.InvalidLayoutVersion;
+        }
+        if (identityIsZeroV2(self.component_identity))
+            return error.InvalidComponentIdentity;
+        if (identityIsZeroV2(self.partition_identity))
+            return error.InvalidPartitionIdentity;
+        if (self.column_count == 0) return error.InvalidColumnCapacity;
+        const event_count = std.math.cast(u32, events.len) orelse
+            return error.CountOverflow;
+        if (events.len == 0 or self.entry_count != event_count) {
+            return error.InvalidEntryCount;
+        }
+        const batch_count = std.math.cast(u32, batches.len) orelse
+            return error.CountOverflow;
+        if (batches.len == 0 or self.batch_count != batch_count) {
+            return error.InvalidBatchCount;
+        }
+        if (self.degree_cap == 0 or
+            self.degree_cap > LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_DEGREE)
+        {
+            return error.InvalidDegreeCap;
+        }
+
+        for (events, 0..) |event, ordinal| {
+            const expected_ordinal = std.math.cast(u32, ordinal) orelse
+                return error.CountOverflow;
+            if (event.ordinal != expected_ordinal)
+                return error.InvalidEventOrder;
+            if (event.numerator_degree >
+                LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_DEGREE or
+                event.denominator_degree >
+                    LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_DEGREE)
+            {
+                return error.InvalidEventDegree;
+            }
+        }
+
+        var cursor: usize = 0;
+        var maximum_degree: u32 = 0;
+        for (batches) |batch| {
+            const expected_first = std.math.cast(u32, cursor) orelse
+                return error.CountOverflow;
+            if (batch.first_entry != expected_first)
+                return error.InvalidBatchCoverage;
+            if (batch.entry_count == 0 or
+                batch.entry_count > self.maximum_batch_size)
+            {
+                return error.InvalidBatchWidth;
+            }
+            const end = std.math.add(
+                usize,
+                cursor,
+                batch.entry_count,
+            ) catch return error.CountOverflow;
+            if (end > events.len) return error.InvalidBatchCoverage;
+            const expected_degree = try lookupInteractionDegreeV2(
+                events[cursor],
+                if (batch.entry_count == 2) events[cursor + 1] else null,
+            );
+            if (batch.interaction_degree != expected_degree)
+                return error.InvalidBatchDegree;
+            if (expected_degree > self.degree_cap)
+                return error.InvalidDegreeCap;
+            maximum_degree = @max(maximum_degree, expected_degree);
+            cursor = end;
+        }
+        if (cursor != events.len) return error.InvalidBatchCoverage;
+        if (self.maximum_interaction_degree != maximum_degree)
+            return error.InvalidMaximumDegree;
+
+        const expected_columns = std.math.mul(
+            u32,
+            self.batch_count,
+            self.interaction_coordinates_per_batch,
+        ) catch return error.CountOverflow;
+        if (self.interaction_column_count != expected_columns)
+            return error.InvalidInteractionCapacity;
+    }
+
+    pub fn identityDigest(
+        self: *const LookupPolynomialLayoutV2,
+        events: []const LookupPolynomialEventDegreeV2,
+        batches: []const LookupPolynomialBatchV2,
+    ) LookupPolynomialIdentity {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(LOOKUP_POLYNOMIAL_LAYOUT_V2_IDENTITY_DOMAIN);
+        hashIntegerV2(&hash, u16, self.format_version);
+        hashIntegerV2(&hash, u8, self.maximum_batch_size);
+        hashIntegerV2(
+            &hash,
+            u8,
+            self.interaction_coordinates_per_batch,
+        );
+        hash.update(&self.component_identity);
+        hash.update(&self.partition_identity);
+        hashIntegerV2(&hash, u32, self.column_count);
+        hashIntegerV2(&hash, u32, self.entry_count);
+        hashIntegerV2(&hash, u32, self.batch_count);
+        hashIntegerV2(&hash, u32, self.interaction_column_count);
+        hashIntegerV2(&hash, u32, self.degree_cap);
+        hashIntegerV2(&hash, u32, self.maximum_interaction_degree);
+        for (events) |event| {
+            hashIntegerV2(&hash, u32, event.ordinal);
+            hashIntegerV2(&hash, u32, event.numerator_degree);
+            hashIntegerV2(&hash, u32, event.denominator_degree);
+        }
+        for (batches) |batch| {
+            hashIntegerV2(&hash, u32, batch.first_entry);
+            hashIntegerV2(&hash, u8, batch.entry_count);
+            hashIntegerV2(&hash, u32, batch.interaction_degree);
+        }
+        return hash.finalResult();
+    }
+};
+
+/// Pointer-free compiler output suitable for embedding beside a physical
+/// component manifest. A decoded or rebuilt owner is admitted only by matching
+/// all four identities and the exact committed geometry in this record.
+pub const LookupPolynomialAuthorityV2 = struct {
+    format_version: u16 = LOOKUP_POLYNOMIAL_LAYOUT_V2_FORMAT_VERSION,
+    component_identity: LookupPolynomialIdentity,
+    partition_identity: LookupPolynomialIdentity,
+    layout_identity: LookupPolynomialIdentity,
+    program_identity: LookupPolynomialIdentity,
+    entry_count: u32,
+    batch_count: u32,
+    interaction_column_count: u32,
+    maximum_interaction_degree: u32,
+
+    pub fn validate(self: *const LookupPolynomialAuthorityV2) LookupPolynomialProgramV2Error!void {
+        if (self.format_version != LOOKUP_POLYNOMIAL_LAYOUT_V2_FORMAT_VERSION)
+            return error.InvalidAuthorityVersion;
+        if (identityIsZeroV2(self.component_identity))
+            return error.InvalidComponentIdentity;
+        if (identityIsZeroV2(self.partition_identity))
+            return error.InvalidPartitionIdentity;
+        if (identityIsZeroV2(self.layout_identity))
+            return error.InvalidLayoutIdentity;
+        if (identityIsZeroV2(self.program_identity))
+            return error.InvalidProgramIdentity;
+        const expected_columns = std.math.mul(
+            u32,
+            self.batch_count,
+            LOOKUP_POLYNOMIAL_LAYOUT_V2_INTERACTION_COORDINATES,
+        ) catch return error.InvalidAuthorityGeometry;
+        if (self.entry_count == 0 or self.batch_count == 0 or
+            self.interaction_column_count != expected_columns or
+            self.maximum_interaction_degree == 0 or
+            self.maximum_interaction_degree >
+                LOOKUP_POLYNOMIAL_LAYOUT_V2_MAXIMUM_DEGREE)
+        {
+            return error.InvalidAuthorityGeometry;
+        }
+    }
+};
+
+/// Owned polynomial DAG plus an authenticated variable batch layout. The V2
+/// capability remains opt-in: constructing this owner alone cannot change V1
+/// dispatch or a production proof layout.
+pub const OwnedLookupPolynomialProgramV2 = struct {
+    allocator: std.mem.Allocator,
+    layout: LookupPolynomialLayoutV2,
+    nodes: []BasePolynomialNode,
+    entries: []LookupPolynomialEntry,
+    event_degrees: []LookupPolynomialEventDegreeV2,
+    batches: []LookupPolynomialBatchV2,
+    program_identity: LookupPolynomialIdentity,
+
+    pub fn deinit(self: *OwnedLookupPolynomialProgramV2) void {
+        self.allocator.free(self.batches);
+        self.allocator.free(self.event_degrees);
+        self.allocator.free(self.entries);
+        self.allocator.free(self.nodes);
+        self.* = undefined;
+    }
+
+    pub fn seal(self: *OwnedLookupPolynomialProgramV2) LookupPolynomialProgramV2Error!void {
+        self.program_identity = .{0} ** 32;
+        try self.validateStructure();
+        self.program_identity = self.identityDigest();
+        try self.validate();
+    }
+
+    pub fn validate(self: *const OwnedLookupPolynomialProgramV2) LookupPolynomialProgramV2Error!void {
+        try self.validateStructure();
+        const actual = self.identityDigest();
+        if (!std.mem.eql(u8, &actual, &self.program_identity))
+            return error.InvalidProgramIdentity;
+    }
+
+    pub fn authority(self: *const OwnedLookupPolynomialProgramV2) LookupPolynomialProgramV2Error!LookupPolynomialAuthorityV2 {
+        try self.validate();
+        var result = LookupPolynomialAuthorityV2{
+            .component_identity = self.layout.component_identity,
+            .partition_identity = self.layout.partition_identity,
+            .layout_identity = self.layout.layout_identity,
+            .program_identity = self.program_identity,
+            .entry_count = self.layout.entry_count,
+            .batch_count = self.layout.batch_count,
+            .interaction_column_count = self.layout.interaction_column_count,
+            .maximum_interaction_degree = self.layout.maximum_interaction_degree,
+        };
+        try result.validate();
+        return result;
+    }
+
+    pub fn validateAgainst(
+        self: *const OwnedLookupPolynomialProgramV2,
+        expected: *const LookupPolynomialAuthorityV2,
+    ) LookupPolynomialProgramV2Error!void {
+        try expected.validate();
+        try self.validate();
+        if (!std.mem.eql(
+            u8,
+            &self.layout.component_identity,
+            &expected.component_identity,
+        )) return error.InvalidComponentIdentity;
+        if (!std.mem.eql(
+            u8,
+            &self.layout.partition_identity,
+            &expected.partition_identity,
+        )) return error.InvalidPartitionIdentity;
+        if (!std.mem.eql(
+            u8,
+            &self.layout.layout_identity,
+            &expected.layout_identity,
+        )) return error.InvalidLayoutIdentity;
+        if (!std.mem.eql(
+            u8,
+            &self.program_identity,
+            &expected.program_identity,
+        )) return error.InvalidProgramIdentity;
+        if (self.layout.entry_count != expected.entry_count or
+            self.layout.batch_count != expected.batch_count or
+            self.layout.interaction_column_count !=
+                expected.interaction_column_count or
+            self.layout.maximum_interaction_degree !=
+                expected.maximum_interaction_degree)
+        {
+            return error.InvalidAuthorityGeometry;
+        }
+    }
+
+    fn validateStructure(self: *const OwnedLookupPolynomialProgramV2) LookupPolynomialProgramV2Error!void {
+        try self.layout.validate(self.event_degrees, self.batches);
+        if (self.nodes.len == 0) return error.InvalidNode;
+        if (self.nodes.len > std.math.maxInt(u32))
+            return error.CountOverflow;
+        if (self.entries.len != self.event_degrees.len or
+            self.entries.len != @as(usize, self.layout.entry_count))
+        {
+            return error.InvalidEntryCount;
+        }
+
+        for (self.nodes, 0..) |node, index| switch (node.op) {
+            .constant => if (node.lhs != 0 or node.rhs != 0 or
+                node.value >= m31.Modulus)
+            {
+                return error.InvalidNode;
+            },
+            .column => if (node.lhs != 0 or node.rhs != 0 or
+                node.value >= self.layout.column_count)
+            {
+                return error.InvalidNode;
+            },
+            .add, .sub, .mul => if (node.lhs >= index or node.rhs >= index or
+                node.value != 0)
+            {
+                return error.InvalidNode;
+            },
+            .neg => if (node.lhs >= index or node.rhs != 0 or node.value != 0) {
+                return error.InvalidNode;
+            },
+        };
+
+        for (self.entries) |entry| {
+            if (entry.arity == 0 or
+                entry.arity > MAX_LOOKUP_POLYNOMIAL_ARITY or
+                entry.numerator >= self.nodes.len)
+            {
+                return error.InvalidEntry;
+            }
+            for (entry.values[0..entry.arity]) |value| {
+                if (value >= self.nodes.len) return error.InvalidEntry;
+            }
+        }
+    }
+
+    pub fn batchCount(self: *const OwnedLookupPolynomialProgramV2) usize {
+        return self.batches.len;
+    }
+
+    pub fn interactionColumnCount(self: *const OwnedLookupPolynomialProgramV2) usize {
+        return @as(usize, self.layout.interaction_column_count);
+    }
+
+    pub fn parameterCount(self: *const OwnedLookupPolynomialProgramV2) LookupPolynomialProgramV2Error!usize {
+        var count = self.batches.len;
+        for (self.entries) |entry| {
+            count = std.math.add(usize, count, 1 + @as(usize, entry.arity)) catch
+                return error.CountOverflow;
+        }
+        return count;
+    }
+
+    /// Migration invariant for components whose selected partition is the V1
+    /// uniform partition. Polynomial node/entry order, parameter order, and
+    /// every batch range must be exactly equal.
+    pub fn isExactUniformV1(
+        self: *const OwnedLookupPolynomialProgramV2,
+        legacy: *const OwnedLookupPolynomialProgram,
+    ) bool {
+        legacy.validate() catch return false;
+        self.validate() catch return false;
+        if (legacy.column_count != @as(usize, self.layout.column_count) or
+            legacy.nodes.len != self.nodes.len or
+            legacy.entries.len != self.entries.len or
+            legacy.batchCount() != self.batches.len)
+        {
+            return false;
+        }
+        for (legacy.nodes, self.nodes) |expected, actual| {
+            if (expected.op != actual.op or expected.lhs != actual.lhs or
+                expected.rhs != actual.rhs or expected.value != actual.value)
+            {
+                return false;
+            }
+        }
+        for (legacy.entries, self.entries) |expected, actual| {
+            if (expected.numerator != actual.numerator or
+                expected.arity != actual.arity)
+            {
+                return false;
+            }
+            for (
+                expected.values[0..expected.arity],
+                actual.values[0..actual.arity],
+            ) |expected_value, actual_value| {
+                if (expected_value != actual_value) return false;
+            }
+        }
+        var cursor: usize = 0;
+        for (self.batches) |batch| {
+            const expected_width = @min(
+                legacy.batch_size,
+                legacy.entries.len - cursor,
+            );
+            if (@as(usize, batch.first_entry) != cursor or
+                @as(usize, batch.entry_count) != expected_width)
+            {
+                return false;
+            }
+            cursor += expected_width;
+        }
+        const parameter_count = self.parameterCount() catch return false;
+        return cursor == legacy.entries.len and
+            parameter_count == legacy.parameterCount();
+    }
+
+    fn identityDigest(self: *const OwnedLookupPolynomialProgramV2) LookupPolynomialIdentity {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(LOOKUP_POLYNOMIAL_PROGRAM_V2_IDENTITY_DOMAIN);
+        hash.update(&self.layout.layout_identity);
+        hashIntegerV2(&hash, u32, @intCast(self.nodes.len));
+        for (self.nodes) |node| {
+            hashIntegerV2(&hash, u8, @intFromEnum(node.op));
+            hashIntegerV2(&hash, u32, node.lhs);
+            hashIntegerV2(&hash, u32, node.rhs);
+            hashIntegerV2(&hash, u32, node.value);
+        }
+        hashIntegerV2(&hash, u32, @intCast(self.entries.len));
+        for (self.entries) |entry| {
+            hashIntegerV2(&hash, u32, entry.numerator);
+            hashIntegerV2(&hash, u8, entry.arity);
+            for (entry.values[0..entry.arity]) |value|
+                hashIntegerV2(&hash, u32, value);
+        }
+        return hash.finalResult();
+    }
+};
+
+fn lookupInteractionDegreeV2(
+    first: LookupPolynomialEventDegreeV2,
+    second: ?LookupPolynomialEventDegreeV2,
+) LookupPolynomialProgramV2Error!u32 {
+    const second_denominator = if (second) |item|
+        item.denominator_degree
+    else
+        0;
+    const denominator_product = std.math.add(
+        u32,
+        first.denominator_degree,
+        second_denominator,
+    ) catch return error.DegreeOverflow;
+    const first_numerator_term = std.math.add(
+        u32,
+        first.numerator_degree,
+        second_denominator,
+    ) catch return error.DegreeOverflow;
+    const second_numerator_term = if (second) |item|
+        std.math.add(
+            u32,
+            item.numerator_degree,
+            first.denominator_degree,
+        ) catch return error.DegreeOverflow
+    else
+        0;
+    const transition_term = std.math.add(
+        u32,
+        1,
+        denominator_product,
+    ) catch return error.DegreeOverflow;
+    return @max(
+        transition_term,
+        @max(first_numerator_term, second_numerator_term),
+    );
+}
+
+fn identityIsZeroV2(identity: LookupPolynomialIdentity) bool {
+    return std.mem.allEqual(u8, &identity, 0);
+}
+
+fn hashIntegerV2(hash: anytype, comptime T: type, value: T) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, value, .little);
+    hash.update(&bytes);
+}
+
+/// Pairs-batched LogUp transition constraints whose base tuple expressions are
+/// exported from a production typed builder. Parameter order is canonical:
+/// for every entry, `(z, alpha^0, ..., alpha^(arity-1))`, followed by one
+/// claimed sum per batch.
+pub const LookupPolynomialCapabilityV1 = struct {
+    program_id: u64,
+    trace_log_size: u32,
+    selector_tree_index: usize,
+    selector_column: usize,
+    main_tree_index: usize,
+    first_main_column: usize,
+    main_column_count: usize,
+    interaction_tree_index: usize,
+    first_interaction_column: usize,
+    interaction_column_count: usize,
+    export_program: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!OwnedLookupPolynomialProgram,
+    export_parameters: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror![]QM31,
+};
+
+/// One contiguous constraint interval owned by a resident sub-program. The
+/// interval is expressed in the component's canonical constraint order; the
+/// backend remains responsible for mapping it onto the corresponding random
+/// coefficient slice.
+pub const ComponentConstraintRangeV1 = struct {
+    start: usize,
+    count: usize,
+};
+
+pub const MAX_BASE_POLYNOMIAL_PARTITIONS_V1: usize = 8;
+
+pub const BasePolynomialPartitionV1 = struct {
+    capability: BasePolynomialCapabilityV1,
+    constraints: ComponentConstraintRangeV1,
+};
+
+/// A component whose complete constraint relation is partitioned between one
+/// or more direct base-polynomial programs and one pairs-batched LogUp program.
+/// This is deliberately a cold exported value rather than another large inline
+/// union payload: dormant support must not inflate every `ComponentProver`
+/// copied by the generic prover.
+pub const BaseLookupPolynomialCapabilitiesV1 = struct {
+    base_partitions: [MAX_BASE_POLYNOMIAL_PARTITIONS_V1]BasePolynomialPartitionV1 = undefined,
+    base_partition_count: usize,
+    lookup: LookupPolynomialCapabilityV1,
+    lookup_constraints: ComponentConstraintRangeV1,
+
+    pub fn validate(self: @This(), total_constraints: usize) !void {
+        if (self.base_partition_count == 0 or
+            self.base_partition_count > self.base_partitions.len or
+            self.lookup_constraints.count == 0)
+        {
+            return error.InvalidBackendCompositionPartition;
+        }
+        const lookup_end = std.math.add(
+            usize,
+            self.lookup_constraints.start,
+            self.lookup_constraints.count,
+        ) catch return error.InvalidBackendCompositionPartition;
+        if (lookup_end > total_constraints) return error.InvalidBackendCompositionPartition;
+        var covered = self.lookup_constraints.count;
+        for (self.base_partitions[0..self.base_partition_count], 0..) |partition, index| {
+            const range = partition.constraints;
+            const range_end = std.math.add(usize, range.start, range.count) catch
+                return error.InvalidBackendCompositionPartition;
+            if (range.count == 0 or range_end > total_constraints or
+                (range.start < lookup_end and self.lookup_constraints.start < range_end))
+                return error.InvalidBackendCompositionPartition;
+            for (self.base_partitions[0..index]) |prior| {
+                const prior_end = prior.constraints.start + prior.constraints.count;
+                if (range.start < prior_end and prior.constraints.start < range_end)
+                    return error.InvalidBackendCompositionPartition;
+            }
+            covered = std.math.add(usize, covered, range.count) catch
+                return error.InvalidBackendCompositionPartition;
+        }
+        if (covered != total_constraints) return error.InvalidBackendCompositionPartition;
+    }
+};
+
+pub const BaseLookupPolynomialCapabilityV1 = struct {
+    export_capabilities: *const fn (
+        ctx: *const anyopaque,
+    ) anyerror!BaseLookupPolynomialCapabilitiesV1,
+};
+
+/// Variable singleton/pair lookup capability authenticated by a pointer-free
+/// compiler authority. This is append-only beside V1: a component must opt in
+/// explicitly, and existing backends may decline it through their ordinary
+/// capability fallback until they implement the V2 partition.
+pub const LookupPolynomialCapabilityV2 = struct {
+    /// Borrowed from the same stable owner as `ComponentProver.ctx` and copied
+    /// into backend preparation before any worker can start.
+    authority: *const LookupPolynomialAuthorityV2,
+    trace_log_size: u32,
+    selector_tree_index: usize,
+    selector_column: usize,
+    main_tree_index: usize,
+    first_main_column: usize,
+    main_column_count: usize,
+    interaction_tree_index: usize,
+    first_interaction_column: usize,
+    interaction_column_count: usize,
+    export_program: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror!OwnedLookupPolynomialProgramV2,
+    export_parameters: *const fn (
+        ctx: *const anyopaque,
+        allocator: std.mem.Allocator,
+    ) anyerror![]QM31,
+};
+
+comptime {
+    if (@sizeOf(LookupPolynomialCapabilityV2) >
+        @sizeOf(LookupPolynomialCapabilityV1))
+    {
+        @compileError("dormant lookup-polynomial V2 must not inflate every production component");
+    }
+}
+
+/// Reviewed semantic contracts that a backend may accelerate without
+/// identifying a workload or trusting a coincidental vtable address. Each
+/// variant names the complete AIR relation implemented by the accelerated
+/// kernel; unmarked components always use the reference evaluator.
+pub const BackendCompositionCapability = union(enum) {
+    /// For one trace tree with columns `[a, b, c, ...]`, contributes one
+    /// constraint per consecutive triple: `c - (a^2 + b^2)`, in canonical
+    /// component constraint order, divided by the trace-coset vanishing
+    /// polynomial.
+    quadratic_sum_squares_v1: struct {
+        trace_tree_index: usize,
+        first_column: usize,
+    },
+    /// Direct base-field constraints exported from the frontend's production
+    /// typed AIR builder. Random-coefficient order and vanishing denominators
+    /// remain owned by the generic prover.
+    base_polynomial_v1: BasePolynomialCapabilityV1,
+    /// Pairs-batched LogUp transition constraints over production-exported
+    /// base tuple expressions and committed secure cumulative columns.
+    lookup_polynomial_v1: LookupPolynomialCapabilityV1,
+    /// Authenticated variable singleton/pair partition used by the versioned
+    /// SegmentV2 statement and proof layout.
+    lookup_polynomial_v2: LookupPolynomialCapabilityV2,
+    /// Complete component relation split between independently authenticated
+    /// direct and LogUp sub-programs. Backends that do not implement the split
+    /// decline it and retain the reference whole-component evaluator.
+    base_lookup_polynomial_v1: BaseLookupPolynomialCapabilityV1,
+    /// Complete typed recursive AIR, including same-row framework LogUp prefixes.
+    /// Backends must explicitly implement this distinct recurrence or decline.
+    framework_polynomial_v1: FrameworkPolynomialCapabilityV1,
+};
+
+/// Arbitrary admitted PCS input coordinates. Unlike the legacy resident
+/// contracts, preprocessing need not be one selector beside a main slab.
+pub const TypedPolynomialColumnV1 = struct { tree_index: u8, column_index: u32 };
+pub const TypedPolynomialInputV1 = union(enum) {
+    trace_column: TypedPolynomialColumnV1,
+    profile_parameter: u32,
+};
+
+/// Recursive framework relations include the 33-word atomic Poseidon tuple.
+/// Keep this geometry separate from the already admitted V1/V2 lookup ABI.
+pub const FRAMEWORK_LOOKUP_MAX_ARITY_V1: usize = 33;
+pub const FrameworkLookupEntryV1 = struct {
+    domain: u16,
+    schema_version: u16,
+    numerator: u32,
+    values: [FRAMEWORK_LOOKUP_MAX_ARITY_V1]u32 = @splat(0),
+    arity: u8,
+};
+pub const FrameworkLookupBatchV1 = struct {
+    first_entry: u32,
+    entry_count: u8,
+    interaction_column_start: u32,
+};
+
+/// Each non-final batch stores a same-row cumulative sum. Only the final
+/// batch has a previous-row dependency, and its difference includes one
+/// claimed_sum / trace_size shift. This is not the V1/V2 independent-prefix
+/// recurrence and cannot be dispatched through those capability tags.
+pub const FrameworkLookupLayoutV1 = enum(u16) {
+    same_row_prefix_v1 = 1,
+    /// Each batch has its own previous-row sum and public claim. The selector
+    /// multiplies that claim; there is no same-row prefix or average shift.
+    independent_prefix_v1 = 2,
+};
+pub const FRAMEWORK_POLYNOMIAL_PROGRAM_DOMAIN_V1 =
+    "stwo/prover/framework-polynomial-program/v1\x00";
+
+pub const OwnedFrameworkPolynomialProgramV1 = struct {
+    allocator: std.mem.Allocator,
+    format_version: u16 = 1,
+    semantic_digest: [32]u8,
+    registry_order_digest: [32]u8,
+    direct: OwnedBasePolynomialProgram,
+    lookup_nodes: []BasePolynomialNode,
+    entries: []FrameworkLookupEntryV1,
+    batches: []FrameworkLookupBatchV1,
+    inputs: []TypedPolynomialInputV1,
+    interaction_columns: []TypedPolynomialColumnV1,
+    profile_parameter_count: u32,
+    layout: FrameworkLookupLayoutV1 = .same_row_prefix_v1,
+    is_first_input: ?u32 = null,
+    identity: [32]u8,
+
+    pub fn deinit(self: *OwnedFrameworkPolynomialProgramV1) void {
+        self.direct.deinit();
+        self.allocator.free(self.lookup_nodes);
+        self.allocator.free(self.entries);
+        self.allocator.free(self.batches);
+        self.allocator.free(self.inputs);
+        self.allocator.free(self.interaction_columns);
+        self.* = undefined;
+    }
+
+    pub fn lookupParameterCount(self: *const OwnedFrameworkPolynomialProgramV1) usize {
+        var count: usize = 0;
+        for (self.entries) |entry| count += 1 + @as(usize, entry.arity);
+        return count;
+    }
+
+    /// Cold backend admission. Column bounds are the proof's actual tree
+    /// geometry, not capacities supplied by a producer-generated program.
+    pub fn validate(self: *const OwnedFrameworkPolynomialProgramV1, tree_column_counts: []const usize) !void {
+        if (self.format_version != 1 or self.direct.column_count != self.inputs.len or
+            self.entries.len == 0 or self.batches.len == 0 or
+            self.interaction_columns.len != 4 * self.batches.len or
+            self.profile_parameter_count > self.inputs.len)
+            return error.InvalidFrameworkPolynomialProgram;
+        switch (self.layout) {
+            .same_row_prefix_v1 => {
+                if (self.is_first_input != null) return error.InvalidFrameworkPolynomialInput;
+            },
+            .independent_prefix_v1 => {
+                const selector = self.is_first_input orelse return error.InvalidFrameworkPolynomialInput;
+                if (selector >= self.inputs.len or self.inputs[selector] != .trace_column or
+                    self.inputs[selector].trace_column.tree_index != 0)
+                    return error.InvalidFrameworkPolynomialInput;
+            },
+        }
+        // Relation-only components have no direct graph in either layout.
+        // Lookup entries and batches remain mandatory and are validated below.
+        if (self.direct.roots.len == 0) {
+            if (self.direct.nodes.len != 0) return error.InvalidFrameworkPolynomialProgram;
+        } else try self.direct.validate();
+        var lookup_root = [_]u32{self.entries[0].numerator};
+        try (OwnedBasePolynomialProgram{ .allocator = self.allocator, .nodes = self.lookup_nodes, .roots = &lookup_root, .column_count = self.inputs.len }).validate();
+        for (self.inputs) |input| switch (input) {
+            .trace_column => |column| try validateTypedColumn(column, tree_column_counts),
+            .profile_parameter => |index| if (index >= self.profile_parameter_count) return error.InvalidFrameworkPolynomialInput,
+        };
+        for (self.interaction_columns) |column| try validateTypedColumn(column, tree_column_counts);
+        for (self.entries) |entry| {
+            if (entry.arity == 0 or entry.arity > FRAMEWORK_LOOKUP_MAX_ARITY_V1 or entry.numerator >= self.lookup_nodes.len)
+                return error.InvalidFrameworkPolynomialEntry;
+            for (entry.values[0..entry.arity]) |value| if (value >= self.lookup_nodes.len) return error.InvalidFrameworkPolynomialEntry;
+            for (entry.values[entry.arity..]) |value| if (value != 0) return error.InvalidFrameworkPolynomialEntry;
+        }
+        var next_entry: usize = 0;
+        for (self.batches, 0..) |batch, index| {
+            if (batch.first_entry != next_entry or batch.entry_count == 0 or batch.entry_count > 2 or
+                batch.interaction_column_start != 4 * index) return error.InvalidFrameworkPolynomialBatch;
+            next_entry += batch.entry_count;
+        }
+        if (next_entry != self.entries.len) return error.InvalidFrameworkPolynomialBatch;
+        for ([_][]const BasePolynomialNode{ self.direct.nodes, self.lookup_nodes }) |nodes| for (nodes) |node| {
+            if (node.op == .constant and node.value >= m31.Modulus) return error.InvalidFrameworkPolynomialConstant;
+        };
+        if (!std.mem.eql(u8, &self.identity, &self.identityDigest())) return error.InvalidFrameworkPolynomialIdentity;
+    }
+
+    /// Program identity binds equations, order, layout and source coordinates.
+    /// Runtime profile words, relation challenges and claimed sums stay outside
+    /// this identity: they are authenticated invocation inputs, not constants.
+    pub fn identityDigest(self: *const OwnedFrameworkPolynomialProgramV1) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(FRAMEWORK_POLYNOMIAL_PROGRAM_DOMAIN_V1);
+        frameworkHashInt(&hash, u16, self.format_version);
+        hash.update(&self.semantic_digest);
+        hash.update(&self.registry_order_digest);
+        frameworkHashInt(&hash, u16, @intFromEnum(self.layout));
+        // Append-only encoding: existing layout1 identities stay byte-exact.
+        if (self.layout == .independent_prefix_v1)
+            frameworkHashInt(&hash, u32, self.is_first_input orelse std.math.maxInt(u32));
+        frameworkHashInt(&hash, u32, self.profile_parameter_count);
+        for ([_][]const BasePolynomialNode{ self.direct.nodes, self.lookup_nodes }) |nodes| {
+            frameworkHashInt(&hash, u32, nodes.len);
+            for (nodes) |node| {
+                frameworkHashInt(&hash, u8, @intFromEnum(node.op));
+                frameworkHashInt(&hash, u32, node.lhs);
+                frameworkHashInt(&hash, u32, node.rhs);
+                frameworkHashInt(&hash, u32, node.value);
+            }
+        }
+        frameworkHashInt(&hash, u32, self.direct.roots.len);
+        for (self.direct.roots) |root| frameworkHashInt(&hash, u32, root);
+        frameworkHashInt(&hash, u32, self.inputs.len);
+        for (self.inputs) |input| switch (input) {
+            .trace_column => |column| {
+                frameworkHashInt(&hash, u8, 0);
+                frameworkHashInt(&hash, u8, column.tree_index);
+                frameworkHashInt(&hash, u32, column.column_index);
+            },
+            .profile_parameter => |index| {
+                frameworkHashInt(&hash, u8, 1);
+                frameworkHashInt(&hash, u32, index);
+            },
+        };
+        frameworkHashInt(&hash, u32, self.interaction_columns.len);
+        for (self.interaction_columns) |column| {
+            frameworkHashInt(&hash, u8, column.tree_index);
+            frameworkHashInt(&hash, u32, column.column_index);
+        }
+        frameworkHashInt(&hash, u32, self.entries.len);
+        for (self.entries) |entry| {
+            frameworkHashInt(&hash, u16, entry.domain);
+            frameworkHashInt(&hash, u16, entry.schema_version);
+            frameworkHashInt(&hash, u32, entry.numerator);
+            frameworkHashInt(&hash, u8, entry.arity);
+            for (entry.values[0..entry.arity]) |value| frameworkHashInt(&hash, u32, value);
+        }
+        frameworkHashInt(&hash, u32, self.batches.len);
+        for (self.batches) |batch| {
+            frameworkHashInt(&hash, u32, batch.first_entry);
+            frameworkHashInt(&hash, u8, batch.entry_count);
+            frameworkHashInt(&hash, u32, batch.interaction_column_start);
+        }
+        return hash.finalResult();
+    }
+};
+
+pub const FrameworkPolynomialParametersV1 = struct {
+    profile_values: []const M31,
+    /// Canonical per-entry (z, alpha^0, ..., alpha^(arity-1)).
+    relation_values: []const QM31,
+    /// These are admitted component invocation inputs. The backend must match
+    /// trace_log_size to the proof's component geometry, never candidate data.
+    trace_log_size: u32,
+    claimed_sum: QM31,
+    batch_claims: []const QM31 = &.{},
+
+    /// Payload after relation parameters: the legacy average shift, or one
+    /// unscaled public claim per independent batch. Validate at admission.
+    pub fn claimPayloadCount(self: FrameworkPolynomialParametersV1, program: *const OwnedFrameworkPolynomialProgramV1) usize {
+        return switch (program.layout) {
+            .same_row_prefix_v1 => 1,
+            .independent_prefix_v1 => self.batch_claims.len,
+        };
+    }
+
+    pub fn claimPayload(self: FrameworkPolynomialParametersV1, program: *const OwnedFrameworkPolynomialProgramV1, index: usize) !QM31 {
+        return switch (program.layout) {
+            .same_row_prefix_v1 => if (index == 0) self.claimedSumShift() else error.InvalidFrameworkPolynomialParameters,
+            .independent_prefix_v1 => if (index < self.batch_claims.len) self.batch_claims[index] else error.InvalidFrameworkPolynomialParameters,
+        };
+    }
+
+    pub fn claimedSumShift(self: FrameworkPolynomialParametersV1) !QM31 {
+        if (self.trace_log_size == 0 or self.trace_log_size >= @import("stwo_core").circle.M31_CIRCLE_LOG_ORDER)
+            return error.InvalidFrameworkPolynomialParameters;
+        return self.claimed_sum.divM31(M31.fromU64(@as(u64, 1) << @intCast(self.trace_log_size)));
+    }
+
+    pub fn validate(self: FrameworkPolynomialParametersV1, program: *const OwnedFrameworkPolynomialProgramV1) !void {
+        if (self.profile_values.len != program.profile_parameter_count or self.relation_values.len != program.lookupParameterCount())
+            return error.InvalidFrameworkPolynomialParameters;
+        for (self.profile_values) |value| if (value.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+        for (self.relation_values) |value| for (value.toM31Array()) |coordinate| {
+            if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+        };
+        for (self.claimed_sum.toM31Array()) |coordinate| if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+        switch (program.layout) {
+            .same_row_prefix_v1 => if (self.batch_claims.len != 0) return error.InvalidFrameworkPolynomialParameters,
+            .independent_prefix_v1 => {
+                if (!self.claimed_sum.isZero() or self.batch_claims.len != program.batches.len)
+                    return error.InvalidFrameworkPolynomialParameters;
+                for (self.batch_claims) |claim| for (claim.toM31Array()) |coordinate| {
+                    if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+                };
+            },
+        }
+        _ = try self.claimedSumShift();
+    }
+};
+
+fn validateTypedColumn(column: TypedPolynomialColumnV1, counts: []const usize) !void {
+    if (column.tree_index >= counts.len or column.column_index >= counts[column.tree_index]) return error.InvalidFrameworkPolynomialInput;
+}
+fn frameworkHashInt(hash: anytype, comptime T: type, value: anytype) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, @intCast(value), .little);
+    hash.update(&bytes);
+}
+
+/// Cold export callbacks from one admitted immutable component. Runtime values
+/// stay outside program identity; the backend binds the invocation log size to
+/// this admitted trace geometry before dispatch, and owns exports for the job.
+pub const FrameworkPolynomialCapabilityV1 = struct {
+    trace_log_size: u32,
+    export_program: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator, tree_column_counts: []const usize) anyerror!OwnedFrameworkPolynomialProgramV1,
+    export_parameters: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror!OwnedFrameworkPolynomialParametersV1,
+};
+
+pub const OwnedFrameworkPolynomialParametersV1 = struct {
+    allocator: std.mem.Allocator,
+    values: FrameworkPolynomialParametersV1,
+
+    pub fn deinit(self: *@This()) void {
+        self.allocator.free(self.values.profile_values);
+        self.allocator.free(self.values.relation_values);
+        if (self.values.batch_claims.len != 0) self.allocator.free(self.values.batch_claims);
+        self.* = undefined;
+    }
+};

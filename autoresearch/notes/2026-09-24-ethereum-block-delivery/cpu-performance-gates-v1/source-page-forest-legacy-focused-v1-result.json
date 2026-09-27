@@ -1,0 +1,22 @@
+{
+  "source_candidate": "source-page-forest-legacy-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 29.462789957993664,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 22,
+  "test_summary": [
+    "All 22 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-legacy-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-source-page-forest-legacy-focused-v1",
+    "bytes": 45297712,
+    "sha256": "9dc17f333783ad318a58e5cf33f554cde98e1b32e9cb4b6ecf80da2539a302b1"
+  }
+}

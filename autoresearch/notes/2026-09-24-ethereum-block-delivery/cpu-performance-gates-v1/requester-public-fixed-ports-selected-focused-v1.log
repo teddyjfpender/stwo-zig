@@ -1,0 +1,23 @@
+1/22 block_v5_requester_recursive_fixed_selected_test_root_v1.test_0...OK
+2/22 block_v5_requester_recursive_fixed_selected_test_root_v1.test.requester fixed ports: explicit selected source recipe retained...OK
+3/22 block_v5_requester_recursive_fixed_selected_test_root_v1.test.requester fixed ports: actual source compiler fixed and original producer bodies retained...OK
+4/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: exact original scalar weights and four-coordinate pack schedules...OK
+5/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: duplicate missing excess and unsupported span inputs reject...OK
+6/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: independent term caps and canonical coordinate bounds fail closed...OK
+7/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: changed tuple assignments do not enter fixed rows but changed routing rejects...OK
+8/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: upstream original graph outside injected allocation and all port failures release...OK
+9/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: setup-only admissions cannot satisfy live verifier authority methods...OK
+10/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: original child supplier collector preserves byte reads and negative packed consumption...OK
+11/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: nested fixed allocations retain creator budget until final free...OK
+12/22 prover.block_v5_requester_recursive_fixed_test_v1.test.requester fixed ports: setup recorder admits 67 and 4096 roots with exact original no-offset grammar...OK
+13/22 prover.block_v5_requester_public_fixed_kernel_test_v1.test.requester fixed ports: shared tuple B5SS live and fixed exact row identity and source schedule parity...OK
+14/22 prover.block_v5_requester_public_fixed_kernel_test_v1.test.requester fixed ports: shared tuple source challenge relation and evaluation mutations reject identically...OK
+15/22 prover.block_v5_requester_public_fixed_kernel_test_v1.test.requester fixed ports: fixed tuple metadata retains allocation budget after creator release...OK
+16/22 prover.block_v5_requester_public_fixed_kernel_test_v1.test.requester fixed ports: original validation and initial fixed allocation failures release before emission...OK
+17/22 prover.block_execution_external_trace_v2.test_0...OK
+18/22 air.lookups.tables.mod.test_0...OK
+19/22 air.semantic_eval.test_0...OK
+20/22 prover.block_execution_external_access_bridge_v2.test_0...OK
+21/22 air.memory_commitment.poseidon2_air.test_0...OK
+22/22 air.lookups.tables.source_ingest.test_0...OK
+All 22 tests passed.

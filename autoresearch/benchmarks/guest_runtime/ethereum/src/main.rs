@@ -18,6 +18,13 @@ mod allocator;
 #[path = "../../fast_keccak_sponge_words_v1.rs"]
 mod keccak;
 mod single_thread_atomics;
+#[path = "../../fast_memory_v1.rs"]
+mod fast_memory;
+#[cfg(feature = "sha256-precompile")]
+#[path = "../../sha256_precompile_v1.rs"]
+mod sha256;
+mod evm_recovery;
+mod evm_hints;
 
 #[global_allocator]
 static HEAP: allocator::ExactLayoutFreeListHeapV2 = allocator::ExactLayoutFreeListHeapV2::empty();
@@ -43,8 +50,10 @@ unsafe impl critical_section::Impl for GuestCriticalSection {
     unsafe fn release(_: bool) {}
 }
 
-global_asm!(
-    r#"
+#[path = "../../ethereum_admission_v1.rs"]
+mod admission;
+
+global_asm!(r#"
     .section .text._start
     .globl _start
 _start:
@@ -55,26 +64,7 @@ _start:
     la sp, __stack_top
     call guest_main
 
-    .section .note.stwo.zkvm,"",@note
-    .balign 4
-    .long 5
-    .long 56
-    .long 1
-    .ascii "STWO\0"
-    .balign 4
-    .ascii "STWZKVM\0"
-    .short 1
-    .short 3
-    .quad 6
-    .short 1
-    .short 0
-    .byte 0xfb,0xe8,0x83,0x3d,0xe3,0x5b,0x29,0xab
-    .byte 0x15,0x5a,0xfe,0xd5,0x8f,0x59,0x3d,0x44
-    .byte 0xd2,0xa7,0x25,0x7a,0xd4,0x49,0x1d,0x95
-    .byte 0x37,0x42,0xd3,0x94,0xda,0x66,0xcf,0xc2
-    .balign 4
-"#
-);
+"#);
 
 unsafe fn stwo_keccakf(state: *mut u64) {
     unsafe {
@@ -103,6 +93,42 @@ const _: () = assert!(core::mem::size_of::<RecoveryRecord>() == 168);
 const _: () = assert!(core::mem::offset_of!(RecoveryRecord, public_key_xy) == 100);
 const _: () = assert!(core::mem::offset_of!(RecoveryRecord, status) == 164);
 
+fn proved_recover(sig: &[u8; 64], recid: u8, msg: &[u8; 32]) -> [u8; 64] {
+        let mut record = RecoveryRecord {
+            digest: *msg,
+            r: sig[..32].try_into().unwrap(),
+            s: sig[32..64].try_into().unwrap(),
+            recovery_id: u32::from(recid),
+            public_key_xy: [0; 64],
+            status: 0,
+        };
+        unsafe {
+            asm!(".word 0x0602800b", in("t0") &mut record, options(nostack));
+        }
+        assert_eq!(record.status, 1, "native recovery rejection is fatal");
+        record.public_key_xy
+}
+
+#[derive(Debug)]
+struct NativeEvmCrypto;
+impl revm_precompile::interface::Crypto for NativeEvmCrypto {
+    #[cfg(feature = "sha256-precompile")]
+    fn sha256(&self, input: &[u8]) -> [u8; 32] {
+        sha256::hash(input)
+    }
+    fn secp256k1_ecrecover(&self, sig: &[u8; 64], recid: u8, msg: &[u8; 32]) -> Result<[u8; 32], revm_precompile::interface::PrecompileHalt> {
+        #[cfg(feature = "collect-evm-hints")]
+        {
+            use revm_precompile::interface::{Crypto, DefaultCrypto};
+            let result = DefaultCrypto.secp256k1_ecrecover(sig, recid, msg);
+            evm_hints::observe(result.is_ok() && recid <= 1);
+            result
+        }
+        #[cfg(not(feature = "collect-evm-hints"))]
+        evm_recovery::recover(sig, recid, msg, evm_hints::next(), proved_recover)
+    }
+}
+
 struct NativeTransactionRecovery;
 impl CryptoProvider for NativeTransactionRecovery {
     fn recover_signer_unchecked(
@@ -111,19 +137,7 @@ impl CryptoProvider for NativeTransactionRecovery {
         msg: &[u8; 32],
     ) -> Result<Address, RecoveryError> {
         assert!(sig[64] <= 1, "native recovery requires a parity bit");
-        let mut record = RecoveryRecord {
-            digest: *msg,
-            r: sig[..32].try_into().unwrap(),
-            s: sig[32..64].try_into().unwrap(),
-            recovery_id: u32::from(sig[64]),
-            public_key_xy: [0; 64],
-            status: 0,
-        };
-        unsafe {
-            asm!(".word 0x0602800b", in("t0") &mut record, options(nostack));
-        }
-        assert_eq!(record.status, 1, "native recovery rejection is fatal");
-        Ok(Address::from_raw_public_key(&record.public_key_xy))
+        Ok(Address::from_raw_public_key(&proved_recover(sig[..64].try_into().unwrap(), sig[64], msg)))
     }
 
     fn verify_and_compute_signer_unchecked(
@@ -155,18 +169,21 @@ extern "C" fn guest_main() -> ! {
         );
     }
     install_default_provider(Arc::new(NativeTransactionRecovery)).unwrap();
-    // Revm's Crypto provider stays on its software default.
-    let input = unsafe {
+    let (input, footer) = unsafe {
         let begin = ptr::addr_of!(__input_start);
         let length = ptr::read_volatile(begin.cast::<u32>()) as usize;
         assert!(length <= ptr::addr_of!(__input_end) as usize - begin as usize - 4);
-        core::slice::from_raw_parts(begin.add(4), length)
+        let remaining = ptr::addr_of!(__input_end) as usize - begin as usize - 4 - length;
+        (core::slice::from_raw_parts(begin.add(4), length), core::slice::from_raw_parts(begin.add(4 + length), remaining))
     };
+    evm_hints::initialize(footer);
+    assert!(revm_precompile::interface::install_crypto(NativeEvmCrypto));
     let output = stateless_validator_reth::guest::run_stateless_guest(input);
     assert!(
         output.len() == 43 && output[32] == 1,
         "block validation failed"
     );
+    let output = evm_hints::finish(output);
     unsafe {
         ptr::copy_nonoverlapping(
             output.as_ptr(),

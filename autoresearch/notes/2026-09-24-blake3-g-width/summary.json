@@ -1,0 +1,102 @@
+{
+  "timed_proofs": 48,
+  "fresh_verifications": 16,
+  "rows": [
+    {
+      "case": "metal-ecdsa_secp256k1-32",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 0.6763407290000001,
+        "composition_median_seconds": 0.0645075,
+        "main_commit_median_seconds": 0.067631,
+        "interaction_commit_median_seconds": 0.0733965,
+        "historical_prove_mean_seconds": 0.5320401946666666,
+        "peak_process_bytes": 1867860080,
+        "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 0.6774936035,
+        "composition_median_seconds": 0.06504399999999999,
+        "main_commit_median_seconds": 0.06559999999999999,
+        "interaction_commit_median_seconds": 0.0722825,
+        "historical_prove_mean_seconds": 0.5363220761666667,
+        "peak_process_bytes": 1851115872,
+        "proof_sha256": "a3cf0016ecbc2d8bc0c7004109bf11dc93129e4244c8c98a0b50ebfb8edd4a1a"
+      },
+      "total_speedup": 0.9982983241553218
+    },
+    {
+      "case": "metal-sha256-128",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 1.6337165630000001,
+        "composition_median_seconds": 0.1316765,
+        "main_commit_median_seconds": 0.10749149999999999,
+        "interaction_commit_median_seconds": 0.114591,
+        "historical_prove_mean_seconds": 1.1851833194999999,
+        "peak_process_bytes": 4867428144,
+        "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 1.6058337295,
+        "composition_median_seconds": 0.121285,
+        "main_commit_median_seconds": 0.10163249999999999,
+        "interaction_commit_median_seconds": 0.10960349999999999,
+        "historical_prove_mean_seconds": 1.143241875,
+        "peak_process_bytes": 4529868448,
+        "proof_sha256": "970a83f41d2e6196442745b137a28028c18b5d18818df09bd9f1705d21d7d87d"
+      },
+      "total_speedup": 1.0173634623484225
+    },
+    {
+      "case": "metal-sha256-2048",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 2.6483226665,
+        "composition_median_seconds": 0.2458935,
+        "main_commit_median_seconds": 0.213921,
+        "interaction_commit_median_seconds": 0.22607,
+        "historical_prove_mean_seconds": 2.0495886045,
+        "peak_process_bytes": 8628819608,
+        "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 2.5932636249999996,
+        "composition_median_seconds": 0.2239895,
+        "main_commit_median_seconds": 0.196596,
+        "interaction_commit_median_seconds": 0.2161725,
+        "historical_prove_mean_seconds": 1.9782767085000001,
+        "peak_process_bytes": 8083592664,
+        "proof_sha256": "919ffdc7a2eb0f7868da857b6b10e29f4a7b15668004ba406332f1e28806bf42"
+      },
+      "total_speedup": 1.021231563566932
+    },
+    {
+      "case": "metal-keccak-128",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 2.5811691249999997,
+        "composition_median_seconds": 0.2494245,
+        "main_commit_median_seconds": 0.21081,
+        "interaction_commit_median_seconds": 0.219421,
+        "historical_prove_mean_seconds": 2.0028991523333333,
+        "peak_process_bytes": 8362546552,
+        "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 2.4930225,
+        "composition_median_seconds": 0.225364,
+        "main_commit_median_seconds": 0.19563750000000002,
+        "interaction_commit_median_seconds": 0.20598149999999998,
+        "historical_prove_mean_seconds": 1.9154394165,
+        "peak_process_bytes": 7818155336,
+        "proof_sha256": "02a346f7b54a700a2eb9e2073bfb65b7466bee905aca2f4c2d6e87f38c2ab590"
+      },
+      "total_speedup": 1.0353573323144896
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "source_candidate": "cpu-performance-assembly-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 68.86799933295697,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "object_only": false,
+  "tests_run": true,
+  "discovered_tests": 41,
+  "test_summary": [
+    "All 41 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-performance-assembly-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-performance-assembly-focused-v1",
+    "bytes": 119852272,
+    "sha256": "7d731958d023ada8042df8dd2b334dc1a99c6ad9bb2c56b7d017056b11a2f298"
+  }
+}

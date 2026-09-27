@@ -1,0 +1,17 @@
+1/16 prover.block_v5_cpu_capacity_collection_test_v1.test.capacity collection: fused ROM ledger uses genuine distinct identity and counts once...OK
+2/16 prover.block_v5_cpu_capacity_collection_test_v1.test.capacity collection: fused ROM metadata allocation failures preserve owned ledgers...OK
+3/16 prover.block_v5_cpu_capacity_collection_test_v1.test.capacity collection: real proposal binding rejects wrong frame witness and zero-RW census...OK
+4/16 prover.block_v5_cpu_capacity_collection_test_v1.test.capacity collection: late-bound entry allocations transfer no root ownership...OK
+5/16 prover.block_v5_cpu_capacity_collection_test_v1.test.capacity collection: typed full production bodies retained without invocation...OK
+6/16 prover.block_v5_cpu_capacity_collection_test_v1.test.capacity collection: roster caps include sparse caller and provider families before allocation...OK
+7/16 air.semantic_eval.test_0...OK
+8/16 air.lookups.tables.mod.test_0...OK
+9/16 runner.mod.test_0...OK
+10/16 runner.decode.test_0...OK
+11/16 air.memory_commitment.poseidon2_air.test_0...OK
+12/16 prover.block_execution_external_trace_v2.test_0...OK
+13/16 prover.block_execution_external_access_bridge_v2.test_0...OK
+14/16 prover.block_v5_committed_trace_column_v1.test_0...OK
+15/16 air.lookups.tables.source_ingest.test_0...OK
+16/16 diagnostics.mod.test_0...OK
+All 16 tests passed.

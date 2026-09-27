@@ -1,0 +1,6 @@
+metal-ecdsa_secp256k1-32 control-first 0.656968791 0.065460167 0.049452291
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-host-barycentric-staging/measure-csp.py", line 50, in <module>
+    assert max(x['cpu_fallbacks'] for x in report['proof_device_counts']) < min(x['cpu_fallbacks'] for x in control['proof_device_counts']), 'Mixed sampled dispatch did not remove CPU fallback'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Mixed sampled dispatch did not remove CPU fallback

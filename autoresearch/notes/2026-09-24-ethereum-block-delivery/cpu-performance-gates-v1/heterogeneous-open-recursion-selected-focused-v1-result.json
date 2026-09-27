@@ -1,0 +1,22 @@
+{
+  "source_candidate": "heterogeneous-open-recursion-selected-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 104.84887358301785,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 16,
+  "test_summary": [
+    "All 16 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/heterogeneous-open-recursion-selected-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-heterogeneous-open-recursion-selected-focused-v1",
+    "bytes": 10858776,
+    "sha256": "9c32496b927531b78aefe6d32f861d615ae53686b25df685c110cfd7330a8e97"
+  }
+}

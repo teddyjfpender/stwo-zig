@@ -1,0 +1,22 @@
+{
+  "source_candidate": "requester-memory-fixed-assembly-legacy-focused-v2-source.json",
+  "exit_code": 1,
+  "elapsed_seconds": 27.2337222500355,
+  "changed_source_pins": [],
+  "qualified": false,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 16,
+  "test_summary": [
+    "15 passed; 0 skipped; 1 failed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-memory-fixed-assembly-legacy-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-requester-memory-fixed-assembly-legacy-focused-v2",
+    "bytes": 46508552,
+    "sha256": "a3800dd0b88642b705adc90b82fac56e2dfff40078407a7b51f64cfc38d7a575"
+  }
+}

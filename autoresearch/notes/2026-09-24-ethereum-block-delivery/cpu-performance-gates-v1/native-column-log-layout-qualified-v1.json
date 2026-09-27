@@ -1,0 +1,57 @@
+{
+  "status": "qualified_nonproving_source",
+  "evidence": {
+    "native-column-log-layout-semantic-v2": {
+      "source_candidate": "native-column-log-layout-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 5.733716749993619,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-column-log-layout-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "native-column-log-layout-focused-v2": {
+      "source_candidate": "native-column-log-layout-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 85.330527040991,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 19,
+      "test_summary": [
+        "All 19 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-column-log-layout-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-native-column-log-layout-focused-v2",
+        "bytes": 10013840,
+        "sha256": "f7ecfc3f7a309993b18e59e1ee138ffc69a82a880578d54dafa48d1d7aee77cd"
+      }
+    }
+  },
+  "historical_initial_gate": "native-column-log-layout-focused-v1-result.json",
+  "scope": [
+    "One independently validated span cursor supplies legacy and capacity column geometry",
+    "Single allocation per returned array; no intermediate legacy array for capacity main geometry",
+    "Allocation-free exact Prepared geometry validation under allocator denial",
+    "Legacy mutation and truncation now rejected, preserving independent authority checks",
+    "Exact empty frame, maximum shard count, malformed descriptor admission and original allocation rollback",
+    "Actual original public parent, publisher, cache and fresh receiver bodies compiled but not invoked"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "body_executed": false,
+  "speed_or_peak_rss_claim": false
+}

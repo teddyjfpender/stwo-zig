@@ -1,0 +1,9 @@
+{
+  "README.md": "61986ef8f696edc4f5b3f49c7304a11f80b0a05bd15eb004c1211121c352266d",
+  "sources/autoresearch/notes/20260922-blake3-mixed-query-sequence-problem-match.md": "bac721f77e215723f64a0e115649fc13c4a581fead353d4bf387b81f641ab11b",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "264639ec6416da2ea28dfc2ff33061a788b6f158f43b41d1760e2839f0af29be",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "5b0c962926779e3326d69a0d6272a00b31f02f0e2bc4a641c0de4fee9d31122e",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig": "ab68bdba7ee423a23384ba39031d4a40ede6860e6e71e28394a893db530ae945",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "db99086d82f9e42c1d434b47c86b1ff951f60a82116a7f63823763bdd0e05bed",
+  "tests.log": "b9cf1b9b6d729915152e55c35a57a894cbbb698d4f12bc2ce5b2da2d22e4a4c7"
+}

@@ -1,0 +1,24 @@
+{
+  "scope": "host-only execution replay and sorted first-touch roster; no STARK proof",
+  "proof_verified": false,
+  "execution_profile": "rv32im_zkvm_ethereum_v1",
+  "segments": 3,
+  "cycles": 21635,
+  "memory_events": 51929,
+  "first_touch_keys": 4747,
+  "register_mask": 4294967279,
+  "initial_snapshot_nonzero_rw_words": 150,
+  "initial_snapshot_nonzero_program_words": 1839,
+  "initial_snapshot_nonzero_rw_roster": "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-three-snapshot-v3/first-touch.bin.initial-nonzero.bin",
+  "initial_snapshot_nonzero_rw_roster_sha256": "672cd8977ee6af92b01a0c95f837a33b46f6ccea2dc4812ffeb1217f00bf83f0",
+  "source_counts": {
+    "register": 31,
+    "rw_root": 4683,
+    "public_input_in_rw_root": 33,
+    "program_root": 0
+  },
+  "record_format": "10 bytes: space u8, address LE u32, initial value LE u32, source enum u8",
+  "roster_sha256": "c76b0c8dcf41bde037ea735441b18857df4fcaf43eb1b9853b0df60ae79636db",
+  "elapsed_ns": 11036500,
+  "peak_tracked_bytes": 9350286
+}

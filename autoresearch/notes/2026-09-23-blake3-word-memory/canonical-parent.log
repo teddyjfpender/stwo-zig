@@ -1,0 +1,15 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_NATIVE_QUERY_FUSION groups=22190 removed_scalars=88760
+BLAKE3_NATIVE_FUSION dot4=50818 fma=73966 arithmetic_rows=245487
+BLAKE3_EXTENSION_PARENT_PREPARED retained_bytes=2689562236 inputs=153028
+BLAKE3_PARENT_ARTIFACT_HASH 413518a17de0091120e042167e225a283743649136322abb19e59db520324f40
+BLAKE3_EXTENSION_PARENT_TIMING optimize=ReleaseFast workers=4 preparation_ns=32710037542 admission_ns=3632309208 worker_init_ns=3699363875 proving_ns=56431979709 cleanup_and_encoding_ns=47853958 fresh_verification_ns=122366375 total_ns=96643910667
+BLAKE3_EXTENSION_PARENT verified=true leaf_queries=70 parent_queries=70 pow_bits=26 artifact_bytes=862557 worker_peak_bytes=15355093730 worker_limit_bytes=38654705664 worker_and_rows_released=true
+BLAKE3_GUEST_POSEIDON_PROOF verified=true queries=70 pow_bits=26 artifact_bytes=934622 witness_released=true fresh_key=true capture_mutations_rejected=true outer_artifact_verified=true source_and_pin_mutations_rejected=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:18G
+

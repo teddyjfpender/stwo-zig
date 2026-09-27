@@ -1,0 +1,20 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 3.8276247500325553,
+  "source_candidate": "memory-source-auth-crypto-releasefast-v1-source.json",
+  "changed_source_pins": [],
+  "qualified": true,
+  "tests_run": true,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-auth-crypto-releasefast-v1.log",
+  "test_summary": [
+    "All 3 tests passed."
+  ],
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-auth-crypto-releasefast-v1",
+    "bytes": 326448,
+    "sha256": "bc1d829e990ad724faa0a15b2f37f7e9bedd997f7d52f5291daf4f24abb36a00"
+  }
+}

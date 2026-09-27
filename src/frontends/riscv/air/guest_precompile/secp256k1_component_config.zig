@@ -11,6 +11,7 @@ const mul = @import("secp256k1_mul_direct.zig");
 const point = @import("secp256k1_point_direct.zig");
 const recovery = @import("secp256k1_recovery_direct.zig");
 const recovery_caller = @import("secp256k1_recovery_caller.zig");
+const recovery_caller_zero = @import("secp256k1_caller_local_zero_v1.zig");
 const relations_mod = @import("secp256k1_relations.zig");
 const scalar_program = @import("secp256k1_scalar_direct.zig");
 const split = @import("secp256k1_split_direct.zig");
@@ -316,6 +317,35 @@ pub const RecoveryCaller = basic(
             _ = previous;
             _ = next;
             return recovery_caller.rowPairs(S, main, relations);
+        }
+    },
+);
+
+// This explicit configuration is selected only by the separately admitted
+// local-zero caller profile; the legacy configuration above is unchanged.
+pub const RecoveryCallerLocalZero = basic(
+    "secp256k1_recovery_caller_local_zero_v1",
+    recovery_caller_zero,
+    recovery_caller_zero.Layout.main_columns,
+    recovery_caller_zero.constraint_count + 1,
+    recovery_caller_zero.batch_count,
+    recovery_caller_zero.range_pair_count,
+    struct {
+        fn evaluate(comptime S: type, main: anytype, previous: anytype, next: anytype, first: S, last: S, relations: anytype, sink: anytype) void {
+            _ = previous;
+            _ = next;
+            _ = last;
+            _ = relations;
+            recovery_caller_zero.evaluateDirect(S, main, sink) catch unreachable;
+            // `first` is this component's deterministic active-prefix
+            // selector. Binding it here makes the public signer-call count an
+            // exact coefficient authority for the shared memory buses.
+            sink.add(main[recovery_caller.Layout.is_active].sub(first), 1);
+        }
+        fn pairs(comptime S: type, main: anytype, previous: anytype, next: anytype, relations: anytype) [recovery_caller_zero.batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) {
+            _ = previous;
+            _ = next;
+            return recovery_caller_zero.rowPairs(S, main, relations) catch unreachable;
         }
     },
 );

@@ -60,6 +60,10 @@ pub const SamplePointLayout = sample_point_layout.Layout;
 pub const Profile = struct {
     trees: []const TreeProfile,
     sample_layouts: []const SamplePointLayout,
+    /// Empty retains the legacy common composition step and exact identity.
+    /// Otherwise each entry is an authenticated physical mask log. Only the
+    /// fused Keccak two-point tag may differ from the common mask log.
+    mask_log_sizes: []const u32 = &.{},
     lifting_log_size: u32,
     log_blowup_factor: u32,
     query_count: u32,
@@ -89,6 +93,17 @@ pub const Profile = struct {
         }
         if (column_count != self.sample_layouts.len)
             return error.ColumnCountMismatch;
+        if (self.mask_log_sizes.len != 0 and self.mask_log_sizes.len != column_count) return error.ColumnCountMismatch;
+        const common = self.lifting_log_size - self.log_blowup_factor;
+        var cursor: usize = 0;
+        for (self.trees) |tree| for (tree.column_log_sizes) |log_size| {
+            const mask_log = self.maskLogSize(cursor);
+            if (mask_log == 0 or mask_log > common) return error.InvalidProfile;
+            if (self.sample_layouts[cursor] == .current_keccak_final) {
+                if (self.mask_log_sizes.len == 0 or log_size < self.log_blowup_factor or mask_log != log_size - self.log_blowup_factor) return error.InvalidProfile;
+            } else if (mask_log != common) return error.InvalidProfile;
+            cursor += 1;
+        };
         for (self.sample_layouts) |layout| {
             sample_count = checkedAdd(sample_count, layout.sampleCount()) catch
                 return error.ArithmeticOverflow;
@@ -107,6 +122,10 @@ pub const Profile = struct {
         for (self.trees) |tree|
             result = try checkedAdd(result, tree.column_log_sizes.len);
         return result;
+    }
+
+    pub fn maskLogSize(self: Profile, column: usize) u32 {
+        return if (self.mask_log_sizes.len == 0) self.lifting_log_size - self.log_blowup_factor else self.mask_log_sizes[column];
     }
 
     pub fn sampleCount(self: Profile) Error!usize {
@@ -157,6 +176,11 @@ pub const Profile = struct {
                 sample_cursor += 1;
             }
         }
+        if (self.mask_log_sizes.len != 0) {
+            hash.update("stwo-zig/typed-air/recursion-pcs-deep-physical-mask-logs/v1\x00");
+            hashInt(&hash, u32, self.mask_log_sizes.len);
+            for (self.mask_log_sizes) |log_size| hashInt(&hash, u32, log_size);
+        }
         return hash.finalResult();
     }
 };
@@ -186,6 +210,7 @@ pub const Circuit = struct {
     trees: []TreeProfile,
     column_log_storage: []u32,
     sample_layouts: []SamplePointLayout,
+    mask_log_sizes: []u32,
     lifting_log_size: u32,
     log_blowup_factor: u32,
     query_count: u32,
@@ -201,6 +226,7 @@ pub const Circuit = struct {
         self.allocator.free(self.outputs);
         self.allocator.free(self.nodes);
         self.allocator.free(self.sample_layouts);
+        self.allocator.free(self.mask_log_sizes);
         self.allocator.free(self.column_log_storage);
         self.allocator.free(self.trees);
         self.* = undefined;
@@ -210,6 +236,7 @@ pub const Circuit = struct {
         return .{
             .trees = self.trees,
             .sample_layouts = self.sample_layouts,
+            .mask_log_sizes = self.mask_log_sizes,
             .lifting_log_size = self.lifting_log_size,
             .log_blowup_factor = self.log_blowup_factor,
             .query_count = self.query_count,

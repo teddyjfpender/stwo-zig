@@ -32,6 +32,17 @@ test "Ethereum compact tuple ledger matches canonical records and range provider
     defer sink.deinit();
     try appendBoth(&ordinary, &sink, .recursion_wire, 2, q(2), &.{q(19)});
     try appendBoth(&ordinary, &sink, .recursion_wire, 3, q(2).neg(), &.{q(19)});
+    // Packed-key boundary: empty, trailing zero, seven base limbs, fallback
+    // eighth limb, and extension values must retain separate tuple identities.
+    const boundary = [_]QM31{ q(0), q(3), q(5), q(7), q(11), q(13), q(17), q(0) };
+    for ([_]usize{ 0, 1, 7, 8 }) |length| {
+        try appendBoth(&ordinary, &sink, .recursion_wire, 2, q(3), boundary[0..length]);
+        try std.testing.expectEqualDeep(ordinary.classify(), try compact.classify());
+    }
+    for ([_]usize{ 8, 7, 1, 0 }) |length| {
+        try appendBoth(&ordinary, &sink, .recursion_wire, 3, q(3).neg(), boundary[0..length]);
+        try std.testing.expectEqualDeep(ordinary.classify(), try compact.classify());
+    }
     // Distinct domain, arity and extension-field coordinates cannot cancel.
     try appendBoth(&ordinary, &sink, .recursion_wire, 2, q(1), &.{ q(1), q(2) });
     try appendBoth(&ordinary, &sink, .recursion_wire, 3, q(1).neg(), &.{q(1)});
@@ -265,4 +276,8 @@ fn sharedInteractionCase(allocator: std.mem.Allocator) !void {
     for (rows) |row| for (plan.preparedEntries(row)) |event|
         try expected_ledger.append(event.domain, 18, event.ordinal, event.role, event.numerator, event.values[0..event.arity]);
     try std.testing.expectEqualDeep(expected_ledger.contributions.items, ledger.contributions.items);
+}
+
+test "Recursive blocked columns preserve committed permutation and padding" {
+    try frontend.recursion.air.framework_device_interaction.testColumnProjection();
 }

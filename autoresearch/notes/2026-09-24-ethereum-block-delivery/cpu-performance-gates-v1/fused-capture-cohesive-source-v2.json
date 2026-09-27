@@ -1,0 +1,240 @@
+{
+  "sources": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-caller-verifier-capture-v1.md",
+      "sha256": "79fc85f9d7ca8878880bc24bebb24e65a72ae295854df7baf92b248185cf1a25"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-native-capacity-fused-capture-v1.md",
+      "sha256": "9dac8ddf2f991511e96e75d6dd3fa186e7237383d27fab03509baa5228d20ff0"
+    },
+    {
+      "path": "scripts/zig_protocol_lib/command.py",
+      "sha256": "2751ca4bf1d395511b8329d3bd9c84cf0ed45134cf18d02ffeed9d7591007f19"
+    },
+    {
+      "path": "src/core/borrowed_proof_capture_test.zig",
+      "sha256": "61e59d4a40cda67d078cf87c5e8780d7df47a9113b877a5bebb1d301af7b8999"
+    },
+    {
+      "path": "src/core/pcs/verifier.zig",
+      "sha256": "45e0afef0ca8ecaaa2d7a91c37592422352be90da5a38f848232ccb431271385"
+    },
+    {
+      "path": "src/core/verifier.zig",
+      "sha256": "8b8fb3ff311cf89679fc7c2be0c0e1183cc9a6b14961e31c5f064acf74a577b7"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_caller_capture_codegen.zig",
+      "sha256": "8e539621db6aaae404ee3b2d3a32f70e9ba8e2c9808ed7fa9ef42e351fa3b7a1"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_caller_capture_unit_test_root.zig",
+      "sha256": "a95619b9bee4a262a4cf5e12de7d0e345882be9510b5dd444c6612e8bcbb6611"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fused_capture_codegen.zig",
+      "sha256": "c16e9c51bdc1c72ba20995b39cd4dd53b70fbde268c3f75298a289ea79dfc897"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fused_capture_test_root.zig",
+      "sha256": "e1276b3bc173b10cd8bbf308ce75ab5b8ab9c39adb4ddfc02e5d6e3278ead4b7"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_fused_capture_test_root.zig",
+      "sha256": "955136acdf364c78f945ac6cedc9104378d66ea1deb7413240b8c494c8ac211e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/blake3_ethereum_sha_profile.zig",
+      "sha256": "86f1ca6ced9619c86dc7cf9395af1dbf0dd1befa64e7455ce43111a4501ca404"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_execution_sidecar_stark_v2.zig",
+      "sha256": "4f5fb5f2931c6638b2a611f18ca3218cf9b3f86d955f0130980772392ba65dbb"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_memory_relation_v2.zig",
+      "sha256": "229a835f51b6f446b7b13668a7b484960f285015793f3ef509ea6b15d84e9011"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_capture_unit_test.zig",
+      "sha256": "78fcdf340d18f3b4cd412928aa3694f798816ab574f44e70ab3a9d5c5a2ddb0a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_component_v1.zig",
+      "sha256": "a915c80e8186534dcf4c76b27d69c43164ce94a39c527e2dfa0ffbb7c6a1217f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_proof_v1.zig",
+      "sha256": "a8f2abd15872ffb5167bd3b32fbe45e261f0dbbdaa81e8361fa38b687b6553b2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_receiver_v1.zig",
+      "sha256": "117b64468ade06da03195ded6fd6cbdf7a9d55ed33470abf1725fd51df31dd64"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_schedule_v1.zig",
+      "sha256": "3ef5e85369482f4c753428502cf4918b089d75e7cc165493b2cbfd95fdb1104b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_verified_capture_v1.zig",
+      "sha256": "5f76a48832ce11dac62b675c900fcd48e9dc7c798284ce9525f76ca8c140c813"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_composite_pcs_v1.zig",
+      "sha256": "790f488cc1af455fbf3ca683dee3ebb88a6b3c9d90cbb8333ef56bac2726b598"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_execution_recipe_v1.zig",
+      "sha256": "6ba9a3c31a8116d710f598bc87b7d763dcef54647cb7dc5918b174fd0795959b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_capture_test_v1.zig",
+      "sha256": "416dafdf72530e8b4f4d45b5195ea310a3e610a16c6ab368842d3d97997a1e5a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig",
+      "sha256": "49b178f03bd131e2257620c2b59ca36b0dc4f68439fcec2cfa8f7a5879cab825"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_component_v1.zig",
+      "sha256": "9423bf824a75147c8e8ec0fa76f2378ef527ce3ae7552750e8bc0fc9e687cf17"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_proof_v1.zig",
+      "sha256": "d0b8db656010c357ed7c1f71625022b49d31fb2440c9c02e1109880466eeb55c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig",
+      "sha256": "922e24feb49c0493e2d811b5d6adfdfeb7b1723163214d37917920afdbcfcdfe"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_fixture_v1.zig",
+      "sha256": "3776d4827590450c7d46a31552fe492112deb3a43211d70f1e103c04562f59a3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_proof_v1.zig",
+      "sha256": "ceb314f427074c4fe75b4036dad22e5bbb6b8e7077e645824c7d9c874c883046"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_protocol_v1.zig",
+      "sha256": "3d808a44a298b2c32ea56a2b859ff512845ad3df7e54d233b478ba913ca7f530"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_template_protocol_v3.zig",
+      "sha256": "26165d5210791baac18680060ba764e7ef892ca93302262b700035b718354ef7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_opcode_memory_sidecar_proof_v1.zig",
+      "sha256": "ebe2d013641f4a14794227e3c6352c058fbcde25de54a0a7ab2d7ff56406657d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_family_proof_v1.zig",
+      "sha256": "5c3a7bc9a135f413273c54b20624c60a9a23852295ed538c387ce4561adeaba8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_protocol_v1.zig",
+      "sha256": "186168b173d902e659526eb8ca91bf755cd051a8fdb8b904cc925e62842e148d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_witness_v1.zig",
+      "sha256": "a9b64045075124c3fd1319b2ecd705194a4cf5018b1cf1c9a593fac8eb3d19fa"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "sha256": "cd3fa8b04bffe1810f100c3e879886b6f4f2f4f12e8c0cc5b115dd14d187a961"
+    },
+    {
+      "path": "src/frontends/riscv/prover/guest_precompile/ethereum_sha_assembly.zig",
+      "sha256": "933fdbab8ee47b452f19725bbfee691759f34683cbe98ec742936a75679f79c2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/guest_precompile/ethereum_sha_relations.zig",
+      "sha256": "5f6249acd55aa03a60e07f18166fc815e7a403409064e76003ede720e6ac4fb0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/guest_precompile/ethereum_sha_types.zig",
+      "sha256": "d4f6367f58bcd3542ddfcb8aa96cd1ef0819d7310d9bc5b5f35271e879559fb2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/proof_capture_sha256.zig",
+      "sha256": "76dd0cd91c137fb0e176d15a4cfcbad1369902a67264339ce9aff4211433b94c"
+    }
+  ],
+  "command": [
+    "/opt/homebrew/opt/zig@0.15/bin/zig",
+    "test",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_backend_contracts",
+    "--dep",
+    "stwo_prover_api",
+    "--dep",
+    "stwo_prover_engine",
+    "--dep",
+    "stwo_proof_wire",
+    "--dep",
+    "stwo_cpu_backend",
+    "--dep",
+    "interop_postcard",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mroot=src/frontends/riscv/block_v5_recursive_fused_capture_test_root.zig",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_core=src/core/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_backend_contracts=src/backend/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_prover_api=src/prover_api/mod.zig",
+    "--dep",
+    "stwo_backend_contracts",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_prover_api",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_prover_engine=src/prover/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+    "--dep",
+    "stwo_backend_contracts",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_prover_engine",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_proof_wire",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Minterop_postcard=src/interop/postcard.zig",
+    "-lc",
+    "--test-filter",
+    "caller capture:",
+    "--test-filter",
+    "capacity fused capture:",
+    "--test-filter",
+    "fused capture bodies:"
+  ],
+  "scope": "original full native/caller capture kernels; no recursive adapter activation; scalar metadata/admission/ownership and actual-body retention only"
+}

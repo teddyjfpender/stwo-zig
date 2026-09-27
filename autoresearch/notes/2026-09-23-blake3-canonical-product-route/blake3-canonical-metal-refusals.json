@@ -1,0 +1,39 @@
+[
+  {
+    "args": [
+      "--proof-suite",
+      "blake2s",
+      "bench",
+      "--elf",
+      "/tmp/absent-retired-route.elf",
+      "--backend",
+      "metal"
+    ],
+    "returncode": 1,
+    "stderr": "error: LegacyProofGenerationRemoved\n"
+  },
+  {
+    "args": [
+      "--proof-suite",
+      "blake2s",
+      "ecdsa-csp-bench"
+    ],
+    "returncode": 1,
+    "stderr": "error: LegacyProofGenerationRemoved\n"
+  },
+  {
+    "args": [
+      "guest-poseidon2-prove",
+      "--elf",
+      "/tmp/absent-retired-route.elf",
+      "--backend",
+      "metal",
+      "--max-steps",
+      "10",
+      "--output",
+      "/tmp/retired-route-no-proof.bin"
+    ],
+    "returncode": 1,
+    "stderr": "error: LegacyProofGenerationRemoved\n"
+  }
+]

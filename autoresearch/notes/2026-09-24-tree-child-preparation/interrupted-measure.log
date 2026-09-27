@@ -1,0 +1,9 @@
+0 control 44.566
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-tree-child-preparation/measure.py", line 12, in <module>
+    with log_path.open('w') as output:subprocess.run(['/usr/bin/time','-l',str(binary)],cwd=ROOT,env=env,stdout=output,stderr=subprocess.STDOUT,check=True)
+                                      ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/usr/bin/time', '-l', '/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-tree-child-preparation/candidate-tree-test']' returned non-zero exit status 126.

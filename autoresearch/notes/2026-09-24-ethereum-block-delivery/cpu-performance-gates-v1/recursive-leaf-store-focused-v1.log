@@ -1,0 +1,21 @@
+1/20 block_v5_recursive_leaf_store_test_root.test.leaf store root...OK
+2/20 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: exact sparse source roster and publication preserve original execution index...OK
+3/20 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: independent sparse pins reject duplication reorder overflow omissions and family limits...OK
+4/20 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: reader and writer admission allocations unwind without changing exact roster...OK
+5/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared owned templates survive borrowed schedule destruction and later insertion...OK
+6/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: every shared template allocation failure releases custody...OK
+7/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared template count and heap limits are enforced before retention...OK
+8/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: shared independent template and zero-copy proof framing retain structural claims only...OK
+9/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: encode decode metadata budgets and every allocation failure release owners...OK
+10/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: envelope cannot select family version index key schedule or trailing bytes...OK
+11/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: exact independent roster rejects omitted policies and malformed file pins...OK
+12/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: exclusive publication transfers ownership but literal proof never completes fresh reader...OK
+13/20 prover.block_v5_recursive_provider_transport_test_v1.test.provider transport: total-cap and tamper failures retain publisher ownership and fail reader closed...OK
+14/20 block_v5_recursive_leaf_store_codegen.test.leaf store bodies: all seven typed publication and original fresh-loading routes retained only...OK
+15/20 prover.block_execution_external_trace_v2.test_0...OK
+16/20 prover.block_execution_external_access_bridge_v2.test_0...OK
+17/20 air.lookups.tables.mod.test_0...OK
+18/20 air.semantic_eval.test_0...OK
+19/20 air.memory_commitment.poseidon2_air.test_0...OK
+20/20 air.lookups.tables.source_ingest.test_0...OK
+All 20 tests passed.

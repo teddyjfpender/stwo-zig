@@ -1,0 +1,18 @@
+1/17 block_v5_memory_source_page_forest_owned_selected_test_root.test_0...OK
+2/17 block_v5_memory_source_page_forest_owned_selected_test_root.test.PAGE durable catalogue: actual original setup capture publisher and fresh compact receiver bodies retained...OK
+3/17 block_v5_memory_source_page_forest_owned_selected_test_root.test.PAGE durable catalogue: independently selected execution policy remains bound...OK
+4/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: bounded leases and backpressure conserve occupancy...OK
+5/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: ticket overflow is failure atomic...OK
+6/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: independent resource policy rejects inconsistent page limits...OK
+7/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: lower-only child selection consumes no descriptor slots...OK
+8/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: control parent directory and invalid metadata failures release every allocation...OK
+9/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: exact original leaf node file census and typed empty roster...OK
+10/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: independent limits reject before undefined source or file capability...OK
+11/17 prover.block_v5_memory_source_page_leaf_catalogue_test_v1.test.PAGE durable catalogue: durable names and closed summary grammar preserve exact old framing...OK
+12/17 prover.block_v5_memory_source_page_forest_summary_custody_test_v1.test.PAGE durable catalogue: summary allocator lease survives parent and scratch coordinator release and every allocation failure...OK
+13/17 prover.block_v5_memory_source_page_forest_summary_custody_test_v1.test.PAGE durable catalogue: inactive raw and fold slots cannot accept original recursive proof bytes...OK
+14/17 air.semantic_eval.test_0...OK
+15/17 air.lookups.tables.mod.test_0...OK
+16/17 air.memory_commitment.poseidon2_air.test_0...OK
+17/17 air.lookups.tables.source_ingest.test_0...OK
+All 17 tests passed.

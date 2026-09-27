@@ -1,0 +1,12 @@
+{
+  "exit_code": 1,
+  "elapsed_seconds": 1.7280767500051297,
+  "source_candidate": "native-fused-recursion-semantic-v1-source.json",
+  "changed_source_pins": [],
+  "qualified": false,
+  "tests_run": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-fused-recursion-semantic-v1.log"
+}

@@ -1,0 +1,33 @@
+[ethereum-auth-peer-prove] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-peer-prove] acquired after 102s
+{
+  "command": [
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-eth-auth-benchmark",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/eth-auth-zisk",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-16.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-16.expected",
+    "/tmp/stwo-zisk-guest-e2e-20260924/provingKey",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/peer-batch-16-prove-profiled16.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/peer-batch-16-prove-profiled16.json",
+    "prove"
+  ],
+  "side": "peer",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 900,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": true,
+  "sha256": {
+    "/tmp/stwo-zisk-guest-e2e-20260924/target/release/zisk-eth-auth-benchmark": "c3989ca608f70792b82fdfdb4ec5ea2ceb413fb70d0933c685d7997076069a59",
+    "guest-zisk/target/riscv64ima-zisk-zkvm-elf/release/eth-auth-zisk": "18ab3192cba141913ff3578ff66ef5a1fecfe3352e0be3dd0d43850548afa305",
+    "fixtures/batch-16.input": "e961f296f550d5d6797f464ef01d1e032417642098100e57f3e593aa87df79af",
+    "fixtures/batch-16.expected": "7929a6d4808010177757936d0b8f241bd049f1d300a7969490919741a72d0c6b"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 3044.38M  free = 1051.62M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t75%; charging; 1:37 remaining present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 425.3793879169971,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 3004.38M  free = 1091.62M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t75%; charging; (no estimate) present: true\n",
+  "output_checked": true
+}

@@ -1,0 +1,67 @@
+{
+  "status": "qualified_nonproving_one_original_fold_traversal",
+  "authored_candidate": "memory-source-fold-spool-source-candidate-v1.json",
+  "evidence": {
+    "memory-source-fold-spool-focused-v1": {
+      "source_candidate": "memory-source-fold-spool-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.794619457970839,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 5,
+      "test_summary": [
+        "All 5 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-fold-spool-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-fold-spool-focused-v1",
+        "bytes": 6135840,
+        "sha256": "a98858f9c80cbc2e6cd8a8c091f7ee8bf6c9ff0ff437872fad8241d444461acb"
+      }
+    },
+    "source-page-reader-reuse-semantic-v1": {
+      "source_candidate": "source-page-reader-reuse-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 12.34041254100157,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-reader-reuse-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    }
+  },
+  "functional_tests_passed": 5,
+  "authored_behavioral_checks": 3,
+  "literal_source_pins": 1807,
+  "scope": [
+    "Actual CPU SourcePages.collect traverses original Fold.Cursor once into canonical spool",
+    "Actual Job.collectWithOperations replays spool instead of reconstructing memory tree",
+    "Independent admitted identity and exact census checked before ownership; footer/count/SHA must finish before sealing",
+    "Dense64-leaf original tree oracle covers more than128 records and exact decoded operation parity",
+    "Caps, identity, order, footer, hash, truncation and preallocation Job guards",
+    "Canonical header128 +250*operations +footer80; bounded64-record16000-byte buffer"
+  ],
+  "tradeoffs": [
+    "Adds complete operand spool disk write/read alongside retained per-page operand files",
+    "Per-page duplicate operand storage awaits range-based loading; no IO or timing improvement measured"
+  ],
+  "not_qualified": [
+    "Positive PAGE proof production or complete bundle fresh verification",
+    "Measured end-to-end speed or peak memory",
+    "Standalone source authority, canonical activation or final recursive closure"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "target": "metal",
+  "source_manifest_sha256": "30143222758d0e8fecb715a56129bdddc141d8f09a429dba121cdf2ec08dc5df",
+  "exporter_sha256": "a042957d2c7c9c7e3b28133a372809c624c438b6092b834190042b51e9e709fa",
+  "zig_version": "0.15.2",
+  "device_compiled": true,
+  "device_executed": false,
+  "stark_proved": false,
+  "performance_measured": false,
+  "metal_compiler": "/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/bin/metal",
+  "metal_version": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/metal/current/bin",
+  "binary_file": "kernels.metallib",
+  "binary_sha256": "b5dc2f950f954cb15fce25e1f39e3d653254454e30ee5eae0d31e905659e7568"
+}

@@ -1,0 +1,13 @@
+1/12 block_v5_global_public_export_test_root.test_0...OK
+2/12 prover.block_v5_global_public_export_test_v1.test.global public export: original B5PD framing preserves full words and borrows shared input...OK
+3/12 prover.block_v5_global_public_export_test_v1.test.global public export: canonical decoder cycles input and zero clock mutations reject...OK
+4/12 prover.block_v5_global_public_export_test_v1.test.global public export: metadata and word caps precede clone and exhaustively roll back...OK
+5/12 prover.block_v5_global_public_export_test_v1.test.global public export: exact native register and terminal tuples preserve high bytes and signs...OK
+6/12 prover.block_v5_global_public_export_test_v1.test.global public export: full u64 byte carry rejects wrap gaps and reordered windows...OK
+7/12 prover.block_v5_global_public_export_test_v1.test.global public export: original scalar oracle and symbolic inverse graph reject byte substitution...OK
+8/12 prover.block_v5_global_public_export_test_v1.test.global public export: symbolic construction keeps original allocation error and exact cleanup...OK
+9/12 prover.block_v5_global_public_export_test_v1.test.global public export: complete source authority remains unavailable...OK
+10/12 prover.block_execution_external_trace_v2.test_0...OK
+11/12 air.lookups.tables.mod.test_0...OK
+12/12 air.lookups.tables.source_ingest.test_0...OK
+All 12 tests passed.

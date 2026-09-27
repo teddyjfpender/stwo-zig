@@ -1,0 +1,20 @@
+{
+  "control": {
+    "samples": 2,
+    "preparation_median_seconds": 3.5181111455,
+    "wall_median_seconds": 21.07072327050264,
+    "pipeline_median_seconds": 9.670987562499999,
+    "overlap_median_seconds": 1.9126067495,
+    "peak_rss_bytes": 22253191168,
+    "peak_physical_footprint_bytes": 28178414304
+  },
+  "candidate": {
+    "samples": 2,
+    "preparation_median_seconds": 3.5098219375,
+    "wall_median_seconds": 21.498635312513215,
+    "pipeline_median_seconds": 9.729744042,
+    "overlap_median_seconds": 1.9127236875000002,
+    "peak_rss_bytes": 22114107392,
+    "peak_physical_footprint_bytes": 28173334976
+  }
+}

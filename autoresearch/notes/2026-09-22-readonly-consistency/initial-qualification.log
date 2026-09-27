@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-readonly-consistency success
++- Read-only consistency guard success
+   +- run test 1 passed 516ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:632M
+test-readonly-consistency-proof success
++- Read-only consistency proof guard success
+   +- run test 1 passed 3s MaxRSS:346M
+      +- compile test ReleaseSafe native success 19s MaxRSS:1G
+

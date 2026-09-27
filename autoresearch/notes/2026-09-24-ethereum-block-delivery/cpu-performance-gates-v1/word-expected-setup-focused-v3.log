@@ -1,0 +1,6 @@
+src/frontends/riscv/prover/block_v5_ram_range_forest_policy_owner_v1.zig:352:27: error: local constant 'position' shadows local constant from outer scope
+                    const position = switch (ref) {
+                          ^~~~~~~~
+src/frontends/riscv/prover/block_v5_ram_range_forest_policy_owner_v1.zig:326:23: note: previous declaration here
+                const position = self.ram.len + self.range.len + index;
+                      ^~~~~~~~

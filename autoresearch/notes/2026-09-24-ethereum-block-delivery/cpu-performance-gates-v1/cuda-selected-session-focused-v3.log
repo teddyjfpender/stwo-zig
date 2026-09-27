@@ -1,0 +1,9 @@
+1/8 session_selected_test_root_v1.test_0...OK
+2/8 runtime.session_selected_test_v1.test.CUDA selected session: expected ordinal UUID and architectures are mandatory...OK
+3/8 runtime.session_selected_test_v1.test.CUDA selected session: independent observed ordinal UUID SM and platform match exactly...OK
+4/8 runtime.session_selected_test_v1.test.CUDA selected session: unavailable native APIs and CuMetal cannot construct ready outcomes...OK
+5/8 runtime.session_selected_test_v1.test.CUDA selected session: empty cleanup requires runtime thread and preserves cause...OK
+6/8 runtime.session_selected_test_v1.test.CUDA selected session: failed partial native cleanup never drops context or loader custody...OK
+7/8 runtime.session_selected_test_v1.test.CUDA selected session: process outcome retains failed owner and lease thread guard...OK
+8/8 runtime.session_selected_test_v1.test.CUDA selected session: actual registry releases failed no-resource selected admissions...OK
+All 8 tests passed.

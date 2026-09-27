@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 3/3 tests passed
+test-blake3-path success
++- BLAKE3 path guard success
+   +- run test 2 passed 616ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 6s MaxRSS:663M
+test-blake3-path-proof success
++- BLAKE3 path proof guard success
+   +- run test 1 passed 6s MaxRSS:350M
+      +- compile test ReleaseSafe native success 21s MaxRSS:1G
+

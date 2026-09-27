@@ -1,0 +1,50 @@
+{
+  "scope": "host-only sorted memory/initial snapshot census; no STARK proof",
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-memory-roster-exact",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+    "4194304",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-memory-roster-v1/first-touch.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-memory-roster-v1/roster.json",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-proposal-v1/schedule.json"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 74.49122312502004,
+  "complete_roster_scan": true,
+  "proof_verified": false,
+  "summary": {
+    "scope": "host-only execution replay and sorted first-touch roster; no STARK proof",
+    "proof_verified": false,
+    "execution_profile": "rv32im_zkvm_ethereum_sha_v1",
+    "segments": 218,
+    "cycles": 139214856,
+    "memory_events": 356303914,
+    "first_touch_keys": 3142932,
+    "register_mask": 4294967279,
+    "initial_snapshot_nonzero_rw_words": 666708,
+    "initial_snapshot_nonzero_program_words": 818809,
+    "initial_snapshot_nonzero_rw_roster": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-memory-roster-v1/first-touch.bin.initial-nonzero.bin",
+    "initial_snapshot_nonzero_rw_roster_sha256": "ab21b3927537722ef78a1f50402a34565d55a7709bc0360b96ebfdca62aaace7",
+    "source_counts": {
+      "register": 31,
+      "rw_root": 2467724,
+      "public_input_in_rw_root": 675177,
+      "program_root": 0
+    },
+    "record_format": "10 bytes: space u8, address LE u32, initial value LE u32, source enum u8",
+    "roster_sha256": "576ac9b5fa22dc9b3c202657b447ebbd3c67f6de9b5f274973dea8df9711fa68",
+    "elapsed_ns": 73974407917,
+    "peak_tracked_bytes": 1075098065
+  },
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-memory-roster-exact": "fc9aa97818a784f9ef707d55ad38a8f83c20bdcc409fde55afe98e28a46686ad",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-proposal-v1/schedule.json": "f72b127f065b234251dcc328c1c9884baec716c03776a303c57de0b050f9d99d",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-memory-roster-v1/first-touch.bin": "576ac9b5fa22dc9b3c202657b447ebbd3c67f6de9b5f274973dea8df9711fa68",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-memory-roster-v1/first-touch.bin.initial-nonzero.bin": "ab21b3927537722ef78a1f50402a34565d55a7709bc0360b96ebfdca62aaace7"
+  }
+}

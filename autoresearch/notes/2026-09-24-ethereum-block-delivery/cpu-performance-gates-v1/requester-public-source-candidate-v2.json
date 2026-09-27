@@ -1,0 +1,91 @@
+{
+  "status": "source-frozen-body-qualified-final-alias-custody-gate-pending",
+  "scope": "Direct original PUBLIC compensation attached to one genuine requester-only root; no original GlobalPublic child or repeated RAM verifier",
+  "version": 21,
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/block_v5_requester_public_test_root.zig",
+      "sha256": "aa4a69f2166dee00a39608598651fad1f3d3f3e0076df5245cc75a6758dc22f3",
+      "bytes": 1362
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_requester_public_test_v1.zig",
+      "sha256": "db0e9213e6beb2a888909f4dded3bd9874646d77a75da53e1be9dba1032e2f6d",
+      "bytes": 4606
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_requester_public_composition_v1.zig",
+      "sha256": "2ea66f8d16e715ca791f44ce8bc25f22d6524ecb9bb547d43520f8c230d08e06",
+      "bytes": 13754
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_requester_public_bus_v1.zig",
+      "sha256": "034f4338c72a252ad5a654216ad763c1c99cbcf174edb5b51519c8903919b621",
+      "bytes": 6609
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_requester_public_compensation_v1.zig",
+      "sha256": "e9d07a7ee5ea6ccb2b8fe6ebd267df88314891e042a606ea4dd176781b41aec2",
+      "bytes": 6944
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_requester_public_preparation_v1.zig",
+      "sha256": "eb15ff938e6c90760222c6434fe74f8d8d3ca1ce14c1b53757d7904f17e39f28",
+      "bytes": 5803
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_requester_public_producer_v1.zig",
+      "sha256": "3d184a216d51ba82195054b5adbae231757afb642e89c84156e49459a245b412",
+      "bytes": 3054
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_requester_public_protocol_v1.zig",
+      "sha256": "03e0cda684bcba80778425b20ee15fb053cc73040f4c9ea84bddc6b9e4243e41",
+      "bytes": 1871
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_requester_public_receiver_v1.zig",
+      "sha256": "b9b63fe87c463ff9562462f13dbc5abcc1f4fac1688339ebd395745d452d264a",
+      "bytes": 2592
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_requester_public_source_v1.zig",
+      "sha256": "3b32e0ccb11689b475a52ed1d9e3723b69acff62f79e0ad33beff27df2b2cd4c",
+      "bytes": 9026
+    }
+  ],
+  "semantic_attempt": "requester-public-semantic-v2-result.json",
+  "focused_attempt": "requester-public-focused-v1-result.json",
+  "behavioral_checks": 4,
+  "tests_total": 12,
+  "source_pin_count": 1849,
+  "body_marker": "stwo_requester_public_body_gate",
+  "actual_bodies_retained": [
+    "Original Tuple.evaluate/registerContinuity/cycle/localZero",
+    "Original B5SS draws and transcript AIR via Rows.ForModules",
+    "One genuine Scoped requester verifier",
+    "Real worker/proof codec/Fresh receiver/Source"
+  ],
+  "forwarded": "Only request-only packed memory transition in normative final felt invocation",
+  "limits": [
+    "No positive proof or complete block receipt",
+    "Existing scoped clock bound remains",
+    "Expected setup remains instance/capture-specific",
+    "No canonical Driver activation or end-to-end measurements",
+    "Public owner, independently paired stable compact transcript metadata and original catalogue outlive Fresh/Source; earlier requester capture is required only during preparation"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "canonical_security": "70 queries/26 PoW unchanged; no mixed base/recursive configuration relaxation",
+  "supersedes": "requester-public-source-candidate-v1.json",
+  "equations_implemented": [
+    "native compensation equality (not counted twice)",
+    "register compensation per window",
+    "original public digest and seal bytes",
+    "outer registers and full u64 cycle continuity under existing admitted span cap",
+    "terminal program boundary",
+    "original signed known accounting residual"
+  ],
+  "root_custody_change": "Exact independent Source seal/ref pairing permits stable catalogue metadata after consumed original requester capture; true Fresh still required for child verifier rows"
+}

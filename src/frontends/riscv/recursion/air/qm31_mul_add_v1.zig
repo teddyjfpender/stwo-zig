@@ -120,7 +120,13 @@ pub fn logicalRow(schedule: Schedule, a: QM31, b: QM31, addend: QM31) !Row {
     result[5..9].* = b.toM31Array();
     result[9..13].* = addend.toM31Array();
     result[13..17].* = schedule.operation.apply(a, b, addend).toM31Array();
-    const pp = result[PHYSICAL_MAIN_COLUMN_COUNT..];
+    result[PHYSICAL_MAIN_COLUMN_COUNT..].* = try fixedRow(schedule);
+    return result;
+}
+/// Original routing and operation coefficients, independent of witness values.
+pub fn fixedRow(schedule: Schedule) ![PREPROCESSED_COLUMN_COUNT]M31 {
+    if (schedule.operation == .multiply and schedule.addend != 0) return error.InvalidQm31MulAdd;
+    var pp: [PREPROCESSED_COLUMN_COUNT]M31 = undefined;
     pp[0] = M31.one();
     for (pp[1..7], [_]u32{ schedule.circuit, schedule.output, schedule.lhs, schedule.rhs, schedule.addend, schedule.uses }) |*field, value| {
         if (value >= core.fields.m31.Modulus) return error.InvalidQm31MulAdd;
@@ -133,5 +139,5 @@ pub fn logicalRow(schedule: Schedule, a: QM31, b: QM31, addend: QM31) !Row {
         .product_plus_addend => M31.one().neg(),
         .product_minus_addend, .addend_minus_product => M31.one(),
     };
-    return result;
+    return pp;
 }

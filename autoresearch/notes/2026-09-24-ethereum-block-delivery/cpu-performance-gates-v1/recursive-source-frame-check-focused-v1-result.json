@@ -1,0 +1,22 @@
+{
+  "source_candidate": "recursive-source-frame-check-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 12.18137766700238,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 21,
+  "test_summary": [
+    "All 21 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-source-frame-check-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-recursive-source-frame-check-focused-v1",
+    "bytes": 17785632,
+    "sha256": "94c1855acb27a96e97277230c97e920c9a93d56c63ab70f6fa42a486e7ee7661"
+  }
+}

@@ -1,0 +1,15 @@
+
+Build Summary: 12/12 steps succeeded; 8/8 tests passed
+test-blake3-private-input success
++- BLAKE3 private input guard success
+   +- run test 3 passed 544ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:677M
+test-blake3-hash success
++- BLAKE3 hash graph guard success
+   +- run test 3 passed 892ms MaxRSS:11M
+      +- compile test ReleaseSafe native success 5s MaxRSS:507M
+test-blake3-proof success
++- BLAKE3 committed proof guard success
+   +- run test 2 passed 9s MaxRSS:361M
+      +- compile test ReleaseSafe native success 20s MaxRSS:1G
+

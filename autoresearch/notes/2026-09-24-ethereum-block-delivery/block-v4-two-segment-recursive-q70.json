@@ -1,0 +1,51 @@
+{
+  "date": "2026-09-25",
+  "scope": "CPU fixture: two continuous Ethereum-SHA-profile segments with SHA-256 and Keccak caller precompiles, one global sorted-memory proof and public initial-image source, two v3 recursive leaves, one dyadic parent, one exact outer root",
+  "security": {
+    "fri_queries": 70,
+    "pow_bits": 26,
+    "profile": "csp_q70_pow26"
+  },
+  "verification": {
+    "fresh_native_execution": true,
+    "fresh_opcode_and_external_sidecars": true,
+    "fresh_sorted_memory_and_range_tables": true,
+    "fresh_initial_image_root_check": true,
+    "fresh_leaf_dyadic_and_outer_proofs": true,
+    "complete_receiver_result": "complete_block_verified",
+    "tests_passed": 8
+  },
+  "events": {
+    "total": 112,
+    "external_by_segment": [26, 77],
+    "opcode_total": 9
+  },
+  "proof_bytes": {
+    "recursive_leaf_by_segment": [985390, 976792],
+    "recursive_dyadic": 978525,
+    "recursive_exact_outer": 934087
+  },
+  "memory": {
+    "tracked_recursion_peak_live_bytes": 13730704877,
+    "whole_process_peak_bytes": null
+  },
+  "timing_ns": {
+    "core": null,
+    "recursive_leaf_by_segment": null,
+    "recursive_dyadic": null,
+    "recursive_exact_outer": null,
+    "total": null
+  },
+  "fixture_limits": [
+    "Public input and output payloads are empty; first/last boundary digest placement is checked.",
+    "Ordinary ADDI instructions were inserted between precompile calls so each segment has an opcode-access sidecar slot. A precompile-only segment is not covered by this run.",
+    "This is a two-segment fixture, not an Ethereum block or a throughput measurement."
+  ],
+  "source_sha256_at_run": {
+    "block_v4_multi_core_fixture_test.zig": "da9fca4ff9299f5cd10692d5c23e1c0d981c77ac560261a631a11a212658b8b6",
+    "block_v4_multi_core_source_test.zig": "5153ae2417804d76b6f6355e038934811d1e47ab6cea70db6d3028bd6d7661c5",
+    "block_v4_multi_execution_fixture_test.zig": "cb8021c9773b2ed6276c108ccf9427383bbf45ecbd41febfbbfc5a6e6ba3cdf2",
+    "block_v4_multi_recursion_fixture_test.zig": "396bd5a09f0acec75928f9061ec614743f2f415012e476d705c434d465d71207",
+    "block_v4_multi_complete_receiver_test.zig": "9418a434dee784d7986d27806dcb91a6e93bff3ba0ffd3f3af983a2a73c75dd1"
+  }
+}

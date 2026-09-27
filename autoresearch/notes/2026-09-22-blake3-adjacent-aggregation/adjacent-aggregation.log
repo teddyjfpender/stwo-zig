@@ -1,0 +1,18 @@
+test-riscv-blake3-aggregation
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_NATIVE_QUERY_FUSION groups=1144 removed_scalars=4576
+BLAKE3_NATIVE_FUSION dot4=2677 fma=9710 arithmetic_rows=33166
+BLAKE3_NATIVE_QUERY_FUSION groups=1208 removed_scalars=4832
+BLAKE3_NATIVE_FUSION dot4=2897 fma=9998 arithmetic_rows=34667
+BLAKE3_AGGREGATE distinct_children=true segments=2 cycles=6 inputs=25328 retained_bytes=1082774500
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=132947 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=122984 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+EXECUTION_PARENT_OF_PARENT verified=true distinct_keys=true levels=2 inputs=18649 retained_bytes=538770400
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-aggregation success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:7G
+

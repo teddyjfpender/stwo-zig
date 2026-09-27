@@ -31,7 +31,7 @@ pub const CIRCUIT_PROFILE_DOMAIN = identity.CIRCUIT_PROFILE_DOMAIN;
 fn schemaForCircuit(profile: circuit.CircuitProfileV1) u16 {
     return switch (profile) {
         .legacy_v4 => SCHEMA_VERSION,
-        .fixed_program_narrow_v1 => CIRCUIT_SCHEMA_VERSION,
+        .fixed_program_narrow_v1, .ethereum_v5, .ethereum_local_zero_v1 => CIRCUIT_SCHEMA_VERSION,
     };
 }
 

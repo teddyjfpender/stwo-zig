@@ -35,6 +35,7 @@ pub fn verify(
     return verifyImpl(
         H,
         MC,
+        true,
         allocator,
         component_list,
         channel,
@@ -60,6 +61,7 @@ pub fn verifyWithQueryCapture(
     return verifyImpl(
         H,
         MC,
+        true,
         allocator,
         component_list,
         channel,
@@ -85,6 +87,7 @@ pub fn verifyWithProofCapture(
     return verifyImpl(
         H,
         MC,
+        true,
         allocator,
         component_list,
         channel,
@@ -95,9 +98,27 @@ pub fn verifyWithProofCapture(
     );
 }
 
+/// Verifies an immutable proof without consuming it. Every published capture
+/// allocation is independently owned; the original proof must remain alive
+/// and unchanged until this call returns. Wire receivers retain their owned
+/// verification path and independent decode/resource admission.
+pub fn verifyBorrowedWithProofCapture(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof: *const proof_mod.StarkProof(H),
+    capture: *ProofCapture(H),
+) anyerror!void {
+    return verifyImpl(H, MC, false, allocator, component_list, channel, commitment_scheme, proof.*, null, capture);
+}
+
 fn verifyImpl(
     comptime H: type,
     comptime MC: type,
+    comptime owns_proof: bool,
     allocator: std.mem.Allocator,
     component_list: []const air_components.Component,
     channel: anytype,
@@ -108,7 +129,7 @@ fn verifyImpl(
 ) anyerror!void {
     var proof = proof_in;
     var proof_moved = false;
-    defer if (!proof_moved) proof.deinit(allocator);
+    defer if (owns_proof and !proof_moved) proof.deinit(allocator);
 
     if (commitment_scheme.trees.items.len <= PREPROCESSED_TRACE_IDX) {
         return VerificationError.InvalidPreprocessedTree;
@@ -201,17 +222,12 @@ fn verifyImpl(
     proof_moved = true;
     const pcs_proof = proof.commitment_scheme_proof;
     if (proof_capture_out) |capture| {
-        try commitment_scheme.verifyValuesWithProofCapture(
-            allocator,
-            sample_points,
-            pcs_proof,
-            channel,
-            .{
-                .composition_randomness = composition_randomness,
-                .oods_seed = oods_seed,
-            },
-            capture,
-        );
+        const challenges = pcs_verifier.ProofCaptureChallenges{ .composition_randomness = composition_randomness, .oods_seed = oods_seed };
+        if (owns_proof) {
+            try commitment_scheme.verifyValuesWithProofCapture(allocator, sample_points, pcs_proof, channel, challenges, capture);
+        } else {
+            try commitment_scheme.verifyValuesWithBorrowedProofCapture(allocator, sample_points, &pcs_proof, channel, challenges, capture);
+        }
     } else if (capture_out) |capture| {
         try commitment_scheme.verifyValuesWithQueryCapture(
             allocator,

@@ -1,0 +1,22 @@
+BLOCK_LEAF phase=execution cycles=32768
+BLOCK_LEAF phase=witness programs=818624 boundaries=3870 hash_logs={ 20, 18, 19, 18, 13, 12, 12, 20 } peak_bytes=1003424326
+BLAKE3_NATIVE_QUERY_FUSION groups=26460 removed_scalars=105840
+BLAKE3_NATIVE_FUSION dot4=831435 fma=153133 arithmetic_rows=1450309
+      126.61 real       318.38 user        12.49 sys
+         16143794176  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            15570732  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   7  voluntary context switches
+               89685  involuntary context switches
+       4548123645588  instructions retired
+       1412225780511  cycles elapsed
+         16150041120  peak memory footprint

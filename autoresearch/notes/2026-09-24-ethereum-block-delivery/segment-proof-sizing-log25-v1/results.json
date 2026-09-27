@@ -1,0 +1,30 @@
+{
+  "scope": "selected full-custody recursive leaf proofs; not a complete block or aggregate benchmark",
+  "admission_log_cap": 25,
+  "records": [
+    {
+      "segments": 512,
+      "target": 511,
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-sizing-log25",
+        "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+        "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+        "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+        "524288",
+        "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-proof-sizing-log25-v1/512-511.unused-proof",
+        "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-proof-sizing-log25-v1/512-511.json",
+        "canonical",
+        "segment=511"
+      ],
+      "exit_code": 1,
+      "wall_seconds": 167.8920796669554
+    }
+  ],
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-sizing-log25": "8c5da9b54064d3d295f1ca407e9d91ff25e99dd206cfd1ee9a6d336452decda0",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "src/frontends/riscv/ethereum_block_stream.zig": "e70abe401f25f520e0890a10427b6d019791b364865c6e8fd9695e871aa6b1b2"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "caller-admission-ownership-semantic-v2-result.json",
+  "focused": "caller-admission-ownership-focused-v2-result.json",
+  "checks": 21,
+  "named_behavioral_checks": 10,
+  "scope": "Stable original caller arithmetic/fused admission ownership, exact sparse original source roster, overlapping borrowed and private sessions, later validation after session teardown, security/limits/link mutations, new owner/partial-owner/final-validation allocation boundaries, original order/reentrance/sink-failure guards and actual assembled-caller/staged/live borrowed producer bodies retained without invocation.",
+  "allocation_fault_scope": "Selected new ownership boundaries (indices0,1,2,last) using original production constructors and validation; this does not claim exhaustive requalification of every upstream typed AIR allocation. Earlier exhaustive admission result is preserved.",
+  "supersedes": "Caller Session Prepared ownership is now stable pointer-based. The earlier pipeline qualification covers its historical source snapshot only.",
+  "pending": [
+    "Canonical driver/caller catalog and durable policy activation",
+    "Compact hierarchy and memory/global authority closure",
+    "Successful complete recursive proof and whole-block timing/peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

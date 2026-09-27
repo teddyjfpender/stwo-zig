@@ -1,0 +1,27 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 21s
+1/24 block_v5_native_capacity_fused_unit_test_root.test_0...OK
+2/24 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused exact source ordinals mixed selector origins mask union and resource mutations...OK
+3/24 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused original projection and RW point domain equations retain every selector and shifted mask...OK
+4/24 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused protocol frame mode count seal and access-root identities reject exact-row relabel...OK
+5/24 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused genuine zero RW typed absence binds frame roots ordinals and rejects nonempty presence...OK
+6/24 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused selector links remain linear across every native recipe at arbitrary extension points...OK
+7/24 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused owned mask and source inventories survive every allocation failure...OK
+8/24 prover.block_v5_native_capacity_fused_unit_test.test.capacity fused actual capacity warm producer fresh CPU receiver and stage bodies compile only...OK
+9/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused wire distinct four and five tree inventories roundtrip owned canonical arrays...OK
+10/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused wire rejects old grammar count frame mode roots seal and noncanonical claims before received allocations...OK
+11/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused wire every allocation failure preserves decoded array postcard and envelope owners...OK
+12/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store independently admitted policy owns exclusive publication manifest and one-shot load...OK
+13/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store rejects root census cap and existing file while retaining producer ownership...OK
+14/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store independent source policy rejects exact count frame catalog and stale seal replacements...OK
+15/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store independent policy and slot owners survive every allocation failure...OK
+16/24 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused artifact CPU fresh verifier and owned store bodies compile only...OK
+17/24 prover.block_v5_native_capacity_fused_extraction_test_v1.test.capacity fused runtime recoverable lookup extraction preserves every family's exact successful DAG and event roots...OK
+18/24 prover.block_v5_native_capacity_fused_extraction_test_v1.test.capacity fused runtime direct lookup and authority extraction propagate every allocation failure and clear installed arena...OK
+19/24 air.semantic_eval.test_0...OK
+20/24 prover.block_execution_external_trace_v2.test_0...OK
+21/24 air.lookups.tables.mod.test_0...OK
+22/24 air.memory_commitment.poseidon2_air.test_0...OK
+23/24 prover.block_execution_external_access_bridge_v2.test_0...OK
+24/24 air.lookups.tables.source_ingest.test_0...OK
+All 24 tests passed.

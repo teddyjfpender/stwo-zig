@@ -1,0 +1,175 @@
+{
+  "schema": "block-v5-native-capacity-exact-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "tests_run_by_agent": false,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_native_exact_leaf_adapter_v1.zig",
+      "sha256": "aad0d217ac9aae734909cdb64bcb30200db690fb9d25efbf1a580a95240f2d7b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_capacity_exact_leaf_adapter_v1.zig",
+      "sha256": "208c7ea515ab76009909ecfc602fd6d074b12691f066fc1cd33f1481831ebc1a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_open_exact_forest_receiver_impl_v1.zig",
+      "sha256": "e7cf6f1ef771eba534979e113903a587d26ffe68d50371887d536f3067b62fca"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_open_exact_forest_receiver_v1.zig",
+      "sha256": "6df49f2c949b17e8b78c6cc872d2a7ec389f84141c44e34dc26d50c8dd91f721"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_capacity_exact_forest_receiver_v1.zig",
+      "sha256": "4d3e1aa98bf70d1bc0f7844104d1eca964a62b2b7ee4c07efd6869b665d81d26"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_open_forest_stage_impl_v1.zig",
+      "sha256": "162cad3dc00234bb8fe7450bc97f42f19e4951b839943ae8370441b04f2b121a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_open_forest_stage_v1.zig",
+      "sha256": "a083a914271fe4b962e5b6f7b984fe1392d8fed3ccfd32435e9edfe62f20fd17"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_open_forest_stage_v1.zig",
+      "sha256": "08e16fd492aa732ad35c71fd80b96b048c1ad821848a2cb105feadb5890aaa7d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_open_forest_manifest_leaf_impl_v1.zig",
+      "sha256": "2e57ce44d70ebfbd056407a270c534153f829db7eed51dc493680b31930c48f7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_open_forest_manifest_v1.zig",
+      "sha256": "2f3bc462785c3eeae94223c191145dea3805f9a9f5a1074b7cadd34775db9530"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_open_forest_manifest_v1.zig",
+      "sha256": "11282e3290fcc7bce74779d5b200de476c92afa34de40b40c756208a9cf566d3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_exact_forest_test_v1.zig",
+      "sha256": "9ef3bd280bb6c629490fbca3099d63a05d40c98a0453666e08e0355074fc8683"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_capacity_exact_test_root.zig",
+      "sha256": "de2a4f19e2216104f627d5abbb71b87d674f3155de73dd84e399650e7d84f500"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_exact_codegen.zig",
+      "sha256": "8dc6bd9de42e8e3866f0d0fb1b94c76f83763df186681b9db8efbe8a061a27d2"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-capacity-exact-forest-v1.md",
+      "sha256": "1896ae35dc72709744d704c0f4cca549b873ebf707045761596387291cd97c58"
+    }
+  ],
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "capacity exact:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_capacity_exact_test_root.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-native-capacity-exact-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_native_capacity_exact_codegen.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "dependency_receipt": "native-capacity-recursion-qualified-v1.json",
+  "scope": "Typed capacity policy specialization of one exact receiver/Stream/manifest implementation, preserving NativeV3 default and common transports. No Global/driver activation or new proof qualification."
+}

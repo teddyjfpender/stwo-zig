@@ -1,0 +1,7 @@
+1/6 block_v5_ram_lanes_resource_plan_test_root.test_0...OK
+2/6 prover.block_v5_ram_lanes_resource_plan_test_v1.test.block-v5 RAM resource selection admits trace fixed and interaction caps before count first geometry...OK
+3/6 prover.block_v5_ram_lanes_resource_plan_test_v1.test.block-v5 RAM resource selection preserves independent caps and exact nonrounded instance limits...OK
+4/6 prover.block_v5_ram_lanes_resource_plan_test_v1.test.block-v5 RAM resource selection respects exact FRI backend holes and resident ingress guards...OK
+5/6 prover.block_v5_ram_lanes_resource_plan_test_v1.test.block-v5 RAM resource selection exhaustive admitted masks minimize count then true row area...OK
+6/6 prover.block_v5_ram_lanes_resource_plan_test_v1.test.block-v5 RAM resource selection zero RAM impossible policy and allocation failures are bounded...OK
+All 6 tests passed.

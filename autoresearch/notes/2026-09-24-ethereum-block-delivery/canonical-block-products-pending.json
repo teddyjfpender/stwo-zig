@@ -1,0 +1,11 @@
+{
+  "status": "wiring written; formatting passes; normal product build queued behind isolated block run",
+  "build_session": 40380,
+  "build_log": "build-canonical-block-products-v1.log",
+  "source_sha256": {
+    "build_support/products/riscv_cpu_ethereum_block_proof.zig": "3d3068d7d873c23c09706cf400c734e2e4c1888d2cec54f80efb7b6fc4fb89cb",
+    "build_support/products/catalog.zig": "9d46146f27d5fda8295e69cf82291fcefd1cb98de8e0b23d06acd0fc2f9c13ec"
+  },
+  "build_exit_code": 0,
+  "qualification_note": "Normal targets built before the subsequent optional segment sizing mode was added; the sizing-mode direct build is separately pending."
+}

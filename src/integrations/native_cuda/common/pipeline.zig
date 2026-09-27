@@ -132,13 +132,26 @@ pub fn PipelineFor(
             );
         }
 
+        /// One canonical admission before direct execution, capture or cached
+        /// graph replay. A replay cannot bypass the original node metadata.
+        pub fn admitNode(transaction: anytype, prepared: *const PreparedPlan, geometry: Geometry, scheduled: execution_plan.ScheduledNode) !void {
+            try requireGeometry(prepared, geometry);
+            try prepared.structural.cuda_plan.target.validate();
+            try Scheduled.admitNode(prepared, scheduled);
+            const original = prepared.schedule();
+            if (scheduled.node_id >= original.len or !std.meta.eql(original[scheduled.node_id], scheduled)) return error.InvalidKernelDescriptor;
+            const declared = prepared.structural.proof_program.nodes[scheduled.node_id];
+            if (scheduled.graph_candidate != (prepared.graphsEnabled() and declared.graph_candidate)) return error.InvalidKernelDescriptor;
+            try transaction.proofSession().admitScheduledNode(scheduled.stage, scheduled.stream_index);
+        }
+
         pub fn executeNode(
             transaction: anytype,
             prepared: *PreparedPlan,
             geometry: Geometry,
             scheduled: execution_plan.ScheduledNode,
         ) !void {
-            try requireGeometry(prepared, geometry);
+            try admitNode(transaction, prepared, geometry, scheduled);
             return Scheduled.executeNode(
                 transaction,
                 prepared,

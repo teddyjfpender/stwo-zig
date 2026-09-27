@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "tests_passed": 6,
+  "scope": "Device-free admission/dispatch/ownership/limits/terminal-status/stale-proof-lifetime/witness/cubin-receipt contract checks with host test dispatcher. Actual NativeSession body compilation and CUDA compilation/hardware parity not covered here.",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cuda-word-resident-contract.log",
+    "sha256": "42d603001d3f6cfc7fcca4dd774b62e1a202323e001a944e178db8f167685efb"
+  },
+  "sources": {
+    "src/block_v5_word_cuda_resident_test_root.zig": "d2fd77791fd65e50b6341943d9faac9fd82ca8b9586acab7abef3a3d82dac091",
+    "src/backends/cuda/runtime/secure_polynomial_v1.zig": "6b7689833646ae4e834fc3896312db89fffc774d9d639b863117b65018727775",
+    "src/backends/cuda/aot/secure_polynomial_registry_v1.zig": "892ff6581442a56a0711378ee395a4fffa9637d8fc804439e9bc977d0a40600e",
+    "src/backends/cuda/secure_polynomial_resident_codegen_v1.zig": "0d9764ab2f930e1d8c175c66b9b9bb6c092c4d19872373ce8c2cdf04553a3e8f",
+    "src/backends/cuda/runtime/kernel.zig": "0c80f39877058bf4240fd6d3d00eed2a33321c535d043260df6ab79193450889",
+    "src/backends/cuda/runtime/session.zig": "d874c556e8339e52147f683cf52013f3a3ced1170b6c3197e04e5d711c62563b",
+    "src/backends/cuda/native/secure_polynomial_resident_v1.cuh": "b014db1cb0f3363fc9aec60bb9de1480eeb9b2f64a7c90c7b79cfc286441333b",
+    "src/backends/cuda/abi/schema.zig": "08dcd73354723a9a8bd7c271f8e4c4976342f8801e0eb04e7ef607248c4d6875"
+  }
+}

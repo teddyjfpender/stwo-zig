@@ -1,0 +1,18 @@
+1/17 block_v5_input_request_policy_test_root_v1.test_0...OK
+2/17 block_v5_input_request_policy_test_root_v1.test.input request policy: retain real independent publish reconstruct and stable owner bodies without calls...OK
+3/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: exact original schedule copy survives caller mutation...OK
+4/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: every schedule factory allocation failure rolls back...OK
+5/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: routing sign uses child coordinate and part pinned independently...OK
+6/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: common input retained once output and full clocks copied exactly...OK
+7/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: every public output-copy allocation failure propagates...OK
+8/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: exact uneven window and node roster before reconstruction...OK
+9/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: range factory allocation failure has no partial owner...OK
+10/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: retained parent survives moved schedule failure and cancellation...OK
+11/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: metadata cap admits no uncapped foreign allocator workaround...OK
+12/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: original coverage storage does not borrow moved roster arrays...OK
+13/17 prover.block_v5_input_request_policy_test_v1.test.input request policy: every partial coverage storage factory failure rolls back...OK
+14/17 air.semantic_eval.test_0...OK
+15/17 air.memory_commitment.poseidon2_air.test_0...OK
+16/17 air.lookups.tables.mod.test_0...OK
+17/17 air.lookups.tables.source_ingest.test_0...OK
+All 17 tests passed.

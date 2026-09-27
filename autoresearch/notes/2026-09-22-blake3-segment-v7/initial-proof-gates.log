@@ -1,0 +1,25 @@
+test-ethereum-segment-v2-signer-proof
++- Ethereum SegmentV2 signer proof identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'ethereum_precompile_proof_test.test.Ethereum nonfinal SegmentV2 signer leaf proves and verifies' failed
+error: while executing test 'ethereum_precompile_proof_test.test.Ethereum nonfinal SegmentV2 signer leaf proves and verifies', the following test command failed:
+./.zig-cache/o/03cb855fa1e745b6a4a164332c4b093f/test --cache-dir=./.zig-cache --seed=0x2bf5b059 --listen=-
+test-blake3-ethereum-segment-artifact
++- BLAKE3 v7 segment artifact guard
+   +- run test 0/1 passed, 1 failed
+error: 'ethereum_precompile_proof_test.test.BLAKE3 Ethereum SegmentV3 v7 artifact verifies full dynamic capture' failed
+error: while executing test 'ethereum_precompile_proof_test.test.BLAKE3 Ethereum SegmentV3 v7 artifact verifies full dynamic capture', the following test command failed:
+./.zig-cache/o/578cd3798d4d3a6c593de699f54e1b8f/test --cache-dir=./.zig-cache --seed=0x2bf5b059 --listen=-
+
+Build Summary: 2/8 steps succeeded; 2 failed; 0/2 tests passed; 2 failed
+test-blake3-ethereum-segment-artifact transitive failure
++- BLAKE3 v7 segment artifact guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 3m MaxRSS:6G
+test-ethereum-segment-v2-signer-proof transitive failure
++- Ethereum SegmentV2 signer proof identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 3m MaxRSS:6G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/628e9dcd208d9cb5bc0a68722ea0753f/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x2bf5b059 -Za797da2cd9e821bd --maxrss 25769803776 -j1 test-blake3-ethereum-segment-artifact test-ethereum-segment-v2-signer-proof -Doptimize=ReleaseSafe --summary all

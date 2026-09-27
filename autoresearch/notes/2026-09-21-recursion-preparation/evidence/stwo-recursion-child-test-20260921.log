@@ -1,0 +1,8 @@
+1/1 recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript...detached composition: samples=2287 inputs=10116 nodes=40152 outputs=52 rejected_claims=41 rejected_sample_words=4
+SEGMENT_V2_DETACHED_PREFIX operations=61 calls=260 payload_fixed=54 payload_dynamic=1056 input_uses=1072 boundary_challenges=2 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_SCHEDULE operations=42 shared_secure_emitter=true
+SEGMENT_V2_DETACHED_PCS_ROWS operations=42 provider_calls=1235 sampled_words=9148 randomness_rows=33 pow_rows=1 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=1 query_rows=193 trace_rows=51917 fri_leaf_rows=10422 path_rows=23353 provider_calls=88201 pcs_inputs=426616 fri_inputs=64487 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=2 query_rows=193 trace_rows=51917 fri_leaf_rows=10422 path_rows=23353 provider_calls=88201 pcs_inputs=426616 fri_inputs=64487 parent_proof_verified=false
+FAIL (InvalidBoundarySectionProfile)
+0 passed; 0 skipped; 1 failed.

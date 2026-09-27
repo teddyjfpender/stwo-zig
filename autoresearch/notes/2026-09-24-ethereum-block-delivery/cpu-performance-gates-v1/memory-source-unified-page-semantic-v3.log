@@ -1,0 +1,14 @@
+src/frontends/riscv/prover/block_v5_memory_source_page_interaction_v1.zig:126:101: error: runtime value contains reference to comptime var
+                @memcpy(padding[Air.PHYSICAL_MAIN_COLUMN_COUNT + Air.PREPROCESSED_COLUMN_COUNT ..], &Components.ARITHMETIC_PARAMETERS[i]);
+                                                                                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_page_interaction_v1.zig:126:101: note: comptime var pointers are not available at runtime
+src/frontends/riscv/prover/block_v5_memory_source_page_interaction_v1.zig:126:101: note: 'runtime_value' points to comptime field
+referenced by:
+    prove: src/frontends/riscv/prover/block_v5_memory_source_unified_page_proof_v1.zig:271:51
+    test.source unified PAGE bodies: actual compact fold six-root collect replay retained leases and one-graph direct materialization: src/frontends/riscv/block_v5_memory_source_unified_page_codegen.zig:42:22
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+src/frontends/riscv/prover/block_v5_memory_source_page_interaction_v1.zig:126:101: error: runtime value contains reference to comptime var
+                @memcpy(padding[Air.PHYSICAL_MAIN_COLUMN_COUNT + Air.PREPROCESSED_COLUMN_COUNT ..], &Components.ARITHMETIC_PARAMETERS[i]);
+                                                                                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_page_interaction_v1.zig:126:101: note: comptime var pointers are not available at runtime
+src/frontends/riscv/prover/block_v5_memory_source_page_interaction_v1.zig:126:101: note: 'runtime_value' points to comptime field

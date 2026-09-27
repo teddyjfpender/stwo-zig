@@ -282,7 +282,7 @@ pub fn markNonzeroColumnsAndSamples(
         if (tree_columns.len != tree_samples.len) return QuotientOpsError.ShapeMismatch;
         for (tree_columns, tree_samples) |column, samples| {
             var has_nonzero = false;
-            for (column.values) |value| {
+            for (column.coefficient_values orelse column.values) |value| {
                 if (!value.isZero()) {
                     has_nonzero = true;
                     break;
@@ -319,6 +319,8 @@ pub fn buildCombinedContributionPlan(
         return QuotientOpsError.ShapeMismatch;
     }
 
+    var coefficient_groups = std.ArrayList(bool).empty;
+    defer coefficient_groups.deinit(allocator);
     var views = std.ArrayList(CombinedContributionView).empty;
     defer views.deinit(allocator);
     errdefer for (views.items) |view| {
@@ -331,6 +333,10 @@ pub fn buildCombinedContributionPlan(
         }
         if (!nonzero_columns[column_idx]) continue;
         const column = flat_columns[column_idx];
+        try column.validateRetained();
+        const source = column.coefficient_values orelse column.values;
+        const size = try column_geometry.checkedPow2(column.log_size);
+        const coefficient_basis = column.coefficient_values != null;
         if (column.log_size > lifting_log_size) return QuotientOpsError.InvalidColumnLogSize;
         const log_shift = lifting_log_size - column.log_size;
         if (log_shift >= @bitSizeOf(usize)) return QuotientOpsError.InvalidColumnLogSize;
@@ -342,7 +348,7 @@ pub fn buildCombinedContributionPlan(
             var created = false;
             for (views.items, 0..) |view, i| {
                 if (view.batch_index == contribution.batch_index and
-                    view.coordinates[0].len == column.values.len)
+                    view.coordinates[0].len == size and coefficient_groups.items[i] == coefficient_basis)
                 {
                     view_index = i;
                     break;
@@ -354,9 +360,10 @@ pub fn buildCombinedContributionPlan(
                 var initialized: usize = 0;
                 errdefer for (coordinates[0..initialized]) |coordinate| allocator.free(coordinate);
                 inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
-                    coordinates[coord] = try allocator.alloc(M31, column.values.len);
+                    coordinates[coord] = try allocator.alloc(M31, size);
                     initialized += 1;
                 }
+                try coefficient_groups.append(allocator, coefficient_basis);
                 try views.append(allocator, .{
                     .coordinates = coordinates,
                     .batch_index = contribution.batch_index,
@@ -371,15 +378,16 @@ pub fn buildCombinedContributionPlan(
             const view = &views.items[view_index.?];
             inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
                 if (created) {
+                    @memset(view.coordinates[coord][source.len..], M31.zero());
                     scaleColumn(
-                        view.coordinates[coord],
-                        column.values,
+                        view.coordinates[coord][0..source.len],
+                        source,
                         coeffs[coord],
                     );
                 } else {
                     addScaledColumn(
-                        view.coordinates[coord],
-                        column.values,
+                        view.coordinates[coord][0..source.len],
+                        source,
                         coeffs[coord],
                     );
                 }
@@ -387,6 +395,22 @@ pub fn buildCombinedContributionPlan(
         }
     }
 
+    // Fold in the native basis first: four FFTs per (sample, domain) group,
+    // instead of materializing an LDE for every committed column.
+    const poly = @import("../../poly/circle/mod.zig");
+    const twiddles = @import("../../poly/twiddles.zig");
+    for (views.items, coefficient_groups.items) |view, coefficient_basis| {
+        if (!coefficient_basis) continue;
+        const log: u32 = @intCast(std.math.log2_int(usize, view.coordinates[0].len));
+        const domain = poly.CanonicCoset.new(log).circleDomain();
+        var transform = try twiddles.precomputeM31(allocator, domain.half_coset);
+        defer twiddles.deinitM31(allocator, &transform);
+        try poly.poly.evaluateBuffersWithTwiddles(&view.coordinates, domain, .{
+            .root_coset = transform.root_coset,
+            .twiddles = transform.twiddles,
+            .itwiddles = transform.itwiddles,
+        });
+    }
     return .{ .views = try views.toOwnedSlice(allocator) };
 }
 

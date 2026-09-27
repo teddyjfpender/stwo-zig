@@ -1,0 +1,46 @@
+{
+  "status": "qualified_focused_retained_backing_budget_lifetime",
+  "source_pin": {
+    "path": "src/prover/host_budget_allocator.zig",
+    "sha256": "b65da8b9ae02c8a6c8af58051eba681c411223700ec88a052c1f6c58d239301d"
+  },
+  "evidence": {
+    "source_candidate": "shared-host-budget-backing-focused-v1-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1.1174382499884814,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 7,
+    "test_summary": [
+      "All 7 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/shared-host-budget-backing-focused-v1.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-shared-host-budget-backing-focused-v1",
+      "bytes": 1537952,
+      "sha256": "31fb0753beafa6da685db11df0483aa615decd0e07f0d5e9bae34b3e5dba9006"
+    }
+  },
+  "scope": [
+    "Additive createRetainingParent; original create preserves borrowed backing semantics",
+    "Nested budget retains identifiable backing owner, frees nested controls before releasing parent",
+    "Seven allocator checks including all allocation failures, release of original backing owner, descendant chain, external leases and exact budget boundary"
+  ],
+  "adopted_call_sites": [
+    "PAGE join owned setup constructor",
+    "PAGE transition retained output allocator"
+  ],
+  "not_qualified": [
+    "Actual receiver proofs or canonical driver activation",
+    "Source driver integration and performance/peak RSS"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

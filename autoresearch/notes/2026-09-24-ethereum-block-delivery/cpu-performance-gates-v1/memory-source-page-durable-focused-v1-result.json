@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-page-durable-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 41.3710342089762,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 13,
+  "test_summary": [
+    "All 13 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-durable-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-page-durable-focused-v1",
+    "bytes": 58498096,
+    "sha256": "6697f971b486288a6f4528a06bf2b1811704e38854bc267f69a456999385d62d"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "README.md": "622254bc67806ddb55eb0fb76f4ed51850e128db828ddc2fc2dcdc19b519817b",
+  "initial-tests.log": "d441a96ca88ef98e6d0368b99a728ee9e75f1d9210dd38be6a31625e1be1036b",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "fdc69c81b3ec9e985cce837dabb1edecd29bfc27cc4d79eddb4222c114ea0b45",
+  "sources/src/frontends/riscv/recursion/air/blake3_routed_transcript_test.zig": "98d5e6c8053dce9662912c826b3a58ecf52f1f29f2e4b531bf01f87c5526fb77",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "8db235e33784f34001ba2181d091a7af3a287023e29bee4772cb48f368dd6c49",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "3b261ba25bd5e843673f949c127e5307d5f78067b9ce23ebca34f3af7e5d22fa",
+  "tests.log": "af3cb36cc8dd6f4dacb2fc4f56498c80fb63d5cbb124ec246725df7cc9aa139d"
+}

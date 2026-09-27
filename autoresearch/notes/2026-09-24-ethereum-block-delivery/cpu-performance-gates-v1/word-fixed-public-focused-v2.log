@@ -1,0 +1,10 @@
+1/9 block_v5_word_fixed_public_test_root_v1.test_0...OK
+2/9 block_v5_word_fixed_public_test_root_v1.test.word fixed public: actual independent native owners and original live supplier bodies retained...OK
+3/9 prover.block_v5_word_fixed_public_test_v1.test.word fixed public: original RAM external root statement and 61-input routing parity...OK
+4/9 prover.block_v5_word_fixed_public_test_v1.test.word fixed public: original range16 shard count sum and root routing parity...OK
+5/9 prover.block_v5_word_fixed_public_test_v1.test.word fixed public: native receipt span and graph ordinal mutations reject without integer overflow...OK
+6/9 prover.block_v5_word_fixed_public_test_v1.test.word fixed public: all routing allocation failures release original source ownership...OK
+7/9 air.memory_commitment.poseidon2_air.test_0...OK
+8/9 air.lookups.tables.mod.test_0...OK
+9/9 air.lookups.tables.source_ingest.test_0...OK
+All 9 tests passed.

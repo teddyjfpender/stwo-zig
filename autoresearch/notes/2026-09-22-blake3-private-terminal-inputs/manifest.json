@@ -1,0 +1,10 @@
+{
+  "README.md": "7a9a3e90425ef93e5a25a159bca8c22dd570427258c341b5da85de50112bd20a",
+  "sources/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig": "4ace1839137f6c35aa0ba461ec5955ab12b9968755d316e1840b96ce89f4304e",
+  "sources/src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig": "6dd684a870a35d720b58c79656ec0012d3294071d551403449bb30bf72fa8c1c",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_transcript.zig": "0101ebc89e900d5b58a49f5d45531f78885d81e9dc0bab44606ef693397fc0a0",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig": "58f117ff7bb9d8a44dc9daed7893977a02e42fc3ad4a317ed7db56b9bc371e9d",
+  "sources/src/frontends/riscv/recursion/air/blake3_terminal_links.zig": "d978be1d95a0c2a8146b31dc1eb793b6af55ab60bbd353475b835e779d4926c2",
+  "sources/src/frontends/riscv/recursion/air/qm31_pack_wire_test.zig": "d4b9345b3b1c8a38d994caaaf7e1378a4cdc3d89ab63da3f61da6c7efb8df3d8",
+  "tests.log": "186db6210eda9b3aca49364e60a3a73f883b56f14e372affa1554d5c7f836a0e"
+}

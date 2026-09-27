@@ -1,0 +1,42 @@
+1/41 block_v5_cpu_performance_assembly_test_root_v1.test_0...OK
+2/41 block_v5_cpu_performance_assembly_test_root_v1.test.cpu performance assembly: genuine cache publication driver receiver and canonical CLI bodies retained...OK
+3/41 prover.block_v5_supplemental_worker_reuse_test_v1.test.supplemental worker reuse: seven original typed owners remain lazy and retain no proof state...OK
+4/41 prover.block_v5_supplemental_worker_reuse_test_v1.test.supplemental worker reuse: every partial seven-owner allocation failure unwinds...OK
+5/41 prover.block_v5_supplemental_worker_reuse_test_v1.test.supplemental worker reuse: uniform worker cap and scratch policy rejects before source admission...OK
+6/41 prover.block_v5_supplemental_worker_reuse_test_v1.test.supplemental worker reuse: invalid standalone worker geometry rejects before metadata allocation...OK
+7/41 prover.block_v5_native_recursive_consuming_test.test.block-v5 consuming native cache releases rows on lease and admission failure...OK
+8/41 prover.block_v5_native_recursive_consuming_test.test.supplemental worker reuse: rejected joined setup releases rows without preflight notification...OK
+9/41 prover.block_v5_supplemental_recursive_lifetime_test_v1.test.supplemental stage lifetime: caller four claim frames and ranges retain independent custody...OK
+10/41 prover.block_v5_supplemental_recursive_lifetime_test_v1.test.supplemental stage lifetime: caller export partial allocation failures unwind...OK
+11/41 prover.block_v5_supplemental_recursive_lifetime_test_v1.test.supplemental stage lifetime: native claims and typed absent access retain independent custody...OK
+12/41 prover.block_v5_supplemental_recursive_lifetime_test_v1.test.supplemental stage lifetime: native optional export allocation failures unwind...OK
+13/41 prover.block_v5_supplemental_recursive_lifetime_test_v1.test.supplemental stage lifetime: every supplemental family checks original profile and borrowed cache...OK
+14/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: owned source late binding and every allocation rollback...OK
+15/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: independent input selection source and census mutations...OK
+16/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: original spool retains mutable input and complete global clocks...OK
+17/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: selected mutation poisons candidate but original mutable default accepts...OK
+18/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: source equation rejects count sign and overflow mutations...OK
+19/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: transport counter census rejected before denied allocation...OK
+20/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: roster exact sparse census absence and ordered roots...OK
+21/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: seal binds classifier roots before word challenges and keeps writable bytes...OK
+22/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: genuine policy roster reconstruction every allocation rollback...OK
+23/41 prover.block_v5_readonly_input_collection_test_v1.test.readonly collection: detached policy cannot change classifier roots census plan or epoch...OK
+24/41 prover.block_v5_readonly_input_collection_bodies_test_v1.test.readonly collection: actual canonical collection staged replay fresh closure and transport bodies retained...OK
+25/41 prover.block_v5_cpu_capacity_driver_test_v1.test.capacity driver: readonly requires canonical register windows and rejects missing recursive grammar before collection...OK
+26/41 prover.blake3_scoped_parent_admission_test_v1.test.scoped producer lifetime: previous public borrow clears before source teardown and current tuple replaces it...OK
+27/41 prover.blake3_scoped_parent_admission_test_v1.test.scoped producer lifetime: public borrow metadata allocation failures unwind...OK
+28/41 prover.blake3_scoped_parent_admission_test_v1.test.scoped producer lifetime: shared original fixed guards reject all row log column extent and content faults...OK
+29/41 prover.blake3_scoped_parent_admission_test_v1.test.scoped producer lifetime: bounded original fixed metadata descriptor allocation failures unwind...OK
+30/41 prover.blake3_scoped_parent_admission_test_v1.test.scoped producer lifetime: default API preserved and scoped persistent key contains no source pointers...OK
+31/41 prover.block_execution_external_trace_v2.test_0...OK
+32/41 air.lookups.tables.mod.test_0...OK
+33/41 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+34/41 runner.mod.test_0...OK
+35/41 runner.decode.test_0...OK
+36/41 air.memory_commitment.poseidon2_air.test_0...OK
+37/41 air.semantic_eval.test_0...OK
+38/41 prover.block_execution_external_access_bridge_v2.test_0...OK
+39/41 prover.block_v5_committed_trace_column_v1.test_0...OK
+40/41 air.lookups.tables.source_ingest.test_0...OK
+41/41 diagnostics.mod.test_0...OK
+All 41 tests passed.

@@ -1,0 +1,252 @@
+ETH_AUTH_EXECUTION cycles=149924 keccak=87 recoveries=16 output=010000001000000058fd7193c9c0d6e71780fd4723b240cedf505932233bae1d8e7790c225a9a2b6bd0575ce257a9043d57b5b6074042a8c86ee337744aa6ae620c0836f811b9140
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800
+BLAKE3_NATIVE_FUSION dot4=816501 fma=158445 arithmetic_rows=1445178
+BLAKE3_ETHEREUM_SEGMENTS_PREPARED segments=1 cycles=149924 retained_bytes=4167191028
+ETH_AUTH_RECURSIVE {
+  "verified": true,
+  "recursive": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 149924,
+  "keccak_calls": 87,
+  "recovery_calls": 16,
+  "segments": 1,
+  "execution_ns": 13633042,
+  "witness_admission_ns": 2568942750,
+  "leaf_and_recursion_preparation_ns": 19603321333,
+  "parent_proving_ns": 13555792875,
+  "hash_partition_ns": 319146917,
+  "final_verification_ns": 11348708,
+  "total_ns": 40298229959,
+  "proof_bytes": 983171,
+  "worker_peak_bytes": 15594615680,
+  "preparation_retained_bytes": 4167191028,
+  "geometry": [
+    {
+      "index": 0,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822085552
+    },
+    {
+      "index": 1,
+      "name": "recursion.air.blake3_xor_call",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1963184,
+      "fixed_columns": 6,
+      "retained_bytes": 147780000
+    },
+    {
+      "index": 2,
+      "name": "recursion.air.blake3_boundary",
+      "main_columns": 4,
+      "main_rows": 2097152,
+      "fixed_rows": 1480910,
+      "fixed_columns": 8,
+      "retained_bytes": 80943648
+    },
+    {
+      "index": 3,
+      "name": "recursion.air.qm31_mul_add_v1",
+      "main_columns": 17,
+      "main_rows": 524288,
+      "fixed_rows": 389309,
+      "fixed_columns": 10,
+      "retained_bytes": 51224352
+    },
+    {
+      "index": 4,
+      "name": "recursion.air.qm31_inv",
+      "main_columns": 14,
+      "main_rows": 4096,
+      "fixed_rows": 3945,
+      "fixed_columns": 18,
+      "retained_bytes": 513752
+    },
+    {
+      "index": 5,
+      "name": "recursion.air.linear_ops",
+      "main_columns": 21,
+      "main_rows": 262144,
+      "fixed_rows": 235423,
+      "fixed_columns": 30,
+      "retained_bytes": 50271360
+    },
+    {
+      "index": 6,
+      "name": "recursion.air.blake3_challenge_block",
+      "main_columns": 71,
+      "main_rows": 256,
+      "fixed_rows": 168,
+      "fixed_columns": 15,
+      "retained_bytes": 84488
+    },
+    {
+      "index": 7,
+      "name": "recursion.air.blake3_byte_route",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1733479,
+      "fixed_columns": 45,
+      "retained_bytes": 412689804
+    },
+    {
+      "index": 8,
+      "name": "recursion.air.blake3_query_mask",
+      "main_columns": 8,
+      "main_rows": 128,
+      "fixed_rows": 71,
+      "fixed_columns": 10,
+      "retained_bytes": 7128
+    },
+    {
+      "index": 9,
+      "name": "recursion.air.blake3_private_word",
+      "main_columns": 4,
+      "main_rows": 262144,
+      "fixed_rows": 168410,
+      "fixed_columns": 4,
+      "retained_bytes": 6888960
+    },
+    {
+      "index": 10,
+      "name": "recursion.air.blake3_field_bytes",
+      "main_columns": 24,
+      "main_rows": 1048576,
+      "fixed_rows": 1044702,
+      "fixed_columns": 9,
+      "retained_bytes": 138273144
+    },
+    {
+      "index": 11,
+      "name": "recursion.air.qm31_pack_wire",
+      "main_columns": 4,
+      "main_rows": 65536,
+      "fixed_rows": 46934,
+      "fixed_columns": 8,
+      "retained_bytes": 2550560
+    },
+    {
+      "index": 12,
+      "name": "recursion.air.scalar_wire_source",
+      "main_columns": 1,
+      "main_rows": 2097152,
+      "fixed_rows": 1086806,
+      "fixed_columns": 6,
+      "retained_bytes": 34471976
+    },
+    {
+      "index": 13,
+      "name": "recursion.air.blake3_path_select",
+      "main_columns": 17,
+      "main_rows": 262144,
+      "fixed_rows": 194144,
+      "fixed_columns": 12,
+      "retained_bytes": 27145112
+    },
+    {
+      "index": 14,
+      "name": "recursion.air.blake3_retry_control",
+      "main_columns": 12,
+      "main_rows": 256,
+      "fixed_rows": 168,
+      "fixed_columns": 22,
+      "retained_bytes": 27360
+    },
+    {
+      "index": 15,
+      "name": "recursion.air.blake3_counter_step",
+      "main_columns": 24,
+      "main_rows": 256,
+      "fixed_rows": 177,
+      "fixed_columns": 9,
+      "retained_bytes": 31524
+    },
+    {
+      "index": 16,
+      "name": "recursion.air.readonly_consistency",
+      "main_columns": 19,
+      "main_rows": 1048576,
+      "fixed_rows": 1002190,
+      "fixed_columns": 6,
+      "retained_bytes": 103744792
+    },
+    {
+      "index": 17,
+      "name": "recursion.air.readonly_input",
+      "main_columns": 5,
+      "main_rows": 1048576,
+      "fixed_rows": 1002190,
+      "fixed_columns": 6,
+      "retained_bytes": 45024200
+    },
+    {
+      "index": 18,
+      "name": "recursion.air.detached_opening_accumulate4_v1",
+      "main_columns": 41,
+      "main_rows": 1048576,
+      "fixed_rows": 793051,
+      "fixed_columns": 13,
+      "retained_bytes": 213206100
+    },
+    {
+      "index": 19,
+      "name": "recursion.air.native_pcs_opening4_v1",
+      "main_columns": 29,
+      "main_rows": 32768,
+      "fixed_rows": 23450,
+      "fixed_columns": 13,
+      "retained_bytes": 5021184
+    },
+    {
+      "index": 20,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822085552
+    },
+    {
+      "index": 21,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822085552
+    },
+    {
+      "index": 22,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 1048576,
+      "fixed_rows": 579688,
+      "fixed_columns": 16,
+      "retained_bytes": 381034928
+    }
+  ],
+  "output": "010000001000000058fd7193c9c0d6e71780fd4723b240cedf505932233bae1d8e7790c225a9a2b6bd0575ce257a9043d57b5b6074042a8c86ee337744aa6ae620c0836f811b9140"
+}
+       41.16 real       306.58 user         7.74 sys
+         15845900288  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             5112044  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              123712  involuntary context switches
+       4541817352809  instructions retired
+       1302455890890  cycles elapsed
+         15847963120  peak memory footprint

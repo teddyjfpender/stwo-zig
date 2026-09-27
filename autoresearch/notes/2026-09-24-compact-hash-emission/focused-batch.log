@@ -1,0 +1,35 @@
+test-blake3-transcript-plan
++- BLAKE3 transcript plan guard
+   +- run test 1/2 passed, 1 failed
+error: 'recursion.air.blake3_transcript_plan_test.test.BLAKE3 native transcript planning retains ownership on failed emission' failed: expected 112, found 0
+error: while executing test 'recursion.air.blake3_transcript_plan_test.test.BLAKE3 native transcript planning retains ownership on failed emission', the following test command failed:
+./.zig-cache/o/e204c1468462382d68dc9912a932d10c/test --cache-dir=./.zig-cache --seed=0x46c1f45c --listen=-
+
+Build Summary: 21/24 steps succeeded; 1 failed; 11/12 tests passed; 1 failed
+test-blake3-hash success
++- BLAKE3 hash graph guard success
+   +- run test 5 passed 624ms MaxRSS:31M
+      +- compile test ReleaseSafe native success 7s MaxRSS:683M
+test-blake3-frame-witness success
++- BLAKE3 frame witness guard success
+   +- run test 1 passed 920ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 4s MaxRSS:525M
+test-blake3-transcript-plan transitive failure
++- BLAKE3 transcript plan guard transitive failure
+   +- run test 1/2 passed, 1 failed
+      +- compile test ReleaseSafe native success 4s MaxRSS:551M
+test-blake3-draw success
++- BLAKE3 ordered draw guard success
+   +- run test 2 passed 2s MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:541M
+test-blake3-bounded-draw success
++- BLAKE3 bounded draw guard success
+   +- run test 1 passed 1s MaxRSS:3M
+      +- compile test ReleaseSafe native success 4s MaxRSS:501M
+test-blake3-query-batch success
++- BLAKE3 query batch guard success
+   +- run test 1 passed 1s MaxRSS:3M
+      +- compile test ReleaseSafe native success 4s MaxRSS:480M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ff568004319f1a92376d4a4223dcb6d9/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x46c1f45c -Za9465d8bc6f68073 --maxrss 25769803776 -j1 test-blake3-hash test-blake3-frame-witness test-blake3-transcript-plan test-blake3-draw test-blake3-bounded-draw test-blake3-query-batch -Doptimize=ReleaseSafe --summary all

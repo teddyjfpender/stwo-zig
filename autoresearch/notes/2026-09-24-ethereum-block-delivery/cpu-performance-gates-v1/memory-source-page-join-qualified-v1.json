@@ -1,0 +1,102 @@
+{
+  "status": "qualified_nonproving_original_memory_source_page_join",
+  "evidence": {
+    "memory-source-page-join-semantic-v1": {
+      "source_candidate": "memory-source-page-join-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 1.879998708027415,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-join-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-join-semantic-v2": {
+      "source_candidate": "memory-source-page-join-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.00162958400324,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-join-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-join-focused-v1": {
+      "source_candidate": "memory-source-page-join-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 17.814034792012535,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 7,
+      "test_summary": [
+        "All 7 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-join-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-join-focused-v1",
+        "bytes": 22744552,
+        "sha256": "d6b957656a1f39d96f06da0425fdc85952acb30f422e30243bec2575cd545973"
+      }
+    },
+    "memory-source-page-join-selected-focused-v1": {
+      "source_candidate": "memory-source-page-join-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 17.630146750016138,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 7,
+      "test_summary": [
+        "All 7 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-join-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-join-selected-focused-v1",
+        "bytes": 22744600,
+        "sha256": "b9b7c30d506f3f409e39ff588715bd2df907c42f1cf89098d508a1c7817e0606"
+      }
+    }
+  },
+  "tests_passed_per_recipe": 7,
+  "source_snapshots": [
+    "memory-source-page-join-focused-v1-source.json",
+    "memory-source-page-join-selected-focused-v1-source.json"
+  ],
+  "literal_dependency_pins_per_recipe": 1722,
+  "scope": [
+    "Five behavioral source/fold/lane closure equation and independent authority guards",
+    "Real exact-roster PAGE/lane/range receiver bodies retained, never proof-invoked",
+    "Canonical field handling, separate equation signs and census, consuming lifecycle admission guards"
+  ],
+  "not_qualified": [
+    "Actual fresh proof execution or complete source fixture",
+    "Native/caller/global/public final recursive closure",
+    "Canonical driver activation",
+    "Complete block proof or speed/peak-memory improvement"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

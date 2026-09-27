@@ -1,0 +1,25 @@
+{"kind": "leaf", "round": 0, "m31_words": 16, "iterations": 2048, "poseidon_ns": 6751458, "blake3_ns": 593167}
+{"kind": "leaf", "round": 0, "m31_words": 256, "iterations": 2048, "poseidon_ns": 53534875, "blake3_ns": 4295917}
+{"kind": "leaf", "round": 0, "m31_words": 4096, "iterations": 2048, "poseidon_ns": 627838709, "blake3_ns": 57104250}
+{"kind": "node", "round": 0, "iterations": 2048, "poseidon_ns": 1215000, "blake3_ns": 331125}
+{"kind": "leaf", "round": 1, "m31_words": 16, "iterations": 2048, "poseidon_ns": 3631083, "blake3_ns": 418083}
+{"kind": "leaf", "round": 1, "m31_words": 256, "iterations": 2048, "poseidon_ns": 40352917, "blake3_ns": 3749041}
+{"kind": "leaf", "round": 1, "m31_words": 4096, "iterations": 2048, "poseidon_ns": 625960458, "blake3_ns": 57012458}
+{"kind": "node", "round": 1, "iterations": 2048, "poseidon_ns": 1220709, "blake3_ns": 331916}
+{"kind": "leaf", "round": 2, "m31_words": 16, "iterations": 2048, "poseidon_ns": 3651417, "blake3_ns": 419000}
+{"kind": "leaf", "round": 2, "m31_words": 256, "iterations": 2048, "poseidon_ns": 40345041, "blake3_ns": 3733625}
+{"kind": "leaf", "round": 2, "m31_words": 4096, "iterations": 2048, "poseidon_ns": 626047917, "blake3_ns": 56988209}
+{"kind": "node", "round": 2, "iterations": 2048, "poseidon_ns": 1217959, "blake3_ns": 328209}
+{"kind": "leaf", "round": 3, "m31_words": 16, "iterations": 2048, "poseidon_ns": 3658792, "blake3_ns": 415958}
+{"kind": "leaf", "round": 3, "m31_words": 256, "iterations": 2048, "poseidon_ns": 40145125, "blake3_ns": 3741750}
+{"kind": "leaf", "round": 3, "m31_words": 4096, "iterations": 2048, "poseidon_ns": 626199292, "blake3_ns": 56991875}
+{"kind": "node", "round": 3, "iterations": 2048, "poseidon_ns": 1211209, "blake3_ns": 328458}
+{"kind": "leaf", "round": 4, "m31_words": 16, "iterations": 2048, "poseidon_ns": 3658500, "blake3_ns": 419458}
+{"kind": "leaf", "round": 4, "m31_words": 256, "iterations": 2048, "poseidon_ns": 40295125, "blake3_ns": 3739500}
+{"kind": "leaf", "round": 4, "m31_words": 4096, "iterations": 2048, "poseidon_ns": 625714584, "blake3_ns": 57268083}
+{"kind": "node", "round": 4, "iterations": 2048, "poseidon_ns": 1231000, "blake3_ns": 328042}
+{"kind": "leaf", "round": 5, "m31_words": 16, "iterations": 2048, "poseidon_ns": 3697333, "blake3_ns": 418875}
+{"kind": "leaf", "round": 5, "m31_words": 256, "iterations": 2048, "poseidon_ns": 40210166, "blake3_ns": 3719125}
+{"kind": "leaf", "round": 5, "m31_words": 4096, "iterations": 2048, "poseidon_ns": 632010834, "blake3_ns": 57232125}
+{"kind": "node", "round": 5, "iterations": 2048, "poseidon_ns": 1237833, "blake3_ns": 328458}
+{"checksum": 41685881330422}

@@ -1,0 +1,16 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "heterogeneous-hierarchy-selected-semantic-v1-result.json",
+  "focused": "heterogeneous-hierarchy-selected-focused-v1-result.json",
+  "checks": 15,
+  "named_behavioral_checks": 7,
+  "scope": "Exact nonrounded75-leaf/67-native topology, original descendant byte export equations, exact PC-clock-span adjacency, actual common parent AIR tuple closure, provider span absence, allocation/resource cleanup, and actual original/lower-parent prove/fresh-receive bodies retained. Independently selected execution recipe1 runner discovers the actual root test list.",
+  "pending": [
+    "compact constrained summary hierarchy without repeated descendants",
+    "complete source/global accounting and canonical driver activation",
+    "successful recursive proof and whole block measurements"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

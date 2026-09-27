@@ -1,0 +1,9 @@
+{
+  "README.md": "7cb09214c133b30acd1b6d3c78404053a986a38ea937385649029a69fa751080",
+  "sources/autoresearch/notes/20260922-blake3-single-draw-problem-match.md": "6fae8bbaad3c695ffa66646fdcda421f913cb58493842f01b2dd32c1185fa41d",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "8ca4742077dc819d9304eade5227875b86085580c3f4701fe8dc7d3ae12f40e6",
+  "sources/src/frontends/riscv/recursion/air/blake3_challenge_committed_test.zig": "94d194cdfb196523b44c69c31a20258de8b8137d22824346564102bfa8436f81",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness.zig": "70a86bf6af11932a1ae3e45c229424e0dc8b54fd37129cc9af6447a0942e449b",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness_test.zig": "19433fbdc5c0883095cef01ba05f8e405d7dac9a52b24cd1a2455ff8be826c7f",
+  "tests.log": "3f8dcf44b24984fafe991fdcbf29f3a323ba49a5c37f8bff157b39bf697a218d"
+}

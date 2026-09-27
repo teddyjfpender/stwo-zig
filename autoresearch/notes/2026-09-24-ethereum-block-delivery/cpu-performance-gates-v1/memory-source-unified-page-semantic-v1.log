@@ -1,0 +1,26 @@
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_test_v1.zig:39:37: error: function parameter shadows declaration of 'boundary'
+    pub fn boundary(self: *@This(), boundary: Hash.Boundary) !void {
+                                    ^~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_test_v1.zig:39:9: note: declared here
+    pub fn boundary(self: *@This(), boundary: Hash.Boundary) !void {
+    ~~~~^~
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_proof_v1.zig:263:59: error: no field named 'source_main' in struct 'prover.block_v5_memory_source_packed_sha_replay_v1.ForBackend(mod.CpuBackend).Owner'
+                    } else @memcpy(&source_columns, owner.source_main.?.columns);
+                                                          ^~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_packed_sha_replay_v1.zig:75:27: note: struct declared here
+        pub const Owner = struct {
+                          ^~~~~~
+referenced by:
+    test.source unified PAGE bodies: actual compact fold six-root collect replay retained leases and one-graph direct materialization: src/frontends/riscv/block_v5_memory_source_unified_page_codegen.zig:42:22
+    test.source unified PAGE root: src/frontends/riscv/block_v5_memory_source_unified_page_test_root.zig:7:17
+src/frontends/riscv/prover/block_v5_packed_hash_setup_v1.zig:39:46: error: expected 2 argument(s), found 1
+                self.definitions[i] = try Air.build(a);
+                                          ~~~^~~~~~
+src/frontends/riscv/recursion/air/qm31_inv.zig:245:5: note: function declared here
+pub fn build(allocator: std.mem.Allocator, location: Location) !Definition {
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/universal_component_owner.zig:40:191: error: expected type '[3]fields.m31.M31', found '[0]fields.m31.M31'
+            inline for (Roster.Airs, 0..) |Air, i| self.components[i] = try Roster.Component(Air).init(&definitions[i], plans[i], manifest, @enumFromInt(i), manifest.log_sizes[i], parameters[i], &self.relations, claims[i]);
+                                                                                                                                                                                    ~~~~~~~~~~^~~
+src/frontends/riscv/recursion/air/universal_component_owner.zig:40:191: note: destination has length 3
+src/frontends/riscv/recursion/air/universal_component_owner.zig:40:191: note: source has length 0

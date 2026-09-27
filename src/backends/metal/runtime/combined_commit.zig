@@ -8,6 +8,7 @@ const hash_domain = @import("../hash_domain.zig");
 const precommitted_work = @import("precommitted_work.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
+const external = prover.shared_external_memory;
 
 const M31 = m31.M31;
 const ColumnEvaluation = prover.pcs.ColumnEvaluation;
@@ -45,7 +46,9 @@ pub fn PreparedCommitment(comptime H: type) type {
         columns: []ColumnEvaluation,
         coefficients: []CircleCoefficients,
         column_backing_buffers: ?[][]M31,
+        column_backing_alignment: std.mem.Alignment = .of(M31),
         coefficient_backing_buffers: ?[][]M31,
+        coefficient_backing_alignment: std.mem.Alignment = .of(M31),
         backing_teardown: ?prover.pcs.BackingTeardownToken = null,
         commitment: metal_merkle.MetalMerkleTree(H),
     };
@@ -64,6 +67,7 @@ pub fn prepareAndCommitOwned(
     source: ColumnSource,
 ) !?PreparedCommitment(H) {
     return prepareAndCommitOwnedImpl(
+        false,
         false,
         H,
         allocator,
@@ -90,6 +94,7 @@ pub fn prepareAndCommitOwnedWithWorkRecorder(
 ) !?PreparedCommitment(H) {
     return prepareAndCommitOwnedImpl(
         true,
+        false,
         H,
         allocator,
         owned_columns,
@@ -102,8 +107,27 @@ pub fn prepareAndCommitOwnedWithWorkRecorder(
     );
 }
 
+/// Explicit resident word/range/lane route. A decline leaves the input owned
+/// by the caller, which must fail closed rather than select a CPU transform.
+pub fn prepareAndCommitResidentOwned(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    columns: []ColumnEvaluation,
+    log_blowup: u32,
+    retention: anytype,
+    twiddles: anytype,
+    backings: [][]M31,
+) !?PreparedCommitment(H) {
+    var budget_lease = try external.reserve(allocator, 0, .require_shared_budget);
+    defer budget_lease.deinit();
+    var result = try prepareAndCommitOwnedImpl(false, true, H, allocator, columns, log_blowup, retention, twiddles, backings, .materialized, {});
+    if (result) |*prepared| prepared.coefficient_backing_alignment = .fromByteUnits(16 * 1024);
+    return result;
+}
+
 fn prepareAndCommitOwnedImpl(
     comptime capture_work: bool,
+    comptime strict_resident: bool,
     comptime H: type,
     allocator: std.mem.Allocator,
     owned_columns: []ColumnEvaluation,
@@ -114,17 +138,23 @@ fn prepareAndCommitOwnedImpl(
     source: ColumnSource,
     work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?PreparedCommitment(H) {
-    const maybe_domain = comptime hash_domain.parameters(H);
+    const maybe_domain = comptime hash_domain.directParameters(H);
     if (comptime maybe_domain == null) return null;
     const domain = maybe_domain.?;
-    const supported_column_count = owned_columns.len == composition_column_count or
-        (owned_columns.len >= min_columns and owned_columns.len <= max_columns);
+    const supported_column_count = if (strict_resident)
+        switch (owned_columns.len) {
+            1, 8, 24, 54, 92 => true,
+            else => false,
+        }
+    else
+        owned_columns.len == composition_column_count or
+            (owned_columns.len >= min_columns and owned_columns.len <= max_columns);
     if (retention_policy != .always or log_blowup_factor != 1 or
         !supported_column_count)
         return null;
 
     const base_log_size = owned_columns[0].log_size;
-    if (base_log_size < min_base_log_size or base_log_size >= @bitSizeOf(usize) - 1) return null;
+    if (base_log_size < (if (strict_resident) @as(u32, 12) else min_base_log_size) or base_log_size >= @bitSizeOf(usize) - 1) return null;
     const base_len = @as(usize, 1) << @intCast(base_log_size);
     for (owned_columns) |column| {
         column.validate() catch return null;
@@ -164,16 +194,17 @@ fn prepareAndCommitOwnedImpl(
         source_backing_buffers.?.len == 1 and
         source_backing_buffers.?[0].len == base_words and
         columnsCoverContiguousBacking(owned_columns, source_backing_buffers.?[0], base_len);
-    if (deferred_recipe != null and !reuse_source) return null;
+    if ((deferred_recipe != null or strict_resident) and !reuse_source) return null;
     const base_buffer = if (reuse_source)
         source_backing_buffers.?[0]
     else
         try allocator.alloc(M31, base_words);
     var keep_base = false;
     defer if (!reuse_source and !keep_base) allocator.free(base_buffer);
-    const transform_buffer = try allocator.alloc(M31, backing_words);
+    const transform_alignment: std.mem.Alignment = if (strict_resident) .fromByteUnits(16 * 1024) else .of(M31);
+    const transform_buffer = if (strict_resident) try allocator.alignedAlloc(M31, .fromByteUnits(16 * 1024), backing_words) else try allocator.alloc(M31, backing_words);
     var keep_transform = false;
-    defer if (!keep_transform) allocator.free(transform_buffer);
+    defer if (!keep_transform) allocator.rawFree(std.mem.sliceAsBytes(transform_buffer), transform_alignment, @returnAddress());
 
     const source_values = try allocator.alloc([]const M31, owned_columns.len);
     defer allocator.free(source_values);
@@ -285,6 +316,7 @@ fn prepareAndCommitOwnedImpl(
         .columns = columns,
         .coefficients = coefficients,
         .column_backing_buffers = column_backings,
+        .column_backing_alignment = transform_alignment,
         .coefficient_backing_buffers = coefficient_backings,
         .commitment = commitment,
     };
@@ -345,7 +377,7 @@ fn prepareAndCommitPolysImpl(
     twiddle_source: anytype,
     work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?PreparedCommitment(H) {
-    const maybe_domain = comptime hash_domain.parameters(H);
+    const maybe_domain = comptime hash_domain.directParameters(H);
     if (comptime maybe_domain == null) return null;
     const domain = maybe_domain.?;
     if (retention_policy != .always or log_blowup_factor != 1 or

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "passed": true,
+  "test_count": 12,
+  "named_behavior_checks": 6,
+  "scope": "Explicit native local-zero recipe: every-family authentic schedule and symbolic degree/mask parity; coherent zero-register read/write/nz/inverse/clock forgery rejection; nonzero/RW fraction parity; three-instruction actual CPU ELF trace, independently declared ROM, original instruction/access ordinal and signed-counter identities; old/new template/geometry/public-boundary rejection; full-LDE degree-checked recovery with immutable inputs. No STARK, recursive or mainnet proof generation, driver or device invocation.",
+  "canonical_x0_elision_enabled": false,
+  "stark_proved": false,
+  "mainnet_segments_restarted": false,
+  "tiny_guest_instruction_count": 3,
+  "device_executed": false,
+  "log_sha256": "60449663c49151dc5283ebf61685c4e1dfdcf9a71d1c324df298aa0432f80776",
+  "source_sha256": {
+    "src/frontends/riscv/block_v5_x0_native_unit_test_root.zig": "e21146fb2ef84fee0916b80ea53b440749923c3e3b6a845b6825ca2ed00806b6",
+    "src/frontends/riscv/prover/block_v5_x0_native_unit_test.zig": "ee2befdbc08e0deda8d5eb0e5988cec940ba6b77c721a0832033bb9841add62a",
+    "src/frontends/riscv/air/x0_local_custody_v1.zig": "d961b10b7296e3d49cb3fb19b6bca4488515f6a512f4da7f68baef20fe27f653",
+    "src/frontends/riscv/air/x0_native_envelope_v1.zig": "30a4446fd985122cbc418b7878e54dc67ed838f79e6ef7e8fc272f2b84fefa5e",
+    "src/frontends/riscv/air/semantic_component.zig": "99de26c1cfd2185f3704b413fa9b0ab522ace61846c0e358fc74cdce372cf751",
+    "src/frontends/riscv/air/semantic_eval.zig": "a919b3b3f2b2e1a91d09e74821815b5c2551e069fbb6e41c18afbbd0c28ada78",
+    "src/frontends/riscv/air/lookups/opcode_component.zig": "5de5f2721b31e79cb74a631f65e9304ce2a6ee25dd2e976b338866dde0c3fbe2",
+    "src/frontends/riscv/air/lookups/opcode_component_prepared_domain.zig": "046d974b9c1bf5ecf1c3475a6cf4d21b6529e545c824f4a13ce90bdd9e1a6bf6",
+    "src/frontends/riscv/air/lang/opcode_composition_manifest.zig": "f94d6c0a74029ce35db0ba2e843efd13f846ac8a36cc8970c01bb6b6c2ae1d60",
+    "src/frontends/riscv/air/statement.zig": "33ed985e9c89bd92fe27e7005189a2add7c2ea8e7edb03ad39271001bb5b0333",
+    "src/frontends/riscv/prover/blake3_execution_trace.zig": "bdb92a5867e54a4162cd06f41e897d6d072dc65bf714b808c36dcd05184685f7",
+    "src/frontends/riscv/prover/block_v5_native_template_protocol_v3.zig": "26165d5210791baac18680060ba764e7ef892ca93302262b700035b718354ef7"
+  }
+}

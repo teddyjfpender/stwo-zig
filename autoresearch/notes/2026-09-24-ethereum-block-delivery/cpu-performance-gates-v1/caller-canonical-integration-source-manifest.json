@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "tests_passed": 15,
+  "scope": "Nonproving actual canonical producer/store/codec/Programs/Global/policy/Assembly body generation; independent four-array preallocation limits and legacy format rejection. Includes transitive tests. No STARK, execution or recursive proof.",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-canonical-integration.log",
+    "sha256": "266d3cfd5822cfa3a48d3fc50a7b5db02720f91cc95b87be6d22823c0566e3de"
+  },
+  "sources": {
+    "src/frontends/riscv/block_v5_cpu_bundle_store_test_root.zig": "a08875f22edf43aac30fa1adaf58d99404efa3e4728b21a8edc9ab054fbde3ad",
+    "src/frontends/riscv/prover/block_v5_caller_pipeline_v1.zig": "81f805e6e1cb3c9c77785b94b53a9946f824b94694a104b3cea73a1384f761e3",
+    "src/frontends/riscv/prover/block_v5_program_first_round_v1.zig": "3e7931f8cda49633afdd02429f5763ecb1d26701a13615c77c3a85e9320498dd",
+    "src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig": "46086b2cdb659eade04f2d41be026442d47a77a40509e78059f69e69828f1256",
+    "src/frontends/riscv/prover/block_v5_program_native_batch_common_v1.zig": "0261378708af5e94e1f59ab80b044d36ba949123868ffb9c75c3400d496b9857",
+    "src/frontends/riscv/prover/block_v5_program_native_batch_receiver_v3.zig": "036a5b3f5945d2a5053c91fc7b1ee9b45b7c79822905fa1a171d0c21c016885b",
+    "src/frontends/riscv/prover/block_v5_native_table_join_v1.zig": "ad67f3326a8df4f72714ea86e0d1d5a512ea4c7189937285f037ece6bb6336a4",
+    "src/frontends/riscv/prover/block_v5_word_memory_join_v1.zig": "284af8063d7cd7c1200d6dc3ce2f2f90bb0e01eb12c62828fbb9105bbda4c150",
+    "src/frontends/riscv/prover/block_v5_global_receiver_v1.zig": "64767c47340940dc9c936fcf34482f485e50a7432c77759cfac6bddd9a299c03",
+    "src/frontends/riscv/prover/block_v5_cpu_stark_codec_v1.zig": "a95e6a1add5442c5a78d448a603a1acf7e5eca884762601d9d1efce018d95f00",
+    "src/frontends/riscv/prover/block_v5_cpu_bundle_policy_v1.zig": "7d5f860d5c34a25d7c47d2f759285c58fa21e83902e37b7ecf0ca4ebf7031f58",
+    "src/frontends/riscv/prover/block_v5_cpu_bundle_store_v1.zig": "090769af905a3469980cb46565f57ec1863fc65918f20d0dbd141ccab17a7133",
+    "src/frontends/riscv/prover/block_v5_cpu_bundle_store_test.zig": "500b1df4e251b96f812522924104080c1b1a77acdd8914a7cc143d6835ff9c6b"
+  }
+}

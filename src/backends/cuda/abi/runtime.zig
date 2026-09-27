@@ -15,6 +15,48 @@ pub extern "c" fn stwo_cuda_platform_snapshot(
     out: *types.PlatformSnapshot,
 ) c_int;
 
+pub const context_options_version: u32 = 1;
+pub const max_context_lanes: u32 = 4;
+pub const max_context_dependencies: u32 = 64;
+pub const current_device: u32 = @import("std").math.maxInt(u32);
+
+pub const ContextOptions = extern struct {
+    version: u32 = context_options_version,
+    device_ordinal: u32 = current_device,
+    lane_count: u32 = 1,
+    dependency_capacity: u32 = 0,
+
+    pub fn validate(self: ContextOptions) error{ InvalidState, InvalidExecutionLaneCount }!void {
+        if (self.version != context_options_version) return error.InvalidState;
+        if (self.lane_count == 0 or self.lane_count > max_context_lanes or self.dependency_capacity > max_context_dependencies)
+            return error.InvalidExecutionLaneCount;
+    }
+};
+
+pub const DependencyToken = extern struct {
+    context_identity: u64,
+    generation: u64,
+    slot: u32,
+    producer_lane: u32,
+};
+
+comptime {
+    if (@sizeOf(ContextOptions) != 16 or @offsetOf(ContextOptions, "version") != 0 or @offsetOf(ContextOptions, "device_ordinal") != 4 or @offsetOf(ContextOptions, "lane_count") != 8 or @offsetOf(ContextOptions, "dependency_capacity") != 12)
+        @compileError("CUDA context options ABI mismatch");
+    if (@sizeOf(DependencyToken) != 24 or @offsetOf(DependencyToken, "context_identity") != 0 or @offsetOf(DependencyToken, "generation") != 8 or @offsetOf(DependencyToken, "slot") != 16 or @offsetOf(DependencyToken, "producer_lane") != 20)
+        @compileError("CUDA dependency token ABI mismatch");
+}
+
+// On cleanup failure, a non-null out_handle is a teardown-only owner even
+// when status is nonzero. Context.openOptions retains this typed outcome.
+pub extern "c" fn stwo_exec_context_create_options(options: *const ContextOptions, out_handle: *?*anyopaque) c_int;
+pub extern "c" fn stwo_exec_context_identity(handle: *anyopaque, out_identity: *u64) c_int;
+pub extern "c" fn stwo_exec_context_lane_stream(handle: *anyopaque, lane: u32, out_stream: *?*anyopaque) c_int;
+pub extern "c" fn stwo_exec_context_dependency_record(handle: *anyopaque, lane: u32, slot: u32, out_token: *DependencyToken) c_int;
+pub extern "c" fn stwo_exec_context_dependency_wait(handle: *anyopaque, lane: u32, token: *const DependencyToken) c_int;
+pub extern "c" fn stwo_exec_context_dependency_release(handle: *anyopaque, token: *const DependencyToken) c_int;
+pub extern "c" fn stwo_exec_context_dependencies_reset(handle: *anyopaque) c_int;
+
 pub extern "c" fn stwo_exec_context_create(out_handle: *?*anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_destroy(handle: *anyopaque) c_int;
 pub extern "c" fn stwo_exec_context_sync(handle: *anyopaque) c_int;

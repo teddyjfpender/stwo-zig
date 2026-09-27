@@ -1,0 +1,120 @@
+{
+  "status": "qualified_nonproving_original_fixed_arithmetic_reconstruction",
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/recursion/air/arithmetic_fusion_rows.zig",
+      "sha256": "b34a190de854055b94d71bbeaab52a5de6bbb5b6fc12102000017451578e81d9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/arithmetic_fusion_fixed_columns_v1.zig",
+      "sha256": "b6dbf34d94e26d32e1621ecf5a325131264cb9dfab70262a9c384552f5fdc77b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/qm31_mul_add_v1.zig",
+      "sha256": "651789ad821a791b9657366580bef7d7a3c51c46f186197164d23fa829ec822d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/detached_opening_accumulate4_v1.zig",
+      "sha256": "a9c53c73eb9962f7afc660675449e04bbe26187763d85687d5eb21d3b3ff49aa"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_direct_cohort_columns_v1.zig",
+      "sha256": "5a85665ce2d43f6bb64fdada67216029cc9e5aa82b2748d67aa4205f04781fd0"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/arithmetic_fusion_direct_columns_test.zig",
+      "sha256": "5755222f7feb7c5ddc25cdcf2790d5751d3a5a1391bde2210d7f7290e180f45c"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_arithmetic_fixed_columns_test_root.zig",
+      "sha256": "e57c2021ab5c31bb9112b56cad6c2b4bfa4397e6e28a59f3f761e9a6e109032c"
+    }
+  ],
+  "evidence": {
+    "arithmetic-fixed-columns-focused-v1": {
+      "source_candidate": "arithmetic-fixed-columns-focused-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 0.2668650000123307,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": false,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/arithmetic-fixed-columns-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-arithmetic-fixed-columns-focused-v1",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "arithmetic-fixed-columns-focused-v2": {
+      "source_candidate": "arithmetic-fixed-columns-focused-v2-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 14.483150292013306,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "13 passed; 0 skipped; 1 failed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/arithmetic-fixed-columns-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-arithmetic-fixed-columns-focused-v2",
+        "bytes": 1348560,
+        "sha256": "47b0bd57c5e17100ce07ea858fe593763724c4f6a3d0bb2caefce65f431350b0"
+      }
+    },
+    "arithmetic-fixed-columns-focused-v3": {
+      "source_candidate": "arithmetic-fixed-columns-focused-v3-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 14.203113625000697,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/arithmetic-fixed-columns-focused-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-arithmetic-fixed-columns-focused-v3",
+        "bytes": 1348656,
+        "sha256": "bc4ad787c052a7767852624d8282a13988bf3a09d13aca72b049accc97afea1b"
+      }
+    }
+  },
+  "tests_passed": 14,
+  "scope": [
+    "One original fusion walk shared by legacy rows, direct columns, counts and fixed-only reconstruction",
+    "No private Evaluations, invocation buffers or inverse computation for fixed-only construction",
+    "Canonical dot4/FMA/inverse/linear metadata and bit-reversed padded fixed columns match original producer in both proof modes",
+    "Original AIR semantic identities, degree, signed operations, exact wire boundary and coordinate mutation tests unchanged",
+    "Every fixed-only allocation failure, empty arithmetic cohorts, invalid routing, capacity and unsupported kind"
+  ],
+  "repairs": [
+    "Comptime AIR tuple offset iteration",
+    "Empty-arithmetic fixture retains original mandatory segment and binary reference lanes"
+  ],
+  "not_qualified": [
+    "Unified PAGE standalone receiver and combined PCS integration",
+    "Complete source/global closure or canonical driver activation",
+    "A genuine STARK or complete block proof"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

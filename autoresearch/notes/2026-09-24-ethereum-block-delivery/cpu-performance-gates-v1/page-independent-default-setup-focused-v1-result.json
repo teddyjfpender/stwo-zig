@@ -1,0 +1,22 @@
+{
+  "source_candidate": "page-independent-default-setup-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 37.5679944580188,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 23,
+  "test_summary": [
+    "All 23 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/page-independent-default-setup-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-page-independent-default-setup-focused-v1",
+    "bytes": 60903424,
+    "sha256": "c8ae583b4d0314aabc8a4ad4e739441bc42b3e42fb541ee0fd20acc6118fc909"
+  }
+}

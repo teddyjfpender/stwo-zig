@@ -40,10 +40,19 @@ pub const Kernel = struct {
     module_globals: ModuleGlobals = .none,
     max_registers_per_thread: ?u32 = null,
     max_local_bytes: ?u64 = null,
+    /// Optional independent product pins, checked even on function-cache hits.
+    expected_cubin_sha256: ?[32]u8 = null,
+    expected_cubin_bytes: ?u64 = null,
 
     pub fn validate(self: Kernel) runtime_error.Error!void {
         if (self.cache_key == 0 or self.name.len == 0 or self.argument_count == 0)
             return error.InvalidKernelDescriptor;
+        if ((self.expected_cubin_sha256 == null) != (self.expected_cubin_bytes == null))
+            return error.InvalidKernelDescriptor;
+        if (self.expected_cubin_sha256) |digest| {
+            if (std.mem.allEqual(u8, &digest, 0) or self.expected_cubin_bytes.? == 0)
+                return error.InvalidKernelDescriptor;
+        }
         for (self.grid) |extent| {
             if (extent == 0) return error.InvalidKernelDescriptor;
         }
@@ -65,6 +74,12 @@ pub const Kernel = struct {
         stream: *anyopaque,
     ) runtime_error.Error!void {
         try self.validate();
+        if (self.expected_cubin_sha256) |digest| {
+            if (receipt.verification.cubin_bytes != self.expected_cubin_bytes.? or
+                !std.mem.eql(u8, &digest, &receipt.verification.expected_sha256) or
+                !std.mem.eql(u8, &digest, &receipt.verification.observed_sha256))
+                return error.AotReceiptMismatch;
+        }
         if (receipt.abi_version != receipt_abi_version or
             receipt.abi_schema != @intFromEnum(self.abi_schema) or
             receipt.device_ordinal != device.current or

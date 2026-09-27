@@ -1,0 +1,539 @@
+{
+  "schema": "block-v5-tail-linked-public-source-candidate/v1",
+  "status": "source candidate; unqualified",
+  "source_frozen": true,
+  "source_only": true,
+  "compiler_or_tests_run_by_agent": false,
+  "fmt_check_passed": true,
+  "canonical_enabled": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "segment_executed": false,
+  "complete_source_authority": false,
+  "complete_block_authority": false,
+  "actual_v2_window_publisher_and_fresh_receiver": true,
+  "same_parent_original_b5pd_prefix_fold_binding": true,
+  "actual_local_carrier_ancestor_publisher_and_fresh_receiver": true,
+  "local_ancestor_max_carriers": 1,
+  "local_ancestor_max_consumers": 3,
+  "window_max_fan_in": 4,
+  "job_wide_ancestor_placement_closed": false,
+  "large_forest_request_multiplicity_closed": false,
+  "active_canonical_driver_pipeline_switched": false,
+  "old_transcript_bytes_changed": false,
+  "source_derived_keys_require_rederivation": true,
+  "source_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-tail-linked-public-windows-v2.md",
+      "sha256": "fe808333e2f34330d9f094b3c181425a25c2b6d7c70a62708533d39c45a2a6c6",
+      "bytes": 4165
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_tail_linked_public_codegen_v2.zig",
+      "sha256": "42718b0a7217e6e68789a41785bf36d4c715b31d57afa040ad5fb672f1712ce4",
+      "bytes": 2882
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_tail_linked_public_test_root_v2.zig",
+      "sha256": "207766034e264a09e0f692c16994f1e38d5fcacaa3354fc8bf7dca9db92c00e1",
+      "bytes": 460
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_input_tail_ancestor_stage_v1.zig",
+      "sha256": "95a96d21a92f359940dd393ad58b251f9d35216cd46202655387f23e56457500",
+      "bytes": 5369
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_tail_linked_public_test_v2.zig",
+      "sha256": "d890e334663c6393cce4f47a85b11f8176b9fd9eb90c9ae9acb085dd0fe340dd",
+      "bytes": 6391
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_tail_linked_public_windows_stage_v2.zig",
+      "sha256": "990cbd7d360009b1b23a53dcb2382ab955273364180a4df860af5965edaa9d1d",
+      "bytes": 614
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_wide_public_windows_stage_impl_v1.zig",
+      "sha256": "d007343adeb847283a0cf7726392f0cc0314eb6a2f373c0d1e20c3b2cf963ab4",
+      "bytes": 5207
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_wide_public_windows_stage_v1.zig",
+      "sha256": "1b4c9db82118cf3cb198aef4ae73231292f253e86ead333ca6d98fa6ad253ec0",
+      "bytes": 579
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_input_tail_ancestor_graph_v1.zig",
+      "sha256": "32b3f1f9ef775749048e3e17cbcd749d056e012cae713a1120a497edc69612b7",
+      "bytes": 4793
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_tail_linked_public_binding_v2.zig",
+      "sha256": "0c143d0349317754c7bb567e4ba1ed6b98b3ae8fe20676111f9f15d5c5354aa0",
+      "bytes": 4335
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_tail_linked_public_windows_composition_v2.zig",
+      "sha256": "7080b71496420bea2c5fdb0107a3165cfdf2e30aa36a15efdf7f10293698be90",
+      "bytes": 475
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_wide_public_windows_composition_impl_v1.zig",
+      "sha256": "4bf59dc5e638112eeeb05448a0413219ddb53ef2af6b1fd7f7babddc4170a65f",
+      "bytes": 14116
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_wide_public_windows_composition_v1.zig",
+      "sha256": "a04de0e8c680a5ca5c3f72451802879b94c07c610e57c2deb7caf7e3457f5b9d",
+      "bytes": 455
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_ancestor_bus_v1.zig",
+      "sha256": "95dbd1a4dd91a17fe62b1a897c6a8982b53ccccb1cbc8183d76b0009cf1baf4b",
+      "bytes": 10030
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_ancestor_preparation_v1.zig",
+      "sha256": "ca4976f60e920981684fbf026c343c053b486029482132bdf15b381bece92b52",
+      "bytes": 5824
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_ancestor_protocol_v1.zig",
+      "sha256": "2729c7c193004615096a58cc6bb446a7826c9e32ca3fe65238467f8ff0ea3f5d",
+      "bytes": 2031
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_ancestor_receiver_v1.zig",
+      "sha256": "6e4b413533d3245222a90f7198eb67eb55270e3e1bd3bd1a1046c179f9c02221",
+      "bytes": 497
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_tail_linked_public_windows_protocol_v2.zig",
+      "sha256": "7907f2fe7948085b34845054ef6084937d9fbf5be6eab1a9d8d62c0652a4a49e",
+      "bytes": 3008
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_wide_public_windows_protocol_impl_v1.zig",
+      "sha256": "a44ac22ab303a3b22bd05415614972c0ab9ac634daecf845e7ed7a2c8102bc0e",
+      "bytes": 5637
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_wide_public_windows_protocol_v1.zig",
+      "sha256": "7d39214ff8b375b5313ddd5a8262ba2fedd6740ab691cfafe426fc0b5c16906f",
+      "bytes": 2439
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_tail_linked_input_policy_v2.zig",
+      "sha256": "5cf4c65e4af59338feb67ebded5852152ecbce8d616bf9f572010495e02e2328",
+      "bytes": 2476
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_tail_linked_public_windows_bus_v2.zig",
+      "sha256": "abd3ac6703fc74686afda95fd76111324fa9f1250c7e608c96c799cef2f7b367",
+      "bytes": 422
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_tail_linked_public_windows_preparation_v2.zig",
+      "sha256": "712f7c07a1098f495d971271b747a026500ea5c9ffa68dec2960a106bd6fd16e",
+      "bytes": 663
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_tail_linked_public_windows_receiver_v2.zig",
+      "sha256": "5080c628073d7fd8def954c10a3c829f29ad0cec0632b1342d7ddb405a7434a6",
+      "bytes": 435
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_tail_linked_public_windows_source_v2.zig",
+      "sha256": "7506a820f89e091d588de1274cccfa7239638133316ef29febfb145daccf353f",
+      "bytes": 528
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_tail_linked_public_windows_v2.zig",
+      "sha256": "8c3f15a70e7e3439acefdd0159d8d1be28f64fcd17b3ebabd82402d8debb6585",
+      "bytes": 612
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_input_policy_v1.zig",
+      "sha256": "7d51d4f056a6b6fa607326b1ba301e2b0b5bf4d7d3c60ccd231dd368324e4cb7",
+      "bytes": 844
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_bus_impl_v1.zig",
+      "sha256": "8ac446f1e677a53cfc4f13d76107b941fb433d09560c75b5820b0f387dc41f19",
+      "bytes": 4091
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_bus_v1.zig",
+      "sha256": "eca10925dd57094b69b7d3322bbdd0da94f97dec0ddb4ad8f63c5d8d642b7c08",
+      "bytes": 413
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_impl_v1.zig",
+      "sha256": "540b4a4c72349916f9e3007d10f8bd82a2b505633928f3049be2dfd69a4a0b70",
+      "bytes": 27790
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_preparation_impl_v1.zig",
+      "sha256": "287b4a6ad49209684db49269f3e683a466548fd6a851ddc1d9fbf20589f3ba4a",
+      "bytes": 7434
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_preparation_v1.zig",
+      "sha256": "d14ef4ad79e5a6072b4c1c90d18e73cd7a87e0aa6eb0dadca4b9d4fbaee3adce",
+      "bytes": 668
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_receiver_impl_v1.zig",
+      "sha256": "4fff60f99b21fa9570081f288616e4136e63bb5b085d163baa229263d78b4f56",
+      "bytes": 2801
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_receiver_v1.zig",
+      "sha256": "836922d2066571862c26c472d0ec8f13cb1e7be1cf41a0a1942cdf145b65048e",
+      "bytes": 414
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_source_impl_v1.zig",
+      "sha256": "d27ad2291c4d8478cd395d40f57f177dd62293fbab2566ae745e49b7d38198fd",
+      "bytes": 14627
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_source_v1.zig",
+      "sha256": "f0a656eff412db311dda71df758cbf25e7b34662fc61703ee7b0a84e05230d64",
+      "bytes": 514
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_public_windows_v1.zig",
+      "sha256": "968a0671e84e261390a4fb2c5fa3283d68a078a9414c0b41b916489b011f2cc3",
+      "bytes": 613
+    }
+  ],
+  "integration_dependency_pins": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_public_v1.zig",
+      "sha256": "18fe02f1149248c0c3513d9fd030eaa90e9f76f0ebeffb2152a910a2f49cf91b",
+      "bytes": 6954
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_protocol_v1.zig",
+      "sha256": "088a2bfc686e6f22eaa465ed8a160adc4a65d28673e55f2292c4f96c263bd3ae",
+      "bytes": 5340
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_receiver_v1.zig",
+      "sha256": "2f5ef7d15cfa404a02e88a0d297f452bf38b92c5639ebd8f09a19013ceabe291",
+      "bytes": 2401
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_source_v1.zig",
+      "sha256": "f92a3e78822ca3e79bc4e51a421fcc50bd89ad7861a17f7ff6e1dc55bf412339",
+      "bytes": 9262
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_input_tail_attachment_v1.zig",
+      "sha256": "7dfd2657676705d9ff33b55ce6ce85321fbd93aed17414dc05853044598969e9",
+      "bytes": 2213
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_words_tail_v1.zig",
+      "sha256": "7d2b767ac2b9c0de771523f78c0f5b3d9b87da0bb4813963c00e87a60370cfeb",
+      "bytes": 8315
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_hash_plan.zig",
+      "sha256": "e4e31c6f61c457ff783e5d2e2e906afcacf5fd7946a0075be5b85c2ad46b449b",
+      "bytes": 10871
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_input_tail_public_digest_v1.zig",
+      "sha256": "30d570d819b0716aa712bbe7fe9ba1cc50c5af222f4e0915485de8924b73632c",
+      "bytes": 15899
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_input_tail_consumer_v1.zig",
+      "sha256": "51bad9f5e001d5e366fabad2a138c6e38855bf1f3050168cb72da3fd0f70848b",
+      "bytes": 10291
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_input_tail_rows_v1.zig",
+      "sha256": "18cb8518ab404c12b16d7e98e53ec14eb4d80f053cd5d7dd749f74258e4090ee",
+      "bytes": 7878
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig",
+      "sha256": "6f72830ce0dd55c6a8d4275a6815136c013761fc7dadf9c1f89a04d0cceecef5",
+      "bytes": 15683
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_global_public_tuple_algebra_v1.zig",
+      "sha256": "df1a85ed8158164de3481b93b7ddd564ed829388adaf21920b2aac125af3b283",
+      "bytes": 4243
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_scoped_child_verifier_rows_v1.zig",
+      "sha256": "fab4781f476b53660edccb5a3a0251c55f5e699b87d8ee392a3f6a7adb198367",
+      "bytes": 4738
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_scoped_admitted_graph_attach_v1.zig",
+      "sha256": "7a46717e1ea95346bce2dad8808470e511522855d179fe18a57ca7a8c4eedad5",
+      "bytes": 2019
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_scoped_graph_rows_v1.zig",
+      "sha256": "7c79cb60e3df2d76317396f69a91a36d0ad4508d4574a416b96aee1351618e89",
+      "bytes": 8836
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_public_bus_v1.zig",
+      "sha256": "086313c479c677bc8907b436b586df271f62241bc089b773236eb4337f6d1461",
+      "bytes": 8124
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig",
+      "sha256": "fbb9d115f009f5c633bf58b37f42f90a6612ea61d695711e413cc2c920c5cd66",
+      "bytes": 23768
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_global_public_fields_v1.zig",
+      "sha256": "85b68ffa18d6906ea9b97ccb15cb99e426cb55bd3c91afa4abf4f5e34cd5a737",
+      "bytes": 10197
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_expected_public_file_v1.zig",
+      "sha256": "2c239f4f31f51033e890b3827c01c84c0b1f46b172c219fa63aae56cd5b20d89",
+      "bytes": 7715
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_global_expected_public_job_v1.zig",
+      "sha256": "d2e53fa4c0923cf379eaf62aa52cf4e6ff9461636d1adfb620cde72c9a4d571a",
+      "bytes": 8534
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_wide_public_windows_test_v1.zig",
+      "sha256": "9d2554e7c955885164070021002b370b9ffe8a55854f791dde82d236a9f6e954",
+      "bytes": 15370
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_input_tail_test_v1.zig",
+      "sha256": "a19e3250899c48710d853faa650e3e3f5c0a8c1fe633c5e730edbe36dfe1b1c6",
+      "bytes": 23027
+    }
+  ],
+  "dependency_checkpoint": "Selected critical integration dependencies, not an exact compiler import closure. Root owns immutable literal semantic/body receipts. Previous qualified/default/provider snapshots remain historical.",
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "tail linked public:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_tail_linked_public_test_root_v2.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-tail-linked-public-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_tail_linked_public_codegen_v2.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "semantic": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-fno-emit-bin",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_tail_linked_public_codegen_v2.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "cohesive": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_tail_linked_public_test_root_v2.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "body_symbol": "stwo_tail_linked_public_body_gate",
+  "new_named_pure_fixtures": 5,
+  "existing_original_window_fixtures": 10,
+  "existing_tail_provider_fixtures": 10,
+  "body_marker_count": 1,
+  "remaining": [
+    "This local ancestor closes equality for at most3 v2 consumer roots, not arbitrary job-wide reuse. Larger forests need a new summary/source protocol propagating exact frontier/prefix requests and independently derived ranges to exactly one carrier at their LCA.",
+    "No canonical driver/default activation. Old original public-export recursion replay retains its large raw-input hash until explicitly replaced.",
+    "Fields/native expected-public validation still reconstructs host B5PD digests; this candidate does not claim to cache or eliminate those passes.",
+    "Exact source/global/provider closure remains OPEN.",
+    "No proof generation/acceptance, devices, benchmarks or performance measurements executed by this agent."
+  ]
+}

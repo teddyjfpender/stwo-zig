@@ -1,0 +1,16 @@
+src/frontends/riscv/prover/block_v5_heterogeneous_scoped_owned_stage_v1.zig:56:138: error: expected type 'recursion.block_v5_heterogeneous_scoped_owned_preparation_v1.Limits', found 'recursion.block_v5_heterogeneous_scoped_preparation_v1.Limits'
+                var rows = try Rows.prepareVerifierRows(a, admission.values, captures[0..initialized], limits.transcript_capacity, limits.rows);
+                                                                                                                                   ~~~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_preparation_v1.zig:52:20: note: struct declared here
+pub const Limits = struct { max_preparation_bytes: usize = 4 << 30 };
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_owned_preparation_v1.zig:56:20: note: struct declared here
+pub const Limits = struct { max_preparation_bytes: usize = 4 << 30 };
+                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_heterogeneous_scoped_owned_preparation_v1.zig:57:151: note: parameter type declared here
+pub fn prepareVerifierRows(backing: std.mem.Allocator, admitted: Owner.Values, captures: []const *const verified_mod.Verified, capacity: u32, limits: Limits) !Prepared {
+                                                                                                                                                      ^~~~~~
+referenced by:
+    stwo_heterogeneous_scoped_owned_body_gate: src/frontends/riscv/block_v5_heterogeneous_scoped_owned_codegen_v1.zig:15:149
+    stwo_heterogeneous_scoped_owned_body_gate: src/frontends/riscv/block_v5_heterogeneous_scoped_owned_codegen_v1.zig:4:5
+    1 reference(s) hidden; use '-freference-trace=3' to see all references

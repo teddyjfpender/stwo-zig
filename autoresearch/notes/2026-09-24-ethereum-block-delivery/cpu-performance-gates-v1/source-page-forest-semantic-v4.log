@@ -1,0 +1,3 @@
+src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig:181:119: error: expected pointer dereference, optional unwrap, or field access, found 'try'
+                    try value.normal.requireWithWords(self.allocator, &admission, value.values.statement.felts, value.try A.semanticClaimOffset(values.statement.component_claim_first), value.values.statement.words, value.policy.normalization);
+                                                                                                                      ^~~

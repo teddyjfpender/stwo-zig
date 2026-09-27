@@ -1,0 +1,6 @@
+1/5 prover.block_v5_word_memory_test.test.block-v5 packed27 fresh range16 and global register RW endpoints...OK
+2/5 prover.block_v5_word_memory_test.test.block-v5 packed projection preserves all native bytes and rejects non-range limbs...OK
+3/5 prover.block_v5_word_previous_columns_test.test.block-v5 authenticated previous openings preserve exact word and range OODS equations...OK
+4/5 prover.block_v5_word_previous_columns_test.test.block-v5 masked previous gathers preserve all scalar and packed quotient rows...OK
+5/5 prover.block_v5_word_fixed_columns_test.test.word fixed12 preserves byte selectors and full u64 ordinal boundaries...OK
+All 5 tests passed.

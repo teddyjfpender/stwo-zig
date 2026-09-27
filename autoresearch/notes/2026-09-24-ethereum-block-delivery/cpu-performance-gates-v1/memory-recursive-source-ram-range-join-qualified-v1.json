@@ -1,0 +1,138 @@
+{
+  "scope": "Genuine ORIGINAL PAGE-root/RAM/range fresh verifiers, same-parent preparation, version18 original producer/codec/receiver bodies compiled and retained; nine nonproving equation/normalization/custody/cap behavioral checks.",
+  "candidate": "memory-recursive-source-ram-range-join-source-candidate-v2.json",
+  "candidate_sha256": "5722681fc28977971b3aacced48ca7116063b6ea62acb95adb31fc3684be7f7a",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/block_v5_memory_recursive_join_test_root.zig",
+      "bytes": 219,
+      "sha256": "fd7dc15415a563995892466d088b4b65c6a26fbec7dd4d6db938c85ab051e7fc"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_recursive_join_algebra_v1.zig",
+      "bytes": 3312,
+      "sha256": "a791e5e516e0b9b3960b460277b62c24a220d7cb60179c9e4afc18496e067d8a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_recursive_join_graph_v1.zig",
+      "bytes": 7484,
+      "sha256": "232225de937084c4182ef1adf988fd2f4211dc68129fc2d4b2c67ed4326744d8"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_recursive_provider_source_v1.zig",
+      "bytes": 15622,
+      "sha256": "d4e031b58e02f237cabfce0a104b327377a1f5be1f4c9274fbf105503af9775b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_recursive_join_public_v1.zig",
+      "bytes": 11831,
+      "sha256": "a80293cd9703397b834c21a1fe4d255635f5eb960e34b89a89dc6fdbe58ccdfb"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_recursive_join_preparation_v1.zig",
+      "bytes": 5681,
+      "sha256": "26b33d62ef776254d511d9fa859b72b2812a24cc7b70821a574c754c4f053b77"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_recursive_join_protocol_v1.zig",
+      "bytes": 1312,
+      "sha256": "192c75435d647929cf8f2cc5cffee9b91c7e80add7e2de29f88cd53b069ad31d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_recursive_join_receiver_v1.zig",
+      "bytes": 560,
+      "sha256": "96aff23ee39d52c587523ef764124e07bec628db69151ce0ffc350282b171f1e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_recursive_join_producer_v1.zig",
+      "bytes": 3051,
+      "sha256": "50fe759cc24fa8a3f78415babebe7a55f15d408e4375432f65e3a65b2451a309"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_recursive_join_test_v1.zig",
+      "bytes": 20073,
+      "sha256": "aa610a2763ff88b7d5ac9b5a44ef7a79508540417f23d6ff770b1c41f8777c1b"
+    }
+  ],
+  "attempts": [
+    {
+      "name": "memory-recursive-join-semantic-v1",
+      "source_candidate": "memory-recursive-join-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 3.207524958997965,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-recursive-join-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "memory-recursive-join-semantic-v2",
+      "source_candidate": "memory-recursive-join-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 3.4684642089996487,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-recursive-join-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "memory-recursive-join-focused-v1",
+      "source_candidate": "memory-recursive-join-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 15.548643625050317,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-recursive-join-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-recursive-join-focused-v1",
+        "bytes": 31587368,
+        "sha256": "4a57476d22b02a64011a859e44830dce4d96d01a02d7b8a78e2d1c1010456550"
+      }
+    }
+  ],
+  "behavioral_tests": 9,
+  "body_marker": true,
+  "total_selected_checks": 14,
+  "max_actual_direct_children": 4,
+  "cap_includes_page_root": true,
+  "closed_equations": "Original PAGE/Fold closure plus RAM predecessor, initial/endpoint sign, endpoint census and each separate range shard sum/requester count/provider count. All17 requester planes preserved.",
+  "open": "Native/caller transition exported; register/public/state/ROM/table/lookup/accounting and final block authority remain open.",
+  "root_repairs": [
+    "Reader loop capture no longer shadows word method"
+  ],
+  "remaining": [
+    "Scalable <=4-child independently conserved shard aggregation forest (direct join is small-instance only)",
+    "On-demand durable recursive provider catalogue and hierarchy",
+    "Final expected reusable keys and complete standalone recursive verifier",
+    "Positive canonical full proof/time/peak-memory qualification"
+  ],
+  "canonical_enabled": false,
+  "complete_block_authority": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_claim": "No timed proof, no RSS, no claim that direct small-instance join solves block-scale memory."
+}

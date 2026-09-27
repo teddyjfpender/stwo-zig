@@ -1,0 +1,11 @@
+test-recursive-quotient-accumulation
++- Quotient accumulation guard
+   +- run test stderr
+QUOTIENT_ACCUMULATE_DIGEST 4546ad4a7d14d5e7143930e6538d53faf4e8948431f3e443e8d54579e157ce75
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-recursive-quotient-accumulation success
++- Quotient accumulation guard success
+   +- run test 5 passed 498ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:589M
+

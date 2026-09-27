@@ -1,0 +1,17 @@
+src/frontends/riscv/prover/block_v5_readonly_input_global_roster_v2.zig:222:15: error: local constant shadows declaration of 'sources'
+        const sources = try a.dupe(SourceRecord, expected.sources);
+              ^~~~~~~
+src/frontends/riscv/prover/block_v5_readonly_input_global_roster_v2.zig:325:9: note: declared here
+    pub fn sources(self: *const Authority) []const SourceRecord {
+    ~~~~^~
+src/core/fields/packed_qm31.zig:144:31: error: evaluation exceeded 1000 backwards branches
+        return .{ .c0 = ac.add(bd.mulByR()), .c1 = cross };
+                        ~~~~~~^~~~~~~~~~~~~
+src/core/fields/packed_qm31.zig:144:31: note: use @setEvalBranchQuota() to raise the branch limit from 1000
+src/frontends/riscv/prover/block_v5_readonly_input_provider_component_v2.zig:73:60: note: called inline here
+                    const before = prior[offset + limb].mul(S.one().sub(fixed[1]));
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    evaluatePacked: src/frontends/riscv/prover/block_v5_readonly_input_provider_component_v2.zig:118:40
+    run: src/frontends/riscv/prover/block_v5_word_domain_rows_v1.zig:60:67
+    12 reference(s) hidden; use '-freference-trace=14' to see all references

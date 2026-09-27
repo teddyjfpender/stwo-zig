@@ -1,0 +1,55 @@
+test-blake3-native-segment
++- BLAKE3 native segment guard
+   +- run test stderr
+V2_NATIVE_PROOF_SUITE suite=blake2s-default queries=1 pow_bits=0
+
+V2_NATIVE_PROOF nonfinal cycles=1 proof_estimate=24324 wire_bytes=26494 prove_ms=2466.845 verify_capture_ms=497.884
+  nonfinal_wire_id=519cdab9245f89df0d7c5afa51458609193bef2a2bca24e22770f74147d5cff9
+  nonfinal_authority_id=3e57497c585927f60f5de65f59e261ab5145d344500bb4c6620a54a95a07d775
+  nonfinal_relation_context_id=6cd8d169744f746938157d677e20add36922e12607c4977f7f1f57857147c35c
+  nonfinal_native_sums_id=37a8ffab547f4d35413f964b149ca1336d6c0a6730925d233c9abda542b63893
+V2_NATIVE_PROOF final cycles=2 proof_estimate=25240 prove_ms=2479.710 verify_ms=398.121
+  final_wire_id=14818a24796d13d31d55eafd2ab57d6d145ef1685aba28226cff64222dfc0dc6
+  final_authority_id=62aa079e6a77aa34687d22fb0378cbfc34a9a52c590df2501620050406cf0139
+
+V2_NATIVE_PROOF_SUITE suite=blake3.experimental.v1 queries=1 pow_bits=0
+V2_BLAKE3_NATIVE_COMPOSITION nodes=13929 challenge_links=104 outputs=29
+V2_BLAKE3_NATIVE_PAYLOADS secure_values=733 scalar_routes=2932
+V2_BLAKE3_NATIVE_DEEP nodes=16069 outputs=34 shared_sample_scalars=2820
+V2_BLAKE3_NATIVE_FRI nodes=3684 outputs=94 answer_routes=4
+V2_BLAKE3_NATIVE_PCS_CHALLENGES routes=88 oods_shared=4
+V2_BLAKE3_NATIVE_TERMINAL encoded_coefficients=1
+V2_BLAKE3_NATIVE_QUERIES queries=1 scalar_rows=104
+V2_BLAKE3_NATIVE_PATHS g_rows=39816 select_rows=2352 opening_sources=781
+V2_BLAKE3_NATIVE_OPENINGS scalar_producers=781
+V2_BLAKE3_NATIVE_ROOT_NONCE private_words=188 key_words=8
+V2_BLAKE3_NATIVE_PUBLIC_BOUNDARY nodes=4351 inputs=1332 outputs=21
+V2_BLAKE3_NATIVE_PUBLIC_LINKS challenges=32 aggregate_inputs=116 zero_outputs=4
+V2_BLAKE3_NATIVE_PUBLIC_SOURCES public_rows=1280 private_sum_rows=16 covered_inputs=1332
+V2_BLAKE3_NATIVE_PARENT_HANDOFF slots=1 queue_limit_bytes=536870912 retained_bytes=461491887 preparation_peak_bytes=1242103479 preparation_limit_bytes=2147483648
+V2_BLAKE3_NATIVE_PARENT_PREPARATION canonical=true intermediates_released=true bounded_thread_handoff=true inputs=8376
+V2_BLAKE3_NATIVE_PARENT_KEY id=f76d51b30dce850ad74060c42808bed2f4dd5bee6cc5705673f00b4754d3c976 profile=diagnostic_q8_pow0
+V2_BLAKE3_NATIVE_PARENT_CODEC wire_bytes=111428 canonical_roundtrip=true
+V2_BLAKE3_NATIVE_PARENT_INDEPENDENT verified_capture_queries=8 artifact_consumed=true
+V2_BLAKE3_NATIVE_PARENT_WORKER workers=2 peak_routed_bytes=1632926982 host_limit_bytes=4294967296
+V2_BLAKE3_NATIVE_PARENT_CODEC wire_bytes=111428 canonical_roundtrip=true
+V2_BLAKE3_NATIVE_PARENT_INDEPENDENT verified_capture_queries=8 artifact_consumed=true
+V2_BLAKE3_NATIVE_PARENT_PRODUCER standalone=true worker_released_before_capture=true fixed_commit_reused=true workspace_reused=true workspace_released_before_verify=true proofs=2 plan_released_before_verify=true
+V2_BLAKE3_NATIVE_PARENT verified
+V2_BLAKE3_NATIVE_TRANSCRIPT operations=227 relation_pairs=12 draws=1 plan=b55a838fc3d71ca1f7d03afa203c94b0408ab103cfdd0c57e85d1157ea760d99
+
+V2_NATIVE_PROOF nonfinal cycles=1 proof_estimate=24324 wire_bytes=26539 prove_ms=4134.199 verify_capture_ms=924.212
+  nonfinal_wire_id=519cdab9245f89df0d7c5afa51458609193bef2a2bca24e22770f74147d5cff9
+  nonfinal_authority_id=3e57497c585927f60f5de65f59e261ab5145d344500bb4c6620a54a95a07d775
+  nonfinal_relation_context_id=0e2bef8a2a0562e41727cfd75a8803145b141d10071a8f047e092daa07407121
+  nonfinal_native_sums_id=14d3995d56c6f31b06f3d888527ca2d13b9413e92056bde459c2b5602dfd0d7e
+V2_NATIVE_PROOF final cycles=2 proof_estimate=25240 prove_ms=4326.881 verify_ms=824.952
+  final_wire_id=14818a24796d13d31d55eafd2ab57d6d145ef1685aba28226cff64222dfc0dc6
+  final_authority_id=62aa079e6a77aa34687d22fb0378cbfc34a9a52c590df2501620050406cf0139
+
+Build Summary: 4/4 steps succeeded; 3/3 tests passed
+test-blake3-native-segment success
++- BLAKE3 native segment guard success
+   +- run test 3 passed 37s MaxRSS:2G
+      +- compile test ReleaseSafe native success 1m MaxRSS:5G
+

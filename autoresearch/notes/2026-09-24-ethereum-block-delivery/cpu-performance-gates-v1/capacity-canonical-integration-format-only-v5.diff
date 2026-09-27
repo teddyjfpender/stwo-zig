@@ -1,0 +1,24 @@
+--- qualified-v4
++++ formatted
+@@ -407,7 +407,7 @@
+     @memcpy(slots[0..inputs.len], inputs);
+     for (program.nodes[0..program.compiled_node_count]) |node| {
+         slots[node.destination] = switch (node.op) {
+-            .machine => |v| @import("closed_machine_expression.zig").evaluate(Scalar,v,slots),
++            .machine => |v| @import("closed_machine_expression.zig").evaluate(Scalar, v, slots),
+             .constant => |value| Scalar.fromBase(M31.fromU64(value)),
+             .add => |binary| slots[binary.lhs].add(slots[binary.rhs]),
+             .sub => |binary| slots[binary.lhs].sub(slots[binary.rhs]),
+@@ -494,7 +494,11 @@
+         if (destination != input_count + ordinal or destination >= node_count)
+             return error.InvalidDirectProgram;
+         switch (node.op) {
+-            .machine => |v| { for(@import("closed_machine_expression.zig").operands(v)) |operand| if(operand) |id| { if(@intFromEnum(id)>=destination) return error.InvalidDirectProgram; }; },
++            .machine => |v| {
++                for (@import("closed_machine_expression.zig").operands(v)) |operand| if (operand) |id| {
++                    if (@intFromEnum(id) >= destination) return error.InvalidDirectProgram;
++                };
++            },
+             .constant => {},
+             .add, .sub, .mul => |binary| {
+                 if (binary.lhs >= destination or binary.rhs >= destination)

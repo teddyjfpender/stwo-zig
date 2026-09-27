@@ -1,0 +1,19 @@
+1/18 block_v5_recursive_upstream_columns_test_root.test_0...OK
+2/18 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns preserve native execution claim challenge and terminal schedules...OK
+3/18 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns release every failed preparer allocation...OK
+4/18 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns reject duplicate missing out of bounds and late indexed emission...OK
+5/18 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns reject changed native claim sample and transcript exports...OK
+6/18 recursion.air.blake3_upstream_source_columns_test.test.upstream direct source columns reject changed execution claim challenge terminal and mixed source mode...OK
+7/18 block_v5_recursive_scalar_columns_test_root.test_0...OK
+8/18 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream sample columns preserve exact source and pack schedules...OK
+9/18 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream sample owners release every allocation failure...OK
+10/18 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream samples reject duplicate missing and changed secure inputs...OK
+11/18 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar canonical payload preparation body codegen...OK
+12/18 recursion.air.blake3_direct_source_columns_test.test.direct PCS public source cohorts match legacy scattered columns and transfer ownership...OK
+13/18 recursion.air.blake3_direct_source_columns_test.test.direct source columns preserve fixed admission and fail incomplete geometry before transfer...OK
+14/18 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory matches legacy rows and rejects source custody mutations without leaks...OK
+15/18 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory cleans up every failing allocation...OK
+16/18 recursion.air.native_pcs_fusion_rows.test.native query fusion admission rejects altered missing and duplicate sources...OK
+17/18 block_v5_recursive_parent_codegen_test_root.test.direct recursive assembled parent bodies compile with bounded phase scratch...OK
+18/18 air.memory_commitment.poseidon2_air.test_0...OK
+All 18 tests passed.

@@ -1,0 +1,42 @@
+ETH_AUTH_EXECUTION cycles=38037 keccak=22 recoveries=4 output=0100000004000000df6f878c7e101db0d1bc8470887a2567bb4c21067f9d0f2d5bd019ea33eec5aedddc02ec3c7c6460c87e7569454e683bc74c9ad09bd0d82493a0913eada9ac61
+BLAKE3_SEGMENT_LEAF_TIMING proving_ns=5389162834 capture_verification_ns=42178250
+BLAKE3_NATIVE_QUERY_FUSION groups=24150 removed_scalars=96600
+BLAKE3_NATIVE_FUSION dot4=816822 fma=153159 arithmetic_rows=1431703
+BLAKE3_ETHEREUM_SEGMENTS_PREPARED segments=1 cycles=38037 retained_bytes=4979406156
+ETH_AUTH_RECURSIVE {
+  "verified": true,
+  "recursive": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 38037,
+  "keccak_calls": 22,
+  "recovery_calls": 4,
+  "segments": 1,
+  "execution_ns": 2934833,
+  "witness_admission_ns": 918506750,
+  "leaf_and_recursion_preparation_ns": 15245850542,
+  "parent_proving_ns": 32644933458,
+  "final_verification_ns": 8916875,
+  "total_ns": 54168943375,
+  "proof_bytes": 893090,
+  "worker_peak_bytes": 29648180891,
+  "output": "0100000004000000df6f878c7e101db0d1bc8470887a2567bb4c21067f9d0f2d5bd019ea33eec5aedddc02ec3c7c6460c87e7569454e683bc74c9ad09bd0d82493a0913eada9ac61"
+}
+       54.18 real       333.53 user         9.31 sys
+         33572995072  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             6253594  page reclaims
+                   8  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   1  voluntary context switches
+               94905  involuntary context switches
+       4497993465580  instructions retired
+       1398208649582  cycles elapsed
+         33584820568  peak memory footprint

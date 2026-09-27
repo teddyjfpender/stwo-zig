@@ -1,0 +1,6 @@
+src/frontends/riscv/prover/block_v5_memory_source_first_columns_v1.zig:95:15: error: local constant shadows declaration of 'rows'
+        const rows = @as(usize, 1) << @intCast(page.row_log);
+              ^~~~
+src/frontends/riscv/prover/block_v5_memory_source_first_columns_v1.zig:113:9: note: declared here
+    pub fn rows(self: *const Columns) usize {
+    ~~~~^~

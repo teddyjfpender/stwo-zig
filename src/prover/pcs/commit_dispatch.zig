@@ -96,7 +96,7 @@ pub fn tryPrecommitted(
         prepared.backing_teardown
     else
         null;
-    return commitment_tree.CommitmentTreeProverForBackend(B, H).initPrecommittedWithTeardown(
+    var tree = commitment_tree.CommitmentTreeProverForBackend(B, H).initPrecommittedWithTeardown(
         prepared.columns,
         prepared.coefficients,
         prepared.column_backing_buffers,
@@ -104,6 +104,9 @@ pub fn tryPrecommitted(
         prepared.commitment,
         backing_teardown,
     );
+    if (@hasField(@TypeOf(prepared), "column_backing_alignment")) tree.column_backing_alignment = prepared.column_backing_alignment;
+    if (@hasField(@TypeOf(prepared), "coefficient_backing_alignment")) tree.coefficient_backing_alignment = prepared.coefficient_backing_alignment;
+    return tree;
 }
 
 pub fn tryPrecommittedPolys(

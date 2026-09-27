@@ -1,0 +1,22 @@
+{
+  "source_candidate": "arithmetic-fixed-columns-focused-v3-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 14.203113625000697,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 14,
+  "test_summary": [
+    "All 14 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/arithmetic-fixed-columns-focused-v3.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-arithmetic-fixed-columns-focused-v3",
+    "bytes": 1348656,
+    "sha256": "bc4ad787c052a7767852624d8282a13988bf3a09d13aca72b049accc97afea1b"
+  }
+}

@@ -1,0 +1,17 @@
+cpu-sha256-128 5.108392625
+cpu-sha256-256 5.189038
+cpu-sha256-512 5.390527375
+cpu-sha256-1024 5.610221416
+cpu-sha256-2048 10.693923583
+cpu-keccak-128 10.378999625
+cpu-keccak-256 10.282124292
+cpu-keccak-512 10.732726208
+cpu-keccak-1024 10.955003417
+cpu-keccak-2048 11.793127416
+cpu-poseidon2_m31-2 2.271259333
+cpu-poseidon2_m31-4 2.779625792
+cpu-poseidon2_m31-8 3.355117542
+cpu-poseidon2_m31-12 3.763028042
+cpu-poseidon2_m31-16 4.559366
+cpu-ecdsa_secp256k1-32 2.638421083
+Lookup-demand diagnostic suite finished

@@ -1,0 +1,1489 @@
+[
+  {
+    "case": "cpu-sha256-128",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-128.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-128.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+    "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 4.184245708,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 2942167,
+        "witness_ns": 886147000,
+        "admission_ns": 295877625,
+        "proving_ns": 2562793166,
+        "artifact_encoding_ns": 33335959,
+        "fresh_verification_ns": 376102041,
+        "total_ns": 4157197958
+      },
+      {
+        "execution_ns": 1160000,
+        "witness_ns": 878123291,
+        "admission_ns": 295952209,
+        "proving_ns": 2616195500,
+        "artifact_encoding_ns": 33346125,
+        "fresh_verification_ns": 359468583,
+        "total_ns": 4184245708
+      },
+      {
+        "execution_ns": 1213667,
+        "witness_ns": 901412375,
+        "admission_ns": 295218458,
+        "proving_ns": 2646854167,
+        "artifact_encoding_ns": 33556000,
+        "fresh_verification_ns": 375997833,
+        "total_ns": 4254252500
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 761594,
+    "timing": {
+      "execution_ns": 2942167,
+      "witness_ns": 886147000,
+      "admission_ns": 295877625,
+      "proving_ns": 2562793166,
+      "artifact_encoding_ns": 33335959,
+      "fresh_verification_ns": 376102041,
+      "total_ns": 4157197958
+    },
+    "physical_peak_bytes": 3077050472,
+    "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-sha256-256",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_256.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-256.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-256.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+    "expected_output": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 4.267652667,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 1772042,
+        "witness_ns": 914688500,
+        "admission_ns": 300967083,
+        "proving_ns": 2647730875,
+        "artifact_encoding_ns": 33349917,
+        "fresh_verification_ns": 380414667,
+        "total_ns": 4278923084
+      },
+      {
+        "execution_ns": 1674958,
+        "witness_ns": 889097084,
+        "admission_ns": 307892083,
+        "proving_ns": 2660652250,
+        "artifact_encoding_ns": 33475000,
+        "fresh_verification_ns": 372438833,
+        "total_ns": 4265230208
+      },
+      {
+        "execution_ns": 1696625,
+        "witness_ns": 893024834,
+        "admission_ns": 326543875,
+        "proving_ns": 2648792375,
+        "artifact_encoding_ns": 33605750,
+        "fresh_verification_ns": 363989208,
+        "total_ns": 4267652667
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 764551,
+    "timing": {
+      "execution_ns": 1772042,
+      "witness_ns": 914688500,
+      "admission_ns": 300967083,
+      "proving_ns": 2647730875,
+      "artifact_encoding_ns": 33349917,
+      "fresh_verification_ns": 380414667,
+      "total_ns": 4278923084
+    },
+    "physical_peak_bytes": 3089502024,
+    "proof_sha256": "22f7fe1066b28269c51f5571a11ea8f0a536eae35108b8409a4fe63afd5e1787",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-sha256-512",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_512.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-512.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-512.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+    "expected_output": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 4.620402958,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 2598625,
+        "witness_ns": 932782042,
+        "admission_ns": 318430458,
+        "proving_ns": 2923144417,
+        "artifact_encoding_ns": 33678541,
+        "fresh_verification_ns": 373176167,
+        "total_ns": 4583810250
+      },
+      {
+        "execution_ns": 2511833,
+        "witness_ns": 935944500,
+        "admission_ns": 345637000,
+        "proving_ns": 2923953542,
+        "artifact_encoding_ns": 33667208,
+        "fresh_verification_ns": 378688875,
+        "total_ns": 4620402958
+      },
+      {
+        "execution_ns": 2481000,
+        "witness_ns": 947611209,
+        "admission_ns": 357788458,
+        "proving_ns": 2946075792,
+        "artifact_encoding_ns": 33692208,
+        "fresh_verification_ns": 386382000,
+        "total_ns": 4674030667
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 765658,
+    "timing": {
+      "execution_ns": 2598625,
+      "witness_ns": 932782042,
+      "admission_ns": 318430458,
+      "proving_ns": 2923144417,
+      "artifact_encoding_ns": 33678541,
+      "fresh_verification_ns": 373176167,
+      "total_ns": 4583810250
+    },
+    "physical_peak_bytes": 3198504992,
+    "proof_sha256": "6a494d17c05ef0945c649680fd5525ed896700044c496751c4fb9253be2b71f1",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-sha256-1024",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_1024.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-1024.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-1024.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+    "expected_output": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 4.769043416,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 4576583,
+        "witness_ns": 1010918542,
+        "admission_ns": 366979500,
+        "proving_ns": 2939201333,
+        "artifact_encoding_ns": 34490542,
+        "fresh_verification_ns": 405243583,
+        "total_ns": 4761410083
+      },
+      {
+        "execution_ns": 4552458,
+        "witness_ns": 988586000,
+        "admission_ns": 353817125,
+        "proving_ns": 2973305250,
+        "artifact_encoding_ns": 34539750,
+        "fresh_verification_ns": 414242833,
+        "total_ns": 4769043416
+      },
+      {
+        "execution_ns": 4443583,
+        "witness_ns": 1016005417,
+        "admission_ns": 350387625,
+        "proving_ns": 2987227417,
+        "artifact_encoding_ns": 36650541,
+        "fresh_verification_ns": 415061875,
+        "total_ns": 4809776458
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 751758,
+    "timing": {
+      "execution_ns": 4576583,
+      "witness_ns": 1010918542,
+      "admission_ns": 366979500,
+      "proving_ns": 2939201333,
+      "artifact_encoding_ns": 34490542,
+      "fresh_verification_ns": 405243583,
+      "total_ns": 4761410083
+    },
+    "physical_peak_bytes": 3273789376,
+    "proof_sha256": "53899f98a1fd8c79743eae8f632c420713b2ce781b24af22a14d0ff09f385473",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_2048.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-2048.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-sha256-2048.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+    "expected_output": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 9.430245166,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 8311208,
+        "witness_ns": 1041941292,
+        "admission_ns": 444090833,
+        "proving_ns": 7290049333,
+        "artifact_encoding_ns": 36437417,
+        "fresh_verification_ns": 516674333,
+        "total_ns": 9337504416
+      },
+      {
+        "execution_ns": 8027458,
+        "witness_ns": 1041326625,
+        "admission_ns": 446930625,
+        "proving_ns": 7381992875,
+        "artifact_encoding_ns": 36311292,
+        "fresh_verification_ns": 515656291,
+        "total_ns": 9430245166
+      },
+      {
+        "execution_ns": 7911708,
+        "witness_ns": 1064453834,
+        "admission_ns": 444237041,
+        "proving_ns": 7387447459,
+        "artifact_encoding_ns": 37126791,
+        "fresh_verification_ns": 507484209,
+        "total_ns": 9448661042
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 832697,
+    "timing": {
+      "execution_ns": 8311208,
+      "witness_ns": 1041941292,
+      "admission_ns": 444090833,
+      "proving_ns": 7290049333,
+      "artifact_encoding_ns": 36437417,
+      "fresh_verification_ns": 516674333,
+      "total_ns": 9337504416
+    },
+    "physical_peak_bytes": 5620029728,
+    "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-keccak-128",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-128.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-128.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+    "expected_output": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 9.237800083,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 1621417,
+        "witness_ns": 1086796000,
+        "admission_ns": 427286291,
+        "proving_ns": 7156451500,
+        "artifact_encoding_ns": 26562750,
+        "fresh_verification_ns": 479685750,
+        "total_ns": 9178403708
+      },
+      {
+        "execution_ns": 1502625,
+        "witness_ns": 1118594250,
+        "admission_ns": 425621875,
+        "proving_ns": 7170018542,
+        "artifact_encoding_ns": 26669375,
+        "fresh_verification_ns": 495393416,
+        "total_ns": 9237800083
+      },
+      {
+        "execution_ns": 1499708,
+        "witness_ns": 1136764459,
+        "admission_ns": 427070708,
+        "proving_ns": 7219863542,
+        "artifact_encoding_ns": 26884541,
+        "fresh_verification_ns": 476239167,
+        "total_ns": 9288322125
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 800990,
+    "timing": {
+      "execution_ns": 1621417,
+      "witness_ns": 1086796000,
+      "admission_ns": 427286291,
+      "proving_ns": 7156451500,
+      "artifact_encoding_ns": 26562750,
+      "fresh_verification_ns": 479685750,
+      "total_ns": 9178403708
+    },
+    "physical_peak_bytes": 5376252120,
+    "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-keccak-256",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_256.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-256.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-256.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+    "expected_output": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 9.318880334,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 2561250,
+        "witness_ns": 1139378792,
+        "admission_ns": 435167375,
+        "proving_ns": 7176515083,
+        "artifact_encoding_ns": 26621208,
+        "fresh_verification_ns": 501181792,
+        "total_ns": 9281425500
+      },
+      {
+        "execution_ns": 2414250,
+        "witness_ns": 1149893584,
+        "admission_ns": 433931958,
+        "proving_ns": 7205683292,
+        "artifact_encoding_ns": 26637916,
+        "fresh_verification_ns": 503998875,
+        "total_ns": 9322559875
+      },
+      {
+        "execution_ns": 2430500,
+        "witness_ns": 1120905917,
+        "admission_ns": 441904083,
+        "proving_ns": 7229032375,
+        "artifact_encoding_ns": 28031417,
+        "fresh_verification_ns": 496576042,
+        "total_ns": 9318880334
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 800317,
+    "timing": {
+      "execution_ns": 2561250,
+      "witness_ns": 1139378792,
+      "admission_ns": 435167375,
+      "proving_ns": 7176515083,
+      "artifact_encoding_ns": 26621208,
+      "fresh_verification_ns": 501181792,
+      "total_ns": 9281425500
+    },
+    "physical_peak_bytes": 5398550648,
+    "proof_sha256": "ba3317c911e4e79611c3abed6cdf490f6c3749253b4531ee4da8cef3aa7ded03",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-keccak-512",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_512.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-512.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-512.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+    "expected_output": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 9.569116458,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 4471666,
+        "witness_ns": 1160180792,
+        "admission_ns": 442323625,
+        "proving_ns": 7408930000,
+        "artifact_encoding_ns": 28091250,
+        "fresh_verification_ns": 511576042,
+        "total_ns": 9555573375
+      },
+      {
+        "execution_ns": 4634292,
+        "witness_ns": 1164243292,
+        "admission_ns": 439377583,
+        "proving_ns": 7432288708,
+        "artifact_encoding_ns": 26892250,
+        "fresh_verification_ns": 512059709,
+        "total_ns": 9579495834
+      },
+      {
+        "execution_ns": 4487458,
+        "witness_ns": 1128470958,
+        "admission_ns": 442471500,
+        "proving_ns": 7455458917,
+        "artifact_encoding_ns": 26466708,
+        "fresh_verification_ns": 511760917,
+        "total_ns": 9569116458
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 808552,
+    "timing": {
+      "execution_ns": 4471666,
+      "witness_ns": 1160180792,
+      "admission_ns": 442323625,
+      "proving_ns": 7408930000,
+      "artifact_encoding_ns": 28091250,
+      "fresh_verification_ns": 511576042,
+      "total_ns": 9555573375
+    },
+    "physical_peak_bytes": 5537978272,
+    "proof_sha256": "96b33cc39150bae5de70dfcc9750560b4e63e1c2fdef1cada3c07f3b61450cb9",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-keccak-1024",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_1024.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-1024.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-1024.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+    "expected_output": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 9.8835095,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 8780000,
+        "witness_ns": 1207070250,
+        "admission_ns": 449057917,
+        "proving_ns": 7636331500,
+        "artifact_encoding_ns": 27791958,
+        "fresh_verification_ns": 520690667,
+        "total_ns": 9849722292
+      },
+      {
+        "execution_ns": 9130958,
+        "witness_ns": 1218597083,
+        "admission_ns": 453023584,
+        "proving_ns": 7673222375,
+        "artifact_encoding_ns": 26886708,
+        "fresh_verification_ns": 502648792,
+        "total_ns": 9883509500
+      },
+      {
+        "execution_ns": 9215291,
+        "witness_ns": 1234044917,
+        "admission_ns": 455426667,
+        "proving_ns": 7685387750,
+        "artifact_encoding_ns": 28068250,
+        "fresh_verification_ns": 502941500,
+        "total_ns": 9915084375
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 808507,
+    "timing": {
+      "execution_ns": 8780000,
+      "witness_ns": 1207070250,
+      "admission_ns": 449057917,
+      "proving_ns": 7636331500,
+      "artifact_encoding_ns": 27791958,
+      "fresh_verification_ns": 520690667,
+      "total_ns": 9849722292
+    },
+    "physical_peak_bytes": 5568518504,
+    "proof_sha256": "124a6791a1c1324983657c00ab29e6bd8501dd08dbae65743d19d77b3c3b436a",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-keccak-2048",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_2048.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-2048.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-keccak-2048.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+    "expected_output": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 10.832138875,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 16511916,
+        "witness_ns": 1366838250,
+        "admission_ns": 469813709,
+        "proving_ns": 8422575000,
+        "artifact_encoding_ns": 29678250,
+        "fresh_verification_ns": 521595833,
+        "total_ns": 10827012958
+      },
+      {
+        "execution_ns": 15406583,
+        "witness_ns": 1338042792,
+        "admission_ns": 473788625,
+        "proving_ns": 8441640625,
+        "artifact_encoding_ns": 29458208,
+        "fresh_verification_ns": 548296917,
+        "total_ns": 10846633750
+      },
+      {
+        "execution_ns": 16722750,
+        "witness_ns": 1328781667,
+        "admission_ns": 472070375,
+        "proving_ns": 8449991500,
+        "artifact_encoding_ns": 29641292,
+        "fresh_verification_ns": 534931291,
+        "total_ns": 10832138875
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 867004,
+    "timing": {
+      "execution_ns": 16511916,
+      "witness_ns": 1366838250,
+      "admission_ns": 469813709,
+      "proving_ns": 8422575000,
+      "artifact_encoding_ns": 29678250,
+      "fresh_verification_ns": 521595833,
+      "total_ns": 10827012958
+    },
+    "physical_peak_bytes": 5799025216,
+    "proof_sha256": "25cf07bbb4dfb91a9ec7626928b4d960537c362fc7699fb5a726d2b2530c1d9a",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-poseidon2_m31-2",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_2.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-2.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-2.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+    "expected_output": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 2.178520125,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 4382333,
+        "witness_ns": 145293250,
+        "admission_ns": 78140542,
+        "proving_ns": 1802340708,
+        "artifact_encoding_ns": 15089708,
+        "fresh_verification_ns": 98413667,
+        "total_ns": 2143660208
+      },
+      {
+        "execution_ns": 4046000,
+        "witness_ns": 159114084,
+        "admission_ns": 76495125,
+        "proving_ns": 1833297875,
+        "artifact_encoding_ns": 15173166,
+        "fresh_verification_ns": 100832667,
+        "total_ns": 2188958917
+      },
+      {
+        "execution_ns": 4067000,
+        "witness_ns": 159859958,
+        "admission_ns": 79881167,
+        "proving_ns": 1820200083,
+        "artifact_encoding_ns": 15357834,
+        "fresh_verification_ns": 99154083,
+        "total_ns": 2178520125
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 761167,
+    "timing": {
+      "execution_ns": 4382333,
+      "witness_ns": 145293250,
+      "admission_ns": 78140542,
+      "proving_ns": 1802340708,
+      "artifact_encoding_ns": 15089708,
+      "fresh_verification_ns": 98413667,
+      "total_ns": 2143660208
+    },
+    "physical_peak_bytes": 777455872,
+    "proof_sha256": "675b7254df7524f8866b7e850ea0299d1d98923dae2dce8f83eb57820b6b7ca1",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-poseidon2_m31-4",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_4.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-4.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-4.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+    "expected_output": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 1.615393166,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 8489375,
+        "witness_ns": 157174375,
+        "admission_ns": 78518041,
+        "proving_ns": 1254244125,
+        "artifact_encoding_ns": 16219334,
+        "fresh_verification_ns": 100747916,
+        "total_ns": 1615393166
+      },
+      {
+        "execution_ns": 8637750,
+        "witness_ns": 158999041,
+        "admission_ns": 76520750,
+        "proving_ns": 1226615875,
+        "artifact_encoding_ns": 16173375,
+        "fresh_verification_ns": 101131375,
+        "total_ns": 1588078166
+      },
+      {
+        "execution_ns": 8684875,
+        "witness_ns": 169159875,
+        "admission_ns": 77037125,
+        "proving_ns": 1252251083,
+        "artifact_encoding_ns": 16534500,
+        "fresh_verification_ns": 102150917,
+        "total_ns": 1625818375
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 788920,
+    "timing": {
+      "execution_ns": 8489375,
+      "witness_ns": 157174375,
+      "admission_ns": 78518041,
+      "proving_ns": 1254244125,
+      "artifact_encoding_ns": 16219334,
+      "fresh_verification_ns": 100747916,
+      "total_ns": 1615393166
+    },
+    "physical_peak_bytes": 912378304,
+    "proof_sha256": "a8a6baf5fb77e748cd12b88e0f0b40b70c17f150633b153fed6328c8fff90025",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-poseidon2_m31-8",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_8.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-8.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-8.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+    "expected_output": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 1.93990925,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 16547000,
+        "witness_ns": 164337584,
+        "admission_ns": 79541541,
+        "proving_ns": 1542474792,
+        "artifact_encoding_ns": 17026208,
+        "fresh_verification_ns": 102021084,
+        "total_ns": 1921948209
+      },
+      {
+        "execution_ns": 16770875,
+        "witness_ns": 167958500,
+        "admission_ns": 78514792,
+        "proving_ns": 1567043208,
+        "artifact_encoding_ns": 17087125,
+        "fresh_verification_ns": 102710625,
+        "total_ns": 1950085125
+      },
+      {
+        "execution_ns": 16325041,
+        "witness_ns": 162351209,
+        "admission_ns": 78904833,
+        "proving_ns": 1560853583,
+        "artifact_encoding_ns": 17066084,
+        "fresh_verification_ns": 104408500,
+        "total_ns": 1939909250
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 814078,
+    "timing": {
+      "execution_ns": 16547000,
+      "witness_ns": 164337584,
+      "admission_ns": 79541541,
+      "proving_ns": 1542474792,
+      "artifact_encoding_ns": 17026208,
+      "fresh_verification_ns": 102021084,
+      "total_ns": 1921948209
+    },
+    "physical_peak_bytes": 1217481272,
+    "proof_sha256": "5e273aaec3d4926187332994b393c8ffd0bde259bc69f0cb7d5fe24f0344b9ad",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-poseidon2_m31-12",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_12.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-12.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-12.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+    "expected_output": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 2.057390625,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 24567959,
+        "witness_ns": 183985125,
+        "admission_ns": 79439541,
+        "proving_ns": 1617250167,
+        "artifact_encoding_ns": 18303833,
+        "fresh_verification_ns": 105950292,
+        "total_ns": 2029496917
+      },
+      {
+        "execution_ns": 24747625,
+        "witness_ns": 190198041,
+        "admission_ns": 78033292,
+        "proving_ns": 1637568375,
+        "artifact_encoding_ns": 18839125,
+        "fresh_verification_ns": 108004167,
+        "total_ns": 2057390625
+      },
+      {
+        "execution_ns": 25578334,
+        "witness_ns": 179655708,
+        "admission_ns": 82194583,
+        "proving_ns": 1679900459,
+        "artifact_encoding_ns": 18554083,
+        "fresh_verification_ns": 106083208,
+        "total_ns": 2091966375
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 890708,
+    "timing": {
+      "execution_ns": 24567959,
+      "witness_ns": 183985125,
+      "admission_ns": 79439541,
+      "proving_ns": 1617250167,
+      "artifact_encoding_ns": 18303833,
+      "fresh_verification_ns": 105950292,
+      "total_ns": 2029496917
+    },
+    "physical_peak_bytes": 1350306120,
+    "proof_sha256": "4d2d5d26c5e9cfd72a0697d065acc8a31eb5e74540e5db927ae7005fd752c477",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-poseidon2_m31-16",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_16.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-16.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-poseidon2_m31-16.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+    "expected_output": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 2.26311975,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 30163750,
+        "witness_ns": 193662000,
+        "admission_ns": 84714250,
+        "proving_ns": 1824010250,
+        "artifact_encoding_ns": 19091417,
+        "fresh_verification_ns": 111478083,
+        "total_ns": 2263119750
+      },
+      {
+        "execution_ns": 31740750,
+        "witness_ns": 184488334,
+        "admission_ns": 84189291,
+        "proving_ns": 1824792375,
+        "artifact_encoding_ns": 19685417,
+        "fresh_verification_ns": 111149875,
+        "total_ns": 2256046042
+      },
+      {
+        "execution_ns": 32546667,
+        "witness_ns": 201697208,
+        "admission_ns": 84635667,
+        "proving_ns": 1831244917,
+        "artifact_encoding_ns": 19691958,
+        "fresh_verification_ns": 112266375,
+        "total_ns": 2282082792
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 974646,
+    "timing": {
+      "execution_ns": 30163750,
+      "witness_ns": 193662000,
+      "admission_ns": 84714250,
+      "proving_ns": 1824010250,
+      "artifact_encoding_ns": 19091417,
+      "fresh_verification_ns": 111478083,
+      "total_ns": 2263119750
+    },
+    "physical_peak_bytes": 1619889200,
+    "proof_sha256": "33397a35ec1a55f07f1595761745fa94dca9d98c3b09c074d852bf720734ea5f",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "ecdsa-csp-bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_odd.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-ecdsa_secp256k1-32.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-ecdsa_secp256k1-32.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "3",
+      "--workers",
+      "16",
+      "--host-byte-budget",
+      "38654705664"
+    ],
+    "canonical_input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+    "expected_output": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 1.480730416,
+    "samples": 3,
+    "all_timings": [
+      {
+        "execution_ns": 499125,
+        "witness_ns": 149452166,
+        "admission_ns": 73913292,
+        "proving_ns": 1111661000,
+        "artifact_encoding_ns": 24365042,
+        "fresh_verification_ns": 117046833,
+        "total_ns": 1476937458
+      },
+      {
+        "execution_ns": 450708,
+        "witness_ns": 177771875,
+        "admission_ns": 73213958,
+        "proving_ns": 1172011542,
+        "artifact_encoding_ns": 25362417,
+        "fresh_verification_ns": 116636250,
+        "total_ns": 1565446750
+      },
+      {
+        "execution_ns": 451958,
+        "witness_ns": 151481583,
+        "admission_ns": 73103875,
+        "proving_ns": 1108461334,
+        "artifact_encoding_ns": 25779875,
+        "fresh_verification_ns": 121451791,
+        "total_ns": 1480730416
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      },
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3EVART1",
+    "stark_bytes": 3642095,
+    "timing": {
+      "execution_ns": 499125,
+      "witness_ns": 149452166,
+      "admission_ns": 73913292,
+      "proving_ns": 1111661000,
+      "artifact_encoding_ns": 24365042,
+      "fresh_verification_ns": 117046833,
+      "total_ns": 1476937458
+    },
+    "physical_peak_bytes": 768887160,
+    "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9",
+    "independent_verified": true
+  },
+  {
+    "case": "cpu-ecdsa_secp256k1_bad_signature",
+    "negative": true,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-zig-riscv-cpu",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1_bad_signature.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-ecdsa_secp256k1_bad_signature.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-compact-range-provider/suite-cpu/cpu-ecdsa_secp256k1_bad_signature.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "canonical_input_sha256": "75bd5fd25b8a514a8a891502fb32105d1dca26cdaf1d8fd2cc4cba5737806181",
+    "expected_output": "0000000000000000000000000000000000000000000000000000000000000000",
+    "result_class": "source_pinned_dirty_diagnostic",
+    "exit_code": 0,
+    "total_seconds": 61.889560042,
+    "samples": 1,
+    "all_timings": [
+      {
+        "execution_ns": 302119917,
+        "witness_ns": 2790749208,
+        "admission_ns": 1502220958,
+        "proving_ns": 55400762959,
+        "artifact_encoding_ns": 124074125,
+        "fresh_verification_ns": 1769632875,
+        "total_ns": 61889560042
+      }
+    ],
+    "device": [
+      {
+        "dispatches": 0,
+        "cpu_fallbacks": 0
+      }
+    ],
+    "binary_sha256": "d3b99ef7fba42f0098c5c2cc995e519c7f4282afdd3dc63901a24469efb06c99",
+    "implementation_dirty": true,
+    "artifact_magic": "B3RVART1",
+    "stark_bytes": 3391668,
+    "timing": {
+      "execution_ns": 302119917,
+      "witness_ns": 2790749208,
+      "admission_ns": 1502220958,
+      "proving_ns": 55400762959,
+      "artifact_encoding_ns": 124074125,
+      "fresh_verification_ns": 1769632875,
+      "total_ns": 61889560042
+    },
+    "physical_peak_bytes": 15658924288,
+    "proof_sha256": "39fb1e6a5250daaab23b6ebbce5f6c896c4191ec58c375ac3d1e9ceddcc7e8b0",
+    "independent_verified": true
+  }
+]

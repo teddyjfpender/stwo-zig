@@ -1,0 +1,7 @@
+1/5 block_v5_memory_source_page_policy_positive_test_root.test.source PAGE positive metadata root...OK
+2/5 prover.block_v5_memory_source_page_policy_positive_test_v1.test.source PAGE positive metadata: genuine raw fold premix export independent reconstruct owner and OOM round trip...PAGE_POLICY_METADATA actual_raw_premix_trees=6 actual_fold_premix_trees=6 fixed_tables_log=16 sha_padding_compressions=5 fold_operations=2 STARK=false FRI=false accepted_artifacts=false
+OK
+3/5 air.semantic_eval.test_0...OK
+4/5 air.lookups.tables.mod.test_0...OK
+5/5 air.lookups.tables.source_ingest.test_0...OK
+All 5 tests passed.

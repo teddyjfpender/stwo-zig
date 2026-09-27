@@ -1,0 +1,14 @@
+{
+  "size": 4096,
+  "input_sha256": "2385b2772b668a99005ca6136ff00311e78c8c8a97b302c9548fe08fe808dd3d",
+  "expected_digest": "f34fce81c22cd52be6ede2808cda3a2f269bb810d9b14bed56e3acaf9d6d1c35",
+  "elf_sha256": "17be70b3f9e3a4ec5607278cae2535320230b51cb9b47dc4b1c2e3c5ba00c38c",
+  "cli_sha256": "fff84e83f931c50ae9bc4c0320dc97395097d4e676b545dcc941e8420b562d44",
+  "power": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t79%; discharging; 11:07 remaining present: true\n",
+  "exit_code": 0,
+  "wall_seconds": 15.292620457999874,
+  "qualified": true,
+  "total_seconds": 15.243061625,
+  "proving_seconds": 14.667045666,
+  "steps": 14905704
+}

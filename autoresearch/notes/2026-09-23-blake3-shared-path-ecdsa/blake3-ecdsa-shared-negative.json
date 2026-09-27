@@ -1,0 +1,22 @@
+[
+  {
+    "case": "wrong pin",
+    "exit": 1,
+    "error": "error: UntrustedExecutionManifest"
+  },
+  {
+    "case": "wrong input",
+    "exit": 1,
+    "error": "error: ExecutionSourceMismatch"
+  },
+  {
+    "case": "wrong ELF",
+    "exit": 1,
+    "error": "error: ExecutionSourceMismatch"
+  },
+  {
+    "case": "mutated proof",
+    "exit": 1,
+    "error": "error: ProofOfWork"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "time_utc": "2026-09-24T15:57:40.780343+00:00",
+  "head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "dirty": true,
+  "sources": {
+    "src/core/channel/blake3_frame.zig": "997ceda769950b0132128bf4ac83527649ec5d5c2e4b00082dde948e2f50f895",
+    "src/frontends/riscv/air/guest_precompile/keccakf_authority.zig": "c1d56e6d3ad41a13a77bade4c50dd50c9957e4cc673076eefd9bae15c05c7e16",
+    "src/frontends/riscv/air/guest_precompile/keccakf_witness.zig": "9c189ea6794abd19a345d833695f77813bcee837938bd0849f102d2f15473617",
+    "src/frontends/riscv/testing/keccakf_proof_harness.zig": "72ab0175f46a454ee2eaeccde3542679c570c2e459e428ee5bdb1b864e4c30f9",
+    "src/integrations/riscv_cpu/keccakf_precompile_proof_test.zig": "ad1a43be064397f35db5186b6a03e3e8a342aaede8aa587b099e096cc9497a3c",
+    "src/integrations/riscv_cpu/build_proof_steps.zig": "855e52621b8f35d976caa46c88830622748d2338a9b2c7b6e6f9eb8ecaddcfc3",
+    "src/frontends/riscv/zisk_system_benchmark.zig": "857124eb1c0ba93c89bc53fd833688e252ed1534e90f96f82a9aeb3583420f16",
+    "src/frontends/riscv/zisk_pipeline_benchmark.zig": "5dc234d42e6180cc25e8ee88bb68958ac5ccd66ab034a30832b713f73f246c25"
+  }
+}

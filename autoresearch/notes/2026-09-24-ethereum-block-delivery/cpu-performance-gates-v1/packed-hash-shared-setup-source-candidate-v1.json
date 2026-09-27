@@ -1,0 +1,36 @@
+{
+  "status": "authored_not_qualified",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_packed_hash_setup_v1.zig",
+      "sha256": "e6186d49a8826147095ed625d15762ccad6689c6787f45c41f1b09baaf5eace1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_sha_columns_v1.zig",
+      "sha256": "f0413da8246cbbcb37cac6c739f47fa4f061b50f7adc1ac98850aca1881c0f19"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_packed_blake_columns_v1.zig",
+      "sha256": "1bf8114639d79a4b964d9bcebac716dc0f760a33658c023f3754bae82782f83f"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_packed_hash_setup_test_root.zig",
+      "sha256": "b8c5dcc33748eccebdadc42968f1a8a56e011360d3ccdf0e5ef5c113b2a60ce7"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_packed_blake_columns_test_root.zig",
+      "sha256": "c5521cda7bba7c01ba9130da1d98e3a7cd4f39201448d88c0945c432366eddc3"
+    }
+  ],
+  "scope": [
+    "One retained immutable typed definition/relation-plan owner per job and hash family",
+    "Additive cached regeneration uses exact same page-local witness/table/capture kernels",
+    "Coordinator and allocator custody after page lease transfer",
+    "Every new cached page allocation failure, excluding repeated upstream AIR construction"
+  ],
+  "tests_not_run": true,
+  "stark_proving_run": false,
+  "segments_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

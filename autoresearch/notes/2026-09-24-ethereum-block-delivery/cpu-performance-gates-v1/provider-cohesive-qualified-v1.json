@@ -1,0 +1,38 @@
+{
+  "status": "scoped-provider-equations-ownership-transport-and-actual-bodies-qualified",
+  "unique_passing_checks": 41,
+  "qualification_snapshots": [
+    {
+      "result": "provider-cohesive-focused-v4-result.json",
+      "passed": 38,
+      "failed": 3,
+      "actual_bodies_compiled": true
+    },
+    {
+      "result": "provider-cohesive-focused-v5-result.json",
+      "passed": 5,
+      "failed": 0,
+      "corrected_previously_failed_named_checks": 3
+    }
+  ],
+  "compiler_semantic": "provider-cohesive-semantic-v3-result.json",
+  "body_artifact": "provider-cohesive-focused-v4-body-retention.json",
+  "current_snapshot": "provider-cohesive-focused-v5-source.json",
+  "between_snapshot_changes": [
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/qualify_recursive_providers_v1.py",
+    "src/frontends/riscv/prover/block_v5_native_lookup_recursive_test_v1.zig",
+    "src/frontends/riscv/prover/block_v5_ram_lanes_recursive_test_v1.zig"
+  ],
+  "production_source_changed_between_body_and_corrective_fixtures": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "fresh_recursive_provider_proof_qualified": false,
+  "global_recursive_closure_qualified": false,
+  "remaining": [
+    "caller/native-fused verifier adapters",
+    "cryptographic source authentication",
+    "heterogeneous coverage/public-vector assembly and final closure",
+    "complete real recursive proof and benchmark qualification"
+  ]
+}

@@ -1,0 +1,114 @@
+[
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "control": {
+      "total_seconds": 0.9622513755,
+      "witness_seconds": 0.0894337085,
+      "matched_scope_mean_seconds": 0.8181265833333333
+    },
+    "candidate": {
+      "total_seconds": 0.950485479,
+      "witness_seconds": 0.086191833,
+      "matched_scope_mean_seconds": 0.8028378336666666
+    },
+    "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+  },
+  {
+    "case": "cpu-sha256-128",
+    "control": {
+      "total_seconds": 2.2179959795,
+      "witness_seconds": 0.563038771,
+      "matched_scope_mean_seconds": 1.751600896
+    },
+    "candidate": {
+      "total_seconds": 2.225670312,
+      "witness_seconds": 0.5625839585,
+      "matched_scope_mean_seconds": 1.7516319096666666
+    },
+    "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "control": {
+      "total_seconds": 3.9140265835,
+      "witness_seconds": 0.7189113125,
+      "matched_scope_mean_seconds": 3.2721926530000003
+    },
+    "candidate": {
+      "total_seconds": 3.9002229159999997,
+      "witness_seconds": 0.7034556249999999,
+      "matched_scope_mean_seconds": 3.2621839443333336
+    },
+    "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+  },
+  {
+    "case": "cpu-keccak-128",
+    "control": {
+      "total_seconds": 3.9584867084999997,
+      "witness_seconds": 0.7597249580000001,
+      "matched_scope_mean_seconds": 3.3328789933333334
+    },
+    "candidate": {
+      "total_seconds": 3.941129521,
+      "witness_seconds": 0.746743375,
+      "matched_scope_mean_seconds": 3.316868326333333
+    },
+    "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+  },
+  {
+    "case": "metal-ecdsa_secp256k1-32",
+    "control": {
+      "total_seconds": 1.0139507085,
+      "witness_seconds": 0.0890303335,
+      "matched_scope_mean_seconds": 0.8591032221666667
+    },
+    "candidate": {
+      "total_seconds": 1.009733854,
+      "witness_seconds": 0.08688612500000001,
+      "matched_scope_mean_seconds": 0.8530591526666667
+    },
+    "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+  },
+  {
+    "case": "metal-sha256-128",
+    "control": {
+      "total_seconds": 2.136901312,
+      "witness_seconds": 0.5675710625,
+      "matched_scope_mean_seconds": 1.6564501456666667
+    },
+    "candidate": {
+      "total_seconds": 2.1414427915,
+      "witness_seconds": 0.5670276249999999,
+      "matched_scope_mean_seconds": 1.657621368
+    },
+    "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+  },
+  {
+    "case": "metal-sha256-2048",
+    "control": {
+      "total_seconds": 3.8463541875000002,
+      "witness_seconds": 0.7630896665,
+      "matched_scope_mean_seconds": 3.1779386941666665
+    },
+    "candidate": {
+      "total_seconds": 3.8541024585,
+      "witness_seconds": 0.7634256875000001,
+      "matched_scope_mean_seconds": 3.1818949303333333
+    },
+    "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+  },
+  {
+    "case": "metal-keccak-128",
+    "control": {
+      "total_seconds": 3.7985532915,
+      "witness_seconds": 0.8211737084999999,
+      "matched_scope_mean_seconds": 3.1593952431666663
+    },
+    "candidate": {
+      "total_seconds": 3.778928708,
+      "witness_seconds": 0.8032601455,
+      "matched_scope_mean_seconds": 3.1463703538333334
+    },
+    "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "README.md": "22e323e7f518655188a4f5e5f233281b864a76c0772936ec542f7ad8a75d0a83",
+  "sources/autoresearch/notes/20260922-blake3-pcs-transcript-problem-match.md": "f1598b4d09337d6db9caa703e13624d16fb1a0680472a67760e5631cc1a3feba",
+  "sources/src/frontends/riscv/recursion/air/blake3_combined_fri_test.zig": "96a34d26da2e2d0490a517d962deab623a4b413e9f8e951218677999b0bac72f",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_transcript.zig": "df86f3664caaab45b5fc76767dde1bc79ac986d5a5ad1b206863b7c7bcea3327",
+  "tests.log": "3e307b9dd1f5db22ee1b79eb1a3ab4ce03b2bf2f96656ad2f378ffe2d4093c7f"
+}

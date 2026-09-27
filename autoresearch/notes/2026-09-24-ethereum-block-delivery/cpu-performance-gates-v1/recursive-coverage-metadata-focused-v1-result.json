@@ -1,0 +1,16 @@
+{
+  "status": "qualified",
+  "exit_code": 0,
+  "elapsed_seconds": 3.7992320830235258,
+  "changed_source_pins": [],
+  "source": "recursive-coverage-metadata-focused-v1-source.json",
+  "log": "recursive-coverage-metadata-focused-v1.log",
+  "test_summary": [
+    "All 6 tests passed."
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "actual_stack_prepare_qualified": false,
+  "global_recursive_closure_qualified": false
+}

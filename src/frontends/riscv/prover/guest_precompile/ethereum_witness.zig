@@ -25,6 +25,11 @@ pub const Witness = struct {
     secp_tape: secp_affine.Tape,
     secp: secp_bundle.Bundle,
     recovery_caller: secp_bundle.RecoveryCallerTrace,
+    recovery_caller_local_zero: ?secp_bundle.RecoveryCallerLocalZeroTrace = null,
+    circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1 = .legacy_v4,
+    /// Column-staged witnesses own no affine construction tape. Their logical
+    /// count comes from the independently retained, root-recommitted statement.
+    staged_signer_count: ?u32 = null,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -52,12 +57,13 @@ pub const Witness = struct {
 
         var counters = try keccak_counters.Counters.init(allocator);
         errdefer counters.deinit();
-        var shard = try keccak_trace.generateShardWithMaximumLogSize(
+        var shard = try keccak_trace.generateShardForRecipe(
             allocator,
             keccak_calls,
             0,
             &counters,
             circuit_profile.keccakMaximumLogSize(),
+            circuit_profile.localZeroCustody(),
         );
         errdefer shard.deinit();
         try counters.validateTotals();
@@ -78,9 +84,11 @@ pub const Witness = struct {
         errdefer secp.deinit();
         var caller = try secp_bundle.generateRecoveryCaller(
             allocator,
-            recovery_calls,
+            if (circuit_profile.localZeroCustody()) &.{} else recovery_calls,
         );
         errdefer caller.deinit();
+        var zero_caller: ?secp_bundle.RecoveryCallerLocalZeroTrace = if (circuit_profile.localZeroCustody()) try secp_bundle.generateRecoveryCallerLocalZero(allocator, recovery_calls) else null;
+        errdefer if (zero_caller) |*owned| owned.deinit();
 
         return .{
             .allocator = allocator,
@@ -89,10 +97,13 @@ pub const Witness = struct {
             .secp_tape = tape,
             .secp = secp,
             .recovery_caller = caller,
+            .recovery_caller_local_zero = zero_caller,
+            .circuit_profile = circuit_profile,
         };
     }
 
     pub fn deinit(self: *Witness) void {
+        if (self.recovery_caller_local_zero) |*owned| owned.deinit();
         self.recovery_caller.deinit();
         self.secp.deinit();
         self.secp_tape.deinit();
@@ -102,7 +113,7 @@ pub const Witness = struct {
     }
 
     pub fn shapes(self: *const Witness) statement_mod.SecpShapes {
-        const signer_rows: ?u32 = if (self.secp_tape.recoveries.items.len == 0)
+        const signer_rows: ?u32 = if (self.signerCount() == 0)
             0
         else
             null;
@@ -117,8 +128,15 @@ pub const Witness = struct {
             .table = shapeLogical(&self.secp.table, signer_rows),
             .recovery = shapeLogical(&self.secp.recovery, signer_rows),
             .byte = shape(&self.secp.byte),
-            .recovery_caller = shapeLogical(&self.recovery_caller, signer_rows),
+            .recovery_caller = if (self.recovery_caller_local_zero) |*owned| shapeLogical(owned, signer_rows) else shapeLogical(&self.recovery_caller, signer_rows),
         };
+    }
+    pub fn recoveryCallerLogSize(self: *const Witness) u32 {
+        return if (self.recovery_caller_local_zero) |owned| owned.log_size else self.recovery_caller.log_size;
+    }
+    pub fn signerCount(self: *const Witness) usize {
+        if (self.staged_signer_count) |count| return count;
+        return self.secp_tape.recoveries.items.len;
     }
 };
 

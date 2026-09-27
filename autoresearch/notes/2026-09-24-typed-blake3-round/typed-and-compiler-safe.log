@@ -1,0 +1,52 @@
+1/21 blake3_round_test_root.test_0...OK
+2/21 recursion.air.direct_constraint_program.test.direct constraint compiler default tests...OK
+3/21 recursion.air.relation_interaction_tuple_ledger.test.R-012 canonical tuple hash batches exactly the existing byte stream...OK
+4/21 recursion.air.blake3_round_call_test.test.typed BLAKE3 round preserves all seven canonical compression groups...BLAKE3_ROUND_TYPED main=832 fixed=66 constraints=448 events=432 digest=301e6f13749bcdeff36551bfbaefcd5444baf3896cb2578dcf7d586c50dd6904
+OK
+5/21 recursion.air.blake3_round_call_test.test.typed BLAKE3 round rejects all coordinate and caller-binding mutations...OK
+6/21 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G matches typed bit reference and canonical lookup schemas...OK
+7/21 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G rejects coordinate mutations and requires lookup bounds...OK
+8/21 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G covers all seven rounds of a native compression trace...OK
+9/21 recursion.air.blake3_compression_partition_test.test.compression partitions preserve all native transitions and exact external uses...OK
+10/21 recursion.air.blake3_compression_partition_test.test.compression partition admission rejects changed schedules and weights...OK
+11/21 recursion.air.direct_constraint_program_sized.WithLimits(512,192).test.R-012 direct compiler evaluates control roots identically over M31 and QM31...OK
+12/21 recursion.air.direct_constraint_program_sized.WithLimits(512,192).test.R-012 direct execution pruning preserves every parent catalog root over base and extension fields...DIRECT_EXECUTION_PRUNING row=0 canonical_nodes=7 executed_nodes=3
+DIRECT_EXECUTION_PRUNING row=1 canonical_nodes=40 executed_nodes=29
+DIRECT_EXECUTION_PRUNING row=2 canonical_nodes=49 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=3 canonical_nodes=41 executed_nodes=30
+DIRECT_EXECUTION_PRUNING row=4 canonical_nodes=12 executed_nodes=10
+DIRECT_EXECUTION_PRUNING row=5 canonical_nodes=10 executed_nodes=9
+DIRECT_EXECUTION_PRUNING row=6 canonical_nodes=314 executed_nodes=314
+DIRECT_EXECUTION_PRUNING row=7 canonical_nodes=12 executed_nodes=8
+DIRECT_EXECUTION_PRUNING row=8 canonical_nodes=23 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=9 canonical_nodes=55 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=10 canonical_nodes=41 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=11 canonical_nodes=21 executed_nodes=21
+DIRECT_EXECUTION_PRUNING row=12 canonical_nodes=36 executed_nodes=35
+DIRECT_EXECUTION_PRUNING row=13 canonical_nodes=1 executed_nodes=1
+DIRECT_EXECUTION_PRUNING row=14 canonical_nodes=149 executed_nodes=149
+DIRECT_EXECUTION_PRUNING row=20 canonical_nodes=289 executed_nodes=231
+DIRECT_EXECUTION_PRUNING row=21 canonical_nodes=166 executed_nodes=166
+DIRECT_EXECUTION_PRUNING row=22 canonical_nodes=22 executed_nodes=14
+DIRECT_EXECUTION_PRUNING row=23 canonical_nodes=121 executed_nodes=99
+DIRECT_EXECUTION_PRUNING row=24 canonical_nodes=20 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=25 canonical_nodes=125 executed_nodes=102
+DIRECT_EXECUTION_PRUNING row=26 canonical_nodes=46 executed_nodes=39
+DIRECT_EXECUTION_PRUNING row=27 canonical_nodes=17 executed_nodes=15
+DIRECT_EXECUTION_PRUNING row=28 canonical_nodes=16 executed_nodes=13
+DIRECT_EXECUTION_PRUNING row=29 canonical_nodes=21 executed_nodes=11
+DIRECT_EXECUTION_PRUNING row=30 canonical_nodes=49 executed_nodes=49
+DIRECT_EXECUTION_PRUNING row=31 canonical_nodes=74 executed_nodes=73
+DIRECT_EXECUTION_PRUNING row=32 canonical_nodes=106 executed_nodes=106
+DIRECT_EXECUTION_PRUNING row=33 canonical_nodes=43 executed_nodes=39
+OK
+13/21 recursion.air.direct_constraint_program_sized.WithLimits(512,192).test.R-012 direct execution pruning retains gates and the complete arena seal...OK
+14/21 recursion.air.relation_effect.test.R-012 universal relation group authors multiple schemas atomically...OK
+15/21 recursion.air.relation_effect.test.R-012 universal relation authoring fails closed on base Merkle ABI gap...OK
+16/21 recursion.air.relation_effect.test.R-012 universal relation authoring rejects every group before mutation...OK
+17/21 recursion.air.relation_effect.test.R-012 universal relation group releases every allocation failure...OK
+18/21 air.lang.mod.test.typed AIR language: isolated kernel has an explicit logical version...OK
+19/21 recursion.air.universal_roster.test.R-012 universal roster pins exact order and honest completion layers...OK
+20/21 recursion.air.universal_roster.test.R-012 no universal row remains unresolved...OK
+21/21 recursion.air.universal_roster.test.R-012 authenticated providers close rows without duplicate typed ownership...OK
+All 21 tests passed.

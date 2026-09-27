@@ -1,0 +1,6 @@
+1/2 air.guest_precompile.sha256_packed_arithmetic_test.test.SHA packed arithmetic matches independent semantics and rejects scratch and range mutations...SHA_PACKED kind=round columns=164 constraints=40 lookups=126 digest=2fd31c11ad90cdb2e803c153def2ef842133430299102c13df1412f048e0cee1
+SHA_PACKED kind=schedule columns=88 constraints=28 lookups=60 digest=54d6181f31fb455cb38ac86cb91fbaf33004f3a041dda6c1ebf1ece565267ea1
+SHA_PACKED kind=feed_forward columns=16 constraints=4 lookups=8 digest=1b626c272caf5b011176edb186a08ce6f15cd79ad09981f88e7fc2d3eb748864
+OK
+2/2 air.guest_precompile.sha256_packed_arithmetic_test.test.SHA packed arithmetic follows every round and expansion of a compression...OK
+All 2 tests passed.

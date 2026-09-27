@@ -1,0 +1,10 @@
+{
+  "README.md": "d88c6cbcb44d88b59e867892987a7dec6d581cbbc4d26d72ba1eb481729f11a1",
+  "sources/autoresearch/notes/20260922-blake3-lifted-leaf-problem-match.md": "19180fb9977c61eb7ac2ee63b7ba4cc4fa83081fd35771d1902d4814a6ac0d59",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "5bee1beedf20dbeed01a0276db52f2b7c0867c577d47f752a7306e1c2eeb62d5",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "6324a0f62b176be9c8b21e9af0041d3c6551be0c548a518ac0f3b6eea78ceec8",
+  "sources/src/frontends/riscv/recursion/air/blake3_lifted_leaf_plan.zig": "8ec886e1234c28b87d5be82791d314364c1c5f4af8dded24ff9976753b06fdfe",
+  "sources/src/frontends/riscv/recursion/air/blake3_lifted_path_test.zig": "a208f0c20bc02857899c7c58fb0262ff906620fc595f9cf07279af01488b7aee",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "23617a0a3096dcbe3629e2dc7bb04018c956d68826ba7d6e185a7b701b9b9252",
+  "tests.log": "9d0dc5f0297b208714028271fdb0922d4be88d62e9981f70927e417207843da3"
+}

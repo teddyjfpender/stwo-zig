@@ -1,0 +1,16 @@
+{
+  "source_candidate": "caller-recursive-pipeline-semantic-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 6.461961958033498,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": true,
+  "tests_run": false,
+  "discovered_tests": 0,
+  "test_summary": [],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-recursive-pipeline-semantic-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": null
+}

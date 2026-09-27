@@ -1,0 +1,22 @@
+{
+  "source_candidate": "bundle-reader-reuse-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 6.0969248749897815,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 8,
+  "test_summary": [
+    "All 8 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/bundle-reader-reuse-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-bundle-reader-reuse-focused-v1",
+    "bytes": 7820280,
+    "sha256": "00c1e8b3f9e0b9555f7d6a3ae0d8d9d760d05e42a311028580c713d4d8453d97"
+  }
+}

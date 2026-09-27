@@ -1,0 +1,5 @@
+1/21 block_v5_caller_recursive_admission_catalog_test_root.test_0...OK
+2/21 block_v5_caller_recursive_admission_catalog_test_root.test.caller admission ownership: actual assembled source admission and original borrowed staged producer bodies retained only...OK
+3/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: overlapping sessions share stable original policies and later validation survives teardown...OK
+4/21 prover.block_v5_caller_recursive_admission_catalog_test_v1.test.caller admission ownership: every pair and borrowed-session allocation failure releases geometry and leases...error: the following test command crashed:
+/tmp/block-v5-caller-admission-ownership-focused-v1 --seed=0x8237c482

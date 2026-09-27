@@ -1,0 +1,7 @@
+{
+  "reason": "Replace day-long conservative baseline with trace sizing and representative larger-leaf qualification",
+  "time_unix": 1790319086.2788649,
+  "pid": 61230,
+  "last_verified_prefix": "BLOCK_STREAM proved_segments=20/1024 paired=false retained_nodes=2 peak_bytes=21568911347 elapsed_ns=2078600853458",
+  "full_block_verified": false
+}

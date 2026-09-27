@@ -1,0 +1,324 @@
+{
+  "schema": "block-v5-capacity-global-qualified-v1",
+  "status": "nonproving_contract_and_actual_dual_body_qualified",
+  "candidate": {
+    "schema": "block-v5-native-capacity-global-source-candidate-v2",
+    "status": "source_frozen_unqualified",
+    "canonical_enabled": false,
+    "stark_proved": false,
+    "device_executed": false,
+    "tests_run_by_agent": false,
+    "source_pins": [
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_receiver_stack_v1.zig",
+        "sha256": "4a8f2228901d5dd45ab54b710a2f60d84dc222b9b12e8ca2326024e317833034"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_word_memory_join_impl_v1.zig",
+        "sha256": "f60e8655b517f9a6cca1a8cffe70f349d8d4418d5eb2ee11b5540229aa2bf068"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_table_join_impl_v1.zig",
+        "sha256": "6dae8eddbb9d25c112642da78e96887b6b97397d3dffc00698fe104d22e327c7"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_global_receiver_impl_v1.zig",
+        "sha256": "0f43e3fb6e60212cfe6fa7c1d34cbea4f436d07b3cd8f351bfaaffe79c04e75c"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_word_memory_join_v1.zig",
+        "sha256": "158336bd0f82103c52f1a304dc8a6fffed4b6475750acbd41af084cd0b84415b"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_table_join_v1.zig",
+        "sha256": "f4309d5efa97b8b508fd198bac168a98c9fde65080ad5874469d7c886bb25cae"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_global_receiver_v1.zig",
+        "sha256": "9ade72052cc46dca3d47a4fa79653f6b1e21b0a54a8035e0dd6fda8dc9953f25"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_capacity_word_memory_join_v1.zig",
+        "sha256": "06de9f9806dffe0e04cdaedbb12eaf48b25988f6d79fbb4790ec8124dc86ceb4"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_capacity_native_table_join_v1.zig",
+        "sha256": "f7fd2ae6d7e41b9c67d9874d4df0b7eeeddd071ef241a3a1606d8d60c2c1330e"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_capacity_global_receiver_v1.zig",
+        "sha256": "6359c45180f352c7c0cceeae12d31207978854206fbde00f0fce13c4733be00e"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_capacity_global_receiver_test_v1.zig",
+        "sha256": "d5a617e1f15407213ad105cb9cef1e1f4b029919bd7e010e6d5e88895c0a7559"
+      },
+      {
+        "path": "src/frontends/riscv/block_v5_capacity_global_test_root.zig",
+        "sha256": "ea1dbf41f764d4bca0dd20944b0f9fc5faa76f01bfc135f4e94de0039a80ea8b"
+      },
+      {
+        "path": "src/frontends/riscv/block_v5_capacity_global_codegen.zig",
+        "sha256": "03064735dd87c3c5abb76153094ffb1e6a77362fba9c244639edb37b08848620"
+      }
+    ],
+    "qualification_commands": {
+      "pure": [
+        "/opt/homebrew/opt/zig@0.15/bin/zig",
+        "test",
+        "--test-filter",
+        "capacity globals:",
+        "-OReleaseFast",
+        "-lc",
+        "-mcpu=native",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_prover_engine",
+        "--dep",
+        "stwo_cpu_backend",
+        "--dep",
+        "interop_postcard",
+        "--dep",
+        "stwo_prover_api",
+        "--dep",
+        "stwo_backend_contracts",
+        "-Mroot=src/frontends/riscv/block_v5_capacity_global_test_root.zig",
+        "-Mstwo_core=src/core/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_backend_contracts",
+        "--dep",
+        "stwo_prover_api",
+        "-Mstwo_prover_engine=src/prover/mod.zig",
+        "--dep",
+        "stwo_core",
+        "-Mstwo_backend_contracts=src/backend/mod.zig",
+        "--dep",
+        "stwo_core",
+        "-Mstwo_prover_api=src/prover_api/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_prover_engine",
+        "--dep",
+        "stwo_backend_contracts",
+        "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_proof_wire",
+        "-Minterop_postcard=src/interop/postcard.zig",
+        "--dep",
+        "stwo_core",
+        "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+      ],
+      "body": [
+        "/opt/homebrew/opt/zig@0.15/bin/zig",
+        "build-obj",
+        "-OReleaseFast",
+        "-femit-bin=/tmp/block-v5-capacity-global-body.o",
+        "-lc",
+        "-mcpu=native",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_prover_engine",
+        "--dep",
+        "stwo_cpu_backend",
+        "--dep",
+        "interop_postcard",
+        "--dep",
+        "stwo_prover_api",
+        "--dep",
+        "stwo_backend_contracts",
+        "-Mroot=src/frontends/riscv/block_v5_capacity_global_codegen.zig",
+        "-Mstwo_core=src/core/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_backend_contracts",
+        "--dep",
+        "stwo_prover_api",
+        "-Mstwo_prover_engine=src/prover/mod.zig",
+        "--dep",
+        "stwo_core",
+        "-Mstwo_backend_contracts=src/backend/mod.zig",
+        "--dep",
+        "stwo_core",
+        "-Mstwo_prover_api=src/prover_api/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_prover_engine",
+        "--dep",
+        "stwo_backend_contracts",
+        "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+        "--dep",
+        "stwo_core",
+        "--dep",
+        "stwo_proof_wire",
+        "-Minterop_postcard=src/interop/postcard.zig",
+        "--dep",
+        "stwo_core",
+        "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+      ]
+    },
+    "dependencies": [
+      "native-capacity-recursion-qualified-v1.json",
+      "native-capacity-exact-qualified-v1.json"
+    ],
+    "scope": "Single typed Memory/Table/Global fresh receiver implementation with explicit B5CT/B5CF/recursive-capacity stack; NativeV3 defaults preserved. Actual proof generation/acceptance not exercised. Root-owned Programs admitRoster and fused source dependencies must be frozen before qualification.",
+    "prior_candidate": "native-capacity-global-source-candidate-v1.json",
+    "prior_gate": {
+      "log": "native-capacity-global-unit-v1.log",
+      "passed": 11,
+      "failed": 1,
+      "cause": "Allocation-failure fixture expectError masked injected OOM; rejection helper now propagates OOM before negative assertion."
+    }
+  },
+  "dependency_snapshot": {
+    "version": 1,
+    "status": "source_only_unqualified_revision_3",
+    "protocol": "B5CF v1",
+    "source_date": "2026-09-27",
+    "root": "src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig",
+    "safe_filter": "capacity fused",
+    "authored_checks": 17,
+    "note": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-fused-source-v1.md",
+    "files": [
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_artifact_receiver_v1.zig",
+        "sha256": "60322f075d296e377c47f28f6b9ec6ebd0ebd16833b0a9b3e11d217d4bf390c8"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig",
+        "sha256": "49b178f03bd131e2257620c2b59ca36b0dc4f68439fcec2cfa8f7a5879cab825"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_component_v1.zig",
+        "sha256": "9423bf824a75147c8e8ec0fa76f2378ef527ce3ae7552750e8bc0fc9e687cf17"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_extraction_test_v1.zig",
+        "sha256": "78126c97c4ebbfb22d0f50465a3adccd31af685302b23581fc953301aad2834b"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_proof_v1.zig",
+        "sha256": "ddcc163caf00edc7af6c544f9805e16d9af067db375819ff8dc0d977ebfd6007"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_receiver_v1.zig",
+        "sha256": "3f2c33700dec25dea98a2b32b5a7ad30c02ef17fb49499904003d0d034587d22"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig",
+        "sha256": "922e24feb49c0493e2d811b5d6adfdfeb7b1723163214d37917920afdbcfcdfe"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_stage_v1.zig",
+        "sha256": "f69b231137dec365bcc31b6141bbfe87a4ea00e926239caca2bbf845c20f0a07"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_store_v1.zig",
+        "sha256": "da2a6992c0a25042306a9c15c8504139b0505807280cd9b53be88b773ecd482c"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_fixture_v1.zig",
+        "sha256": "3776d4827590450c7d46a31552fe492112deb3a43211d70f1e103c04562f59a3"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_transport_test_v1.zig",
+        "sha256": "eddfac7488ce4c861a0d4d1dfc8bd2f195d0e311c6c6d70541d8f4bf861310c6"
+      },
+      {
+        "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_unit_test.zig",
+        "sha256": "09791542998f2a612610bd30981ca9d3e7dc7dcc1bf92324c5ee23cb54d8f472"
+      },
+      {
+        "path": "src/frontends/riscv/block_v5_native_capacity_fused_unit_test_root.zig",
+        "sha256": "fe70d48bfc92082f17e8f525db8ce27ffd95788107758e57eff70e5537a18d55"
+      },
+      {
+        "path": "src/frontends/riscv/air/extract/runtime_program.zig",
+        "sha256": "cf7d3c19422a6d0bc1703f8639d41261d07d38f60cc642f4f32a76cf38818123"
+      },
+      {
+        "path": "src/frontends/riscv/air/extract/model.zig",
+        "sha256": "cd2174e0d94e4175ef65f2394762189ca15c7ad90c03eb24c304eabb07329ffe"
+      }
+    ],
+    "source_revision": 3,
+    "previous_snapshot": "native-capacity-fused-source-revision2-v1.json",
+    "previous_snapshot_sha256": "497e3bfdc9653bad5834efc5beef6bbf5502535a94976f41a9ee6224b16bc59c",
+    "corrections": [
+      "Policy.expected fully derived value renamed to derived",
+      "receipt range accumulation only iterates mutable allocated slice when present; zero memory stays null/no allocation",
+      "all four runtime scalar extraction factories use recoverable arenas",
+      "symbolic column naming checks latched allocation errors before node dereference",
+      "direct/lookup ownership adapters reject failed graphs before copying or publishing"
+    ],
+    "agent_executed_builds_tests_proofs_guests_devices_benchmarks": false,
+    "original_snapshot": "native-capacity-fused-source-original-v1.json",
+    "dependencies": [
+      {
+        "path": "src/frontends/riscv/air/extract/symbolic.zig",
+        "sha256": "c8f54255347ad49034d88f5299ab5e51c5cc3dfab89b3f84e2326e223e43ccce",
+        "edited_in_this_revision": false
+      }
+    ],
+    "shared_original_dependencies": [
+      {
+        "path": "src/frontends/riscv/air/extract/runtime_program.zig",
+        "sha256": "4de713f5a868c087c143ec95541a7273913445268d5a7c461b16ae4b3286a55e",
+        "basis": "unchanged HEAD source before this bounded allocation fix"
+      },
+      {
+        "path": "src/frontends/riscv/air/extract/model.zig",
+        "sha256": "3229ac2f1b1add8a785faff734e09d71b9a16d1bb3f2c7e9a7fc8c597609a78b",
+        "basis": "unchanged HEAD source before this bounded allocation fix"
+      }
+    ]
+  },
+  "extra_source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_batch_common_v1.zig",
+      "sha256": "c8f7742fd48488a228f4810a496f9a65760de5a7decad38ee86c03e4933d38c9"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_capacity_batch_receiver_v1.zig",
+      "sha256": "17d35ade32bb91b7b53677d2dc295ae26f75dd330730651807129ab03bc6ebef"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_batch_receiver_v3.zig",
+      "sha256": "668330bc4527f1a69a9e80bb31fa1ba6bda95a65fa589dc5e991049b24146da9"
+    }
+  ],
+  "checks": {
+    "passed": 12,
+    "named": 6,
+    "imports": 6,
+    "exit_code": 0,
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-global-unit-v2.log",
+    "log_sha256": "1c565d459c956aaa3e605663383e728dc3728592ac1cab785364d451e96bfc4c"
+  },
+  "body": {
+    "exit_code": 0,
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-global-body-v1.log",
+    "path": "/tmp/block-v5-capacity-global-body.o",
+    "bytes": 40480416,
+    "sha256": "572caa4e03b4502bb891f9f1d5f1c8d1f7f0138c1a1c95e880aa22f0a1bfada9",
+    "export": "stwo_capacity_global_body_gate"
+  },
+  "scope": "One typed RAM/register/table/ROM/caller/program/complete-receiver implementation, genuine capacity receipts and recursive policy, default NativeV3 compatibility and detached complete function bodies. Empty-hook fixtures are metadata contracts, not fresh proof authority; actual dual verification bodies compile without invocation.",
+  "canonical_enabled": false,
+  "stark_proved": false,
+  "segments_executed": false,
+  "device_executed": false,
+  "remaining": [
+    "Canonical collector/planner/staged source/store/driver capacity activation",
+    "Successful fresh fused/native/provider/recursive proof and complete bundle",
+    "Full global recursive statement closure and performance measurement"
+  ]
+}

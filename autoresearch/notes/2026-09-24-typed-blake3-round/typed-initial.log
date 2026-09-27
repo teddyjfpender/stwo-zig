@@ -1,0 +1,15 @@
+1/13 blake3_round_test_root.test_0...OK
+2/13 recursion.air.blake3_round_call_test.test.typed BLAKE3 round preserves all seven canonical compression groups...BLAKE3_ROUND_TYPED main=832 fixed=66 constraints=448 events=432 digest=301e6f13749bcdeff36551bfbaefcd5444baf3896cb2578dcf7d586c50dd6904
+OK
+3/13 recursion.air.blake3_round_call_test.test.typed BLAKE3 round rejects all coordinate and caller-binding mutations...OK
+4/13 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G matches typed bit reference and canonical lookup schemas...OK
+5/13 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G rejects coordinate mutations and requires lookup bounds...OK
+6/13 recursion.air.blake3_g_packed_test.test.BLAKE3 compact G covers all seven rounds of a native compression trace...OK
+7/13 recursion.air.blake3_compression_partition_test.test.compression partitions preserve all native transitions and exact external uses...OK
+8/13 recursion.air.blake3_compression_partition_test.test.compression partition admission rejects changed schedules and weights...OK
+9/13 recursion.air.relation_effect.test.R-012 universal relation group authors multiple schemas atomically...OK
+10/13 recursion.air.relation_effect.test.R-012 universal relation authoring fails closed on base Merkle ABI gap...OK
+11/13 recursion.air.relation_effect.test.R-012 universal relation authoring rejects every group before mutation...OK
+12/13 recursion.air.relation_effect.test.R-012 universal relation group releases every allocation failure...OK
+13/13 air.lang.mod.test.typed AIR language: isolated kernel has an explicit logical version...OK
+All 13 tests passed.

@@ -1,0 +1,294 @@
+[
+  {
+    "index": 0,
+    "variant": "control",
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-parent-preparation-profile/control-parent-test"
+    ],
+    "binary_sha256": "9de4f557ddfbe584bcdc292774a4af5b7084a3585e7762d0855658baf8cd7d2f",
+    "wall_seconds": 24.448730208998313,
+    "pipeline_seconds": 13.660379875,
+    "overlap_seconds": 4.638829083,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834968",
+      "wall_ns": "13660379875",
+      "overlap_ns": "4638829083",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 25909002240,
+    "peak_physical_footprint_bytes": 32767738656,
+    "path_profiles": [
+      {
+        "openings": 1540,
+        "other_ns": 35987396,
+        "live_ns": 2402180159,
+        "trusted_ns": 64080503,
+        "append_ns": 71250692,
+        "thread": 3565441
+      },
+      {
+        "openings": 1540,
+        "other_ns": 39535344,
+        "live_ns": 3564369715,
+        "trusted_ns": 66121561,
+        "append_ns": 126199338,
+        "thread": 3565881
+      },
+      {
+        "openings": 1540,
+        "other_ns": 54189305,
+        "live_ns": 3807072326,
+        "trusted_ns": 82227446,
+        "append_ns": 161243215,
+        "thread": 3565881
+      }
+    ]
+  },
+  {
+    "index": 1,
+    "variant": "candidate",
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-parent-preparation-profile/candidate-parent-test"
+    ],
+    "binary_sha256": "37e6c057d5fb33bd83e539e9288f5fa84077ed26b03f5dbd44483d0e465377be",
+    "wall_seconds": 21.520093457977055,
+    "pipeline_seconds": 11.659346875,
+    "overlap_seconds": 2.619821417,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834968",
+      "wall_ns": "11659346875",
+      "overlap_ns": "2619821417",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 25623773184,
+    "peak_physical_footprint_bytes": 32498221472,
+    "path_profiles": [
+      {
+        "openings": 1540,
+        "other_ns": 38295332,
+        "live_ns": 1579335294,
+        "trusted_ns": 63413154,
+        "append_ns": 70032762,
+        "thread": 3566138
+      },
+      {
+        "openings": 1540,
+        "other_ns": 43261243,
+        "live_ns": 1604422207,
+        "trusted_ns": 64657338,
+        "append_ns": 145649879,
+        "thread": 3566519
+      },
+      {
+        "openings": 1540,
+        "other_ns": 54882059,
+        "live_ns": 1790490600,
+        "trusted_ns": 77719850,
+        "append_ns": 164029157,
+        "thread": 3566519
+      }
+    ]
+  },
+  {
+    "index": 2,
+    "variant": "candidate",
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-parent-preparation-profile/candidate-parent-test"
+    ],
+    "binary_sha256": "37e6c057d5fb33bd83e539e9288f5fa84077ed26b03f5dbd44483d0e465377be",
+    "wall_seconds": 21.15950533398427,
+    "pipeline_seconds": 11.698580916,
+    "overlap_seconds": 2.604868958,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834968",
+      "wall_ns": "11698580916",
+      "overlap_ns": "2604868958",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 25623511040,
+    "peak_physical_footprint_bytes": 32497893744,
+    "path_profiles": [
+      {
+        "openings": 1540,
+        "other_ns": 38395094,
+        "live_ns": 1609294241,
+        "trusted_ns": 64125123,
+        "append_ns": 69527626,
+        "thread": 3566696
+      },
+      {
+        "openings": 1540,
+        "other_ns": 39815579,
+        "live_ns": 1614977171,
+        "trusted_ns": 65840878,
+        "append_ns": 134253163,
+        "thread": 3567069
+      },
+      {
+        "openings": 1540,
+        "other_ns": 47776165,
+        "live_ns": 1793667100,
+        "trusted_ns": 77344699,
+        "append_ns": 154108953,
+        "thread": 3567069
+      }
+    ]
+  },
+  {
+    "index": 3,
+    "variant": "control",
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-parent-preparation-profile/control-parent-test"
+    ],
+    "binary_sha256": "9de4f557ddfbe584bcdc292774a4af5b7084a3585e7762d0855658baf8cd7d2f",
+    "wall_seconds": 24.180473958025686,
+    "pipeline_seconds": 13.83668125,
+    "overlap_seconds": 4.744216292,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "56523834968",
+      "wall_ns": "13836681250",
+      "overlap_ns": "4744216292",
+      "worker_peak_bytes": "11994253102",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ],
+      [
+        "1",
+        "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+        "857591"
+      ]
+    ],
+    "peak_rss_bytes": 25904824320,
+    "peak_physical_footprint_bytes": 32767607536,
+    "path_profiles": [
+      {
+        "openings": 1540,
+        "other_ns": 35119414,
+        "live_ns": 2455370659,
+        "trusted_ns": 66952640,
+        "append_ns": 77882120,
+        "thread": 3567239
+      },
+      {
+        "openings": 1540,
+        "other_ns": 43857699,
+        "live_ns": 3559819617,
+        "trusted_ns": 72409959,
+        "append_ns": 139235475,
+        "thread": 3567653
+      },
+      {
+        "openings": 1540,
+        "other_ns": 54133910,
+        "live_ns": 3924368272,
+        "trusted_ns": 82893097,
+        "append_ns": 175486762,
+        "thread": 3567653
+      }
+    ]
+  }
+]

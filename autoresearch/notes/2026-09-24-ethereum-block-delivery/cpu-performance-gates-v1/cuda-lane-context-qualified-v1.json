@@ -1,0 +1,152 @@
+{
+  "status": "qualified host metadata and real Zig production body compilation only",
+  "candidate": "cuda-lane-context-source-candidate-v2.json",
+  "candidate_sha256": "5a99913ebc1e65ac9214465c578506daf54e8de46b545954b27fa29b421f677a",
+  "source_pins": [
+    {
+      "path": "src/backends/cuda/native/runtime/context.cu",
+      "sha256": "64be59734e33026270cd951ea7e02c1e915384f6b976dee0aa126f86ca546cd6"
+    },
+    {
+      "path": "src/backends/cuda/native/runtime/context_options.h",
+      "sha256": "5e7b8044792f82febf6cb75d14a5505a959e6e3a266e4caa524a910a17a63aca"
+    },
+    {
+      "path": "src/backends/cuda/abi/runtime.zig",
+      "sha256": "749ef3f89511421115fd5e5e8e85c06f1e18ad8ca99eb9fde6004c7945d22177"
+    },
+    {
+      "path": "src/backends/cuda/runtime/context.zig",
+      "sha256": "78653c3c8747d5038fc7f7a120cd90616290c83dec94393110927136f76ea502"
+    },
+    {
+      "path": "src/backends/cuda/runtime/context_lanes_test_v1.zig",
+      "sha256": "cf2a36d5240b22744f6eec25e75de432c688eedbe51f14b7673db93495b3f647"
+    },
+    {
+      "path": "src/backends/cuda/context_lanes_test_root_v1.zig",
+      "sha256": "6a19ec216dfad934dd70c8318474105ff2fa9cc8bb82dc0e8d1b15060b5ebb09"
+    },
+    {
+      "path": "src/backends/cuda/context_lanes_body_root_v1.zig",
+      "sha256": "23bba46860bcf87ed43a0e9ba3a0349a19cbae002252bbf8acd0a0ed21028f69"
+    },
+    {
+      "path": "src/backends/cuda/runtime/graph_execution_test.zig",
+      "sha256": "fff503fec93f03e32ad281bcb3860e65a82219fe1abb8edf44116bcfa32fa3c3"
+    },
+    {
+      "path": "src/integrations/native_cuda/scheduled_admission_test_v1.zig",
+      "sha256": "4bbfab1b90f9eb6c1850275e2fda654e6f509e2018414f73d3b9b4cfb8701700"
+    },
+    {
+      "path": "src/backends/cuda/native/common/provider_compat.cuh",
+      "sha256": "535a7099e74ebebb68a149e2939c4e6c7db0bce1f8988d3329ebaf649e1cbf05"
+    }
+  ],
+  "gates": {
+    "cuda-lane-context-focused-v2": {
+      "source_candidate": "cuda-lane-context-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 1.1150003749644384,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "object_only": false,
+      "tests_run": true,
+      "discovered_tests": 7,
+      "test_summary": [
+        "All 7 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cuda-lane-context-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cuda-lane-context-focused-v2",
+        "bytes": 1574680,
+        "sha256": "b85f705e70601f493e591c12b4e3ea6a4fb4205cc12abdea816a6ba3acabffb8"
+      }
+    },
+    "cuda-lane-context-body-v1": {
+      "source_candidate": "cuda-lane-context-body-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 0.42256079096114263,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "object_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cuda-lane-context-body-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cuda-lane-context-body-v1.o",
+        "bytes": 1809104,
+        "sha256": "b11d9d7003895843c51d26c701d6bc0d9718b7e6688e5cdd7c068fd410245e2f"
+      }
+    }
+  },
+  "retained_exports": [
+    "stwo_cuda_lane_context_open_body_gate",
+    "stwo_cuda_lane_context_dependency_body_gate",
+    "stwo_cuda_lane_context_teardown_body_gate",
+    "stwo_cuda_lane_context_legacy_body_gate",
+    "stwo_cuda_lane_context_guard_body_gate"
+  ],
+  "abi": {
+    "options": {
+      "bytes": 16,
+      "offsets": [
+        0,
+        4,
+        8,
+        12
+      ],
+      "fields": [
+        "version:u32",
+        "device_ordinal:u32",
+        "lane_count:u32",
+        "dependency_capacity:u32"
+      ]
+    },
+    "dependency": {
+      "bytes": 24,
+      "offsets": [
+        0,
+        8,
+        16,
+        20
+      ],
+      "fields": [
+        "context_identity:u64",
+        "generation:u64",
+        "slot:u32",
+        "producer_lane:u32"
+      ]
+    },
+    "max_total_context_lanes": 4,
+    "max_dependency_slots": 64,
+    "compiled_max_lane_streams": 0
+  },
+  "native_cuda_cpp_compiled": false,
+  "device_run": false,
+  "PCS_run": false,
+  "proofs_run": false,
+  "segments_run": false,
+  "benchmark_run": false,
+  "compiled_max_lane_streams": 0,
+  "remaining": [
+    "AOT/cache lane-bound actual launch receipts and immutable globals",
+    "independently admitted lane/dependency/barrier dispatcher",
+    "cross-lane graph/cache replay",
+    "NativeSession explicit owned Construction outcome and selected-device admission",
+    "queue/prefetch independent arenas plus pinned source completion ownership",
+    "aggregate concurrent scratch admission and per-device registry",
+    "legacy error-union open cannot transfer a repeatedly failing cleanup owner"
+  ],
+  "prior_failed_gate": "cuda-lane-context-focused-v1-result.json"
+}

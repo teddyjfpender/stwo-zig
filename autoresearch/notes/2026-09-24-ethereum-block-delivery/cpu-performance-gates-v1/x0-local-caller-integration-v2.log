@@ -1,0 +1,15 @@
+1/13 prover.block_v5_x0_caller_unit_test.test.block-v5 x0 caller authentic Keccak and signer events preserve RW retirement and signed table census...OK
+2/13 prover.block_v5_x0_caller_unit_test.test.block-v5 x0 caller quotient numerators are algebraic at nonboolean points...OK
+3/13 prover.block_v5_x0_caller_unit_test.test.block-v5 x0 caller SHA typed recipe binds local equations and exact original effect roster...SHA_CALLER_LOCAL_ZERO constraints=97 events=189 digest=512c30efdf23c16a4a22a5635e92a764bde2331c1282b08fdd25d42e0e04d914
+OK
+4/13 prover.block_v5_x0_caller_geometry_unit_test.test.block-v5 x0 caller physical profiles reject independently relabeled legacy geometry...OK
+5/13 prover.block_v5_x0_caller_geometry_unit_test.test.block-v5 x0 caller component opens exact hints and generates selected scalar domain bodies...OK
+6/13 prover.block_v5_x0_caller_geometry_unit_test.test.block-v5 x0 window and tracker keep nonzero chains and reject nonzero zero-register values...OK
+7/13 prover.block_v5_x0_caller_geometry_unit_test.test.block-v5 x0 caller restored counters omit only the authentic zero-pointer gap transactionally...OK
+8/13 air.guest_precompile.x0_caller_envelope_v1.test.block-v5 x0 caller pointer equations reject source clock and hint mutation for every caller...OK
+9/13 air.x0_local_custody_v1.test.block-v5 x0 local algebra rejects coherent source write and hint forgeries without a chain...OK
+10/13 air.x0_local_custody_v1.test.block-v5 x0 local algebra preserves nonzero register and RW fractions all ordinals...OK
+11/13 air.lookups.tables.mod.test_0...OK
+12/13 air.lookups.tables.source_ingest.test_0...OK
+13/13 air.memory_commitment.poseidon2_air.test_0...OK
+All 13 tests passed.

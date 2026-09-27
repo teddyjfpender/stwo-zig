@@ -1,0 +1,78 @@
+{
+  "status": "qualified_nonproving_source",
+  "candidate": "global-public-exports-source-candidate-v1.json",
+  "candidate_scope": "Historical agent source freeze followed by two root native-relation interface corrections, pinned by v2 attempts",
+  "evidence": {
+    "global-public-exports-semantic-v2": {
+      "source_candidate": "global-public-exports-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 5.764211209025234,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-public-exports-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "global-public-exports-focused-v2": {
+      "source_candidate": "global-public-exports-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 85.14887387497583,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 17,
+      "test_summary": [
+        "All 17 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-public-exports-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-global-public-exports-focused-v2",
+        "bytes": 9993752,
+        "sha256": "f00d9226af5dda4baeaaf7ecc9ac7a3125ab7a101639b672c884a91b78327a3c"
+      }
+    },
+    "global-public-exports-body-v2": {
+      "qualified": true,
+      "exit_code": 0,
+      "elapsed_seconds": 83.71531508304179,
+      "source_candidate": "global-public-exports-body-v2-source.json",
+      "changed_source_pins": [],
+      "body_export_confirmed": true,
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "body_executed": false,
+      "artifact": {
+        "path": "/tmp/block-v5-global-public-exports-body-v2.o",
+        "bytes": 46637072,
+        "sha256": "7b20cc40643e8d1641a5a749d6d233f0547f499746ec43278087764f1239a838"
+      }
+    }
+  },
+  "scope": [
+    "Original B5PD framing and independently reconstructed canonical completion fields",
+    "Full-u64 cycle byte carry and exact compensation signs against original native arithmetic",
+    "Same-parent public tuple graph mutation rejection and allocation rollback",
+    "Actual original parent, publisher, setup cache and fresh receiver bodies emitted, not invoked"
+  ],
+  "remaining": [
+    "Complete source authority",
+    "Higher-parent export normalization and full-width child protocol",
+    "Canonical driver activation",
+    "Successful recursive proof, complete bundle and block timing"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "complete_block_authority": false
+}

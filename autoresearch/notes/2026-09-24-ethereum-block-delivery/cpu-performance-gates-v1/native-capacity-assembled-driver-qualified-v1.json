@@ -1,0 +1,310 @@
+{
+  "schema": "block-v5-native-capacity-assembled-driver-qualified-v1",
+  "status": "actual_dual_cpu_orchestration_body_and_policy_qualified",
+  "source_snapshot": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-assembled-driver-source-v3.json",
+    "sha256": "69a53a9a1529e10688810720e4ff74bd3326a323379daa206e17fce3bf1ffab4"
+  },
+  "source_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-capacity-complete-bundle-v1.md",
+      "sha256": "2b8cf2b74564d6d2363c9933187771da2bcd74aacc76200cd431cae1fcb960f6"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_capacity_bundle_unit_test_root.zig",
+      "sha256": "1d5ae96b4780b64efcd25bc63d45b47623572e6a01fcb47e0c227dfb1ad04b9b"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_capacity_native_columns_codegen.zig",
+      "sha256": "e1f645bfebad950be85929587c0d869e6e358607c730750ee450a1b063978b0d"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_capacity_native_columns_test_root.zig",
+      "sha256": "6784ddff669e48021304f722093aa4b2a3a6383a6f12a380d7943a1037aa9a4c"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_cpu_capacity_collection_unit_test_root.zig",
+      "sha256": "4689508ae3a1fd4624565024b0d627eabfeb3a17c4eecd57d14e268badef06e7"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_cpu_capacity_driver_codegen.zig",
+      "sha256": "2e588d2239bdf43001826e4484f925b64c3cbe8fbffb75ccf9b24868fcd544ae"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_cpu_capacity_driver_test_root.zig",
+      "sha256": "f67a9e046b516146f1108ac6914599fc3ac77e1692d0084b7d5a3f93f0ec84de"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_block_producer_v1.zig",
+      "sha256": "ad02b83186842b53c16e2e2de390b180d4826f3267a587a894dadd59840511a5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_bundle_unit_test_v1.zig",
+      "sha256": "1453c070015739185702253d1889b95956aeed2af7e29ba29814eb962016f1bc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_global_receiver_v1.zig",
+      "sha256": "6359c45180f352c7c0cceeae12d31207978854206fbde00f0fce13c4733be00e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_native_columns_stage_test_v1.zig",
+      "sha256": "3a58f3abee0fa7f5357859c07a2f3ef51a082a63f7dbc3d5bc0ac54222f14cc3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_native_columns_stage_v1.zig",
+      "sha256": "47bd49bd643864ffd86a25f096859c6366f70926f526f97592c8f30775045eab"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_open_forest_manifest_v1.zig",
+      "sha256": "11282e3290fcc7bce74779d5b200de476c92afa34de40b40c756208a9cf566d3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_open_forest_stage_v1.zig",
+      "sha256": "08e16fd492aa732ad35c71fd80b96b048c1ad821848a2cb105feadb5890aaa7d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_program_first_round_v1.zig",
+      "sha256": "083491022a3e0ed8f5b8d636df1d647b7639659cc363419f30b28023481ad8a6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_assembly_impl_v1.zig",
+      "sha256": "95dc444e29a5e667ba844c83b3a2d7932b54aafd661bdc27073c7a32d75ea1d2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig",
+      "sha256": "a0a97008a7c08e0bf781dffa664b7eccb5b9f0418ad406b488e02ae484affb22"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_policy_impl_v1.zig",
+      "sha256": "df41256ef3ca0652cf472ee4646b081682ea4c3478f981b2dd8b60c404fd9080"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_policy_v1.zig",
+      "sha256": "c9b0982111b5f36b729f2e72ef45cd25a8f61e718e708ad41dd632bd948641ad"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_store_impl_v1.zig",
+      "sha256": "ca68ef4e52526874b8ac7a9c06e63af999bddc82225ffcacd6cf176781ef1fca"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_store_v1.zig",
+      "sha256": "6ff26863a3e87d3c65de2c50993a245993f47144406df2f17c3f4b35a99cc7a1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_assembly_v1.zig",
+      "sha256": "385a1d1339cbf3b6e824f0e9e555c2a93969123faffe17ce6e3299dbc7000285"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_bundle_policy_v1.zig",
+      "sha256": "529c97029b470dd91f40a2e8f07c588cbad03ad6985ce40b1019057fe6923416"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_bundle_store_v1.zig",
+      "sha256": "22825e81482efa8dcf0a9d638d18cbe6842b8e19b4bc1ba4bcbcd07be523c750"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_collect_v1.zig",
+      "sha256": "5f944e03b8e4836c95d541bafc2999eab4320e47b8878cb63697a9c1a257cf80"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_collection_test_v1.zig",
+      "sha256": "2526d4f034416849f66a79a3ff305842ee1e244e0106d77d6b49fa10087903ff"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_detached_receive_v1.zig",
+      "sha256": "c3326945c5c376682184f83f94fee87915b20ab834ae381328e7ba9f29fe54d7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_driver_test_v1.zig",
+      "sha256": "ffbdf99c13c6656a7f24742f097dbe1f7dd4ac169e878381eecb3b212847c0b7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_driver_v1.zig",
+      "sha256": "21ed312dabb09a3d01acc4cdc45963417b5bedecf6e6fc944d5562e0a90bf563"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_receiver_policy_file_v1.zig",
+      "sha256": "d09503fb3ccfd2ae8e0492d38a595af04b74678588b4f53a40199236e75e2682"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_root_proposal_v1.zig",
+      "sha256": "9c9bd07e48561b30f5897f91965323e4b827dc6ada1ad80df06dccafd6b8bee1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_collect_impl_v1.zig",
+      "sha256": "aff0c5b2ee3be7f06e94218606aed6874b68663701793b906b59c579276b2181"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_collect_v1.zig",
+      "sha256": "13189c8556f553e900fde344f5948a5ee7b48b7d546ac75f570953db8eba9598"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_detached_receive_impl_v1.zig",
+      "sha256": "7bc5dea0c5a7617d90163989f97d11d6864337fbc6152ccc049b267332afd7ea"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_detached_receive_v1.zig",
+      "sha256": "d5ef6f57e82005c47d7a841b09b143024ff022f7d90609804dce21ad2d82799f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_driver_admission_common_v1.zig",
+      "sha256": "fe265c7dc9a274cc45b3d1a32832feb162cc0bf3812a2bd26abddbd89744f96b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_driver_common_v1.zig",
+      "sha256": "f43309ed4bf5766363fc1f8dea95fa7dbef2da789ec74c226fdc1c8fca743a67"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_driver_v1.zig",
+      "sha256": "e7404a59404607582e771feaf4248fe319acfc60b4ae29126a5a1b12b4250186"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_global_plans_v1.zig",
+      "sha256": "9a4fcf55c8ea6bbd4414c239351a3006bc3d2147e1c03c858213219645d939f5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_receiver_policy_file_impl_v1.zig",
+      "sha256": "c88fc063996709991d659a0204ad9aafc11ec4347063bc30aab7332fab2891f3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_receiver_policy_file_v1.zig",
+      "sha256": "287170a8d628fe2849d7a7e70193311979050c3d770618da3bcea5ab02b394a2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_staged_execution_source_common_v1.zig",
+      "sha256": "54040340393ca33bab9b9f63f1babcad2590934ed206c724365cde22738f8ba0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_staged_execution_source_v1.zig",
+      "sha256": "3b361ce0fc25a0f0644e62106ba640b492b352d3015a006d22df019cfb564d46"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_receiver_impl_v1.zig",
+      "sha256": "0f43e3fb6e60212cfe6fa7c1d34cbea4f436d07b3cd8f351bfaaffe79c04e75c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_artifact_receiver_v1.zig",
+      "sha256": "eb831721fd09287d8e64b523f5ad76d47ce0fe9782e021963539035db27f0614"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_codec_v1.zig",
+      "sha256": "a08a06388b23be13e4f9e00634a0962644b3acd79ab19166b7bff811b25ed14d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_artifact_receiver_v1.zig",
+      "sha256": "60322f075d296e377c47f28f6b9ec6ebd0ebd16833b0a9b3e11d217d4bf390c8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_codec_v1.zig",
+      "sha256": "49b178f03bd131e2257620c2b59ca36b0dc4f68439fcec2cfa8f7a5879cab825"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_stage_v1.zig",
+      "sha256": "f69b231137dec365bcc31b6141bbfe87a4ea00e926239caca2bbf845c20f0a07"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_admission_v1.zig",
+      "sha256": "a5468978cde896e3800f97053aa217c874d092e5debbfacdd6f82ff4b79d2da8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_stage_v1.zig",
+      "sha256": "e12e61843fcc7ea805e44811097dd841cbb1c136601ab25c16589be65108da6f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_columns_rebuild_v1.zig",
+      "sha256": "94e2d49087362880b950960f82a5fb2a645cad300abd0c3cef4f795e64a133a8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_columns_stage_v1.zig",
+      "sha256": "7fa274470fb1bd7d316478e884c1e18338e00282eef08c27bf8c2201f560da3f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_receiver_stack_v1.zig",
+      "sha256": "4a8f2228901d5dd45ab54b710a2f60d84dc222b9b12e8ca2326024e317833034"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "9c312db9a8ca9c70a5d45b5abbe3baceb83739ec6e97390e4d4f5aa00b228cb9"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_table_join_impl_v1.zig",
+      "sha256": "6dae8eddbb9d25c112642da78e96887b6b97397d3dffc00698fe104d22e327c7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_first_round_impl_v1.zig",
+      "sha256": "4a1f53f8c5e950c0738e439736190418f8a4f0cedcf8cdab8ed54f8335e5a97b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_first_round_v1.zig",
+      "sha256": "581b2e10c27dd4c2fe742e503bbd5535cf5acc6b595635176c41b55f94b9fac0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_fused_first_round_impl_v1.zig",
+      "sha256": "ec0071b4a4b302d3185c18f86ddc5c006f931c852a701562e208f1a6f6c3d578"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_fused_first_round_v1.zig",
+      "sha256": "f3135903dc8e634ee358df42121573f9408f8293cadf1f980b04f4b4b16cae3d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_program_native_batch_common_v1.zig",
+      "sha256": "c8f7742fd48488a228f4810a496f9a65760de5a7decad38ee86c03e4933d38c9"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_sorted_memory_replay_v1.zig",
+      "sha256": "3d5e5503a6985878e0e7a89df7487e26b6f825bd1f60e969d4bb7c7b47b14242"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_join_impl_v1.zig",
+      "sha256": "f60e8655b517f9a6cca1a8cffe70f349d8d4418d5eb2ee11b5540229aa2bf068"
+    }
+  ],
+  "policy_checks": {
+    "passed": 7,
+    "named": 4,
+    "imports": 3,
+    "exit_code": 0,
+    "snapshot": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-assembled-driver-source-v2.json",
+    "log": {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-assembled-driver-pure-v2.log",
+      "sha256": "5617c42cad615e0d207022bca0772cad0af94525ea06d2feb78ed45c9ff5f395"
+    },
+    "body_followup_change": "Sorted RAM publication now takes genuine shared typed sink callbacks; old store API delegates to same kernel and is retained in codegen. Options/security/type/borrowed metadata fixtures unchanged."
+  },
+  "actual_body": {
+    "path": "/tmp/block-v5-capacity-cpu-driver-body.o",
+    "bytes": 107932792,
+    "sha256": "7c9aac59452f9a8442b317569ed59178faa66e462c59b8fab497b6c873e73987",
+    "exit_code": 0,
+    "symbols": [
+      "_stwo_capacity_cpu_driver_body_gate",
+      "_prover.block_v5_cpu_driver_common_v1.ForCapacity(false).run",
+      "_prover.block_v5_cpu_driver_common_v1.ForCapacity(true).run"
+    ],
+    "invoked": false,
+    "log": {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-assembled-driver-body-v3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "original_body_failure": {
+    "snapshot": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-assembled-driver-source-v2.json",
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-assembled-driver-body-v2.log",
+    "exit_code": 1
+  },
+  "scope": "Both full real capacity and legacy Driver.run bodies compiled under stable 63-source assembled snapshot: collection, global assembly, genuine fused/native publication, staged PCS transfer, shared RAM callbacks, family queues and budget, incremental exact forest and mandatory fresh detached complete verification. No function invoked.",
+  "canonical_capacity_enabled": false,
+  "cli_default_changed": false,
+  "guest_executed": false,
+  "pcs_committed": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "segments_executed": false,
+  "performance_measured": false,
+  "remaining": [
+    "Canonical CLI capacity selection and independent option/cap wiring",
+    "Fresh complete capacity native/fused/global/recursive proof qualification",
+    "Actual block throughput and peak-memory measurements",
+    "Broader 22-item performance roadmap remains open"
+  ]
+}

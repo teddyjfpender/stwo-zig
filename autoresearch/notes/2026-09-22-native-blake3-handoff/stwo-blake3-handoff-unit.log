@@ -1,0 +1,4 @@
+1/3 owned_handoff.test.owned handoff FIFO wrapping close and byte admission...OK
+2/3 owned_handoff.test.owned handoff cancellation wakes producer and destroys queued ownership...OK
+3/3 owned_handoff.test.owned handoff allocation failure and invalid limits...OK
+All 3 tests passed.

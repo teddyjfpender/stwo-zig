@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "session_byte_budget": 67108864,
+  "retained_scratch_byte_limit": 268435456,
+  "pcs_plan_byte_budget": 0,
+  "requests": [
+    [
+      "--profile",
+      "tiny-parent-root-v2",
+      "/private/tmp/stwo-recursion-pcs-cache-20260921/abba/5-off/parent-0",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    [
+      "--profile",
+      "tiny-parent-root-v2",
+      "/private/tmp/stwo-recursion-pcs-cache-20260921/abba/5-off/parent-1",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+      "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+      "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+      "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+      "--parent-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+      "--parent-key-sha256",
+      "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ]
+  ]
+}

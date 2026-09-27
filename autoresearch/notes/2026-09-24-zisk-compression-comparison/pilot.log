@@ -1,0 +1,27 @@
+COMPRESSION arm=zisk_scalar index=0 calls=500000 ns=48120833 checksum=4a2f4d15
+COMPRESSION arm=stwo_author index=1 calls=500000 ns=28281916 checksum=4a2f4d15
+COMPRESSION arm=stwo_author index=2 calls=500000 ns=25375834 checksum=4a2f4d15
+COMPRESSION arm=zisk_scalar index=3 calls=500000 ns=30747333 checksum=4a2f4d15
+COMPRESSION arm=zisk_scalar index=4 calls=500000 ns=30583709 checksum=4a2f4d15
+COMPRESSION arm=stwo_author index=5 calls=500000 ns=24646125 checksum=4a2f4d15
+COMPRESSION arm=stwo_author index=6 calls=500000 ns=25399209 checksum=4a2f4d15
+COMPRESSION arm=zisk_scalar index=7 calls=500000 ns=31026625 checksum=4a2f4d15
+PARITY cases=1024 passed=true batch_outputs_equal=true
+        0.98 real         0.24 user         0.00 sys
+             1540096  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 272  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                  18  involuntary context switches
+          4745868953  instructions retired
+           983266829  cycles elapsed
+             1130784  peak memory footprint

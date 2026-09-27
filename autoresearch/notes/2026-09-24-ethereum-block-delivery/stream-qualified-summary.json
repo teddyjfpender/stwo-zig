@@ -1,0 +1,41 @@
+{
+  "scope": "Complete one-transaction authentication guest, not full Ethereum block",
+  "results": [
+    {
+      "profile": "diagnostic",
+      "segments": 8,
+      "cycles": 21635,
+      "queries": 8,
+      "pow_bits": 0,
+      "tracked_peak_bytes": 4353740275,
+      "process_peak_bytes": 3710480744,
+      "proof_seconds": 64.263626875,
+      "wall_seconds": 64.74862987501547,
+      "proof_sha256": "29f7a34e1c4b1888ebad485420282c2ab7e9752e9c2123a4a61cc958fd5ba53c"
+    },
+    {
+      "profile": "canonical",
+      "segments": 2,
+      "cycles": 21635,
+      "queries": 70,
+      "pow_bits": 26,
+      "tracked_peak_bytes": 21228925635,
+      "process_peak_bytes": 16678075968,
+      "proof_seconds": 70.349008916,
+      "wall_seconds": 70.38379337504739,
+      "proof_sha256": "6aed839486673a5d1eb516935d4a76254421c3d691fe0d1c778dfe4a48d756be"
+    },
+    {
+      "profile": "canonical",
+      "segments": 16,
+      "cycles": 21635,
+      "queries": 70,
+      "pow_bits": 26,
+      "tracked_peak_bytes": 20927931793,
+      "process_peak_bytes": 16465062096,
+      "proof_seconds": 618.470395333,
+      "wall_seconds": 618.5070495420368,
+      "proof_sha256": "1e505e87f1844a706c707fad552919f2eb28267d9667235a756410dae27a8fc3"
+    }
+  ]
+}

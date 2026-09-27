@@ -1,0 +1,42 @@
+{
+  "scope": "CPU canonical q70/26 complete authentication guest; not an Ethereum block",
+  "same_complete_execution_identity": true,
+  "observations_per_configuration": 1,
+  "results": [
+    {
+      "artifact": "stream-assembly-release-auth1-canonical-2048",
+      "verified": true,
+      "execution_leaves": 16,
+      "aggregation_levels": 4,
+      "recursive_proof_jobs": 31,
+      "tracked_peak_bytes": 10834475354,
+      "process_peak_bytes": 9988894080,
+      "total_ns": 794597956958,
+      "proof_sha256": "1e505e87f1844a706c707fad552919f2eb28267d9667235a756410dae27a8fc3"
+    },
+    {
+      "artifact": "stream-terminal-planning-auth1-canonical-1024",
+      "verified": true,
+      "execution_leaves": 32,
+      "aggregation_levels": 5,
+      "recursive_proof_jobs": 63,
+      "tracked_peak_bytes": 10835151220,
+      "process_peak_bytes": 9955517688,
+      "total_ns": 1562102575916,
+      "proof_sha256": "2fb79da346daa3feb9b71f0650ef65f864cb81f82f27cbc34afca260736db878"
+    },
+    {
+      "artifact": "stream-terminal-planning-auth1-canonical-512",
+      "verified": true,
+      "execution_leaves": 64,
+      "aggregation_levels": 6,
+      "recursive_proof_jobs": 127,
+      "tracked_peak_bytes": 10835361718,
+      "process_peak_bytes": 9962792544,
+      "total_ns": 3137641386333,
+      "proof_sha256": "8283d466fa752e00de4490f53c0b85212c0ace28a28ce3f095edfcf58c2f42cb"
+    }
+  ],
+  "tracked_peak_change_16_to_32_percent": 0.006238105472733402,
+  "tracked_peak_change_16_to_64_percent": 0.008180959123893494
+}

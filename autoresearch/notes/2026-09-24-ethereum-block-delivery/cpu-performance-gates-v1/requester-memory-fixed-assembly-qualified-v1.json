@@ -1,0 +1,64 @@
+{
+  "status": "focused-nonproving-final-requester-memory-fixed-assembly-only",
+  "successful_attempts": [
+    {
+      "source_candidate": "requester-memory-fixed-assembly-legacy-focused-v3-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.823429749987554,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 16,
+      "test_summary": [
+        "All 16 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-memory-fixed-assembly-legacy-focused-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-memory-fixed-assembly-legacy-focused-v3",
+        "bytes": 46508664,
+        "sha256": "6d9b1179ea2f6cda7a0ac77bae52488d5dce20a8f79343d7cddc88286fb0b302"
+      }
+    },
+    {
+      "source_candidate": "requester-memory-fixed-assembly-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 26.071788291970734,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 16,
+      "test_summary": [
+        "All 16 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-memory-fixed-assembly-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-memory-fixed-assembly-selected-focused-v1",
+        "bytes": 46508720,
+        "sha256": "a8eb40c7f73fc10b679c279cae66efb05a476f43d9a239953517cb8e795efcfd"
+      }
+    }
+  ],
+  "scope": [
+    "Complete final two-child fixed assembly, original signed closure, exact context channels and namespace joins",
+    "Seven mathematical ownership/context/closure/graph/guard behavioral groups under both original register recipes",
+    "Actual original producer, lower admission and final expected-key assembly bodies retained, not invoked"
+  ],
+  "remaining": [
+    "Independent PAGE/full native memory setup and lower memory-root expected key without proof capture",
+    "Genuine full fixed/live/root commitment parity and canonical driver activation",
+    "Standalone complete-block acceptance and positive end-to-end measurements"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "pcs_commitment_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

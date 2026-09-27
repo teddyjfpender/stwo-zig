@@ -1,0 +1,111 @@
+{
+  "schema": "stwo.block-v5-cpu-complete-mixed-isolated-q70.v1",
+  "status": "passed",
+  "evidence": {
+    "measurement_path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-v5-canonical-mixed-isolated-v1/measurement.json",
+    "measurement_sha256": "8eb1a30cf880ee10905b9f984bce4e6abc8ea8292a709904baebee967c53afea",
+    "producer_log": "block-v5-canonical-mixed-isolated-v1/producer.log",
+    "verifier_log": "block-v5-canonical-mixed-isolated-v1/verifier.log"
+  },
+  "scope": {
+    "workload": "tiny real mixed ELF diagnostic; not an Ethereum mainnet block",
+    "guest_cycles": 17,
+    "segments": 3,
+    "memory_events": 132,
+    "queries": 70,
+    "pow_bits": 26,
+    "fresh_all_family_complete_receiver": true,
+    "fresh_process": true,
+    "public_summaries_identical": true,
+    "requested_job_id_matched": true,
+    "build_included": false,
+    "single_self_contained_outer_proof": false,
+    "mainnet_performance_qualified": false,
+    "policy": "Fresh-process verification of separately pinned producer-generated policy. These measurements do not independently admit an Ethereum block or external public-state policy.",
+    "optimization": null,
+    "optimization_scope": "Actual producer build mode when reported; otherwise unknown. Binary hash is recorded; ReleaseFast is not inferred.",
+    "producer_reported_measurement_scope": "separate ReleaseFast process; compilation excluded; preflight separately recorded; proof generation includes source collection, sort, roots, all base proofs and recursion"
+  },
+  "job_id": "2c96e36ccc8a92efc1d8918767ec20017dad1085589a71a2a8a34b79005594ef",
+  "inputs": {
+    "producer": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-ethereum-block-v5-cpu-produce",
+      "sha256": "524add7425e70b253a46548cfe6a866aec64304b0ce440d4c041f07512a486ec"
+    },
+    "verifier": {
+      "path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/bin/stwo-ethereum-block-v5-cpu-verify",
+      "sha256": "df51503b556404f9f97ae160d0e13b967613332e0132d9bead41d63819b9ff03"
+    },
+    "elf": {
+      "path": "/private/tmp/block-v5-canonical-source/mixed.elf",
+      "sha256": "c1e5c8b48c54f8674e450e254ec983e3370da77968d21430673433a03fdff0f6"
+    },
+    "input": {
+      "path": "/private/tmp/block-v5-canonical-source/input.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "oracle": {
+      "path": "/private/tmp/block-v5-canonical-source/oracle.bin",
+      "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    }
+  },
+  "timing_ns": {
+    "preflight": 1317167,
+    "collection": 478586833,
+    "base_and_leaf_proving": 14432197167,
+    "forest_and_staging": 66725446083,
+    "proof_generation": 81636230083,
+    "producer_pipeline": 81933453958,
+    "producer_in_process_verification": 296762125,
+    "fresh_process_verification": 314163125,
+    "producer_wrapper_launch_and_wait": 82966885500,
+    "verifier_wrapper_launch_and_wait": 756953042
+  },
+  "time_log_wall_seconds": {
+    "producer": 82.44,
+    "verifier": 0.74,
+    "scope": "/usr/bin/time -l, rounded to 0.01 seconds; distinct from wrapper launch-and-wait wall timers"
+  },
+  "memory_bytes": {
+    "producer_peak_rss": 10785488896,
+    "producer_peak_rss_scope": "entire standalone prover process including preflight; compilation excluded",
+    "producer_tracked_peak": 10708511959,
+    "recursive_stage_tracked_peak": 10708120969,
+    "fresh_verifier_peak_rss": 272547840,
+    "fresh_verifier_tracked_peak": 264730231
+  },
+  "durable_file_inventory": {
+    "base_proofs": {
+      "files": 21,
+      "bytes": 9666747
+    },
+    "recursive_proofs": {
+      "files": 5,
+      "bytes": 4263397
+    },
+    "public_source_files": {
+      "files": 4,
+      "bytes": 1874
+    },
+    "other_staged_files": {
+      "files": 4,
+      "bytes": 12460572
+    },
+    "all_regular_files_excluding_report": {
+      "files": 34,
+      "bytes": 26392590
+    },
+    "scope": "Regular files present after successful production, excluding producer report; includes source/policy/manifests and remaining staging files. This is not peak disk usage."
+  },
+  "base_proof_scope": "Store base STARK artifacts only; excludes native recursive leaves, forest parents, outer proof and source/policy/manifest files.",
+  "planned_mainnet_trial": {
+    "qualified": false,
+    "segment_cycle_limit": 2097152,
+    "native_recursive_cache_limit_bytes": 17179869184,
+    "aggregate_host_limit_bytes": 42949672960,
+    "scope": "Subsequent producer revision; not the hashed isolated-run binary. Exact segment count awaits preflight; completion and resource use remain unqualified until the real block run finishes.",
+    "status": "first attempt failed during caller collection; corrected-profile rerun pending",
+    "exact_segments": null,
+    "failed_run_evidence": "block-v5-mainnet-24628607-2m-canonical-v1/measurement.json"
+  }
+}

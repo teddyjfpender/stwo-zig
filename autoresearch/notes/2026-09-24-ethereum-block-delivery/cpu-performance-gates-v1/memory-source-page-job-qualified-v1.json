@@ -1,0 +1,87 @@
+{
+  "status": "qualified_nonproving_actual_memory_source_page_job",
+  "authored_candidate": "memory-source-page-job-source-candidate-v1.json",
+  "evidence": {
+    "memory-source-page-job-semantic-v1": {
+      "source_candidate": "memory-source-page-job-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 2.347299834014848,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-job-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-job-semantic-v2": {
+      "source_candidate": "memory-source-page-job-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 3.0149498749524355,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-job-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-job-focused-v1": {
+      "source_candidate": "memory-source-page-job-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 21.11546691705007,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 10,
+      "test_summary": [
+        "All 10 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-job-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-job-focused-v1",
+        "bytes": 28018648,
+        "sha256": "8fe444e9100054e639d1777e5d05431ee525372c36ffd93d334fed4eb133e50d"
+      }
+    }
+  },
+  "tests_passed": 10,
+  "authored_behavioral_checks": 7,
+  "source_snapshot": "memory-source-page-job-focused-v1-source.json",
+  "literal_dependency_pins": 1716,
+  "root_repair": {
+    "path": "src/frontends/riscv/prover/block_v5_memory_source_page_claim_proposal_v1.zig",
+    "sha256": "6b115d44cba89f3077e9d2a42beb08a4c0e2514eebd16d71bd53344779d66af7",
+    "change": "Explicit outer digest-loop block in original-cell fold claim proposal"
+  },
+  "scope": [
+    "Actual shared budget and retained parent/setup lifecycle constructor",
+    "Original five-stream SHA and fold claim proposals match genuine semantic graphs; mutation rejection",
+    "Aggregate metadata/disk bounds and arithmetic overflow, failed/live phase guards",
+    "Four initial budget/control/setup allocation failures and all detached fold-inventory allocation failures",
+    "Actual collect/persist/seal/replay/prove/codec/fresh receiver/publication bodies retained, never proof-invoked"
+  ],
+  "lifetime_improvement": "Producer proof and PCS page released before decoding and fresh CPU verification; only owned bytes and bounded public fold recipes retained",
+  "not_qualified": [
+    "Actual PAGE STARK generation, encode/decode/fresh verify/publication runtime",
+    "Driver activation and durable independent artifact loader",
+    "Complete source/global/public recursive closure",
+    "Canonical block proof, proof time or peak RSS"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

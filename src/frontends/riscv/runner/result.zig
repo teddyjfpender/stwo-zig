@@ -223,6 +223,34 @@ pub fn freezeEthereumSegment(
     };
 }
 
+/// Combined SHA/Keccak/recovery input for a bounded production leaf. Profile
+/// admission is separate; ownership alone never authorizes a proof statement.
+pub const EthereumShaSegmentResult = struct {
+    base: SegmentResult,
+    extension: @import("guest_precompile/ethereum_sha.zig").Frozen,
+
+    pub fn deinit(self: *EthereumShaSegmentResult) void {
+        self.extension.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// On error, both `base` and every extension tape remain caller-owned.
+pub fn freezeEthereumShaSegment(base: SegmentResult, extension: *@import("guest_precompile/ethereum_sha.zig").State) !EthereumShaSegmentResult {
+    return .{ .base = base, .extension = try extension.freezeSegment(base.execution_trace.recordedExternalSteps()) };
+}
+
+pub const EthereumShaRunResult = struct {
+    base: RunResult,
+    extension: @import("guest_precompile/ethereum_sha.zig").Frozen,
+    pub fn deinit(self: *EthereumShaRunResult) void {
+        self.extension.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
 /// Owned result of running a RISC-V program to completion.
 pub const RunResult = struct {
     initial_pc: u32,

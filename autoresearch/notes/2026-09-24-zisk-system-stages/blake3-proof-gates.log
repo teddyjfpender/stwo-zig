@@ -1,0 +1,17 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 1s
+
+Build Summary: 12/12 steps succeeded; 3/3 tests passed
+test-blake3-transcript-proof success
++- BLAKE3 transcript transition guard success
+   +- run test 1 passed 2s MaxRSS:346M
+      +- compile test ReleaseFast native success 19s MaxRSS:1G
+test-blake3-challenge-proof success
++- BLAKE3 challenge proof guard success
+   +- run test 1 passed 5s MaxRSS:349M
+      +- compile test ReleaseFast native success 20s MaxRSS:1G
+test-blake3-routed-proof success
++- BLAKE3 routed proof guard success
+   +- run test 1 passed 3s MaxRSS:346M
+      +- compile test ReleaseFast native success 19s MaxRSS:1G
+

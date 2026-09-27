@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 2/2 tests passed
+test-runtime-source-closure success
++- run test 2 passed 755ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 3s MaxRSS:305M
+

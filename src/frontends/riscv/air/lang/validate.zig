@@ -331,7 +331,7 @@ fn validateNode(arena: *const ir.Arena, node: expr.Node, index: usize) Error!voi
             .aligned_word_address => |address| {
                 const word_index = try priorNode(arena, address.word_index, index);
                 if (!std.meta.eql(node.key.ty, types.Type.address) or
-                    !std.meta.eql(word_index.key.ty, types.Type.uint20))
+                    !word_index.key.ty.isAlignedWordIndex())
                 {
                     return error.InvalidNodeShape;
                 }

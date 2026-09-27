@@ -1,0 +1,14 @@
+[package]
+name = "zisk-component-primitives"
+version = "0.1.0"
+edition = "2021"
+[lib]
+crate-type = ["cdylib"]
+[dependencies]
+crunchy = "=0.2.4"
+tiny-keccak = { version = "=2.0.2", features = ["keccak"] }
+sha2 = { version = "=0.10.9", features = ["compress"] }
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"

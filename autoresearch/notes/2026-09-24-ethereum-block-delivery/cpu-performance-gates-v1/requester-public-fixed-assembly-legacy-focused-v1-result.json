@@ -1,0 +1,22 @@
+{
+  "source_candidate": "requester-public-fixed-assembly-legacy-focused-v1-source.json",
+  "exit_code": 1,
+  "elapsed_seconds": 26.024512792006135,
+  "changed_source_pins": [],
+  "qualified": false,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 19,
+  "test_summary": [
+    "18 passed; 0 skipped; 1 failed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-fixed-assembly-legacy-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-requester-public-fixed-assembly-legacy-focused-v1",
+    "bytes": 44679576,
+    "sha256": "de45a0a87b25fe8734006bf76655b83ba45ddb6858fe65917ac3755f44346481"
+  }
+}

@@ -1,0 +1,12 @@
+1/11 metal_fri_inverse_lease_test_root.test.FRI leases: same-key readers overlap and drain is busy until both finish...OK
+2/11 metal_fri_inverse_lease_test_root.test.FRI leases: replacement cannot mutate or release an older live reader...OK
+3/11 metal_fri_inverse_lease_test_root.test.FRI leases: private racing proposals publish only successful checked work...OK
+4/11 metal_fri_inverse_lease_test_root.test.FRI leases: concurrent duplicate generation is charged and safely deduplicated...OK
+5/11 metal_fri_inverse_lease_test_root.test.FRI leases: all key fields are admitted and factory rollback preserves existing readers...OK
+6/11 metal_fri_inverse_lease_test_root.test.FRI leases: bounded reader admission and original owner release preserve lifetime...OK
+7/11 metal_fri_inverse_lease_test_root.test.FRI leases: checked completions overlap on the same admitted inverse buffer...OK
+8/11 metal_fri_inverse_lease_test_root.test.FRI leases: a full immutable entry set cannot evict active domains...OK
+9/11 metal_fri_inverse_lease_test_root.test.FRI leases: factory OOM releases only private reservations and borrowed readers...OK
+10/11 metal_fri_inverse_lease_test_root.test.FRI leases: cold resource factories can overlap before private publication...OK
+11/11 metal_fri_inverse_lease_test_root.test.FRI leases: changing layer count or step requires a distinct inverse...OK
+All 11 tests passed.

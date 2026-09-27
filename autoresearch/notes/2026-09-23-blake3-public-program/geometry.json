@@ -1,0 +1,146 @@
+[
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "v2_g_rows": 489328,
+    "v2_padded": 524288,
+    "public_rom_g_rows": 215264,
+    "public_rom_padded": 262144,
+    "hypothetical_word_memory_g_rows": 62552,
+    "hypothetical_word_memory_padded": 65536
+  },
+  {
+    "case": "cpu-keccak-1024",
+    "v2_g_rows": 4540032,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 2446416,
+    "public_rom_padded": 4194304,
+    "hypothetical_word_memory_g_rows": 620424,
+    "hypothetical_word_memory_padded": 1048576
+  },
+  {
+    "case": "cpu-keccak-128",
+    "v2_g_rows": 4377856,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 2284240,
+    "public_rom_padded": 4194304,
+    "hypothetical_word_memory_g_rows": 580216,
+    "hypothetical_word_memory_padded": 1048576
+  },
+  {
+    "case": "cpu-keccak-2048",
+    "v2_g_rows": 4712064,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 2618448,
+    "public_rom_padded": 4194304,
+    "hypothetical_word_memory_g_rows": 663432,
+    "hypothetical_word_memory_padded": 1048576
+  },
+  {
+    "case": "cpu-keccak-256",
+    "v2_g_rows": 4411008,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 2317392,
+    "public_rom_padded": 4194304,
+    "hypothetical_word_memory_g_rows": 588168,
+    "hypothetical_word_memory_padded": 1048576
+  },
+  {
+    "case": "cpu-keccak-512",
+    "v2_g_rows": 4454016,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 2360400,
+    "public_rom_padded": 4194304,
+    "hypothetical_word_memory_g_rows": 598920,
+    "hypothetical_word_memory_padded": 1048576
+  },
+  {
+    "case": "cpu-poseidon2_m31-12",
+    "v2_g_rows": 1507744,
+    "v2_padded": 2097152,
+    "public_rom_g_rows": 121408,
+    "public_rom_padded": 131072,
+    "hypothetical_word_memory_g_rows": 39256,
+    "hypothetical_word_memory_padded": 65536
+  },
+  {
+    "case": "cpu-poseidon2_m31-16",
+    "v2_g_rows": 1510544,
+    "v2_padded": 2097152,
+    "public_rom_g_rows": 124208,
+    "public_rom_padded": 131072,
+    "hypothetical_word_memory_g_rows": 40040,
+    "hypothetical_word_memory_padded": 65536
+  },
+  {
+    "case": "cpu-poseidon2_m31-2",
+    "v2_g_rows": 1501136,
+    "v2_padded": 2097152,
+    "public_rom_g_rows": 114800,
+    "public_rom_padded": 131072,
+    "hypothetical_word_memory_g_rows": 37688,
+    "hypothetical_word_memory_padded": 65536
+  },
+  {
+    "case": "cpu-poseidon2_m31-4",
+    "v2_g_rows": 1502480,
+    "v2_padded": 2097152,
+    "public_rom_g_rows": 116144,
+    "public_rom_padded": 131072,
+    "hypothetical_word_memory_g_rows": 38024,
+    "hypothetical_word_memory_padded": 65536
+  },
+  {
+    "case": "cpu-poseidon2_m31-8",
+    "v2_g_rows": 1505168,
+    "v2_padded": 2097152,
+    "public_rom_g_rows": 118832,
+    "public_rom_padded": 131072,
+    "hypothetical_word_memory_g_rows": 38696,
+    "hypothetical_word_memory_padded": 65536
+  },
+  {
+    "case": "cpu-sha256-1024",
+    "v2_g_rows": 5147744,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 1920688,
+    "public_rom_padded": 2097152,
+    "hypothetical_word_memory_g_rows": 488824,
+    "hypothetical_word_memory_padded": 524288
+  },
+  {
+    "case": "cpu-sha256-128",
+    "v2_g_rows": 4997216,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 1770160,
+    "public_rom_padded": 2097152,
+    "hypothetical_word_memory_g_rows": 451192,
+    "hypothetical_word_memory_padded": 524288
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "v2_g_rows": 5319776,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 2092720,
+    "public_rom_padded": 2097152,
+    "hypothetical_word_memory_g_rows": 531832,
+    "hypothetical_word_memory_padded": 1048576
+  },
+  {
+    "case": "cpu-sha256-256",
+    "v2_g_rows": 5018720,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 1791664,
+    "public_rom_padded": 2097152,
+    "hypothetical_word_memory_g_rows": 456568,
+    "hypothetical_word_memory_padded": 524288
+  },
+  {
+    "case": "cpu-sha256-512",
+    "v2_g_rows": 5061728,
+    "v2_padded": 8388608,
+    "public_rom_g_rows": 1834672,
+    "public_rom_padded": 2097152,
+    "hypothetical_word_memory_g_rows": 467320,
+    "hypothetical_word_memory_padded": 524288
+  }
+]

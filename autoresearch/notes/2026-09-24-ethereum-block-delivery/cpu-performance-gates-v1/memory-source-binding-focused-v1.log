@@ -1,0 +1,12 @@
+1/11 block_v5_memory_source_binding_test_root.test.source binding root...OK
+2/11 prover.block_v5_memory_source_binding_test_v1.test.source binding routing: actual independent kind graph exact private node fanout and canonical tail...OK
+3/11 prover.block_v5_memory_source_binding_test_v1.test.source binding routing faults: all independent graph and owner allocations unwind...OK
+4/11 prover.block_v5_memory_source_binding_test_v1.test.source binding equations: original cells prefix wire census value-use-clock tails and mutations...OK
+5/11 prover.block_v5_memory_source_binding_test_v1.test.source binding degree: every original-main and two-fraction equation has declared degree2 or3...OK
+6/11 prover.block_v5_memory_source_binding_test_v1.test.source binding replay: streaming packed file scope hash length padding exclusive publication and load faults...OK
+7/11 prover.block_v5_memory_source_binding_test_v1.test.source binding masks: four actual trees retain original source cells and only prefixes shift...OK
+8/11 prover.block_v5_memory_source_binding_test_v1.test.source binding epoch: both request and supplier roots precede dedicated wire draw...OK
+9/11 prover.block_v5_memory_source_binding_test_v1.test.source binding packed: scalar and SIMD equations agree at nonzero extension-coordinate samples...OK
+10/11 prover.block_v5_memory_source_binding_test_v1.test.source binding replay owner: live page prevents reader teardown and invalid phases fail closed...OK
+11/11 block_v5_memory_source_binding_codegen.test.source binding bodies: actual four-tree point-domain adapter and streamed original-root recommit retained...OK
+All 11 tests passed.

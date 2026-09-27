@@ -1,0 +1,99 @@
+Proving balanced batch 16
+[ethereum-auth-local-prove] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-local-prove] acquired after 12s
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-16.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-16.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-16-prove-balanced.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-16-prove-balanced.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 1800,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "3ed47db6d94d475256e06f79e0d32c9415bc08278eb1b602d81486bd5518d442",
+    "eth-auth-stwo.elf": "988e26742a18c9d7fd2c073a0fa3b40fa80eeb14d30a1a7eb60486abad478e0a",
+    "fixtures/batch-16.input": "e961f296f550d5d6797f464ef01d1e032417642098100e57f3e593aa87df79af",
+    "fixtures/batch-16.expected": "7929a6d4808010177757936d0b8f241bd049f1d300a7969490919741a72d0c6b"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 2392.56M  free = 1703.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 52.62520116701489,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 2392.56M  free = 1703.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "output_checked": true
+}
+Proving balanced batch 32
+[ethereum-auth-local-prove] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-local-prove] acquired after 174s
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-32.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-32.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-32-prove-balanced.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-32-prove-balanced.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 1800,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "3ed47db6d94d475256e06f79e0d32c9415bc08278eb1b602d81486bd5518d442",
+    "eth-auth-stwo-expanded.elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "fixtures/batch-32.input": "c2eeb9bf4fa100b05d53a90d0bf5c061d278b7d676c2af1f40e0e4caab096a5e",
+    "fixtures/batch-32.expected": "ddb041867e24fcf4be7fbdf97252b8c4ab5b4c1f540d322859f825e702ee794c"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 2384.56M  free = 1711.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 73.96093737499905,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 2384.56M  free = 1711.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "output_checked": true
+}
+Proving balanced batch 1
+[ethereum-auth-local-prove] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-local-prove] acquired after 3s
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-1-prove-balanced.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/local-batch-1-prove-balanced.json",
+    "prove"
+  ],
+  "side": "local",
+  "mode": "prove",
+  "requested_workers": 16,
+  "timeout_seconds": 1800,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "3ed47db6d94d475256e06f79e0d32c9415bc08278eb1b602d81486bd5518d442",
+    "eth-auth-stwo.elf": "988e26742a18c9d7fd2c073a0fa3b40fa80eeb14d30a1a7eb60486abad478e0a",
+    "fixtures/batch-1.input": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d",
+    "fixtures/batch-1.expected": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138"
+  },
+  "swap_before": "vm.swapusage: total = 4096.00M  used = 2384.56M  free = 1711.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 31.008378625003388,
+  "swap_after": "vm.swapusage: total = 4096.00M  used = 2384.56M  free = 1711.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t80%; AC attached; not charging present: true\n",
+  "output_checked": true
+}

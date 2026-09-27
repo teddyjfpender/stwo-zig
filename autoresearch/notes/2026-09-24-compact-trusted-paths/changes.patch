@@ -1,0 +1,343 @@
+--- a/src/frontends/riscv/recursion/air/blake3_main_column_test_support.zig
++++ b/src/frontends/riscv/recursion/air/blake3_main_column_test_support.zig
+@@ -57,3 +57,11 @@
+ pub fn expectPoison(out: frame.MainColumns) !void {
+     for (out.g_rows.columns[0]) |value| try std.testing.expectEqual(@as(u32, 987), value.v);
+ }
++
++/// Compare independently generated compact preprocessing with the full-row oracle.
++pub fn expectFixedMetadata(expected: anytype, actual: @import("blake3_hash_metadata.zig").Rows) !void {
++    inline for (.{ g, xor }, .{ expected.g_rows, expected.xor_rows }, .{ actual.g_rows, actual.xor_rows }) |Air, rows, fixed| {
++        try std.testing.expectEqual(rows.len, fixed.len);
++        for (rows, fixed) |row, tail| try std.testing.expectEqualSlices(M, row[Air.PHYSICAL_MAIN_COLUMN_COUNT..], &tail);
++    }
++}
+--- a/src/frontends/riscv/recursion/air/blake3_transcript_plan_test.zig
++++ b/src/frontends/riscv/recursion/air/blake3_transcript_plan_test.zig
+@@ -175,6 +175,7 @@
+             for (row, 0..) |*value, c| value.* = M.fromU64(r * 1000 + c + 1);
+             tail.* = storage.compactFixed(Air, row.*);
+         }
++        const trusted_compact = compact;
+         var b = storage.Builder.init(a);
+         defer b.deinit();
+         try b.appendMetadata(cohort, &compact, &trusted);
+@@ -182,6 +183,7 @@
+         for (0..compact[1].len) |i| {
+             compact[1][i] = compact[1][i].add(M.one());
+             try std.testing.expectError(error.InvalidNativeParentRows, b.appendMetadata(cohort, &compact, &trusted));
++            try std.testing.expectError(error.InvalidNativeParentRows, b.appendMetadata(cohort, &compact, &trusted_compact));
+             try std.testing.expectEqual(@as(usize, 2), b.fixed[cohort].items.len);
+             compact[1][i] = compact[1][i].sub(M.one());
+         }
+@@ -191,6 +193,8 @@
+                 var builder = storage.Builder.init(allocator);
+                 defer builder.deinit();
+                 try builder.appendMetadata(cohort, tail, rows);
++                const trusted_tails = [2]storage.FixedRow(Air){ storage.compactFixed(Air, rows[0]), storage.compactFixed(Air, rows[1]) };
++                try builder.appendMetadata(cohort, tail, &trusted_tails);
+             }
+         };
+         try std.testing.checkAllAllocationFailures(a, Case.run, .{ &compact, &trusted });
+--- a/src/frontends/riscv/recursion/air/blake3_frame_witness.zig
++++ b/src/frontends/riscv/recursion/air/blake3_frame_witness.zig
+@@ -50,8 +50,16 @@
+ }
+ /// Borrowed exact hash-row ranges; Prepared.deinit does not free these.
+ pub const HashDestination = struct {
+-    g_rows: []@import("blake3_g_call.zig").Row,
+-    xor_rows: []@import("blake3_xor_call.zig").Row,
++    g_rows: []@import("blake3_g_call.zig").Row = &.{},
++    xor_rows: []@import("blake3_xor_call.zig").Row = &.{},
++    /// Trusted preprocessing may target compact tails instead of full rows.
++    fixed: ?Metadata = null,
++    pub fn validate(self: @This(), gs: usize, xs: usize) !void {
++        if (self.fixed) |m| {
++            if (self.g_rows.len != 0 or self.xor_rows.len != 0) return error.InvalidBlake3WitnessDestination;
++            try m.validate(gs, xs);
++        } else if (self.g_rows.len != gs or self.xor_rows.len != xs) return error.InvalidBlake3WitnessDestination;
++    }
+ };
+ pub fn prepareInto(a: std.mem.Allocator, circuit: u32, frame: framing.Frame, bindings: []const Binding, payload: ?PayloadBinding, claim: [32]u8, destination: HashDestination) !Prepared {
+     return build(a, circuit, frame, bindings, claim, true, payload, destination, null, null);
+@@ -127,7 +135,9 @@
+     const shape = borrowed orelse &owned.?;
+     if (shape.input_len != len) return error.InvalidBlake3Frame;
+     var plan = try routing.buildWithPayloadPlan(a, circuit, frame, bindings, payload, shape);
+-    if (destination) |out| if (out.g_rows.len != shape.g.len or out.xor_rows.len != shape.xor.len) return error.InvalidBlake3WitnessDestination;
++    const fixed_metadata = if (destination) |out| out.fixed else null;
++    if (live and fixed_metadata != null) return error.InvalidBlake3WitnessDestination;
++    if (destination) |out| try out.validate(shape.g.len, shape.xor.len);
+     var rows = hash.Rows{
+         .allocator = a,
+         .g_rows = if (columns != null) &.{} else if (destination) |out| out.g_rows else try a.alloc(@import("blake3_g_call.zig").Row, shape.g.len),
+@@ -143,6 +153,8 @@
+             try hash.prepareMainColumnsWithPlan(backing, circuit, bytes, claim, shape, .{ .g_rows = out.g_rows, .xor_rows = out.xor_rows, .boundary_rows = rows.boundary_rows })
+         else
+             try hash.prepareIntoWithPlan(backing, circuit, bytes, claim, shape, hash_destination);
++    } else if (fixed_metadata) |out| {
++        try hash.trustedShapeMetadataWithPlan(circuit, len, claim, shape, out, rows.boundary_rows);
+     } else try hash.trustedShapeIntoWithPlan(circuit, len, claim, shape, hash_destination);
+ 
+     var boundaries: std.ArrayList(boundary.Row) = .empty;
+@@ -164,5 +176,5 @@
+     const uses = plan.child_uses;
+     const payload_uses = try a.dupe(u32, plan.payload_uses);
+     plan.deinit();
+-    return .{ .arena = arena, .hash_metadata = if (columns) |out| out.metadata() else null, .rows = .{ .g_rows = rows.g_rows, .xor_rows = rows.xor_rows, .boundary_rows = rows.boundary_rows }, .route_rows = routed, .source_uses = uses, .payload_uses = payload_uses, .digest = digest };
++    return .{ .arena = arena, .hash_metadata = if (columns) |out| out.metadata() else fixed_metadata, .rows = .{ .g_rows = rows.g_rows, .xor_rows = rows.xor_rows, .boundary_rows = rows.boundary_rows }, .route_rows = routed, .source_uses = uses, .payload_uses = payload_uses, .digest = digest };
+ }
+--- a/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
++++ b/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
+@@ -95,14 +95,15 @@
+         if (aggregate.values.len != source.public_join.evaluation.values.len) return error.InvalidNativeParentRows;
+         for (aggregate.values, source.public_join.evaluation.values) |actual, expected| if (!actual.eql(expected)) return error.InvalidNativeParentRows;
+     }
++    if (source.paths.fixed_hash_metadata != null and (source.paths.fixed.g_rows.len != 0 or source.paths.fixed.xor_rows.len != 0)) return error.InvalidNativeParentRows;
+     try source.transcript.plan.validate();
+     var arena = std.heap.ArenaAllocator.init(a);
+     defer arena.deinit();
+     const temp = arena.allocator();
+     var b = Builder.init(a);
+     defer b.deinit();
+-    try b.reserve(0, try std.math.add(usize, source.transcript.plan.fixed.g_rows.len, source.paths.fixed.g_rows.len));
+-    try b.reserve(1, try std.math.add(usize, source.transcript.plan.fixed.xor_rows.len, source.paths.fixed.xor_rows.len));
++    try b.reserve(0, try std.math.add(usize, source.transcript.plan.fixed.g_rows.len, if (source.paths.fixed_hash_metadata) |m| m.g_rows.len else source.paths.fixed.g_rows.len));
++    try b.reserve(1, try std.math.add(usize, source.transcript.plan.fixed.xor_rows.len, if (source.paths.fixed_hash_metadata) |m| m.xor_rows.len else source.paths.fixed.xor_rows.len));
+     try b.reserve(7, try std.math.add(usize, source.transcript.live.route_rows.len, source.paths.live.route_rows.len));
+     const graphs = source.graphs();
+     const values = source.evaluations();
+@@ -149,8 +150,18 @@
+     try b.append(8, source.transcript.live.query_rows, source.transcript.plan.fixed.query_rows);
+     try b.append(14, source.transcript.live.control_rows, source.transcript.plan.fixed.control_rows);
+     try b.append(15, source.transcript.live.counter_rows, source.transcript.plan.fixed.counter_rows);
+-    if (source.paths.hash_metadata) |compact| try b.appendMetadata(0, compact.g_rows, source.paths.fixed.g_rows) else try b.append(0, source.paths.live.g_rows, source.paths.fixed.g_rows);
+-    if (source.paths.hash_metadata) |compact| try b.appendMetadata(1, compact.xor_rows, source.paths.fixed.xor_rows) else try b.append(1, source.paths.live.xor_rows, source.paths.fixed.xor_rows);
++    if (source.paths.hash_metadata) |compact| {
++        if (source.paths.fixed_hash_metadata) |trusted| try b.appendMetadata(0, compact.g_rows, trusted.g_rows) else try b.appendMetadata(0, compact.g_rows, source.paths.fixed.g_rows);
++    } else {
++        if (source.paths.fixed_hash_metadata != null) return error.InvalidNativeParentRows;
++        try b.append(0, source.paths.live.g_rows, source.paths.fixed.g_rows);
++    }
++    if (source.paths.hash_metadata) |compact| {
++        if (source.paths.fixed_hash_metadata) |trusted| try b.appendMetadata(1, compact.xor_rows, trusted.xor_rows) else try b.appendMetadata(1, compact.xor_rows, source.paths.fixed.xor_rows);
++    } else {
++        if (source.paths.fixed_hash_metadata != null) return error.InvalidNativeParentRows;
++        try b.append(1, source.paths.live.xor_rows, source.paths.fixed.xor_rows);
++    }
+     try b.append(2, source.paths.live.boundary_rows, source.paths.fixed.boundary_rows);
+     try b.append(7, source.paths.live.route_rows, source.paths.fixed.route_rows);
+     try b.append(9, source.paths.live.word_rows, source.paths.fixed.word_rows);
+--- a/src/frontends/riscv/recursion/air/blake3_stark_paths.zig
++++ b/src/frontends/riscv/recursion/air/blake3_stark_paths.zig
+@@ -21,12 +21,15 @@
+     row_allocator: std.mem.Allocator,
+     /// Live hash metadata and main columns belong to the caller in this mode.
+     hash_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
++    /// Owned trusted hash tails, independently derived from public path geometry.
++    fixed_hash_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
+     inputs: inputs.Prepared,
+     live: Rows,
+     fixed: Rows,
+     pub fn deinit(self: *Prepared) void {
+         freeRows(self.row_allocator, self.live);
+         freeRows(self.row_allocator, self.fixed);
++        if (self.fixed_hash_metadata) |m| m.free(self.row_allocator);
+         self.arena.deinit();
+         self.* = undefined;
+     }
+@@ -70,6 +73,7 @@
+     a: std.mem.Allocator,
+     backing: std.mem.Allocator,
+     columns: ?group.MainColumns = null,
++    fixed_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
+     g_used: usize = 0,
+     xor_used: usize = 0,
+     cache: *group.PlanCache,
+@@ -85,7 +89,7 @@
+         const statement = group.Statement{ .namespace = self.next, .payload = .{ .circuit = 3_000_000, .first_wire = self.payload }, .leaf_count = leaves, .words_per_leaf = words, .index = index, .depth = @intCast(depth), .root = root, .root_source = try @import("blake3_root_sources.zig").caller(root_index), .directions = directions };
+         const counts = try group.requiredHashRowsCached(self.backing, statement, self.cache);
+         const live_destination = if (self.columns == null) try self.live.reserveHash(self.backing, counts) else group.HashDestination{ .g_rows = &.{}, .xor_rows = &.{} };
+-        const fixed_destination = try self.fixed.reserveHash(self.backing, counts);
++        const fixed_destination = if (self.fixed_metadata) |m| group.HashDestination{ .fixed = try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) } else try self.fixed.reserveHash(self.backing, counts);
+         var live = if (self.columns) |out| try group.prepareMainColumnsCached(self.backing, statement, values, siblings, try out.slice(self.g_used, counts.g, self.xor_used, counts.xor), self.cache) else try group.prepareIntoCached(self.backing, statement, values, siblings, live_destination, self.cache);
+         defer live.deinit();
+         if (!std.mem.eql(u8, &root, &live.computed_root.?)) return error.InvalidStarkPathRoot;
+@@ -125,8 +129,10 @@
+     var cache = group.PlanCache.init(backing);
+     defer cache.deinit();
+     var b = Builder{ .a = a, .backing = backing, .columns = columns, .cache = &cache };
++    errdefer if (b.fixed_metadata) |m| m.free(backing);
+     if (columns) |out| {
+         try out.validate(out.g_rows.metadata.len, out.xor_rows.metadata.len);
++        b.fixed_metadata = try @import("blake3_hash_metadata.zig").Rows.allocate(backing, out.g_rows.metadata.len, out.xor_rows.metadata.len);
+     }
+     defer b.live.deinit(backing);
+     defer b.fixed.deinit(backing);
+@@ -179,8 +185,13 @@
+     try b.fixed.boundary_rows.appendSlice(backing, linked.sentinels);
+     if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_PARENT_PROFILE"))
+         std.debug.print("BLAKE3_PATH_PLAN_REUSE openings={d} graph_builds={d} retained_plans={d}\n", .{ b.count, cache.builds, cache.retainedCount() });
++    if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_PARENT_PROFILE")) if (b.fixed_metadata) |m| {
++        const full_bytes = m.g_rows.len * @sizeOf(group.g.Row) + m.xor_rows.len * @sizeOf(group.xor.Row);
++        const compact_bytes = std.mem.sliceAsBytes(m.g_rows).len + std.mem.sliceAsBytes(m.xor_rows).len;
++        std.debug.print("BLAKE3_TRUSTED_PATH_METADATA full_row_bytes={d} compact_bytes={d} removed_bytes={d}\n", .{ full_bytes, compact_bytes, full_bytes - compact_bytes });
++    };
+     const live_rows = try b.live.finish(backing);
+     errdefer freeRows(backing, live_rows);
+     const fixed_rows = try b.fixed.finish(backing);
+-    return .{ .hash_metadata = if (columns) |out| out.metadata() else null, .arena = arena, .row_allocator = backing, .inputs = linked, .live = live_rows, .fixed = fixed_rows };
++    return .{ .fixed_hash_metadata = b.fixed_metadata, .hash_metadata = if (columns) |out| out.metadata() else null, .arena = arena, .row_allocator = backing, .inputs = linked, .live = live_rows, .fixed = fixed_rows };
+ }
+--- a/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
+@@ -78,12 +78,13 @@
+         try self.fixed[i].ensureTotalCapacityPrecise(self.a, count);
+     }
+     /// Main columns already exist; admit each generated fixed field independently.
+-    pub fn appendMetadata(self: *Builder, comptime i: usize, rows: []const FixedRow(Airs[i]), fixed: []const Airs[i].Row) !void {
++    pub fn appendMetadata(self: *Builder, comptime i: usize, rows: []const FixedRow(Airs[i]), fixed: anytype) !void {
+         comptime std.debug.assert(i < 2);
+         if (rows.len != fixed.len) return error.InvalidNativeParentRows;
+-        for (rows, fixed) |live, trusted| for (live, trusted[Airs[i].PHYSICAL_MAIN_COLUMN_COUNT..]) |actual, expected| {
+-            if (!actual.eql(expected)) return error.InvalidNativeParentRows;
+-        };
++        for (rows, fixed) |live, trusted| {
++            const tail: FixedRow(Airs[i]) = if (@TypeOf(trusted) == Airs[i].Row) compactFixed(Airs[i], trusted) else trusted;
++            for (live, tail) |actual, expected| if (!actual.eql(expected)) return error.InvalidNativeParentRows;
++        }
+         try self.fixed[i].appendSlice(self.a, rows);
+     }
+     pub fn append(self: *Builder, comptime i: usize, rows: []const Airs[i].Row, fixed: []const Airs[i].Row) !void {
+--- a/src/frontends/riscv/recursion/air/blake3_hash_witness.zig
++++ b/src/frontends/riscv/recursion/air/blake3_hash_witness.zig
+@@ -226,6 +226,16 @@
+     if (plan.input_len != input_len) return error.InvalidBlake3Input;
+     try fixedRowsInto(circuit, null, digest, plan, destination);
+ }
++/// Independently derive fixed tails from canonical topology, without evaluating
++/// compression or allocating full logical hash rows. Shapes precede any writes.
++pub fn trustedShapeMetadataWithPlan(circuit: u32, input_len: usize, digest: [32]u8, plan: *const graph.Plan, metadata: @import("blake3_hash_metadata.zig").Rows, boundaries: []boundary.Row) !void {
++    if (plan.input_len != input_len) return error.InvalidBlake3Input;
++    try metadata.validate(plan.g.len, plan.xor.len);
++    if (boundaries.len != plan.sources.len + 8) return error.InvalidBlake3WitnessDestination;
++    for (metadata.g_rows, plan.g) |*row, call| row.* = (try g.fixedRow(gSchedule(circuit, call, plan.uses)))[g.PHYSICAL_MAIN_COLUMN_COUNT..].*;
++    for (metadata.xor_rows, plan.xor) |*row, call| row.* = (try xor.fixedRow(xorSchedule(circuit, call, plan.uses)))[xor.PHYSICAL_MAIN_COLUMN_COUNT..].*;
++    try writeBoundaries(boundaries, circuit, null, digest, plan);
++}
+ fn allocateRows(a: std.mem.Allocator, plan: *const graph.Plan) !Rows {
+     const gs = try a.alloc(g.Row, plan.g.len);
+     errdefer a.free(gs);
+--- a/src/frontends/riscv/recursion/air/blake3_hash_metadata.zig
++++ b/src/frontends/riscv/recursion/air/blake3_hash_metadata.zig
+@@ -9,6 +9,23 @@
+ pub const Rows = struct {
+     g_rows: []Row(g),
+     xor_rows: []Row(xor),
++    pub fn validate(self: Rows, gs: usize, xs: usize) !void {
++        if (self.g_rows.len != gs or self.xor_rows.len != xs) return error.InvalidBlake3WitnessDestination;
++    }
++    pub fn slice(self: Rows, gf: usize, gs: usize, xf: usize, xs: usize) !Rows {
++        if (gf > self.g_rows.len or gs > self.g_rows.len - gf or xf > self.xor_rows.len or xs > self.xor_rows.len - xf) return error.InvalidBlake3WitnessDestination;
++        return .{ .g_rows = self.g_rows[gf..][0..gs], .xor_rows = self.xor_rows[xf..][0..xs] };
++    }
++    /// Caller owns both allocations and frees them with the supplied allocator.
++    pub fn allocate(a: std.mem.Allocator, gs: usize, xs: usize) !Rows {
++        const g_rows = try a.alloc(Row(g), gs);
++        errdefer a.free(g_rows);
++        return .{ .g_rows = g_rows, .xor_rows = try a.alloc(Row(xor), xs) };
++    }
++    pub fn free(self: Rows, a: std.mem.Allocator) void {
++        a.free(self.g_rows);
++        a.free(self.xor_rows);
++    }
+ };
+ pub fn xorUse(rows: []xor.Row, compact: ?Rows, index: usize) *M {
+     return if (compact) |v| &v.xor_rows[index][17 - xor.PHYSICAL_MAIN_COLUMN_COUNT] else &rows[index][17];
+--- a/src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig
++++ b/src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig
+@@ -130,10 +130,13 @@
+     const shape = try hashShape(s, plans);
+     const leaf_shape = shape.leaf;
+     const node_shape = shape.node;
+-    if (borrowed) |out| if (out.g_rows.len != shape.total.g or out.xor_rows.len != shape.total.xor) return error.InvalidBlake3WitnessDestination;
++    const fixed_metadata = if (borrowed) |out| out.fixed else null;
++    if (values != null and fixed_metadata != null) return error.InvalidBlake3WitnessDestination;
++    if (borrowed) |out| try out.validate(shape.total.g, shape.total.xor);
+     if (columns) |out| try out.validate(shape.total.g, shape.total.xor);
+     var destination = HashRows{
+         .columns = columns,
++        .fixed = fixed_metadata,
+         .g_rows = if (columns != null) &.{} else if (borrowed) |out| out.g_rows else try a.alloc(g.Row, shape.total.g),
+         .xor_rows = if (columns != null) &.{} else if (borrowed) |out| out.xor_rows else try a.alloc(xor.Row, shape.total.xor),
+     };
+@@ -223,7 +226,7 @@
+     const boundary_rows = try bs.toOwnedSlice(a);
+     const route_rows = try rs.toOwnedSlice(a);
+     const word_rows = try words.toOwnedSlice(a);
+-    return .{ .hash_metadata = if (columns) |out| out.metadata() else null, .select_rows = try selections.toOwnedSlice(a), .arena = arena, .g_rows = destination.g_rows, .xor_rows = destination.xor_rows, .boundary_rows = boundary_rows, .route_rows = route_rows, .word_rows = word_rows, .payload_uses = uses, .computed_root = nodes.items[nodes.items.len - 1].data.digest };
++    return .{ .hash_metadata = if (columns) |out| out.metadata() else fixed_metadata, .select_rows = try selections.toOwnedSlice(a), .arena = arena, .g_rows = destination.g_rows, .xor_rows = destination.xor_rows, .boundary_rows = boundary_rows, .route_rows = route_rows, .word_rows = word_rows, .payload_uses = uses, .computed_root = nodes.items[nodes.items.len - 1].data.digest };
+ }
+ fn consume(node: *Node, uses: [8]u32) void {
+     for (uses, 0..) |n, i| @import("blake3_hash_metadata.zig").xorUse(node.data.rows.xor_rows, node.data.hash_metadata, (if (node.data.hash_metadata) |m| m.xor_rows.len else node.data.rows.xor_rows.len) - 16 + i).* = M31.fromCanonical(n);
+@@ -266,15 +269,16 @@
+ };
+ const HashRows = struct {
+     columns: ?MainColumns = null,
++    fixed: ?frame.Metadata = null,
+     g_rows: []g.Row,
+     xor_rows: []xor.Row,
+     g_used: usize = 0,
+     xor_used: usize = 0,
+     fn take(self: *@This(), count: HashCounts) !HashPart {
+-        const g_len = if (self.columns) |c| c.g_rows.metadata.len else self.g_rows.len;
+-        const xor_len = if (self.columns) |c| c.xor_rows.metadata.len else self.xor_rows.len;
++        const g_len = if (self.columns) |c| c.g_rows.metadata.len else if (self.fixed) |m| m.g_rows.len else self.g_rows.len;
++        const xor_len = if (self.columns) |c| c.xor_rows.metadata.len else if (self.fixed) |m| m.xor_rows.len else self.xor_rows.len;
+         if (self.g_used > g_len or count.g > g_len - self.g_used or self.xor_used > xor_len or count.xor > xor_len - self.xor_used) return error.InvalidBlake3MerkleGroup;
+-        const out = HashPart{ .rows = if (self.columns != null) null else .{ .g_rows = self.g_rows[self.g_used..][0..count.g], .xor_rows = self.xor_rows[self.xor_used..][0..count.xor] }, .columns = if (self.columns) |columns| try columns.slice(self.g_used, count.g, self.xor_used, count.xor) else null };
++        const out = HashPart{ .rows = if (self.columns != null) null else if (self.fixed) |m| .{ .fixed = try m.slice(self.g_used, count.g, self.xor_used, count.xor) } else .{ .g_rows = self.g_rows[self.g_used..][0..count.g], .xor_rows = self.xor_rows[self.xor_used..][0..count.xor] }, .columns = if (self.columns) |columns| try columns.slice(self.g_used, count.g, self.xor_used, count.xor) else null };
+         self.g_used += count.g;
+         self.xor_used += count.xor;
+         return out;
+--- a/src/frontends/riscv/recursion/air/blake3_frame_witness_test.zig
++++ b/src/frontends/riscv/recursion/air/blake3_frame_witness_test.zig
+@@ -261,6 +261,23 @@
+         };
+         var cache = group.PlanCache.init(a);
+         defer cache.deinit();
++        const metadata = try @import("blake3_hash_metadata.zig").Rows.allocate(a, fixed.g_rows.len, fixed.xor_rows.len);
++        defer metadata.free(a);
++        {
++            var compact = try group.trustedIntoCached(a, statement, .{ .fixed = metadata }, &cache);
++            defer compact.deinit();
++            try @import("blake3_main_column_test_support.zig").expectReceipts(fixed, compact);
++            try @import("blake3_main_column_test_support.zig").expectFixedMetadata(fixed, metadata);
++            try std.testing.expectEqual(@as(usize, 0), compact.g_rows.len);
++            try std.testing.expectEqual(@as(usize, 0), compact.xor_rows.len);
++            var bad_metadata = metadata;
++            bad_metadata.g_rows = metadata.g_rows[1..];
++            try std.testing.expectError(error.InvalidBlake3WitnessDestination, group.trustedIntoCached(a, statement, .{ .fixed = bad_metadata }, &cache));
++            try std.testing.expectError(error.InvalidBlake3WitnessDestination, group.trustedIntoCached(a, statement, .{ .fixed = metadata, .g_rows = fixed.g_rows }, &cache));
++            try std.testing.expectError(error.InvalidBlake3WitnessDestination, group.prepareIntoCached(a, statement, &values, &siblings, .{ .fixed = metadata }, &cache));
++            try std.testing.expectError(error.InvalidBlake3WitnessDestination, metadata.slice(metadata.g_rows.len + 1, 0, 0, 0));
++        }
++        try std.testing.checkAllAllocationFailures(a, compactTrustedGroupCase, .{statement});
+         for (0..2) |_| {
+             var actual = try group.prepareMainColumnsCached(a, statement, &values, &siblings, out, &cache);
+             defer actual.deinit();
+@@ -323,3 +340,14 @@
+     try std.testing.expectEqual(shared.leaf, shared.node);
+     try std.testing.expectEqual(@as(usize, 3), cache.builds);
+ }
++
++fn compactTrustedGroupCase(a: std.mem.Allocator, statement: @import("blake3_merkle_group_witness.zig").Statement) !void {
++    const group = @import("blake3_merkle_group_witness.zig");
++    var cache = group.PlanCache.init(a);
++    defer cache.deinit();
++    const counts = try group.requiredHashRowsCached(a, statement, &cache);
++    const metadata = try @import("blake3_hash_metadata.zig").Rows.allocate(a, counts.g, counts.xor);
++    defer metadata.free(a);
++    var fixed = try group.trustedIntoCached(a, statement, .{ .fixed = metadata }, &cache);
++    defer fixed.deinit();
++}

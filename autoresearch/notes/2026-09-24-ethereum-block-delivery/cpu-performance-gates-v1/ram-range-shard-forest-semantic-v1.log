@@ -1,0 +1,18 @@
+src/frontends/riscv/recursion/block_v5_ram_range_forest_authority_v1.zig:75:37: error: capture shadows declaration of 'node'
+        for (geometry.nodes, sums) |node, *sum| {
+                                    ^~~~
+src/frontends/riscv/recursion/block_v5_ram_range_forest_authority_v1.zig:106:9: note: declared here
+    pub fn node(self: *const Owned, index: u32, expected: [32]u8) !Geometry.Node {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_ram_range_forest_authority_v1.zig:109:15: error: local constant shadows declaration of 'node'
+        const node = self.geometry.nodes[index];
+              ^~~~
+src/frontends/riscv/recursion/block_v5_ram_range_forest_authority_v1.zig:106:9: note: declared here
+    pub fn node(self: *const Owned, index: u32, expected: [32]u8) !Geometry.Node {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_ram_range_forest_test_v1.zig:79:30: error: capture shadows declaration of 'node'
+    for (forest.nodes, 0..) |node, index| {
+                             ^~~~
+src/frontends/riscv/recursion/block_v5_ram_range_forest_test_v1.zig:138:1: note: declared here
+fn node(kind: Plan.Kind, refs: []const Plan.Ref) Plan.Node {
+^~

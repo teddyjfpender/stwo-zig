@@ -1,0 +1,74 @@
+1/31 block_v5_tail_linked_public_test_root_v2.test_0...OK
+2/31 block_v5_tail_linked_public_test_root_v2.test.tail linked public: retain genuine default selected and ancestor production bodies without calls...OK
+3/31 prover.block_v5_tail_linked_public_test_v2.test.tail linked public: one provider exact byte source mapping feeds three consumers...FAIL (InvalidDirectProgram)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:99:13: 0x104c54fd7 in input (root)
+            return error.InvalidDirectProgram;
+            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/block_v5_input_tail_ancestor_graph_v1.zig:46:29: 0x10643001f in preparePairs__anon_165190 (root)
+                symbol.* = (try builder.input()).value;
+                            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_tail_linked_public_test_v2.zig:32:17: 0x106430ddf in graphFixture (root)
+    var graph = try Graph.preparePairs(a, Values{ .words = &words }, &pairs);
+                ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_tail_linked_public_test_v2.zig:46:5: 0x1064317b7 in test.tail linked public: one provider exact byte source mapping feeds three consumers (root)
+    try graphFixture(std.testing.allocator);
+    ^
+4/31 prover.block_v5_tail_linked_public_test_v2.test.tail linked public: graph construction propagates every original allocation failure...FAIL (InvalidDirectProgram)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:99:13: 0x104c54fd7 in input (root)
+            return error.InvalidDirectProgram;
+            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/block_v5_input_tail_ancestor_graph_v1.zig:46:29: 0x10643001f in preparePairs__anon_165190 (root)
+                symbol.* = (try builder.input()).value;
+                            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_tail_linked_public_test_v2.zig:32:17: 0x106430ddf in graphFixture (root)
+    var graph = try Graph.preparePairs(a, Values{ .words = &words }, &pairs);
+                ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:1137:9: 0x106432f5b in checkAllAllocationFailures__anon_165499 (root)
+        try @call(.auto, test_fn, args);
+        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_tail_linked_public_test_v2.zig:49:5: 0x1064334b3 in test.tail linked public: graph construction propagates every original allocation failure (root)
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, graphFixture, .{});
+    ^
+5/31 prover.block_v5_tail_linked_public_test_v2.test.tail linked public: mismatched provider length prefix or CV byte fails equations...expected error.UnsatisfiedCircuit, found error.InvalidDirectProgram
+FAIL (TestUnexpectedError)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:99:13: 0x104c54fd7 in input (root)
+            return error.InvalidDirectProgram;
+            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/block_v5_input_tail_ancestor_graph_v1.zig:46:29: 0x10643001f in preparePairs__anon_165190 (root)
+                symbol.* = (try builder.input()).value;
+                            ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:64:13: 0x10643456f in expectError__anon_165804 (root)
+            return error.TestUnexpectedError;
+            ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_tail_linked_public_test_v2.zig:55:9: 0x10643475b in test.tail linked public: mismatched provider length prefix or CV byte fails equations (root)
+        try std.testing.expectError(error.UnsatisfiedCircuit, Graph.preparePairs(std.testing.allocator, Values{ .words = &words, .mismatch_child = 1, .mismatch_coordinate = @intCast(coordinate) }, &pair));
+        ^
+6/31 prover.block_v5_tail_linked_public_test_v2.test.tail linked public: exact virtual word mapping preserves original raw ordinals...OK
+7/31 prover.block_v5_tail_linked_public_test_v2.test.tail linked public: large original input has bounded new grammar and distinct protocol...OK
+8/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: independent native oracle matches full-width compensation and count equations...OK
+9/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: high clock carry x0 and count faults reject...OK
+10/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: actual symbolic equation graph rejects original high-byte mutation...OK
+11/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: symbolic graph construction rolls back exhaustive OOM...OK
+12/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: layout keeps million-word input lengths out of bounded lower frame extents...OK
+13/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: u64 adjacency gap wrap and register endpoint mutations reject...OK
+14/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: expected input root has exact length word order and high byte framing...OK
+15/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: retained input root rejects cache mutation against independent expectation...OK
+16/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: input owner retain construction and file custody exhaustively roll back OOM...OK
+17/31 prover.block_v5_wide_public_windows_test_v1.test.wide public windows: independent contiguous fan-in rejects rounding gaps overflow and oversized roots...OK
+18/31 prover.block_v5_input_tail_test_v1.test.input tail provider: exact original CV call selection covers unbalanced and partial final chunks...OK
+19/31 prover.block_v5_input_tail_test_v1.test.input tail provider: bounded consumer original scalar parity exact fixed routes and byte multiset...OK
+20/31 prover.block_v5_input_tail_test_v1.test.input tail provider: public owner mutation exact leases and exhaustive allocation rollback...OK
+21/31 prover.block_v5_input_tail_test_v1.test.input tail provider: durable expected owner and alias survive original shared budget release...OK
+22/31 prover.block_v5_input_tail_test_v1.test.input tail provider: actual original hash and private word AIR has exact public export sinks...OK
+23/31 prover.block_v5_input_tail_test_v1.test.input tail provider: source normalization key identity and cap rejects are metadata only...OK
+24/31 prover.block_v5_input_tail_test_v1.test.input tail provider: original B5PD chain uses bounded input hash calls and unchanged final digest...OK
+25/31 prover.block_v5_input_tail_test_v1.test.input tail provider: bounded consumer exhaustive failure cleanup and large mathematical extent...OK
+26/31 prover.block_v5_input_tail_test_v1.test.input tail provider: durable original and consumer columns retain backing budget after owner release...OK
+27/31 prover.block_v5_input_tail_test_v1.test.input tail provider: frontier public export adds exactly one read to original seven-round CV use...OK
+28/31 air.semantic_eval.test_0...OK
+29/31 air.memory_commitment.poseidon2_air.test_0...OK
+30/31 air.lookups.tables.mod.test_0...OK
+31/31 air.lookups.tables.source_ingest.test_0...OK
+28 passed; 0 skipped; 3 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-tail-linked-public-focused-v1 --seed=0x37867e20

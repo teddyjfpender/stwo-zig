@@ -1,0 +1,44 @@
+{
+  "status": "focused-nonproving-canonical-independent-native-expected-setup-integration-only",
+  "authoritative_source_snapshot": "word-expected-setup-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "word-expected-setup-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 116.27190029097255,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 33,
+    "test_summary": [
+      "All 33 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-expected-setup-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-word-expected-setup-focused-v2",
+      "bytes": 56183048,
+      "sha256": "e33efcdddf7e54fe4edc67c62a99d73935121dce52148a024914a627679148ec"
+    }
+  },
+  "source_pin_count": 2053,
+  "scope": [
+    "Proof/capture-free native RAM/range expected-key factory; direct internal owned constructor avoids redundant second roster rebuild",
+    "Bounded one-entry-per-family key/schedule cache consumed by default CPU receiver and durable memory forest",
+    "Every original base proof still freshly verified; independent fixed setup and receiver proof staging lifetimes separated",
+    "Original live hash partition restored before exact key-bound context/log/schedule metadata parity",
+    "Five fingerprint/resource/parity behaviors plus original publication/durable catalogue regressions and full integration body retention"
+  ],
+  "remaining": [
+    "Genuine cold/hit/live fixed-root parity and positive native proof with original independently admitted policies",
+    "Independent forest/global expected setup and canonical complete-block activation",
+    "Positive end-to-end proving time and peak-memory measurement"
+  ],
+  "segments_run": false,
+  "pcs_commitment_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

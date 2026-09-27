@@ -2,7 +2,8 @@
 
 const std = @import("std");
 const runtime = @import("../runtime.zig");
-const ffi = @import("bindings.zig");
+const dispatch_ffi = @import("sampled_dispatch_bindings_v1.zig");
+const dispatch_budget = @import("sampled_dispatch_budget_v1.zig");
 const work_profile = @import("stwo_prover_api").work_profile;
 
 const MetalError = runtime.MetalError;
@@ -12,6 +13,7 @@ const QuotientCoefficientTask = runtime.QuotientCoefficientTask;
 pub const SampledCoefficientEvaluationResult = struct {
     gpu_ms: f64,
     execution: work_profile.SampledCoefficientExecution,
+    allocation: dispatch_budget.Receipt = .{},
 };
 
 pub fn evaluateCoefficientPlans(
@@ -96,6 +98,11 @@ fn evaluateCoefficientTreePlansInternal(
     tree_plans: anytype,
     capture_execution: bool,
 ) (MetalError || std.mem.Allocator.Error)!SampledCoefficientEvaluationResult {
+    var dispatch = dispatch_budget.Scope.init(allocator, .explicit_unbudgeted) catch |err| return switch (err) {
+        error.OutOfMemory => error.OutOfMemory,
+        else => MetalError.PolynomialEvaluationFailed,
+    };
+    defer dispatch.deinit();
     var coefficient_column_count: usize = 0;
     var coefficient_count: usize = 0;
     var factor_word_count: usize = 0;
@@ -104,24 +111,41 @@ fn evaluateCoefficientTreePlansInternal(
     var basis_count: usize = 0;
     var output_count: usize = 0;
     for (tree_plans) |tree_plan| {
-        if (tree_plan.coefficients.len != tree_plan.tree_values.len)
-            return MetalError.PolynomialEvaluationFailed;
-        coefficient_column_count += tree_plan.coefficients.len;
+        if (tree_plan.coefficients.len != tree_plan.tree_values.len) return MetalError.PolynomialEvaluationFailed;
+        coefficient_column_count = checkedSampledSizeAdd(coefficient_column_count, tree_plan.coefficients.len) catch return MetalError.PolynomialEvaluationFailed;
         for (tree_plan.coefficients) |coefficient| {
-            coefficient_count += std.mem.sliceAsBytes(coefficient.coefficients()).len / @sizeOf(u32);
+            const values = coefficient.coefficients();
+            if (values.len == 0 or !std.math.isPowerOfTwo(values.len)) return MetalError.PolynomialEvaluationFailed;
+            coefficient_count = checkedSampledSizeAdd(coefficient_count, values.len) catch return MetalError.PolynomialEvaluationFailed;
         }
         for (tree_plan.plans) |plan| {
-            factor_word_count += plan.flat_factors.len * 4;
-            task_count += plan.column_indices.items.len * plan.normalized_points.len;
-            basis_task_count += plan.normalized_points.len;
-            basis_count += plan.normalized_points.len * (@as(usize, 1) << @intCast(plan.coeff_log_size));
+            if (plan.coeff_log_size >= 32 or plan.normalized_points.len == 0) return MetalError.PolynomialEvaluationFailed;
+            const factors = std.math.mul(usize, plan.normalized_points.len, plan.coeff_log_size) catch return MetalError.PolynomialEvaluationFailed;
+            if (plan.flat_factors.len != factors) return MetalError.PolynomialEvaluationFailed;
+            factor_word_count = checkedSampledSizeAdd(factor_word_count, std.math.mul(usize, factors, 4) catch return MetalError.PolynomialEvaluationFailed) catch return MetalError.PolynomialEvaluationFailed;
+            task_count = checkedSampledSizeAdd(task_count, std.math.mul(usize, plan.column_indices.items.len, plan.normalized_points.len) catch return MetalError.PolynomialEvaluationFailed) catch return MetalError.PolynomialEvaluationFailed;
+            basis_task_count = checkedSampledSizeAdd(basis_task_count, plan.normalized_points.len) catch return MetalError.PolynomialEvaluationFailed;
+            basis_count = checkedSampledSizeAdd(basis_count, std.math.mul(usize, plan.normalized_points.len, @as(usize, 1) << @intCast(plan.coeff_log_size)) catch return MetalError.PolynomialEvaluationFailed) catch return MetalError.PolynomialEvaluationFailed;
+            for (plan.column_indices.items) |column| {
+                if (column >= tree_plan.coefficients.len or tree_plan.tree_values[column].len != plan.normalized_points.len) return MetalError.PolynomialEvaluationFailed;
+            }
         }
-        for (tree_plan.tree_values) |values| output_count += values.len;
+        for (tree_plan.tree_values) |values| output_count = checkedSampledSizeAdd(output_count, values.len) catch return MetalError.PolynomialEvaluationFailed;
     }
+    if (output_count > std.math.maxInt(u32) / 4) return MetalError.PolynomialEvaluationFailed;
     if (coefficient_column_count == 0 or task_count == 0) return .{
         .gpu_ms = 0,
         .execution = emptySampledCoefficientExecution(),
     };
+
+    _ = dispatch_budget.coefficientBaseBytes(.{
+        .coefficient_words = coefficient_count,
+        .factor_words = factor_word_count,
+        .tasks = task_count,
+        .basis_tasks = basis_task_count,
+        .basis_values = basis_count,
+        .outputs = output_count,
+    }) catch return MetalError.PolynomialEvaluationFailed;
 
     const coefficient_offsets = try allocator.alloc(u32, coefficient_column_count);
     defer allocator.free(coefficient_offsets);
@@ -227,7 +251,8 @@ fn evaluateCoefficientTreePlansInternal(
     var basis_threadgroup_width: u32 = 0;
     var evaluation_threadgroup_width: u32 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
-    if (!ffi.stwo_zig_metal_eval_polynomials(
+    var allocation_receipt: dispatch_budget.Receipt = .{};
+    const success = dispatch_ffi.stwo_zig_metal_eval_polynomials_budgeted_v2(
         self.handle,
         coefficient_ptrs.ptr,
         coefficient_lengths.ptr,
@@ -248,10 +273,21 @@ fn evaluateCoefficientTreePlansInternal(
         &gpu_ms,
         &message,
         message.len,
-    )) {
+        &dispatch,
+        dispatch_budget.Scope.callback,
+        &allocation_receipt,
+        dispatch.allowsUnownedAliases(),
+        &dispatch_budget.stream_policy,
+    );
+    dispatch.finish(success, allocation_receipt) catch |err| {
         std.log.err("Metal polynomial evaluation failed: {s}", .{std.mem.sliceTo(&message, 0)});
-        return MetalError.PolynomialEvaluationFailed;
-    }
+        return switch (err) {
+            error.OutOfMemory => error.OutOfMemory,
+            else => MetalError.PolynomialEvaluationFailed,
+        };
+    };
+    // Reject a malformed device sample before mutating any public output.
+    for (output_words) |word| if (word >= @import("stwo_core").fields.m31.Modulus) return MetalError.PolynomialEvaluationFailed;
     output_column_cursor = 0;
     for (tree_plans) |tree_plan| {
         for (tree_plan.tree_values) |values| {
@@ -274,7 +310,7 @@ fn evaluateCoefficientTreePlansInternal(
         ) catch return MetalError.PolynomialEvaluationFailed
     else
         emptySampledCoefficientExecution();
-    return .{ .gpu_ms = gpu_ms, .execution = execution };
+    return .{ .gpu_ms = gpu_ms, .execution = execution, .allocation = dispatch.receipt };
 }
 
 fn emptySampledCoefficientExecution() work_profile.SampledCoefficientExecution {
@@ -394,4 +430,10 @@ test "Metal sampled basis receipt follows both shader schedules" {
         error.InvalidCounterGroup,
         sampledBasisMultiplications(3, 0),
     );
+}
+
+fn checkedSampledSizeAdd(left: usize, right: usize) !usize {
+    const result = try std.math.add(usize, left, right);
+    if (result > std.math.maxInt(u32)) return error.InvalidSampledCoefficientShape;
+    return result;
 }

@@ -51,7 +51,10 @@ pub const Plan = struct {
     domains: [entry.MAX_ENTRIES]entry.Domain = undefined,
 
     pub fn init(allocator: std.mem.Allocator, family: trace.OpcodeFamily) !Plan {
-        var program = try runtime_program.buildLookups(allocator, family);
+        return initForRecipe(allocator, family, false);
+    }
+    pub fn initForRecipe(allocator: std.mem.Allocator, family: trace.OpcodeFamily, local_zero: bool) !Plan {
+        var program = if (local_zero) try @import("../x0_native_envelope_v1.zig").lookupProgram(allocator, family) else try runtime_program.buildLookups(allocator, family);
         errdefer program.deinit();
         var evaluation = try validation.EvaluationPlan.init(allocator, program);
         errdefer evaluation.deinit();
@@ -412,7 +415,7 @@ pub fn generateParallel(
     relations: *const relations_mod.Relations,
     pool: *work_pool.WorkPool,
 ) !Result {
-    var plan = try Plan.init(allocator, family);
+    var plan = try Plan.initForRecipe(allocator, family, main_columns.len != trace.nColumnsForFamily(family));
     defer plan.deinit();
     return generateParallelPlanned(
         allocator,

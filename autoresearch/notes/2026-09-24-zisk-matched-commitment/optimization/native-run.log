@@ -1,0 +1,4 @@
+1024 8 {'before': {'total_ns': 0.986125, 'lde_ns': 0.0485, 'commit_ns': 0.83125}, 'after': {'total_ns': 0.958084, 'lde_ns': 0.048292, 'commit_ns': 0.80425}}
+16384 8 {'before': {'total_ns': 7.241458, 'lde_ns': 0.607875, 'commit_ns': 6.4165}, 'after': {'total_ns': 6.937208, 'lde_ns': 0.595541, 'commit_ns': 6.177}}
+65536 8 {'before': {'total_ns': 21.990042, 'lde_ns': 2.623958, 'commit_ns': 18.674041}, 'after': {'total_ns': 21.246542, 'lde_ns': 2.633333, 'commit_ns': 17.989125}}
+16384 64 {'before': {'total_ns': 12.78475, 'lde_ns': 4.799292, 'commit_ns': 7.156834}, 'after': {'total_ns': 12.753875, 'lde_ns': 4.783875, 'commit_ns': 7.23325}}

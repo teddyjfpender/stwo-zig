@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-segment-artifact-fixture success
++- Segment artifact fixture guard success
+   +- run test 1 passed 528ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 7s MaxRSS:636M
+

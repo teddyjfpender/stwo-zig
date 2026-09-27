@@ -1,0 +1,261 @@
+{
+  "schema": "block-v5-range16-recursion-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "tests_run_by_agent": false,
+  "guest_executed": false,
+  "pcs_committed": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_admission_v1.zig",
+      "sha256": "07e13e99a5e75cbfd9b6b2d72ad701d775af83fed0bb543266f9dcb1eb2dd44f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_capture_v1.zig",
+      "sha256": "93b7c74b90b600e06a382db53bbe82a40da0d2b6b8e49a57d4a03d0a3e46f84e"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_stage_v1.zig",
+      "sha256": "4273659d035f635e40a4bd26a5f564fbaf8ca9517fb7b649c393e860a55847ee"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_recursive_test_v1.zig",
+      "sha256": "fd5632e6a0255b551acaaa109c2429d3e15ba1e0e1ceeb66007ce1f47812b0d4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_range16_composition_v1.zig",
+      "sha256": "b2e9719ae5dcb0c9c94da9c88ddb176cc48e393ee0adb22d79dc4e8ee6c4f620"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_range16_deep_v1.zig",
+      "sha256": "4cb8fa2e64336e7c26f9e38154e587da45afef0324d1326092ae24e21021c6a0"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_range16_roots_v1.zig",
+      "sha256": "902ebf647ee46cb59aa06c881afba0ec73be09c3f054f569f22ec5a1b0221408"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_range16_transcript_v1.zig",
+      "sha256": "3b344f34b0c79d9a934894eea376b4e62279a8299fffb70a59ab6e9cd8b99bef"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_range16_recursive_public_bus_v1.zig",
+      "sha256": "d889a96be8bcf3d9c9c8b4b698853d340e869a62698859c4a00ef1e27cb67da5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_range16_parent_protocol_v1.zig",
+      "sha256": "de6e11b0c5e5ef83418fe5dddffdc02b828bb7117068cd41130033acbfe7f238"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_range16_recursive_leaf_v1.zig",
+      "sha256": "8dc82d7155822d27ccc8560551b405beb5d622eb5349c5636fae91bb9c4f2e4e"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_range16_recursive_test_root.zig",
+      "sha256": "d9c26c32ac6cf819a2137a4cf0660d763b90f7e5534eccc6a728d87be20b1494"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_range16_recursive_codegen.zig",
+      "sha256": "bc8175fc77bd4c61a48812d1afe938d76655c103ad0db5941ddac9141a8093ae"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "sha256": "cd3fa8b04bffe1810f100c3e879886b6f4f2f4f12e8c0cc5b115dd14d187a961"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_proof_v1.zig",
+      "sha256": "0f805a6fe1b97682608740e61b1b76f2821c8f177fea18a86c2734fe4d749903"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_pcs_v1.zig",
+      "sha256": "746f9bce92f08e0193fb66fb3b78e987b26b716980fbe17dcea782709d5b443f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_root_nonce.zig",
+      "sha256": "12c93f821a51f530d6a10d274ceded47713b43d856641eb4116dd7884a0258b4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "64d953ec2bd72bf45b3bfbe769c5edd355177efaeff3c60263fcb4f2a9cddaf2"
+    }
+  ],
+  "integration_dependency_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_v1.zig",
+      "sha256": "6f452eacd5f6d7ccbab8fa088d3043950f00f301d1f580ce234873f8bc7f66b8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_algebra_v1.zig",
+      "sha256": "5297bad7d925acdf9edc46d3be384f1b124201e5855cb6ed91da5974a106ce04"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_range16_component_v1.zig",
+      "sha256": "3f7fbc6bdda3b05e7896dff9cfbf6561207fd2d1c2673ed4d12664845ca86ced"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig",
+      "sha256": "8a583fb8c5bb3dce5536df82aa9334833b4de38bf9f7954de355aaa548280eab"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/core/verifier.zig",
+      "sha256": "8b8fb3ff311cf89679fc7c2be0c0e1183cc9a6b14961e31c5f064acf74a577b7"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_deep.zig",
+      "sha256": "49c104c755dda49d69940827bd0c2841482ee0647e0efdb59d2e7d3790aa5e45"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_fri.zig",
+      "sha256": "2e2788383d7770a1d2eb3d2e8fad373a79b68753bff2d1398b009bd89f8645df"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_transcript.zig",
+      "sha256": "847861b79b81f8f501fff1a904bdc2a1846d31e8a93efb4ac31e6f90132ad2a0"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_recorder.zig",
+      "sha256": "dd458c3286965c20dc17dc461fa0670441dc0b62fc2c1186efee965fa1d8318b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_roots.zig",
+      "sha256": "2ed0ce408aa53706a185ca791c930da9baa5a0ec94791b024f18d2b889c928ad"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_proof.zig",
+      "sha256": "75cafdcc1c855458e8cb931d912f73895d971f434d6ab9305e2e6c598facba4c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "sha256": "3337806d63a144479ae8e3432fd38c875ccf980bd3dee6f3d69e39033f1f86d2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_verifier.zig",
+      "sha256": "6753c2f827b1f1251e3386185d4f74a64132ebda4690427497eedd3bfdf3da22"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_codec.zig",
+      "sha256": "5b4e499938c583f1798e6aa1f0e26827fc4661ffdf3acd184cd8cbda631bd915"
+    }
+  ],
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "range recursion:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_range16_recursive_test_root.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-range16-recursive-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_range16_recursive_codegen.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "pure_named_tests": 5,
+  "body_export": "stwo_range16_recursive_body_gate",
+  "body_executed": false,
+  "scope": "Actual range16 fixed-root/core borrowed verifier capture, shared typed AIR quotient equations, independent masks/DEEP/FRI/Merkle and exact B5SS/universal/word/range/PCS transcript. Public bus authenticates seal, plan, shard index/count, two first roots and open sum/count; distinct actual parent proof publication/fresh receipt, no CLI/global/default activation. Pure metadata/equation/encoding/allocation tests do not accept synthetic proof captures.",
+  "remaining": [
+    "sorted RAM-lane recursive verifier",
+    "other provider families",
+    "recursive global claim cancellation and completeness",
+    "durable provider-leaf transport",
+    "bounded reusable range setup cache",
+    "canonical driver activation after complete closure"
+  ]
+}

@@ -19,6 +19,7 @@ const Control = struct {
     run_calls: std.atomic.Value(usize) = .init(0),
     legacy_calls: std.atomic.Value(usize) = .init(0),
     live_states: std.atomic.Value(usize) = .init(0),
+    peak_live_states: std.atomic.Value(usize) = .init(0),
     barrier_target: usize = 0,
     barrier_entered: std.atomic.Value(usize) = .init(0),
     barrier_open: std.Thread.ResetEvent = .{},
@@ -117,7 +118,8 @@ const MockComponent = struct {
             .value = self.value,
             .run_error = self.run_error,
         };
-        _ = self.control.live_states.fetchAdd(1, .monotonic);
+        const live = self.control.live_states.fetchAdd(1, .monotonic) + 1;
+        _ = self.control.peak_live_states.fetchMax(live, .monotonic);
         return .{
             .context = state,
             .vtable = &PreparedState.vtable,
@@ -323,11 +325,16 @@ fn expectGenericTaskProfile(
     }
 }
 
-fn runRequestedComposition(
+fn runRequestedComposition(allocator: std.mem.Allocator, components: []const MockComponent, worker_count: usize, host_byte_budget: usize) !@import("../secure_column.zig").SecureColumnByCoords {
+    return runRequestedCompositionWithPreparation(allocator, components, worker_count, host_byte_budget, .eager);
+}
+
+fn runRequestedCompositionWithPreparation(
     allocator: std.mem.Allocator,
     components: []const MockComponent,
     worker_count: usize,
     host_byte_budget: usize,
+    preparation: prover_api.CpuCompositionPreparation,
 ) !@import("../secure_column.zig").SecureColumnByCoords {
     var pool: work_pool.WorkPool = undefined;
     try pool.initInPlaceWithOptions(.{
@@ -352,6 +359,7 @@ fn runRequestedComposition(
         QM31.fromU32Unchecked(3, 1, 0, 0),
         &trace,
         composition_execution.Execution{
+            .preparation = preparation,
             .worker_budget = try work_pool.WorkerBudget.init(worker_count),
             .pool = if (worker_count == 1) null else &pool,
             .host_byte_budget = host_byte_budget,
@@ -715,4 +723,41 @@ test "prepared domain run performs no allocation" {
     try prepared.run(&context);
     try std.testing.expect(!failing.has_induced_failure);
     try std.testing.expectEqual(@as(usize, 0), accumulator.next_power_index);
+}
+
+
+test "streamed prepared composition preserves powers and bounds live preparation" {
+    const a = std.testing.allocator;
+    for ([_]usize{1,2,4}) |workers| {
+        var control = Control{};
+        const components = [_]MockComponent{component(0,5,&control),component(1,7,&control),component(2,11,&control),component(3,13,&control)};
+        var reference = try runRequestedCompositionWithPreparation(a,&components,workers,2*1024*1024,.eager);
+        defer reference.deinit(a);
+        try std.testing.expectEqual(@as(usize,4),control.peak_live_states.load(.acquire));
+        control.peak_live_states.store(0,.release);
+        var streamed = try runRequestedCompositionWithPreparation(a,&components,workers,2*1024*1024,.streamed);
+        defer streamed.deinit(a);
+        try std.testing.expectEqual(@as(usize,1),control.peak_live_states.load(.acquire));
+        try std.testing.expectEqual(@as(usize,0),control.live_states.load(.acquire));
+        try std.testing.expectEqual(@as(usize,0),control.legacy_calls.load(.acquire));
+        for (0..reference.len()) |row| try std.testing.expectEqualDeep(reference.at(row),streamed.at(row));
+    }
+}
+fn streamedAllocationFailure(a: std.mem.Allocator) !void {
+    var control = Control{};
+    defer std.debug.assert(control.live_states.load(.acquire)==0);
+    const components = [_]MockComponent{component(0,5,&control),component(1,7,&control),component(2,11,&control)};
+    var result = try runRequestedCompositionWithPreparation(a,&components,1,2*1024*1024,.streamed);
+    defer result.deinit(a);
+}
+test "streamed prepared composition releases every failed allocation" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator,streamedAllocationFailure,.{});
+}
+test "streamed prepared composition stops and cleans up failed execution" {
+    var control = Control{};
+    var components = [_]MockComponent{component(0,5,&control),component(1,7,&control),component(2,11,&control)};
+    components[1].run_error = error.StreamedSentinel;
+    try std.testing.expectError(error.StreamedSentinel,runRequestedCompositionWithPreparation(std.testing.allocator,&components,2,2*1024*1024,.streamed));
+    try std.testing.expectEqual(@as(usize,0),control.live_states.load(.acquire));
+    try std.testing.expectEqual(@as(usize,2),control.prepare_calls.load(.acquire));
 }

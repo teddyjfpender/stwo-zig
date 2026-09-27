@@ -1,0 +1,22 @@
+{
+  "source_candidate": "recursive-parent-fixed-roster-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 19.219795458950102,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-parent-fixed-roster-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-recursive-parent-fixed-roster-focused-v1",
+    "bytes": 36326256,
+    "sha256": "0112b895173808c5c9354110c091f7515c932cd75658ed313d93313940028334"
+  }
+}

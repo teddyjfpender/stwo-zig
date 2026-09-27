@@ -1,0 +1,51 @@
+{
+  "scope": "CPU framed-node and PoW terminal-compression kernels; excludes witness, STARK proving, nonce search and recursion",
+  "build": "Zig 0.15.2 ReleaseFast -mcpu=native",
+  "iterations": 4096,
+  "samples": [
+    {
+      "sample": 0,
+      "operations": 16384,
+      "batch_first": false,
+      "node_scalar_ns": 4443208,
+      "node_batch4_ns": 3101250,
+      "pow_scalar_ns": 1644916,
+      "pow_batch4_ns": 1060542
+    },
+    {
+      "sample": 1,
+      "operations": 16384,
+      "batch_first": true,
+      "node_scalar_ns": 3155000,
+      "node_batch4_ns": 2839459,
+      "pow_scalar_ns": 737625,
+      "pow_batch4_ns": 481708
+    },
+    {
+      "sample": 2,
+      "operations": 16384,
+      "batch_first": true,
+      "node_scalar_ns": 3071833,
+      "node_batch4_ns": 1756375,
+      "pow_scalar_ns": 1261667,
+      "pow_batch4_ns": 808167
+    },
+    {
+      "sample": 3,
+      "operations": 16384,
+      "batch_first": false,
+      "node_scalar_ns": 2391375,
+      "node_batch4_ns": 1824583,
+      "pow_scalar_ns": 860042,
+      "pow_batch4_ns": 728125
+    }
+  ],
+  "caution": "Very short samples vary; do not extrapolate to end-to-end proving. All dynamic outputs matched.",
+  "source_sha256": {
+    "src/core/crypto/blake3_compression_batch.zig": "4e7c71978536451f1b6af5554b87db358564b07c65ca952f575dfb116c9b9b34",
+    "src/core/vcs_lifted/blake3_merkle.zig": "70232efc8101778310c037da36a93446907c45fb230f205e09dee45585b8dfd6",
+    "src/prover/pcs/blake3_pow_batch.zig": "ed64f415f028ab668aae637d1485ee3ecc515dbb6f356de6e2234b55b7c79f52",
+    "src/prover/blake3_frame_batch_benchmark.zig": "9cc1d9dcd57dd190166ff030a94421162997fb46722468cdffcadb0c155dfd73",
+    "src/prover/blake3_frame_batch_test_root.zig": "f9bea5b469663099c6f2801ec4e186677052138aeb2eeae3231541323152122c"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "source_candidate": "public-supply-streaming-v2-semantic-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 0.23653512500459328,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": true,
+  "tests_run": false,
+  "discovered_tests": 0,
+  "test_summary": [],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/public-supply-streaming-v2-semantic-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": null
+}

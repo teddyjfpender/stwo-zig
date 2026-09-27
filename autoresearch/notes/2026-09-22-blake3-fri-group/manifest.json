@@ -1,0 +1,10 @@
+{
+  "README.md": "f72848bd409aa5a76a85ca4a4b8fb380c5d277c2e946e462a96d594034f7cec3",
+  "sources/autoresearch/notes/20260922-blake3-fri-group-problem-match.md": "45dd90c188a985a155e6dad5eda87da90f8333f480322d6365d169a1dc3f2365",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "4a22344cefbfc0346ce4b11f1ce1fb01f8f1dc1a516fbd5b2bfb67a5e7d41a5f",
+  "sources/src/frontends/riscv/recursion/air/blake3_fri_group_test.zig": "5459f719bb92e8da3fb3fb122e6145c21758794fec431d7d479e9b6e3d128bb2",
+  "sources/src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig": "ef206a12f12b46e4da00d0bd7c325fdc41139fab6c667d2cdeb37caa486e79c3",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_capture_test.zig": "0e0cbc315847605913ec5cef5bca792c1d5eb799b5781a73e7ca43959ce1fad8",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "3db4c6d5e0c6ff2d573bbd255184bb4b7b7ce7783f25baf0d9a3a2b306d431ae",
+  "tests.log": "2f49978a39d718565ab721cf533dabc07312a7b23c1468815269a5ec139d3309"
+}

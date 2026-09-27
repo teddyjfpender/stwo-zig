@@ -188,7 +188,7 @@ pub fn replay(
                         return error.ExternalTapeMismatch;
                     recovery_index += 1;
                 },
-                .poseidon2_m31_permute_in_place_v1 => return error.InvalidExternalInstruction,
+                .poseidon2_m31_permute_in_place_v1, .sha256_compress_v1 => return error.InvalidExternalInstruction,
             }
             continue;
         }

@@ -1,0 +1,14 @@
+{
+  "source_archive": "block-stage-metrics-source.tar.gz",
+  "source_archive_sha256": "10322555cd667887ad0b751c13af5184700f0a8cdfa5af724fedb8b1f2eff0fd",
+  "source_sha256": {
+    "src/frontends/riscv/ethereum_block_stream.zig": "989cf323ce87defe687197465897e4827bb4c9ee119b2de134e030b54ed39676",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/run_block_measurements.py": "a29ab2e0b4339b25b6d4d5219a676c3752a6fd73a95347a375451aae63171714",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/build_stream_memory_lifetimes.py": "68dc6ad8d5ad4482add613b47ca2dfa2399022aefdc2b74b5228a8c10b438dfd"
+  },
+  "binary_sha256": "de8c7891e7f9b1c5faf12b09233f95077c6b8027a0aa084a739b65fce6355f9a",
+  "measurement_sha256": "f5a2b4510d57ac186b1f026666d827770812dd1bbe4ea1a0e66ec47386d86cc1",
+  "measurement": "measurements-auth1-canonical-stages/measurement.json",
+  "qualification": "complete authentication guest root; canonical CPU; not an Ethereum block",
+  "post_run_change": "Moved input hashing inside the serial build lock to bind the executable after any queued build; CLI syntax rechecked."
+}

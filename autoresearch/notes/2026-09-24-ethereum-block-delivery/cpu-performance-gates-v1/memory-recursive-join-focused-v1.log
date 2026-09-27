@@ -1,0 +1,15 @@
+1/14 block_v5_memory_recursive_join_test_root.test.recursive memory join qualification imports...OK
+2/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: exact original PAGE signs and open transition scalar parity...OK
+3/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: every original source and RAM closed coordinate is mandatory...OK
+4/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: range planes and per-shard deficits cannot pool or cancel...OK
+5/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: zero RAM still closes source roots and rejects residual endpoints...OK
+6/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: original scalar symbolic equations bind all49 routed inputs...OK
+7/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: every symbolic equation allocation failure releases owners...OK
+8/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: original RAM90 and range count secure transcript coordinates...OK
+9/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: transcript allocation failures preserve independent original admissions...OK
+10/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: resource rejection precedes any original child capture or proof...OK
+11/14 recursion.block_v5_memory_recursive_join_test_v1.test.recursive memory join: actual original leaf same parent prepare and fresh receiver bodies retained only...OK
+12/14 air.memory_commitment.poseidon2_air.test_0...OK
+13/14 air.lookups.tables.mod.test_0...OK
+14/14 air.lookups.tables.source_ingest.test_0...OK
+All 14 tests passed.

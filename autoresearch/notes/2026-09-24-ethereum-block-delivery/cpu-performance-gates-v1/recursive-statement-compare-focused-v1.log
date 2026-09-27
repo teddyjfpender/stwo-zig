@@ -1,0 +1,36 @@
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_components_v1.zig:274:45: error: unused capture
+                inline for (CoreAirs, 0..) |Air, i| {
+                                            ^~~
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_components_v1.zig:279:35: error: unused capture
+                for (KINDS, 0..) |table_kind, i| {
+                                  ^~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_components_v1.zig:303:46: error: unused capture
+                inline for (ArithAirs, 0..) |Air, i| {
+                                             ^~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:70:134: error: ambiguous reference
+        pub fn prepare(a: std.mem.Allocator, owner: *const Public.Owner, graph: *const Composition.Prepared, attempt_capacity: u32) !Prepared {
+                                                                                                                                     ^~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:33:13: note: declared here
+        pub const Prepared = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:303:5: note: also declared here
+pub const Prepared = Default.Prepared;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:75:139: error: ambiguous reference
+        pub fn prepareFixed(a: std.mem.Allocator, owner: *const Public.Owner, graph: *const Composition.Prepared, attempt_capacity: u32) !FixedPrepared {
+                                                                                                                                          ^~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:44:13: note: declared here
+        pub const FixedPrepared = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:305:5: note: also declared here
+pub const FixedPrepared = Default.FixedPrepared;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:78:180: error: ambiguous reference
+        fn prepareKernel(comptime fixed_only: bool, a: std.mem.Allocator, owner: *const Public.Owner, graph: *const Composition.Prepared, attempt_capacity: u32) !(if (fixed_only) FixedPrepared else Prepared) {
+                                                                                                                                                                                   ^~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:44:13: note: declared here
+        pub const FixedPrepared = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:305:5: note: also declared here
+pub const FixedPrepared = Default.FixedPrepared;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

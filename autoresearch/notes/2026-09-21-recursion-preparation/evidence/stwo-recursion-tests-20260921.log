@@ -1,0 +1,19 @@
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript' failed
+error: while executing test 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript', the following test command failed:
+./.zig-cache/o/57f5f40c5d683bfa83d96963f8ca3134/test --cache-dir=./.zig-cache --seed=0xf258970b --listen=-
+
+Build Summary: 5/8 steps succeeded; 1 failed; 9/10 tests passed; 1 failed
+test-recursive-compact-tuple-ledger success
++- Recursive compact tuple ledger guard success
+   +- run test 9 passed 582ms MaxRSS:5M
+      +- compile test ReleaseSafe native success 17s MaxRSS:1G
+test-recursive-segment-v2-detached-child transitive failure
++- SegmentV2 detached child guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/4fc80dfa400ff47db8068633f74a6206/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xf258970b -Z919f88a249aa1df6 --maxrss 25769803776 -j1 test-recursive-compact-tuple-ledger test-recursive-segment-v2-detached-child -Doptimize=ReleaseSafe --summary all

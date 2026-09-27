@@ -1,0 +1,146 @@
+{
+  "version": 2,
+  "status": "source_candidate_unqualified_revision2",
+  "scope": "B5SC real prechallenge bounded page witness commitments, exact independent metadata admission, original-tree leases and equation input candidates; not a source proof",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_first_protocol_v1.zig",
+      "sha256": "34619962ab8c374e6a8f1f74a2ff8c92681d9e42a4bf6077593407381fa0fdd2",
+      "bytes": 10428
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_first_columns_v1.zig",
+      "sha256": "713a3a99588757c3d315fcac5d7111a2632486c8279bc69daeb926cd4f3f267e",
+      "bytes": 8449
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_first_round_v1.zig",
+      "sha256": "886bfc83fe2aad7ebca17a65345d89a49d81fcda4ebdde997f9b96ae7e4f639d",
+      "bytes": 14001
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_first_test_v1.zig",
+      "sha256": "46d0305741fa711e34f579e36d14f36d7c137767aa0c5ca88b8be953fc813011",
+      "bytes": 12407
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_first_codegen.zig",
+      "sha256": "c9cf08e3c74a381c873f9799157d4ab359121726a9ce21d2e3e795fa573be48c",
+      "bytes": 684
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_first_test_root.zig",
+      "sha256": "42d6cf4943ecdd5b71f9a2ef7da3716db2778a4d5b0148b157e7eef9ae9e695d",
+      "bytes": 249
+    }
+  ],
+  "read_only_dependencies": [
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_crypto_v1.zig",
+      "sha256": "2874910940db0025294b87ec90a49041fa3e3558680c636a56f568701cddcbd2",
+      "bytes": 11507
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_equations_v1.zig",
+      "sha256": "d1611f6d0909bcbf868c086add3f9fc036f1fac86840eabdf18a7294e6f20b43",
+      "bytes": 24288
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_auth_protocol_v1.zig",
+      "sha256": "3ad74ff12dbdae745180f9d7873685b1fd3fbfb7bfba08887ac151acc0ea5b3b",
+      "bytes": 6678
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_stream_v1.zig",
+      "sha256": "fbb558f68ef9ab4675798e64f993574e8e702519aabc2838e7244444947cf312",
+      "bytes": 11857
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_circuit_v1.zig",
+      "sha256": "f8eedd4b7f72bea27040ccb8bc3206087b5e2a48fab46a306c26670ca229c42f",
+      "bytes": 10525
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a",
+      "bytes": 19174
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "sha256": "c3c1327f544317c7850adb8c9b467a14e33a1f95db965fcafbcce8cefa42ecb3",
+      "bytes": 5072
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_rw_endpoint_sources_v1.zig",
+      "sha256": "36cf8e6a4c4d51a85eda0d29efe4a16a029f5140d2d87227762c82fb7871a584",
+      "bytes": 8973
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_initial_sources_v1.zig",
+      "sha256": "009840797a275e5bda57fdde35a8fccdedb92975c24e5a348f8453734a755a7e",
+      "bytes": 8978
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_shared_first_round_v1.zig",
+      "sha256": "136d2d6085eae7026f974a7d04f032bd7128f03758194833f0f05e3f008ab04d",
+      "bytes": 2172
+    },
+    {
+      "path": "src/frontends/riscv/air/block/memory_component_trace.zig",
+      "sha256": "2a43313674f62742f397be332d7cc2faebd46e4763c524246b36c94fe0797f85",
+      "bytes": 15400
+    },
+    {
+      "path": "src/frontends/riscv/prover/blake3_execution_protocol.zig",
+      "sha256": "f73d2cf539b6217202ded332dca133b74cd52e688bf1b597c85550d934a49a98",
+      "bytes": 6668
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "sha256": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+      "bytes": 16483
+    },
+    {
+      "path": "src/prover/pcs/commitment_tree.zig",
+      "sha256": "84e12f093aaf78f0c1398a2de0919eae69fc41283953170e169e4d635a877f09",
+      "bytes": 27659
+    }
+  ],
+  "checks": [
+    "source first metadata: exact census tail roster source identity and configured caps",
+    "source first transcript: full source roster precedes internal draws while word draws remain exact",
+    "source first draw allocations: every challenge allocation failure propagates without leaks",
+    "source first columns: all private graph inputs exact circle placement full clocks and canonical tail",
+    "source first allocations: every column-owner allocation failure cleans up",
+    "source first collection phase: empty files require all five real SHA chunks and no synthetic absence",
+    "source first bodies: actual bounded commitment fixed reconstruction and original-tree lease retained",
+    "source first root"
+  ],
+  "root": "src/frontends/riscv/block_v5_memory_source_first_test_root.zig",
+  "root_only_command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_memory_source_first_test_root.zig",
+    "--optimize",
+    "ReleaseFast",
+    "source first"
+  ],
+  "executed_here": [
+    "zig fmt only"
+  ],
+  "unchanged_equations_receipt": "Root reported full12/12 source equations and independent crypto Debug/ReleaseFast parity; no source STARK authority",
+  "pending": [
+    "same-original-main input binding arithmetic component",
+    "actual source arithmetic STARK and typed fresh recursive leaf",
+    "bounded durable/replay multi-page witness lifecycle with recommit",
+    "exact-once chunk aggregation and sorted initial/endpoint bus joins",
+    "durable typed source transport and CoveragePlan activation"
+  ],
+  "previous_candidate": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-first-round-source-candidate-v1.json",
+  "revision_reason": "Root semantic v1 stopped before execution: init local rows shadows Columns.rows method. Rename only init local row_count; preserve original authority and failed snapshot.",
+  "changed_sources": [
+    "src/frontends/riscv/prover/block_v5_memory_source_first_columns_v1.zig"
+  ],
+  "failed_evidence": "Root first-round semantic-v1 compile failure; no tests executed."
+}

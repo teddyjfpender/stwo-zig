@@ -1,0 +1,22 @@
+1/21 block_v5_recursive_source_frame_check_test_root.test_0...OK
+2/21 block_v5_recursive_source_frame_check_test_root.test.recursive source frame check: real PUBLIC21 VERSION20 Source and Admission validation bodies without invocation...OK
+3/21 prover.block_v5_recursive_source_frame_check_test_v1.test.recursive source frame check: original PUBLIC21 VERSION20 recording matches repeated allocation-free validation...OK
+4/21 prover.block_v5_recursive_source_frame_check_test_v1.test.recursive source frame check: original payload coordinate and canonical mutations reject through actual validation helper...OK
+5/21 prover.block_v5_recursive_source_frame_check_test_v1.test.recursive source frame check: identical original calls cannot waive nonempty final-singleton or original felt-count grammar...OK
+6/21 prover.block_v5_recursive_source_frame_check_test_v1.test.recursive source frame check: scaled PUBLIC21 original record and validation preserve every root without offset inventory...OK
+7/21 prover.block_v5_recursive_source_frame_check_test_v1.test.recursive source frame check: all source configured word step and public felt limits stay independently pinned...OK
+8/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: original Builder replay and PUBLIC21 VERSION20 framing oracles match exactly...OK
+9/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: every raw word and field limb mutation rejects without reduction...OK
+10/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: every operation tag offset and span length mutation rejects before slicing...OK
+11/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: identical payload regrouping root integer alias and empty-call changes reject...OK
+12/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: every truncated inventory and unused words felts steps or claims rejects...OK
+13/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: independently supplied auxiliary offsets and all limits remain strict...OK
+14/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: bounded admission precedes invalid borrowed storage and cursor errors stay poisoned...OK
+15/21 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: repeated comparison uses no allocator and eighty root operations have no fixed root cap...OK
+16/21 prover.block_execution_external_trace_v2.test_0...OK
+17/21 air.lookups.tables.mod.test_0...OK
+18/21 air.semantic_eval.test_0...OK
+19/21 prover.block_execution_external_access_bridge_v2.test_0...OK
+20/21 air.memory_commitment.poseidon2_air.test_0...OK
+21/21 air.lookups.tables.source_ingest.test_0...OK
+All 21 tests passed.

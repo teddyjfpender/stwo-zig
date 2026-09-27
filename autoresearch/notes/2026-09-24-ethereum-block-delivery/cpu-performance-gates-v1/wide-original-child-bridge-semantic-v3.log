@@ -1,0 +1,21 @@
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:369:57: error: expected type 'recursion.block_v5_pc_clock_span_v1.Span', found '?recursion.block_v5_pc_clock_span_v1.Span'
+                if (!std.meta.eql(source.span.?, checked.pc_clock_span)) return error.UntrustedWideOriginalFreshSpan;
+                                                 ~~~~~~~^~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:369:57: note: cannot convert optional to payload type
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:369:57: note: consider using '.?', 'orelse', or 'if'
+src/frontends/riscv/recursion/block_v5_pc_clock_span_v1.zig:9:18: note: struct declared here
+pub const Span = struct {
+                 ^~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/meta.zig:707:27: note: parameter type declared here
+pub fn eql(a: anytype, b: @TypeOf(a)) bool {
+                          ^~~~~~~~~~
+referenced by:
+    stwo_wide_original_bridge_body_gate: src/frontends/riscv/block_v5_wide_original_bridge_codegen_v1.zig:25:30
+    stwo_wide_original_bridge_body_gate: src/frontends/riscv/block_v5_wide_original_bridge_codegen_v1.zig:22:5
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:371:61: error: expected optional type, found 'recursion.block_v5_pc_clock_span_v1.Span'
+                const original_span = checked.pc_clock_span orelse return error.UntrustedWideOriginalFreshSpan;
+                                      ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_pc_clock_span_v1.zig:9:18: note: struct declared here
+pub const Span = struct {
+                 ^~~~~~

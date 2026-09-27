@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "runtime": "native",
+  "example": "blake3-recursive-parent",
+  "stages": [
+    {
+      "id": "parent.validation",
+      "label": "Authenticated row validation",
+      "seconds": 0.017795,
+      "children": null
+    },
+    {
+      "id": "parent.main_setup",
+      "label": "Main columns and lookup counts",
+      "seconds": 13.8334,
+      "children": null
+    },
+    {
+      "id": "parent.main_commit",
+      "label": "Main commitment",
+      "seconds": 2.879154,
+      "children": null
+    },
+    {
+      "id": "parent.interaction_generation",
+      "label": "Interaction generation",
+      "seconds": 11.415324,
+      "children": null
+    },
+    {
+      "id": "parent.interaction_commit",
+      "label": "Interaction commitment",
+      "seconds": 2.809272,
+      "children": null
+    },
+    {
+      "id": "parent.core",
+      "label": "Core STARK proof",
+      "seconds": 14.042505,
+      "children": [
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 4e-06,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 2.481573,
+          "children": null
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.028576,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.193828,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 7.2e-05,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 10.489638,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 4.1e-05,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.672803,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.106101,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.009366,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.001817,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 7.8e-05,
+          "children": null
+        }
+      ]
+    }
+  ]
+}

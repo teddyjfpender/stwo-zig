@@ -1,0 +1,58 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "status": "passed",
+  "tests_passed": 8,
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "test": "block-v5 open native v3 parent verifies two child equations and PC clock edges",
+  "native_version": 3,
+  "children": 2,
+  "native_perleaf_plan": false,
+  "child_native_recursive_stark_equations_fresh_verified": true,
+  "child_pcs_transcript_fri_merkle_fresh_verified": true,
+  "symbolic_child_public_supply_closed": true,
+  "dynamic_child_tuple_public_inputs": true,
+  "pc_cycle_index_edge_constraints": true,
+  "parent_fixed_rows": 1410142,
+  "parent_public_wires": 485,
+  "parent_proof_bytes": 140669,
+  "child_proof_bytes": [
+    125097,
+    128499
+  ],
+  "negatives": {
+    "changed_native_exported_open_claim_fresh_rejected": true,
+    "changed_routed_pc_graph_input_unsatisfied_circuit": true,
+    "discontinuous_independent_pc_policy_rejected": true
+  },
+  "allocator_teardown": "std.testing.allocator clean",
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "complete_block_authority": false,
+  "global_relations_still_open": [
+    "program",
+    "ordinary universal memory",
+    "global lookup",
+    "precompile",
+    "RW/register/public endpoints"
+  ],
+  "scope": "Actual two-leaf native-v3 recursive STARKs and actual new parent STARK, under lightweight native public admission, PC/clock-only public compensation and diagnostic q8. Parent setup fixes geometry, routing and child setup identities; changing child tuple values are routed main inputs. No legacy claim-zero or old span/forest receipt is relabeled. Other family first-round entries are placeholders.",
+  "limitations": [
+    "This gate is two/four leaf-to-parent only; nested five-leaf exact forest is the next required architecture slice.",
+    "Conditional PC span still requires per-instance PC partition attestation and full global provider closure before complete block authority.",
+    "No canonical q70, mainnet proof or tracked stage peak/time measured."
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/recursion/block_v5_open_parent_public_bus_v1.zig": "8cbf329052dfe35855f3794cbbb9a1b475c7b2fe032a229c5c48bc25228520f2",
+    "src/frontends/riscv/recursion/block_v5_open_parent_preparation_v1.zig": "3ace263a6e602d3eb3b742af1086188a790d8f61138e014dd6d55f90cb4d3ce7",
+    "src/frontends/riscv/recursion/block_v5_reusable_open_parent_protocol_v1.zig": "5d400f6289ae592376bc1b3b5589c7d8f634bbfd7642586a77696529d2ee760f",
+    "src/frontends/riscv/recursion/block_v5_open_parent_receiver_v1.zig": "e34ba378781db68e2aaa877692ed31d0b734c05dca58a27ee504834cf162d827",
+    "src/frontends/riscv/recursion/air/block_v5_open_parent_composition_v1.zig": "535f925a0f293ee42eb87df891aaa30396a7c62cdcd45eda5233ac8ffa1b4a6a",
+    "src/frontends/riscv/recursion/air/block_v5_open_parent_transcript_v1.zig": "ee33b86796d749ef7ab11fdef0d4394695bbeaab0da187299b9ef1b261b5d5fc",
+    "src/frontends/riscv/prover/block_v5_lightweight_native_proof_test.zig": "e2c92442ec308787b45b0ce016c696b4bbe0b2e02e05ee947ba9063f442e0e05"
+  },
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_lightweight_native_test_root.zig 'block-v5 open native v3 parent verifies two child equations and PC clock edges'"
+}

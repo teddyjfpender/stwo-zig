@@ -1,0 +1,22 @@
+1/21 block_v5_source_ram_forest_join_fixed_assembly_test_root_v1.test_0...OK
+2/21 block_v5_source_ram_forest_join_fixed_assembly_test_root_v1.test.compact memory fixed assembly: actual PAGE16 RAM19 V20 FINAL22 independent production bodies retained...OK
+3/21 block_v5_source_ram_forest_join_fixed_assembly_test_root_v1.test.compact memory fixed assembly: explicit legacy source recipe...OK
+4/21 prover.block_v5_ram_range_forest_fixed_assembly_test_v1.test.compact memory fixed assembly: VERSION19 exact original context and child order...OK
+5/21 prover.block_v5_ram_range_forest_fixed_assembly_test_v1.test.compact memory fixed assembly: VERSION20 exact original expected key namespaces and closures...OK
+6/21 prover.block_v5_ram_range_forest_fixed_assembly_test_v1.test.compact memory fixed assembly: ordinal census plan and seal mutations change original contexts...OK
+7/21 prover.block_v5_ram_range_forest_fixed_assembly_test_v1.test.compact memory fixed assembly: limits fail before dereferencing original admissions...OK
+8/21 prover.block_v5_ram_range_forest_fixed_assembly_test_v1.test.compact memory fixed assembly: independent metadata live caps retained backing and OOM...OK
+9/21 prover.block_v5_compact_fixed_spec_inventory_test_v1.test.compact memory fixed assembly: bounded selected inventory exact17 no rounding or host authority...OK
+10/21 prover.block_v5_compact_fixed_spec_inventory_test_v1.test.compact memory fixed assembly: re-sealed selector key identity order and inventory mutations reject original pin...OK
+11/21 prover.block_v5_compact_fixed_spec_inventory_test_v1.test.compact memory fixed assembly: inventory bounds empty absence and allocation failures...OK
+12/21 prover.block_v5_source_ram_forest_join_fixed_assembly_test_v1.test.compact memory fixed assembly: PAGE16 exact original namespace graph closure contexts...OK
+13/21 prover.block_v5_source_ram_forest_join_fixed_assembly_test_v1.test.compact memory fixed assembly: V20 original independent forests required and resource guards first...OK
+14/21 prover.block_v5_source_ram_forest_join_fixed_assembly_test_v1.test.compact memory fixed assembly: borrowed catalogues reject controls and missing independent semantic claims before recipes...OK
+15/21 prover.block_v5_source_ram_forest_join_fixed_assembly_test_v1.test.compact memory fixed assembly: direct result allocator custody and all metadata allocation failures...OK
+16/21 prover.block_execution_external_trace_v2.test_0...OK
+17/21 air.lookups.tables.mod.test_0...OK
+18/21 air.semantic_eval.test_0...OK
+19/21 prover.block_execution_external_access_bridge_v2.test_0...OK
+20/21 air.memory_commitment.poseidon2_air.test_0...OK
+21/21 air.lookups.tables.source_ingest.test_0...OK
+All 21 tests passed.

@@ -1,0 +1,9 @@
+src/frontends/riscv/recursion/block_v5_requester_memory_public_v1.zig:55:61: error: no field named 'config' in struct 'prover.block_v5_source_seal_v1.Sealed'
+            !std.meta.eql(meta.security.base, forest.sealed.config) or
+                                                            ^~~~~~
+src/frontends/riscv/prover/block_v5_source_seal_v1.zig:115:20: note: struct declared here
+pub const Sealed = struct {
+                   ^~~~~~
+referenced by:
+    prepare: src/frontends/riscv/recursion/block_v5_requester_memory_preparation_v1.zig:32:24
+    test.requester memory join: actual genuine two-root child verifier preparation producer and standalone receiver bodies retained only: src/frontends/riscv/block_v5_requester_memory_test_root.zig:9:33

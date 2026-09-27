@@ -1,0 +1,108 @@
+{
+  "producer_sha256": "981e33d32f98e11b204a1b3b59006b35d90a02e860a39ed852e63452d0429f7e",
+  "expected": {
+    "key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+    "proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb"
+  },
+  "passed": true,
+  "workers": 1,
+  "memory_budget_bytes": 8000000000,
+  "memory_scope": "caller reservations; not measured peak RSS",
+  "jobs": {
+    "parent-0": {
+      "accepted": true,
+      "dependencies": [],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/tmp/stwo-recursion-worker-cpu-20260921/bin/recursive-segment-v2-detached-parent-prove",
+            "--profile",
+            "tiny-parent-root-v2",
+            "/tmp/stwo-recursion-worker-qualification-20260921/cpu/parent-0",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+            "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+            "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+            "--parent-key-sha256",
+            "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+            "--proof-profile",
+            "recursive_q193_v1"
+          ],
+          "log": "/tmp/stwo-recursion-worker-qualification-20260921/cpu/logs/parent-0-0.log",
+          "started_ns": 155292,
+          "exit_code": 0,
+          "seconds": 9.097151958
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/tmp/stwo-recursion-worker-qualification-20260921/cpu/parent-0",
+            "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+          ],
+          "log": "/tmp/stwo-recursion-worker-qualification-20260921/cpu/logs/parent-0-1.log",
+          "started_ns": 9098735208,
+          "exit_code": 0,
+          "seconds": 0.0901135
+        }
+      ],
+      "completed_ns": 9190026000
+    },
+    "parent-1": {
+      "accepted": true,
+      "dependencies": [
+        "parent-0"
+      ],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/tmp/stwo-recursion-worker-cpu-20260921/bin/recursive-segment-v2-detached-parent-prove",
+            "--profile",
+            "tiny-parent-root-v2",
+            "/tmp/stwo-recursion-worker-qualification-20260921/cpu/parent-1",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0",
+            "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1",
+            "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+            "--parent-key-sha256",
+            "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+            "--proof-profile",
+            "recursive_q193_v1"
+          ],
+          "log": "/tmp/stwo-recursion-worker-qualification-20260921/cpu/logs/parent-1-0.log",
+          "started_ns": 9190078667,
+          "exit_code": 0,
+          "seconds": 8.615990416
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/tmp/stwo-recursion-worker-qualification-20260921/cpu/parent-1",
+            "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+          ],
+          "log": "/tmp/stwo-recursion-worker-qualification-20260921/cpu/logs/parent-1-1.log",
+          "started_ns": 17807352333,
+          "exit_code": 0,
+          "seconds": 0.0901255
+        }
+      ],
+      "completed_ns": 17898760125
+    }
+  },
+  "maximum_reserved_bytes": 8000000000,
+  "maximum_active_jobs": 1,
+  "resident_worker_reservation_bytes": 8000000000,
+  "wall_ns": 17903473417
+}

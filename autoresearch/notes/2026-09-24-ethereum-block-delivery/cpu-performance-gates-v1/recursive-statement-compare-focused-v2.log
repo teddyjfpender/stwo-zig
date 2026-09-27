@@ -1,0 +1,10 @@
+1/9 block_v5_recursive_statement_compare_test_root.test_0...OK
+2/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: original Builder replay and PUBLIC21 VERSION20 framing oracles match exactly...OK
+3/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: every raw word and field limb mutation rejects without reduction...OK
+4/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: every operation tag offset and span length mutation rejects before slicing...OK
+5/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: identical payload regrouping root integer alias and empty-call changes reject...OK
+6/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: every truncated inventory and unused words felts steps or claims rejects...OK
+7/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: independently supplied auxiliary offsets and all limits remain strict...OK
+8/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: bounded admission precedes invalid borrowed storage and cursor errors stay poisoned...OK
+9/9 prover.block_v5_recursive_statement_compare_test_v1.test.recursive statement compare: repeated comparison uses no allocator and eighty root operations have no fixed root cap...OK
+All 9 tests passed.

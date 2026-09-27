@@ -1,0 +1,13 @@
+{
+  "README.md": "469e4440a88a4d2db86c496313587fe1416aab5317fda0a5ac5ec55865518e6b",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/autoresearch/notes/20260921-blake3-merkle-path-problem-match.md": "4e07ded629d90925a3c3cc6431a4f0541599bff565552e393baf894953053b9c",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "b8212b820cc222e511d4d728d0c366e8dedad6df136620d107cf463f1e0e5675",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "93b73e72e31426814257e411eefb27c273bd897fadb94687260aea22b6352f20",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "816e46e031d1606866c68e985b88a737ee2fef79edc021360eddf6fe9d306381",
+  "sources/src/frontends/riscv/recursion/air/blake3_merkle_path_test.zig": "e217ce1469747eb2098687d28fa435e89b097a6a2cb0c56331e074adf5db6204",
+  "sources/src/frontends/riscv/recursion/air/blake3_merkle_path_witness.zig": "579b11cf891341a614c4fa530ab7ff18b180d829faf26d8ff045a44237711967",
+  "sources/src/frontends/riscv/recursion/air/blake3_private_word.zig": "3460c06a03497cd826363c0b74d637133429b7b69fc89d730ee3385410e7b047",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "2542121b4014fcc07080023a1d2a82bea34083d2a1eaf01b6fd0eb608067368a",
+  "tests.log": "12c64a7377761258294c8acecbabbf6695918a2d317c3de2159b4ff4da083404"
+}

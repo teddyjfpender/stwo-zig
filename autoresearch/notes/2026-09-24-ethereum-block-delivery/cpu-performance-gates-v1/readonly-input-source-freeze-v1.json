@@ -1,0 +1,43 @@
+{
+  "schema": "readonly-input-source-freeze-v1",
+  "status": "source_frozen_unqualified",
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_plan_v1.zig",
+      "sha256": "a005b891c88b1bb68f10aa4f71f4f5b7481dc50ef0c738eb19661b492e8a4f80"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_protocol_v1.zig",
+      "sha256": "1d844057c27d6c41c7df7fbf7648fc70bd258253a7cf92b17c244e86116cb925"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_component_v1.zig",
+      "sha256": "17938fe3ad786b70d2065fa24df5f497e6c06465dad057e27bbdc7a5d63cf407"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_proof_v1.zig",
+      "sha256": "6a61881520f91b7a57009d1f6d26d0bcaec05155a989f168ac6749137ce8ea6a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_receiver_v1.zig",
+      "sha256": "7b62195e107f2994829aea009ea9b11cfacfd1c617ad7051b33698da63ff63e6"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_unit_test.zig",
+      "sha256": "aa5ecf55741527111331f7481a26aadfb6cd32d21a8c26c2ac991a48ddb01c4f"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_readonly_input_unit_test_root.zig",
+      "sha256": "c03a4d98a2f350ac796f08bdeabd52aa7d108876f33f0a287de7630772215c84"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_domain_rows_v1.zig",
+      "sha256": "630a640b95b594a925f41ecc8a0ca2af70c96306cfd4d563a1fa96693c34811b"
+    }
+  ],
+  "scope": "Scoped authenticated classification; actual producer and internally fresh native/caller receiver bodies; canonical fusion, transport and RAM subtraction inactive.",
+  "test_root": "src/frontends/riscv/block_v5_readonly_input_unit_test_root.zig",
+  "test_filter": "block-v5 readonly input",
+  "stark_proved": false,
+  "segments_executed": false
+}

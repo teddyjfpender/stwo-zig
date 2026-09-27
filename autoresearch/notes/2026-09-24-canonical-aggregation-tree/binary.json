@@ -1,0 +1,15 @@
+{
+  "sha256": "8dba30fe171dff0fed2df82abfd97f78e1d26da605cd8d278ac3dbf2b65e457b",
+  "source_binary": "src/integrations/riscv_metal/.zig-cache/o/97cb29e89c204bdf9ad666ba0459704a/test",
+  "bundle": "../2026-09-24-canonical-parent-pipeline/core",
+  "parameters": {
+    "queries": 70,
+    "pow_bits": 26,
+    "leaf_backend": "CPU",
+    "parent_backend": "Metal",
+    "parent_workers": 8,
+    "allocator": "smp",
+    "whole_test_routed_limit_bytes": 51539607552,
+    "parent_worker_limit_bytes": 34359738368
+  }
+}

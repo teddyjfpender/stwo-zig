@@ -1,0 +1,116 @@
+{
+  "status": "qualified_nonproving_unified_memory_source_page",
+  "evidence": {
+    "memory-source-unified-page-semantic-v1": {
+      "source_candidate": "memory-source-unified-page-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 1.9073313749977387,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-unified-page-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-unified-page-semantic-v2": {
+      "source_candidate": "memory-source-unified-page-semantic-v2-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 2.5030559999868274,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-unified-page-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-unified-page-semantic-v3": {
+      "source_candidate": "memory-source-unified-page-semantic-v3-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 2.529865249991417,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-unified-page-semantic-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-unified-page-semantic-v4": {
+      "source_candidate": "memory-source-unified-page-semantic-v4-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.9211854999884963,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-unified-page-semantic-v4.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-unified-page-focused-v1": {
+      "source_candidate": "memory-source-unified-page-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 20.85449720802717,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 20,
+      "test_summary": [
+        "All 20 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-unified-page-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-unified-page-focused-v1",
+        "bytes": 26506160,
+        "sha256": "cf26ab35b305f033d2754e685d63744253aa31710d2b058f8bf9ce0359cc0691"
+      }
+    }
+  },
+  "tests_passed": 20,
+  "source_snapshot": "memory-source-unified-page-focused-v1-source.json",
+  "literal_dependency_pins": 1717,
+  "scope": [
+    "Original raw SHA and fold BLAKE six-root producer and fresh independent ten-tree receiver bodies retained, never invoked",
+    "Original framing, capture boundary, input routing, arithmetic fixed reconstruction and separate local claim closures",
+    "Shared masks and scalar/off-domain equations; compact full-clock operands; allocation rollback; bounded strict codec"
+  ],
+  "repairs": [
+    "Explicit raw/fold ownership branch",
+    "Canonical arithmetic proof-kind selectors and full-row interaction padding",
+    "Shared setup honors original AIR Location build argument",
+    "Compile-time parameter values copied without escaping compile-time pointers",
+    "Test helper shadowed argument renamed"
+  ],
+  "not_qualified": [
+    "Actual proving and fresh verification of a PAGE proof",
+    "PAGE job staging and publication",
+    "Fresh PAGE/lane/range join runtime and final recursive integration",
+    "Complete block proof, canonical activation, speed or peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

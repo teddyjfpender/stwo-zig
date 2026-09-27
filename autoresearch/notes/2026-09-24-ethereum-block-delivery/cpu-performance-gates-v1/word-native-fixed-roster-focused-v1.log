@@ -1,0 +1,11 @@
+src/frontends/riscv/prover/block_v5_word_fixed_sources_test_v1.zig:111:18: error: evaluation exceeded 1000 backwards branches
+    defer inline for (0..Storage.Airs.len) |i| a.free(fixed[i]);
+          ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_word_fixed_sources_test_v1.zig:111:18: note: use @setEvalBranchQuota() to raise the branch limit from 1000
+referenced by:
+    test.word fixed sources: native RAM private root and sample suppliers preserve external public ports: src/frontends/riscv/prover/block_v5_word_fixed_sources_test_v1.zig:128:15
+    test_0: src/frontends/riscv/block_v5_word_fixed_sources_test_root_v1.zig:2:17
+src/frontends/riscv/prover/block_v5_word_fixed_sources_test_v1.zig:111:18: error: evaluation exceeded 1000 backwards branches
+    defer inline for (0..Storage.Airs.len) |i| a.free(fixed[i]);
+          ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_word_fixed_sources_test_v1.zig:111:18: note: use @setEvalBranchQuota() to raise the branch limit from 1000

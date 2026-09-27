@@ -1,0 +1,16 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=9520 removed_scalars=38080
+BLAKE3_NATIVE_FUSION dot4=19973 fma=59595 arithmetic_rows=172288
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.013289,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":5.103233,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":6.856149,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":6.280878,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":7.32509,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":21.911008,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000004,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000024,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":10.582203,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.064095,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":1.600248,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.015002,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":4.118182,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000056,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":4.178014,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":1.234407,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.033159,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.021848,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000097,"children":null}]}]}
+CANONICAL_PARENT_MEMORY peak_bytes=15001605778 limit_bytes=25769803776
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=850599 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40712 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=494897 independently_verified=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-statement-codecs success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 2m MaxRSS:17G
+

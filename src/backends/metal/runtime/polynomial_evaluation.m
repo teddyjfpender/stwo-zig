@@ -1,3 +1,306 @@
+// Synchronous sampled scratch uses an allocator-bearing constructor ledger.
+// Numeric payloads are logical extents; framework objects/rounding are separate.
+typedef struct {
+    size_t run_bytes, wave_bytes, dispatches;
+} StwoSampledStreamPolicyV1;
+static const StwoSampledStreamPolicyV1 sampled_stream_policy = {
+    64u * 1024u * 1024u, 256u * 1024u * 1024u, 128u
+};
+typedef bool (*StwoSampledBudgetAdmitV1)(void *, size_t, uint32_t);
+typedef struct {
+    uint64_t device_live_bytes, native_live_bytes, alias_live_bytes;
+    uint64_t device_peak_bytes, native_peak_bytes, alias_peak_bytes;
+    uint64_t external_peak_bytes, owned_allocations, alias_allocations;
+    uint64_t submitted, joined;
+} StwoSampledBudgetReceiptV1;
+_Static_assert(sizeof(StwoSampledBudgetReceiptV1) == 88u, "Sampled budget receipt ABI");
+typedef struct {
+    void *context;
+    StwoSampledBudgetAdmitV1 admit;
+    StwoSampledBudgetReceiptV1 *receipt;
+} StwoSampledBudgetLedgerV1;
+
+static bool sampled_budget_apply(StwoSampledBudgetLedgerV1 *ledger,
+                                  size_t bytes, uint32_t operation) {
+    if (bytes == 0u || operation > 5u) return false;
+    StwoSampledBudgetReceiptV1 next = *ledger->receipt;
+    uint64_t *live = (operation % 3u == 0u) ? &next.device_live_bytes
+        : (operation % 3u == 1u) ? &next.native_live_bytes : &next.alias_live_bytes;
+    if (operation < 3u) {
+        uint64_t *count = operation == 2u ? &next.alias_allocations : &next.owned_allocations;
+        if (UINT64_MAX - *live < bytes || *count == UINT64_MAX) return false;
+        *live += bytes;
+        *count += 1u;
+    } else {
+        if (*live < bytes) return false;
+        *live -= bytes;
+    }
+    if (UINT64_MAX - next.device_live_bytes < next.native_live_bytes) return false;
+    if (ledger->admit != NULL && !ledger->admit(ledger->context, bytes, operation)) return false;
+    next.device_peak_bytes = MAX(next.device_peak_bytes, next.device_live_bytes);
+    next.native_peak_bytes = MAX(next.native_peak_bytes, next.native_live_bytes);
+    next.alias_peak_bytes = MAX(next.alias_peak_bytes, next.alias_live_bytes);
+    next.external_peak_bytes = MAX(next.external_peak_bytes,
+                                   next.device_live_bytes + next.native_live_bytes);
+    *ledger->receipt = next;
+    return true;
+}
+static bool sampled_budget_release_all(StwoSampledBudgetLedgerV1 *ledger) {
+    bool ok = true;
+    if (ledger->receipt->device_live_bytes != 0u)
+        ok = sampled_budget_apply(ledger, ledger->receipt->device_live_bytes, 3u) && ok;
+    if (ledger->receipt->native_live_bytes != 0u)
+        ok = sampled_budget_apply(ledger, ledger->receipt->native_live_bytes, 4u) && ok;
+    if (ledger->receipt->alias_live_bytes != 0u)
+        ok = sampled_budget_apply(ledger, ledger->receipt->alias_live_bytes, 5u) && ok;
+    return ok;
+}
+// Explicit retained returns avoid an outer autoreleasepool keeping completed
+// commands/encoders (and their buffer references) alive across wave release.
+static id<MTLCommandBuffer> sampled_owned_command(StwoZigMetalRuntime *runtime)
+    __attribute__((ns_returns_retained));
+static id<MTLCommandBuffer> sampled_owned_command(StwoZigMetalRuntime *runtime) {
+    @autoreleasepool { return [runtime.queue commandBuffer]; }
+}
+static id<MTLComputeCommandEncoder> sampled_owned_encoder(id<MTLCommandBuffer> command)
+    __attribute__((ns_returns_retained));
+static id<MTLComputeCommandEncoder> sampled_owned_encoder(id<MTLCommandBuffer> command) {
+    @autoreleasepool { return [command computeCommandEncoder]; }
+}
+
+static id<MTLBuffer> sampled_owned_buffer(StwoZigMetalRuntime *runtime,
+        const void *bytes, size_t length, MTLResourceOptions options,
+        StwoSampledBudgetLedgerV1 *ledger) {
+    if (length == 0u || length > runtime.device.maxBufferLength ||
+        !sampled_budget_apply(ledger, length, 0u)) return nil;
+    return bytes != NULL ? [runtime.device newBufferWithBytes:bytes length:length options:options]
+                         : [runtime.device newBufferWithLength:length options:options];
+}
+static NSMutableData *sampled_owned_data(size_t length, bool capacity,
+                                         StwoSampledBudgetLedgerV1 *ledger) {
+    if (length == 0u || !sampled_budget_apply(ledger, length, 1u)) return nil;
+    return capacity ? [NSMutableData dataWithCapacity:length]
+                    : [NSMutableData dataWithLength:length];
+}
+
+static bool sampled_coefficient_evaluate_v2(
+    void *runtime_ptr,
+    const uint32_t *const *coefficients,
+    const size_t *coefficient_lengths,
+    uint32_t coefficient_column_count,
+    size_t coefficient_count,
+    const uint32_t *factors, size_t factor_word_count,
+    const void *basis_tasks, uint32_t basis_task_count,
+    uint32_t basis_count,
+    const void *tasks, const uint32_t *task_columns, uint32_t task_count,
+    uint32_t output_count,
+    uint32_t *output,
+    uint32_t *basis_threadgroup_width,
+    uint32_t *evaluation_threadgroup_width,
+    double *gpu_milliseconds,
+    char *error_message, size_t error_message_len,
+    StwoSampledBudgetLedgerV1 *ledger, bool allow_unowned_aliases,
+    const StwoSampledStreamPolicyV1 *stream_policy
+) {
+    if (stream_policy == NULL || stream_policy->run_bytes < 4u ||
+        stream_policy->run_bytes % 4u != 0u || stream_policy->wave_bytes == 0u ||
+        stream_policy->dispatches == 0u ||
+        runtime_ptr == NULL || coefficients == NULL || coefficient_lengths == NULL ||
+        coefficient_column_count == 0u || coefficient_count == 0u || coefficient_count > UINT32_MAX ||
+        (factor_word_count != 0u && factors == NULL) || factor_word_count > SIZE_MAX / 4u ||
+        basis_tasks == NULL || basis_task_count == 0u || basis_count == 0u ||
+        tasks == NULL || task_columns == NULL || task_count == 0u || output == NULL ||
+        output_count == 0u || output_count > UINT32_MAX / 4u) {
+        write_error(error_message, error_message_len, @"Invalid sampled coefficient arguments");
+        return false;
+    }
+    size_t actual_words = 0u;
+    for (uint32_t i = 0u; i < coefficient_column_count; ++i) {
+        if (coefficients[i] == NULL || coefficient_lengths[i] == 0u ||
+            coefficient_lengths[i] > UINT32_MAX - actual_words) return false;
+        actual_words += coefficient_lengths[i];
+    }
+    if (actual_words != coefficient_count) return false;
+    for (uint32_t i = 0u; i < task_count; ++i)
+        if (task_columns[i] >= coefficient_column_count) return false;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        const bool gpu_coefficient_upload = coefficient_count * sizeof(uint32_t) >= (64u * 1024u * 1024u);
+        id<MTLBuffer> coefficient_buffer = sampled_owned_buffer(runtime, NULL,
+            gpu_coefficient_upload ? sizeof(uint32_t) : coefficient_count * sizeof(uint32_t),
+            MTLResourceStorageModeShared, ledger);
+        id<MTLBuffer> factor_buffer = sampled_owned_buffer(runtime,
+            factor_word_count != 0u ? factors : NULL,
+            MAX((size_t)1u, factor_word_count) * sizeof(uint32_t), MTLResourceStorageModeShared, ledger);
+        id<MTLBuffer> task_buffer = sampled_owned_buffer(runtime, tasks,
+            (size_t)task_count * 5u * sizeof(uint32_t), MTLResourceStorageModeShared, ledger);
+        id<MTLBuffer> basis_task_buffer = sampled_owned_buffer(runtime, basis_tasks,
+            (size_t)basis_task_count * 4u * sizeof(uint32_t), MTLResourceStorageModeShared, ledger);
+        id<MTLBuffer> basis_buffer = sampled_owned_buffer(runtime, NULL,
+            (size_t)basis_count * 4u * sizeof(uint32_t), MTLResourceStorageModePrivate, ledger);
+        id<MTLBuffer> output_buffer = sampled_owned_buffer(runtime, NULL,
+            (size_t)output_count * 4u * sizeof(uint32_t), MTLResourceStorageModeShared, ledger);
+        if (coefficient_buffer == nil || factor_buffer == nil || task_buffer == nil ||
+            basis_task_buffer == nil || basis_buffer == nil || output_buffer == nil) {
+            write_error(error_message, error_message_len, @"Metal polynomial evaluation allocation failed");
+            return false;
+        }
+        if (!gpu_coefficient_upload) {
+            uint32_t *destination = coefficient_buffer.contents;
+            size_t cursor = 0u;
+            for (uint32_t i = 0u; i < coefficient_column_count; ++i) {
+                memcpy(destination + cursor, coefficients[i], coefficient_lengths[i] * sizeof(uint32_t));
+                cursor += coefficient_lengths[i];
+            }
+        }
+        id<MTLCommandBuffer> command = sampled_owned_command(runtime);
+        id<MTLComputeCommandEncoder> active_encoder = sampled_owned_encoder(command);
+        if (command == nil || active_encoder == nil) return false;
+        double total_gpu_milliseconds = 0.0;
+        bool command_has_work = true;
+        NSUInteger wave_dispatches = 0u;
+        size_t wave_device_bytes = 0u, wave_alias_bytes = 0u;
+        NSMutableArray<id<MTLBuffer>> *coefficient_sources = [NSMutableArray array];
+        if (coefficient_sources == nil) return false;
+        [active_encoder setComputePipelineState:runtime.polynomialBasis];
+        [active_encoder setBuffer:factor_buffer offset:0 atIndex:0];
+        [active_encoder setBuffer:basis_task_buffer offset:0 atIndex:1];
+        [active_encoder setBytes:&basis_task_count length:sizeof(basis_task_count) atIndex:2];
+        [active_encoder setBuffer:basis_buffer offset:0 atIndex:3];
+        NSUInteger basis_width = MIN((NSUInteger)256u, runtime.polynomialBasis.maxTotalThreadsPerThreadgroup);
+        NSUInteger width = MIN((NSUInteger)256u, runtime.polynomialEval.maxTotalThreadsPerThreadgroup);
+        if (basis_width == 0u || width == 0u) return false;
+        uint32_t max_basis_blocks = 0u;
+        const StwoZigPolynomialBasisTask *all_basis_tasks = basis_tasks;
+        for (uint32_t i = 0u; i < basis_task_count; ++i) {
+            const uint32_t blocks = all_basis_tasks[i].basis_length / (uint32_t)basis_width +
+                (all_basis_tasks[i].basis_length % (uint32_t)basis_width != 0u);
+            max_basis_blocks = MAX(max_basis_blocks, blocks);
+        }
+        [active_encoder dispatchThreadgroups:MTLSizeMake(max_basis_blocks, basis_task_count, 1)
+                      threadsPerThreadgroup:MTLSizeMake(basis_width, 1, 1)];
+        [active_encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
+        if (gpu_coefficient_upload) {
+            size_t column = 0u;
+            const size_t page_size = (size_t)getpagesize();
+            const StwoZigPolynomialEvalTask *all_tasks = tasks;
+            while (column < coefficient_column_count) {
+                const size_t run_start = column;
+                size_t run_words = coefficient_lengths[column++];
+                // Group contiguous columns only up to the target. A single larger
+                // column is indivisible and remains subject to cap admission.
+                const size_t run_limit_words = stream_policy->run_bytes / sizeof(uint32_t);
+                while (column < coefficient_column_count && coefficient_lengths[column] <= run_limit_words &&
+                       run_words <= run_limit_words - coefficient_lengths[column] &&
+                       coefficients[column] == coefficients[run_start] + run_words)
+                    run_words += coefficient_lengths[column++];
+                uint32_t run_task_count = 0u;
+                for (uint32_t i = 0u; i < task_count; ++i)
+                    if (task_columns[i] >= run_start && task_columns[i] < column) ++run_task_count;
+                if (run_task_count == 0u) continue;
+                const size_t metadata_bytes = (size_t)run_task_count * sizeof(StwoZigPolynomialEvalTask);
+                const size_t run_bytes = run_words * sizeof(uint32_t);
+                // Include the temporary numeric task payload alongside its
+                // device copy. Join before admitting the next wave's buffers.
+                if (metadata_bytes > (SIZE_MAX - run_bytes) / 2u) return false;
+                const size_t incoming_bytes = run_bytes + metadata_bytes * 2u;
+                if (wave_dispatches != 0u &&
+                    (wave_dispatches >= stream_policy->dispatches ||
+                     incoming_bytes > stream_policy->wave_bytes ||
+                     wave_device_bytes + wave_alias_bytes > stream_policy->wave_bytes - incoming_bytes)) {
+                    [active_encoder endEncoding]; active_encoder = nil;
+                    ++ledger->receipt->submitted;
+                    [command commit]; [command waitUntilCompleted];
+                    ++ledger->receipt->joined;
+                    if (command.status != MTLCommandBufferStatusCompleted) return false;
+                    total_gpu_milliseconds += (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+                    [coefficient_sources removeAllObjects]; command = nil;
+                    command_has_work = false; wave_dispatches = 0u;
+                    // All submitted buffers have lost their last strong
+                    // reference before the ledger shrinks; basis/output stay.
+                    if (wave_device_bytes != 0u && !sampled_budget_apply(ledger, wave_device_bytes, 3u)) return false;
+                    if (wave_alias_bytes != 0u && !sampled_budget_apply(ledger, wave_alias_bytes, 5u)) return false;
+                    wave_device_bytes = 0u; wave_alias_bytes = 0u;
+                }
+                @autoreleasepool {
+                    // Exact count-first numeric payload, destroyed before the
+                    // native charge is decremented outside this inner pool.
+                    NSMutableData *run_task_data = sampled_owned_data(metadata_bytes, false, ledger);
+                    if (run_task_data == nil) return false;
+                    StwoZigPolynomialEvalTask *run_task_words = run_task_data.mutableBytes;
+                    uint32_t at = 0u;
+                    for (uint32_t i = 0u; i < task_count; ++i) {
+                        const uint32_t task_column = task_columns[i];
+                        if (task_column >= run_start && task_column < column) {
+                            StwoZigPolynomialEvalTask task = all_tasks[i];
+                            task.coefficient_offset = (uint32_t)(coefficients[task_column] - coefficients[run_start]);
+                            run_task_words[at++] = task;
+                        }
+                    }
+                    const uintptr_t address = (uintptr_t)coefficients[run_start];
+                    const bool no_copy = allow_unowned_aliases && address % page_size == 0u && run_bytes % page_size == 0u;
+                    id<MTLBuffer> source = nil;
+                    if (no_copy) {
+                        if (run_bytes > runtime.device.maxBufferLength || !sampled_budget_apply(ledger, run_bytes, 2u)) return false;
+                        source = [runtime.device newBufferWithBytesNoCopy:(void *)coefficients[run_start]
+                            length:run_bytes options:MTLResourceStorageModeShared deallocator:nil];
+                        wave_alias_bytes += run_bytes;
+                    } else {
+                        source = sampled_owned_buffer(runtime, coefficients[run_start], run_bytes,
+                                                       MTLResourceStorageModeShared, ledger);
+                        wave_device_bytes += run_bytes;
+                    }
+                    id<MTLBuffer> run_tasks = sampled_owned_buffer(runtime, run_task_words, metadata_bytes,
+                                                                 MTLResourceStorageModeShared, ledger);
+                    wave_device_bytes += metadata_bytes;
+                    if (source == nil || run_tasks == nil) return false;
+                    [coefficient_sources addObject:source];
+                    [coefficient_sources addObject:run_tasks];
+                    if (command == nil) command = sampled_owned_command(runtime);
+                    if (active_encoder == nil) active_encoder = sampled_owned_encoder(command);
+                    if (command == nil || active_encoder == nil) return false;
+                    [active_encoder setComputePipelineState:runtime.polynomialEval];
+                    [active_encoder setBuffer:source offset:0 atIndex:0];
+                    [active_encoder setBuffer:basis_buffer offset:0 atIndex:1];
+                    [active_encoder setBuffer:run_tasks offset:0 atIndex:2];
+                    [active_encoder setBytes:&run_task_count length:sizeof(run_task_count) atIndex:3];
+                    [active_encoder setBuffer:output_buffer offset:0 atIndex:4];
+                    [active_encoder dispatchThreadgroups:MTLSizeMake(run_task_count, 1, 1)
+                         threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
+                    command_has_work = true;
+                    ++wave_dispatches;
+                }
+                // CPU metadata was copied into run_tasks, so it can be
+                // destroyed independently while the command borrows that copy.
+                if (!sampled_budget_apply(ledger, metadata_bytes, 4u)) return false;
+            }
+        } else {
+            [active_encoder setComputePipelineState:runtime.polynomialEval];
+            [active_encoder setBuffer:coefficient_buffer offset:0 atIndex:0];
+            [active_encoder setBuffer:basis_buffer offset:0 atIndex:1];
+            [active_encoder setBuffer:task_buffer offset:0 atIndex:2];
+            [active_encoder setBytes:&task_count length:sizeof(task_count) atIndex:3];
+            [active_encoder setBuffer:output_buffer offset:0 atIndex:4];
+            [active_encoder dispatchThreadgroups:MTLSizeMake(task_count, 1, 1)
+                     threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
+        }
+        if (command_has_work) {
+            [active_encoder endEncoding]; active_encoder = nil;
+            ++ledger->receipt->submitted;
+            [command commit]; [command waitUntilCompleted];
+            ++ledger->receipt->joined;
+            if (command.status != MTLCommandBufferStatusCompleted) return false;
+            total_gpu_milliseconds += (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+            [coefficient_sources removeAllObjects]; command = nil;
+        }
+        memcpy(output, output_buffer.contents, (size_t)output_count * 4u * sizeof(uint32_t));
+        if (basis_threadgroup_width != NULL) *basis_threadgroup_width = (uint32_t)basis_width;
+        if (evaluation_threadgroup_width != NULL) *evaluation_threadgroup_width = (uint32_t)width;
+        if (gpu_milliseconds != NULL) *gpu_milliseconds = total_gpu_milliseconds;
+        return true;
+    }
+}
+
 bool stwo_zig_metal_eval_polynomials(
     void *runtime_ptr,
     const uint32_t *const *coefficients,
@@ -15,174 +318,37 @@ bool stwo_zig_metal_eval_polynomials(
     double *gpu_milliseconds,
     char *error_message, size_t error_message_len
 ) {
-    @autoreleasepool {
-        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
-        bool gpu_coefficient_upload = coefficient_count * sizeof(uint32_t) >= (64u * 1024u * 1024u);
-        id<MTLBuffer> coefficient_buffer = [runtime.device newBufferWithLength:gpu_coefficient_upload ? sizeof(uint32_t) : coefficient_count * sizeof(uint32_t)
-                                                                      options:MTLResourceStorageModeShared];
-        id<MTLBuffer> factor_buffer = [runtime.device newBufferWithBytes:factors
-                                                                  length:factor_word_count * sizeof(uint32_t)
-                                                                 options:MTLResourceStorageModeShared];
-        id<MTLBuffer> task_buffer = [runtime.device newBufferWithBytes:tasks
-                                                                length:(NSUInteger)task_count * 5u * sizeof(uint32_t)
-                                                               options:MTLResourceStorageModeShared];
-        id<MTLBuffer> basis_task_buffer = [runtime.device newBufferWithBytes:basis_tasks
-                                                                      length:(NSUInteger)basis_task_count * 4u * sizeof(uint32_t)
-                                                                     options:MTLResourceStorageModeShared];
-        id<MTLBuffer> basis_buffer = [runtime.device newBufferWithLength:(NSUInteger)basis_count * 4u * sizeof(uint32_t)
-                                                                 options:MTLResourceStorageModePrivate];
-        id<MTLBuffer> output_buffer = [runtime.device newBufferWithLength:(NSUInteger)output_count * 4u * sizeof(uint32_t)
-                                                                 options:MTLResourceStorageModeShared];
-        if (coefficient_buffer == nil || factor_buffer == nil || task_buffer == nil ||
-            basis_task_buffer == nil || basis_buffer == nil || output_buffer == nil) {
-            write_error(error_message, error_message_len, @"Metal polynomial evaluation allocation failed");
-            return false;
-        }
-        if (!gpu_coefficient_upload) {
-            uint32_t *coefficient_destination = coefficient_buffer.contents;
-            size_t coefficient_cursor = 0;
-            for (uint32_t i = 0; i < coefficient_column_count; ++i) {
-                memcpy(coefficient_destination + coefficient_cursor, coefficients[i],
-                       coefficient_lengths[i] * sizeof(uint32_t));
-                coefficient_cursor += coefficient_lengths[i];
-            }
-        }
-        id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
-        double total_gpu_milliseconds = 0.0;
-        bool command_has_work = true;
-        NSUInteger eval_dispatches_in_command = 0u;
-        NSMutableArray<id<MTLBuffer>> *coefficient_sources = [NSMutableArray array];
-        id<MTLComputeCommandEncoder> active_encoder = [command computeCommandEncoder];
-        [active_encoder setComputePipelineState:runtime.polynomialBasis];
-        [active_encoder setBuffer:factor_buffer offset:0 atIndex:0];
-        [active_encoder setBuffer:basis_task_buffer offset:0 atIndex:1];
-        [active_encoder setBytes:&basis_task_count length:sizeof(basis_task_count) atIndex:2];
-        [active_encoder setBuffer:basis_buffer offset:0 atIndex:3];
-        NSUInteger basis_width = MIN((NSUInteger)256u, runtime.polynomialBasis.maxTotalThreadsPerThreadgroup);
-        uint32_t max_basis_blocks = 0u;
-        const StwoZigPolynomialBasisTask *all_basis_tasks =
-            (const StwoZigPolynomialBasisTask *)basis_tasks;
-        for (uint32_t task_index = 0u; task_index < basis_task_count; ++task_index) {
-            uint32_t blocks = (all_basis_tasks[task_index].basis_length +
-                (uint32_t)basis_width - 1u) / (uint32_t)basis_width;
-            max_basis_blocks = MAX(max_basis_blocks, blocks);
-        }
-        [active_encoder dispatchThreadgroups:MTLSizeMake(max_basis_blocks, basis_task_count, 1)
-                      threadsPerThreadgroup:MTLSizeMake(basis_width, 1, 1)];
-        [active_encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
-        NSUInteger width = MIN((NSUInteger)256u, runtime.polynomialEval.maxTotalThreadsPerThreadgroup);
-        if (gpu_coefficient_upload) {
-            size_t column = 0;
-            size_t flat_offset = 0;
-            size_t page_size = (size_t)getpagesize();
-            const StwoZigPolynomialEvalTask *all_tasks = (const StwoZigPolynomialEvalTask *)tasks;
-            while (column < coefficient_column_count) {
-                size_t run_start = column;
-                size_t run_words = coefficient_lengths[column];
-                column += 1;
-                while (column < coefficient_column_count &&
-                       coefficient_lengths[column] <= UINT32_MAX - run_words &&
-                       coefficients[column] == coefficients[run_start] + run_words) {
-                    run_words += coefficient_lengths[column];
-                    column += 1;
-                }
-                size_t run_bytes = run_words * sizeof(uint32_t);
-                uintptr_t address = (uintptr_t)coefficients[run_start];
-                bool no_copy = (address % page_size) == 0u && (run_bytes % page_size) == 0u;
-                id<MTLBuffer> source = no_copy
-                    ? [runtime.device newBufferWithBytesNoCopy:(void *)coefficients[run_start]
-                                                        length:run_bytes
-                                                       options:MTLResourceStorageModeShared
-                                                   deallocator:nil]
-                    : [runtime.device newBufferWithBytes:coefficients[run_start]
-                                                  length:run_bytes
-                                                 options:MTLResourceStorageModeShared];
-                NSMutableData *run_task_data = [NSMutableData data];
-                for (uint32_t task_index = 0; task_index < task_count; ++task_index) {
-                    StwoZigPolynomialEvalTask task = all_tasks[task_index];
-                    uint32_t task_column = task_columns[task_index];
-                    if (task_column >= run_start && task_column < column) {
-                        task.coefficient_offset = (uint32_t)(coefficients[task_column] - coefficients[run_start]);
-                        [run_task_data appendBytes:&task length:sizeof(task)];
-                    }
-                }
-                uint32_t run_task_count = (uint32_t)(run_task_data.length / sizeof(StwoZigPolynomialEvalTask));
-                if (source == nil || run_task_count == 0u) {
-                    if (source == nil) {
-                        write_error(error_message, error_message_len, @"Metal coefficient source allocation failed");
-                        return false;
-                    }
-                    flat_offset += run_words;
-                    continue;
-                }
-                id<MTLBuffer> run_tasks = [runtime.device newBufferWithBytes:run_task_data.bytes
-                                                                      length:run_task_data.length
-                                                                     options:MTLResourceStorageModeShared];
-                [coefficient_sources addObject:source];
-                [coefficient_sources addObject:run_tasks];
-                if (active_encoder == nil) active_encoder = [command computeCommandEncoder];
-                [active_encoder setComputePipelineState:runtime.polynomialEval];
-                [active_encoder setBuffer:source offset:0 atIndex:0];
-                [active_encoder setBuffer:basis_buffer offset:0 atIndex:1];
-                [active_encoder setBuffer:run_tasks offset:0 atIndex:2];
-                [active_encoder setBytes:&run_task_count length:sizeof(run_task_count) atIndex:3];
-                [active_encoder setBuffer:output_buffer offset:0 atIndex:4];
-                [active_encoder dispatchThreadgroups:MTLSizeMake(run_task_count, 1, 1)
-                         threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
-                command_has_work = true;
-                eval_dispatches_in_command += 1u;
-                if (eval_dispatches_in_command == 128u) {
-                    [active_encoder endEncoding];
-                    active_encoder = nil;
-                    [command commit];
-                    [command waitUntilCompleted];
-                    if (command.status == MTLCommandBufferStatusError) {
-                        write_error(error_message, error_message_len,
-                                    command.error.localizedDescription ?: @"Metal polynomial evaluation failed");
-                        return false;
-                    }
-                    total_gpu_milliseconds += (command.GPUEndTime - command.GPUStartTime) * 1000.0;
-                    [coefficient_sources removeAllObjects];
-                    command = [runtime.queue commandBuffer];
-                    command_has_work = false;
-                    eval_dispatches_in_command = 0u;
-                }
-                flat_offset += run_words;
-            }
-        } else {
-            [active_encoder setComputePipelineState:runtime.polynomialEval];
-            [active_encoder setBuffer:coefficient_buffer offset:0 atIndex:0];
-            [active_encoder setBuffer:basis_buffer offset:0 atIndex:1];
-            [active_encoder setBuffer:task_buffer offset:0 atIndex:2];
-            [active_encoder setBytes:&task_count length:sizeof(task_count) atIndex:3];
-            [active_encoder setBuffer:output_buffer offset:0 atIndex:4];
-            [active_encoder dispatchThreadgroups:MTLSizeMake(task_count, 1, 1)
-                     threadsPerThreadgroup:MTLSizeMake(width, 1, 1)];
-            command_has_work = true;
-        }
-        if (command_has_work) {
-            [active_encoder endEncoding];
-            [command commit];
-            [command waitUntilCompleted];
-            if (command.status == MTLCommandBufferStatusError) {
-                write_error(error_message, error_message_len,
-                            command.error.localizedDescription ?: @"Metal polynomial evaluation failed");
-                return false;
-            }
-            total_gpu_milliseconds += (command.GPUEndTime - command.GPUStartTime) * 1000.0;
-        }
-        memcpy(output, output_buffer.contents, (NSUInteger)output_count * 4u * sizeof(uint32_t));
-        if (basis_threadgroup_width != NULL) {
-            *basis_threadgroup_width = (uint32_t)basis_width;
-        }
-        if (evaluation_threadgroup_width != NULL) {
-            *evaluation_threadgroup_width = (uint32_t)width;
-        }
-        if (gpu_milliseconds != NULL) {
-            *gpu_milliseconds = total_gpu_milliseconds;
-        }
-        return true;
-    }
+    StwoSampledBudgetReceiptV1 receipt = {0};
+    StwoSampledBudgetLedgerV1 ledger = {NULL, NULL, &receipt};
+    bool ok = sampled_coefficient_evaluate_v2(runtime_ptr, coefficients, coefficient_lengths, coefficient_column_count, coefficient_count, factors, factor_word_count, basis_tasks, basis_task_count, basis_count, tasks, task_columns, task_count, output_count, output, basis_threadgroup_width, evaluation_threadgroup_width, gpu_milliseconds, error_message, error_message_len, &ledger, true, &sampled_stream_policy);
+    return sampled_budget_release_all(&ledger) && ok;
+}
+
+bool stwo_zig_metal_eval_polynomials_budgeted_v2(
+    void *runtime_ptr,
+    const uint32_t *const *coefficients,
+    const size_t *coefficient_lengths,
+    uint32_t coefficient_column_count,
+    size_t coefficient_count,
+    const uint32_t *factors, size_t factor_word_count,
+    const void *basis_tasks, uint32_t basis_task_count,
+    uint32_t basis_count,
+    const void *tasks, const uint32_t *task_columns, uint32_t task_count,
+    uint32_t output_count,
+    uint32_t *output,
+    uint32_t *basis_threadgroup_width,
+    uint32_t *evaluation_threadgroup_width,
+    double *gpu_milliseconds,
+    char *error_message, size_t error_message_len,
+    void *budget_context, StwoSampledBudgetAdmitV1 budget_admit, StwoSampledBudgetReceiptV1 *budget_receipt, bool allow_unowned_aliases,
+    const StwoSampledStreamPolicyV1 *stream_policy
+) {
+    if (budget_context == NULL || budget_admit == NULL || budget_receipt == NULL) return false;
+    *budget_receipt = (StwoSampledBudgetReceiptV1){0};
+    StwoSampledBudgetLedgerV1 ledger = {budget_context, budget_admit, budget_receipt};
+    bool ok = sampled_coefficient_evaluate_v2(runtime_ptr, coefficients, coefficient_lengths, coefficient_column_count, coefficient_count, factors, factor_word_count, basis_tasks, basis_task_count, basis_count, tasks, task_columns, task_count, output_count, output, basis_threadgroup_width, evaluation_threadgroup_width, gpu_milliseconds, error_message, error_message_len, &ledger, allow_unowned_aliases, stream_policy);
+    // Inner autoreleasepool has destroyed every private buffer even on error.
+    return sampled_budget_release_all(&ledger) && ok;
 }
 
 static bool sampled_barycentric_mul_size(
@@ -197,7 +363,7 @@ static id<MTLBuffer> sampled_barycentric_buffer(
     StwoZigMetalRuntime *runtime,
     size_t element_count,
     size_t element_size,
-    MTLResourceOptions options
+    MTLResourceOptions options, StwoSampledBudgetLedgerV1 *ledger
 ) {
     size_t byte_count = 0u;
     if (!sampled_barycentric_mul_size(element_count, element_size, &byte_count) ||
@@ -206,7 +372,7 @@ static id<MTLBuffer> sampled_barycentric_buffer(
     {
         return nil;
     }
-    return [runtime.device newBufferWithLength:(NSUInteger)byte_count options:options];
+    return sampled_owned_buffer(runtime, NULL, byte_count, options, ledger);
 }
 
 static bool sampled_barycentric_canonical_words(
@@ -223,13 +389,15 @@ typedef struct {
     uint32_t first_column;
     uint32_t column_count;
 } StwoZigSampledBarycentricResidentRunV1;
+_Static_assert(sizeof(StwoZigSampledBarycentricResidentRunV1) == 8u, "Sampled run ABI");
 
 /// One proof-local evaluation-form sampled-value epoch. Every column must be
 /// resolved through the exact borrowed commitment tree supplied by Zig. The
 /// routine never uploads a host trace or promotes pointer equality into
 /// residency; only the commitment owner's authenticated resident map may bind
 /// a column to a device buffer.
-bool stwo_zig_metal_eval_barycentric_resident_v1(
+static bool sampled_barycentric_evaluate_v1(
+    bool host_columns,
     void *runtime_ptr,
     void *const *resident_trees,
     uint32_t tree_count,
@@ -246,7 +414,7 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
     StwoZigSampledBarycentricReceiptV1 *receipt,
     double *gpu_milliseconds,
     char *error_message,
-    size_t error_message_len
+    size_t error_message_len, StwoSampledBudgetLedgerV1 *ledger
 ) {
     if (runtime_ptr == NULL || resident_trees == NULL || tree_count == 0u ||
         columns == NULL || column_lengths == NULL || output_indices == NULL ||
@@ -264,7 +432,7 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
         StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
         NSMutableArray<StwoZigMetalTree *> *trees =
             [NSMutableArray arrayWithCapacity:tree_count];
-        for (uint32_t tree_index = 0u; tree_index < tree_count; ++tree_index) {
+        for (uint32_t tree_index = 0u; !host_columns && tree_index < tree_count; ++tree_index) {
             if (resident_trees[tree_index] == NULL) {
                 write_error(error_message, error_message_len,
                             @"Metal sampled barycentric tree is null");
@@ -280,6 +448,30 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
             [trees addObject:tree];
         }
 
+        // A single reusable staging slab. Each run is drained before its
+        // bytes are overwritten; weights and domain buffers survive all runs.
+        const size_t host_stage_limit = 64u * 1024u * 1024u;
+        size_t host_stage_bytes = 0u;
+        if (host_columns) {
+            for (uint32_t i = 0u; i < column_count; ++i) {
+                if (columns[i] == NULL || column_lengths[i] == 0u ||
+                    column_lengths[i] > host_stage_limit / sizeof(uint32_t)) {
+                    write_error(error_message, error_message_len,
+                                @"Invalid bounded host barycentric column");
+                    return false;
+                }
+                host_stage_bytes = MIN(host_stage_limit,
+                    host_stage_bytes + column_lengths[i] * sizeof(uint32_t));
+            }
+        }
+        id<MTLBuffer> host_stage = host_columns ? sampled_owned_buffer(runtime,
+            NULL, host_stage_bytes, MTLResourceStorageModeShared, ledger) : nil;
+        if (host_columns && host_stage == nil) {
+            write_error(error_message, error_message_len,
+                        @"Host barycentric staging allocation failed");
+            return false;
+        }
+
         size_t offsets_bytes = 0u;
         if (!sampled_barycentric_mul_size(column_count, sizeof(uint64_t),
                                           &offsets_bytes))
@@ -288,13 +480,12 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
                         @"Metal sampled barycentric column offset overflow");
             return false;
         }
-        NSMutableData *offset_data = [NSMutableData dataWithLength:offsets_bytes];
+        NSMutableData *offset_data = sampled_owned_data(offsets_bytes, false, ledger);
         NSMutableArray<id<MTLBuffer>> *resident_run_buffers =
             [NSMutableArray arrayWithCapacity:group_count];
-        NSMutableData *resident_run_data = [NSMutableData data];
-        NSMutableData *group_run_offsets_data = [NSMutableData
-            dataWithLength:((size_t)group_count + 1u) * sizeof(uint32_t)];
-        NSMutableData *written_data = [NSMutableData dataWithLength:output_count];
+        NSMutableData *resident_run_data = sampled_owned_data((size_t)column_count * sizeof(StwoZigSampledBarycentricResidentRunV1), true, ledger);
+        NSMutableData *group_run_offsets_data = sampled_owned_data(((size_t)group_count + 1u) * sizeof(uint32_t), false, ledger);
+        NSMutableData *written_data = sampled_owned_data(output_count, false, ledger);
         if (offset_data == nil || resident_run_buffers == nil ||
             resident_run_data == nil || group_run_offsets_data == nil ||
             written_data == nil)
@@ -370,8 +561,8 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
                                 @"Invalid Metal sampled barycentric column group");
                     return false;
                 }
-                StwoZigMetalTree *tree = trees[group->tree_index];
-                NSArray<StwoZigMetalTree *> *single_tree = @[ tree ];
+                StwoZigMetalTree *tree = host_columns ? nil : trees[group->tree_index];
+                NSArray<StwoZigMetalTree *> *single_tree = host_columns ? @[] : @[ tree ];
                 id<MTLBuffer> prior_buffer = nil;
                 group_run_offsets[plan->first_group + local_group] =
                     (uint32_t)resident_run_buffers.count;
@@ -389,7 +580,19 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
                     }
                     written_outputs[output_indices[column_index]] = 1u;
                     StwoZigResidentColumnBinding binding = { 0 };
-                    if (!stwo_zig_tree_resident_column(
+                    if (host_columns) {
+                        const uint32_t capacity = (uint32_t)(host_stage_bytes /
+                            ((size_t)size * sizeof(uint32_t)));
+                        if (capacity == 0u) {
+                            write_error(error_message, error_message_len,
+                                        @"Host barycentric staging capacity mismatch");
+                            return false;
+                        }
+                        const uint32_t slot = local_column % capacity;
+                        if (slot == 0u) prior_buffer = nil;
+                        binding.buffer = host_stage;
+                        binding.wordOffset = (size_t)slot * size;
+                    } else if (!stwo_zig_tree_resident_column(
                             single_tree, columns[column_index], size, &binding) ||
                         binding.tree != tree || binding.buffer == nil)
                     {
@@ -516,10 +719,8 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
             return false;
         }
 
-        id<MTLBuffer> offset_buffer = [runtime.device
-            newBufferWithBytes:column_offsets
-            length:offset_data.length
-            options:MTLResourceStorageModeShared];
+        id<MTLBuffer> offset_buffer = sampled_owned_buffer(runtime, column_offsets, offset_data.length,
+                MTLResourceStorageModeShared, ledger);
         size_t output_index_bytes = 0u;
         if (!sampled_barycentric_mul_size(column_count, sizeof(uint32_t),
                                           &output_index_bytes))
@@ -528,30 +729,28 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
                         @"Metal sampled barycentric output-index overflow");
             return false;
         }
-        id<MTLBuffer> output_index_buffer = [runtime.device
-            newBufferWithBytes:output_indices
-            length:output_index_bytes
-            options:MTLResourceStorageModeShared];
+        id<MTLBuffer> output_index_buffer = sampled_owned_buffer(runtime, output_indices, output_index_bytes,
+                MTLResourceStorageModeShared, ledger);
         id<MTLBuffer> domain_buffer = sampled_barycentric_buffer(
             runtime, maximum_size, 2u * sizeof(uint32_t),
-            MTLResourceStorageModePrivate);
+            MTLResourceStorageModePrivate, ledger);
         id<MTLBuffer> numerator_buffer = sampled_barycentric_buffer(
             runtime, maximum_size, 4u * sizeof(uint32_t),
-            MTLResourceStorageModePrivate);
+            MTLResourceStorageModePrivate, ledger);
         id<MTLBuffer> weight_buffer = sampled_barycentric_buffer(
             runtime, maximum_size, 4u * sizeof(uint32_t),
-            MTLResourceStorageModePrivate);
+            MTLResourceStorageModePrivate, ledger);
         id<MTLBuffer> scale_buffer = sampled_barycentric_buffer(
-            runtime, 2u, 4u * sizeof(uint32_t), MTLResourceStorageModePrivate);
+            runtime, 2u, 4u * sizeof(uint32_t), MTLResourceStorageModePrivate, ledger);
         id<MTLBuffer> partial_buffer = sampled_barycentric_buffer(
             runtime, maximum_partial_count, 4u * sizeof(uint32_t),
-            MTLResourceStorageModePrivate);
+            MTLResourceStorageModePrivate, ledger);
         id<MTLBuffer> invalid_buffer = sampled_barycentric_buffer(
             runtime, point_plan_count, sizeof(uint32_t),
-            MTLResourceStorageModeShared);
+            MTLResourceStorageModeShared, ledger);
         id<MTLBuffer> output_buffer = sampled_barycentric_buffer(
             runtime, output_count, 4u * sizeof(uint32_t),
-            MTLResourceStorageModeShared);
+            MTLResourceStorageModeShared, ledger);
         if (offset_buffer == nil || output_index_buffer == nil ||
             domain_buffer == nil || numerator_buffer == nil ||
             weight_buffer == nil || scale_buffer == nil ||
@@ -565,14 +764,16 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
         memset(invalid_buffer.contents, 0,
                (size_t)point_plan_count * sizeof(uint32_t));
 
-        id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
-        id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
+        id<MTLCommandBuffer> command = sampled_owned_command(runtime);
+        id<MTLComputeCommandEncoder> encoder = sampled_owned_encoder(command);
         if (command == nil || encoder == nil) {
             write_error(error_message, error_message_len,
                         @"Metal sampled barycentric command allocation failed");
             return false;
         }
 
+        double elapsed_gpu_ms = 0.0;
+        uint32_t command_count = 0u;
         prior_log = 0u;
         for (uint32_t point_index = 0u; point_index < point_plan_count;
              ++point_index)
@@ -580,6 +781,15 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
             const StwoZigSampledBarycentricPointPlanV1 *plan =
                 &point_plans[point_index];
             uint32_t size = 1u << plan->log_size;
+            if (encoder == nil) {
+                command = sampled_owned_command(runtime);
+                encoder = sampled_owned_encoder(command);
+                if (command == nil || encoder == nil) {
+                    write_error(error_message, error_message_len,
+                                @"Host barycentric command allocation failed");
+                    return false;
+                }
+            }
             if (point_index == 0u || plan->log_size != prior_log) {
                 uint32_t half_coset_initial_index = 1u << (30u - plan->log_size);
                 uint32_t half_coset_step_size = 1u << (32u - plan->log_size);
@@ -669,6 +879,22 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
                 {
                     const StwoZigSampledBarycentricResidentRunV1 run =
                         runs[run_index];
+                    if (host_columns) {
+                        if (encoder == nil) {
+                            command = sampled_owned_command(runtime);
+                            encoder = sampled_owned_encoder(command);
+                            if (command == nil || encoder == nil) {
+                                write_error(error_message, error_message_len,
+                                            @"Host barycentric command allocation failed");
+                                return false;
+                            }
+                        }
+                        for (uint32_t j = 0u; j < run.column_count; ++j) {
+                            const uint32_t column = run.first_column + j;
+                            memcpy((uint32_t *)host_stage.contents + column_offsets[column],
+                                   columns[column], (size_t)size * sizeof(uint32_t));
+                        }
+                    }
                     [encoder setComputePipelineState:
                         runtime.sampledBarycentricEvaluateMany];
                     [encoder setBuffer:resident_run_buffers[run_index]
@@ -703,17 +929,40 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
                              threadsPerThreadgroup:
                         MTLSizeMake(evaluation_width, 1u, 1u)];
                     [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
+                    if (host_columns) {
+                        [encoder endEncoding];
+                        ++ledger->receipt->submitted;
+                        [command commit];
+                        [command waitUntilCompleted];
+                        ++ledger->receipt->joined;
+                        if (command.status != MTLCommandBufferStatusCompleted) {
+                            write_error(error_message, error_message_len,
+                                        command.error.localizedDescription ?:
+                                        @"Host barycentric staging run failed");
+                            return false;
+                        }
+                        elapsed_gpu_ms += (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+                        command_count += 1u;
+                        encoder = nil;
+                        command = nil;
+                    }
                 }
             }
         }
-        [encoder endEncoding];
-        [command commit];
-        [command waitUntilCompleted];
-        if (command.status == MTLCommandBufferStatusError) {
-            write_error(error_message, error_message_len,
-                        command.error.localizedDescription ?:
-                        @"Metal sampled barycentric epoch failed");
-            return false;
+        if (encoder != nil) {
+            [encoder endEncoding];
+            ++ledger->receipt->submitted;
+            [command commit];
+            [command waitUntilCompleted];
+            ++ledger->receipt->joined;
+            if (command.status != MTLCommandBufferStatusCompleted) {
+                write_error(error_message, error_message_len,
+                            command.error.localizedDescription ?:
+                            @"Metal sampled barycentric epoch failed");
+                return false;
+            }
+            elapsed_gpu_ms += (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+            command_count += 1u;
         }
         const uint32_t *invalid = invalid_buffer.contents;
         for (uint32_t point_index = 0u; point_index < point_plan_count;
@@ -737,8 +986,8 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
 
         *receipt = (StwoZigSampledBarycentricReceiptV1){
             .schema_version = 1u,
-            .command_buffers = 1u,
-            .wait_count = 1u,
+            .command_buffers = command_count,
+            .wait_count = command_count,
             .reserved = 0u,
             .unique_point_count = point_plan_count,
             .unique_domain_count = unique_domains,
@@ -752,9 +1001,116 @@ bool stwo_zig_metal_eval_barycentric_resident_v1(
             .inverse_threadgroup_width = inverse_width,
         };
         if (gpu_milliseconds != NULL) {
-            *gpu_milliseconds =
-                (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+            *gpu_milliseconds = elapsed_gpu_ms;
+        }
+        if (host_columns && getenv("STWO_RISCV_EXECUTION_PROFILE") != NULL) {
+            fprintf(stderr, "METAL_HOST_BARYCENTRIC staging_bytes=%zu commands=%u columns=%u points=%u gpu_ms=%.3f\n",
+                    host_stage_bytes, command_count, column_count, point_plan_count, elapsed_gpu_ms);
         }
         return true;
     }
+}
+
+bool stwo_zig_metal_eval_barycentric_resident_v1(
+    void *runtime_ptr,
+    void *const *resident_trees,
+    uint32_t tree_count,
+    const uint32_t *const *columns,
+    const size_t *column_lengths,
+    const uint32_t *output_indices,
+    uint32_t column_count,
+    const StwoZigSampledBarycentricPointPlanV1 *point_plans,
+    uint32_t point_plan_count,
+    const StwoZigSampledBarycentricColumnGroupV1 *groups,
+    uint32_t group_count,
+    uint32_t output_count,
+    uint32_t *output,
+    StwoZigSampledBarycentricReceiptV1 *receipt,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len
+) {
+    StwoSampledBudgetReceiptV1 private_receipt = {0};
+    StwoSampledBudgetLedgerV1 ledger = {NULL, NULL, &private_receipt};
+    bool ok = sampled_barycentric_evaluate_v1(false, runtime_ptr, resident_trees, tree_count, columns, column_lengths, output_indices, column_count, point_plans, point_plan_count, groups, group_count, output_count, output, receipt, gpu_milliseconds, error_message, error_message_len, &ledger);
+    return sampled_budget_release_all(&ledger) && ok;
+}
+
+bool stwo_zig_metal_eval_barycentric_resident_v1_budgeted_v2(
+    void *runtime_ptr,
+    void *const *resident_trees,
+    uint32_t tree_count,
+    const uint32_t *const *columns,
+    const size_t *column_lengths,
+    const uint32_t *output_indices,
+    uint32_t column_count,
+    const StwoZigSampledBarycentricPointPlanV1 *point_plans,
+    uint32_t point_plan_count,
+    const StwoZigSampledBarycentricColumnGroupV1 *groups,
+    uint32_t group_count,
+    uint32_t output_count,
+    uint32_t *output,
+    StwoZigSampledBarycentricReceiptV1 *receipt,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len,
+    void *budget_context, StwoSampledBudgetAdmitV1 budget_admit, StwoSampledBudgetReceiptV1 *budget_receipt
+) {
+    if (budget_context == NULL || budget_admit == NULL || budget_receipt == NULL) return false;
+    *budget_receipt = (StwoSampledBudgetReceiptV1){0};
+    StwoSampledBudgetLedgerV1 ledger = {budget_context, budget_admit, budget_receipt};
+    bool ok = sampled_barycentric_evaluate_v1(false, runtime_ptr, resident_trees, tree_count, columns, column_lengths, output_indices, column_count, point_plans, point_plan_count, groups, group_count, output_count, output, receipt, gpu_milliseconds, error_message, error_message_len, &ledger);
+    return sampled_budget_release_all(&ledger) && ok;
+}
+
+bool stwo_zig_metal_eval_barycentric_host_v1(
+    void *runtime_ptr,
+    void *const *resident_trees,
+    uint32_t tree_count,
+    const uint32_t *const *columns,
+    const size_t *column_lengths,
+    const uint32_t *output_indices,
+    uint32_t column_count,
+    const StwoZigSampledBarycentricPointPlanV1 *point_plans,
+    uint32_t point_plan_count,
+    const StwoZigSampledBarycentricColumnGroupV1 *groups,
+    uint32_t group_count,
+    uint32_t output_count,
+    uint32_t *output,
+    StwoZigSampledBarycentricReceiptV1 *receipt,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len
+) {
+    StwoSampledBudgetReceiptV1 private_receipt = {0};
+    StwoSampledBudgetLedgerV1 ledger = {NULL, NULL, &private_receipt};
+    bool ok = sampled_barycentric_evaluate_v1(true, runtime_ptr, resident_trees, tree_count, columns, column_lengths, output_indices, column_count, point_plans, point_plan_count, groups, group_count, output_count, output, receipt, gpu_milliseconds, error_message, error_message_len, &ledger);
+    return sampled_budget_release_all(&ledger) && ok;
+}
+
+bool stwo_zig_metal_eval_barycentric_host_v1_budgeted_v2(
+    void *runtime_ptr,
+    void *const *resident_trees,
+    uint32_t tree_count,
+    const uint32_t *const *columns,
+    const size_t *column_lengths,
+    const uint32_t *output_indices,
+    uint32_t column_count,
+    const StwoZigSampledBarycentricPointPlanV1 *point_plans,
+    uint32_t point_plan_count,
+    const StwoZigSampledBarycentricColumnGroupV1 *groups,
+    uint32_t group_count,
+    uint32_t output_count,
+    uint32_t *output,
+    StwoZigSampledBarycentricReceiptV1 *receipt,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len,
+    void *budget_context, StwoSampledBudgetAdmitV1 budget_admit, StwoSampledBudgetReceiptV1 *budget_receipt
+) {
+    if (budget_context == NULL || budget_admit == NULL || budget_receipt == NULL) return false;
+    *budget_receipt = (StwoSampledBudgetReceiptV1){0};
+    StwoSampledBudgetLedgerV1 ledger = {budget_context, budget_admit, budget_receipt};
+    bool ok = sampled_barycentric_evaluate_v1(true, runtime_ptr, resident_trees, tree_count, columns, column_lengths, output_indices, column_count, point_plans, point_plan_count, groups, group_count, output_count, output, receipt, gpu_milliseconds, error_message, error_message_len, &ledger);
+    return sampled_budget_release_all(&ledger) && ok;
 }

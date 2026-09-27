@@ -1,0 +1,31 @@
+{
+  "date": "2026-09-25",
+  "scope": "Two-segment real public-I/O q8 fixture: fresh incremental core, staged recursive leaves, exact dyadic forest parent, hash-pinned reload and tamper rejection",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic"},
+  "verification": {
+    "fresh_incremental_core": true,
+    "staged_leaf_files": 2,
+    "dyadic_parent_files": 1,
+    "forest_roots": 1,
+    "forest_digest_checked": true,
+    "tampered_parent_file_rejected": true,
+    "outer_proof": false,
+    "receiver_allocator_live_bytes_after_teardown": 0,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "staged_core_payload_bytes": 2010498,
+  "staged_producer_elapsed_ns": 7475157750,
+  "incremental_receiver_plus_leaf_and_forest_proving_elapsed_ns": 33816317958,
+  "forest_parent_proving_elapsed_ns": 7426588625,
+  "dyadic_parent_proof_bytes": 140292,
+  "limits": [
+    "The forest and leaf files are provisional until a canonical outer proof and independently pinned final manifest pass fresh complete verification.",
+    "The reported receiver timer includes dyadic proving; subtracting the parent timer does not isolate pure core verification because other stages overlap in the same callback.",
+    "The receiver reconstructs native verifier shape with a third pinned guest replay; this is bounded but not succinct.",
+    "Public initial image and first-touch roster are verifier-visible; this q8 fixture is not a mainnet block measurement."
+  ],
+  "command_filter": "block-v4 streaming observer stages recursive leaves after fresh execution"
+}

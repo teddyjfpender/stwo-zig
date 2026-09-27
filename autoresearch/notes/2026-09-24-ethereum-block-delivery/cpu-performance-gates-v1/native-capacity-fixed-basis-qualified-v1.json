@@ -1,0 +1,76 @@
+{
+  "status": "focused_source_and_tiny_cpu_lease_qualified",
+  "protocol": "B5CT capacity v1, optional producer basis only",
+  "root": "src/frontends/riscv/block_v5_native_capacity_fixed_basis_test_root.zig",
+  "filters": {
+    "capacity fixed admission": "pure/resource and retained-body fixtures only",
+    "capacity fixed lease": "tiny CPU fixed/main commitments; trace_log<=3, columns<=2, basis_cap=128KiB; no STARK/FRI/guest/device"
+  },
+  "execution_this_batch": {
+    "build": true,
+    "tests": true,
+    "proof": false,
+    "guest": false,
+    "device": false,
+    "benchmark": false
+  },
+  "prior_qualification": "cpu-performance-gates-v1/native-capacity-templates-qualified-v1.json (pre-basis snapshot)",
+  "remaining": [
+    "New source qualification",
+    "Actual fresh proof with shared basis",
+    "Capacity catalog and strict typed artifact",
+    "Fused/recursive receiver migration",
+    "Canonical policy and driver activation"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fixed_basis_v1.zig",
+      "sha256": "f98d17d58599ad705bb6eef7c412b60e51b84f20d8d69c53f5631a1945043bd3"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_proof_v1.zig",
+      "sha256": "884eae8eafbcded14c1d41f746168b9f0c63359e0bc83e983e24afe40c27da22"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fixed_basis_test.zig",
+      "sha256": "a5ea39f76baa23f18ae456fe810de61cc6448a0a994d5cde4486cb93d8fa5b07"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fixed_basis_test_root.zig",
+      "sha256": "c04b6f1a247f62601623b881363d122ecaab95efb1b61cc09e0ca48af067b93a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_protocol_v1.zig",
+      "sha256": "3d808a44a298b2c32ea56a2b859ff512845ad3df7e54d233b478ba913ca7f530"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_activity_v1.zig",
+      "sha256": "5ef2239c494076adc81c38113faeb7517a859109d7b02a277eea362694bc6b56"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_component_v1.zig",
+      "sha256": "5f0c71823b68b74129b42d2f77570e43890e13560a3e87ed17246444ef986a33"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_shared_first_round_v1.zig",
+      "sha256": "136d2d6085eae7026f974a7d04f032bd7128f03758194833f0f05e3f008ab04d"
+    },
+    {
+      "path": "src/prover/pcs/commitment_tree.zig",
+      "sha256": "84e12f093aaf78f0c1398a2de0919eae69fc41283953170e169e4d635a877f09"
+    },
+    {
+      "path": "src/prover/pcs/tree_builders.zig",
+      "sha256": "f07577b3cd4c2460689eed6d336151e93118c684fd8baf13e665207d0db0673f"
+    }
+  ],
+  "schema": "native-capacity-fixed-basis-qualified-v1",
+  "tests_passed": 9,
+  "named_tests": 6,
+  "scope": "Authenticated single-entry fixed PCS basis; real tiny trace-log<=3 cold/warm fixed+main commitment parity, shared immutable buffer/coefficient custody, owner-before-lease teardown, cap/mismatch/exception cleanup and actual producer/receiver body compilation. No STARK/FRI/segment run.",
+  "source_manifest_sha256": "139a9ecf2c4165210ff6ff9addbf488eb0b3116f43eafb26e2123c58f7d6c787",
+  "evidence": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-fixed-basis-v1.log",
+    "sha256": "d65f2afa8208c8b8071a1516089f526e092d017d5bda3afe1a519c6941972fae"
+  }
+}

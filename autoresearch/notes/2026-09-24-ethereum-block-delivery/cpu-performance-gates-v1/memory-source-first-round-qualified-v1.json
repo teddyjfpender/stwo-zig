@@ -1,0 +1,24 @@
+{
+  "status": "qualified_nonproving_source_lifecycle",
+  "candidate": "memory-source-first-round-source-candidate-v2.json",
+  "semantic": "memory-source-first-round-semantic-v2-result.json",
+  "focused": "memory-source-first-round-focused-v1-result.json",
+  "checks": 8,
+  "scope": [
+    "exact independent source/page census and tail admission",
+    "source roots committed before Source9; original word draws preserved",
+    "all private graph input columns, full clocks and circle placement",
+    "allocation cleanup",
+    "retained actual PCS collect/fixed recommit/lease bodies without invocation"
+  ],
+  "not_qualified": [
+    "source arithmetic proof",
+    "same-original-main requester input binding proof",
+    "multi-page authentication closure",
+    "complete block proof",
+    "performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

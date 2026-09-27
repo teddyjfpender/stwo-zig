@@ -1,0 +1,15 @@
+test-recursive-segment-v2-detached-parent-capture
++- Detached parent recursive capture guard
+   +- run test stderr
+DETACHED_PARENT_BOUNDARY rejected_public_words=436 rejected_noncanonical_zero=true
+DETACHED_PCS_OPENING_CENSUS {"graph_nodes":1367063,"queried_inputs":375771,"single_use_queried_inputs":351067,"shared_queried_inputs":24704,"opening4_groups":105869,"eligible_groups":83376,"removable_input_rows":333504,"logical_fields_removed":8921232}
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=1 query_rows=193 trace_rows=47478 fri_leaf_rows=11580 path_rows=24897 provider_calls=86850 pcs_inputs=391028 fri_inputs=70663 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=2 query_rows=193 trace_rows=47478 fri_leaf_rows=11580 path_rows=24897 provider_calls=86850 pcs_inputs=391028 fri_inputs=70663 parent_proof_verified=false
+DETACHED_PARENT_CAPTURE active_rows=31 physical_claims=36 sampled_values=2075 graph_nodes=36802 rejected_claims_and_samples=45 public_transcript_limbs=872 input_destroyed=true parent_verified=true consumer_proof_created=false
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-segment-v2-detached-parent-capture success
++- Detached parent recursive capture guard success
+   +- run test 1 passed 6s MaxRSS:1G
+      +- compile test ReleaseSafe native success 51s MaxRSS:3G
+

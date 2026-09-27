@@ -1,0 +1,28 @@
+{
+  "scope": "Existing canonical operand transport only; original file format, SHA256 pins and proof admission unchanged. No proving authority.",
+  "owned": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_artifact_files_v1.zig",
+      "sha256": "0b6147c9557552a94065547f2eaa560f30e1d016018c082bbdfc33f367e71646"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_fold_operand_store_v1.zig",
+      "sha256": "000b614377a5f467be47b34996ac9b4356a893b5b83efe9054879d7039e8dd94"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_fold_operand_stream_test_v1.zig",
+      "sha256": "3e2c7fc41334d2f7556a1faae13a4db06d70a5ced8608e292aba43e3eaa616f8"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_fold_operand_stream_test_root.zig",
+      "sha256": "ddf9e9903ec3d7cf6beeef7a3bc21d4cc2c827887229a858ca01332d47cce589"
+    }
+  ],
+  "buffer_records": 64,
+  "buffer_bytes": 16000,
+  "removed_heap_bytes_at_4096_records": 1024096,
+  "behavioral_tests": 5,
+  "proofs_run": false,
+  "segments_run": false,
+  "qualification": "pending coordinated source freeze"
+}

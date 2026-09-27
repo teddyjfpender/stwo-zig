@@ -1,0 +1,98 @@
+1/97 zisk_system_benchmark.test.system benchmark Keccak trace and witness semantic gates...OK
+2/97 zisk_system_benchmark.test.system frame fast paths retain encoded digest bytes...OK
+3/97 zisk_system_benchmark.test_0...OK
+4/97 air.guest_precompile.keccakf_witness_test.test.keccakf witness: empty, odd, and paired slots validate...OK
+5/97 air.guest_precompile.keccakf_witness_test.test.keccakf witness: activation and inactive mutations reject...OK
+6/97 air.guest_precompile.keccakf_witness_test.test.keccakf witness: boundary and slice mutations reject...OK
+7/97 air.guest_precompile.keccakf_witness_test.test.keccakf witness: parity and nonlinear transition mutations reject...OK
+8/97 air.guest_precompile.keccakf_multiplicities_test.test.keccakf counters: paired and odd slots share one exact authority...OK
+9/97 air.guest_precompile.keccakf_multiplicities_test.test.keccakf counters: empty and malformed slots fail before publication...OK
+10/97 infra_trace.test.infra_trace: genPoseidon2Columns basic...OK
+11/97 infra_trace.test.infra_trace: genPoseidon2Columns empty traces...OK
+12/97 infra_trace.test.infra_trace: genMerkleColumns basic...OK
+13/97 infra_trace.test.infra_trace: genMerkleColumns empty...OK
+14/97 infra_trace.test.infra_trace: genMerkleColumns clamps to domain_size...OK
+15/97 infra_trace.test.infra_trace: genProgramColumns basic...OK
+16/97 infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns basic...OK
+17/97 infra_trace.test.infra_trace: genProgramColumns row count with duplicates...OK
+18/97 infra_trace.test.infra_trace: genProgramColumns enabler count and multiplicity sum...OK
+19/97 infra_trace.test.infra_trace: genProgramColumns all columns have domain_size length...OK
+20/97 infra_trace.test.infra_trace: genProgramColumns empty trace...OK
+21/97 infra_trace.test.infra_trace: genMemoryColumns row count...OK
+22/97 infra_trace.test.infra_trace: genMemoryColumns value decomposition...OK
+23/97 infra_trace.test.infra_trace: genMemoryColumns all columns have domain_size length...OK
+24/97 infra_trace.test.infra_trace: genMemoryColumns includes register accesses...OK
+25/97 infra_trace.test.infra_trace: genMemClockUpdateColumns empty when no gaps...OK
+26/97 infra_trace.test.infra_trace: genMemClockUpdateColumns with gap filling...OK
+27/97 infra_trace.test.infra_trace: genMemClockUpdateColumns all columns have domain_size length...OK
+28/97 infra_trace.test.infra_trace: genRegClockUpdateColumns empty when no gaps...OK
+29/97 infra_trace.test.infra_trace: genRegClockUpdateColumns with gap filling...OK
+30/97 infra_trace.test.infra_trace: genRegClockUpdateColumns all columns have domain_size length...OK
+31/97 infra_trace.test.infra_trace: unified clock updates preserve address spaces...OK
+32/97 infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns empty trace...OK
+33/97 infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns all tables same size...OK
+34/97 infra_trace.test.infra_trace: multiplicityLogSize consistency...OK
+35/97 common.poseidon2.test.poseidon2: permutation is deterministic...OK
+36/97 common.poseidon2.test.poseidon2: non-zero output from zero input...OK
+37/97 common.poseidon2.test.poseidon2: hashPair produces 8 elements...OK
+38/97 common.poseidon2.test.poseidon2: sbox is x^5...OK
+39/97 common.poseidon2.test.poseidon2: mds4x4 circulant correctness...OK
+40/97 common.poseidon2.test.poseidon2: permuteTraced produces same output as permute...OK
+41/97 common.poseidon2.test.poseidon2: permuteTraced captures initial state...OK
+42/97 common.poseidon2.test.poseidon2: PermuteTrace flatten produces 443 values...OK
+43/97 common.poseidon2.test.poseidon2: permuteTraced round traces are non-trivial...OK
+44/97 runner.decode.test_0...OK
+45/97 isa.decode.test.decode ADD x1, x2, x3 (0x003100B3)...OK
+46/97 isa.decode.test.architectural operand and memory effects ignore encoding-only fields...OK
+47/97 isa.decode.test.decode ADDI x5, x0, 42 (0x02A00293)...OK
+48/97 isa.decode.test.decode SW x5, 0(x2) (0x00512023)...OK
+49/97 isa.decode.test.decode LW x6, 0(x2) (0x00012303)...OK
+50/97 isa.decode.test.decode BEQ x1, x2, +8 (0x00208463)...OK
+51/97 isa.decode.test.decode JAL x1, +0 (0x000000EF)...OK
+52/97 isa.decode.test.decode LUI x1, 0x12345000 (0x12345_0B7)...OK
+53/97 isa.decode.test.decode MUL x1, x2, x3 (0x023100B3)...OK
+54/97 isa.decode.test.decoder and proof boundary reject the manifest-owned preflight matrix...OK
+55/97 isa.decode.test.proof opcode conversion covers the profile and rejects host controls...OK
+56/97 isa.decode.test.decode SUB x1, x2, x3 (0x403100B3)...OK
+57/97 isa.decode.test.decode ADDI with negative immediate...OK
+58/97 isa.decode.test.decoder equivalence: Zig decoder vs known RV32IM instruction encodings...OK
+59/97 air.trace_columns.test.opcode-family widths pin compact reads and sound x0 extensions...OK
+60/97 air.trace_columns.test.total opcode family columns is 646...OK
+61/97 air.program.table.test.decoded program table: unique PCs retain order and multiplicity...OK
+62/97 air.program.table.test.decoded program table: changing a word at one PC is rejected...OK
+63/97 air.program.table.test.decoded program table: instruction addresses are aligned and commitment-bounded...OK
+64/97 air.program.table.test.decoded program table: manifest rejection matrix fails before row construction...OK
+65/97 air.program.table.test.decoded program table: empty fetch stream produces an empty table...OK
+66/97 air.program.decode.test.decoded program: every proof-bearing RV32IM word maps to its protocol id...OK
+67/97 air.program.decode.test.decoded program: pinned numeric tuple vectors...OK
+68/97 air.program.decode.test.decoded program: negative signed immediates use canonical M31...OK
+69/97 air.program.decode.test.decoded program: rejects the manifest-owned proof preflight matrix...OK
+70/97 air.program.decode.test.decoded program: Poseidon2 profile appends one exact CUSTOM-0 tuple...OK
+71/97 air.program.decode.test.decoded program: Keccak-f profile owns the same isolated extension slot...OK
+72/97 air.program.decode.test.decoded program: Ethereum profile separates Keccak-f and signer recovery...OK
+73/97 air.program.decode.test.decoded program: CUSTOM-0 authority remains profile-separated...OK
+74/97 air.program.decode.test.decoded declared program: Ethereum unimp padding is exact and never executable...OK
+75/97 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+76/97 air.program.opcode.test.program opcode: legacy ids stay stable and local extensions append...OK
+77/97 opcode_manifest.test.opcode manifest is complete and preserves legacy protocol ids...OK
+78/97 opcode_manifest.test.host-control instructions have no proof-family field...OK
+79/97 opcode_manifest.test.opcode manifest owns a unique fail-closed decoder matrix...OK
+80/97 runner.state_chain.test.state_chain: register access tracking...OK
+81/97 runner.state_chain.test.state_chain: clock gap filling...OK
+82/97 runner.state_chain.test.state_chain: decomposeU32...OK
+83/97 runner.state_chain.test.state_chain: memory access tracking...OK
+84/97 runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+85/97 runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+86/97 runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+87/97 runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+88/97 runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+89/97 runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+90/97 runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+91/97 air.trace_columns.m_extension.test.RV32M layouts expose exact oracle boundary fields...OK
+92/97 isa.execution_profile.test.execution profile wire IDs, names, and semantic identity are pinned...OK
+93/97 isa.custom0.test.Poseidon2 CUSTOM-0 admits exactly the 32 rs1 encodings in the extension profile...OK
+94/97 isa.custom0.test.Poseidon2 CUSTOM-0 compares every fixed encoding bit...OK
+95/97 isa.custom0.test.CUSTOM-0 decoder does not claim ordinary RV32IM words...OK
+96/97 isa.custom0.test.Keccak-f encoding is exact and admitted only by its profile...OK
+97/97 isa.custom0.test.Ethereum profile combines unchanged Keccak-f and exact signer recovery...OK
+All 97 tests passed.

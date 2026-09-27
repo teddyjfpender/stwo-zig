@@ -9,6 +9,9 @@ const logup = @import("../logup.zig");
 pub const direct_constraint_count = direct.constraint_count;
 pub const interaction_constraint_count = interaction.batch_count;
 pub const constraint_count = direct_constraint_count + interaction_constraint_count;
+pub fn constraintCount(local_zero_enabled: bool) usize {
+    return direct.constraintCount(local_zero_enabled) + interaction_constraint_count;
+}
 
 pub fn Row(comptime S: type) type {
     return struct {
@@ -31,7 +34,11 @@ pub fn Batch(comptime S: type) type {
 /// reader.begin() admits interaction access and returns is_first; reader.at()
 /// loads one ordered batch. Both can fail without changing the sink protocol.
 pub fn evaluateGeneric(comptime S: type, row: Row(S), relations: anytype, reader: anytype, sink: anytype) !void {
-    try direct.evaluateGeneric(
+    return evaluateGenericForRecipe(S, row, relations, reader, sink, false);
+}
+
+pub fn evaluateGenericForRecipe(comptime S: type, row: Row(S), relations: anytype, reader: anytype, sink: anytype, local_zero_enabled: bool) !void {
+    try direct.evaluateGenericForRecipe(
         S,
         row.main,
         row.previous_io,
@@ -42,14 +49,16 @@ pub fn evaluateGeneric(comptime S: type, row: Row(S), relations: anytype, reader
         row.selectors,
         row.second_active,
         sink,
+        local_zero_enabled,
     );
-    const pairs = try interaction.rowPairsGeneric(
+    const pairs = try interaction.rowPairsGenericForRecipe(
         S,
         row.main,
         row.state_plus_one,
         row.state_plus_twenty_seven,
         row.selectors,
         relations,
+        local_zero_enabled,
     );
     const is_first = try reader.begin();
     for (pairs, 0..) |pair, batch| {

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "scope": "one ordinary native-v5 execution plus same-root program request and complete ROM table; open native residual",
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "log_blowup_factor": 1
+  },
+  "command": "zig test -OReleaseFast -lc -mcpu=native --test-filter 'block-v5' --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_cpu_backend -Mroot=src/frontends/riscv/block_v5_program_native_v5_test_root.zig -Mstwo_core=src/core/mod.zig --dep stwo_core -Mstwo_backend_contracts=src/backend/mod.zig --dep stwo_core --dep stwo_backend_contracts -Mstwo_prover_api=src/prover_api/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep interop_postcard -Mstwo_prover_engine=src/prover/mod.zig --dep stwo_core --dep stwo_proof_wire -Mstwo_riscv_frontend=src/frontends/riscv/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Minterop_postcard=src/interop/postcard.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig -Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+  "result": {
+    "passed": 12,
+    "failed": 0,
+    "allocator_teardown": "std.testing.allocator clean",
+    "fetch_count": 3,
+    "native_fixed_columns": 4,
+    "native_main_columns": 70
+  },
+  "checks": [
+    "both fixed/main shared_owner pointers identical",
+    "borrowed source trace logs equal original column logs",
+    "request proof consumes lease before source native proof",
+    "surviving native roots unchanged",
+    "fresh native verifyOwnedWithCatalog plus request/table batch closure",
+    "changed request fetch count rejected",
+    "changed canonical request instance rejected"
+  ],
+  "complete_block_verified": false,
+  "remaining": [
+    "six global native lookup provider groups and table-consumer projection",
+    "universal memory/public provider compensation",
+    "sorted transition and byte tables",
+    "precompile caller retirement bus",
+    "RW endpoints",
+    "native-v5 exact recursive forest"
+  ]
+}

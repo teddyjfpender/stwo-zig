@@ -1,0 +1,102 @@
+{
+  "timed_proofs": 48,
+  "fresh_verifications": 16,
+  "rows": [
+    {
+      "case": "metal-ecdsa_secp256k1-32",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 0.7463142915000001,
+        "composition_median_seconds": 0.064595,
+        "main_commit_median_seconds": 0.08834249999999999,
+        "interaction_commit_median_seconds": 0.091969,
+        "historical_prove_mean_seconds": 0.5883854998333333,
+        "peak_process_bytes": 1869285416,
+        "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 0.7476725625,
+        "composition_median_seconds": 0.06375600000000001,
+        "main_commit_median_seconds": 0.101383,
+        "interaction_commit_median_seconds": 0.116923,
+        "historical_prove_mean_seconds": 0.6057932426666667,
+        "peak_process_bytes": 1868400872,
+        "proof_sha256": "0f8bf2432cbb80c049db56554552df466cc367a39d0289499068145fd5ed29f9"
+      },
+      "total_speedup": 0.9981833344325779
+    },
+    {
+      "case": "metal-sha256-128",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 1.7708572915,
+        "composition_median_seconds": 0.1325,
+        "main_commit_median_seconds": 0.154752,
+        "interaction_commit_median_seconds": 0.1630595,
+        "historical_prove_mean_seconds": 1.3043620765,
+        "peak_process_bytes": 4868050784,
+        "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 1.696813562,
+        "composition_median_seconds": 0.128733,
+        "main_commit_median_seconds": 0.126226,
+        "interaction_commit_median_seconds": 0.135292,
+        "historical_prove_mean_seconds": 1.232297819,
+        "peak_process_bytes": 4868394776,
+        "proof_sha256": "4b2adf83f99aa779712d3a82cf883e9d878c65f3674a4a2f5ac803c71ecd2d30"
+      },
+      "total_speedup": 1.0436369269778385
+    },
+    {
+      "case": "metal-sha256-2048",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 2.917030896,
+        "composition_median_seconds": 0.25490650000000004,
+        "main_commit_median_seconds": 0.3008015,
+        "interaction_commit_median_seconds": 0.325606,
+        "historical_prove_mean_seconds": 2.289352833333333,
+        "peak_process_bytes": 8631457744,
+        "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 2.7907886665,
+        "composition_median_seconds": 0.25304499999999996,
+        "main_commit_median_seconds": 0.25214400000000003,
+        "interaction_commit_median_seconds": 0.27585499999999996,
+        "historical_prove_mean_seconds": 2.1656014238333334,
+        "peak_process_bytes": 8629639000,
+        "proof_sha256": "b0c0f54536949381f9b1ab44cb16bc5753bcd391449aee04a854a31cc3cd9b51"
+      },
+      "total_speedup": 1.0452353239839989
+    },
+    {
+      "case": "metal-keccak-128",
+      "control": {
+        "samples": 6,
+        "total_median_seconds": 2.8348616455,
+        "composition_median_seconds": 0.2626505,
+        "main_commit_median_seconds": 0.2957345,
+        "interaction_commit_median_seconds": 0.324114,
+        "historical_prove_mean_seconds": 2.2482340346666665,
+        "peak_process_bytes": 8363955624,
+        "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+      },
+      "candidate": {
+        "samples": 6,
+        "total_median_seconds": 2.6949321875,
+        "composition_median_seconds": 0.259757,
+        "main_commit_median_seconds": 0.2492745,
+        "interaction_commit_median_seconds": 0.258945,
+        "historical_prove_mean_seconds": 2.117864431,
+        "peak_process_bytes": 8364971600,
+        "proof_sha256": "8e69188b989f8bd07c628d6870967f08111a9165155d202360722d2884080ee7"
+      },
+      "total_speedup": 1.0519231833175766
+    }
+  ]
+}

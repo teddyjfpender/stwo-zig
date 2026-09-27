@@ -1,0 +1,254 @@
+--- a/src/frontends/riscv/recursion/blake3_native_hash_columns.zig
++++ b/src/frontends/riscv/recursion/blake3_native_hash_columns.zig
+@@ -6,18 +6,20 @@
+ const g = @import("air/blake3_g_call.zig");
+ const xor = @import("air/blake3_xor_call.zig");
+ const Layout = @import("blake3_native_hash_layout.zig").Layout;
++const Counts = @import("blake3_native_hash_layout.zig").Counts;
+ pub const Owner = struct {
+     allocator: std.mem.Allocator,
+     layout: Layout,
+     owns_backing: bool = true,
+     first: [2]usize = .{ 0, 0 },
++    capacity: [2]usize,
+     main: [2][]Column = @splat(&.{}),
+     g_metadata: []@import("air/blake3_hash_metadata.zig").Row(g) = &.{},
+     xor_metadata: []@import("air/blake3_hash_metadata.zig").Row(xor) = &.{},
+ 
+     pub fn init(a: std.mem.Allocator, layout: Layout) !Owner {
+         try layout.validateEmitted(layout.transcript, layout.paths);
+-        var self = Owner{ .allocator = a, .layout = layout };
++        var self = Owner{ .allocator = a, .layout = layout, .capacity = .{ layout.total.g, layout.total.xor } };
+         errdefer self.deinit();
+         inline for (.{ g, xor }, 0..) |Air, i| {
+             self.main[i] = try a.alloc(Column, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+@@ -81,10 +83,23 @@
+ pub const Shared = struct {
+     owner: Owner,
+     layouts: [2]Layout,
++    capacities: [2]Counts,
+     pub fn init(a: std.mem.Allocator, layouts: [2]Layout) !Shared {
+-        for (layouts) |layout| try layout.validateEmitted(layout.transcript, layout.paths);
+-        const combined = try Layout.fromCounts(layouts[0].total, layouts[1].total);
+-        return .{ .owner = try Owner.init(a, combined), .layouts = layouts };
++        return initReserved(a, layouts, .{ .{ .g = 0, .xor = 0 }, .{ .g = 0, .xor = 0 } });
++    }
++    /// Extra rows are reserved for subsequently admitted custody witnesses.
++    /// Native emission retains its original layout; joining requires full coverage.
++    pub fn initReserved(a: std.mem.Allocator, layouts: [2]Layout, extras: [2]Counts) !Shared {
++        var capacities: [2]Counts = undefined;
++        for (layouts, extras, &capacities) |layout, extra, *capacity| {
++            try layout.validateEmitted(layout.transcript, layout.paths);
++            capacity.* = .{
++                .g = try std.math.add(usize, layout.total.g, extra.g),
++                .xor = try std.math.add(usize, layout.total.xor, extra.xor),
++            };
++        }
++        const combined = try Layout.fromCounts(capacities[0], capacities[1]);
++        return .{ .owner = try Owner.init(a, combined), .layouts = layouts, .capacities = capacities };
+     }
+     pub fn deinit(self: *Shared) void {
+         self.owner.deinit();
+@@ -92,13 +107,14 @@
+     }
+     pub fn partition(self: *Shared, index: usize) !Owner {
+         if (index >= 2) return error.InvalidNativeHashColumns;
+-        const first: [2]usize = if (index == 0) .{ 0, 0 } else .{ self.layouts[0].total.g, self.layouts[0].total.xor };
++        const first: [2]usize = if (index == 0) .{ 0, 0 } else .{ self.capacities[0].g, self.capacities[0].xor };
+         const layout = self.layouts[index];
+         var result = Owner{
+             .allocator = self.owner.allocator,
+             .layout = layout,
+             .owns_backing = false,
+             .first = first,
++            .capacity = .{ self.capacities[index].g, self.capacities[index].xor },
+             .main = self.owner.main,
+             .g_metadata = self.owner.g_metadata[first[0]..][0..layout.total.g],
+             .xor_metadata = self.owner.xor_metadata[first[1]..][0..layout.total.xor],
+--- a/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
++++ b/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
+@@ -294,7 +294,7 @@
+         fixed[i] = try b.fixed[i].toOwnedSlice(a);
+     }
+     if (audit) std.debug.print("NATIVE_ROW_CAPACITY scratch_released_at_return={d}\n", .{arena.queryCapacity()});
+-    if (shared) return .{ .allocator = a, .main = main, .fixed = fixed, .input_count = input_count, .first = hash_columns.?.first };
++    if (shared) return .{ .allocator = a, .main = main, .fixed = fixed, .input_count = input_count, .first = hash_columns.?.first, .capacity = hash_columns.?.capacity };
+     if (hash_columns) |owner| owner.main = @splat(&.{});
+     return .{ .allocator = a, .main = main, .fixed = fixed, .input_count = input_count };
+ }
+--- a/src/frontends/riscv/recursion/air/blake3_parent_append.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_append.zig
+@@ -22,7 +22,7 @@
+ pub fn deinit(a: std.mem.Allocator, chunks: *Chunks) void {
+     inline for (0..storage.Airs.len) |i| chunks[i].deinit(a);
+ }
+-pub fn append(target: *storage.Prepared, chunks: *const Chunks) !void {
++pub fn append(target: anytype, chunks: *const Chunks) !void {
+     const a = target.allocator;
+     var replacement = storage.Prepared{ .allocator = a, .main = @splat(&.{}), .fixed = undefined, .input_count = target.input_count };
+     inline for (0..storage.Airs.len) |i| replacement.fixed[i] = &.{};
+@@ -40,26 +40,38 @@
+         if (count > (1 << 30)) return error.InvalidParentAppend;
+         const log: u32 = @max(1, std.math.log2_int_ceil(usize, count));
+         const size = @as(usize, 1) << @intCast(log);
++        if (target.main[i].len != Air.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentAppend;
++        if (@TypeOf(target.*) == storage.Partition and i < 2) {
++            if (count > target.capacity[i]) return error.InvalidParentAppend;
++            const end = try std.math.add(usize, target.first[i], target.capacity[i]);
++            const shared_log = target.main[i][0].log_size;
++            for (target.main[i]) |old| {
++                if (old.log_size > 30 or old.log_size != shared_log or
++                    old.values.len != @as(usize, 1) << @intCast(old.log_size) or end > old.values.len)
++                    return error.InvalidParentAppend;
++            }
++        }
+         replacement.fixed[i] = try a.alloc(storage.FixedRow(Air), count);
+         @memcpy(replacement.fixed[i][0..target.fixed[i].len], target.fixed[i]);
+-        if (target.main[i].len != Air.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentAppend;
+-        replacement.main[i] = try a.alloc(Column, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+-        for (replacement.main[i]) |*column| column.* = .{ .log_size = log, .values = &.{} };
+-        for (replacement.main[i], target.main[i], 0..) |*column, old, col| {
+-            if (old.log_size > 30 or old.values.len != @as(usize, 1) << @intCast(old.log_size) or target.fixed[i].len > old.values.len) return error.InvalidParentAppend;
+-            const values = try a.alloc(M, size);
+-            column.values = values;
+-            if (log == old.log_size) {
+-                @memcpy(values, old.values);
+-            } else {
+-                @memset(values, M.zero());
+-                for (0..target.fixed[i].len) |row| values[committed(row, log)] = old.values[committed(row, old.log_size)];
+-            }
+-            var at = target.fixed[i].len;
+-            for (chunks[i].items) |chunk| {
+-                for (chunk.live) |row| {
+-                    values[committed(at, log)] = row[col];
+-                    at += 1;
++        if (!(@TypeOf(target.*) == storage.Partition and i < 2)) {
++            replacement.main[i] = try a.alloc(Column, Air.PHYSICAL_MAIN_COLUMN_COUNT);
++            for (replacement.main[i]) |*column| column.* = .{ .log_size = log, .values = &.{} };
++            for (replacement.main[i], target.main[i], 0..) |*column, old, col| {
++                if (old.log_size > 30 or old.values.len != @as(usize, 1) << @intCast(old.log_size) or target.fixed[i].len > old.values.len) return error.InvalidParentAppend;
++                const values = try a.alloc(M, size);
++                column.values = values;
++                if (log == old.log_size) {
++                    @memcpy(values, old.values);
++                } else {
++                    @memset(values, M.zero());
++                    for (0..target.fixed[i].len) |row| values[committed(row, log)] = old.values[committed(row, old.log_size)];
++                }
++                var at = target.fixed[i].len;
++                for (chunks[i].items) |chunk| {
++                    for (chunk.live) |row| {
++                        values[committed(at, log)] = row[col];
++                        at += 1;
++                    }
+                 }
+             }
+         }
+@@ -70,8 +82,18 @@
+         }
+     }
+     // Exchange only after every allocation, geometry and fixed-column check.
+-    inline for (0..storage.Airs.len) |i| if (replacement.main[i].len != 0) {
+-        std.mem.swap([]Column, &target.main[i], &replacement.main[i]);
++    inline for (0..storage.Airs.len) |i| if (replacement.fixed[i].len != 0) {
++        if (@TypeOf(target.*) == storage.Partition and i < 2) {
++            // No writes to shared backing until all cohorts have passed every
++            // fallible operation. Only this partition's reserved suffix changes.
++            for (target.main[i], 0..) |column, col| {
++                var at = target.first[i] + target.fixed[i].len;
++                for (chunks[i].items) |chunk| for (chunk.live) |row| {
++                    @constCast(column.values)[committed(at, column.log_size)] = row[col];
++                    at += 1;
++                };
++            }
++        } else std.mem.swap([]Column, &target.main[i], &replacement.main[i]);
+         std.mem.swap([]storage.FixedRow(storage.Airs[i]), &target.fixed[i], &replacement.fixed[i]);
+     };
+ }
+--- a/src/frontends/riscv/recursion/air/blake3_parent_join.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_join.zig
+@@ -35,6 +35,7 @@
+         const log: u32 = if (count < 2) 1 else std.math.log2_int_ceil(usize, count);
+         if (left.first[i] != 0 or right.first[i] != left.fixed[i].len or owner.main[i].len != storage.Airs[i].PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentJoinColumns;
+         for ([_]*storage.Partition{ left, right }) |part| {
++            if (part.fixed[i].len != part.capacity[i]) return error.InvalidParentJoinColumns;
+             if (part.main[i].ptr != owner.main[i].ptr or part.main[i].len != owner.main[i].len) return error.InvalidParentJoinColumns;
+         }
+         for (owner.main[i]) |column| if (column.log_size != log or column.values.len != @as(usize, 1) << @intCast(log)) return error.InvalidParentJoinColumns;
+--- a/src/frontends/riscv/recursion/air/blake3_parent_join_test.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_join_test.zig
+@@ -175,7 +175,7 @@
+         a.free(source.main[i]);
+         source.main[i] = &.{};
+     }
+-    var result = storage.Partition{ .allocator = a, .main = source.main, .fixed = source.fixed, .input_count = source.input_count, .first = columns.first };
++    var result = storage.Partition{ .allocator = a, .main = source.main, .fixed = source.fixed, .input_count = source.input_count, .first = columns.first, .capacity = columns.capacity };
+     result.main[0] = columns.main[0];
+     result.main[1] = columns.main[1];
+     source.main = @splat(&.{});
+@@ -234,3 +234,55 @@
+     var result = try join.joinShared(&left, &right, .{ .{ .first = 1, .end = 2 }, .{ .first = 101, .end = 102 } }, &shared.owner);
+     defer result.deinit();
+ }
++
++test "BLAKE3 shared reserved append is bounded and failure atomic" {
++    try reservedAppend(std.testing.allocator);
++    try std.testing.checkAllAllocationFailures(std.testing.allocator, reservedAppend, .{});
++}
++fn reservedAppend(a: std.mem.Allocator) !void {
++    const append = @import("blake3_parent_append.zig");
++    const G = storage.Airs[0];
++    const layout = try HashLayout.fromCounts(.{ .g = 1, .xor = 0 }, .{ .g = 0, .xor = 0 });
++    var shared = try hash_columns.Shared.initReserved(std.testing.allocator, .{ layout, layout }, .{ .{ .g = 3, .xor = 0 }, .{ .g = 2, .xor = 0 } });
++    defer shared.deinit();
++    const columns = try shared.partition(1);
++    try std.testing.expectEqual(@as(usize, 4), columns.first[0]);
++    var target = storage.Partition{ .allocator = a, .main = @splat(&.{}), .fixed = undefined, .input_count = 0, .first = columns.first, .capacity = columns.capacity };
++    inline for (0..storage.Airs.len) |i| target.fixed[i] = &.{};
++    target.main[0] = columns.main[0];
++    target.main[1] = columns.main[1];
++    defer target.deinit();
++    target.fixed[0] = try a.alloc(storage.FixedRow(G), 1);
++    target.fixed[0][0] = @splat(M.zero());
++    for (shared.owner.main[0]) |column| @memset(@constCast(column.values), M.fromCanonical(7));
++    var succeeded = false;
++    defer if (!succeeded) {
++        for (shared.owner.main[0]) |column| for (column.values) |value| std.debug.assert(value.toU32() == 7);
++        std.debug.assert(target.fixed[0].len == 1);
++    };
++    const extra = [_]G.Row{ @splat(M.one()), @splat(M.fromCanonical(2)) };
++    var chunks = append.init();
++    defer append.deinit(std.testing.allocator, &chunks);
++    try chunks[0].append(std.testing.allocator, .{ .live = &extra, .fixed = &extra });
++    // A later invalid cohort must not publish already validated hash additions.
++    const live_boundary = [_]boundary.Row{@splat(M.zero())};
++    const bad_boundary = [_]boundary.Row{@splat(M.one())};
++    try chunks[2].append(std.testing.allocator, .{ .live = &live_boundary, .fixed = &bad_boundary });
++    if (append.append(&target, &chunks)) |_| return error.ExpectedInvalidAppend else |err| {
++        if (err != error.InvalidParentAppend) return err;
++    }
++    for (shared.owner.main[0]) |column| for (column.values) |value| try std.testing.expectEqual(@as(u32, 7), value.toU32());
++    chunks[2].clearRetainingCapacity();
++    const pointer = target.main[0].ptr;
++    try append.append(&target, &chunks);
++    succeeded = true;
++    try std.testing.expectEqual(pointer, target.main[0].ptr);
++    try std.testing.expectEqual(@as(usize, 3), target.fixed[0].len);
++    for (target.main[0]) |column| for (0..column.values.len) |logical| {
++        const expected: u32 = if (logical == 5) 1 else if (logical == 6) 2 else 7;
++        try std.testing.expectEqual(expected, column.values[committed(logical, column.log_size)].toU32());
++    };
++    // A second append would cross the reservation, even though padding exists.
++    try std.testing.expectError(error.InvalidParentAppend, append.append(&target, &chunks));
++    try std.testing.expectEqual(@as(usize, 3), target.fixed[0].len);
++}
+--- a/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
+@@ -119,6 +119,7 @@
+     fixed: FixedTuple(false),
+     input_count: usize,
+     first: [2]usize,
++    capacity: [2]usize,
+     pub fn deinit(self: *Partition) void {
+         inline for (0..Airs.len) |i| {
+             if (i >= 2) {

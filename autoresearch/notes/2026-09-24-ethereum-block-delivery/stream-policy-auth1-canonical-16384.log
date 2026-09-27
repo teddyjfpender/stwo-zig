@@ -1,0 +1,29 @@
+BLOCK_STREAM preflight_cycles=21635 proof_segments=2 preflight_ns=10599708
+BLAKE3_NATIVE_QUERY_FUSION groups=19810 removed_scalars=79240
+BLAKE3_NATIVE_FUSION dot4=805813 fma=154714 arithmetic_rows=1420264
+BLOCK_STREAM proved_segments=1/2 paired=false retained_nodes=1 peak_bytes=17382476496 elapsed_ns=27415020916
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800
+BLAKE3_NATIVE_FUSION dot4=815808 fma=147046 arithmetic_rows=1416686
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_QUERY_FUSION groups=27230 removed_scalars=108920
+BLAKE3_NATIVE_FUSION dot4=36718 fma=76503 arithmetic_rows=231673
+BLAKE3_NATIVE_FUSION dot4=36718 fma=76503 arithmetic_rows=231673
+BLOCK_STREAM proved_segments=2/2 paired=false retained_nodes=1 peak_bytes=21227052479 elapsed_ns=69050246291
+       69.73 real       528.02 user        15.76 sys
+         16676257792  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            11899862  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   2  voluntary context switches
+              183446  involuntary context switches
+       6125705164405  instructions retired
+       2253220392530  cycles elapsed
+         16679239664  peak memory footprint

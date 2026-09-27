@@ -1,0 +1,10 @@
+{
+  "git_head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "measured_binary_sha256": "3ed47db6d94d475256e06f79e0d32c9415bc08278eb1b602d81486bd5518d442",
+  "source_archive": "balanced-source.tar.gz",
+  "source_manifest": "source-files.txt",
+  "source_note": "Archive contains final source. Changes after measured build are partition test extensions, deriveKey documentation, and mutable/consuming tree test support. Production runtime code is the measured balanced build. Workspace had unrelated pre-existing changes; archive is a snapshot, not a claim that every file changed in this task.",
+  "host": "Darwin TMWM-JJC4N61YF7 25.6.0 Darwin Kernel Version 25.6.0: Tue Aug 18 17:51:47 PDT 2026; root:xnu-12377.161.15.700.19~2/RELEASE_ARM64_T6050 arm64",
+  "results": "summary.json",
+  "timing_note": "64 overlapped briefly with an aborted source archive operation; do not treat its wall time as an isolated performance result."
+}

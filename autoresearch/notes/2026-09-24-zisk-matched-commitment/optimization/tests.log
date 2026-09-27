@@ -1,0 +1,66 @@
+1/65 vcs.blake3_hash.test.blake3 hash: short chunk and streaming boundary differential...OK
+2/65 vcs.blake3_hash.test.blake3 hash: single hash test...OK
+3/65 vcs.blake3_hash.test.blake3 hash: incremental equals one-shot...OK
+4/65 vcs.blake3_hash.test.blake3 hash: concat and hash matches manual update...OK
+5/65 vcs_lifted.merkle_hasher.test.lifted merkle_hasher: blake2 merkle satisfies contract...OK
+6/65 vcs.hash.test.hash: eql matches byte equality...OK
+7/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hash children deterministic...OK
+8/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: direct column-major leaves match packed messages...OK
+9/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: mix root changes channel digest...OK
+10/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: plain updateLeaf matches explicit byte packing...OK
+11/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: pinned Cairo Rust oracle uses plain leaf and parent hashes...OK
+12/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: pinned raw Stwo oracle uses domain-prefixed hashes...OK
+13/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: updateLeafPackedBytes matches updateLeaf...OK
+14/65 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hashChildrenWithSeed matches fixed parent hash...OK
+15/65 vcs.blake2_hash.test.blake2 hash: single hash test...OK
+16/65 vcs.blake2_hash.test.blake2 hash: incremental equals one-shot...OK
+17/65 vcs.blake2_hash.test.blake2 hash: m31 output limbs are canonical...OK
+18/65 vcs.blake2_hash.test.blake2 hash: fixed128 backend matches generic hasher...OK
+19/65 vcs.blake2_hash.test.blake2 hash: scalar and simd backends match without shared policy mutation...OK
+20/65 vcs.blake2_hash.test.blake2 hash: compatibility backend selectors remain observable...OK
+21/65 vcs.blake2_hash.test.blake2 hash: backend wrapper matches std reference on varied lengths...OK
+22/65 crypto.blake2s_backend.test_0...OK
+23/65 fields.m31.test.m31: bounded product reduction matches generic reduction...OK
+24/65 fields.m31.test.m31: generic reduction canonicalizes the full u64 range...OK
+25/65 fields.m31.test.m31: packed four-term dot product matches scalar accumulation...OK
+26/65 fields.m31.test.m31: packed reduction edge cases...OK
+27/65 channel.blake2s.test.blake2s channel: draw counters...OK
+28/65 channel.blake2s.test.blake2s channel: draw_u32s differs on successive calls...OK
+29/65 channel.blake2s.test.blake2s channel: draw_secure_felt differs on successive calls...OK
+30/65 channel.blake2s.test.blake2s channel: draw_secure_felts are unique for small sample...OK
+31/65 channel.blake2s.test.blake2s channel: mix_felts changes digest...OK
+32/65 channel.blake2s.test.blake2s channel: compiled Metal transcript vector remains canonical...OK
+33/65 channel.blake2s.test.blake2s channel: mix_u64 matches mix_u32s and upstream digest bytes...OK
+34/65 channel.blake2s.test.blake2s channel: mix_u32s upstream digest bytes...OK
+35/65 channel.blake2s.test.blake2s channel: parallel grinding returns the lowest valid nonce...OK
+36/65 channel.blake2s.test.blake2s channel: zero-bit grinding is independent of worker count...OK
+37/65 channel.blake2s.test.blake2s channel: failed worker residues are completed synchronously...OK
+38/65 crypto.tests.blake2s_backend.test.blake2s backend: one-shot known vector...OK
+39/65 crypto.tests.blake2s_backend.test.blake2s backend: incremental equals one-shot...OK
+40/65 crypto.tests.blake2s_backend.test.blake2s backend: fixed128 equals generic stream hash...OK
+41/65 crypto.tests.blake2s_backend.test.blake2s backend: fixed single-block helpers equal generic hash...OK
+42/65 crypto.tests.blake2s_backend.test.blake2s backend: four-way single-block hashes match scalar messages...OK
+43/65 crypto.tests.blake2s_backend.test.blake2s backend: eight-way single-block hashes match scalar messages...OK
+44/65 crypto.tests.blake2s_backend.test.blake2s backend: prepared fixed40 nonce words match complete hashes...OK
+45/65 crypto.tests.blake2s_backend.test.blake2s backend: four-way terminal compression matches scalar messages...OK
+46/65 crypto.tests.blake2s_backend.test.blake2s backend: eight-way terminal compression matches scalar messages...OK
+47/65 crypto.tests.blake2s_backend.test.blake2s backend: four-way equal messages match seeded scalar stream...OK
+48/65 crypto.tests.blake2s_backend.test.blake2s backend: fixed-seed scalar and simd modes cover boundaries and unaligned tails...OK
+49/65 crypto.tests.blake2s_backend.test.blake2s backend: four-way incremental updates preserve independent streams...OK
+50/65 crypto.tests.blake2s_backend.test.blake2s backend: four-way final tails preserve independent states...OK
+51/65 crypto.tests.blake2s_dispatch.test.blake2s backend: backend selection is observable and captured per hasher...OK
+52/65 crypto.tests.blake2s_dispatch.test.blake2s backend: process default changes do not alter existing hashers...OK
+53/65 crypto.tests.blake2s_dispatch.test.blake2s backend: compatibility selectors preserve default semantics...OK
+54/65 crypto.tests.blake2s_dispatch.test.blake2s backend: four-lane helpers honor explicit dispatch mode...OK
+55/65 crypto.tests.blake2s_dispatch.test.blake2s backend: four-way read-only aliases and scalar tails are supported...OK
+56/65 fields.qm31.test.qm31: mul and square match schoolbook reference...OK
+57/65 fields.qm31.test.qm31: sparse base multiplication and squaring preserve generic field results...OK
+58/65 fields.qm31.test.qm31: inverse...OK
+59/65 fields.qm31.test.qm31: basic ops parity sanity...OK
+60/65 fields.qm31.test.qm31: m31 array roundtrip...OK
+61/65 fields.qm31.test.qm31: randomized field laws...OK
+62/65 fields.cm31.test.cm31: mul and square match schoolbook reference...OK
+63/65 fields.cm31.test.cm31: inverse...OK
+64/65 fields.cm31.test.cm31: basic ops parity sanity...OK
+65/65 fields.cm31.test.cm31: randomized field laws...OK
+All 65 tests passed.

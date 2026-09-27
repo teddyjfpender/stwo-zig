@@ -1,0 +1,5 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 45s
+1/2 recursion.air.blake3_g_partition.test.G partition preserves logical rows and padding across domain boundaries...OK
+2/2 recursion.air.blake3_g_partition.test.G partition allocation failures leave source rows usable...OK
+All 2 tests passed.

@@ -1,0 +1,16 @@
+1/15 block_v5_heterogeneous_scoped_public_selected_test_root.test_0...OK
+2/15 block_v5_heterogeneous_scoped_public_selected_test_root.test.scoped public bridge: actual selected owned source byte graph producer and standalone fresh receiver bodies retained...OK
+3/15 prover.block_v5_heterogeneous_scoped_public_test_v1.test.scoped public bridge: scalar and recorded original scoped joins match every field mutation with allocator fault cleanup...OK
+4/15 prover.block_v5_heterogeneous_scoped_public_test_v1.test.scoped public bridge: register claims cannot cancel across windows even when total compensation closes...OK
+5/15 prover.block_v5_heterogeneous_scoped_public_test_v1.test.scoped public bridge: native compensation is authenticated once and missing public terms have original signs...OK
+6/15 prover.block_v5_heterogeneous_scoped_public_test_v1.test.scoped public bridge: exact window outputs and carries reject empty excessive and overflowing geometry before allocation...OK
+7/15 prover.block_v5_heterogeneous_scoped_public_test_v1.test.scoped public bridge: new parent identity cannot relabel old compact key or trust changed public coordinate schedule...OK
+8/15 prover.block_v5_heterogeneous_scoped_public_test_v1.test.scoped public bridge: actual fresh receiver rejects zero and oversized bytes before touching source authority or allocating...OK
+9/15 prover.block_v5_heterogeneous_scoped_public_test_v1.test.scoped public bridge: transferred transport buffers retain allocator owner through delayed destruction and every fault path...OK
+10/15 prover.block_execution_external_trace_v2.test_0...OK
+11/15 air.lookups.tables.mod.test_0...OK
+12/15 air.semantic_eval.test_0...OK
+13/15 prover.block_execution_external_access_bridge_v2.test_0...OK
+14/15 air.memory_commitment.poseidon2_air.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

@@ -1,0 +1,288 @@
+{
+  "schema": "block-v5-ram-lanes-recursion-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "tests_run_by_agent": false,
+  "guest_executed": false,
+  "pcs_committed": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_recursive_admission_v1.zig",
+      "sha256": "cca348459f2bc70e9060559d8cf0f929eb5f965d2efcfc16f68633b792fb0fae"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_recursive_capture_v1.zig",
+      "sha256": "d0ce8bd540649be7d7e0edae3c3d3a55cbda5fe56a061d50f765954fc3695990"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_recursive_stage_v1.zig",
+      "sha256": "800256c9acec1044e1639f581efcfdfab05109393692896a8b1ca21d2b498f8a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_recursive_test_v1.zig",
+      "sha256": "dc1306857d5cfd7bf4737089cf997cd2f7ae0577f0dc85e767d5a24e5a76097b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_ram_lanes_composition_v1.zig",
+      "sha256": "c6e9872a40244110ff6ce8016b47a702ef61a530b54f07c426f93c44e313a92e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_ram_lanes_deep_v1.zig",
+      "sha256": "a7b410aa8bfb621930c2da927b145a7c602fc06ce1ae998cbe93d440a8e6104c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_ram_lanes_roots_v1.zig",
+      "sha256": "69977f69f7bf417fd40d56a1c7ff89fe0817b642fd022eb650c828556d4d9e42"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_ram_lanes_transcript_v1.zig",
+      "sha256": "f1e5231a964b0ecd7145bd76234fc2aaa54141cdc8117df84566537b863332aa"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_ram_lanes_recursive_public_bus_v1.zig",
+      "sha256": "eae8d50e5d989dd387f0d12e427eee7c580c14ec4955f0c4b715c49cafeca1c2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_ram_lanes_parent_protocol_v1.zig",
+      "sha256": "64c3c3319b6e9b9a8c52c528c47ee60f52e7848c724fb046453460cb706ff1b4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_ram_lanes_recursive_leaf_v1.zig",
+      "sha256": "242b2c4a273503d75e87808d0cb92d68261993091f92e0d09160d33f208b699c"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_ram_lanes_recursive_test_root.zig",
+      "sha256": "766dc48f62124d9bfceb3acdf4dfe134d01ce1173ecae97b38e1c1c23b3856c8"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_ram_lanes_recursive_codegen.zig",
+      "sha256": "f39f23e107bf4c62d8620d4581f41c35f3bc624e422c797fdc98d2c59c968c2e"
+    },
+    {
+      "path": "src/frontends/riscv/air/block/word_memory_v5.zig",
+      "sha256": "b6f3cd6860834043d1474e8d391e40e2015bf33d105de043043a52e78b50463d"
+    },
+    {
+      "path": "src/frontends/riscv/air/block/word_memory_lanes_v1.zig",
+      "sha256": "1c1ac85361f36535b289709132316b9e35e18e58978cd6a902367c9b9d5e874f"
+    }
+  ],
+  "integration_dependency_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_proof_v1.zig",
+      "sha256": "297f215ea2b2f4c452c876fa78968392a688b9a82c9977ca8015a7ce085737db"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_protocol_v1.zig",
+      "sha256": "2c3a1438e1cd3fb84737efc764f125c8d37f949e7b6cc23df08ca43924a30efb"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_interaction_v1.zig",
+      "sha256": "0b1a84ac92ba760d4a872a017d63bda986ac9768002fcd5fd32564fb89992313"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_component_v1.zig",
+      "sha256": "1c612c35cbff101cf0d200d44bbea2a51869bc798c4c26c1d3dcb401a8b1ffb0"
+    },
+    {
+      "path": "src/frontends/riscv/air/block/word_memory_lanes_trace_v1.zig",
+      "sha256": "84b209e21f522f4f74be2c0e13c543cd5fd9567769bc8e52b2df835808e8fcf7"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "e86cb5279c1640301ad8d5d70f3ac2a518af85978042f75a7b12160aba345cad"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "9728ce12882f48e75e6dd945d77416159166781c9f2b321eded5ccc8d05548ac"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig",
+      "sha256": "8a583fb8c5bb3dce5536df82aa9334833b4de38bf9f7954de355aaa548280eab"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/core/verifier.zig",
+      "sha256": "8b8fb3ff311cf89679fc7c2be0c0e1183cc9a6b14961e31c5f064acf74a577b7"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_deep.zig",
+      "sha256": "49c104c755dda49d69940827bd0c2841482ee0647e0efdb59d2e7d3790aa5e45"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_fri.zig",
+      "sha256": "2e2788383d7770a1d2eb3d2e8fad373a79b68753bff2d1398b009bd89f8645df"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_transcript.zig",
+      "sha256": "847861b79b81f8f501fff1a904bdc2a1846d31e8a93efb4ac31e6f90132ad2a0"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_recorder.zig",
+      "sha256": "049b734d7fea72ca710e73d1233b31d16a572558ff6c5fa73106987c96489d1f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_roots.zig",
+      "sha256": "2ed0ce408aa53706a185ca791c930da9baa5a0ec94791b024f18d2b889c928ad"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_proof.zig",
+      "sha256": "75cafdcc1c855458e8cb931d912f73895d971f434d6ab9305e2e6c598facba4c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "sha256": "3337806d63a144479ae8e3432fd38c875ccf980bd3dee6f3d69e39033f1f86d2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_verifier.zig",
+      "sha256": "6753c2f827b1f1251e3386185d4f74a64132ebda4690427497eedd3bfdf3da22"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_codec.zig",
+      "sha256": "5b4e499938c583f1798e6aa1f0e26827fc4661ffdf3acd184cd8cbda631bd915"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "sha256": "cd3fa8b04bffe1810f100c3e879886b6f4f2f4f12e8c0cc5b115dd14d187a961"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_pcs_v1.zig",
+      "sha256": "746f9bce92f08e0193fb66fb3b78e987b26b716980fbe17dcea782709d5b443f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder.zig",
+      "sha256": "393ac0d6b085c909aff81ca3dfc5b06dc5bb427a7d75fc45023d443cacea656d"
+    }
+  ],
+  "doc_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-ram-lanes-recursive-verifier-v1.md",
+      "sha256": "f24848d1e7307d91650b83b4d02bc75be64c9c8980c4ec1a4d990ac3a9e6fb5a"
+    }
+  ],
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "RAM recursion:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_ram_lanes_recursive_test_root.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-ram-lanes-recursive-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_ram_lanes_recursive_codegen.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "focused_command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_ram_lanes_recursive_test_root.zig",
+    "RAM recursion:"
+  ],
+  "pure_named_tests": 7,
+  "body_export": "stwo_ram_lanes_recursive_body_gate",
+  "body_executed": false,
+  "scope": "Actual strict two-event RAM verifier with physical24/54/92 column geometry, all117 degree4 equations,9 shifted main openings, original52 challenge pairs and90 claim words, full DEEP/FRI/Merkle/PoW capture, externally authenticated roots/endpoints/census, distinct real recursive parent publication and fresh receive. Additive canonical AIR endpoint lifting shares one exact equation body. No synthetic capture acceptance or canonical activation.",
+  "remaining": [
+    "serialized source/unit and actual-body qualification",
+    "typed durable provider-leaf transport and independent shared key/schedule policy",
+    "recursive global bus cancellation/completeness",
+    "canonical driver activation after complete closure"
+  ]
+}

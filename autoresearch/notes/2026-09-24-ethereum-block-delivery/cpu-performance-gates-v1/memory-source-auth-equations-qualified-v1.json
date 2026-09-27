@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "status": "qualified_at_stated_scope",
+  "scope": "12 nonproving scalar/symbolic/fault/import/body checks; exact SHA/BLAKE3, complete images and u64 clocks",
+  "attempt": "memory-source-auth-focused-v2-result.json",
+  "source_candidate": "memory-source-auth-focused-v2-source.json",
+  "current_source_pins_match": true,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-auth-focused-v2",
+    "bytes": 749352,
+    "sha256": "8067d1753259f1050b787f8cbeda03245bc74bf3219258475948b9acdc60aef5"
+  },
+  "pending": [
+    "source first-round witness commitment lifecycle",
+    "real source STARK and recursive leaf",
+    "exact-once authenticated source aggregate",
+    "source-to-sorted-RAM join and final heterogeneous proof"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_measurement": false
+}

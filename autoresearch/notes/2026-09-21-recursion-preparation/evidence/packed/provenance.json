@@ -1,0 +1,8 @@
+{
+  "head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "binary_sha256": {
+    "baseline": "e231b5bffdbd60b168f88c9ec2753a899f8e973187d0f07ae8c894e352051704",
+    "candidate": "7465e920eadeccfe743e985ee030b9a8ec0b59d5d56fe3d22f60cee4dbcce4ad"
+  },
+  "source_patch_sha256": "e4fd2fd65fd99af4547abfc69edbb7e7037089fd43714c8f80ecf60728c5757b"
+}

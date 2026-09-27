@@ -1,0 +1,72 @@
+    Emulator Running in emulator mode
+ Proving Key /tmp/stwo-zisk-guest-e2e-20260924/provingKey
+   SNARK Key /Users/theodorepender/.zisk/provingKeySnark
+
+2026-09-24T18:14:48.211715Z INFO: Creating proof context
+2026-09-24T18:14:48.212056Z INFO: Using hash function: blake3
+2026-09-24T18:14:48.215356Z INFO: >>> INITIALIZING_PROOFMAN
+2026-09-24T18:14:49.822380Z INFO: Max prover buffer size: 24.87 GB
+2026-09-24T18:14:49.822412Z INFO: Max prover recursive buffer size: 14.92 GB
+2026-09-24T18:14:49.822416Z INFO: Max prover recursive1/recursive2 buffer size: 10.12 GB (recursive2 map 9.12 GB + compact witness tail 1.00 GB)
+2026-09-24T18:14:49.835765Z INFO: >>> LOADING_FIXED_POLS
+2026-09-24T18:14:49.835780Z INFO: <<< LOADING_FIXED_POLS (0ms)
+2026-09-24T18:14:49.835785Z INFO: <<< INITIALIZING_PROOFMAN (1620ms)
+2026-09-24T18:14:49.835790Z INFO: >>> INIT_PROOFMAN
+2026-09-24T18:14:49.835800Z INFO: <<< INIT_PROOFMAN (0ms)
+2026-09-24T18:14:50.015140Z INFO: MemoryHandler::Total memory for basic traces: 4.88 GB
+2026-09-24T18:14:50.015187Z INFO: Node has 18 cores
+2026-09-24T18:14:50.015193Z INFO: Using 16 threads per process based on RAYON_NUM_THREADS environment variable
+2026-09-24T18:14:50.135585Z INFO: MemoryHandlerRecursive::Total memory for recursive traces: 3.22 GB = 2 x trace 1.61 GB
+2026-09-24T18:14:50.135625Z INFO: SignalValuesPool: 1 x 485.22 MB = 485.22 MB
+2026-09-24T18:14:50.135629Z INFO: MemoryHandlerRecursive::circom solve threads per recursive witness: 8
+2026-09-24T18:14:51.216903Z INFO: Using 4 threads per witness computation
+ETH_AUTH_SETUP_COMPLETE seconds=3.09416575
+2026-09-24T18:14:51.281478Z INFO: Initializing publics custom_commits
+2026-09-24T18:14:51.285811Z INFO: >>> EXECUTE
+2026-09-24T18:14:51.289169Z INFO: >>> COMPUTE_MINIMAL_TRACE
+2026-09-24T18:14:51.291073Z INFO: >>> COUNT
+2026-09-24T18:14:51.292520Z INFO: <<< COUNT (1ms)
+2026-09-24T18:14:51.292528Z INFO: <<< COMPUTE_MINIMAL_TRACE (3ms)
+2026-09-24T18:14:51.292534Z INFO: >>> PLAN_MAIN
+2026-09-24T18:14:51.292539Z INFO: <<< PLAN_MAIN (0ms)
+2026-09-24T18:14:51.292545Z INFO: >>> PLAN_SECONDARY
+2026-09-24T18:14:51.293896Z INFO: <<< PLAN_SECONDARY (1ms)
+2026-09-24T18:14:51.293902Z INFO: >>> WAIT_PLAN_MEM_CPP
+2026-09-24T18:14:51.293906Z INFO: <<< WAIT_PLAN_MEM_CPP (0ms)
+2026-09-24T18:14:51.293909Z INFO: >>> WAIT_ASM_RH
+2026-09-24T18:14:51.293911Z INFO: <<< WAIT_ASM_RH (0ms)
+2026-09-24T18:14:51.294336Z INFO: --- PROOF INSTANCES SUMMARY ---
+2026-09-24T18:14:51.294349Z INFO: Zisk | ArithEq: 1 | Binary: 1 | BinaryExtension: 1 | Dma: 1 | Dma64Aligned: 1 | DmaPrePost: 1 | DmaUnaligned: 1 | InputData: 1 | Keccakf: 1 | Main: 1 | Mem: 1 | MemAlign: 1 | Rom: 1 | RomData: 1 | VirtualTableZisk0: 1 | VirtualTableZisk1: 1 | Total global instances: 16
+2026-09-24T18:14:51.294353Z INFO: --------------------------------
+2026-09-24T18:14:51.294364Z INFO: <<< EXECUTE (8ms)
+2026-09-24T18:14:51.294373Z INFO: >>> CALCULATING_CONTRIBUTIONS
+2026-09-24T18:15:06.004980Z INFO: <<< CALCULATING_CONTRIBUTIONS (14710ms)
+2026-09-24T18:15:06.005204Z INFO: ··· Global challenge: [1218802563660876248, 16839606993865480707, 16239418389378574289]
+2026-09-24T18:15:06.005214Z INFO: >>> GENERATING_PROOFS
+2026-09-24T18:15:06.005219Z INFO: >>> GENERATING_INNER_PROOFS
+2026-09-24T18:15:06.005222Z INFO: ··· Witness reuse: 12 traces reclaimed, 12 re-armed for the proofs phase, 1 duplicate dispatches refused, 0 recomputed over a live trace
+2026-09-24T18:21:38.807527Z INFO: <<< GENERATING_INNER_PROOFS (392796ms)
+2026-09-24T18:21:38.807818Z INFO: >>> GENERATE_VADCOP_FINAL_PROOF
+2026-09-24T18:21:47.717480Z INFO: <<< GENERATE_VADCOP_FINAL_PROOF (8909ms)
+2026-09-24T18:21:47.718086Z INFO: >>> VERIFYING_VADCOP_FINAL_PROOF
+2026-09-24T18:21:47.785496Z INFO: <<< VERIFYING_VADCOP_FINAL_PROOF (67ms)
+2026-09-24T18:21:47.785528Z INFO: ··· ✓ Vadcop Final proof was verified
+{"setup_seconds":3.09416575,"prove_seconds":416.498736,"verify_seconds":0.01603825,"steps":7428,"output_bytes":[1,0,0,0,1,0,0,0,173,64,246,167,222,158,133,164,40,70,120,248,14,103,133,55,165,165,74,94,139,156,147,118,44,167,197,203,196,212,244,76,177,182,223,116,165,188,163,98,79,245,85,253,77,77,193,22,80,68,33,168,226,251,44,105,248,221,142,87,6,56,174,250],"proof_bytes":831536,"verified":true,"aggregation":true,"backend":"cpu-emu-native-precompiles"}
+      420.17 real      6379.22 user        27.50 sys
+         47972712448  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3532190  page reclaims
+               54400  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   1  messages sent
+                   0  messages received
+                   0  signals received
+                 827  voluntary context switches
+             3858957  involuntary context switches
+     104220211136601  instructions retired
+      23364917386130  cycles elapsed
+         48486829312  peak memory footprint

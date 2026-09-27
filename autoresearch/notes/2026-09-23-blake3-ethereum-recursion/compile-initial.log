@@ -1,0 +1,33 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+src/frontends/riscv/recursion/air/blake3_execution_composition.zig:143:9: error: expected optional type, found '*recursion.air.blake3_ethereum_verifier_components.Owner'
+    if (extension_owner) |owner| {
+        ^~~~~~~~~~~~~~~
+referenced by:
+    init__anon_65018: src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig:81:189
+    prepare__anon_64628: src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig:35:33
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_proof_wire --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_riscv_cpu_integration -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_execution_commitment_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig --test-filter "BLAKE3 execution commitment Ethereum recursive parent independently verifies" --cache-dir .zig-cache/products/riscv_cpu --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-riscv-blake3-execution-commitments transitive failure
++- riscv test suite guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/0cbcf33a3c61229f93d37499770d7bcc/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_cpu /Users/theodorepender/.cache/zig --seed 0xced941a7 -Zaf193e8ca676c0ab test-riscv-blake3-execution-commitments -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 -Driscv-test-filter=BLAKE3 execution commitment Ethereum recursive parent independently verifies -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=5e181605ad7c654169f50c43efb7f0f4104965c9318ce2d1fbc7b2f3e873d886
+test-riscv-blake3-execution-commitments
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build test-riscv-blake3-execution-commitments --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 "-Driscv-test-filter=BLAKE3 execution commitment Ethereum recursive parent independently verifies" -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=5e181605ad7c654169f50c43efb7f0f4104965c9318ce2d1fbc7b2f3e873d886
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv-blake3-execution-commitments transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/47a876c4d86ae3c647c01a6b1ded7625/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0xf0ff3d57 -Za7b8e7372f0c2130 --maxrss 25769803776 -j1 test-riscv-blake3-execution-commitments -Driscv-test-filter=BLAKE3 execution commitment Ethereum recursive parent independently verifies -Doptimize=ReleaseSafe --summary all

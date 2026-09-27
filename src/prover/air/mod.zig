@@ -1,3 +1,4 @@
+pub const coefficient_cosets = @import("coefficient_cosets.zig");
 pub const accumulation = @import("accumulation.zig");
 pub const composition_work = @import("composition_work.zig");
 pub const oods_work = @import("oods_work.zig");
@@ -18,3 +19,6 @@ test {
     _ = prepared_domain;
     _ = @import("component_prepared_test.zig");
 }
+pub const secure_polynomial_program_v1 = @import("secure_polynomial_program_v1.zig");
+pub const secure_polynomial_capability_v1 = @import("secure_polynomial_capability_v1.zig");
+pub const secure_polynomial_emitter_v1 = @import("secure_polynomial_emitter_v1.zig");

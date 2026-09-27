@@ -1,0 +1,42 @@
+1/18 block_v5_input_request_forest_test_root_v1.test_0...OK
+2/18 block_v5_input_request_forest_test_root_v1.test.input request forest: retain real bounded run stage receiver and attachment bodies without invocation...OK
+3/18 prover.block_v5_input_request_forest_test_v1.test.input request forest: prefix retains exact original canonical and extended packed config words...OK
+4/18 prover.block_v5_input_request_forest_test_v1.test.input request forest: uneven 17 leaves exact once with one common carrier...OK
+5/18 prover.block_v5_input_request_forest_test_v1.test.input request forest: every topology allocation failure releases all geometry...OK
+6/18 prover.block_v5_input_request_forest_test_v1.test.input request forest: missing repeated reordered rounded or oversized ranges reject...OK
+7/18 prover.block_v5_input_request_forest_test_v1.test.input request forest: true u64 adjacency prefix frontier and census equations...OK
+8/18 prover.block_v5_input_request_forest_test_v1.test.input request forest: graph recording allocation rollback preserves original errors...Segmentation fault at address 0x0
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/heap/arena_allocator.zig:261:90: 0x1057b67dc in free (root)
+        const cur_buf = @as([*]u8, @ptrCast(cur_buf_node))[@sizeOf(BufNode)..cur_buf_node.data];
+                                                                                         ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/mem/Allocator.zig:147:25: 0x104f84f73 in free__anon_28696 (root)
+    return a.vtable.free(a.ptr, memory, alignment, ret_addr);
+                        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:327:28: 0x104f65003 in deinit (root)
+        self.allocator.free(self.outputs);
+                           ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/block_v5_input_request_forest_graph_v1.zig:68:28: 0x1051c0263 in deinit (root)
+        self.circuit.deinit();
+                           ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_input_request_forest_test_v1.zig:158:23: 0x10661ab6f in graphFixture (root)
+    defer graph.deinit();
+                      ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:1137:9: 0x10661bd63 in checkAllAllocationFailures__anon_166301 (root)
+        try @call(.auto, test_fn, args);
+        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_input_request_forest_test_v1.zig:170:47: 0x10661c093 in test.input request forest: graph recording allocation rollback preserves original errors (root)
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, graphFixture, .{});
+                                              ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x1065ec94b in mainTerminal (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:66:28: 0x1065e78e3 in main (root)
+        return mainTerminal();
+                           ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:618:22: 0x1065e72fb in main (root)
+            root.main();
+                     ^
+???:?:?: 0x1865684e3 in ??? (???)
+???:?:?: 0x0 in ??? (???)
+error: the following test command crashed:
+/tmp/block-v5-input-request-forest-focused-v1 --seed=0xd445cd0c

@@ -1,0 +1,238 @@
+{
+  "schema": "block-v5-caller-verifier-capture-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "existing_owned_api_preserved": true,
+  "wire_payloads_unchanged": true,
+  "tests_run_by_agent": false,
+  "guest_executed": false,
+  "pcs_committed": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_family_proof_v1.zig",
+      "sha256": "5c3a7bc9a135f413273c54b20624c60a9a23852295ed538c387ce4561adeaba8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_proof_v1.zig",
+      "sha256": "a8f2abd15872ffb5167bd3b32fbe45e261f0dbbdaa81e8361fa38b687b6553b2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_composite_pcs_v1.zig",
+      "sha256": "790f488cc1af455fbf3ca683dee3ebb88a6b3c9d90cbb8333ef56bac2726b598"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_verified_capture_v1.zig",
+      "sha256": "5f76a48832ce11dac62b675c900fcd48e9dc7c798284ce9525f76ca8c140c813"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_capture_unit_test.zig",
+      "sha256": "9ab4972b46378e17ca7891269ed627aeb064450040ce8639e6ec45e0f84a87de"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_caller_capture_unit_test_root.zig",
+      "sha256": "a95619b9bee4a262a4cf5e12de7d0e345882be9510b5dd444c6612e8bcbb6611"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_caller_capture_codegen.zig",
+      "sha256": "8e539621db6aaae404ee3b2d3a32f70e9ba8e2c9808ed7fa9ef42e351fa3b7a1"
+    }
+  ],
+  "integration_dependency_pins": [
+    {
+      "path": "src/core/verifier.zig",
+      "sha256": "8b8fb3ff311cf89679fc7c2be0c0e1183cc9a6b14961e31c5f064acf74a577b7"
+    },
+    {
+      "path": "src/core/pcs/verifier.zig",
+      "sha256": "45e0afef0ca8ecaaa2d7a91c37592422352be90da5a38f848232ccb431271385"
+    },
+    {
+      "path": "src/core/borrowed_proof_capture_test.zig",
+      "sha256": "61e59d4a40cda67d078cf87c5e8780d7df47a9113b877a5bebb1d301af7b8999"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_receiver_v1.zig",
+      "sha256": "117b64468ade06da03195ded6fd6cbdf7a9d55ed33470abf1725fd51df31dd64"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_schedule_v1.zig",
+      "sha256": "3ef5e85369482f4c753428502cf4918b089d75e7cc165493b2cbfd95fdb1104b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_caller_fused_component_v1.zig",
+      "sha256": "a915c80e8186534dcf4c76b27d69c43164ce94a39c527e2dfa0ffbb7c6a1217f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_protocol_v1.zig",
+      "sha256": "186168b173d902e659526eb8ca91bf755cd051a8fdb8b904cc925e62842e148d"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_witness_v1.zig",
+      "sha256": "a9b64045075124c3fd1319b2ecd705194a4cf5018b1cf1c9a593fac8eb3d19fa"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_execution_recipe_v1.zig",
+      "sha256": "6ba9a3c31a8116d710f598bc87b7d763dcef54647cb7dc5918b174fd0795959b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/blake3_ethereum_sha_profile.zig",
+      "sha256": "86f1ca6ced9619c86dc7cf9395af1dbf0dd1befa64e7455ce43111a4501ca404"
+    },
+    {
+      "path": "src/frontends/riscv/prover/guest_precompile/ethereum_sha_assembly.zig",
+      "sha256": "933fdbab8ee47b452f19725bbfee691759f34683cbe98ec742936a75679f79c2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/guest_precompile/ethereum_sha_types.zig",
+      "sha256": "d4f6367f58bcd3542ddfcb8aa96cd1ef0819d7310d9bc5b5f35271e879559fb2"
+    },
+    {
+      "path": "src/frontends/riscv/prover/guest_precompile/ethereum_sha_relations.zig",
+      "sha256": "5f6249acd55aa03a60e07f18166fc815e7a403409064e76003ede720e6ac4fb0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "sha256": "cd3fa8b04bffe1810f100c3e879886b6f4f2f4f12e8c0cc5b115dd14d187a961"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_execution_sidecar_stark_v2.zig",
+      "sha256": "4f5fb5f2931c6638b2a611f18ca3218cf9b3f86d955f0130980772392ba65dbb"
+    },
+    {
+      "path": "src/frontends/riscv/prover/proof_capture_sha256.zig",
+      "sha256": "76dd0cd91c137fb0e176d15a4cfcbad1369902a67264339ce9aff4211433b94c"
+    }
+  ],
+  "doc_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-caller-verifier-capture-v1.md",
+      "sha256": "79fc85f9d7ca8878880bc24bebb24e65a72ae295854df7baf92b248185cf1a25"
+    }
+  ],
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "caller capture:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_caller_capture_unit_test_root.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-caller-capture-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_caller_capture_codegen.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "focused_command": [
+    "python3",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+    "--root",
+    "src/frontends/riscv/block_v5_caller_capture_unit_test_root.zig",
+    "caller capture:"
+  ],
+  "pure_named_tests": 6,
+  "body_export": "stwo_caller_capture_body_gate",
+  "body_executed": false,
+  "scope": "Additive full actual family arithmetic and fused projection/access owned/borrowed ProofCapture APIs share unchanged canonical verification kernels. Full independent dual-proof admission and fresh capture wrapper; all components/private claims, roots/logs/security/channel resets/bus claims retained. No witness/PCS/source proof clone or host receipt authority. Six nonproving custody/transactional allocation/resource geometry/transcript/admission/body tests.",
+  "remaining": [
+    "serialized source and actual-body qualification",
+    "genuine caller symbolic quotient/transcript/DEEP/FRI/Merkle/public-bus/reusable parent adapter",
+    "typed durable caller recursive transport and full global closure",
+    "actual proof qualification only if root authorizes later"
+  ]
+}

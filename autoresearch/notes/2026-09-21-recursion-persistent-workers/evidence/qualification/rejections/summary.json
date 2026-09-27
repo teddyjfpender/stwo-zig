@@ -1,0 +1,16 @@
+[
+  {
+    "mode": "limits",
+    "rejected": true,
+    "prior_proof_verified": true
+  },
+  {
+    "mode": "truncated",
+    "rejected": true,
+    "prior_proof_verified": true
+  },
+  {
+    "mode": "bad-pin",
+    "rejected": true
+  }
+]

@@ -1,0 +1,55 @@
+//! Bind a real verified execution and independently reconstructed full snapshots.
+const std = @import("std");
+const span = @import("../recursion/span_statement_blake3.zig");
+const binding = @import("../recursion/blake3_execution_span.zig");
+const io = @import("../recursion/blake3_public_io.zig");
+const source = @import("../recursion/air/blake3_memory_snapshot.zig");
+const parent = @import("../recursion/blake3_execution_parent_preparation.zig");
+pub fn check(a: std.mem.Allocator, admitted: anytype, capture: *const @import("blake3_execution_capture.zig").Verified, expected: [32]u8, memory: *const @import("blake3_commitment_witness.zig").Witness, prepared: *parent.Prepared) !void {
+    const state = @import("../runner/memory_state.zig");
+    var snapshot = state.Snapshot{ .layout = std.mem.zeroes(state.MemoryLayout), .segment_role = .single(), .words = memory.initial.words };
+    var initial = try source.fromSnapshot(a, &snapshot, .entry, .continuation);
+    defer initial.deinit();
+    var final = try source.fromSnapshot(a, &snapshot, .exit, .continuation);
+    defer final.deinit();
+    const data = &admitted.shape.public_data;
+    const admission = admitted.admission();
+    var entry = try memory.prepareContinuation(a, .entry, data, admission, initial.root, 1_000_000_000, 999_999_999);
+    defer entry.deinit();
+    var exit = try memory.prepareContinuation(a, .exit, data, admission, final.root, 1_010_000_000, 1_009_999_999);
+    defer exit.deinit();
+    try std.testing.expect(!std.meta.eql(final.root, memory.final.root));
+    try std.testing.expectEqual(@as(usize, 8), exit.plan.edits.len);
+    const zero = span.Digest{ .bytes = @splat(0) };
+    const entry_state = try span.MachineState.init(data.initial_pc, data.initial_regs, initial.root, zero);
+    const exit_state = try span.MachineState.init(data.final_pc, data.final_regs, final.root, zero);
+    const input = try io.input(data);
+    const output = try io.output(data);
+    const job = try span.JobContext.init(try span.CompleteExecution.init(binding.protocolIdentity(admitted.config), data.program_root.?, entry_state, exit_state, input, output, data.clock), 1);
+    const statement = try span.SpanStatement.segmentLeaf(job, 0, try span.ExecutedSpan.init(0, 1, 0, data.clock, entry_state, exit_state, .{ .digest = input }, .{ .digest = output }));
+    _ = try span.RootStatement.init(statement);
+    _ = try binding.bind(a, admitted, capture, expected, statement, &entry.plan, &exit.plan);
+    var changed = statement;
+    changed.body.executed.entry.registers[1] ^= 1;
+    changed.job.complete.initial_state = changed.body.executed.entry;
+    try std.testing.expectError(error.InvalidExecutionSpan, binding.bind(a, admitted, capture, expected, changed, &entry.plan, &exit.plan));
+    changed = statement;
+    changed.body.executed.exit.rw_memory.bytes[31] ^= 1;
+    changed.job.complete.final_state = changed.body.executed.exit;
+    try std.testing.expectError(error.InvalidExecutionSpanMemory, binding.bind(a, admitted, capture, expected, changed, &entry.plan, &exit.plan));
+    changed = statement;
+    changed.body.executed.output.digest.?.bytes[31] ^= 1;
+    changed.job.complete.public_output = changed.body.executed.output.digest.?;
+    try std.testing.expectError(error.InvalidExecutionOutput, binding.bind(a, admitted, capture, expected, changed, &entry.plan, &exit.plan));
+    // Mutated fixed schedule must reject before replacing any retained columns.
+    const old = prepared.rows.main[0].ptr;
+    const saved = exit.rows.updates[0].before.g_rows[0][@import("../recursion/air/blake3_g_call.zig").PHYSICAL_MAIN_COLUMN_COUNT];
+    exit.rows.updates[0].before.g_rows[0][@import("../recursion/air/blake3_g_call.zig").PHYSICAL_MAIN_COLUMN_COUNT] = saved.add(@import("stwo_core").fields.m31.M31.one());
+    try std.testing.expectError(error.InvalidParentAppend, parent.attachSpan(a, prepared, admitted, capture, expected, statement, .{ &entry, &exit }));
+    try std.testing.expectEqual(old, prepared.rows.main[0].ptr);
+    try std.testing.expect(prepared.context.statement_identity == null);
+    exit.rows.updates[0].before.g_rows[0][@import("../recursion/air/blake3_g_call.zig").PHYSICAL_MAIN_COLUMN_COUNT] = saved;
+    try parent.attachSpan(a, prepared, admitted, capture, expected, statement, .{ &entry, &exit });
+    try std.testing.expectError(error.InvalidParentSpanAttachment, parent.attachSpan(a, prepared, admitted, capture, expected, statement, .{ &entry, &exit }));
+    std.debug.print("EXECUTION_SPAN_ATTACHED verified_child=true entry_updates={d} exit_updates={d} retained_bytes={d}\n", .{ entry.plan.edits.len, exit.plan.edits.len, try prepared.rows.retainedBytes() });
+}

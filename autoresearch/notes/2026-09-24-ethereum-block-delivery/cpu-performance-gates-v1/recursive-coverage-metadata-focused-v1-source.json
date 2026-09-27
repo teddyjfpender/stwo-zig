@@ -1,0 +1,137 @@
+{
+  "sources": [
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py",
+      "sha256": "34cd616f9b470e4f60fb1d9717125cd0d7975eb72ef527c1ec20b06e7a5e536d"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-global-recursive-closure-v1.md",
+      "sha256": "4b689702c47d39452e89966e8ed7e743501fc2261011aa8467469fba2aba0c74"
+    },
+    {
+      "path": "scripts/zig_protocol_lib/command.py",
+      "sha256": "2751ca4bf1d395511b8329d3bd9c84cf0ed45134cf18d02ffeed9d7591007f19"
+    },
+    {
+      "path": "scripts/zig_serial_build.py",
+      "sha256": "2c66348b36f878caec8ba286b207f75957fcd28ced795f1738545429fec09032"
+    },
+    {
+      "path": "src/core/pcs/mod.zig",
+      "sha256": "3f405c76644d5ea26e7f49fd1e4f735a2b875adf1e004c55eac56a52e842ca5d"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/schema.zig",
+      "sha256": "788273e0c240763e24423fa141c6218ef40aa6495bab8c5dc1182e747e1f197a"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_coverage_plan_body_test_root.zig",
+      "sha256": "0b1cbecc30bba04f7481c84d53557ee7dd1ff0df50e2944d8da04c0dbb2f4f93"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_coverage_plan_codegen.zig",
+      "sha256": "53935224e17aae28cd77e239f693edceae6a2e8afa56a0db5b7c86ff87617775"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_coverage_plan_test_root.zig",
+      "sha256": "34e65c5d9612353db4b6c127761494c380e28a9a953e67c7cd38abd1338861dc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/blake3_execution_protocol.zig",
+      "sha256": "f73d2cf539b6217202ded332dca133b74cd52e688bf1b597c85550d934a49a98"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_execution_recipe_v1.zig",
+      "sha256": "6ba9a3c31a8116d710f598bc87b7d763dcef54647cb7dc5918b174fd0795959b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_plan_v1.zig",
+      "sha256": "4ef9081347244348ad83c8611232291c95f05bd5fa55d8134b01af3e2e7ddeca"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_coverage_plan_test_v1.zig",
+      "sha256": "2808510318cd1beae73ba108d97a4ce566ca08a7e7d698b5f8019a590f9f9c15"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_coverage_plan_v1.zig",
+      "sha256": "5fe0a8b805730d882f289dc2cd48f2ddd64740d8950cccc060c61fbb7928c868"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_protocol.zig",
+      "sha256": "f2ed6c4fd1806b1169725b679a3aa8677d7d8d083219d0f38ccb3dac44db591e"
+    }
+  ],
+  "command": [
+    "/opt/homebrew/opt/zig@0.15/bin/zig",
+    "test",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_backend_contracts",
+    "--dep",
+    "stwo_prover_api",
+    "--dep",
+    "stwo_prover_engine",
+    "--dep",
+    "stwo_proof_wire",
+    "--dep",
+    "stwo_cpu_backend",
+    "--dep",
+    "interop_postcard",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mroot=src/frontends/riscv/block_v5_recursive_coverage_plan_test_root.zig",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_core=src/core/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_backend_contracts=src/backend/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_prover_api=src/prover_api/mod.zig",
+    "--dep",
+    "stwo_backend_contracts",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_prover_api",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_prover_engine=src/prover/mod.zig",
+    "--dep",
+    "stwo_core",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+    "--dep",
+    "stwo_backend_contracts",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_prover_engine",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+    "--dep",
+    "stwo_core",
+    "--dep",
+    "stwo_proof_wire",
+    "-OReleaseFast",
+    "-mcpu=native",
+    "-Minterop_postcard=src/interop/postcard.zig",
+    "-lc",
+    "--test-filter",
+    "coverage metadata:",
+    "-femit-bin=/tmp/block-v5-coverage-metadata-focused-v1"
+  ],
+  "scope": "pure metadata planning only; actual stack prepare deferred"
+}

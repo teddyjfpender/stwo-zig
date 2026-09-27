@@ -1,0 +1,37 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_ARITHMETIC_CENSUS lane=1500 nodes=20355 multiply=10002 linear=7492 inverse=53 dot4=96 fma=4256 removable_rows=4928
+BLAKE3_ARITHMETIC_CENSUS lane=1502 nodes=602873 multiply=230541 linear=228727 inverse=1052 dot4=49808 fma=12836 removable_rows=361492
+BLAKE3_ARITHMETIC_CENSUS lane=1504 nodes=236076 multiply=132523 linear=85464 inverse=1400 dot4=3150 fma=58023 removable_rows=80073
+BLAKE3_PCS_QUERY_FUSION_CENSUS nodes=602873 query_inputs=130620 single_use=98140 shared=32480 dot4=49808 eligible=23870 scope=pre_lowering_graph_candidates
+BLAKE3_ARITHMETIC_CENSUS total_rows=697254 removable_rows=446493 removed_relation_events=892986 scope=graph_match_census
+BLAKE3_NATIVE_QUERY_FUSION groups=23870 removed_scalars=95480
+BLAKE3_NATIVE_FUSION dot4=53054 fma=75115 arithmetic_rows=250761
+BLAKE3_PARENT_ROW_CENSUS air=0 type=recursion.air.blake3_g_call live=3174808 padded=4194304 main_columns=124 preprocessed_columns=16 interaction_columns=132 main_bytes=2080374784
+BLAKE3_PARENT_ROW_CENSUS air=1 type=recursion.air.blake3_xor_call live=907088 padded=1048576 main_columns=12 preprocessed_columns=6 interaction_columns=16 main_bytes=50331648
+BLAKE3_PARENT_ROW_CENSUS air=2 type=recursion.air.blake3_boundary live=891276 padded=1048576 main_columns=4 preprocessed_columns=8 interaction_columns=4 main_bytes=16777216
+BLAKE3_PARENT_ROW_CENSUS air=3 type=recursion.air.qm31_mul_add_v1 live=160850 padded=262144 main_columns=17 preprocessed_columns=10 interaction_columns=8 main_bytes=17825792
+BLAKE3_PARENT_ROW_CENSUS air=4 type=recursion.air.qm31_inv live=2505 padded=4096 main_columns=14 preprocessed_columns=15 interaction_columns=4 main_bytes=229376
+BLAKE3_PARENT_ROW_CENSUS air=5 type=recursion.air.linear_ops live=34352 padded=65536 main_columns=21 preprocessed_columns=27 interaction_columns=8 main_bytes=5505024
+BLAKE3_PARENT_ROW_CENSUS air=6 type=recursion.air.blake3_challenge_block live=142 padded=256 main_columns=71 preprocessed_columns=15 interaction_columns=68 main_bytes=72704
+BLAKE3_PARENT_ROW_CENSUS air=7 type=recursion.air.blake3_byte_route live=699617 padded=1048576 main_columns=12 preprocessed_columns=45 interaction_columns=8 main_bytes=50331648
+BLAKE3_PARENT_ROW_CENSUS air=8 type=recursion.air.blake3_query_mask live=71 padded=128 main_columns=8 preprocessed_columns=10 interaction_columns=12 main_bytes=4096
+BLAKE3_PARENT_ROW_CENSUS air=9 type=recursion.air.blake3_private_word live=164826 padded=262144 main_columns=4 preprocessed_columns=4 interaction_columns=8 main_bytes=4194304
+BLAKE3_PARENT_ROW_CENSUS air=10 type=recursion.air.blake3_field_bytes live=135939 padded=262144 main_columns=24 preprocessed_columns=9 interaction_columns=36 main_bytes=25165824
+BLAKE3_PARENT_ROW_CENSUS air=11 type=recursion.air.qm31_pack_wire live=8461 padded=16384 main_columns=4 preprocessed_columns=8 interaction_columns=12 main_bytes=262144
+BLAKE3_PARENT_ROW_CENSUS air=12 type=recursion.air.scalar_wire_source live=64540 padded=65536 main_columns=1 preprocessed_columns=6 interaction_columns=4 main_bytes=262144
+BLAKE3_PARENT_ROW_CENSUS air=13 type=recursion.air.blake3_path_select live=164640 padded=262144 main_columns=17 preprocessed_columns=12 interaction_columns=12 main_bytes=17825792
+BLAKE3_PARENT_ROW_CENSUS air=14 type=recursion.air.blake3_retry_control live=142 padded=256 main_columns=12 preprocessed_columns=22 interaction_columns=40 main_bytes=12288
+BLAKE3_PARENT_ROW_CENSUS air=15 type=recursion.air.blake3_counter_step live=151 padded=256 main_columns=24 preprocessed_columns=9 interaction_columns=28 main_bytes=24576
+BLAKE3_PARENT_ROW_CENSUS air=16 type=recursion.air.readonly_consistency live=130620 padded=131072 main_columns=19 preprocessed_columns=6 interaction_columns=20 main_bytes=9961472
+BLAKE3_PARENT_ROW_CENSUS air=17 type=recursion.air.readonly_input live=130620 padded=131072 main_columns=5 preprocessed_columns=6 interaction_columns=8 main_bytes=2621440
+BLAKE3_PARENT_ROW_CENSUS air=18 type=recursion.air.detached_opening_accumulate4_v1 live=29184 padded=32768 main_columns=41 preprocessed_columns=13 interaction_columns=20 main_bytes=5373952
+BLAKE3_PARENT_ROW_CENSUS air=19 type=recursion.air.native_pcs_opening4_v1 live=23870 padded=32768 main_columns=29 preprocessed_columns=13 interaction_columns=20 main_bytes=3801088
+BLAKE3_PARENT_ROW_CENSUS_TOTAL child_queries=70 child_pow_bits=26 graph_preparation_ns=35901381375 row_layout_ns=340159542 main_bytes=2290957312 retained_bytes=2707426052 parent_proved=false
+BLAKE3_GUEST_POSEIDON_PROOF verified=true queries=70 pow_bits=26 artifact_bytes=976328 witness_released=true fresh_key=true capture_mutations_rejected=true outer_artifact_verified=true source_and_pin_mutations_rejected=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:8G
+

@@ -1,0 +1,4 @@
+1/3 borrowed_proof_capture_test_root.test_0...OK
+2/3 core.borrowed_proof_capture_test.test.borrowed proof capture preserves original PCS vectors on late rejection and every allocation failure...OK
+3/3 core.borrowed_proof_capture_test.test.borrowed proof capture preserves STARK input and publication on early rejection...OK
+All 3 tests passed.

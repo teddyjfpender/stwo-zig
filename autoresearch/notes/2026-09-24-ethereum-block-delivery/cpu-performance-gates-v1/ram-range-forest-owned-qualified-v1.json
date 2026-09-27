@@ -1,0 +1,89 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "ram-range-forest-owned-source-candidate-v2.json",
+  "successful_attempts": [
+    {
+      "attempt": "ram-range-forest-owned-release-semantic-v1-result.json",
+      "source_candidate": "ram-range-forest-owned-release-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 4.0103160419967026,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/ram-range-forest-owned-release-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "attempt": "ram-range-forest-owned-release-legacy-v1-result.json",
+      "source_candidate": "ram-range-forest-owned-release-legacy-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 17.134172125020996,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 18,
+      "test_summary": [
+        "All 18 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/ram-range-forest-owned-release-legacy-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-ram-range-forest-owned-release-legacy-v1",
+        "bytes": 34223552,
+        "sha256": "3f89a5f1c53acdb4f1d2000aac91ed7e119d0f746fcd53318ae015279217a32e"
+      }
+    },
+    {
+      "attempt": "ram-range-forest-owned-release-selected-v1-result.json",
+      "source_candidate": "ram-range-forest-owned-release-selected-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 17.139233082998544,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 18,
+      "test_summary": [
+        "All 18 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/ram-range-forest-owned-release-selected-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-ram-range-forest-owned-release-selected-v1",
+        "bytes": 34223600,
+        "sha256": "1ee57fc7453c23955875c1a0d2e30f7f07ea416bfd9822b8394054cc343c507b"
+      }
+    }
+  ],
+  "authoritative_source_snapshot": "ram-range-forest-owned-release-selected-v1-source.json",
+  "source_pin_count": 1919,
+  "behavioral_checks": 12,
+  "evidence_scope": [
+    "Typed original RAM/range catalogue, minimal forest, PAGE join and standalone rebuild bodies compiled",
+    "Manifest/file/key proposal guards; original metadata/custody/OOM/rollback fixtures",
+    "Original consuming prover/early capture and row release before fresh verifier bodies compiled"
+  ],
+  "remaining": [
+    "Positive recursive leaf/forest/PAGE join proofs",
+    "Reusable expected setup; current keys remain capture/instance specific",
+    "Canonical assembly activation",
+    "Measured process peak memory and speed"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "positive_proof_run": false,
+  "segments_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

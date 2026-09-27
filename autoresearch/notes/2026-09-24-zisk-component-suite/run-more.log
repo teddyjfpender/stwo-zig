@@ -1,0 +1,12 @@
+extension_add {'comparison': 'goldilocks_cubic_vs_m31_quartic'} {'zisk': 6.764113903045654, 'stwo': 1.3118585348129272}
+extension_mul {'comparison': 'goldilocks_cubic_vs_m31_quartic'} {'zisk': 8.728444576263428, 'stwo': 11.367087602615356}
+extension_inv {'comparison': 'goldilocks_cubic_vs_m31_quartic'} {'zisk': 180.70109748840332, 'stwo': 61.10755634307861}
+batch_inverse {'n': 1024, 'comparison': 'different_base_fields', 'setup_included': False} {'zisk': 4447.933197021484, 'stwo': 1356.0460510253906}
+binary_merkle_canonical_words {'n': 1024, 'input_words_per_leaf': 8, 'comparison': 'identical_protocol_peer_production_tree_local_research_tree', 'workers': 1, 'setup_included': False} {'zisk': 131808.552734375, 'stwo': 145151.1630859375}
+batch_inverse {'n': 16384, 'comparison': 'different_base_fields', 'setup_included': False} {'zisk': 70782.572265625, 'stwo': 20800.4150390625}
+binary_merkle_canonical_words {'n': 16384, 'input_words_per_leaf': 8, 'comparison': 'identical_protocol_peer_production_tree_local_research_tree', 'workers': 1, 'setup_included': False} {'zisk': 2099791.65625, 'stwo': 2321972.640625}
+batch_inverse {'n': 262144, 'comparison': 'different_base_fields', 'setup_included': False} {'zisk': 1332051.4296875, 'stwo': 336556.9609375}
+binary_merkle_canonical_words {'n': 262144, 'input_words_per_leaf': 8, 'comparison': 'identical_protocol_peer_production_tree_local_research_tree', 'workers': 1, 'setup_included': False} {'zisk': 33579708.25, 'stwo': 37192947.75}
+binary_merkle_canonical_words {'n': 16384, 'input_words_per_leaf': 64, 'comparison': 'identical_protocol_peer_production_tree_local_research_tree', 'workers': 1, 'setup_included': False} {'zisk': 9339421.8125, 'stwo': 7849023.4375}
+native_node_hash {'comparison': 'different_protocol_framing_and_inputs'} {'zisk': 63.45870113372803, 'stwo': 118.20334148406982}
+native_leaf_64_payload_bytes {'comparison': 'different_protocol_framing_and_inputs'} {'zisk': 68.82311916351318, 'stwo': 128.91987991333008}

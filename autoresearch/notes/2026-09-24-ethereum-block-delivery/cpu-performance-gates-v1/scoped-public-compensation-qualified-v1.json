@@ -1,0 +1,106 @@
+{
+  "status": "qualified_nonproving_scoped_public_compensation_snapshot",
+  "authored_candidate": "scoped-public-compensation-source-candidate-v1.json",
+  "evidence": {
+    "scoped-public-compensation-legacy-semantic-v1": {
+      "source_candidate": "scoped-public-compensation-legacy-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 4.882940082985442,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/scoped-public-compensation-legacy-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "scoped-public-compensation-legacy-semantic-v2": {
+      "source_candidate": "scoped-public-compensation-legacy-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.2496549999923445,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/scoped-public-compensation-legacy-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "scoped-public-compensation-legacy-focused-v1": {
+      "source_candidate": "scoped-public-compensation-legacy-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.888765458017588,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 15,
+      "test_summary": [
+        "All 15 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/scoped-public-compensation-legacy-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-scoped-public-compensation-legacy-focused-v1",
+        "bytes": 46428232,
+        "sha256": "744d83f4c5f23e1d6ced8748845199237ffc2fd17df7fe7ca9ce762477b56252"
+      }
+    },
+    "scoped-public-compensation-selected-focused-v1": {
+      "source_candidate": "scoped-public-compensation-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.914947125012986,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 15,
+      "test_summary": [
+        "All 15 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/scoped-public-compensation-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-scoped-public-compensation-selected-focused-v1",
+        "bytes": 46428280,
+        "sha256": "3689bfe17f2ce98b62340c3d8128994f830bccb07cec7f304a2d2b62ea8f7732"
+      }
+    }
+  },
+  "tests_passed_per_recipe": 15,
+  "authored_behavioral_checks": 7,
+  "body_markers": 1,
+  "source_pins_per_recipe": 1750,
+  "scope": [
+    "Actual compact/public fresh-child row construction, shared graph attachment, real parent producer and independent receiver bodies emitted and retained, never invoked",
+    "Scalar original accounting parity, every field mutation and new graph allocation rollback",
+    "Per-window register joins cannot cross-cancel; native compensation counted once with original public term signs",
+    "Exact output/carry geometry, typed parent identity and changed coordinate schedule rejection",
+    "Fresh receiver size preflight and transferred transport allocator lifetime/rollback"
+  ],
+  "repairs": [
+    "Renamed one shadowed positions parameter; original equations, transcript and authority unchanged"
+  ],
+  "not_qualified": [
+    "Canonical driver/public topology activation and independently derived top setup",
+    "Full-u64 bounded-window/shared-tail source integration; inherited original roster and clock limits remain",
+    "Complete initial/final/first-touch/source/global closure",
+    "Actual complete block proof or end-to-end performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

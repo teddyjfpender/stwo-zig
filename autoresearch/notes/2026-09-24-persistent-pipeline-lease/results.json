@@ -1,0 +1,186 @@
+[
+  {
+    "index": 0,
+    "mode": "serial",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-persistent-pipeline-lease/canonical-parent-test"
+    ],
+    "binary_sha256": "56a66f55ce056a912164cf0b0ae27f9f7137ff8e16d7e11a541734f51dd0e4b4",
+    "wall_seconds": 22.791124875016976,
+    "pipeline_seconds": 11.032507875,
+    "overlap_seconds": 0.0,
+    "receipt": {
+      "mode": "serial",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "55661364400",
+      "wall_ns": "11032507875",
+      "overlap_ns": "0",
+      "worker_peak_bytes": "10470062405",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ],
+      [
+        "1",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ]
+    ],
+    "peak_rss_bytes": 21192785920,
+    "peak_physical_footprint_bytes": 26258142864
+  },
+  {
+    "index": 1,
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-persistent-pipeline-lease/canonical-parent-test"
+    ],
+    "binary_sha256": "56a66f55ce056a912164cf0b0ae27f9f7137ff8e16d7e11a541734f51dd0e4b4",
+    "wall_seconds": 20.923971582989907,
+    "pipeline_seconds": 9.588340625,
+    "overlap_seconds": 1.911848667,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "55661365064",
+      "wall_ns": "9588340625",
+      "overlap_ns": "1911848667",
+      "worker_peak_bytes": "10470062405",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ],
+      [
+        "1",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ]
+    ],
+    "peak_rss_bytes": 21917499392,
+    "peak_physical_footprint_bytes": 28178168280
+  },
+  {
+    "index": 2,
+    "mode": "overlapped",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-persistent-pipeline-lease/canonical-parent-test"
+    ],
+    "binary_sha256": "56a66f55ce056a912164cf0b0ae27f9f7137ff8e16d7e11a541734f51dd0e4b4",
+    "wall_seconds": 21.032645958999638,
+    "pipeline_seconds": 9.61439475,
+    "overlap_seconds": 1.909710083,
+    "receipt": {
+      "mode": "overlapped",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "55661365064",
+      "wall_ns": "9614394750",
+      "overlap_ns": "1909710083",
+      "worker_peak_bytes": "10470062405",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ],
+      [
+        "1",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ]
+    ],
+    "peak_rss_bytes": 21917696000,
+    "peak_physical_footprint_bytes": 28178414208
+  },
+  {
+    "index": 3,
+    "mode": "serial",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-persistent-pipeline-lease/canonical-parent-test"
+    ],
+    "binary_sha256": "56a66f55ce056a912164cf0b0ae27f9f7137ff8e16d7e11a541734f51dd0e4b4",
+    "wall_seconds": 22.60500549999415,
+    "pipeline_seconds": 11.126985292,
+    "overlap_seconds": 0.0,
+    "receipt": {
+      "mode": "serial",
+      "jobs": "2",
+      "workers": "8",
+      "cpu_tokens": "9",
+      "reserved_bytes": "55661364400",
+      "wall_ns": "11126985292",
+      "overlap_ns": "0",
+      "worker_peak_bytes": "10470062405",
+      "worker_limit_bytes": "25769803776",
+      "child_queries": "70",
+      "child_pow_bits": "26",
+      "parent_queries": "70",
+      "parent_pow_bits": "26",
+      "plan_reused": "true",
+      "outputs_outlive_worker": "true",
+      "independently_verified": "true"
+    },
+    "verified": true,
+    "artifacts": [
+      [
+        "0",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ],
+      [
+        "1",
+        "33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd",
+        "839853"
+      ]
+    ],
+    "peak_rss_bytes": 20857126912,
+    "peak_physical_footprint_bytes": 26258077376
+  }
+]

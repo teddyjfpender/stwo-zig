@@ -1,0 +1,50 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 736s
+test-riscv-blake3-aggregation
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_NATIVE_QUERY_FUSION groups=2072 removed_scalars=8288
+BLAKE3_NATIVE_FUSION dot4=112450 fma=86803 arithmetic_rows=563012
+BLAKE3_NATIVE_QUERY_FUSION groups=2184 removed_scalars=8736
+BLAKE3_NATIVE_FUSION dot4=112905 fma=87034 arithmetic_rows=565070
+BLAKE3_ETHEREUM_SEGMENTS_PREPARED segments=2 cycles=7 retained_bytes=2866167496
+BLAKE3_ETHEREUM_SEGMENTS verified=true segments=2 signer=1 keccak=1 full_memory_custody=true queries=8 pow_bits=0 artifact_bytes=144055 worker_peak_bytes=15812084592 worker_limit_bytes=25769803776 witnesses_and_worker_released=true
+BLAKE3_NATIVE_QUERY_FUSION groups=1096 removed_scalars=4384
+BLAKE3_NATIVE_FUSION dot4=2465 fma=9559 arithmetic_rows=32206
+BLAKE3_NATIVE_QUERY_FUSION groups=1096 removed_scalars=4384
+BLAKE3_NATIVE_FUSION dot4=2465 fma=9561 arithmetic_rows=32202
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=130994
+BLAKE3_NATIVE_QUERY_FUSION groups=1064 removed_scalars=4256
+BLAKE3_NATIVE_FUSION dot4=2312 fma=9389 arithmetic_rows=31234
+BLAKE3_NATIVE_QUERY_FUSION groups=1208 removed_scalars=4832
+BLAKE3_NATIVE_FUSION dot4=2897 fma=9998 arithmetic_rows=34667
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=132374
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+BLAKE3_TREE_PIPELINE verified=true jobs=2 cpu_tokens=3 reserved_bytes=25794988992 overlap_ns=10715386416 worker_peak_bytes=3862465628 worker_limit_bytes=8589934592 root_artifact_bytes=131497 plan_reused=true outputs_outlive_worker=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=669671752
+BLAKE3_NATIVE_QUERY_FUSION groups=1144 removed_scalars=4576
+BLAKE3_NATIVE_FUSION dot4=2677 fma=9710 arithmetic_rows=33166
+BLAKE3_NATIVE_QUERY_FUSION groups=1208 removed_scalars=4832
+BLAKE3_NATIVE_FUSION dot4=2897 fma=9998 arithmetic_rows=34667
+BLAKE3_AGGREGATE distinct_children=true segments=2 cycles=6 inputs=25328 retained_bytes=665603072
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=132947 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3878 fma=10603 arithmetic_rows=39463
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=122984 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+EXECUTION_PARENT_OF_PARENT verified=true distinct_keys=true levels=2 inputs=18649 retained_bytes=334841432
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-aggregation success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 22m MaxRSS:26G
+

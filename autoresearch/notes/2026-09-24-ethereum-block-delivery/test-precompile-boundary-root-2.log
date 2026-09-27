@@ -1,0 +1,15 @@
+1/8 prover.blake3_ethereum_segment_test.test.BLAKE3 Ethereum precompile boundary proves full custody and aggregate root...BLAKE3_NATIVE_QUERY_FUSION groups=1720 removed_scalars=6880
+BLAKE3_NATIVE_FUSION dot4=111765 fma=83875 arithmetic_rows=554537
+BLAKE3_NATIVE_QUERY_FUSION groups=1808 removed_scalars=7232
+BLAKE3_NATIVE_FUSION dot4=111896 fma=83796 arithmetic_rows=554828
+BLAKE3_ETHEREUM_SEGMENTS_PREPARED segments=2 cycles=7 retained_bytes=2115730400
+BLAKE3_ETHEREUM_SEGMENTS verified=true segments=2 signer=1 keccak=1 full_memory_custody=true queries=8 pow_bits=0 artifact_bytes=156037 worker_peak_bytes=4775791376 worker_limit_bytes=25769803776 witnesses_and_worker_released=true
+OK
+2/8 runner.mod.test_0...OK
+3/8 runner.decode.test_0...OK
+4/8 runner.guest_precompile.mod.test_0...OK
+5/8 air.memory_commitment.poseidon2_air.test_0...OK
+6/8 air.semantic_eval.test_0...OK
+7/8 air.lookups.tables.source_ingest.test_0...OK
+8/8 diagnostics.mod.test_0...OK
+All 8 tests passed.

@@ -1,0 +1,53 @@
+{
+  "status": "focused_source_qualified",
+  "protocol": "B5CT/v1",
+  "root": "src/frontends/riscv/block_v5_native_capacity_unit_test_root.zig",
+  "safe_test_filter": "native capacity",
+  "tests_declared": 10,
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_protocol_v1.zig",
+      "sha256": "3d808a44a298b2c32ea56a2b859ff512845ad3df7e54d233b478ba913ca7f530"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_activity_v1.zig",
+      "sha256": "5ef2239c494076adc81c38113faeb7517a859109d7b02a277eea362694bc6b56"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_component_v1.zig",
+      "sha256": "5f0c71823b68b74129b42d2f77570e43890e13560a3e87ed17246444ef986a33"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_proof_v1.zig",
+      "sha256": "88f8c3f0b60bf150e74c9a43102c51fa6585647abc6f0b89f94180653497b343"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_unit_test.zig",
+      "sha256": "e941a843764ef1252b36939c780b7c0043cbbec1426a6f5dee0ce5821087d5ff"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_unit_test_root.zig",
+      "sha256": "ecf47fc1fe99c67a5bd4dd40cc36c137c58ef6fc48ac498f4e1de8103e6ab776"
+    }
+  ],
+  "canonical_migration": "pending",
+  "cached_fixed_commitment_reuse": "pending",
+  "fresh_proof_qualification": "pending",
+  "source_correction": {
+    "kind": "genuine_witness_and_fixture_reader_layout",
+    "count_placement": "bitReverseIndex(cosetIndexToCircleDomainIndex(logical,log),log)",
+    "equations_changed": false,
+    "regression": "independent infra.BitReversalTable mapping, active/count expected values and actual circle predecessor across powers and odd tails",
+    "executed_by_agent": false
+  },
+  "schema": "native-capacity-templates-qualified-v1",
+  "tests_passed": 13,
+  "production_producer_and_receiver_bodies_compiled": true,
+  "stark_proved": false,
+  "performance_measured": false,
+  "source_freeze_manifest_sha256": "e7bfd6be1e251557cbbedc7e220a91257f11c81f521e54bb31aecc531f8b991c",
+  "evidence": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-production-v4.log",
+    "sha256": "e6c0cd32839b1b09ad3c0f698866e60d28ed8606a862af3b2b2094a6548130d9"
+  }
+}

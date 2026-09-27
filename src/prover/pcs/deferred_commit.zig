@@ -189,15 +189,18 @@ pub fn resolveObserved(scheme: anytype, allocator: std.mem.Allocator) anyerror!v
     }
     var tree = slot.tree.?;
     slot.tree = null;
-    scheme.trees.append(allocator, tree) catch |err| {
-        // Leave the scheme self-consistent on the rare allocation failure:
-        // the worker is joined, so the pending slot must not survive for a
-        // later resolve/discard to re-join.
+    // The worker is joined: failure must clear the slot so it cannot be joined
+    // again. This also covers a failed coefficient-storage admission.
+    errdefer {
         scheme.pending_commit = null;
         tree.deinit(allocator);
         allocator.destroy(slot);
-        return err;
-    };
+    }
+    if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
+        if (scheme.compact_polynomial_storage)
+            try tree.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);
+    }
+    try scheme.trees.append(allocator, tree);
     pending.appended_unmixed = true;
     scheme.pending_commit = pending;
 }

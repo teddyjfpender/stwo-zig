@@ -1,0 +1,14 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 5.926407625025604,
+  "source_candidate": "caller-fused-recursion-semantic-v3-source.json",
+  "changed_source_pins": [],
+  "qualified": true,
+  "tests_run": false,
+  "discovered_tests": 0,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-fused-recursion-semantic-v3.log",
+  "test_summary": []
+}

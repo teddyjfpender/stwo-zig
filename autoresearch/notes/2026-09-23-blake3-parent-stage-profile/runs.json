@@ -1,0 +1,23 @@
+[
+  {
+    "name": "serial-1",
+    "serial_lookup_counts": true,
+    "exit_code": 0,
+    "executable": "/Users/theodorepender/code/cryptography/stwo-zig/.zig-cache/products/riscv_cpu/o/db41c74139017da775a0bd3c4a8fad73/test",
+    "executable_sha256": "a6b617c1a56d1cf244f07ea158212329def5a9ffca9cdecac6cc90cf8fc528d1"
+  },
+  {
+    "name": "serial-2",
+    "serial_lookup_counts": true,
+    "exit_code": 0,
+    "executable": "/Users/theodorepender/code/cryptography/stwo-zig/.zig-cache/products/riscv_cpu/o/db41c74139017da775a0bd3c4a8fad73/test",
+    "executable_sha256": "a6b617c1a56d1cf244f07ea158212329def5a9ffca9cdecac6cc90cf8fc528d1"
+  },
+  {
+    "name": "parallel-2",
+    "serial_lookup_counts": false,
+    "exit_code": 0,
+    "executable": "/Users/theodorepender/code/cryptography/stwo-zig/.zig-cache/products/riscv_cpu/o/db41c74139017da775a0bd3c4a8fad73/test",
+    "executable_sha256": "a6b617c1a56d1cf244f07ea158212329def5a9ffca9cdecac6cc90cf8fc528d1"
+  }
+]

@@ -56,6 +56,16 @@ pub const Error = error{
     ProcessCounterOverflow,
 };
 
+/// Optional process-wide memory milestones, including work outside a worker's
+/// allocation budget. Unsupported platforms report absence rather than zero.
+pub fn reportStage(stage: []const u8) void {
+    if (!std.process.hasEnvVarConstant("STWO_HOST_MEMORY_PROFILE")) return;
+    const usage = sample() catch return;
+    std.debug.print("PROCESS_MEMORY_STAGE {s} current_bytes={?d} lifetime_peak_bytes={?d} source={s}\n", .{
+        stage, usage.current_physical_footprint_bytes, usage.lifetime_peak_physical_footprint_bytes, @tagName(usage.source),
+    });
+}
+
 pub fn sample() Error!Snapshot {
     if (builtin.os.tag != .macos) return .{
         .source = .unsupported,

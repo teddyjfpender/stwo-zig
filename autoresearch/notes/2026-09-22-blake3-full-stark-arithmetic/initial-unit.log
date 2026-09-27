@@ -1,0 +1,26 @@
+test-pcs-arithmetic-capture
++- PCS arithmetic capture guard
+   +- run test failure
+thread 983770 panic: reached unreachable code
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/debug.zig:559:14: 0x1004cf70f in test.PCS arithmetic capture preserves ownership and rejects geometry encoding mutations (test)
+    if (!ok) unreachable; // assertion failure
+             ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x100497f9b in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x100496a07 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+???:?:?: 0x1865684e3 in ??? (???)
+???:?:?: 0x0 in ??? (???)
+error: while executing test 'recursion.pcs_arithmetic_capture_test.test.PCS arithmetic capture preserves ownership and rejects geometry encoding mutations', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/c19ba92cf78c7643d2a15ee8ad92177a/test --cache-dir=./.zig-cache --seed=0xfd87661 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/1 tests passed
+test-pcs-arithmetic-capture transitive failure
++- PCS arithmetic capture guard transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 3s MaxRSS:460M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/a534c8dc9422784a7093bc8f9d7ca713/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xfd87661 -Z215d186402e955c7 --maxrss 25769803776 -j1 test-pcs-arithmetic-capture -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,18 @@
+1/17 block_v5_global_join_semantic_test_root.test_0...OK
+2/17 block_v5_global_join_semantic_test_root.test.global semantic mapping: real independent derivation and same-parent attachment bodies retained...OK
+3/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: four original word limbs and felt cells have identical extension value...OK
+4/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: malformed limbs bytes and unrelated zero coordinates fail closed...OK
+5/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: decoder equation construction preserves original allocation failure...OK
+6/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: exact exported subset binds original scope and remains open...OK
+7/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: each execution group kind and byte partition closes separately...OK
+8/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: every semantic mapping and obligation mutation invalidates derivation...OK
+9/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: derived subset allocation failures release both bounded owners...OK
+10/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: re-sealing arbitrary selectors does not match independently derived recipe...OK
+11/17 prover.block_v5_global_join_semantic_test_v1.test.global semantic mapping: identical zero payloads cannot change normative slot ordinal...OK
+12/17 prover.block_execution_external_trace_v2.test_0...OK
+13/17 air.lookups.tables.mod.test_0...OK
+14/17 air.semantic_eval.test_0...OK
+15/17 prover.block_execution_external_access_bridge_v2.test_0...OK
+16/17 air.memory_commitment.poseidon2_air.test_0...OK
+17/17 air.lookups.tables.source_ingest.test_0...OK
+All 17 tests passed.

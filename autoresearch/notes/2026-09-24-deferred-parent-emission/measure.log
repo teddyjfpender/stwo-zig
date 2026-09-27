@@ -1,0 +1,5 @@
+0 control 38.4
+1 candidate 39.104
+2 candidate 38.697
+3 control 38.948
+{"control": {"samples": 2, "wall_median_seconds": 38.673900000489084, "root_preparation_median_seconds": 4.387049666999999, "peak_routed_bytes": 26459992736, "peak_physical_bytes": 39162208160}, "candidate": {"samples": 2, "wall_median_seconds": 38.900597354004276, "root_preparation_median_seconds": 4.4320842085, "peak_routed_bytes": 26459992736, "peak_physical_bytes": 39162060608}}

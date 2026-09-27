@@ -1,0 +1,11 @@
+1/10 block_v5_native_capacity_leaf_queue_test_root.test_0...OK
+2/10 prover.block_v5_native_capacity_leaf_queue_test_v1.test.block-v5 capacity leaf queue owns captures orders publication and applies backpressure...OK
+3/10 prover.block_v5_native_capacity_leaf_queue_test_v1.test.block-v5 capacity leaf queue error retains rejected owner and destroys queued captures...OK
+4/10 prover.block_v5_native_capacity_leaf_queue_test_v1.test.block-v5 capacity leaf queue abort joins inflight owner before borrowed context teardown...OK
+5/10 prover.block_v5_native_capacity_leaf_queue_test_v1.test.block-v5 capacity leaf queue rejects invalid bounds and incomplete publication...OK
+6/10 prover.block_v5_native_capacity_leaf_queue_test_v1.test.block-v5 capacity leaf queue retains genuine capture publication and queue codegen bodies only...OK
+7/10 prover.block_v5_native_capacity_leaf_queue_test_v1.test.block-v5 capacity leaf queue allocation failures and external cancellation preserve owners...OK
+8/10 air.memory_commitment.poseidon2_air.test_0...OK
+9/10 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+10/10 air.semantic_eval.test_0...OK
+All 10 tests passed.

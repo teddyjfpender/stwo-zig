@@ -1,0 +1,34 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_median_seconds": 20.182175812500645,
+    "parent_stage_median_seconds": 7.328762,
+    "peak_rss_bytes": 20885241856,
+    "peak_physical_footprint_bytes": 27759276320,
+    "stage_medians_seconds": {
+      "parent.validation": 0.0126535,
+      "parent.main_setup": 1.572689,
+      "parent.main_commit": 1.7580390000000001,
+      "parent.interaction_generation": 0.730378,
+      "parent.interaction_commit": 1.6543875,
+      "parent.core": 1.600615
+    },
+    "sampled_value_median_seconds": 0.34850499999999995
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_median_seconds": 19.836584937482257,
+    "parent_stage_median_seconds": 7.270329500000001,
+    "peak_rss_bytes": 20885438464,
+    "peak_physical_footprint_bytes": 27759243528,
+    "stage_medians_seconds": {
+      "parent.validation": 0.0125845,
+      "parent.main_setup": 1.5397555,
+      "parent.main_commit": 1.7550430000000001,
+      "parent.interaction_generation": 0.7218424999999999,
+      "parent.interaction_commit": 1.65594,
+      "parent.core": 1.585164
+    },
+    "sampled_value_median_seconds": 0.3389135
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "cpu": "Apple M5 Max",
+  "ram_bytes": 68719476736,
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t17%; charging; 2:33 remaining present: true\n",
+  "build_mode": "ReleaseFast",
+  "source_dirty": true
+}

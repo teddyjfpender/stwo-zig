@@ -1,0 +1,63 @@
+[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpcl758ux5/report.evidence-21cimcq3
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpcl758ux5/report.json
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+[power] CSP-comparable timings require AC power (observed: Battery Power)
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmphdb9xsrc/report.evidence-j3x7p45o
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmphdb9xsrc/report.json
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmp3ry2vpj9/report.evidence-vlczwcbg
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmp3ry2vpj9/report.json
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpjky5x0b2/report.evidence-z0eu566x
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpjky5x0b2/report.json
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpoqwu4_xq/report.evidence-0in_i4_0
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpoqwu4_xq/report.json
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpj3tjcvij/report.evidence-d0uhxlsa
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmp9lflexea/report.evidence-9r8tnhvy
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmp9lflexea/report.json
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpj0_rvv7v/report.evidence-1nu7l03f
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpj0_rvv7v/report.json
+.[scope] software full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpvj_c2ft3/report.evidence-2eh7u6w1
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.000s verify=0.000s proof=0.0KiB rss=0.00GiB
+report: /private/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpvj_c2ft3/report.json
+..
+----------------------------------------------------------------------
+Ran 14 tests in 0.533s
+
+OK

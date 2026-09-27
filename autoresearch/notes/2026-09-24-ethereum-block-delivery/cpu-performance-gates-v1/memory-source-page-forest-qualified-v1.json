@@ -1,0 +1,260 @@
+{
+  "scope": "Actual original Raw/Fold leaf recursion, closed <=4-child PAGE forest fixed setup/producer/fresh Source/Receiver bodies retained, original22 semantic claim+exact page/row/range census graph, nonproving scalar/symbolic/normalization/ownership/topology/Raw-quotient fixtures.",
+  "candidate": "memory-source-page-forest-source-candidate-v2.json",
+  "candidate_sha256": "a5da8c338f9ed467deaa76418dad5a600e4e042824b9cdf6e50c271dab5b502a",
+  "owned_sources": [
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_page_forest_codegen_v1.zig",
+      "sha256": "5f7a03265eee74665df3ebcdede24208b499f6e52b8f3ff5b7cbe9a77d08d1aa",
+      "bytes": 1381
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_page_forest_selected_test_root.zig",
+      "sha256": "d63ee34562acf534f8d2c46a43cde6639d9d8792ea62619d5428db2c49b434a4",
+      "bytes": 654
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_page_forest_test_root.zig",
+      "sha256": "01209e6ff47a4265b783780f07fd3df23b8edd43fbac6404d803e59c2f720eea",
+      "bytes": 647
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_memory_source_page_raw_parity_test_root.zig",
+      "sha256": "1ef0c7a50689e99adaab94a27353711afacb7a479c9e1b09360f3e23cb45c4ac",
+      "bytes": 173
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_forest_run_v1.zig",
+      "sha256": "3336e429644a42637252640824deba6ea09e96828486e1e1054860386390c756",
+      "bytes": 3863
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_forest_stage_v1.zig",
+      "sha256": "a87854437851a72e3bbf87e0b057d242caee81d3ab7d3c37a88f305803cddaa5",
+      "bytes": 9374
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_forest_test_v1.zig",
+      "sha256": "eb5f72c1398d898171d68a87c02b88688fd9eb64951fa0ab2870f9ff2bbd7ca4",
+      "bytes": 11527
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_memory_source_page_raw_recursive_parity_test_v1.zig",
+      "sha256": "c3b3fd710e07ddd511b866a818d73aff5e9c1af6b1c202fe8e0da233ead32791",
+      "bytes": 11064
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_memory_source_page_forest_graph_v1.zig",
+      "sha256": "66a17d0f72ace522ad274cbf7882019a4ddd7a36a86fcef64a85f72d0ff52863",
+      "bytes": 7967
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_algebra_v1.zig",
+      "sha256": "abbb910025c457f4dab23f7feb4fd6576e45675b4c5dd26cf5fc645d5aeeed2c",
+      "bytes": 3296
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_bus_v1.zig",
+      "sha256": "2beae009ba12fd06bcfe7050e1079887d37e38578f119d9bc099ba0abbb57500",
+      "bytes": 16288
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_leaf_v1.zig",
+      "sha256": "83742b93c7a8683dcd0c0266cadf3c1c60d2e608c5e5acd997d86aeeb98b2906",
+      "bytes": 10486
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_normalizer_v1.zig",
+      "sha256": "9721125d92e26717e0a5c8bd029e0f9a037eec80c7adced33f3817817b84343e",
+      "bytes": 6276
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_plan_v1.zig",
+      "sha256": "4727622c0762432907258b86500f107cde54495394601cfd50bfd3e6110bb820",
+      "bytes": 19567
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_preparation_v1.zig",
+      "sha256": "628078399d10bca8332368de688c60a4aa57bb1322e4f8397947cc9b030745e7",
+      "bytes": 7932
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_protocol_v1.zig",
+      "sha256": "19ffd3b39d9ff7f47b834c24d9496d646c36f7e79276a7734873485ec44431f8",
+      "bytes": 2318
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_receiver_v1.zig",
+      "sha256": "f4a523abfbb7104b713467b02606f381d5e39458b80a47ce4e42a3be27072049",
+      "bytes": 1553
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_memory_source_page_forest_source_v1.zig",
+      "sha256": "69b7fbb4a538cf706f49a781e728a87677659d8dd2af04b8bce1bb54e11907b8",
+      "bytes": 7925
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-forest-source-candidate-v1.md",
+      "sha256": "c743a41bb5296bc43e3f101dd94da65716c0a36999dc81125cb7be1bfe6243eb",
+      "bytes": 6575
+    },
+    {
+      "path": "src/frontends/riscv/recursion/source_authority_cache_v1.zig",
+      "sha256": "aeef426ace4b0bf1a5c7ec02029085e574207ab85139a5e1d322c2ac116f9236",
+      "bytes": 586
+    }
+  ],
+  "attempts": [
+    {
+      "name": "source-page-forest-semantic-v1",
+      "source_candidate": "source-page-forest-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 1.3730540000251494,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "source-page-forest-semantic-v2",
+      "source_candidate": "source-page-forest-semantic-v2-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 1.3756627500406466,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "source-page-forest-semantic-v3",
+      "source_candidate": "source-page-forest-semantic-v3-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 2.4668444999842905,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-semantic-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "source-page-forest-semantic-v4",
+      "source_candidate": "source-page-forest-semantic-v4-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 0.11115475004771724,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-semantic-v4.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "source-page-forest-semantic-v5",
+      "source_candidate": "source-page-forest-semantic-v5-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 4.80703004199313,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-semantic-v5.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "source-page-forest-legacy-focused-v1",
+      "source_candidate": "source-page-forest-legacy-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 29.462789957993664,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-legacy-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-source-page-forest-legacy-focused-v1",
+        "bytes": 45297712,
+        "sha256": "9dc17f333783ad318a58e5cf33f554cde98e1b32e9cb4b6ecf80da2539a302b1"
+      }
+    },
+    {
+      "name": "source-page-forest-selected-focused-v1",
+      "source_candidate": "source-page-forest-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 29.023058624996338,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-forest-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-source-page-forest-selected-focused-v1",
+        "bytes": 45297760,
+        "sha256": "428a2d3f4137fe01f4c179e9440b5fdfc97bf29bc53c449f217f91feda477353"
+      }
+    }
+  ],
+  "behavioral_tests": 16,
+  "selected_total_tests_per_recipe": 22,
+  "external_schedule": "Exactly empty; local Boundary supplier AIR closes recursion wires with genuine signed effects; child_term rejection for closed nodes.",
+  "minimum_topology": "For N>=2, ceil((N-1)/3) real merge proofs; one-leaf genuine wrapper; zero roster explicit absence, no fake proof.",
+  "root_repairs": [
+    "Qualified Summary.init; avoided node/summary capture shadowing",
+    "Checked full-u32 claim offset with underflow guard and fixture",
+    "Cached immutable compiled source authority, pinned helper/protocol bytes, uncached parity fixture"
+  ],
+  "open_claims": [
+    "Initial and endpoint remain exported for original sorted RAM join",
+    "Native/caller transition, register/state/public/ROM/table/lookup/accounting",
+    "Standalone independent reusable expected key and actual complete block proof"
+  ],
+  "canonical_enabled": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "complete_block_authority": false,
+  "performance_claim": "No timed proof or RSS. Minimum count and bounded no-descendant exports/source hashing are implemented structural improvements only."
+}

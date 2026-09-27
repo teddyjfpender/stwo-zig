@@ -1,0 +1,14 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 2669s
+1/6 air.guest_precompile.sha256_compression_proof_test.test.SHA canonical compression STARK verifies and rejects substituted digest admission...SHA_COMPRESSION_STARK verified=true queries=70 pow_bits=26 elapsed_ns=4855940958 cpu_memory_dispatch=false
+OK
+2/6 air.guest_precompile.sha256_compression_rows.test.SHA provider batches own only final rows and reconstruct private-independent topology...OK
+3/6 air.guest_precompile.sha256_preprocessed.test.SHA provider preprocessing matches independent topology and releases every failed allocation...SHA_PREPROCESSING calls=1 removed_placeholder_bytes=78016 final_fixed_value_bytes=9888
+SHA_PREPROCESSING calls=16 removed_placeholder_bytes=1248256 final_fixed_value_bytes=158208
+SHA_PREPROCESSING calls=64 removed_placeholder_bytes=4993024 final_fixed_value_bytes=632832
+SHA_PREPROCESSING calls=1024 removed_placeholder_bytes=79888384 final_fixed_value_bytes=10125312
+OK
+4/6 air.guest_precompile.sha256_component_profile.test.SHA provider profile pins geometry semantics and checked component placement...OK
+5/6 recursion.air.universal_component_owner.test.SHA provider joined component owner keeps challenges alive after AST teardown...OK
+6/6 air.guest_precompile.sha256_relations.test.SHA provider wires are independent while all VM tuple challenges remain shared...OK
+All 6 tests passed.

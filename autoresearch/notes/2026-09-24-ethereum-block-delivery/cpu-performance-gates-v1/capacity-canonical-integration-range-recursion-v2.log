@@ -1,0 +1,6 @@
+src/frontends/riscv/prover/block_v5_range16_recursive_test_v1.zig:96:53: error: capture shadows declaration of 'values'
+        for (tree, out.*, symbols.*, 0..) |column, *values, *syms, i| {
+                                                    ^~~~~~
+src/frontends/riscv/prover/block_v5_range16_recursive_test_v1.zig:201:1: note: declared here
+fn values() Bus.Values {
+^~

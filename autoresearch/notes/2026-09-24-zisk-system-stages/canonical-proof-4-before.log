@@ -1,0 +1,4 @@
+1/1 keccakf_precompile_proof_test.test.Keccak-f BLAKE3 canonical system benchmark...Keccak-f BLAKE3 system profile: queries=70 pow=26 workers=16
+Keccak-f proof timings: witness=4.310ms pp=7.326ms main=5.225ms interaction-gen=1.776ms interaction-commit=6.207ms prove=48.663ms verify=7.973ms
+OK
+All 1 tests passed.

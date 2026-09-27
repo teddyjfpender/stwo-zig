@@ -1,0 +1,16 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_median_seconds": 38.414479062499595,
+    "root_preparation_median_seconds": 4.266723271,
+    "peak_routed_bytes": 26459992736,
+    "peak_physical_bytes": 39162765336
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_median_seconds": 37.64371679149917,
+    "root_preparation_median_seconds": 3.4579275000000003,
+    "peak_routed_bytes": 26459992736,
+    "peak_physical_bytes": 39160848120
+  }
+}

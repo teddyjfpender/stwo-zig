@@ -1,0 +1,32 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_median_seconds": 32.12091260399029,
+    "parent_stage_median_seconds": 19.141332,
+    "peak_rss_bytes": 20886847488,
+    "peak_physical_footprint_bytes": 27381526816,
+    "stage_medians_seconds": {
+      "parent.validation": 0.0128915,
+      "parent.main_setup": 4.657769500000001,
+      "parent.main_commit": 1.7532835,
+      "parent.interaction_generation": 5.7118085,
+      "parent.interaction_commit": 1.7296429999999998,
+      "parent.core": 5.275936
+    }
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_median_seconds": 26.691755937994458,
+    "parent_stage_median_seconds": 14.101565999999998,
+    "peak_rss_bytes": 20883177472,
+    "peak_physical_footprint_bytes": 27381805560,
+    "stage_medians_seconds": {
+      "parent.validation": 0.0129985,
+      "parent.main_setup": 4.712668,
+      "parent.main_commit": 1.7602250000000002,
+      "parent.interaction_generation": 0.6977154999999999,
+      "parent.interaction_commit": 1.659058,
+      "parent.core": 5.258901
+    }
+  }
+}

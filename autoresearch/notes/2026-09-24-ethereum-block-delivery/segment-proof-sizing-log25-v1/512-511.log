@@ -1,0 +1,3 @@
+BLOCK_STREAM required_terminal_cycles=56 terminal_leaf_cycles=271904
+BLOCK_STREAM preflight_cycles=139214856 proof_segments=512 preflight_ns=25418290000
+error: OutOfMemory

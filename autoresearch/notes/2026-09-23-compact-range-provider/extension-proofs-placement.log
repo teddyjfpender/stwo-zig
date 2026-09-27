@@ -1,0 +1,10 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test stderr
+COMPACT_EXTENSION_PROOF profile=rv32im_zkvm_ethereum_v1 queries=70 pow_bits=26 bytes=5399267 independently_verified=true
+COMPACT_EXTENSION_PROOF profile=rv32im_zkvm_poseidon2_v1 queries=70 pow_bits=26 bytes=861930 independently_verified=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-statement-codecs success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G
+

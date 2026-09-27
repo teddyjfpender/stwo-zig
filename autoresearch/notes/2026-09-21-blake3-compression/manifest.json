@@ -1,0 +1,12 @@
+{
+  "README.md": "547c52dcba5a3b4af55e127928b250969537707419cd32ae9511097ad8dc1634",
+  "source-conformance.log": "942e978fd7997ffc0bcf41c127a52f600b5a20759d16a58f109e945eb5e53f5c",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "8466876db52eaf749f70c56f749a1a9dfa4eaef49e3c0d4a30444d4bb27a8199",
+  "sources/src/core/crypto/blake3_compression.zig": "baa0de190397ef0a0223ed3a01d31c29ad42a40b0f4f0a692d9e7e4f9c689fc2",
+  "sources/src/core/crypto/mod.zig": "22795c88b37a437d14461d6c1a35475b7a6f2eb58a812446364513c777ddfc36",
+  "sources/src/frontends/riscv/blake3_compression_test_root.zig": "bc30f36fb7e9042f75dc40f1f9601a37937ea27f28f2c4506696d029f5f23da9",
+  "sources/src/frontends/riscv/recursion/air/blake3_g_reference.zig": "e51b7356fba5aa6543da98cc383d40e7a3d55f9fc9e9fe242f9883b580300353",
+  "sources/src/frontends/riscv/recursion/air/blake3_g_reference_test.zig": "6e133e6d57dff59bfba410dfa133b793865418efc682870651ffaf18cb3a2173",
+  "sources/src/integrations/riscv_cpu/build_segment_steps.zig": "864df83cfacc42e50c9e1f9e9cd55ea2d9913e033a18cb62ad384037dd86fdfe",
+  "tests.log": "993de7ff26686a479caeb4c6296d09af7b43cf71f889963a7324095a0dd6c8ca"
+}

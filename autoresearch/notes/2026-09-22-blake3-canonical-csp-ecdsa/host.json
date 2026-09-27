@@ -1,0 +1,8 @@
+{
+  "cpu": "Apple M5 Max",
+  "memory_bytes": 68719476736,
+  "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "zig": "0.15.2",
+  "head": "1c6c81ecf98813ca3c91988888d9f2af6474763e",
+  "worktree": "dirty qualification snapshot; not a clean published suite run"
+}

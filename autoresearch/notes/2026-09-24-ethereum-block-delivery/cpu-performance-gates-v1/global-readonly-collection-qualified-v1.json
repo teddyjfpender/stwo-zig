@@ -1,0 +1,58 @@
+{
+  "status": "qualified focused scalar/equation/metadata/ownership/transport and real production body compilation only",
+  "gate": {
+    "source_candidate": "global-readonly-collection-focused-v4-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 69.52160575002199,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "object_only": false,
+    "tests_run": true,
+    "discovered_tests": 41,
+    "test_summary": [
+      "All 41 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-readonly-collection-focused-v4.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-global-readonly-collection-focused-v4",
+      "bytes": 119087152,
+      "sha256": "7a0bb9922737df035c3af40fa13b2643ff5aed18ac13d6ebaa3f33ea838ae19f"
+    }
+  },
+  "gate_result_sha256": "6eb00be1feb12facb74b6263bff6fea4d94461e9f78edbb8fe5248d81597c907",
+  "source_snapshot": "global-readonly-collection-focused-v4-source.json",
+  "source_snapshot_sha256": "e96a2e3e355ea0e65d7631f86198db16a4d2a8a510a8ae3f9bc55e02e499f87f",
+  "retained_exports": [
+    "readonly_global_provider_actual_pair",
+    "readonly_global_provider_actual_prove",
+    "readonly_global_native_actual_capture",
+    "readonly_global_native_actual_prove",
+    "readonly_global_native_actual_replay"
+  ],
+  "actual_cpu_cli_body_retained": true,
+  "scoped_behavior_checks": 29,
+  "total_checks_including_imports": 41,
+  "segments_run": false,
+  "PCS_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "benchmark_run": false,
+  "prior_attempts": [
+    "global-readonly-collection-focused-v1-result.json",
+    "global-readonly-collection-focused-v2-result.json",
+    "global-readonly-collection-focused-v3-result.json"
+  ],
+  "remaining": [
+    "streamed V2 source construction without interval-size counter arrays or transition copies",
+    "actual native/caller/provider recursive adapters and source claims through fresh receipts",
+    "complete group join and original mutable RAM/program/ROM/table/byte/register closure",
+    "typed V2 proof transport and canonical CPU driver selection",
+    "positive complete proof acceptance and canonical security",
+    "end-to-end block time and peak memory",
+    "GPU hardware parity and resident family execution"
+  ]
+}

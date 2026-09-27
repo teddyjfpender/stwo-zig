@@ -1,0 +1,33 @@
+test-riscv-blake3-tree-pipeline
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_NATIVE_QUERY_FUSION groups=864 removed_scalars=3456
+BLAKE3_NATIVE_FUSION dot4=2113 fma=8999 arithmetic_rows=29525
+BLAKE3_NATIVE_QUERY_FUSION groups=864 removed_scalars=3456
+BLAKE3_NATIVE_FUSION dot4=2113 fma=9001 arithmetic_rows=29521
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=129249 queries=8 pow_bits=0
+BLAKE3_NATIVE_QUERY_FUSION groups=832 removed_scalars=3328
+BLAKE3_NATIVE_FUSION dot4=1960 fma=8829 arithmetic_rows=28553
+BLAKE3_NATIVE_QUERY_FUSION groups=976 removed_scalars=3904
+BLAKE3_NATIVE_FUSION dot4=2525 fma=9584 arithmetic_rows=32369
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=130561 queries=8 pow_bits=0
+BLAKE3_NATIVE_QUERY_FUSION groups=2216 removed_scalars=8864
+BLAKE3_NATIVE_FUSION dot4=3818 fma=10629 arithmetic_rows=39266
+BLAKE3_NATIVE_QUERY_FUSION groups=2216 removed_scalars=8864
+BLAKE3_NATIVE_FUSION dot4=3818 fma=10629 arithmetic_rows=39266
+BLAKE3_NATIVE_QUERY_FUSION groups=2216 removed_scalars=8864
+BLAKE3_NATIVE_FUSION dot4=3818 fma=10629 arithmetic_rows=39266
+BLAKE3_NATIVE_QUERY_FUSION groups=2216 removed_scalars=8864
+BLAKE3_NATIVE_FUSION dot4=3818 fma=10629 arithmetic_rows=39266
+BLAKE3_NATIVE_QUERY_FUSION groups=2216 removed_scalars=8864
+BLAKE3_NATIVE_FUSION dot4=3818 fma=10629 arithmetic_rows=39266
+BLAKE3_NATIVE_QUERY_FUSION groups=2216 removed_scalars=8864
+BLAKE3_NATIVE_FUSION dot4=3818 fma=10629 arithmetic_rows=39266
+BLAKE3_TREE_PIPELINE verified=true jobs=2 preparation_workers=2 cpu_tokens=4 reserved_bytes=25811766224 overlap_ns=1516368417 worker_peak_bytes=3675590334 worker_limit_bytes=8589934592 root_artifact_bytes=130294 plan_reused=true outputs_outlive_worker=true
+BLAKE3_TREE_PARAMETERS leaf_queries=8 leaf_pow_bits=0 parent_queries=8 parent_pow_bits=0 canonical=false
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=612326184
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-tree-pipeline success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:6G
+

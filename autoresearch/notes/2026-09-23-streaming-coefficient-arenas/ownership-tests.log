@@ -1,0 +1,12 @@
+
+Build Summary: 9/9 steps succeeded; 11/11 tests passed
+test-pcs-owned-source success
++- run test 5 passed 773ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 5s MaxRSS:437M
+test-pcs-borrowed-streaming success
++- run test 3 passed 946ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 10s MaxRSS:739M
+test-pcs-shared-commitment success
++- run test 3 passed 1s MaxRSS:2M
+   +- compile test ReleaseSafe native success 4s MaxRSS:354M
+

@@ -1,0 +1,33 @@
+test-blake3-native-parent-pipeline-aot
++- run test stderr
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=8610 removed_scalars=34440
+BLAKE3_NATIVE_FUSION dot4=19037 fma=59337 arithmetic_rows=170472
+BLAKE3_NATIVE_QUERY_FUSION groups=8610 removed_scalars=34440
+BLAKE3_NATIVE_FUSION dot4=19037 fma=59337 arithmetic_rows=170472
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=28 gpu_ms=118.41649998677894
+BLAKE3_NATIVE_QUERY_FUSION groups=8610 removed_scalars=34440
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.1733749890699983
+BLAKE3_NATIVE_FUSION dot4=19037 fma=59337 arithmetic_rows=170472
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4244999911170453
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.7744166650809348
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=2 gpu_ms=0.16020832117646933
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=28 gpu_ms=116.48133333073929
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.1499999857041985
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4204583421815187
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.7859166944399476
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=2 gpu_ms=0.15075001283548772
+CANONICAL_PIPELINE_ARTIFACT index=0 sha256=33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd bytes=839853 independently_verified=true
+CANONICAL_PIPELINE_ARTIFACT index=1 sha256=33b85e0a6519962ca53511b4dc06cecc0f2f5d0e06f299f95a8868efd10744dd bytes=839853 independently_verified=true
+CANONICAL_EXECUTION_PIPELINE mode=overlapped jobs=2 workers=8 cpu_tokens=9 reserved_bytes=55661365064 wall_ns=9613376542 overlap_ns=1912131250 worker_peak_bytes=10470061141 worker_limit_bytes=25769803776 child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 plan_reused=true outputs_outlive_worker=true independently_verified=true
+CANONICAL_PIPELINE_SPAN run=0 index=0 prepare_start=11083 prepare_end=1562839000 prove_start=1562853333 prove_end=5703660166
+CANONICAL_PIPELINE_SPAN run=0 index=1 prepare_start=1562842375 prepare_end=3474984583 prove_start=5712065791 prove_end=9604970333
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=469544 independently_verified=true
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-blake3-native-parent-pipeline-aot success
++- run test 7 passed 21s MaxRSS:21G
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+

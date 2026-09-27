@@ -1,0 +1,37 @@
+cpu-sha256-128 1.434585 verified
+cpu-sha256-256 1.607891 verified
+cpu-sha256-512 1.699606 verified
+cpu-sha256-1024 1.540815 verified
+cpu-sha256-2048 2.545874 verified
+cpu-keccak-128 2.358332 verified
+cpu-keccak-256 2.491983 verified
+cpu-keccak-512 2.528864 verified
+cpu-keccak-1024 2.921106 verified
+cpu-keccak-2048 2.917653 verified
+cpu-poseidon2_m31-2 0.660669 verified
+cpu-poseidon2_m31-4 0.926435 verified
+cpu-poseidon2_m31-8 0.928582 verified
+cpu-poseidon2_m31-12 1.186136 verified
+cpu-poseidon2_m31-16 1.146036 verified
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/qualify-csp.py", line 60, in <module>
+    trace_result = execute_case(checked, trace, 3600, env=env)
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_csp_benchmark.py", line 200, in execute_case
+    return _execute_guest(
+        env=env,
+    ...<6 lines>...
+        timeout=timeout,
+    )
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_csp_benchmark.py", line 164, in _execute_guest
+    completed = _run(
+        [
+    ...<9 lines>...
+        env=env,
+    )
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_csp_benchmark.py", line 138, in _run
+    raise BenchmarkError(
+    ...<2 lines>...
+    )
+scripts.riscv_csp_benchmark_lib.contract.BenchmarkError: command exited 1: /Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/clean-trace --public-values /Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_odd.elf --input /Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1.bin --max-steps 10000000
+error: RequiredCapabilityUnavailable
+

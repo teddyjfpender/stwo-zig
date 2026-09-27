@@ -1,0 +1,252 @@
+//! One Span validation, folding and canonical encoding path for both formats.
+
+pub fn Semantics(comptime dependency_0: type) type {
+    return struct {
+        const EXECUTED_SPAN_CANONICAL_WORDS = dependency_0.EXECUTED_SPAN_CANONICAL_WORDS;
+        const EdgeClaim = dependency_0.EdgeClaim;
+        const Error = dependency_0.Error;
+        const ExecutedSpan = dependency_0.ExecutedSpan;
+        const JobContext = dependency_0.JobContext;
+
+        const Reader = dependency_0.Reader;
+        const SlotSpan = dependency_0.SlotSpan;
+        const SpanBody = dependency_0.SpanBody;
+        const StatementWords = dependency_0.StatementWords;
+        const Writer = dependency_0.Writer;
+        const appendJob = dependency_0.appendJob;
+        const appendMachine = dependency_0.appendMachine;
+        const canonical_layout = dependency_0.canonical_layout;
+        const foldExecuted = dependency_0.foldExecuted;
+
+        const m31WordsEql = dependency_0.m31WordsEql;
+
+        const readBody = dependency_0.readBody;
+        const readJob = dependency_0.readJob;
+        const readSlot = dependency_0.readSlot;
+        const std = dependency_0.std;
+        const validateEmpty = dependency_0.validateEmpty;
+        const validateExecuted = dependency_0.validateExecuted;
+        const validateSlots = dependency_0.validateSlots;
+
+        pub const SpanStatement = struct {
+            job: JobContext,
+            slots: SlotSpan,
+            body: SpanBody,
+
+            pub fn init(job: JobContext, slots: SlotSpan, body: SpanBody) Error!SpanStatement {
+                const result = SpanStatement{ .job = job, .slots = slots, .body = body };
+                try result.validate();
+                return result;
+            }
+
+            pub fn segmentLeaf(job: JobContext, index: u32, span: ExecutedSpan) Error!SpanStatement {
+                return init(job, try SlotSpan.init(index, 0), .{ .executed = span });
+            }
+
+            pub fn emptyLeaf(job: JobContext, index: u32) Error!SpanStatement {
+                return init(job, try SlotSpan.init(index, 0), .empty);
+            }
+
+            pub fn validate(self: SpanStatement) Error!void {
+                try self.job.validate();
+                try self.slots.validate();
+                try validateSlots(self.job, self.slots);
+                switch (self.body) {
+                    .empty => try validateEmpty(self.job, self.slots),
+                    .executed => |span| try validateExecuted(self.job, self.slots, span),
+                }
+            }
+
+            pub fn fold(left: SpanStatement, right: SpanStatement) Error!SpanStatement {
+                try left.validate();
+                try right.validate();
+                if (!std.meta.eql(left.job, right.job)) return error.JobMismatch;
+                if (left.slots.height != right.slots.height) return error.ChildHeightMismatch;
+                if (left.slots.endExclusive() != right.slots.first) return error.SlotsNotAdjacent;
+                const parent_height = std.math.add(u8, left.slots.height, 1) catch
+                    return error.SlotHeightOutOfRange;
+                const parent_slots = try SlotSpan.init(left.slots.first, parent_height);
+                if (parent_slots.first % parent_slots.capacity() != 0)
+                    return error.SlotsMisaligned;
+                const body: SpanBody = switch (left.body) {
+                    .empty => switch (right.body) {
+                        .empty => .empty,
+                        .executed => return error.EmptyBeforeExecuted,
+                    },
+                    .executed => |left_span| switch (right.body) {
+                        .empty => .{ .executed = left_span },
+                        .executed => |right_span| .{
+                            .executed = try foldExecuted(left_span, right_span),
+                        },
+                    },
+                };
+                return init(left.job, parent_slots, body);
+            }
+
+            pub fn canonicalWords(self: SpanStatement) Error!StatementWords {
+                try self.validate();
+                var words: StatementWords = undefined;
+                var writer = Writer{ .words = &words };
+                writer.tag(.span_statement);
+                if (comptime dependency_0.BLAKE3) writer.put(dependency_0.FORMAT_VERSION);
+                appendJob(&writer, self.job);
+                appendSlot(&writer, self.slots);
+                appendBody(&writer, self.body);
+                std.debug.assert(writer.at == words.len);
+                return words;
+            }
+
+            /// Decodes this format's pinned word ABI without allocation. Every tag, reserved
+            /// padding word, 16-bit integer limb, and field representative is checked
+            /// before the normal semantic validators run. A final encode comparison
+            /// makes this a strict inverse of `canonicalWords`, not a permissive parser.
+            pub fn fromCanonicalWords(words: *const StatementWords) Error!SpanStatement {
+                var reader = Reader{ .words = words };
+                try reader.tag(.span_statement);
+                try reader.version();
+                const statement = try SpanStatement.init(
+                    try readJob(&reader),
+                    try readSlot(&reader),
+                    try readBody(&reader),
+                );
+                std.debug.assert(reader.at == words.len);
+                const canonical = try statement.canonicalWords();
+                if (!m31WordsEql(&canonical, words))
+                    return error.DigestMismatch;
+                return statement;
+            }
+        };
+
+        pub const RootStatement = struct {
+            statement: SpanStatement,
+
+            pub fn init(statement: SpanStatement) Error!RootStatement {
+                // canonicalWords performs the same complete statement admission before
+                // the root-specific checks; native and arithmetic consumers then use
+                // one exact coverage rule and preserve its error ordering.
+                const words = try statement.canonicalWords();
+                var sink: NativeRootChecks = .{};
+                try emitCanonicalChecks(words, &sink);
+                return .{ .statement = statement };
+            }
+
+            /// Root coverage over already admitted canonical Span words. This does not
+            /// replace Span validity: arithmetic callers must also constrain the shared
+            /// statement-semantics circuit and authenticate every published input word.
+            /// A sink implements equal(same-length words, words, error) and
+            /// constant(words, expected scalar, error).
+            pub fn emitCanonicalChecks(words: anytype, sink: anytype) !void {
+                const layout = canonical_layout;
+                try sink.constant(words[layout.slot_node_index_start..][0..4], 0, error.RootSlotStartMismatch);
+                try sink.equal(words[layout.slot_height..][0..1], words[layout.job_slot_height..][0..1], error.RootHeightNotMinimal);
+                try sink.constant(words[layout.body_tag..][0..1], @intFromEnum(dependency_0.Tag.executed_body), error.RootIsEmpty);
+                try sink.constant(words[layout.first_segment_start..][0..2], 0, error.RootSegmentStartMismatch);
+                try sink.equal(words[layout.executed_segment_count_start..][0..2], words[layout.job_segment_count_start..][0..2], error.RootSegmentCountMismatch);
+                try sink.constant(words[layout.first_cycle_start..][0..4], 0, error.RootCycleStartMismatch);
+                try sink.equal(words[layout.executed_cycle_count_start..][0..4], words[layout.total_cycles_start..][0..4], error.RootCycleCountMismatch);
+                try sink.equal(words[layout.entry_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], words[layout.initial_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], error.RootInitialStateMismatch);
+                try sink.equal(words[layout.exit_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], words[layout.final_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], error.RootFinalStateMismatch);
+                try sink.constant(words[layout.input_edge_tag..][0..1], @intFromEnum(dependency_0.Tag.present_edge), error.RootInputMismatch);
+                try sink.equal(words[layout.input_edge_digest_start..][0..dependency_0.DIGEST_WORD_COUNT], words[layout.public_input_start..][0..dependency_0.DIGEST_WORD_COUNT], error.RootInputMismatch);
+                try sink.constant(words[layout.output_edge_tag..][0..1], @intFromEnum(dependency_0.Tag.present_edge), error.RootOutputMismatch);
+                try sink.equal(words[layout.output_edge_digest_start..][0..dependency_0.DIGEST_WORD_COUNT], words[layout.public_output_start..][0..dependency_0.DIGEST_WORD_COUNT], error.RootOutputMismatch);
+            }
+        };
+
+        pub fn isIntegerWord(index: usize) bool {
+            if (comptime dependency_0.BLAKE3) {
+                if (index == 1 or isDigestWord(index)) return true;
+            }
+            const machine_starts = [_]usize{
+                canonical_layout.initial_state_start,
+                canonical_layout.final_state_start,
+                canonical_layout.entry_state_start,
+                canonical_layout.exit_state_start,
+            };
+            for (machine_starts) |start| {
+                const first = start + canonical_layout.machine_state_pc_start_offset;
+                const end = start + canonical_layout.machine_state_rw_digest_start_offset;
+                if (index >= first and index < end) return true;
+            }
+            return inRange(index, canonical_layout.total_cycles_start, 4) or
+                inRange(index, canonical_layout.job_segment_count_start, 2) or
+                index == canonical_layout.job_slot_height or
+                inRange(index, canonical_layout.slot_node_index_start, 4) or
+                index == canonical_layout.slot_height or
+                inRange(index, canonical_layout.first_segment_start, 2) or
+                inRange(index, canonical_layout.executed_segment_count_start, 2) or
+                inRange(index, canonical_layout.first_cycle_start, 4) or
+                inRange(index, canonical_layout.executed_cycle_count_start, 4);
+        }
+
+        pub fn inRange(index: usize, start: usize, len: usize) bool {
+            return index >= start and index < start + len;
+        }
+
+        pub fn appendSlot(writer: *Writer, slots: SlotSpan) void {
+            writer.tag(.slot_span);
+            writer.u64Value(slots.nodeIndex());
+            writer.put(slots.height);
+        }
+
+        pub fn appendEdge(writer: *Writer, edge: EdgeClaim) void {
+            if (edge.digest) |digest| {
+                writer.tag(.present_edge);
+                writer.digest(digest);
+            } else {
+                writer.tag(.absent_edge);
+                writer.zeroes(dependency_0.DIGEST_WORD_COUNT);
+            }
+        }
+
+        pub fn appendExecuted(writer: *Writer, span: ExecutedSpan) void {
+            writer.tag(.executed_span);
+            writer.u32Value(span.first_segment);
+            writer.u32Value(span.segment_count);
+            writer.u64Value(span.first_cycle);
+            writer.u64Value(span.cycle_count);
+            appendMachine(writer, span.entry);
+            appendMachine(writer, span.exit);
+            appendEdge(writer, span.input);
+            appendEdge(writer, span.output);
+        }
+
+        pub fn appendBody(writer: *Writer, body: SpanBody) void {
+            switch (body) {
+                .empty => {
+                    writer.tag(.empty_body);
+                    writer.zeroes(EXECUTED_SPAN_CANONICAL_WORDS);
+                },
+                .executed => |span| {
+                    writer.tag(.executed_body);
+                    appendExecuted(writer, span);
+                },
+            }
+        }
+
+        const NativeRootChecks = struct {
+            pub fn equal(_: *NativeRootChecks, left: anytype, right: @TypeOf(left), failure: Error) Error!void {
+                for (left, right) |a, b| if (!a.eql(b)) return failure;
+            }
+            pub fn constant(_: *NativeRootChecks, words: anytype, expected: u32, failure: Error) Error!void {
+                for (words) |word| if (word.toU32() != expected) return failure;
+            }
+        };
+
+        /// Coordinates requiring 16-bit constraints in the BLAKE3 statement AIR.
+        pub fn isDigestWord(index: usize) bool {
+            const layout = canonical_layout;
+            const starts = [_]usize{
+                layout.protocol_start,                                                    layout.program_start,
+                layout.public_input_start,                                                layout.public_output_start,
+                layout.input_edge_digest_start,                                           layout.output_edge_digest_start,
+                layout.initial_state_start + layout.machine_state_rw_digest_start_offset, layout.initial_state_start + layout.machine_state_io_digest_start_offset,
+                layout.final_state_start + layout.machine_state_rw_digest_start_offset,   layout.final_state_start + layout.machine_state_io_digest_start_offset,
+                layout.entry_state_start + layout.machine_state_rw_digest_start_offset,   layout.entry_state_start + layout.machine_state_io_digest_start_offset,
+                layout.exit_state_start + layout.machine_state_rw_digest_start_offset,    layout.exit_state_start + layout.machine_state_io_digest_start_offset,
+            };
+            for (starts) |start| if (inRange(index, start, dependency_0.DIGEST_WORD_COUNT)) return true;
+            return false;
+        }
+    };
+}

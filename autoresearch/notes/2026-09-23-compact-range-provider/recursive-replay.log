@@ -1,0 +1,29 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test 22/23 passed, 1 failed
+error: 'prover.compact_range_execution_test.test.compact range provider base STARK proves and independently verifies' failed: BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+COMPACT_EXTENSION_PROOF profile=rv32im_zkvm_ethereum_v1 queries=70 pow_bits=26 bytes=5399267 independently_verified=true
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+COMPACT_EXTENSION_PROOF profile=rv32im_zkvm_poseidon2_v1 queries=70 pow_bits=26 bytes=861930 independently_verified=true
+COMPACT_RANGE_EXECUTION old_main_cells=2982164 compact_main_cells=361092 counts=12/3/1
+error: while executing test 'diagnostics.mod.test_0', the following test command failed:
+./.zig-cache/products/riscv_cpu/o/dd982744063db8ffd91f8129f73cb72a/test --cache-dir=./.zig-cache/products/riscv_cpu --seed=0x29de7fa8 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 22/23 tests passed; 1 failed
+test-riscv-statement-codecs transitive failure
++- riscv test suite guard transitive failure
+   +- run test 22/23 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/c1b579a760efa999b930954cf0337832/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_cpu /Users/theodorepender/.cache/zig --seed 0x29de7fa8 -Z2d16bb7445fcca8e test-riscv-statement-codecs -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 -Driscv-test-filter=compact range provider -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=700f4b8c04adcbe168c4d2abe2be2c876c097bb50d4811a1f1c266df85b822bf
+test-riscv-statement-codecs
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build test-riscv-statement-codecs --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseFast --maxrss 25769803776 -j1 "-Driscv-test-filter=compact range provider" -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=700f4b8c04adcbe168c4d2abe2be2c876c097bb50d4811a1f1c266df85b822bf
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv-statement-codecs transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/851e45bb6fc1dbcb58ceb175863ab8de/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0xb892f22c -Za5023efc63dd5c8b --maxrss 25769803776 -j1 test-riscv-statement-codecs -Driscv-test-filter=compact range provider -Doptimize=ReleaseFast --summary all

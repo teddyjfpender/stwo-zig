@@ -1,0 +1,23 @@
+1/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: SHA pages preserve original columns and allocator custody after coordinator release...OK
+2/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: every SHA page allocation failure releases lease and local buffers...OK
+3/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: genuine SHA create and cached regeneration production bodies retained...OK
+4/11 block_v5_packed_hash_setup_test_root.test.packed hash setup: cached collection and durable replay preserve all six original roots...thread 7405860 panic: source first-round allocator ownership invariant
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_memory_source_first_round_common_v1.zig:81:58: 0x102f06f53 in deinit (root)
+                        if (self.budget.live_bytes != 0) @panic("source first-round allocator ownership invariant");
+                                                         ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_memory_source_packed_sha_replay_v1.zig:91:51: 0x102f1fcff in deinit (root)
+                if (self.raw) |raw| try raw.deinit();
+                                                  ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/block_v5_packed_hash_setup_test_root.zig:136:22: 0x102f4eeb3 in test.packed hash setup: cached collection and durable replay preserve all six original roots (root)
+    try cached.deinit();
+                     ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x10305486b in main (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/start.zig:618:22: 0x1030529b3 in main (root)
+            root.main();
+                     ^
+???:?:?: 0x1865684e3 in ??? (???)
+???:?:?: 0x0 in ??? (???)
+error: the following test command crashed:
+/tmp/block-v5-packed-hash-shared-stage-focused-v1 --seed=0xf98e608a

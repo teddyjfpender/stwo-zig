@@ -1,0 +1,11 @@
+{
+  "README.md": "8ccba8c1f3d7c8ffaab3e1ab2960c78501aa2de6f15c86eaaf6cdd34084a975b",
+  "sources/autoresearch/notes/20260922-blake3-trace-join-problem-match.md": "a5b478f2e59450ab972ebb5e2d6d65f7e6f3dbd0642233a1e7c2e18bd6c4ae90",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "0bc7715fd7731ca30a714c730aa74c3e62fa693e87681a28b0ed281d8c3a5259",
+  "sources/src/frontends/riscv/recursion/air/blake3_combined_fri_test.zig": "ac6814408b4540c6fbf5ded9c560d2e920ea0226ed6d049d99447412ea9d364d",
+  "sources/src/frontends/riscv/recursion/air/blake3_deep_fixture.zig": "6acbe84f87dcf570f2554023513cfe2e072977b4e9bbf966ca5e7d5c7f9d528e",
+  "sources/src/frontends/riscv/recursion/air/scalar_wire_source.zig": "be76a0f41f4e3fed44826eb0ec377f88b0cfe7f2304a95c97d4de70492f8e970",
+  "sources/src/frontends/riscv/recursion/air/scalar_wire_source_test.zig": "e36ad634193152c47f38f2e9aeb3536d544623a8385dbd8a387c41d1a28a79da",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "0e535574e63e31f3175a043b782bff008671435af9a1a9843c9c0f9757994d6a",
+  "tests.log": "a9c0d3f276a102afb8a973b28160eb43d19828dfe632b2240fb3e5d3d7be38f3"
+}

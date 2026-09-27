@@ -1,0 +1,61 @@
+{
+  "status": "qualified_nonproving_admitted_metadata_reuse",
+  "evidence": {
+    "bundle-reader-reuse-focused-v1": {
+      "source_candidate": "bundle-reader-reuse-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.0969248749897815,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 8,
+      "test_summary": [
+        "All 8 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/bundle-reader-reuse-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-bundle-reader-reuse-focused-v1",
+        "bytes": 7820280,
+        "sha256": "00c1e8b3f9e0b9555f7d6a3ae0d8d9d760d05e42a311028580c713d4d8453d97"
+      }
+    },
+    "source-page-reader-reuse-semantic-v1": {
+      "source_candidate": "source-page-reader-reuse-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 12.34041254100157,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-reader-reuse-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    }
+  },
+  "scope": [
+    "Original Store.take delegates to additive takeWithAllocator with original pinned file read and strict original decoders",
+    "One original policy reader per durable source PAGE Loader lifetime, under JobBudget",
+    "Canonical sparse (family,index) lookup uses binary search after original strict admission",
+    "Failed file/decode/OOM attempts consume slots across all subsequent callbacks",
+    "Original native literal transport decodes under separate allocator after metadata allocations are denied",
+    "Decoded native wire type outlives metadata store; exhaustive proof allocator failures roll back"
+  ],
+  "functional_tests_passed": 8,
+  "authored_behavioral_checks": 2,
+  "not_qualified": [
+    "Genuine positive proof verification and complete-bundle execution",
+    "Measured end-to-end speed or peak memory",
+    "Canonical activation or final recursive closure"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

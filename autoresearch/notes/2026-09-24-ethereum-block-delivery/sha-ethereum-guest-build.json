@@ -1,0 +1,20 @@
+{
+  "elf": "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default.elf",
+  "expected_profile": "rv32im-zkvm-ethereum-sha-v1",
+  "sha256_precompile_default": true,
+  "host_framing_tests_passed": true,
+  "guest_execution_qualified": false,
+  "full_block_proof_verified": false,
+  "sha256": {
+    "autoresearch/benchmarks/guest_runtime/ethereum/src/evm_recovery.rs": "47a30d2079d410354d064202a471a317f81c9d657c56d237be4d2a50c61faf68",
+    "autoresearch/benchmarks/guest_runtime/ethereum/src/single_thread_atomics.rs": "1ef87c01450e94fbb9ab15925dec24c93430aff1f09b754b141908945d11f58e",
+    "autoresearch/benchmarks/guest_runtime/ethereum/src/evm_hints.rs": "386fc0833c9cb570823735a113986963a6848f610a28b546597d90ea5dd1354d",
+    "autoresearch/benchmarks/guest_runtime/ethereum/src/main.rs": "23b9c6bdd1d299289d6beb055e36a0e6bfc7804ee56c0ede726c125ab04c1754",
+    "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.toml": "84589681c8a90ba0f34b0329d3a7b4292651d82beec49e780247da0b921f2e1b",
+    "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.lock": "e784acad28e4dd4892bf20df9078d6b28c29b7174c72afdf7fdc7135a0f91f0c",
+    "autoresearch/benchmarks/guest_runtime/ethereum/riscv32i-stwo.json": "edeb9c26ce4e463572877a0c81889a18795876ac7bfa17c347715182e4aae3d5",
+    "autoresearch/benchmarks/guest_runtime/ethereum/linker.ld": "13bb0def76a8ea7c04aa73cddd17cf179e2cdb244ff1463f89b7f5f2df45bd07",
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_v1.rs": "d7cbc62b1d4b8bf739c3c5722bb20e7dbe2ef99731cbce4e836d771e1aa6c0a7",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default.elf": "d6843327d8f7c9c7ae9e088bd4088d454073efc47144c51b20682c5ac29f0b9f"
+  }
+}

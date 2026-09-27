@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "status": "focused-source-qualified",
+  "passed": 6,
+  "scope": "Device-free exact destruction, failed receipt and first/middle adoption ownership checks; actual full FriProver.commitLazyWithWorkRecorder plus bare/direct/fused profiled and unprofiled Metal quotient bodies compiled without execution.",
+  "sources": {
+    "src/metal_quotient_result_ownership_test_root.zig": "13cd99eebd551dccb1294729736b3550e36209c73f609da6b89532caea356310",
+    "src/metal_quotient_allocation_budget_codegen.zig": "5532e37e52ea1008047d19dfc7edd8869c71e25cc31f501b0d6353c165ca5bac",
+    "src/backends/metal/runtime/quotient_result_ownership_v1.zig": "f0928053d86736eb3c316048f03a6f59e35e2cd9b7236244f4e642422375cfb0",
+    "src/backends/metal/runtime/resident_fri_transaction.zig": "4bbf2159aca18ecbdd1a88aae2c165b664a37fab2862ddb044169aae180e74b4",
+    "src/backends/metal/commit_backend.zig": "546a9b099595c631cb2b75fde6e4c90ccc77665f8baf3ec10f072bbca4b3c59e",
+    "src/backends/metal/runtime/polynomial_operations.zig": "12e42d2ab8bef5db30c07136dc0129ed45f96639e8645a85e0dbc4a3bf7a1c33",
+    "src/backends/metal/runtime/fri_inverse_cache_budget_v1.zig": "4d108dc5ccc27bff1afafe652e6a7e71d761cc7183ba8255bb57956a054796b2",
+    "src/prover/fri_commit_ops.zig": "dd7bbfb02e5cb3b479a0a78b6fdcabe23c7a3ea6a152459f29c115e3ded1c05f",
+    "src/backends/metal/merkle_tree.zig": "a38c09bd1a2722be8118d8c4189a360e5c2772e45d1deffd88a0b50ab5ce84c6",
+    "src/backends/metal/runtime/quotient_allocation_budget_v1.zig": "1f0bc6316b334bce470f71a9c6f186024d1e09c07a5a3589334f610981425ab2"
+  },
+  "log": "metal-quotient-result-ownership-v2.log",
+  "log_sha256": "66987fbe9e0f4fc0024229bfc3ef8307b22835370064b05842721acc3ac8671a",
+  "body_log": "metal-quotient-result-production-body-v1.log",
+  "body_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "body_object": "metal-quotient-result-production-body-v1.o",
+  "body_object_sha256": "77150e707c54c87733edfd568a61a25892e66e9c54534af71d125dbad849a788",
+  "stark_proved": false,
+  "guest_executed": false,
+  "device_executed": false,
+  "performance_measured": false,
+  "cache_policy_qualified": false
+}

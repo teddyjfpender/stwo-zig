@@ -1,0 +1,8 @@
+field_add {'zisk': 0.5036405920982361, 'stwo': 0.6621976494789124}
+field_mul {'zisk': 1.8300774097442627, 'stwo': 1.549992710351944}
+field_inv {'zisk': 59.23772883415222, 'stwo': 35.537153482437134}
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-component-suite/run_stages.py", line 43, in <module>
+    v=call(k,'transform_run',ctx[k],2,1);assert v==(2**log)*(2**log+1)//2,(k,log,v)
+                                                ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('zisk', 10, 18446744073709551615)

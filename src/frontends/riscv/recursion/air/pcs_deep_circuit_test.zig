@@ -315,7 +315,7 @@ test "R-012 PCS-DEEP binds both native two-point orders exactly" {
             // an accidental normalization observable.
             .current_previous => [_]QM31{ secure(101), secure(103), secure(107) },
             .previous_current => [_]QM31{ secure(103), secure(101), secure(107) },
-            .none, .current, .secp256k1_main, .keccak_state => unreachable,
+            .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
         };
         try expectNativeBatchOracle(
             pair_layout,
@@ -586,7 +586,7 @@ fn nativeAnswers(
     var points_0_0 = switch (pair_layout) {
         .current_previous => [_]CirclePointQM31{ oods, previous },
         .previous_current => [_]CirclePointQM31{ previous, oods },
-        .none, .current, .secp256k1_main, .keccak_state => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
     };
     var points_0_1 = [_]CirclePointQM31{};
     var points_1_0 = [_]CirclePointQM31{oods};
@@ -641,7 +641,7 @@ fn expectNativeBatchOracle(
     var points_0_0 = switch (pair_layout) {
         .current_previous => [_]CirclePointQM31{ oods, previous },
         .previous_current => [_]CirclePointQM31{ previous, oods },
-        .none, .current, .secp256k1_main, .keccak_state => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
     };
     var points_0_1 = [_]CirclePointQM31{};
     var points_1_0 = [_]CirclePointQM31{oods};
@@ -707,7 +707,7 @@ fn expectNativeBatchOracle(
     const current_batch_index: usize = switch (pair_layout) {
         .current_previous => 1,
         .previous_current => 2,
-        .none, .current, .secp256k1_main, .keccak_state => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state, .current_keccak_final => unreachable,
     };
     const other_batch_index: usize = if (current_batch_index == 1) 2 else 1;
     try std.testing.expectEqual(@as(usize, 1), batches[0].cols_vals_randpows.len);

@@ -416,3 +416,59 @@ test "fields: packed QM31 batch inverse matches scalar inverse" {
         try std.testing.expect(inverse.eql(try element.inv()));
     }
 }
+
+test "fields: packed QM31 coordinate load/store preserves each element" {
+    const elements = [_]qm31.QM31{
+        qm31.QM31.fromU32Unchecked(1, 2, 3, 4),
+        qm31.QM31.fromU32Unchecked(5, 6, 7, 8),
+        qm31.QM31.fromU32Unchecked(9, 10, 11, 12),
+        qm31.QM31.fromU32Unchecked(13, 14, 15, 16),
+    };
+    var actual: [4]qm31.QM31 = undefined;
+    storePackedQM31x4(&actual, loadPackedQM31x4(&elements));
+    for (elements, actual) |expected, value| try std.testing.expect(value.eql(expected));
+}
+
+test "fields: packed QM31 batch inverse covers all widths and memory-sized chunks" {
+    var prng = std.Random.DefaultPrng.init(0x8972_d742_682b_4d30);
+    const rng = prng.random();
+    // Exercise dispatch widths 8/16/32 and the actual sorted36 chunk length.
+    for ([_]usize{ 8, 16, 24, 32, 64, 256, 1056, 8448 }) |count| {
+        const elements = try std.testing.allocator.alloc(qm31.QM31, count);
+        defer std.testing.allocator.free(elements);
+        for (elements) |*element| element.* = randNonZeroQM31(rng);
+        const actual = try batchInverse(qm31.QM31, std.testing.allocator, elements);
+        defer std.testing.allocator.free(actual);
+        for (elements, actual) |element, inverse| {
+            try std.testing.expect(element.mul(inverse).eql(qm31.QM31.one()));
+            try std.testing.expect(inverse.eql(try element.inv()));
+        }
+    }
+}
+
+test "fields: packed QM31 inverse weights match coordinate arithmetic" {
+    const row_terms = 33;
+    const count = 256 * row_terms;
+    var prng = std.Random.DefaultPrng.init(0xc378_d352_b761_0428);
+    const rng = prng.random();
+    const elements = try std.testing.allocator.alloc(qm31.QM31, count);
+    defer std.testing.allocator.free(elements);
+    const weights = try std.testing.allocator.alloc(qm31.QM31, count);
+    defer std.testing.allocator.free(weights);
+    for (elements, weights) |*element, *weight| {
+        element.* = randNonZeroQM31(rng);
+        weight.* = qm31.QM31.fromBase(m31.M31.fromCanonical(([_]u32{ 0, 1, 2, m31.Modulus - 1 })[rng.uintLessThan(usize, 4)]));
+    }
+    const inverses = try batchInverse(qm31.QM31, std.testing.allocator, elements);
+    defer std.testing.allocator.free(inverses);
+    for (0..256) |row| {
+        const offset = row * row_terms;
+        var actual: [row_terms]qm31.QM31 = undefined;
+        for (&actual, 0..) |*value, i| value.* = inverses[offset + i].mul(weights[offset + i]);
+        for (actual, 0..) |value, i| {
+            const scalar = weights[offset + i].c0.a;
+            for (value.toM31Array(), inverses[offset + i].toM31Array()) |coordinate, input|
+                try std.testing.expect(coordinate.eql(input.mul(scalar)));
+        }
+    }
+}

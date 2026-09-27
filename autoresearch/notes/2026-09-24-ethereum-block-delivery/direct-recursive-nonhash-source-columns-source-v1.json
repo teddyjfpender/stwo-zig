@@ -1,0 +1,322 @@
+{
+  "version": 1,
+  "status": "source-frozen-unqualified",
+  "execution_performed": false,
+  "root": "src/frontends/riscv/block_v5_recursive_nonhash_source_columns_test_root.zig",
+  "new_nonproving_tests": 6,
+  "new_filters": [
+    "nonhash direct owners",
+    "canonical direct transcript",
+    "direct Merkle subtree",
+    "direct multi block frame",
+    "direct shared frontier",
+    "canonical Merkle capture preparation"
+  ],
+  "note": "block-v5-recursive-nonhash-source-columns-v1.md",
+  "changed_sources": [
+    "src/frontends/riscv/recursion/air/blake3_nonhash_emission_v1.zig",
+    "src/frontends/riscv/recursion/air/blake3_frame_nonhash_v1.zig",
+    "src/frontends/riscv/recursion/air/blake3_hash_witness.zig",
+    "src/frontends/riscv/recursion/air/blake3_query_witness.zig",
+    "src/frontends/riscv/recursion/air/blake3_bounded_draw.zig",
+    "src/frontends/riscv/recursion/air/blake3_transcript_witness.zig",
+    "src/frontends/riscv/recursion/air/blake3_transcript_plan.zig",
+    "src/frontends/riscv/recursion/air/blake3_transcript_plan_test.zig",
+    "src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig",
+    "src/frontends/riscv/recursion/air/blake3_two_level_frontier.zig",
+    "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
+    "src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig",
+    "src/frontends/riscv/recursion/air/blake3_nonhash_source_columns_test.zig",
+    "src/frontends/riscv/block_v5_recursive_nonhash_source_columns_test_root.zig"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_nonhash_source_columns_test_root.zig",
+      "sha256": "add9ee39a976e69e7b04e2113360c00fff96870e65d10eb5adb382679045b9ed"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_parent_codegen_test_root.zig",
+      "sha256": "ff91b5ce41921d4e47ae7cb2b5a64bfdb75bf7376189fc61a196adb4d231ca87"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_path_source_columns_test_root.zig",
+      "sha256": "2ab59ada5367104350de7d7979ba73f82fe8988f3c43920ae516d77cb8e0354d"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_pcs_source_columns_test_root.zig",
+      "sha256": "1956f0fe40449d6636925d6ff65042561ab0e20094c97dae318cfef5921a2f57"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_scalar_columns_test_root.zig",
+      "sha256": "da5d198f4210602bc05c653c6ee514676c0e599813b22448f0eb3c472ca4f6a0"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_recursive_upstream_columns_test_root.zig",
+      "sha256": "9e7b1199fdd9e02dd8be55ba462eb838cf31af61dc492734efc9a21eb3679e98"
+    },
+    {
+      "path": "src/frontends/riscv/prover/blake3_execution_paths_test_support.zig",
+      "sha256": "e233379c64490c0a12542322aa81dd3467683fcddb32e73413dc92fcb89d9afa"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_boundary.zig",
+      "sha256": "19d691e513d0385221a2abf668e523643224e27682ec3bb354f63a4afa915afe"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_bounded_draw.zig",
+      "sha256": "b307aa0347f10614ece5cff880421e0fab97d1923881d0e91a5e91cc8634ae11"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_byte_route.zig",
+      "sha256": "b6f0b15c23830bcf7115b0dde44ff7973e0ae5c56b55336775720161146a3ac2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_challenge_block.zig",
+      "sha256": "c099221e1690d62814b514fa9e21bb65cc47d4cb4a0c8f685b5ab0ec5f3a8168"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig",
+      "sha256": "c7f8bec504c11a8241706b6ea47fa2dfcdb87db9c9fe3997978f6f2e99f78e59"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_counter_step.zig",
+      "sha256": "125e9e46294f7f63f208c0440d115a7057cbc6b9df8635eb53f170e11e57c31a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_direct_cohort_columns_v1.zig",
+      "sha256": "55f6ad844e8f7f6be49905a872727838e02c417f9d1e522184f9e9ab9b3983db"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_direct_source_columns_test.zig",
+      "sha256": "ab41fdcb084bd84dcb26a71f7470226319c955bf8f1767d76b118cbe39adff75"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_direct_source_columns_v1.zig",
+      "sha256": "aaf0ca9333d0131f1955981a4805cb5c8060bd134892101095439c970eb931e6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_challenges.zig",
+      "sha256": "82de303f4b26e2bdb98c4b2eb590f9336d68197dadd9cc29dba6b569ac8bfe7e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_parent_sources.zig",
+      "sha256": "4b49cda44838685f341d1a28e7c25cb25e0b0a71197057a56b9e56961f1a7527"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_payloads.zig",
+      "sha256": "e48c62ae7fcdbf5804e1b186db6ae6671896eb8ccd0e95a010523edb7ff7dbb7"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_roots.zig",
+      "sha256": "2ed0ce408aa53706a185ca791c930da9baa5a0ec94791b024f18d2b889c928ad"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_sample_columns_test.zig",
+      "sha256": "2d371f5d722e33ecbfa9dac16aaae916814e0f5f2a2e315ac042d4a46892cc16"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_sample_links.zig",
+      "sha256": "07d6de5e6fa52394849f7a25773643c269754bb8da125e0fc20f9d5cd2edc98f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_frame_nonhash_v1.zig",
+      "sha256": "acb4495c7f805e26677c1b978617c0c5de560e5ccf0cca941ba034fe9ce75cf6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_frame_route.zig",
+      "sha256": "53f2832fc505d5f90ce9a5bbd196e2b51110be80f1a8fe7f7fa910a21a40e403"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_frontier_capture.zig",
+      "sha256": "d6c7022a5a0950b1feb5af3e45dfe17c57d67fae50875343d38a58e09947b88c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_hash_metadata.zig",
+      "sha256": "bf018527c26709bb00970a22b2ffdf9976dd39b3a2b01f20cdb35791410582b1"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_hash_plan.zig",
+      "sha256": "1da33f23ce1f860fd4c0495b66b38b7f7e10d6386e405785b8f4f425eed83005"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_hash_witness.zig",
+      "sha256": "bf3fcf69dbb0c1ed2b9512724e9e7b00a7b7e2271367afdba228c35b49f17a6d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_main_column_test_support.zig",
+      "sha256": "3fd34417be047cd50e677f88e51d42a0d6dc5b62db446e41e7e9aa847bfbda15"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig",
+      "sha256": "056cf4adbeb8d04fe0353eabb06f8111e5e5a74cff41fa177c1af49a183a8eaa"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_merkle_plan_cache.zig",
+      "sha256": "47aa769d97aa3ab030558c9c6f2d00d494f4e81c64fcbe58834b85023f18af13"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_fri.zig",
+      "sha256": "2e2788383d7770a1d2eb3d2e8fad373a79b68753bff2d1398b009bd89f8645df"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_openings.zig",
+      "sha256": "4cf7138c57ce3db9946bb9661923d4f56241b46add509bcfedd254058cd60b17"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig",
+      "sha256": "27732443d396ab4babbc6a0f208e572ca2ca8b8b55bbe3e0d70d0a4e5f4fd825"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_payload_links.zig",
+      "sha256": "ddbe8645e0478de6e2afa4d4c13863cc7b25c98f7f2443b04d77553f9a161f05"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_pcs_challenges.zig",
+      "sha256": "587f22808a047cdc9cbe985de2e9b28c0937e850d4099d7a965591d8dd5e4a45"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_public_links.zig",
+      "sha256": "ee2c55cfd75914401596826d3a45da743a43b8b57cfa5bfdac1300ca018cba76"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_public_sources.zig",
+      "sha256": "cb8ba817861a7e2edcf5bc1967ec848a22a84f9cfe811a6b696e13f9915cf13a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_queries.zig",
+      "sha256": "a804cf7a404ca583d24e725c827367a1f7e1de98c328fd647b43dbb208014663"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_root_nonce.zig",
+      "sha256": "d1892429d34bcb2bee00f81447360b074131db4c9bdb772b66c27b5dcd4a1c38"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_sample_links.zig",
+      "sha256": "e83d4c1202048a9840768542b7aae4e08d5547510736b2f5578f1e7e0a7410b8"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_terminal_encoding.zig",
+      "sha256": "6684944ef72c91ea205ca5266837dfdf07ebaa61c961901757b1e26715077eed"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_nonhash_emission_v1.zig",
+      "sha256": "8564947d08a1662326a01eb49d4750ec9a08da3bdca8fb9945eacc636f532e7e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_nonhash_source_columns_test.zig",
+      "sha256": "7dbfee7618cfdb3c6867e281a4169f5f5086ee963f355900f86b6c976cf018f7"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_opening_inputs.zig",
+      "sha256": "2ed7a9742d4c690b968f1f3c878acf150cf794f4c5c0525fa72c0e25773e5447"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_input_inventory.zig",
+      "sha256": "a3e65abeec541aeeb243f4bfc1a462d8ea8e4af615a15bc5169b5243e0b00913"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig",
+      "sha256": "3530c94eeeb5cadf97550571f1ef0ae2bd23c833e05dfa1cefa95cab906d5a12"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_path_select.zig",
+      "sha256": "548ac170f40b3966b56830130629d5ca46f436560384f4b839f75089b731684c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_path_source_columns_test.zig",
+      "sha256": "36bd22270e99d17813bd412fcdbd43f117e6a97ef0724f524ff362407f1e3000"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_pcs_source_columns_test.zig",
+      "sha256": "134d64ae4f046625261af9ba4292032c793082cfd6f9e203f2d8dd08b12e096b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_pcs_source_columns_v1.zig",
+      "sha256": "077483df6a1d47619a529f15f96fe869d1fed04a780366bf95bb4c97d6abe668"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_private_word.zig",
+      "sha256": "3460c06a03497cd826363c0b74d637133429b7b69fc89d730ee3385410e7b047"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_projection_links.zig",
+      "sha256": "5b495f9b59794f0c78ae5e58385bb48865baa42416de7c166edaa44274b50856"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_query_mask.zig",
+      "sha256": "ca31c90b51ad0d41e821f8a657c0f3d08827ecbf3ae933b31304dba9ffb4f49a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_query_witness.zig",
+      "sha256": "e6e7e3d6448ef9bc64d2ed4abd4d8cc9b944bc16ef109b0b26792dd5c121b305"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_recursive_column_inventory_test.zig",
+      "sha256": "a5104e63e76f7a2285d9865b9fae9ca929b65fc30c7c85248b4602404046214e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_recursive_column_rows_v1.zig",
+      "sha256": "a5cae4ac760b6ddd3ab4499b6670f6f82b8826af99d75d37ef3f8fcf5df4f996"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_retry_control.zig",
+      "sha256": "270bdf236cb936163abc5e1918a588ae570518bb2ff03ae5a1cad7044f83aec8"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_shared_root_plan.zig",
+      "sha256": "9d0cc4701b8ea67beabe83387559cb7833547aae203cbc72766b0622effc8940"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
+      "sha256": "d0cb942ec679b6166e9c21b55239f75790d0e36db0dd1da4f9c637aac39b30da"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_terminal_links.zig",
+      "sha256": "d978be1d95a0c2a8146b31dc1eb793b6af55ab60bbd353475b835e779d4926c2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_transcript_plan.zig",
+      "sha256": "7016dbb8a9a6658ff3b5b1f8db88a27ee5ae4c7175f02fb67a988c56d747af8a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_transcript_plan_test.zig",
+      "sha256": "8640d43c914bfb7bf4fc3dbdebb5b9e8374414ce861ffbc7fbb0bd9a1ecc2ecd"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_transcript_witness.zig",
+      "sha256": "ed8b53ebf292f8a2e3578ec34c47a0a9b2f695298be13737a07a28a21f7a4746"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_two_level_frontier.zig",
+      "sha256": "37ce0033ee20b0bf4e7844f5c892142ed2cf4934804683d38aee9d27088869ab"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_upstream_source_columns_test.zig",
+      "sha256": "e9a9192dae20c9b061532e603d4fe392de892fce1f81a4a44db2aab4650d7d27"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_upstream_source_columns_v1.zig",
+      "sha256": "71395ba702e02f00cfaa4246570db4df84f56a14eeb26c0fd7056f9e55bac854"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_roots.zig",
+      "sha256": "25b161f11e26b3404daabc474c90e81efee79763333e6ebccfaadb2ca35c6aa3"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_roots_v3.zig",
+      "sha256": "3b6b53342c02c2f558438d850a268806bb19e4f2153067471291026f8a811cf6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/native_pcs_fusion_rows.zig",
+      "sha256": "7f22de615db4b797dd78714a23e2cbe575d7f8b843e425d128cc02c820b3f79e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "8793645072b680b939241f17d6ea88fd770df847a1e181aab5d5246add7e32a2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_preparation.zig",
+      "sha256": "ac7960abb9e12c3b5b3d262a63c20e9982b4bb2aceb1998e8e64563ba694fc2b"
+    }
+  ]
+}

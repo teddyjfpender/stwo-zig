@@ -1,0 +1,55 @@
+{
+  "schema": "native-recursive-request-lane-qualified-v1",
+  "status": "focused_source_qualified",
+  "test_root": "src/frontends/riscv/block_v5_joined_request_lane_test_root.zig",
+  "test_filter": "joined request lane",
+  "tests_passed": 6,
+  "scope": "Persistent lazy request thread; joined callback storage; busy/reentrant/closed shutdown contracts; actual canonical cached/consuming/destruction bodies compiled without invocation.",
+  "stark_proved": false,
+  "segments_executed": false,
+  "performance_measured": false,
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_joined_request_lane_v1.zig",
+      "sha256": "42af08e4c79b7e23bd4a2e6b286c41586839dae44d7e853c443da853178b3a40",
+      "bytes": 2918
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "2ba1aa9808dd5cccbf3d5a5865194134928eeeaa3412a0ddc23920da8d47cb2e",
+      "bytes": 9785
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_joined_request_lane_test_root.zig",
+      "sha256": "3ae73261eeef7402252656f24cd5a5fd7bbf54e028d1ea5bc393d78ee6a75d14",
+      "bytes": 5455
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_worker.zig",
+      "sha256": "90a4a0e9cf02e1ab9d0a43bbf1aa481dfb55df609582d97d3c0fd95771b07870",
+      "bytes": 9072
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_native_parent_protocol_v1.zig",
+      "sha256": "60b63b2b9ac5744c8b4c5833a88c103253c7cf97647d9670a8e77bd63562213a",
+      "bytes": 4695
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_recursive_public_bus_v1.zig",
+      "sha256": "1f726d01af61c2b36fb574ed21cd8234440462efe40cfbffcb6273c6610e2af0",
+      "bytes": 11481
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-native-recursive-request-lane-v1.md",
+      "sha256": "c0e63665afc172105f80c1547e5f5f741d72ae1291b47a407f1fef27d8e318e8",
+      "bytes": 2019
+    }
+  ],
+  "evidence": [
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-recursive-request-lane-production-v2.log",
+      "sha256": "ada02e4d415b41fe6f63223448074bee4ee34ad4068402e7f13363ef4a13a5a4",
+      "bytes": 787
+    }
+  ]
+}

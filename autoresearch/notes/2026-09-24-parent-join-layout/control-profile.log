@@ -1,0 +1,176 @@
+1/7 blake3_metal_qualification_test_root.test.Metal canonical four-leaf BLAKE3 aggregation tree...CANONICAL_PARENT_ALLOCATOR mode=smp
+PARENT_PREPARATION phase=validate ns=365875 thread=3639183
+PARENT_PREPARATION phase=composition ns=1274833 thread=3639183
+PARENT_PREPARATION phase=deep ns=14528334 thread=3639183
+PARENT_PREPARATION phase=fri ns=19785291 thread=3639183
+PARENT_PREPARATION phase=transcript_plan ns=7198500 thread=3639183
+PARENT_PREPARATION phase=payloads ns=3470917 thread=3639183
+PARENT_PREPARATION phase=challenges ns=6026958 thread=3639183
+PARENT_PREPARATION phase=terminal ns=3985500 thread=3639183
+PARENT_PREPARATION phase=queries ns=6236084 thread=3639183
+PARENT_PREPARATION phase=roots ns=2516208 thread=3639183
+PARENT_PREPARATION phase=hash_columns ns=74885250 thread=3639183
+PARENT_PREPARATION phase=transcript ns=45139458 thread=3639183
+PARENT_PATH_PREPARATION openings=1540 other_ns=29926201 live_ns=1886546866 trusted_ns=64485475 append_ns=104721833 thread=3639183
+PARENT_PREPARATION phase=paths ns=2085748834 thread=3639183
+PARENT_PREPARATION phase=path_reads ns=2300791 thread=3639183
+PARENT_PREPARATION phase=openings ns=5166792 thread=3639183
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56858 arithmetic_rows=160880
+PARENT_PREPARATION phase=assemble ns=128752750 thread=3639183
+PARENT_PREPARATION phase=teardown ns=5204541 thread=3639183
+PARENT_PREPARATION phase=validate ns=363125 thread=3639183
+PARENT_PREPARATION phase=composition ns=1269000 thread=3639183
+PARENT_PREPARATION phase=deep ns=14582417 thread=3639183
+PARENT_PREPARATION phase=fri ns=19730375 thread=3639183
+PARENT_PREPARATION phase=transcript_plan ns=7599792 thread=3639183
+PARENT_PREPARATION phase=payloads ns=3501541 thread=3639183
+PARENT_PREPARATION phase=challenges ns=6026625 thread=3639183
+PARENT_PREPARATION phase=terminal ns=3927667 thread=3639183
+PARENT_PREPARATION phase=queries ns=6178417 thread=3639183
+PARENT_PREPARATION phase=roots ns=1708625 thread=3639183
+PARENT_PREPARATION phase=hash_columns ns=71182125 thread=3639183
+PARENT_PREPARATION phase=transcript ns=39556333 thread=3639183
+PARENT_PATH_PREPARATION openings=1540 other_ns=29145087 live_ns=1594340159 trusted_ns=63337476 append_ns=102156487 thread=3639183
+PARENT_PREPARATION phase=paths ns=1789029917 thread=3639183
+PARENT_PREPARATION phase=path_reads ns=2009208 thread=3639183
+PARENT_PREPARATION phase=openings ns=5016875 thread=3639183
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56860 arithmetic_rows=160876
+PARENT_PREPARATION phase=assemble ns=129260458 thread=3639183
+PARENT_PREPARATION phase=teardown ns=5064250 thread=3639183
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=8752941625
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=255.22637498215772
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.449958330951631
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=2.9952499899081886
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.944749994436279
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5253333365544677
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=12692869000
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=918746 queries=70 pow_bits=26
+PARENT_PREPARATION phase=validate ns=357542 thread=3639183
+PARENT_PREPARATION phase=composition ns=1229667 thread=3639183
+PARENT_PREPARATION phase=deep ns=14074166 thread=3639183
+PARENT_PREPARATION phase=fri ns=19894000 thread=3639183
+PARENT_PREPARATION phase=transcript_plan ns=8116417 thread=3639183
+PARENT_PREPARATION phase=payloads ns=3501208 thread=3639183
+PARENT_PREPARATION phase=challenges ns=6142792 thread=3639183
+PARENT_PREPARATION phase=terminal ns=4029292 thread=3639183
+PARENT_PREPARATION phase=queries ns=6034375 thread=3639183
+PARENT_PREPARATION phase=roots ns=1845500 thread=3639183
+PARENT_PREPARATION phase=hash_columns ns=77799000 thread=3639183
+PARENT_PREPARATION phase=transcript ns=45424000 thread=3639183
+PARENT_PATH_PREPARATION openings=1540 other_ns=28544543 live_ns=1861045724 trusted_ns=63994862 append_ns=99154788 thread=3639183
+PARENT_PREPARATION phase=paths ns=2052805750 thread=3639183
+PARENT_PREPARATION phase=path_reads ns=1999666 thread=3639183
+PARENT_PREPARATION phase=openings ns=4945792 thread=3639183
+BLAKE3_NATIVE_QUERY_FUSION groups=7560 removed_scalars=30240
+BLAKE3_NATIVE_FUSION dot4=14350 fma=56672 arithmetic_rows=159015
+PARENT_PREPARATION phase=assemble ns=132322833 thread=3639183
+PARENT_PREPARATION phase=teardown ns=4712875 thread=3639183
+PARENT_PREPARATION phase=validate ns=383375 thread=3639183
+PARENT_PREPARATION phase=composition ns=1370875 thread=3639183
+PARENT_PREPARATION phase=deep ns=16747208 thread=3639183
+PARENT_PREPARATION phase=fri ns=20345417 thread=3639183
+PARENT_PREPARATION phase=transcript_plan ns=7188250 thread=3639183
+PARENT_PREPARATION phase=payloads ns=4269500 thread=3639183
+PARENT_PREPARATION phase=challenges ns=6746666 thread=3639183
+PARENT_PREPARATION phase=terminal ns=4194625 thread=3639183
+PARENT_PREPARATION phase=queries ns=6842625 thread=3639183
+PARENT_PREPARATION phase=roots ns=1979709 thread=3639183
+PARENT_PREPARATION phase=hash_columns ns=72678000 thread=3639183
+PARENT_PREPARATION phase=transcript ns=44811416 thread=3639183
+PARENT_PATH_PREPARATION openings=1540 other_ns=33759501 live_ns=1606537626 trusted_ns=65486236 append_ns=101928054 thread=3639183
+PARENT_PREPARATION phase=paths ns=1807752625 thread=3639183
+PARENT_PREPARATION phase=path_reads ns=2568500 thread=3639183
+PARENT_PREPARATION phase=openings ns=5603500 thread=3639183
+BLAKE3_NATIVE_QUERY_FUSION groups=8820 removed_scalars=35280
+BLAKE3_NATIVE_FUSION dot4=18459 fma=58931 arithmetic_rows=168994
+PARENT_PREPARATION phase=assemble ns=142767333 thread=3639183
+PARENT_PREPARATION phase=teardown ns=5494792 thread=3639183
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=9150128834
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=256.0229583468754
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.694583360105753
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.0197500018402934
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9324999884702265
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5364999815355986
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=13014568500
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=911657 queries=70 pow_bits=26
+PARENT_PREPARATION phase=validate ns=575208 thread=3639183
+PARENT_PREPARATION phase=composition ns=2731167 thread=3639183
+PARENT_PREPARATION phase=deep ns=27835208 thread=3639183
+PARENT_PREPARATION phase=fri ns=31637584 thread=3639183
+PARENT_PREPARATION phase=transcript_plan ns=8025416 thread=3639183
+PARENT_PREPARATION phase=payloads ns=6185334 thread=3639183
+PARENT_PREPARATION phase=challenges ns=9723750 thread=3639183
+PARENT_PREPARATION phase=terminal ns=5719041 thread=3639183
+PARENT_PREPARATION phase=queries ns=9784459 thread=3639183
+PARENT_PREPARATION phase=roots ns=2465166 thread=3639183
+PARENT_PREPARATION phase=hash_columns ns=77323084 thread=3639183
+PARENT_PREPARATION phase=transcript ns=52130541 thread=3639183
+PARENT_PATH_PREPARATION openings=1890 other_ns=54262299 live_ns=2995396008 trusted_ns=101819129 append_ns=156168231 thread=3639183
+PARENT_PREPARATION phase=paths ns=3307710792 thread=3639183
+PARENT_PREPARATION phase=path_reads ns=4155208 thread=3639183
+PARENT_PREPARATION phase=openings ns=8461250 thread=3639183
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28602 fma=87565 arithmetic_rows=243970
+PARENT_PREPARATION phase=assemble ns=222300875 thread=3639183
+PARENT_PREPARATION phase=teardown ns=8617917 thread=3639183
+PARENT_PREPARATION phase=validate ns=603500 thread=3639183
+PARENT_PREPARATION phase=composition ns=2886250 thread=3639183
+PARENT_PREPARATION phase=deep ns=27873167 thread=3639183
+PARENT_PREPARATION phase=fri ns=31562500 thread=3639183
+PARENT_PREPARATION phase=transcript_plan ns=8063666 thread=3639183
+PARENT_PREPARATION phase=payloads ns=6251084 thread=3639183
+PARENT_PREPARATION phase=challenges ns=9741875 thread=3639183
+PARENT_PREPARATION phase=terminal ns=5799958 thread=3639183
+PARENT_PREPARATION phase=queries ns=9781792 thread=3639183
+PARENT_PREPARATION phase=roots ns=2390583 thread=3639183
+PARENT_PREPARATION phase=hash_columns ns=74099583 thread=3639183
+PARENT_PREPARATION phase=transcript ns=48496334 thread=3639183
+PARENT_PATH_PREPARATION openings=1890 other_ns=54192647 live_ns=2510536449 trusted_ns=100595416 append_ns=151945697 thread=3639183
+PARENT_PREPARATION phase=paths ns=2817313833 thread=3639183
+PARENT_PREPARATION phase=path_reads ns=4333000 thread=3639183
+PARENT_PREPARATION phase=openings ns=8447667 thread=3639183
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28530 fma=88069 arithmetic_rows=244817
+PARENT_PREPARATION phase=assemble ns=220344667 thread=3639183
+PARENT_PREPARATION phase=teardown ns=7589542 thread=3639183
+CANONICAL_TREE_PHASE phase=root_preparation ns=11870873042
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=255.344208329916
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.882125009316951
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=1 gpu_ms=9.74375000805594
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=2 gpu_ms=3.957250009989366
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5232083203736693
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=2 ns=14201551959
+BLAKE3_TREE_NODE verified=true height=2 artifact_bytes=904156 queries=70 pow_bits=26
+CANONICAL_TREE_BUDGET peak_bytes=30309734580 limit_bytes=51539607552
+BLAKE3_TREE_PARAMETERS leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 canonical=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=5110278888
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       70.06 real       102.63 user        14.84 sys
+         42840244224  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            15982712  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   4  voluntary context switches
+               59062  involuntary context switches
+       1175516127230  instructions retired
+        502909143970  cycles elapsed
+         45152855360  peak memory footprint

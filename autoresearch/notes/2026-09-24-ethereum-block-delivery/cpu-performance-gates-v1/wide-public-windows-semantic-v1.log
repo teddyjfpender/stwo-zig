@@ -1,0 +1,45 @@
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:51:134: error: ambiguous reference
+        pub fn prepare(a: std.mem.Allocator, owner: *const Public.Owner, graph: *const Composition.Prepared, attempt_capacity: u32) !Prepared {
+                                                                                                                                     ^~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:26:13: note: declared here
+        pub const Prepared = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:228:5: note: also declared here
+pub const Prepared = Default.Prepared;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_source_v1.zig:138:46: error: function parameter shadows declaration of 'window'
+    pub fn originalCell(self: *const Source, window: u32, coordinate: u32) !u32 {
+                                             ^~~~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_source_v1.zig:152:9: note: declared here
+    pub fn window(self: *const Source, index: u32) !Window {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_source_v1.zig:141:47: error: function parameter shadows declaration of 'window'
+    pub fn originalFrame(self: *const Source, window: u32, ordinal: u32) !Coordinate {
+                                              ^~~~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_source_v1.zig:152:9: note: declared here
+    pub fn window(self: *const Source, index: u32) !Window {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_source_v1.zig:185:41: error: capture shadows declaration of 'cell'
+        for (&out, cells) |*coordinate, cell| coordinate.* = .{ .first_cell = try std.math.add(u32, self.prefix_count, cell.first_cell), .word_count = cell.word_count };
+                                        ^~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_source_v1.zig:128:9: note: declared here
+    pub fn cell(self: *const Source, coordinate: u32) ![4]M {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_v1.zig:66:78: error: capture shadows declaration of 'native'
+        for (self.instances, expected.windows[self.first_window..end], 0..) |native, window, local| {
+                                                                             ^~~~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_v1.zig:41:9: note: declared here
+    pub fn native(self: Policy, index: u32) !Native.Policy {
+    ~~~~^~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_v1.zig:83:13: error: function parameter shadows declaration of 'word'
+fn byteWord(word: u32) [4]M {
+            ^~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_v1.zig:121:1: note: declared here
+fn word(field: *const Fields.Fields, index: u32) ![4]Q {
+^~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_v1.zig:305:45: error: capture 'index' shadows capture from outer scope
+            for (field.chunks, 0..) |chunk, index| if (index != 12) {
+                                            ^~~~~
+src/frontends/riscv/recursion/block_v5_wide_public_windows_v1.zig:303:82: note: previous declaration here
+        for (self.sources, self.fields, self.terms, 0..) |*source, field, terms, index| {
+                                                                                 ^~~~~

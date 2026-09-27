@@ -1,0 +1,11 @@
+# Allocation-free recursive statement comparison candidate v1
+
+Source-frozen helper/fixtures only; qualification and production integration pending. No compiler, tests, proof, guest, segment, device or benchmark invocation by the agent.
+
+Comparator.initFirst borrows the original Frames.Statement, bounded Limits and independently supplied auxiliary Offsets. compareFirst invokes the ORIGINAL admission.mix against the cursor in one synchronous call. Every operation matches the next original Step tag, exact contiguous offset and length, and original raw contents. Words retain all32bits; roots compare eight little-endian u32s; integers retain fullu64 halves; secure fields require canonical, identical four limbs on both sides. Empty operations are retained. The final check consumes all words, fields and steps and requires an empty claims partition. Unexpected claims or mutated sealed/root auxiliary offsets reject. No allocator, cryptographic hash, retained admission token or acceptance cache is used.
+
+Eight behavioral groups exercise original Builder replay and PUBLIC21/VERSION20 original framing-oracle functions, every raw word/field limb/tag/span mutation, value-equivalent regrouping and type aliases, all truncated and trailing inventories, auxiliary metadata, all configured caps, sticky errors and original admission error propagation. After recording, the owned allocator is replaced by a failing allocator for100comparisons; a bounded80-root stack frame exercises the absence of a fixed root-count array. These are transport/shape checks and never construct proof/Fresh receipts.
+
+Production integration must retain every original fresh/admission/term check and the independently validated transition coordinate/final singleton layout. Existing shared Source.validate methods are untouched in this helper cohort. Root separately owns the Builder root-offset cap and PUBLIC21 source. The helper can replace repeated frame rebuilds only after coordinated integration; no current product speedup is claimed.
+
+Root: src/frontends/riscv/block_v5_recursive_statement_compare_test_root.zig. Filter: recursive statement compare. Candidate: recursive-statement-compare-source-candidate-v1.json.

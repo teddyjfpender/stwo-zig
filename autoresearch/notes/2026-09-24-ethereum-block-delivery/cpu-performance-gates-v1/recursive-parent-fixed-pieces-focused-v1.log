@@ -1,0 +1,5 @@
+1/11 block_v5_recursive_parent_shape_test_root_v1.test_0...OK
+2/11 block_v5_recursive_parent_shape_test_root_v1.test.recursive shape: retain original live and independent fixed-only compiler bodies without execution...OK
+3/11 prover.block_v5_recursive_parent_shape_test_v1.test.recursive shape: exact original component columns masks degrees and independently rebuilt seal...OK
+4/11 prover.block_v5_recursive_parent_shape_test_v1.test.recursive shape: all metadata geometry construction allocations roll back...error: the following test command crashed:
+/tmp/block-v5-recursive-parent-fixed-pieces-focused-v1 --seed=0x25aa9354

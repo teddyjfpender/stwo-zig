@@ -1,0 +1,19 @@
+1/18 block_v5_cpu_source_pages_test_root.test.CPU source PAGE path root...OK
+2/18 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: options fail before source files or allocator are touched...OK
+3/18 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: durable producer and independent receiver policies agree before collection...OK
+4/18 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: positional private reader enforces all lengths offsets and overflow...OK
+5/18 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: durable exact fold inventory releases nested ownership on every allocation failure...OK
+6/18 prover.block_v5_cpu_source_pages_test_v1.test.CPU source PAGE path: independent fold census inventory and compact file corruption fail closed...OK
+7/18 block_v5_cpu_source_pages_codegen.test.CPU source PAGE path bodies: durable publication and independent complete receive in both actual drivers...OK
+8/18 air.memory_commitment.poseidon2_air.test_0...OK
+9/18 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+10/18 air.semantic_eval.test_0...OK
+11/18 prover.block_execution_external_trace_v2.test_0...OK
+12/18 prover.block_execution_external_access_bridge_v2.test_0...OK
+13/18 air.lookups.tables.mod.test_0...OK
+14/18 runner.mod.test_0...OK
+15/18 runner.decode.test_0...OK
+16/18 prover.block_v5_committed_trace_column_v1.test_0...OK
+17/18 air.lookups.tables.source_ingest.test_0...OK
+18/18 diagnostics.mod.test_0...OK
+All 18 tests passed.

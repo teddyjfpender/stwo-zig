@@ -1,0 +1,69 @@
+{
+  "schema": "block-v5-native-capacity-staged-columns-qualified-v1",
+  "status": "pure_staging_and_actual_dual_body_qualified",
+  "checks": {
+    "passed": 10,
+    "named": 5,
+    "imports": 5,
+    "exit_code": 0
+  },
+  "candidate": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-staged-columns-source-candidate-v1.json",
+    "sha256": "72f29d01b16f92789bd4376337cc1ff3f1981a876440a89a48c8e3303ac36c00"
+  },
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_columns_stage_v1.zig",
+      "sha256": "7fa274470fb1bd7d316478e884c1e18338e00282eef08c27bf8c2201f560da3f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_columns_rebuild_v1.zig",
+      "sha256": "94e2d49087362880b950960f82a5fb2a645cad300abd0c3cef4f795e64a133a8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_capacity_root_proposal_v1.zig",
+      "sha256": "9c9bd07e48561b30f5897f91965323e4b827dc6ada1ad80df06dccafd6b8bee1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_native_columns_stage_v1.zig",
+      "sha256": "47bd49bd643864ffd86a25f096859c6366f70926f526f97592c8f30775045eab"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_capacity_native_columns_stage_test_v1.zig",
+      "sha256": "3a58f3abee0fa7f5357859c07a2f3ef51a082a63f7dbc3d5bc0ac54222f14cc3"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_capacity_native_columns_test_root.zig",
+      "sha256": "6784ddff669e48021304f722093aa4b2a3a6383a6f12a380d7943a1037aa9a4c"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_capacity_native_columns_codegen.zig",
+      "sha256": "e1f645bfebad950be85929587c0d869e6e358607c730750ee450a1b063978b0d"
+    }
+  ],
+  "logs": [
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-staged-columns-unit-v1.log",
+      "sha256": "71d0f52bde0031a622b260e28fe20455de1a2d1b8c94e9448fae0609a147d22f"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-staged-columns-body-v1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "actual_body": {
+    "path": "/tmp/block-v5-capacity-staged-columns-body.o",
+    "sha256": "bff9e1ddd14b72ac837703c0c1dbf3b840fbbbec0a168ed30b358662a029163c",
+    "bytes": 5631520,
+    "symbol": "stwo_capacity_staged_columns_body_gate",
+    "exit_code": 0,
+    "invoked": false
+  },
+  "scope": "Original-column disk reconstruction, exact span/capacity catalog metadata, all-allocation-failure ownership, unchanged legacy API and actual CPU staging/commit/bind bodies compiled. No guest, PCS commit, STARK, segment, device or benchmark executed.",
+  "canonical_capacity_enabled": false,
+  "remaining": [
+    "Assembled collector/producer/driver/bundle qualification",
+    "Actual fresh capacity composite/recursive complete proof",
+    "End-to-end block throughput and memory measurements"
+  ]
+}

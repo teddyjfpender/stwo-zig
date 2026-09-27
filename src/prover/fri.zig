@@ -492,6 +492,11 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
         };
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+            // Last resident token may be the allocator's final durable lease.
+            // Retain it before dropping columns/trees, through outer heap frees.
+            const budget = @import("host_budget_allocator.zig").SharedHostBudget.fromAllocator(allocator);
+            if (budget) |owner| _ = owner.retain();
+            defer if (budget) |owner| owner.destroy();
             self.first_layer.deinit(allocator);
             for (self.inner_layers) |*layer| layer.deinit(allocator);
             allocator.free(self.inner_layers);

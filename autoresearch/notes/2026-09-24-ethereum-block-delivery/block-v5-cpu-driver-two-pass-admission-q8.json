@@ -1,0 +1,40 @@
+{
+  "schema": "block-v5-cpu-driver-admission-qualification-v1",
+  "verified": true,
+  "date": "2026-09-26",
+  "profile": "q8_pow0",
+  "test_count": 8,
+  "segment_count": 3,
+  "execution_pass_count": 2,
+  "workload": "actual Ethereum-SHA-profile release ELF, output oracle, native ordinary execution; prechallenge physical roots and planning only",
+  "physical_roots_before_global_admission": true,
+  "native_v3_second_pass_root_template_instance_parity": true,
+  "physical_pcs_released_per_leaf": true,
+  "real_complete_elf_rom_census": true,
+  "real_field_safe_native_lookup_plans": true,
+  "wrong_oracle_sha256_rejected": true,
+  "execution_resource_limit_rejected": true,
+  "std_testing_allocator_teardown_clean": true,
+  "stark_proofs_produced": false,
+  "global_provider_proofs_produced": false,
+  "complete_block_authority": false,
+  "other_global_plan_digests": "scoped test placeholders; production must supply actual collected plans",
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_cpu_native_root_proposal_v1.zig": "93c21ee60fd0b68310362bda7a91e788616e4cb447b7861ad1432e9b58faa3d9",
+    "src/frontends/riscv/prover/block_v5_cpu_driver_admission_v1.zig": "829eb5e1f5b5c49f7c806444e15620e618d5f0ef5ddda01a66e62f6606d894dd",
+    "src/frontends/riscv/prover/block_v5_cpu_driver_admission_test.zig": "1f6c3a408e39a808fa78b664638ce43d49cda0cdfa49d1278efaa1e35552a29d",
+    "src/frontends/riscv/prover/block_v5_native_execution_proof_v3.zig": "4492fecc700d5fd0a8969da12ec37a0885d88276589b349c7c0af1bb02e05d25",
+    "src/frontends/riscv/prover/block_v5_native_public_admission_v1.zig": "2bfb0184f2805a1d6b3897984f997f21654894850cd117fddcb17259478b5bbd"
+  },
+  "test_root": "src/frontends/riscv/block_v5_cpu_driver_admission_test_root.zig",
+  "test_filter": "block-v5 CPU two-pass physical roots late bind real source census and match native replay",
+  "log_path": "/tmp/v5-cpu-driver-admission.log",
+  "remaining_integration": [
+    "actual global memory/source plan collection",
+    "ordinary and external same-root memory warm stages",
+    "family11 physical proposal late binding and one-record warm caller proving",
+    "all-family staging/loaders and actual block command"
+  ]
+}

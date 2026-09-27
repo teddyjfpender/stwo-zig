@@ -1,0 +1,18 @@
+1/17 merkle_compact_test_root.test.compact Merkle layers preserve mixed-height query proofs exactly...OK
+2/17 vcs_lifted.parameters.test.lifted VCS boolean tuning values are explicit...OK
+3/17 vcs_lifted.parameters.test.lifted VCS worker count respects thresholds and overrides...OK
+4/17 vcs_lifted.columns.test.lifted VCS columns retain stable order within equal log sizes...OK
+5/17 host_budget_allocator.test.host budget allocator admits the exact live-byte boundary...OK
+6/17 host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+7/17 host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+8/17 host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+9/17 host_budget_allocator.test.shared host budget lease survives original owner release...OK
+10/17 vcs_lifted.blake2_stream4.test.prover lifted BLAKE2s: direct continuation matches scalar streams...OK
+11/17 mmap_alloc.test.mmap_alloc: basic alloc and free...OK
+12/17 mmap_alloc.test.mmap_alloc: large allocation...OK
+13/17 mmap_alloc.test.releasePages on page-aligned mmap region...OK
+14/17 mmap_alloc.test.releasePagesSlice on typed data...OK
+15/17 mmap_alloc.test.prefetchPages does not crash...OK
+16/17 mmap_alloc.test.releasePages with sub-page region is no-op...OK
+17/17 mmap_alloc.test.releasePagesSlice with empty slice is no-op...OK
+All 17 tests passed.

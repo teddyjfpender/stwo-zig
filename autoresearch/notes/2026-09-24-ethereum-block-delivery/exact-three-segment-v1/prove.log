@@ -1,0 +1,10 @@
+BLOCK_STREAM required_terminal_cycles=349 terminal_leaf_cycles=7635
+BLOCK_STREAM preflight_cycles=21635 proof_segments=3 preflight_ns=10537459
+BLAKE3_NATIVE_QUERY_FUSION groups=19810 removed_scalars=79240
+BLAKE3_NATIVE_FUSION dot4=805390 fma=149887 arithmetic_rows=1409338
+BLAKE3_NATIVE_QUERY_FUSION groups=21910 removed_scalars=87640
+BLAKE3_NATIVE_FUSION dot4=812824 fma=152048 arithmetic_rows=1423357
+BLOCK_STREAM proved_segments=2/3 paired=true retained_nodes=1 peak_bytes=18756687014 elapsed_ns=73448455250
+BLAKE3_NATIVE_QUERY_FUSION groups=22330 removed_scalars=89320
+BLAKE3_NATIVE_FUSION dot4=813579 fma=141157 arithmetic_rows=1401249
+BLOCK_STREAM proved_segments=3/3 paired=true retained_nodes=2 peak_bytes=18756687014 elapsed_ns=103222739417

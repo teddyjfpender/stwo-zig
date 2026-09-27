@@ -28,9 +28,11 @@ pub const FORMAT_VERSION: u16 = 1;
 /// the next proof expands its coefficients.
 pub const OWNER_WINDOWS: u16 = 2;
 pub const MAX_POOLED_RESIDENTS: usize = OWNER_WINDOWS;
+/// Large composition domains may execute, but must not remain mapped across
+/// the next proof's witness/admission phases. Bound idle residency to 256 MiB.
+pub const MAX_CACHED_RESIDENT_BYTES: usize = 128 * 1024 * 1024;
 
 var owner_windows: std.Thread.Semaphore = .{ .permits = OWNER_WINDOWS };
-var pool_mutex: std.Thread.Mutex = .{};
 
 /// Blocks until one owner window is free.  Pair with `releaseOwnerWindow`
 /// after the owner is deinitialized.
@@ -42,81 +44,45 @@ pub fn releaseOwnerWindow() void {
     owner_windows.post();
 }
 
-/// Resident buffers are recycled by exact byte length instead of being
-/// allocated per proof.  A one-gigabyte shared allocation costs a fresh
-/// page-fault sweep on every first touch; reuse keeps the pages mapped and
-/// the transform binding contract (`byte_length == columns * rows * 4`)
-/// exact.  Slots are keyed by the runtime that created them.
-const PooledResidentV1 = struct {
-    runtime: *metal_runtime.Runtime,
-    resident: metal_runtime.ResidentBuffer,
-};
-
-var pooled_residents: [MAX_POOLED_RESIDENTS]?PooledResidentV1 =
-    [_]?PooledResidentV1{null} ** MAX_POOLED_RESIDENTS;
-var pool_hits: std.atomic.Value(u64) = .init(0);
-var pool_misses: std.atomic.Value(u64) = .init(0);
-
-pub const PoolSnapshotV1 = struct { hits: u64, misses: u64, pooled: usize };
-
+/// Exact-size reuse retains the allocation charge, and matches the runtime and
+/// original allocator identity. This owner is shared by native composition and
+/// streaming BLAKE3 commitments.
+const ResidentPool = @import("composition_resident_pool_v1.zig").Pool(metal_runtime.ResidentBuffer, MAX_POOLED_RESIDENTS, MAX_CACHED_RESIDENT_BYTES);
+var resident_pool: ResidentPool = .{};
+pub const PoolSnapshotV1 = ResidentPool.Snapshot;
 pub fn poolSnapshot() PoolSnapshotV1 {
-    var pooled: usize = 0;
-    for (pooled_residents) |slot| pooled += @intFromBool(slot != null);
-    return .{
-        .hits = pool_hits.load(.monotonic),
-        .misses = pool_misses.load(.monotonic),
-        .pooled = pooled,
-    };
+    return resident_pool.snapshot();
 }
-
-/// Caller holds one owner window.
-fn acquireResident(
+const Factory = struct {
     runtime: *metal_runtime.Runtime,
-    byte_count: usize,
-) !metal_runtime.ResidentBuffer {
-    pool_mutex.lock();
-    defer pool_mutex.unlock();
-    for (&pooled_residents) |*slot| {
-        const entry = slot.* orelse continue;
-        if (entry.runtime == runtime and entry.resident.byte_length == byte_count) {
-            slot.* = null;
-            _ = pool_hits.fetchAdd(1, .monotonic);
-            return entry.resident;
-        }
+    pub fn create(self: Factory, bytes: usize) !metal_runtime.ResidentBuffer {
+        return self.runtime.allocateResidentBuffer(bytes);
     }
-    _ = pool_misses.fetchAdd(1, .monotonic);
-    return runtime.allocateResidentBuffer(byte_count);
+};
+/// Caller holds one owner window. Budget admission precedes device allocation.
+pub fn acquireResident(a: std.mem.Allocator, runtime: *metal_runtime.Runtime, byte_count: usize) !metal_runtime.ResidentBuffer {
+    return resident_pool.acquire(a, @intFromPtr(runtime), byte_count, Factory{ .runtime = runtime });
 }
-
-/// Caller holds one owner window.  A full pool evicts the incoming buffer so
-/// the resident footprint stays bounded by `MAX_POOLED_RESIDENTS` entries.
-fn releaseResident(
-    runtime: *metal_runtime.Runtime,
-    resident: metal_runtime.ResidentBuffer,
-) void {
-    pool_mutex.lock();
-    defer pool_mutex.unlock();
-    for (&pooled_residents) |*slot| {
-        if (slot.* == null) {
-            slot.* = .{ .runtime = runtime, .resident = resident };
-            return;
-        }
-    }
-    var owned = resident;
-    owned.deinit();
+pub fn allocateUnpooledResident(a: std.mem.Allocator, runtime: *metal_runtime.Runtime, byte_count: usize) !metal_runtime.ResidentBuffer {
+    var reservation = try prover.shared_external_memory.reserve(a, byte_count, .explicit_unbudgeted);
+    defer reservation.deinit();
+    var buffer = try runtime.allocateResidentBuffer(byte_count);
+    buffer.external_reservation = reservation.take();
+    return buffer;
 }
-
-/// Frees every pooled buffer.  Must run before the shared Metal runtime is
-/// torn down and after every composition owner has finished.
+/// Every device operation borrowing the buffer has joined before this call.
+pub fn releaseResident(a: std.mem.Allocator, runtime: *metal_runtime.Runtime, resident: metal_runtime.ResidentBuffer) void {
+    resident_pool.release(a, @intFromPtr(runtime), resident);
+}
+pub fn releasePooledResidentsForBudget(a: std.mem.Allocator) !void {
+    return resident_pool.drain(a);
+}
+pub fn tryReleasePooledResidents() error{RuntimeBusy}!void {
+    return resident_pool.drainAll();
+}
+/// Compatibility helper for callers whose work is already joined.
 pub fn releasePooledResidents() void {
-    pool_mutex.lock();
-    defer pool_mutex.unlock();
-    for (&pooled_residents) |*slot| {
-        if (slot.*) |*entry| {
-            entry.resident.deinit();
-            slot.* = null;
-        }
-    }
+    tryReleasePooledResidents() catch @panic("composition scratch still borrowed");
 }
 
 pub const RequestV1 = struct {
@@ -149,6 +115,7 @@ pub const OwnedV1 = struct {
     host_fill_nanoseconds: u64,
     host_fill_workers: usize,
     exact_resident_source: bool,
+    copied_evaluations: bool = false,
 
     /// Caller holds one owner window for the whole owner lifetime.
     pub fn init(
@@ -211,8 +178,8 @@ pub const OwnedV1 = struct {
             resident_word_count,
             @sizeOf(M31),
         ) catch return error.CompositionDomainScratchSizeOverflow;
-        var resident = try acquireResident(runtime, resident_byte_count);
-        errdefer releaseResident(runtime, resident);
+        var resident = try acquireResident(allocator, runtime, resident_byte_count);
+        errdefer releaseResident(allocator, runtime, resident);
         if (resident.byte_length != resident_byte_count or
             @intFromPtr(resident.contents) % @alignOf(M31) != 0)
         {
@@ -225,6 +192,7 @@ pub const OwnedV1 = struct {
         const entries = try allocator.alloc(EntryV1, unique_count);
         errdefer allocator.free(entries);
 
+        const copied_evaluations = allExactEvaluations(canonical_requests, source_trace);
         var fill_timer = try std.time.Timer.start();
         for (canonical_requests, columns, entries, 0..) |
             request,
@@ -233,14 +201,12 @@ pub const OwnedV1 = struct {
             index,
         | {
             const source = source_trace.polys.items[request.tree_index][request.column_index];
-            const coefficients = source.coefficients orelse
-                return error.MissingCompositionDomainCoefficients;
-            const coefficient_values = coefficients.coefficients();
-            if (coefficients.logSize() != request.trace_log_size or
-                coefficient_values.len > evaluation_size)
-            {
-                return error.InvalidCompositionDomainCoefficients;
-            }
+            const coefficient_values = if (copied_evaluations) source.values else values: {
+                const coefficients = source.coefficients orelse return error.MissingCompositionDomainCoefficients;
+                if (coefficients.logSize() != request.trace_log_size or coefficients.coefficients().len > evaluation_size)
+                    return error.InvalidCompositionDomainCoefficients;
+                break :values coefficients.coefficients();
+            };
             const offset = std.math.mul(
                 usize,
                 index,
@@ -263,17 +229,15 @@ pub const OwnedV1 = struct {
         const host_fill_nanoseconds = fill_timer.read();
 
         var transform_timer = try std.time.Timer.start();
-        const transform = try runtime.transformCircleResidentBatch(
-            allocator,
-            &resident,
-            columns,
-            twiddles.twiddles,
-            evaluation_log_size,
-            false,
-        );
-        const transform_wall_nanoseconds = transform_timer.read();
-        if (!transform.direct_host_alias or !transform.exact_resident_source)
-            return error.CompositionDomainTransformNotResident;
+        var gpu_milliseconds: f64 = 0;
+        var transform_wall_nanoseconds: u64 = 0;
+        if (!copied_evaluations) {
+            const transform = try runtime.transformCircleResidentBatch(allocator, &resident, columns, twiddles.twiddles, evaluation_log_size, false);
+            transform_wall_nanoseconds = transform_timer.read();
+            if (!transform.direct_host_alias or !transform.exact_resident_source)
+                return error.CompositionDomainTransformNotResident;
+            gpu_milliseconds = transform.gpu_milliseconds;
+        }
         var result = OwnedV1{
             .allocator = allocator,
             .runtime = runtime,
@@ -285,11 +249,12 @@ pub const OwnedV1 = struct {
             .evaluation_log_size = evaluation_log_size,
             .evaluation_size = evaluation_size,
             .resident_word_count = resident_word_count,
-            .gpu_milliseconds = transform.gpu_milliseconds,
+            .gpu_milliseconds = gpu_milliseconds,
             .transform_wall_nanoseconds = transform_wall_nanoseconds,
             .host_fill_nanoseconds = host_fill_nanoseconds,
             .host_fill_workers = host_fill_workers,
-            .exact_resident_source = transform.exact_resident_source,
+            .exact_resident_source = true,
+            .copied_evaluations = copied_evaluations,
         };
         try result.validateBorrowed(source_trace);
         return result;
@@ -324,9 +289,9 @@ pub const OwnedV1 = struct {
                 return error.InvalidCompositionDomainScratch;
             }
             const source = source_trace.polys.items[entry.request.tree_index][entry.request.column_index];
-            const coefficients = source.coefficients orelse
-                return error.MissingCompositionDomainCoefficients;
-            const coefficient_values = coefficients.coefficients();
+            const coefficient_values = if (self.copied_evaluations) source.values else (source.coefficients orelse return error.MissingCompositionDomainCoefficients).coefficients();
+            if (self.copied_evaluations and source.log_size != self.evaluation_log_size)
+                return error.InvalidCompositionDomainScratch;
             const expanded = self.trace.polys.items[entry.request.tree_index][entry.request.column_index];
             const expected_offset = std.math.mul(
                 usize,
@@ -349,8 +314,7 @@ pub const OwnedV1 = struct {
                 expanded.log_size != self.evaluation_log_size or
                 expanded.values.len != self.evaluation_size or
                 @intFromPtr(expanded.values.ptr) != expected_address or
-                expanded.coefficients == null or
-                expanded.coefficients.?.coefficients().ptr != coefficient_values.ptr)
+                !std.meta.eql(expanded.coefficients, source.coefficients))
             {
                 return error.InvalidCompositionDomainScratch;
             }
@@ -360,7 +324,10 @@ pub const OwnedV1 = struct {
     /// Caller holds one owner window; the resident buffer returns to the pool.
     pub fn deinit(self: *OwnedV1) void {
         const allocator = self.allocator;
-        releaseResident(self.runtime, self.resident);
+        const budget = prover.host_budget_allocator.SharedHostBudget.fromAllocator(allocator);
+        if (budget) |owner| _ = owner.retain();
+        defer if (budget) |owner| owner.destroy();
+        releaseResident(allocator, self.runtime, self.resident);
         self.trace.polys.deinitDeep(allocator);
         allocator.free(self.entries);
         allocator.free(self.request_storage);
@@ -477,6 +444,15 @@ fn compactAndValidateRequests(
     }
     if (unique_count == 0) return error.EmptyCompositionDomainScratch;
     return unique_count;
+}
+
+/// Exact-domain staging needs neither retained coefficients nor another FFT.
+/// A group containing a larger domain still takes the coefficient transform.
+fn allExactEvaluations(requests: []const RequestV1, trace: *const Trace) bool {
+    for (requests) |request| {
+        if (trace.polys.items[request.tree_index][request.column_index].log_size != request.evaluation_log_size) return false;
+    }
+    return true;
 }
 
 fn cloneTrace(
@@ -785,4 +761,43 @@ test "Metal composition domain scratch clone cleans every allocation failure" {
 comptime {
     if (FORMAT_VERSION != 1 or @sizeOf(M31) != 4)
         @compileError("Metal composition-domain scratch contract drifted");
+}
+
+test "Metal composition domain scratch stages exact committed evaluations without coefficients" {
+    const allocator = std.testing.allocator;
+    const values = [_]M31{ M31.fromU64(3), M31.fromU64(5), M31.fromU64(7), M31.fromU64(11), M31.fromU64(13), M31.fromU64(17), M31.fromU64(19), M31.fromU64(23) };
+    var columns = [_]Poly{.{ .log_size = 3, .values = &values }};
+    var trees = [_][]const Poly{&columns};
+    var source = Trace{ .polys = .{ .items = &trees } };
+    const request = RequestV1{ .tree_index = 0, .column_index = 0, .trace_log_size = 2, .evaluation_log_size = 3 };
+    const domain = core.poly.circle.canonic.CanonicCoset.new(3).circleDomain();
+    var twiddles = try prover.poly.twiddles.precomputeM31(allocator, domain.half_coset);
+    defer prover.poly.twiddles.deinitM31(allocator, &twiddles);
+    const exact = TwiddleTree{ .root_coset = twiddles.root_coset, .twiddles = twiddles.twiddles, .itwiddles = twiddles.itwiddles };
+    var runtime = try metal_runtime.Runtime.init();
+    defer runtime.deinit();
+    defer releasePooledResidents();
+    acquireOwnerWindow();
+    defer releaseOwnerWindow();
+    var scratch = try OwnedV1.init(allocator, &runtime, &source, &.{ request, request }, exact);
+    defer scratch.deinit();
+    try std.testing.expect(scratch.copied_evaluations);
+    try std.testing.expectEqual(@as(f64, 0), scratch.gpu_milliseconds);
+    try std.testing.expectEqual(@as(u64, 0), scratch.transform_wall_nanoseconds);
+    try std.testing.expectEqual(@as(usize, 1), scratch.entries.len);
+    try std.testing.expectEqual(@as(usize, values.len * @sizeOf(M31)), scratch.resident.byte_length);
+    try std.testing.expectEqualSlices(M31, &values, scratch.trace.polys.items[0][0].values);
+    try std.testing.expect(scratch.trace.polys.items[0][0].coefficients == null);
+    try scratch.validateBorrowed(&source);
+    const staged = scratch.trace.polys.items[0][0].values;
+    @constCast(scratch.trace.polys.items[0])[0].values = &values;
+    try std.testing.expectError(error.InvalidCompositionDomainScratch, scratch.validateBorrowed(&source));
+    @constCast(scratch.trace.polys.items[0])[0].values = staged;
+    // A byte-identical replacement still cannot borrow the old source binding.
+    const replacement = try allocator.dupe(M31, &values);
+    defer allocator.free(replacement);
+    columns[0].values = replacement;
+    try std.testing.expectError(error.InvalidCompositionDomainScratch, scratch.validateBorrowed(&source));
+    columns[0].values = &values;
+    try scratch.validateBorrowed(&source);
 }

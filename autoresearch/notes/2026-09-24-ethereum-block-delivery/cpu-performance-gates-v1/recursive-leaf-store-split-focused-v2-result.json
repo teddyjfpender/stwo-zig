@@ -1,0 +1,22 @@
+{
+  "source_candidate": "recursive-leaf-store-split-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 54.80106204096228,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 21,
+  "test_summary": [
+    "All 21 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-leaf-store-split-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-recursive-leaf-store-split-focused-v2",
+    "bytes": 6567984,
+    "sha256": "6cd3e5d2b459b696675f4376ac8f2246bebf23d6bcfada1f4e1716d7e831eed3"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "status": "passed",
+  "tests_passed": 9,
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "test": "block-v5 warm native lookup stage shares roots then fresh verifies projection and native",
+  "native_version": 3,
+  "ordinary_instances": 1,
+  "projection_slots": 6,
+  "production_hooks_type": "block_v5_block_producer_v1.ForLightweightBackend(Cpu).Hooks",
+  "immutable_fixed_main_leases_shared": true,
+  "original_native_scheme_preserved": true,
+  "fresh_native_proof_verified_after_callback": true,
+  "fresh_same_root_projection_verified": true,
+  "registers_state_pc_compensation_closed": true,
+  "wrong_warm_ordinal_before_staging_rejected": true,
+  "sink_success_transfers_typed_proof_ownership": true,
+  "allocator_teardown": "std.testing.allocator clean",
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "complete_block_authority": false,
+  "scope": "One real ADDI ordinary lightweight native-v3 instance. The actual production on_first_round hook derives projection slots from the independently matched shape, borrows the live sealed native fixed/main roots, checks every shared column pointer, proves/stages a provisional projection, releases its lease, and leaves original native proving usable. The fixture then proves and freshly verifies native plus projection and checks PC compensation. Other provider entries are placeholders.",
+  "limitations": [
+    "No complete block, canonical q70 or mainnet qualification.",
+    "Empty external-only skip branch is source-defined through the shared empty-native validator but is not exercised by this ordinary gate.",
+    "Fixture calls the actual typed production hook directly; whole producer replay/program/memory orchestration is separate.",
+    "No time/peak measured."
+  ],
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_native_lookup_stage_test_root.zig 'block-v5 warm native lookup stage shares roots then fresh verifies projection and native'",
+  "source_sha256": {
+    "src/frontends/riscv/prover/block_v5_native_lookup_stage_v1.zig": "9cf8a12572c72a2e5237c97c7a4e51bcbcb579ca436b40bea3af4d78b8472e38",
+    "src/frontends/riscv/prover/block_v5_native_lookup_stage_test.zig": "f0b9b55806c467f2ed69aed9d3cc787a83d8e3c19abb8114f73030489a1eee04"
+  }
+}

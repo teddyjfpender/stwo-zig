@@ -1,0 +1,16 @@
+test-blake3-ethereum-parent-aot
++- run test stderr
+BLAKE3_ETHEREUM_METAL verified_on_cpu=true preprocessing_equal=true signer=1 keccak=1 queries=70 pow_bits=26 artifact_bytes=5587689 dispatches=162 fallbacks=3 runtime=authenticated_aot witness_released=true
+BLAKE3_ETHEREUM_METAL_PARENT_STAGE stage=prepare_start
+BLAKE3_NATIVE_QUERY_FUSION groups=19110 removed_scalars=76440
+BLAKE3_NATIVE_FUSION dot4=796495 fma=160184 arithmetic_rows=1419557
+BLAKE3_ETHEREUM_METAL_PARENT_STAGE stage=prepared retained_bytes=10150562296
+BLAKE3_ETHEREUM_METAL_PARENT_STAGE stage=key_admitted
+BLAKE3_ETHEREUM_METAL_PARENT_STAGE stage=worker_ready
+BLAKE3_ETHEREUM_METAL_PARENT verified_on_cpu=true queries=70 pow_bits=26 artifact_bytes=907988 worker_peak_bytes=27708198754 dispatches=191 fallbacks=2 worker_and_rows_released=true
+
+Build Summary: 3/3 steps succeeded; 8/8 tests passed
+test-blake3-ethereum-parent-aot success
++- run test 8 passed 6m MaxRSS:40G
+   +- compile test ReleaseSafe native success 3m MaxRSS:8G
+

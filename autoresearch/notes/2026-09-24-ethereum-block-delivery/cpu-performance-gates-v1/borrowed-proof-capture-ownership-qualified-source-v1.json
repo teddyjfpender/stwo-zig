@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "passed": true,
+  "test_count": 3,
+  "named_behavior_checks": 2,
+  "scope": "Malformed immutable PCS/STARK inputs remain unchanged on early/late rejection and all temporary allocation failures. Capture publication remains transactional. No success capture, native/leaf callback body, STARK generation, segment execution or end-to-end performance is qualified by this gate. Existing owned PCS regression was not discovered by this isolated root and is not claimed.",
+  "stark_proved": false,
+  "segment_executed": false,
+  "native_callback_qualified": false,
+  "success_capture_qualified": false,
+  "log_sha256": "ed0b96d36bf06b57d681a6e75fac03521bb74e280063e3c680018ef3c706573c",
+  "source_sha256": {
+    "src/borrowed_proof_capture_test_root.zig": "af28bdaa3cf970d88b4cd1acb0fb7ed872a9b167c79f8df564b86914d7c0bc62",
+    "src/core/borrowed_proof_capture_test.zig": "61e59d4a40cda67d078cf87c5e8780d7df47a9113b877a5bebb1d301af7b8999",
+    "src/core/verifier.zig": "8b8fb3ff311cf89679fc7c2be0c0e1183cc9a6b14961e31c5f064acf74a577b7",
+    "src/core/pcs/verifier.zig": "c78940c134d851be96e41c8de9be138fcbe4314ec1aef9cd0c970dac9d844526"
+  }
+}

@@ -1,0 +1,12 @@
+field_add {'zisk': 0.6956780850887299, 'stwo': 0.6688001453876495}
+field_mul {'zisk': 1.836956799030304, 'stwo': 1.5476283729076385}
+field_inv {'zisk': 57.8931770324707, 'stwo': 35.4627571105957}
+forward_transform {'zisk': 16782.526733398438, 'stwo': 1123.514892578125}
+inverse_transform {'zisk': 16628.804565429688, 'stwo': 1189.1529541015625}
+lde_2x {'zisk': 58470.733642578125, 'stwo': 3523.91552734375}
+forward_transform {'zisk': 331527.42578125, 'stwo': 24271.400390625}
+inverse_transform {'zisk': 328532.552734375, 'stwo': 24517.7421875}
+lde_2x {'zisk': 1151682.6171875, 'stwo': 73701.8203125}
+forward_transform {'zisk': 7376479.1875, 'stwo': 479213.53125}
+inverse_transform {'zisk': 7145699.25, 'stwo': 474377.59375}
+lde_2x {'zisk': 26038104.125, 'stwo': 1468078.125}

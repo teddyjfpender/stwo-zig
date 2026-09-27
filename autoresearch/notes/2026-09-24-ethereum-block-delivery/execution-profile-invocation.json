@@ -1,0 +1,10 @@
+{
+  "exit_code": 0,
+  "wall_seconds": 84.494678499992,
+  "sha256": {
+    "block-execute-profile": "75dd0095ce99da34b533a277a6e264111ce8a3ffaa5bb2709596c678b0fe7388",
+    "ethereum-block.elf": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+    "fixture/stwo-runner-input.bin": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+    "fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  }
+}

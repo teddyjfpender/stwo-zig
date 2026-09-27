@@ -1,0 +1,275 @@
+{
+  "version": 1,
+  "passed": true,
+  "leaf_test_count": 9,
+  "node_pow_regression_test_count": 8,
+  "scope": "CPU four-leaf full BLAKE3 tree/LE framing parity, direct and packed hooks, mixed lifting and empty leaves, lazy coordinate offset and every scalar tail, builder allocation failure, actual Original/Compact commitment every-layer parity. Bounded equal-work leaf-builder ABBA diagnostic includes column reads/lifting/staging/output allocations, excludes column construction, independent comparisons, upper nodes, STARK/FRI/transcript/PoW/recursion and process/device peak RSS.",
+  "stark_proved": false,
+  "segment_executed": false,
+  "device_executed": false,
+  "whole_prover_speedup_established": false,
+  "log_sha256": {
+    "leaf": "25985bf20a567f1c96edfc4e36cabeaab59f8efd39fcacada95f0950455cff70",
+    "regression": "65d77cf2b7e62bbdeb74fcf6dc21c4b7119cc7e4dc9a215dd369ae705d064904"
+  },
+  "source_sha256": {
+    "src/core/crypto/mod.zig": "a7f158c0065157cf898117e89cad0a357c0344e4985bcf016814bbf29e4bd281",
+    "src/core/crypto/blake3_equal_messages4.zig": "74ecf0c747a4dbdc3aa76b7c85205109c222aa9c613981ad2b9fe8506db86425",
+    "src/core/crypto/blake3_compression_batch.zig": "4e7c71978536451f1b6af5554b87db358564b07c65ca952f575dfb116c9b9b34",
+    "src/core/crypto/blake3_compression.zig": "a19dce49effa9116a58ea2b6116fc9994f36a10e29484e4281cb8f2eda66a0e4",
+    "src/core/vcs_lifted/blake3_merkle.zig": "e8a4a8fdb73fb706760cabfbd9853706fef516ca34961bf11e4e507bddfb32e3",
+    "src/core/channel/blake3.zig": "aed0842518019d8e8898ca7f2a72e7053b4cf5f1321e4e8da2b9d51682245855",
+    "src/core/channel/blake3_frame.zig": "97586058f0d6cf986dd1322b312f6634ed451513392cb5a561d8568708320060",
+    "src/prover/vcs_lifted/compact_blake3_leaf.zig": "c5a4dc25ae5cda9eaf007966a1399726a38865108aa346bd556f8ca8d2f314c5",
+    "src/prover/vcs_lifted/leaves.zig": "c8258fe7a580c37536e6a957f7e853c571136f5caf4e4ea12c117a19e8550f45",
+    "src/prover/vcs_lifted/prover.zig": "c83defcbcf875fd2f5483a7ea8bd81fc35cbd8b4fd831911846817e361590da3",
+    "src/prover/vcs_lifted/columns.zig": "7c9e0ed0810c18220d2cc0c267728709a110d3d1e8695894e0fb709ecf5344fa",
+    "src/prover/vcs_lifted/layers.zig": "2d071a1e0662ea54b501fb1be3d372e24d0fd541d1c1aa4f7e626d296d02dedb",
+    "src/prover/vcs_lifted/parameters.zig": "6230e1d2a7d65e2ccb084bc1a0153aabcbd35aede739a17c8baae0a0d4033858",
+    "src/prover/blake3_leaf_batch_test_root.zig": "b74e5c9440ba92a1813dcd1ef79df60259f6c3313a873a4b7fbf28cdfce7c0fa",
+    "src/prover/blake3_leaf_batch_benchmark.zig": "071315e9cf152eafccc26628e9aa374d555884be9ec1c19410fd95e15a23eb6a",
+    "src/prover/blake3_frame_batch_test_root.zig": "564688d8c05609c420cdaa696116f16c0f70c4de4996d0f1977c6b9833ed2c1f",
+    "src/prover/blake3_frame_batch_benchmark.zig": "9cc1d9dcd57dd190166ff030a94421162997fb46722468cdffcadb0c155dfd73",
+    "src/prover/pcs/blake3_pow_batch.zig": "ed64f415f028ab668aae637d1485ee3ecc515dbb6f356de6e2234b55b7c79f52"
+  },
+  "measurements": [
+    {
+      "rows": 16384,
+      "columns": 4,
+      "mixed": false,
+      "scalar_median_ns": 1833125.0,
+      "batch4_median_ns": 788563.0,
+      "speedup": 2.324639882926285,
+      "samples": [
+        {
+          "sample": 0,
+          "batch_first": false,
+          "scalar_ns": 1848209,
+          "batch4_ns": 803500
+        },
+        {
+          "sample": 1,
+          "batch_first": true,
+          "scalar_ns": 1818041,
+          "batch4_ns": 792709
+        },
+        {
+          "sample": 2,
+          "batch_first": true,
+          "scalar_ns": 1858250,
+          "batch4_ns": 784417
+        },
+        {
+          "sample": 3,
+          "batch_first": false,
+          "scalar_ns": 1776917,
+          "batch4_ns": 754583
+        }
+      ]
+    },
+    {
+      "rows": 16384,
+      "columns": 24,
+      "mixed": false,
+      "scalar_median_ns": 3624417.0,
+      "batch4_median_ns": 1446729.0,
+      "speedup": 2.5052494281928404,
+      "samples": [
+        {
+          "sample": 0,
+          "batch_first": false,
+          "scalar_ns": 3784917,
+          "batch4_ns": 1482625
+        },
+        {
+          "sample": 1,
+          "batch_first": true,
+          "scalar_ns": 3674125,
+          "batch4_ns": 1440583
+        },
+        {
+          "sample": 2,
+          "batch_first": true,
+          "scalar_ns": 3574709,
+          "batch4_ns": 1452875
+        },
+        {
+          "sample": 3,
+          "batch_first": false,
+          "scalar_ns": 3519042,
+          "batch4_ns": 1396667
+        }
+      ]
+    },
+    {
+      "rows": 16384,
+      "columns": 54,
+      "mixed": false,
+      "scalar_median_ns": 6331791.5,
+      "batch4_median_ns": 2599583.0,
+      "speedup": 2.4356950710940946,
+      "samples": [
+        {
+          "sample": 0,
+          "batch_first": false,
+          "scalar_ns": 6423833,
+          "batch4_ns": 2697917
+        },
+        {
+          "sample": 1,
+          "batch_first": true,
+          "scalar_ns": 6337875,
+          "batch4_ns": 2554042
+        },
+        {
+          "sample": 2,
+          "batch_first": true,
+          "scalar_ns": 6325708,
+          "batch4_ns": 2597708
+        },
+        {
+          "sample": 3,
+          "batch_first": false,
+          "scalar_ns": 6278042,
+          "batch4_ns": 2601458
+        }
+      ]
+    },
+    {
+      "rows": 16384,
+      "columns": 92,
+      "mixed": false,
+      "scalar_median_ns": 10450916.5,
+      "batch4_median_ns": 4507083.0,
+      "speedup": 2.318776135252002,
+      "samples": [
+        {
+          "sample": 0,
+          "batch_first": false,
+          "scalar_ns": 10740125,
+          "batch4_ns": 4517416
+        },
+        {
+          "sample": 1,
+          "batch_first": true,
+          "scalar_ns": 10461958,
+          "batch4_ns": 4525958
+        },
+        {
+          "sample": 2,
+          "batch_first": true,
+          "scalar_ns": 10359583,
+          "batch4_ns": 4483417
+        },
+        {
+          "sample": 3,
+          "batch_first": false,
+          "scalar_ns": 10439875,
+          "batch4_ns": 4496750
+        }
+      ]
+    },
+    {
+      "rows": 16384,
+      "columns": 170,
+      "mixed": false,
+      "scalar_median_ns": 18452521.0,
+      "batch4_median_ns": 7890958.0,
+      "speedup": 2.3384386281108074,
+      "samples": [
+        {
+          "sample": 0,
+          "batch_first": false,
+          "scalar_ns": 18725792,
+          "batch4_ns": 7894833
+        },
+        {
+          "sample": 1,
+          "batch_first": true,
+          "scalar_ns": 18270667,
+          "batch4_ns": 7887083
+        },
+        {
+          "sample": 2,
+          "batch_first": true,
+          "scalar_ns": 18582500,
+          "batch4_ns": 7877500
+        },
+        {
+          "sample": 3,
+          "batch_first": false,
+          "scalar_ns": 18322542,
+          "batch4_ns": 7905292
+        }
+      ]
+    },
+    {
+      "rows": 16384,
+      "columns": 257,
+      "mixed": false,
+      "scalar_median_ns": 28492770.5,
+      "batch4_median_ns": 14156583.5,
+      "speedup": 2.0126869240731704,
+      "samples": [
+        {
+          "sample": 0,
+          "batch_first": false,
+          "scalar_ns": 28430541,
+          "batch4_ns": 14143709
+        },
+        {
+          "sample": 1,
+          "batch_first": true,
+          "scalar_ns": 28735792,
+          "batch4_ns": 13004666
+        },
+        {
+          "sample": 2,
+          "batch_first": true,
+          "scalar_ns": 28384666,
+          "batch4_ns": 14732708
+        },
+        {
+          "sample": 3,
+          "batch_first": false,
+          "scalar_ns": 28555000,
+          "batch4_ns": 14169458
+        }
+      ]
+    },
+    {
+      "rows": 16384,
+      "columns": 92,
+      "mixed": true,
+      "scalar_median_ns": 10366562.5,
+      "batch4_median_ns": 5387208.0,
+      "speedup": 1.9242922307807682,
+      "samples": [
+        {
+          "sample": 0,
+          "batch_first": false,
+          "scalar_ns": 10362667,
+          "batch4_ns": 5429583
+        },
+        {
+          "sample": 1,
+          "batch_first": true,
+          "scalar_ns": 10370458,
+          "batch4_ns": 5364958
+        },
+        {
+          "sample": 2,
+          "batch_first": true,
+          "scalar_ns": 10567167,
+          "batch4_ns": 5368875
+        },
+        {
+          "sample": 3,
+          "batch_first": false,
+          "scalar_ns": 10164250,
+          "batch4_ns": 5405541
+        }
+      ]
+    }
+  ]
+}

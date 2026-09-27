@@ -1,0 +1,29 @@
+ETH_AUTH_EXECUTION cycles=12419 keccak=6 recoveries=1 output=0100000001000000ad40f6a7de9e85a4284678f80e678537a5a54a5e8b9c93762ca7c5cbc4d4f44cb1b6df74a5bca3624ff555fd4d4dc116504421a8e2fb2c69f8dd8e570638aefa
+BLAKE3_SEGMENT_LEAF_TIMING proving_ns=2596735291 capture_verification_ns=39049542
+BLAKE3_SEGMENT_LEAF_TIMING proving_ns=12646596500 capture_verification_ns=40034459
+BLAKE3_NATIVE_QUERY_FUSION groups=24150 removed_scalars=96600
+BLAKE3_NATIVE_FUSION dot4=816532 fma=147162 arithmetic_rows=1417985
+BLAKE3_NATIVE_QUERY_FUSION groups=23030 removed_scalars=92120
+BLAKE3_NATIVE_FUSION dot4=814854 fma=152309 arithmetic_rows=1426798
+BLAKE3_ETHEREUM_SEGMENTS_PREPARED segments=2 cycles=12419 retained_bytes=9513701596
+BLAKE3_PARENT_CORE_FAILURE phase=composition composition_subphase=commitment cause=OutOfMemory
+BLAKE3_PARENT_WORKER_FAILURE phase=core_proof error=ParentWorkerHostBudgetExceeded peak_bytes=51358446719 limit_bytes=51539607552
+error: ParentWorkerHostBudgetExceeded
+      159.85 real       427.34 user        12.79 sys
+         51938623488  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            10523632  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               68449  involuntary context switches
+       6622869860256  instructions retired
+       1871431848782  cycles elapsed
+         58946533480  peak memory footprint

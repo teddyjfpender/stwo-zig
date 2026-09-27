@@ -1,0 +1,26 @@
+BLOCK_V4_CANDIDATE_MEMORY stage=first-preflight index=0 live=0 peak=358988867 limit=34359738368
+BLOCK_V4_CANDIDATE_MEMORY stage=source-preflight index=0 live=6579534 peak=358993804 limit=34359738368
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-loaded index=48 live=841167686 peak=894180358 limit=34359738368
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-ready index=48 live=4192951593 peak=4213678809 limit=34359738368
+BLOCK_V4_CANDIDATE_MEMORY stage=witness-released index=48 live=904126730 peak=4255910637 limit=34359738368
+BLOCK_V4_CANDIDATE_MEMORY stage=native-key-ready index=48 live=1084487795 peak=4255910637 limit=34359738368
+BLOCK_V4_CANDIDATE_MEMORY stage=segment-released index=48 live=47873634 peak=4255910637 limit=34359738368
+BLOCK_V4_CANDIDATE_TARGET_COMPLETE index=48 no_manifest=true
+      115.42 real       119.17 user         7.55 sys
+          3896033280  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            11883466  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               75197  involuntary context switches
+       1952744573304  instructions retired
+        569160308917  cycles elapsed
+          3902419808  peak memory footprint

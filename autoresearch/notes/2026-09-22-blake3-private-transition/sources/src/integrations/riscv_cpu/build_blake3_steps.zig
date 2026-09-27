@@ -1,0 +1,149 @@
+//! Focused BLAKE3 migration gates; intentionally independent of full prover suites.
+const support = @import("build_support.zig");
+pub fn add(ctx: anytype) void {
+    const b = ctx.b;
+    const target = ctx.target;
+    const optimize = ctx.optimize;
+    const core = ctx.core;
+    const prover = ctx.prover;
+    const cpu_backend = ctx.cpu_backend;
+    const frontend = ctx.frontend;
+    const integration = ctx.integration;
+    const hash_root = support.createHarnessModule(b, "../../frontends/riscv/blake3_hash_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    hash_root.addImport("stwo_prover_engine", prover);
+    const hash_names: []const []const u8 = &.{
+        "BLAKE3 hash DAG matches standard hashing across blocks chunks and unbalanced trees",
+        "BLAKE3 hash global wires reject chaining flags and digest substitutions",
+        "BLAKE3 hash graph releases every partial allocation",
+    };
+    const hash_tests = b.addTest(.{ .root_module = hash_root, .filters = hash_names });
+    b.step("test-blake3-hash", "Check canonical full-hash schedules and cross-compression typed wires")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(hash_tests), hash_names, "BLAKE3 hash graph guard"));
+    const frame_witness_names: []const []const u8 = &.{"BLAKE3 routed frame witness hides digest bytes from fixed columns and owns allocations"};
+    const frame_witness_tests = b.addTest(.{ .root_module = hash_root, .filters = frame_witness_names });
+    b.step("test-blake3-frame-witness", "Check private digest frame preprocessing and allocation ownership")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(frame_witness_tests), frame_witness_names, "BLAKE3 frame witness guard"));
+    const draw_names: []const []const u8 = &.{
+        "BLAKE3 ordered draws match native outputs and independently rebuilt fixed columns",
+        "BLAKE3 ordered draws reject skipped accepted attempts false outputs and counter wrap",
+    };
+    const draw_tests = b.addTest(.{ .root_module = hash_root, .filters = draw_names });
+    b.step("test-blake3-draw", "Check contiguous native rejection-sampling attempt admission")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(draw_tests), draw_names, "BLAKE3 ordered draw guard"));
+    const challenge_names: []const []const u8 = &.{
+        "BLAKE3 challenge block pins typed reduction rejection and framework export",
+        "BLAKE3 challenge block matches native boundaries and rejects unused half",
+        "BLAKE3 challenge block rejects validity reduction and acceptance mutations",
+    };
+    const challenge_tests = b.addTest(.{ .root_module = hash_root, .filters = challenge_names });
+    b.step("test-blake3-challenge", "Check exact whole-block rejection and field challenge reduction")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(challenge_tests), challenge_names, "BLAKE3 challenge guard"));
+    const route_names: []const []const u8 = &.{
+        "BLAKE3 byte route pins typed semantics and rejects selected byte mutations",
+        "BLAKE3 symbolic Merkle routing matches canonical frame bytes",
+        "BLAKE3 transcript digest routing matches frames and rejects missing role bindings",
+    };
+    const route_tests = b.addTest(.{ .root_module = hash_root, .filters = route_names });
+    b.step("test-blake3-byte-route", "Check authenticated byte selection for canonical Merkle frames")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(route_tests), route_names, "BLAKE3 byte route guard"));
+    const frame_names: []const []const u8 = &.{"BLAKE3 canonical frames match native operations and full hash witnesses"};
+    const frame_tests = b.addTest(.{ .root_module = hash_root, .filters = frame_names });
+    b.step("test-blake3-framing", "Check shared transcript and commitment byte encoding")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(frame_tests), frame_names, "BLAKE3 framing guard"));
+    const private_names: []const []const u8 = &.{
+        "BLAKE3 private input bridge pins typed semantics and enforces unused bytes",
+        "BLAKE3 private hash preprocessing contains no message words",
+        "BLAKE3 private input claims require exact caller and graph endpoints",
+    };
+    const private_tests = b.addTest(.{ .root_module = hash_root, .filters = private_names });
+    b.step("test-blake3-private-input", "Check typed caller binding and private hash preprocessing")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(private_tests), private_names, "BLAKE3 private input guard"));
+    const framework_root = support.createHarnessModule(b, "../../frontends/riscv/blake3_framework_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    framework_root.addImport("stwo_prover_engine", prover);
+    const transition_names: []const []const u8 = &.{"BLAKE3 transcript absorption proves with private intermediate state"};
+    const transition_tests = b.addTest(.{ .root_module = framework_root, .filters = transition_names });
+    b.step("test-blake3-transcript-proof", "Prove native absorption with authenticated private transcript state")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(transition_tests), transition_names, "BLAKE3 transcript transition guard"));
+    const challenge_proof_names: []const []const u8 = &.{"BLAKE3 native draw produces constrained scalar challenges in a complete CPU proof"};
+    const challenge_proof_tests = b.addTest(.{ .root_module = framework_root, .filters = challenge_proof_names });
+    b.step("test-blake3-challenge-proof", "Prove native BLAKE3 draw hashing and scalar challenge extraction")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(challenge_proof_tests), challenge_proof_names, "BLAKE3 challenge proof guard"));
+    const framework_names: []const []const u8 = &.{
+        "BLAKE3 boundary pins semantics and exports committed framework programs",
+        "BLAKE3 padded framework and production table interaction claims close",
+    };
+    const framework_tests = b.addTest(.{ .root_module = framework_root, .filters = framework_names });
+    b.step("test-blake3-framework", "Check typed boundary exports and full padded interaction claim closure")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(framework_tests), framework_names, "BLAKE3 framework guard"));
+    const proof_names: []const []const u8 = &.{
+        "BLAKE3 compression committed proof verifies with trusted preprocessing",
+        "BLAKE3 full hash committed proofs cover empty partial and unbalanced chunk trees",
+        "BLAKE3 framed Merkle node proof matches the native commitment",
+    };
+    const proof_tests = b.addTest(.{ .root_module = framework_root, .filters = proof_names });
+    b.step("test-blake3-proof", "Prove and verify the complete BLAKE3 compression circuit on CPU")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(proof_tests), proof_names, "BLAKE3 committed proof guard"));
+    const private_proof_names: []const []const u8 = &.{"BLAKE3 private hash chain proves without exposing its intermediate digest"};
+    const private_proof_tests = b.addTest(.{ .root_module = framework_root, .filters = private_proof_names });
+    b.step("test-blake3-private-proof", "Prove an authenticated private digest between two hash graphs")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(private_proof_tests), private_proof_names, "BLAKE3 private proof guard"));
+    const routed_proof_names: []const []const u8 = &.{"BLAKE3 routed Merkle proof authenticates both private child digests"};
+    const routed_proof_tests = b.addTest(.{ .root_module = framework_root, .filters = routed_proof_names });
+    b.step("test-blake3-routed-proof", "Prove a canonical Merkle parent of two authenticated child hashes")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(routed_proof_tests), routed_proof_names, "BLAKE3 routed proof guard"));
+    const path_names: []const []const u8 = &.{
+        "BLAKE3 private sibling word semantics pin and reject out of range bytes",
+        "BLAKE3 path witnesses match every native direction and keep siblings private",
+    };
+    const path_tests = b.addTest(.{ .root_module = framework_root, .filters = path_names });
+    b.step("test-blake3-path", "Check private-sibling path witness and source semantics")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(path_tests), path_names, "BLAKE3 path guard"));
+    const path_proof_names: []const []const u8 = &.{"BLAKE3 private sibling paths verify in complete CPU proofs"};
+    const path_proof_tests = b.addTest(.{ .root_module = framework_root, .filters = path_proof_names });
+    b.step("test-blake3-path-proof", "Prove Merkle authentication paths with private siblings")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(path_proof_tests), path_proof_names, "BLAKE3 path proof guard"));
+    const blake3_wiring_root = support.createHarnessModule(b, "../../frontends/riscv/blake3_wiring_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const blake3_wiring_names: []const []const u8 = &.{
+        "BLAKE3 call components pin semantics and authenticate relation plans",
+        "BLAKE3 fixed compression wire graph closes and rejects endpoint substitutions",
+        "BLAKE3 ordered call construction releases partial allocations",
+    };
+    const blake3_wiring_tests = b.addTest(.{ .root_module = blake3_wiring_root, .filters = blake3_wiring_names });
+    b.step("test-blake3-wiring", "Check typed BLAKE3 call bindings and exact compression wire closure")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(blake3_wiring_tests), blake3_wiring_names, "BLAKE3 wiring guard"));
+    const blake3_packed_root = support.createHarnessModule(b, "../../frontends/riscv/blake3_packed_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const blake3_packed_names: []const []const u8 = &.{
+        "BLAKE3 compact G matches typed bit reference and canonical lookup schemas",
+        "BLAKE3 compact G rejects coordinate mutations and requires lookup bounds",
+        "BLAKE3 compact G covers all seven rounds of a native compression trace",
+    };
+    const blake3_packed_tests = b.addTest(.{ .root_module = blake3_packed_root, .filters = blake3_packed_names });
+    b.step("test-blake3-packed", "Check compact typed BLAKE3 arithmetic and exact lookup requests")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(blake3_packed_tests), blake3_packed_names, "BLAKE3 packed guard"));
+    const blake3_compression_root = support.createHarnessModule(b, "../../frontends/riscv/blake3_compression_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const blake3_compression_names: []const []const u8 = &.{
+        "BLAKE3 typed G has degree two and agrees with native arithmetic",
+        "BLAKE3 typed G rejects every single-bit mutation and nonboolean witnesses",
+        "BLAKE3 seven-round compression matches standard hash across chunks",
+        "BLAKE3 typed arithmetic covers all scheduled compression calls",
+    };
+    const blake3_compression_test = b.addTest(.{ .root_module = blake3_compression_root, .filters = blake3_compression_names });
+    b.step("test-blake3-compression", "Check canonical compression and typed degree-two G arithmetic")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(blake3_compression_test), blake3_compression_names, "BLAKE3 compression guard"));
+    const blake3_benchmark_root = support.createHarnessModule(b, "blake3_hash_benchmark.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const blake3_benchmark = b.addExecutable(.{ .name = "blake3-hash-benchmark", .root_module = blake3_benchmark_root });
+    b.step("benchmark-blake3-hash", "Measure native BLAKE3 and Poseidon hashing, excluding recursive constraints")
+        .dependOn(&b.addRunArtifact(blake3_benchmark).step);
+    const blake3_root = support.createHarnessModule(b, "blake3_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    blake3_root.addImport("stwo_prover_engine", prover);
+    const blake3_names: []const []const u8 = &.{
+        "BLAKE3 official primitive vectors and streaming boundaries",
+        "BLAKE3 independent protocol vectors retain full digest bits",
+        "BLAKE3 field rejection and operation domains",
+        "BLAKE3 CPU PCS and FRI roundtrip with core verifier",
+        "BLAKE3 CPU commitments reject tampered roots and wrong hash family",
+    };
+    const blake3_tests = b.addTest(.{ .root_module = blake3_root, .filters = blake3_names });
+    b.step("test-blake3-protocol", "Check BLAKE3 reference vectors, transcript, commitments and CPU PCS/FRI")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(blake3_tests), blake3_names, "BLAKE3 protocol test guard"));
+}

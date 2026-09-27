@@ -1,0 +1,21 @@
+{
+  "source_candidate": "global-readonly-staging-focused-v2-source.json",
+  "exit_code": 1,
+  "elapsed_seconds": 1.9991949159884825,
+  "changed_source_pins": [],
+  "qualified": false,
+  "semantic_only": false,
+  "object_only": false,
+  "tests_run": false,
+  "discovered_tests": 0,
+  "test_summary": [],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-readonly-staging-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-global-readonly-staging-focused-v2",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

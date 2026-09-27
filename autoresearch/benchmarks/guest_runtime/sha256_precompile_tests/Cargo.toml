@@ -1,0 +1,29 @@
+[package]
+name = "stwo-sha256-precompile-guest-tests"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[features]
+sha256-precompile = []
+
+[dev-dependencies]
+sha2 = { version = "=0.10.9", features = ["compress"] }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(stwo_sha256_precompile_v1)'] }
+
+[[bin]]
+name = "sha-native-vectors"
+path = "src/native_vectors.rs"
+required-features = ["sha256-precompile"]
+test = false
+bench = false
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = "fat"
+codegen-units = 1

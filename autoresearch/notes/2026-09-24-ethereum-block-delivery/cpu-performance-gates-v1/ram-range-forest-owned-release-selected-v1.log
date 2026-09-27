@@ -1,0 +1,19 @@
+1/18 block_v5_ram_range_forest_owned_selected_test_root.test_0...OK
+2/18 block_v5_ram_range_forest_owned_selected_test_root.test.RAM durable catalogue: actual original leaf forest final join publisher and fresh standalone bodies retained...OK
+3/18 block_v5_ram_range_forest_owned_selected_test_root.test.RAM durable catalogue: independently selected execution recipe remains local zero...OK
+4/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: exact typed manifest order and final join record round trip...OK
+5/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: resealed received key proposal rejects original derived identity...OK
+6/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: framing truncation excess version and zero identities reject...OK
+7/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: independent metadata proof and aggregate resource caps...OK
+8/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: every manifest encode decode allocation releases...OK
+9/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: original independent admission remains usable after upstream buffers release...OK
+10/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: transfer allocations fail atomically with upstream admitted once...OK
+11/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: exact independent source roster mutations reject before recursive proof...OK
+12/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: canonical minimum forest uses exact original counts and bounded children...OK
+13/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: rollback removes only successfully new recursive outputs...OK
+14/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: independent cap admission precedes undefined source capabilities...OK
+15/18 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: memory scratch cap is independent and retains aggregate backing...OK
+16/18 air.memory_commitment.poseidon2_air.test_0...OK
+17/18 air.lookups.tables.mod.test_0...OK
+18/18 air.lookups.tables.source_ingest.test_0...OK
+All 18 tests passed.

@@ -1,0 +1,9 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_GUEST_POSEIDON_WITNESS calls=1 legacy_commitments=0 shared_relations_closed=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 32s MaxRSS:1G
+

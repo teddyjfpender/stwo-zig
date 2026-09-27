@@ -1,0 +1,16 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "caller-recursive-pipeline-semantic-v1-result.json",
+  "focused": "caller-recursive-pipeline-focused-v1-result.json",
+  "checks": 15,
+  "named_checks": 5,
+  "scope": "Exactly one fused proof held; real original staged/live caller routes, single original arithmetic/fused captures and both recursive parent publishers; index/order/duplicate/reentrance/sink-failure/independent-admission/allocation cleanup tested. Actual original body retained, never invoked.",
+  "pending": [
+    "canonical driver activation",
+    "complete all-family source/aggregate closure",
+    "fresh successful proof and block performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

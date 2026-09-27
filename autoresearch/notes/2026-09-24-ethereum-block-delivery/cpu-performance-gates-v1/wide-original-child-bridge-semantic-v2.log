@@ -1,0 +1,10 @@
+src/frontends/riscv/recursion/block_v5_wide_original_child_source_v1.zig:369:61: error: expected optional type, found 'recursion.block_v5_pc_clock_span_v1.Span'
+                const original_span = checked.pc_clock_span orelse return error.UntrustedWideOriginalFreshSpan;
+                                      ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_pc_clock_span_v1.zig:9:18: note: struct declared here
+pub const Span = struct {
+                 ^~~~~~
+referenced by:
+    stwo_wide_original_bridge_body_gate: src/frontends/riscv/block_v5_wide_original_bridge_codegen_v1.zig:25:30
+    stwo_wide_original_bridge_body_gate: src/frontends/riscv/block_v5_wide_original_bridge_codegen_v1.zig:22:5
+    1 reference(s) hidden; use '-freference-trace=3' to see all references

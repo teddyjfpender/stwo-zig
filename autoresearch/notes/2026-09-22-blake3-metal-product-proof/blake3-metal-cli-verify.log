@@ -1,0 +1,9 @@
+CPU/Metal proof bytes and transcript identical
+cpu 0 
+wrong suite cpu 1 error: ProofSuiteMismatch
+
+metal 0 
+wrong suite metal 1 error: ProofSuiteMismatch
+
+proving_seconds 0.366627334 verification_seconds 0.0976185
+resident_polynomial_telemetry {'eligible_base_components': 16, 'eligible_lookup_components': 13, 'base_batch_dispatches': 1, 'lookup_batch_dispatches': 1, 'declines': 0, 'verified_samples_with_dispatch': 1}

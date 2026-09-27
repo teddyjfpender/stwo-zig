@@ -1,0 +1,61 @@
+{
+  "status": "qualified_nonproving_shared_hash_setup",
+  "source_candidate": "packed-hash-shared-setup-source-candidate-v1.json",
+  "evidence": {
+    "packed-hash-shared-setup-semantic-v1": {
+      "source_candidate": "packed-hash-shared-setup-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 0.320722000033129,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/packed-hash-shared-setup-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "packed-hash-shared-setup-focused-v1": {
+      "source_candidate": "packed-hash-shared-setup-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 12.238275875046384,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 9,
+      "test_summary": [
+        "All 9 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/packed-hash-shared-setup-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-packed-hash-shared-setup-focused-v1",
+        "bytes": 1341792,
+        "sha256": "7dde3b8ecbc69f9e7115d94eeda4d9d210a53ac616c814a843b095231dba5df2"
+      }
+    }
+  },
+  "tests_passed": 9,
+  "scope": [
+    "One heap-stable retained immutable AIR definition/relation-plan owner for SHA or BLAKE per job",
+    "Default cold regeneration unchanged; cached variants use exact same page-local kernels",
+    "SHA double-compression padding-edge parity and BLAKE original full-row/table/capture oracle parity",
+    "Coordinator and aggregate allocator release before page teardown; all page allocations and lease rollback tested without repeated upstream IR sweeps",
+    "Actual create/cached-regeneration/cleanup bodies retained"
+  ],
+  "not_qualified": [
+    "Exhaustive upstream AIR definition construction allocation sweep",
+    "Unified PAGE job usage or canonical driver activation",
+    "Complete source/global authority or whole block proof"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

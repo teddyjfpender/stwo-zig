@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-host",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-8.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/fixtures/batch-8.expected",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-batch-8-execute-qualification.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/local-batch-8-execute-qualification.json",
+    "execute"
+  ],
+  "side": "local",
+  "mode": "execute",
+  "requested_workers": 16,
+  "timeout_seconds": 900,
+  "hardware_track": "same-host CPU; no CUDA",
+  "peer_stage_profile": false,
+  "sha256": {
+    "local-host": "31aaaad819aaf960512de23084206ce62e1467d09dafd0739b3bdab06e6602fa",
+    "guest-stwo/target/riscv32im-unknown-none-elf/release/eth-auth-stwo": "988e26742a18c9d7fd2c073a0fa3b40fa80eeb14d30a1a7eb60486abad478e0a",
+    "fixtures/batch-8.input": "82ed36c86792ddd3ae3c6740db316eb784ca408e402a4b6aabbbe5b21d1bc506",
+    "fixtures/batch-8.expected": "60f893ece06b6c9866badb78d7219b759de192200ec7c5049d0e2d848fc76cba"
+  },
+  "swap_before": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:39 remaining present: true\n",
+  "exit_code": 0,
+  "process_wall_seconds": 0.021367000008467585,
+  "swap_after": "vm.swapusage: total = 2048.00M  used = 1184.56M  free = 863.44M  (encrypted)\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t73%; charging; 1:39 remaining present: true\n",
+  "output_checked": true
+}

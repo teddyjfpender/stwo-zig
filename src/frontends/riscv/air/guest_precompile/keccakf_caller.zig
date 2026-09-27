@@ -220,7 +220,7 @@ pub fn publicCoreCounterpartForRecord(
     return publicCoreCounterpart(&row, &input_state, &output_state, relations);
 }
 
-fn coreEvents(
+pub fn coreEvents(
     comptime S: type,
     caller: []const S,
     input_state: []const S,

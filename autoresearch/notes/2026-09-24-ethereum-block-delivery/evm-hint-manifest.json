@@ -1,0 +1,7 @@
+{
+  "count": 12,
+  "successful": 12,
+  "canonical_ssz_sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+  "augmented_input_sha256": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+  "hints_are_untrusted": true
+}

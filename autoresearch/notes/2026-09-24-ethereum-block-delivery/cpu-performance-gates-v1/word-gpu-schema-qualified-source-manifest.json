@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "gate": "word-gpu-schema-codegen",
+  "tests_passed": 6,
+  "scope": "CPU typed IR equation/fraction and codegen source parity; actual CPU inverse-table provider parity; no GPU, STARK, benchmark or execution segment",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-gpu-schema-codegen.log",
+    "sha256": "8f96c6d0d02c0c612618ec63318dcd640f1d41d6bd7c79154d0c9de0b8b04dd5"
+  },
+  "sources": {
+    "src/block_v5_word_gpu_codegen_test_root.zig": "9138be1eacf87d0ea433b4540b9b7e7904cc878a3c2db9ef94d2e52725db99c6",
+    "src/prover/air/secure_polynomial_program_v1.zig": "dc9742e6ddd9541ce5c7f734a580fa2a33088596a48ba34abb6aa6479c6e3715",
+    "src/prover/air/secure_polynomial_emitter_v1.zig": "6950a239663f46f1975a037daa0064ed3f900bef96d7896fca4f9524f6003c67",
+    "src/frontends/riscv/prover/block_v5_word_gpu_program_v1.zig": "5daf9d14ac7382c075ccdfe13f121c2d64529cba95706c94fcdff61a0366e80a",
+    "src/frontends/riscv/prover/block_v5_word_gpu_program_test.zig": "d9a2f9fc4441e501435cf0dc9542162cf90fcf3c10c183b6485f4741fd4e7733",
+    "src/frontends/riscv/prover/block_v5_word_gpu_witness_v1.zig": "a3875391daef00fced29e6668a50b18bcadf81f454831f41e50f8ad2737ce3e7",
+    "src/frontends/riscv/prover/block_v5_range16_algebra_v1.zig": "5297bad7d925acdf9edc46d3be384f1b124201e5855cb6ed91da5974a106ce04",
+    "src/backends/metal/runtime/secure_polynomial_codegen_v1.zig": "e3c37ffcbff474762ac2cd1b7bc57a7d4272b549a7efe6c180a4859b4ffe71a5",
+    "src/backends/metal/runtime/word_memory_witness_v4.metal": "3e5d1568d07df7ffec91e08d36092a85d34dd3e9a5e63e19ec1702374029d977",
+    "src/backends/metal/runtime/secure_interaction_mean_v1.metal": "ba68fbde34848668f418b16e5a877be036963884eb602017fecb069d68924668",
+    "src/backends/cuda/secure_polynomial_codegen_v1.zig": "7801cdd3dbe37e9b36a56fbad694b3577385c55a3b2ecd0d1bd7640646ff2097",
+    "src/backends/cuda/native/secure_polynomial_v1.cuh": "5ab22f1e7cb43634f49c501762b3fb3ae8ff595eb2895fdc75a58c71cea71c3e"
+  }
+}

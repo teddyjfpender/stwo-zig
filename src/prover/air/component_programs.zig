@@ -920,18 +920,19 @@ pub const OwnedFrameworkPolynomialProgramV1 = struct {
         switch (self.layout) {
             .same_row_prefix_v1 => {
                 if (self.is_first_input != null) return error.InvalidFrameworkPolynomialInput;
-                try self.direct.validate();
             },
             .independent_prefix_v1 => {
                 const selector = self.is_first_input orelse return error.InvalidFrameworkPolynomialInput;
                 if (selector >= self.inputs.len or self.inputs[selector] != .trace_column or
                     self.inputs[selector].trace_column.tree_index != 0)
                     return error.InvalidFrameworkPolynomialInput;
-                if (self.direct.roots.len == 0) {
-                    if (self.direct.nodes.len != 0) return error.InvalidFrameworkPolynomialProgram;
-                } else try self.direct.validate();
             },
         }
+        // Relation-only components have no direct graph in either layout.
+        // Lookup entries and batches remain mandatory and are validated below.
+        if (self.direct.roots.len == 0) {
+            if (self.direct.nodes.len != 0) return error.InvalidFrameworkPolynomialProgram;
+        } else try self.direct.validate();
         var lookup_root = [_]u32{self.entries[0].numerator};
         try (OwnedBasePolynomialProgram{ .allocator = self.allocator, .nodes = self.lookup_nodes, .roots = &lookup_root, .column_count = self.inputs.len }).validate();
         for (self.inputs) |input| switch (input) {
@@ -947,7 +948,7 @@ pub const OwnedFrameworkPolynomialProgramV1 = struct {
         }
         var next_entry: usize = 0;
         for (self.batches, 0..) |batch, index| {
-            if (batch.first_entry != next_entry or batch.entry_count == 0 or batch.entry_count > 2 or
+            if (batch.first_entry != next_entry or batch.entry_count == 0 or batch.entry_count > 4 or
                 batch.interaction_column_start != 4 * index) return error.InvalidFrameworkPolynomialBatch;
             next_entry += batch.entry_count;
         }

@@ -1,0 +1,13 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 7s
+1/10 block_v5_native_capacity_recursive_test_root.test_0...OK
+2/10 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: original equations match symbolic mixed-domain activity graph and public count mutations...OK
+3/10 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: genuine empty frame counts are public and reuse one graph...OK
+4/10 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: graph construction releases every failed allocation...OK
+5/10 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: 257 count wires retain wide indices and changed public values reuse setup...OK
+6/10 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: independent catalog admission owns geometry and fails closed on source public and root mutations...OK
+7/10 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: independent prepared geometry releases every failed allocation...OK
+8/10 prover.block_v5_native_capacity_recursive_test.test.capacity recursion: independent empty policy binds retirement count through frame public supply...OK
+9/10 air.semantic_eval.test_0...OK
+10/10 air.memory_commitment.poseidon2_air.test_0...OK
+All 10 tests passed.

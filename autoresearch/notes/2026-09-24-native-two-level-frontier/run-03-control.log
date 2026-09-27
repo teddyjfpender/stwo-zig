@@ -1,0 +1,68 @@
+1/7 blake3_metal_qualification_test_root.test.Metal canonical four-leaf BLAKE3 aggregation tree...CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56858 arithmetic_rows=160880
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56860 arithmetic_rows=160876
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=6873613709
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=253.79212500411086
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.618916689651087
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=2.9931250028312206
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9489583210088313
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5228749942034483
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=12848598708
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=909260 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=7560 removed_scalars=30240
+BLAKE3_NATIVE_FUSION dot4=14350 fma=56672 arithmetic_rows=159015
+BLAKE3_NATIVE_QUERY_FUSION groups=8820 removed_scalars=35280
+BLAKE3_NATIVE_FUSION dot4=18459 fma=58931 arithmetic_rows=168994
+CANONICAL_TREE_LEAF_POOL workers=8
+CANONICAL_TREE_PHASE phase=leaf_pair_proof_and_preparation ns=7085405250
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=254.36045831884257
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.893125005764887
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.0578750011045486
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.969500008272007
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5477500089909881
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=1 ns=13020452667
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=909096 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28602 fma=87565 arithmetic_rows=243970
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28530 fma=88069 arithmetic_rows=244817
+CANONICAL_TREE_PHASE phase=root_preparation ns=8311127458
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=251.7692499968689
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.756916663609445
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=2.995124988956377
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=2 gpu_ms=3.952333325287327
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5448749870993197
+CANONICAL_TREE_PHASE phase=aggregate_proof_and_checks height=2 ns=13773443500
+BLAKE3_TREE_NODE verified=true height=2 artifact_bytes=909371 queries=70 pow_bits=26
+CANONICAL_TREE_BUDGET peak_bytes=29832517385 limit_bytes=51539607552
+BLAKE3_TREE_PARAMETERS leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 canonical=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=5038525504
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       62.27 real        95.55 user        15.28 sys
+         42471129088  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            15848248  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   1  voluntary context switches
+               57955  involuntary context switches
+       1146020139018  instructions retired
+        461692355762  cycles elapsed
+         44783559712  peak memory footprint

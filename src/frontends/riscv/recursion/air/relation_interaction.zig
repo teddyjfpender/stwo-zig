@@ -32,3 +32,6 @@ pub const EventPlan = shard_0.EventPlan;
 pub const BatchPlan = shard_0.BatchPlan;
 pub const Entry = shard_0.Entry;
 pub const Runtime = shard_1.Runtime;
+
+pub const RuntimeWithMachineInputs = shard_1.RuntimeWithMachineInputs;
+pub const RuntimeWithFixedAddresses = shard_1.RuntimeWithFixedAddresses;

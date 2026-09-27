@@ -1,0 +1,6 @@
+{
+  "STWO_SEGMENT_V2_CHILD_BUNDLE": "/tmp/pr198-product-cpu-typed-closure-20260921-v1/tree/leaves/child-0",
+  "STWO_SEGMENT_V2_CHILD_KEY_SHA256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2",
+  "STWO_SEGMENT_V2_CHILD_EXPECTED_WIRE": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/child-0-expected-wire.json",
+  "STWO_SEGMENT_V2_CHILD_OTHER_EXPECTED_WIRE": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-seed14-expected/child-0-expected-wire.json"
+}

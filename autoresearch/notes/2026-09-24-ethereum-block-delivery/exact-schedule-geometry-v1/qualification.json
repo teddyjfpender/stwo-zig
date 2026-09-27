@@ -1,0 +1,44 @@
+{
+  "scope": "all-segment admission geometry only; no native, recursive or complete-block proof",
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-geometry-exact",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+    "4194304",
+    "all",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-proposal-v1/schedule.json"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 286.7409739170107,
+  "complete_geometry_scan": true,
+  "every_component_at_most_log24": true,
+  "proof_verified": false,
+  "summary": {
+    "kind": "summary",
+    "proof_verified": false,
+    "segments_checked": 218,
+    "cycles": 139214856,
+    "all_commitment_traces_fit": true,
+    "maximum_commitment_rows": [
+      16492000,
+      4712000,
+      5886292,
+      2653560,
+      216096,
+      97940,
+      97940,
+      818809
+    ],
+    "maximum_hash_log": 25,
+    "sizing_peak_bytes": 1075098065,
+    "sizing_ns": 285955960834
+  },
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-geometry-exact": "89b54a73fd525f5c87723adef00378ab5d88b1fc23a313bf9c52837b748bb5c1",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/exact-schedule-proposal-v1/schedule.json": "f72b127f065b234251dcc328c1c9884baec716c03776a303c57de0b050f9d99d"
+  }
+}

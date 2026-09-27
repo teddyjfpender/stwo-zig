@@ -1,0 +1,28 @@
+{
+  "scope": "Canonical transaction-authentication guest, one leaf and one recursive parent; not Ethereum block proving",
+  "status": "Valid proof-equivalent experiment. Whole-tree compaction leaves commitment-stage peak; superseded by pending incremental compaction experiment.",
+  "rows": [
+    {
+      "transactions": 16,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 59059315833,
+      "parent_proving_ns": 32518095709,
+      "worker_peak_bytes": 13980151496,
+      "proof_bytes": 983171,
+      "proof_sha256": "b50fcc72e9b1a2948738305faf10efc5b8cf5216071d017b58cbcdcc3dd5560d"
+    },
+    {
+      "transactions": 32,
+      "verified": true,
+      "queries": 70,
+      "pow_bits": 26,
+      "total_ns": 63194472125,
+      "parent_proving_ns": 34004164125,
+      "worker_peak_bytes": 14573219528,
+      "proof_bytes": 971396,
+      "proof_sha256": "a63a40b760f6c7bc0246960461e73d9d23fbf381355279de4ef35cf7e8edd2e6"
+    }
+  ]
+}

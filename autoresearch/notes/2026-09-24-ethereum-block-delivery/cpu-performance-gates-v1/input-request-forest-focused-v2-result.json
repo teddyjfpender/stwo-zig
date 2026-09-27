@@ -1,0 +1,22 @@
+{
+  "source_candidate": "input-request-forest-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 18.3187509579584,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 18,
+  "test_summary": [
+    "All 18 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-request-forest-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-input-request-forest-focused-v2",
+    "bytes": 35295800,
+    "sha256": "ea014317ef5b11ee2dea7bbb069ca9ead4819777510db69f86dd9127b1bee2b9"
+  }
+}

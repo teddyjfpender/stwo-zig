@@ -1,5 +1,6 @@
 //! Internal shard of relation_interaction.zig; use the facade.
 
+const machine = @import("closed_machine_expression.zig");
 const dependency_0 = @import("relation_interaction_tuple_ledger.zig");
 
 const AuthenticationError = dependency_0.AuthenticationError;
@@ -49,6 +50,31 @@ pub fn Runtime(
     comptime event_count: usize,
     comptime batch_size: u8,
 ) type {
+    return RuntimeWithFixedAddresses(logical_input_count, event_count, batch_size, 0, &.{});
+}
+
+/// Fixed address/PC lowering is part of the runtime type and survives plan revalidation.
+/// Verifier preprocessing must bound these coordinates below the field modulus.
+pub fn RuntimeWithFixedAddresses(
+    comptime logical_input_count: usize,
+    comptime event_count: usize,
+    comptime batch_size: u8,
+    comptime main_column_count: usize,
+    comptime fixed_addresses: []const usize,
+) type {
+    return RuntimeWithMachineInputs(logical_input_count, event_count, batch_size, main_column_count, fixed_addresses, &.{});
+}
+
+/// Program-bound PC inputs are bounded by the admitted VM program table. Every
+/// use must share the request's liveness; declarations survive plan validation.
+pub fn RuntimeWithMachineInputs(
+    comptime logical_input_count: usize,
+    comptime event_count: usize,
+    comptime batch_size: u8,
+    comptime main_column_count: usize,
+    comptime fixed_addresses: []const usize,
+    comptime program_pcs: []const usize,
+) type {
     comptime {
         if (logical_input_count == 0 or
             logical_input_count > std.math.maxInt(u16))
@@ -57,8 +83,8 @@ pub fn Runtime(
         }
         if (event_count == 0 or event_count > std.math.maxInt(u8))
             @compileError("relation interaction event geometry must fit u8");
-        if (batch_size != 1 and batch_size != 2)
-            @compileError("recursion LogUp batch size must be one or two");
+        if (batch_size < 1 or batch_size > 4)
+            @compileError("recursion LogUp batch size must be between one and four");
     }
     const batch_count = (event_count + batch_size - 1) / batch_size;
     const interaction_column_count = 4 * batch_count;
@@ -101,7 +127,7 @@ pub fn Runtime(
             ) AuthenticationError!void {
                 if (self.format_version != FORMAT_VERSION)
                     return error.FormatVersionMismatch;
-                if (self.semantic_format_version != digest.typed_effect_format_version or
+                if (!machine.supportedFormat(self.semantic_format_version) or
                     !std.mem.eql(u8, &self.semantic_digest, &expected_digest))
                 {
                     return error.BindingSealMismatch;
@@ -189,6 +215,50 @@ pub fn Runtime(
                 row: Row,
             ) [EVENT_COUNT]Entry {
                 return entriesUnchecked(self, &row);
+            }
+
+            /// Visit selected base-field events without materializing secure
+            /// tuples for every relation. The authenticated DAG and event order
+            /// are identical to preparedEntries; the consumer selects schemas.
+            pub fn visitPreparedBaseEntries(self: *const Plan, row: Row, visitor: anytype) !void {
+                var slots: [slot_count]M31 = undefined;
+                evaluate(self, &row, &slots);
+                for (self.events) |event| {
+                    if (!visitor.accepts(event.schema)) continue;
+                    const magnitude = slots[event.numerator_slot];
+                    const numerator = switch (event.role) {
+                        .request, .consume => magnitude.neg(),
+                        .emit => magnitude,
+                    };
+                    var values: [MAX_ARITY]M31 = undefined;
+                    for (values[0..event.arity], event.value_slots[0..event.arity]) |*value, slot| value.* = slots[slot];
+                    try visitor.visit(event.schema, numerator, values[0..event.arity]);
+                }
+            }
+
+            /// The same authenticated expression DAG at extension-field
+            /// openings. A same-root projection selects schemas/ordinals;
+            /// source expressions and signed roles remain owned by this plan.
+            pub fn visitPreparedSecureEntries(self: *const Plan, row: SecureRow, visitor: anytype) !void {
+                return self.visitPreparedEntriesFor(QM31, row, visitor);
+            }
+
+            /// The same authenticated DAG and signed event order for recursive
+            /// scalar recording. Admission belongs to the original Plan owner.
+            pub fn visitPreparedEntriesFor(self: *const Plan, comptime S: type, row: [LOGICAL_INPUT_COUNT]S, visitor: anytype) !void {
+                var slots: [slot_count]S = undefined;
+                evaluateFor(S, self, &row, &slots);
+                for (self.events) |event| {
+                    if (!visitor.accepts(event.schema)) continue;
+                    const magnitude = slots[event.numerator_slot];
+                    const numerator = switch (event.role) {
+                        .request, .consume => magnitude.neg(),
+                        .emit => magnitude,
+                    };
+                    var values: [MAX_ARITY]S = undefined;
+                    for (values[0..event.arity], event.value_slots[0..event.arity]) |*value, slot| value.* = slots[slot];
+                    try visitor.visit(event.ordinal, event.domain, numerator, values[0..event.arity]);
+                }
             }
 
             /// Replays the authenticated plan into an exact per-domain claim.
@@ -367,7 +437,7 @@ pub fn Runtime(
             event_ids: [EVENT_COUNT]types.EffectId,
         ) AuthenticationError!Plan {
             const identity = try digest.computeIdentity(arena);
-            if (identity.format_version != digest.typed_effect_format_version or
+            if (!machine.supportedFormat(identity.format_version) or
                 !std.mem.eql(u8, &identity.bytes, &expected_digest))
             {
                 return error.BindingSealMismatch;
@@ -390,7 +460,11 @@ pub fn Runtime(
                     return error.EventPlanMismatch;
                 _ = relation.requireExactUniversalSchema(schema.domain) catch
                     return error.EventPlanMismatch;
-                if (event.kind != .component_call or
+                const supported_kind = switch (event.kind) {
+                    .component_call, .state_consume, .state_produce, .program_fetch => true,
+                    else => false,
+                };
+                if (!supported_kind or
                     event.schema_version != schema.version or
                     event.access_ordinal != null or
                     event.values.len != schema.fields.len)
@@ -455,16 +529,18 @@ pub fn Runtime(
                 batch.* = .{
                     .ordinal = @intCast(ordinal),
                     .first = @intCast(first),
-                    .second = if (BATCH_SIZE == 2 and first + 1 < EVENT_COUNT)
+                    .second = if (BATCH_SIZE >= 2 and first + 1 < EVENT_COUNT)
                         @intCast(first + 1)
                     else
                         null,
+                    .third = if (BATCH_SIZE >= 3 and first + 2 < EVENT_COUNT) @intCast(first + 2) else null,
+                    .fourth = if (BATCH_SIZE >= 4 and first + 3 < EVENT_COUNT) @intCast(first + 3) else null,
                     .interaction_column_start = @intCast(4 * ordinal),
                 };
             }
             return .{
                 .format_version = FORMAT_VERSION,
-                .semantic_format_version = digest.typed_effect_format_version,
+                .semantic_format_version = identity.format_version,
                 .semantic_digest = expected_digest,
                 .registry_order_digest = relation.registryOrderDigest(),
                 .compiled_node_count = @intCast(compiled_count),
@@ -518,6 +594,18 @@ pub fn Runtime(
                         .d2 = next.denominator,
                     };
                 } else logup.RowPair.single(first.numerator, first.denominator);
+                if (BATCH_SIZE >= 3 and batch.third != null) {
+                    const third = batch.third.?;
+                    const next = try fraction(plan.events[third], &slots, relations);
+                    pair.n1 = pair.n1.mul(next.denominator).add(next.numerator.mul(pair.d1));
+                    pair.d1 = pair.d1.mul(next.denominator);
+                }
+                if (BATCH_SIZE >= 4 and batch.fourth != null) {
+                    const fourth = batch.fourth.?;
+                    const next = try fraction(plan.events[fourth], &slots, relations);
+                    pair.n2 = pair.n2.mul(next.denominator).add(next.numerator.mul(pair.d2));
+                    pair.d2 = pair.d2.mul(next.denominator);
+                }
             }
             return result;
         }
@@ -549,6 +637,18 @@ pub fn Runtime(
                         .d2 = next.denominator,
                     };
                 } else logup.RowPair.single(first.numerator, first.denominator);
+                if (BATCH_SIZE >= 3 and batch.third != null) {
+                    const third = batch.third.?;
+                    const next = try fractionSecure(plan.events[third], &slots, relations);
+                    pair.n1 = pair.n1.mul(next.denominator).add(next.numerator.mul(pair.d1));
+                    pair.d1 = pair.d1.mul(next.denominator);
+                }
+                if (BATCH_SIZE >= 4 and batch.fourth != null) {
+                    const fourth = batch.fourth.?;
+                    const next = try fractionSecure(plan.events[fourth], &slots, relations);
+                    pair.n2 = pair.n2.mul(next.denominator).add(next.numerator.mul(pair.d2));
+                    pair.d2 = pair.d2.mul(next.denominator);
+                }
             }
             return result;
         }
@@ -607,19 +707,17 @@ pub fn Runtime(
             }
         }
 
-        fn evaluateSecure(
-            plan: *const Plan,
-            row: *const SecureRow,
-            slots: *[slot_count]QM31,
-        ) void {
+        fn evaluateSecure(plan: *const Plan, row: *const SecureRow, slots: *[slot_count]QM31) void {
+            evaluateFor(QM31, plan, row, slots);
+        }
+        fn evaluateFor(comptime S: type, plan: *const Plan, row: *const [LOGICAL_INPUT_COUNT]S, slots: *[slot_count]S) void {
             @memcpy(slots[0..LOGICAL_INPUT_COUNT], row);
-            for (plan.compiled_nodes[0..plan.compiled_node_count]) |node| {
-                slots[node.destination] = evaluateSecureOp(node.op, slots);
-            }
+            for (plan.compiled_nodes[0..plan.compiled_node_count]) |node| slots[node.destination] = evaluateOpFor(S, node.op, slots);
         }
 
         inline fn evaluateOp(op: EvalOp, slots: *const [slot_count]M31) M31 {
             return switch (op) {
+                .machine => |v| machine.evaluate(M31, v, slots),
                 .constant => |value| M31.fromU64(value),
                 .add => |binary| slots[binary.lhs].add(slots[binary.rhs]),
                 .sub => |binary| slots[binary.lhs].sub(slots[binary.rhs]),
@@ -632,19 +730,21 @@ pub fn Runtime(
             };
         }
 
-        inline fn evaluateSecureOp(
+        inline fn evaluateOpFor(
+            comptime S: type,
             op: EvalOp,
-            slots: *const [slot_count]QM31,
-        ) QM31 {
+            slots: *const [slot_count]S,
+        ) S {
             return switch (op) {
-                .constant => |value| QM31.fromBase(M31.fromU64(value)),
+                .machine => |v| machine.evaluate(S, v, slots),
+                .constant => |value| S.fromBase(M31.fromU64(value)),
                 .add => |binary| slots[binary.lhs].add(slots[binary.rhs]),
                 .sub => |binary| slots[binary.lhs].sub(slots[binary.rhs]),
                 .mul => |binary| slots[binary.lhs].mul(slots[binary.rhs]),
                 .neg => |operand| slots[operand].neg(),
                 .select => |selection| slots[selection.selector]
                     .mul(slots[selection.when_true])
-                    .add(QM31.one().sub(slots[selection.selector])
+                    .add(S.one().sub(slots[selection.selector])
                     .mul(slots[selection.when_false])),
             };
         }
@@ -739,12 +839,58 @@ pub fn Runtime(
         fn validateInputs(arena: *const ir.Arena) Error!void {
             if (arena.nodesView().len < LOGICAL_INPUT_COUNT)
                 return error.InvalidInputGeometry;
-            for (arena.nodesView()[0..LOGICAL_INPUT_COUNT]) |node| {
+            for (fixed_addresses, 0..) |index, ordinal| {
+                if (index < main_column_count or index >= LOGICAL_INPUT_COUNT or
+                    (arena.nodesView()[index].key.ty != .address and arena.nodesView()[index].key.ty != .pc)) return error.InvalidInputGeometry;
+                for (fixed_addresses[0..ordinal]) |earlier| if (earlier == index) return error.InvalidInputGeometry;
+            }
+            for (program_pcs, 0..) |index, ordinal| {
+                if (index >= main_column_count or index >= LOGICAL_INPUT_COUNT or arena.nodesView()[index].key.ty != .pc) return error.InvalidInputGeometry;
+                for (program_pcs[0..ordinal]) |earlier| if (earlier == index) return error.InvalidInputGeometry;
+                const pc: types.ValueId = @enumFromInt(index);
+                var active: ?types.ValueId = null;
+                for (arena.effectsView()) |effect| {
+                    const binding = effect.binding orelse continue;
+                    const values = effect.values.slice(arena.effectValuesView()) orelse return error.InvalidInputGeometry;
+                    if (binding.schema == relation.id(.program_access) and binding.role == .request and values.len == 5 and values[0] == pc) {
+                        if (active != null and active != effect.liveness) return error.InvalidInputGeometry;
+                        active = effect.liveness orelse return error.InvalidInputGeometry;
+                    }
+                }
+                if (active == null) return error.InvalidInputGeometry;
+                var dependent = [_]bool{false} ** MAX_ARENA_NODES;
+                dependent[index] = true;
+                for (arena.nodesView(), 0..) |node, node_index| {
+                    const operands: [3]?types.ValueId = switch (node.key.op) {
+                        .input, .constant => .{ null, null, null },
+                        .add, .sub, .mul => |v| .{ v.lhs, v.rhs, null },
+                        .neg => |v| .{ v, null, null },
+                        .select => |v| .{ v.selector, v.when_true, v.when_false },
+                        .machine_derived => |v| machine.operands(v),
+                        .hint_output, .call_output => return error.UnsupportedRelationExpression,
+                    };
+                    for (operands) |operand| if (operand) |id| {
+                        const source_index = types.idIndex(id);
+                        if (source_index >= node_index) return error.InvalidInputGeometry;
+                        dependent[node_index] = dependent[node_index] or dependent[source_index];
+                    };
+                }
+                for (arena.effectsView()) |effect| {
+                    const values = effect.values.slice(arena.effectValuesView()) orelse return error.InvalidInputGeometry;
+                    for (values) |value| {
+                        const value_index = types.idIndex(value);
+                        if (value_index >= arena.nodesView().len) return error.InvalidInputGeometry;
+                        if (dependent[value_index] and effect.liveness != active) return error.InvalidInputGeometry;
+                    }
+                }
+            }
+            for (arena.nodesView()[0..LOGICAL_INPUT_COUNT], 0..) |node, index| {
                 switch (node.key.op) {
                     .input => {},
                     else => return error.InvalidInputGeometry,
                 }
-                if (!node.key.ty.isFieldScalar())
+                const fixed_address = (node.key.ty == .address or node.key.ty == .pc) and std.mem.indexOfScalar(usize, fixed_addresses, index) != null;
+                if (!node.key.ty.isFieldScalar() and !fixed_address and std.mem.indexOfScalar(usize, program_pcs, index) == null)
                     return error.InvalidInputGeometry;
             }
             for (arena.nodesView()[LOGICAL_INPUT_COUNT..]) |node| switch (node.key.op) {
@@ -780,6 +926,11 @@ pub fn Runtime(
             visiting[index] = .active;
             const node = arena.node(value) orelse return error.EventPlanMismatch;
             switch (node.key.op) {
+                .machine_derived => |v| {
+                    for (machine.operands(v)) |operand| if (operand) |id| {
+                        try markRecursive(arena, id, required, visiting);
+                    };
+                },
                 .constant => {},
                 .add, .sub, .mul => |binary| {
                     try markRecursive(arena, binary.lhs, required, visiting);
@@ -815,6 +966,12 @@ pub fn Runtime(
                     .when_true = try mappedSlot(selection.when_true, mapping),
                     .when_false = try mappedSlot(selection.when_false, mapping),
                 } },
+                .machine_derived => |v| .{ .machine = try machine.mapped(v, struct {
+                    slots: *const [MAX_ARENA_NODES]u16,
+                    pub fn get(self: @This(), id: types.ValueId) Error!types.ValueId {
+                        return @enumFromInt(try mappedSlot(id, self.slots));
+                    }
+                }{ .slots = mapping }) },
                 else => error.UnsupportedRelationExpression,
             };
         }

@@ -1,0 +1,59 @@
+{
+  "schema": "stwo-zig/scoped-proof-qualification/v1",
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "canonical_q70": false
+  },
+  "test": "block-v5 reusable recursion proves two changing native instances with one key",
+  "status": "passed",
+  "tests_passed": 7,
+  "native_template_protocol_version": 2,
+  "recursive_public_bus_version": 1,
+  "native_states": 2,
+  "native_geometry_equal": true,
+  "recursive_keys_equal": true,
+  "proving_setup_rebound": true,
+  "different_b5ss_seals": true,
+  "different_native_instance_ids": true,
+  "different_native_main_roots": true,
+  "different_full_public_statement_digests": true,
+  "native_stark_equations_fresh_recursive_verified": true,
+  "pcs_transcript_fri_merkle_fresh_verified": true,
+  "public_relation_supply_fresh_closed": true,
+  "public_bus_wire_count": 45,
+  "recursive_fixed_rows": 51644,
+  "recursive_proof_bytes": [
+    129580,
+    127054
+  ],
+  "negatives": {
+    "changed_open_claim": true,
+    "changed_main_root": true,
+    "changed_full_public_statement_digest": true
+  },
+  "allocator_teardown": "std.testing.allocator clean",
+  "tracked_peak_bytes": null,
+  "elapsed_ns": null,
+  "complete_block_authority": false,
+  "global_relations_still_open": [
+    "program",
+    "memory",
+    "lookup",
+    "precompile",
+    "public_boundary"
+  ],
+  "scope": "Real ordinary native v2 STARKs and actual recursive verifier proofs, same exact geometry, differing independently admitted public instance tuples. Other family first-round entries in this focused fixture are placeholders, not provider proofs.",
+  "limitations": [
+    "Exact native geometry and capacity are fixed; native active selectors remain count-dependent.",
+    "This uses native v2 public compensation and old commitment-plan admission. The new lightweight native v3 route is source-only and not included.",
+    "Joined span/sidecar recursive leaf and full global closure are outside this gate.",
+    "No q70 or mainnet block qualification."
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/recursion/block_v5_recursive_public_bus_v1.zig": "05b9f04708e3bb01f7269e0717d503d6209e462d80caaed9b41e88ac07bc58fd",
+    "src/frontends/riscv/recursion/block_v5_reusable_native_parent_protocol_v1.zig": "99021cb55a710a96e7122d372a02fe952645929bc3ffa1434741cc3567dfb79a",
+    "src/frontends/riscv/prover/block_v5_native_execution_proof_test.zig": "a569b6c22000583212fc1815ef07dd600cdcc411fcddcedff808ebbce4a795d2"
+  },
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_native_execution_test_root.zig 'block-v5 reusable recursion proves two changing native instances with one key'"
+}

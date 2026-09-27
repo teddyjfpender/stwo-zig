@@ -1,0 +1,22 @@
+{
+  "source_candidate": "requester-summary-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 103.02430920797633,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 14,
+  "test_summary": [
+    "All 14 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-summary-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-requester-summary-focused-v1",
+    "bytes": 11251592,
+    "sha256": "a983c25a5f7b1eb46727fd2187ba33859066d29ff425ca53ee41734ddbad8d53"
+  }
+}

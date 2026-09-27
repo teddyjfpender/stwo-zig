@@ -1,0 +1,38 @@
+{
+  "base_qualification": "sha-profile-execution-qualification.json",
+  "archive": "sha-combined-witness-source.tar.gz",
+  "archive_sha256": "00cb0fbb35c97172cd98886db4ec9dfa8cda22a124bc716631ef874026baa398",
+  "source_sha256": {
+    "src/frontends/riscv/air/program/commitment.zig": "076227a4b8961532390f680e069ecb103d2f485b6141ec59e0d5a1e356facfdf",
+    "src/frontends/riscv/air/public_logup_arithmetic.zig": "3f6f781caa1f9c7f1c19573652657b5bf6dbeafdf3f264f24f970b146f9c595c",
+    "src/frontends/riscv/runner/guest_precompile/sha256_compression_v1.zig": "0a60fd33a421d79292b83f1794dd2e8853626cae038f58261819b0277b102fca",
+    "src/frontends/riscv/prover/blake3_ethereum_witness.zig": "99f00733b3f19c39235287690e866a095a6ab88c08fa1804d220c0e929bd1f74",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_witness_test.zig": "a1339aba1692c1520dffe5776227ca3185843e424bd6b2a7b1b3fb73ef1f031a",
+    "src/frontends/riscv/prover/guest_precompile/sha256_interaction.zig": "26b19d4f0e269e562417c6c977c5b6ba263ba0e8a8dec86140ff17f0b6b742ec",
+    "src/frontends/riscv/blake3_execution_commitment_test_root.zig": "b23449f95ea5020032f7fb6310d23e97258cbe93931e63e0858c73de0a7fea7d",
+    "src/frontends/riscv/prover/blake3_execution_components.zig": "7377b7c62c7e4ad3cd3189c0024d2695e92c78141f5c577c8a20b145cc5f6f03",
+    "src/frontends/riscv/prover/blake3_ethereum_profile.zig": "35ea46e431d147f2c3e26c29a447b12dd81dd0a2314e3419458b8fa9695536c0",
+    "src/frontends/riscv/prover/blake3_poseidon_profile.zig": "0c6bd21a20ae91e4b47095e7c853d3c66f747d5339031b3049d5f416bf8cd556",
+    "src/frontends/riscv/prover/blake3_extension_proof.zig": "52f2f93df9e5c0cac6c3d36941816be274528983ea9c75dbea32082b07f7ce2e",
+    "src/frontends/riscv/prover/blake3_extension_prepared.zig": "af7340e30e8744c6a8a57228f6575da4b60529ed246c15a0e48e8863d47a6e60",
+    "src/frontends/riscv/recursion/air/blake3_execution_composition.zig": "914f7e3d99a59f44eb647b910a75d9702a80565ae0fe67f56d94103022a63d88",
+    "src/frontends/riscv/prover/blake3_ethereum_segment_test.zig": "5d0ed55b7705602d7e2baafeec86c6c984987ed9c08f4e1eefba37ff075e42ad"
+  },
+  "gates": [
+    {
+      "log": "test-sha-combined-witness-5.log",
+      "tests_passed": 11,
+      "scope": "native combined witness, segmented shared relation closure and ownership"
+    },
+    {
+      "log": "test-precompile-boundary-root-2.log",
+      "tests_passed": 8,
+      "scope": "Ethereum precompile boundary leaf and fresh recursive root with full custody",
+      "queries": 8,
+      "pow_bits": 0
+    }
+  ],
+  "combined_sha_production_proof_verified": false,
+  "combined_sha_recursion_verified": false,
+  "full_ethereum_block_root_verified": false
+}

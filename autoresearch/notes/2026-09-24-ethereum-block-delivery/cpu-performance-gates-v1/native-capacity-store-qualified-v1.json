@@ -1,0 +1,149 @@
+{
+  "schema": "native-capacity-store-qualified-v1",
+  "status": "actual_policy_literal_durable_transport_qualified",
+  "tests_passed": 11,
+  "named_tests": 7,
+  "root": "src/frontends/riscv/block_v5_native_capacity_store_test_root.zig",
+  "filters": [
+    "capacity store",
+    "block-v5 durable file roster"
+  ],
+  "scope": "Genuine common-seal/catalog/exact-source admission with literal noncryptographic postcard proofs; durable producer consumption and owned single-use loader; publication failure ownership, independent roots/identities, total caps, existing artifact preservation, tamper rejection, streaming manifest bounds, exhaustive allocation failures and actual fresh capture loader body compilation. Shared file publication/read implementation adopted by canonical legacy store.",
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_artifact_files_v1.zig",
+      "sha256": "041d2cb4d4e5a4653c23264ce2268c50b778a51165b4e7b039bae582a758bef8",
+      "bytes": 1888
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_store_v1.zig",
+      "sha256": "769e81babdc713bdb1521c0d12ec76264142e32e3a761aa9758288bf45a20ec5",
+      "bytes": 22974
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_store_v1.zig",
+      "sha256": "2a56f444c7bc36117faa396e7999402d54f23846abd6392c664991166a5097b5",
+      "bytes": 12714
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_store_test.zig",
+      "sha256": "16d127c30660cfb41f0dd633ccd6488123555f6d69128ba4536db4bd46266a35",
+      "bytes": 12573
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_store_test_root.zig",
+      "sha256": "b85830514c1ab0f39537b589cec352cfb199ba40c3f5473ce0f860c9def707cc",
+      "bytes": 138
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_store_test.zig",
+      "sha256": "500b1df4e251b96f812522924104080c1b1a77acdd8914a7cc143d6835ff9c6b",
+      "bytes": 16330
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_codec_v1.zig",
+      "sha256": "a08a06388b23be13e4f9e00634a0962644b3acd79ab19166b7bff811b25ed14d",
+      "bytes": 9566
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_artifact_receiver_v1.zig",
+      "sha256": "eb831721fd09287d8e64b523f5ad76d47ce0fe9782e021963539035db27f0614",
+      "bytes": 4277
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_proof_v1.zig",
+      "sha256": "ceb314f427074c4fe75b4036dad22e5bbb6b8e7077e645824c7d9c874c883046",
+      "bytes": 33703
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_transport_fixture_v1.zig",
+      "sha256": "dfc151e7a2b92457629de8a8919b76bd5bb7e92a6264d30777310f2bc55d98d0",
+      "bytes": 5800
+    }
+  ],
+  "evidence": [
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-store-production-v2.log",
+      "sha256": "e1df61ab7c0205c1006f2f0e15df84a7d5eaf981ae57710e4c1eb15f39acb14e",
+      "bytes": 1226
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-capacity-store-legacy-body-v1.log",
+      "sha256": "a2c6f874faea8396b88ea67443dc5acea37a6058779fa8d4d767bfd6b7b67b1a",
+      "bytes": 492
+    }
+  ],
+  "stark_proved": false,
+  "fresh_capture_executed": false,
+  "canonical_capacity_activation": false,
+  "segments_executed": false,
+  "device_executed": false,
+  "performance_measured": false,
+  "remaining": [
+    "Distinct fused capacity grammar and durable loader",
+    "Canonical block driver/global receiver activation",
+    "Actual complete proof and performance qualification"
+  ],
+  "baseline_sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_artifact_files_v1.zig",
+      "sha256": "041d2cb4d4e5a4653c23264ce2268c50b778a51165b4e7b039bae582a758bef8",
+      "bytes": 1888
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_store_v1.zig",
+      "sha256": "9fbb4d0e00b4148c1dae313476451a93e3475461ffe626052cd8ac15f8b19230",
+      "bytes": 23121
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_store_v1.zig",
+      "sha256": "2a56f444c7bc36117faa396e7999402d54f23846abd6392c664991166a5097b5",
+      "bytes": 12714
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_store_test.zig",
+      "sha256": "71a6bc91d7b5a1b1eedab564bb19eb58393aa0470e040f289bc0d898d7e952cb",
+      "bytes": 12280
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_store_test_root.zig",
+      "sha256": "b85830514c1ab0f39537b589cec352cfb199ba40c3f5473ce0f860c9def707cc",
+      "bytes": 138
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_cpu_bundle_store_test.zig",
+      "sha256": "500b1df4e251b96f812522924104080c1b1a77acdd8914a7cc143d6835ff9c6b",
+      "bytes": 16330
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_codec_v1.zig",
+      "sha256": "a08a06388b23be13e4f9e00634a0962644b3acd79ab19166b7bff811b25ed14d",
+      "bytes": 9566
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_artifact_receiver_v1.zig",
+      "sha256": "eb831721fd09287d8e64b523f5ad76d47ce0fe9782e021963539035db27f0614",
+      "bytes": 4277
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_proof_v1.zig",
+      "sha256": "ceb314f427074c4fe75b4036dad22e5bbb6b8e7077e645824c7d9c874c883046",
+      "bytes": 33703
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_transport_fixture_v1.zig",
+      "sha256": "dfc151e7a2b92457629de8a8919b76bd5bb7e92a6264d30777310f2bc55d98d0",
+      "bytes": 5800
+    }
+  ],
+  "followup": {
+    "tests_passed": 6,
+    "named_tests": 2,
+    "scope": "After 11-check baseline, canonical legacy manifest publication also reuses shared exclusive durable I/O. Actual instantiated ROM producer and loader wrappers, capacity fresh capture loader and prior manifest regression now compile/pass. Capacity store production source and original five runtime fixture bodies unchanged.",
+    "filters": [
+      "capacity store real fresh",
+      "block-v5 durable file roster"
+    ]
+  },
+  "baseline_snapshot_provenance": "Baseline reconstructed without modifying files by reversing exactly the two recorded followup patches (legacy manifest writer and explicit instantiated ROM wrappers). All other baseline source snapshots are unchanged."
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "index": 0,
+    "expected": 1,
+    "actual": 1,
+    "binary_sha256": "116885e5b46cc21665d980cf1bcbafc78350e2c2902fd0ee6aedd76092f94625"
+  },
+  {
+    "index": 1,
+    "expected": 2,
+    "actual": 2,
+    "binary_sha256": "d97ef9f1faf57764db0bafcf9f175103b806b867a1461e1f84fc8e62eb12ecaa"
+  },
+  {
+    "index": 2,
+    "expected": 2,
+    "actual": 2,
+    "binary_sha256": "d97ef9f1faf57764db0bafcf9f175103b806b867a1461e1f84fc8e62eb12ecaa"
+  }
+]

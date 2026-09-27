@@ -1,0 +1,11 @@
+1/10 block_v5_memory_source_page_job_test_root.test.source PAGE job root...OK
+2/10 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: aggregate disk and metadata caps check exact boundary and arithmetic overflow...OK
+3/10 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: invalid budget failed phase and live owner reject before any proof or reader...OK
+4/10 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: actual fold proposal graph closure and full root mutation are checked independently...OK
+5/10 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: actual original five-stream packed SHA claim proposal matches semantic graph...OK
+6/10 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: actual constructor retains parent and setup lease until page release...OK
+7/10 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: initial budget control and setup allocation failures release parent references...OK
+8/10 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE job: detached bounded fold recipe inventory has independent lifetime and every allocation fault...OK
+9/10 block_v5_memory_source_page_job_codegen.test.source PAGE job bodies: actual collect persist roster seal replay prove decode fresh verify and publication...OK
+10/10 air.memory_commitment.poseidon2_air.test_0...OK
+All 10 tests passed.

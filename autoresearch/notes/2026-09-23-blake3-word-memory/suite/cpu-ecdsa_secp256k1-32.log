@@ -1,0 +1,3 @@
+full-width witness: steps=1828 hash_counts={ 63000, 18000, 21360, 11097, 848, 303, 303, 404 } hash_logs={ 16, 15, 15, 14, 10, 9, 9, 9 } live=127046599 peak=127346576
+full-width shared-path geometry [program, initial, final]: { .{ .words = 404, .independent_compressions = 98576, .shared_compressions = 4894, .proved_compressions = 0, .leaves = 1616, .parents = 1639, .frontier = 24 }, .{ .words = 136, .independent_compressions = 8296, .shared_compressions = 516, .proved_compressions = 516, .leaves = 136, .parents = 190, .frontier = 55 }, .{ .words = 167, .independent_compressions = 10187, .shared_compressions = 609, .proved_compressions = 609, .leaves = 167, .parents = 221, .frontier = 55 } }
+full-width admission: live=127625197 peak=447208090

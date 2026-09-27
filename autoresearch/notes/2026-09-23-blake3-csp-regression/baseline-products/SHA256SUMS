@@ -1,0 +1,7 @@
+940e44c089e47ea7aeb7efb7ad2ea320f4de0306232f04330b65af891cf90196  bin/stwo-zig-riscv-cpu
+908b5967c5da6b86bcf1550742a5f0cb04f14df402d93bbf9fe30effbc59e5eb  bin/stwo-zig-riscv-metal
+f420083a25f85e498af6368924b0f2b074dd6fdad6d2524e66787b381a72493c  share/stwo-zig/metal/core/stwo_zig_core.air
+37b9fab4bd52e6528e72d5a269b9cd2692480e750ccd81cbdf24fd534f57115f  share/stwo-zig/metal/core/stwo_zig_core.manifest.json
+b95efe85b747b9287b2a50668e20b1a61296ee2a22a000bc6d3255e32ec07050  share/stwo-zig/metal/core/stwo_zig_core.manifest.sha256
+c38849ca672c5693733eabe67302037dd34c4630249c95be25193274f9812366  share/stwo-zig/metal/core/stwo_zig_core.metal
+8a27cf1f0f5cd17bb0c8f335e3f155c15506ee258b3f850e072da1da8189ca5c  share/stwo-zig/metal/core/stwo_zig_core.metallib

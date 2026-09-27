@@ -1,0 +1,13 @@
+{
+  "status": "qualified_combined_nonproving_snapshot",
+  "full_retained_body_and_checks": "caller-fused-recursion-focused-v1-result.json",
+  "full_result": "11of12 passed; only expected error-name fixture failed",
+  "corrective": "caller-fused-recursion-corrective-v2-result.json",
+  "corrective_result": "4of4 passed after expected UnsatisfiedCircuit correction",
+  "later_semantic_integration": "caller-fused-recursion-semantic-v3-result.json",
+  "distinct_checks": 12,
+  "scope": "Actual original scalar quotient/symbolic parity, transcript and public ownership/admission checks; original producer/capture/all-cohort/fresh leaf bodies retained at original pinned snapshot. Later shared dependencies carry separate semantic/native/global evidence, not blanket repeat of full LLVM.",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

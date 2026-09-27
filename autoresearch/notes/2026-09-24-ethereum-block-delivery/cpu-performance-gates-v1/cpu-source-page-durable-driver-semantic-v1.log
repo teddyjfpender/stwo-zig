@@ -1,0 +1,29 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/math.zig:1121:11: error: evaluation exceeded 1000 backwards branches
+    assert(int > 0);
+    ~~~~~~^~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/math.zig:1121:11: note: use @setEvalBranchQuota() to raise the branch limit from 1000
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/math.zig:708:34: note: called at comptime here
+        if (comptime isPowerOfTwo(@typeInfo(T).int.bits)) {
+                     ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/sha2.zig:295:164: note: called at comptime here
+                s[i] = s[i - 16] +% s[i - 7] +% (math.rotr(u32, s[i - 15], @as(u32, 7)) ^ math.rotr(u32, s[i - 15], @as(u32, 18)) ^ (s[i - 15] >> 3)) +% (math.rotr(u32, s[i - 2], @as(u32, 17)) ^ math.rotr(u32, s[i - 2], @as(u32, 19)) ^ (s[i - 2] >> 10));
+                                                                                                                                                          ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/sha2.zig:128:24: note: called at comptime here
+                d.round(b[off..][0..64]);
+                ~~~~~~~^~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_batch_protocol_v1.zig:17:13: note: called at comptime here
+    h.update("stwo-zig/block-v5/sorted-source-fold/v1\x00depth30;strict-ram;full-image;paired-before;untouched-retained;authenticated-initial-input;full-u64-clocks;postorder-coordinate-routing;one-root;original-blake3-tree-v2;no-proof-authority\x00");
+    ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_batch_raw_schema_v1.zig:57:29: note: called at comptime here
+    hash.update(&Batch.abiId());
+                 ~~~~~~~~~~~^~
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_protocol_v1.zig:122:33: note: called at comptime here
+    hash.update(&RawSchema.abiId());
+                 ~~~~~~~~~~~~~~~^~
+src/frontends/riscv/prover/block_v5_memory_source_page_policy_file_v1.zig:34:38: note: called at comptime here
+    page_abi: [32]u8 = Protocol.abiId(),
+                       ~~~~~~~~~~~~~~^~
+referenced by:
+    Wire: src/frontends/riscv/prover/block_v5_memory_source_page_policy_file_v1.zig:31:18
+    write: src/frontends/riscv/prover/block_v5_memory_source_page_policy_file_v1.zig:122:81
+    4 reference(s) hidden; use '-freference-trace=6' to see all references

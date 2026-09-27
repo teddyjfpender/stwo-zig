@@ -1,0 +1,17 @@
+{
+  "execution_only": true,
+  "cases": [
+    "batch-1",
+    "batch-2",
+    "batch-4",
+    "batch-8",
+    "batch-16",
+    "bad-type",
+    "bad-parity",
+    "zero-r",
+    "high-s",
+    "bad-rlp"
+  ],
+  "both_backends_passed": true,
+  "negative_proof_claim": false
+}

@@ -80,10 +80,12 @@ pub fn Ops(comptime B: type) type {
             const channel_blake2s = @import("stwo_core").channel.blake2s;
             const line = @import("stwo_core").poly.line;
             const circle = @import("stwo_core").circle;
-            const maybe_domain = comptime hash_domain.blake2sParameters(H);
+            const blake3 = comptime H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher;
+            const maybe_domain = comptime hash_domain.directParameters(H);
             if (comptime maybe_domain == null) return null;
             const domain = maybe_domain.?;
-            if (comptime @TypeOf(channel.*) != channel_blake2s.Blake2sChannel) return null;
+            const ExpectedChannel = if (blake3) @import("stwo_core").channel.blake3.Channel else channel_blake2s.Blake2sChannel;
+            if (comptime @TypeOf(channel.*) != ExpectedChannel or domain.family == .poseidon2_m31) return null;
             if (config.fold_step != 1 or
                 provider.domain_size != circle_domain.size() or
                 !commit_policy.quotientUsesResidentMerkle(provider.lifting_log_size) or
@@ -109,9 +111,9 @@ pub fn Ops(comptime B: type) type {
             );
             if (layer_count == 0 or layer_count >= 31) return null;
 
-            var first_column = try B.allocateSecureColumn(provider.domain_size);
+            var first_column = try B.allocateSecureColumnWithAllocator(allocator, provider.domain_size);
             errdefer first_column.deinit(allocator);
-            var line_evaluation = try B.allocateLineEvaluation(line_domain);
+            var line_evaluation = try B.allocateLineEvaluationWithAllocator(allocator, line_domain);
             defer line_evaluation.deinit(allocator);
 
             const SecureColumn = @import("stwo_prover_engine").secure_column.SecureColumnByCoords;
@@ -128,7 +130,7 @@ pub fn Ops(comptime B: type) type {
             defer allocator.free(coordinate_handles);
             var current_count = line_domain.size();
             for (columns, coordinate_handles) |*column, *handle| {
-                column.* = try B.allocateSecureColumn(current_count);
+                column.* = try B.allocateSecureColumnWithAllocator(allocator, current_count);
                 initialized_columns += 1;
                 handle.* = column.resident_storage.?.handle;
                 current_count >>= 1;
@@ -136,10 +138,10 @@ pub fn Ops(comptime B: type) type {
 
             var terminal_domain = line_domain;
             for (0..layer_count) |_| terminal_domain = terminal_domain.double();
-            var terminal = try B.allocateLineEvaluation(terminal_domain);
+            var terminal = try B.allocateLineEvaluationWithAllocator(allocator, terminal_domain);
             errdefer terminal.deinit(allocator);
 
-            var channel_state = [_]u32{0} ** 10;
+            var channel_state = [_]u32{0} ** (if (blake3) 11 else 10);
             for (0..8) |word| {
                 channel_state[word] = std.mem.readInt(
                     u32,
@@ -147,7 +149,8 @@ pub fn Ops(comptime B: type) type {
                     .little,
                 );
             }
-            channel_state[8] = channel.n_draws;
+            channel_state[8] = @truncate(channel.n_draws);
+            if (blake3) channel_state[9] = @truncate(channel.n_draws >> 32);
 
             _ = first_column.resident_storage orelse return error.InvalidColumns;
             const line_storage = line_evaluation.resident_storage orelse return error.InvalidColumns;
@@ -155,8 +158,9 @@ pub fn Ops(comptime B: type) type {
             const initial_coset = line_domain.coset();
             var lease = try shared_runtime.acquire();
             defer lease.deinit();
-            var runtime_result: @import("../runtime.zig").QuotientFriCommitResult = if (ledger != null) blk: {
-                const profiled = try lease.runtime.computeQuotientsAndCommitFriWithReceipt(
+            const runtime_result: @import("../runtime.zig").QuotientFriCommitResult = if (ledger != null) blk: {
+                var profiled = try lease.runtime.computeQuotientsAndCommitFriWithReceipt(
+                    blake3,
                     allocator,
                     provider,
                     &first_column,
@@ -170,13 +174,14 @@ pub fn Ops(comptime B: type) type {
                     domain.node_seed,
                     domain.domain_prefix_bytes,
                 );
-                try provider.completeMetalRowExecution(profiled.execution);
+                const accepted = try @import("quotient_result_ownership_v1.zig").acceptReceipt(allocator, provider, &profiled);
                 break :blk .{
-                    .gpu_ms = profiled.gpu_ms,
-                    .tree = profiled.tree,
-                    .fri = profiled.fri,
+                    .gpu_ms = accepted.gpu_ms,
+                    .tree = accepted.tree,
+                    .fri = accepted.fri,
                 };
             } else try lease.runtime.computeQuotientsAndCommitFri(
+                blake3,
                 allocator,
                 provider,
                 &first_column,
@@ -190,19 +195,13 @@ pub fn Ops(comptime B: type) type {
                 domain.node_seed,
                 domain.domain_prefix_bytes,
             );
-            defer allocator.free(runtime_result.fri.trees);
-
-            var initial_runtime_tree = runtime_result.tree;
-            var initial_tree_consumed = false;
-            errdefer if (!initial_tree_consumed) initial_runtime_tree.deinit();
-            var first_tree = try B.MerkleTree(H).fromSharedRuntime(initial_runtime_tree);
-            initial_tree_consumed = true;
+            var raw_trees = @import("quotient_result_ownership_v1.zig").Batch(@import("../runtime.zig").Tree).init(allocator, runtime_result.tree, runtime_result.fri.trees);
+            defer raw_trees.deinit();
+            var first_tree = try B.MerkleTree(H).fromSharedRuntime(try raw_trees.takeInitial());
             errdefer first_tree.deinit(allocator);
-
-            var consumed_runtime_trees: usize = 0;
-            errdefer {
-                for (runtime_result.fri.trees[consumed_runtime_trees..]) |*tree| tree.deinit();
-            }
+            // The fused route must honor the same independent raw-output
+            // diagnostic as standalone quotient commits, after owners are armed.
+            try B.validateQuotientOutputParity(allocator, provider, &first_column);
             const ready_layers = try allocator.alloc(InnerLayerProver, layer_count);
             var initialized_layers: usize = 0;
             errdefer {
@@ -213,9 +212,8 @@ pub fn Ops(comptime B: type) type {
                 allocator.free(ready_layers);
             }
             var layer_domain = line_domain;
-            for (ready_layers, runtime_result.fri.trees, columns) |*layer, runtime_tree, column| {
-                const tree = try B.MerkleTree(H).fromSharedRuntime(runtime_tree);
-                consumed_runtime_trees += 1;
+            for (ready_layers, columns) |*layer, column| {
+                const tree = try B.MerkleTree(H).fromSharedRuntime(try raw_trees.takeNext());
                 layer.* = .{
                     .domain = layer_domain,
                     .column = column,
@@ -235,7 +233,7 @@ pub fn Ops(comptime B: type) type {
                     .little,
                 );
             }
-            channel.n_draws = channel_state[8];
+            channel.n_draws = if (blake3) @as(u64, channel_state[8]) | (@as(u64, channel_state[9]) << 32) else channel_state[8];
             telemetry.record(.metal_quotient_dispatch);
             telemetry.record(.metal_fri_circle_fold_dispatch);
             telemetry.record(.metal_fri_fold_commit_epoch);
@@ -358,8 +356,11 @@ pub fn Ops(comptime B: type) type {
             config: @import("stwo_core").fri.FriConfig,
             ledger: ?*work_profile.FriFoldExecutionLedger,
         ) !?InnerCommitResult {
-            const channel_blake2s = @import("stwo_core").channel.blake2s;
-            if (comptime @TypeOf(channel.*) != channel_blake2s.Blake2sChannel) return null;
+            const blake3 = comptime H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher;
+            const ExpectedChannel = if (blake3) @import("stwo_core").channel.blake3.Channel else @import("stwo_core").channel.blake2s.Blake2sChannel;
+            // Reject unsupported pairs before consuming the first fold challenge.
+            if (comptime @TypeOf(channel.*) != ExpectedChannel or
+                (!blake3 and hash_domain.blake2sParameters(H) == null)) return null;
             if (config.fold_step != 1 or
                 circle_column.resident_storage == null or
                 circle_column.len() != circle_domain.size() or
@@ -370,7 +371,7 @@ pub fn Ops(comptime B: type) type {
                 return null;
             }
 
-            var evaluation = try B.allocateLineEvaluation(line_domain);
+            var evaluation = try B.allocateLineEvaluationWithAllocator(allocator, line_domain);
             defer evaluation.deinit(allocator);
             var workspace = try @import("stwo_core").fri.FoldLineWorkspace.init(allocator, 0);
             defer workspace.deinit(allocator);

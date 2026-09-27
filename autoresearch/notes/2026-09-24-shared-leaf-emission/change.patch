@@ -1,0 +1,146 @@
+--- a/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
+@@ -91,7 +91,7 @@
+     try attachSpan(a, &result, admitted, capture, expected, statement, conversions);
+     return result;
+ }
+-pub fn attachSpan(a: std.mem.Allocator, result: *Prepared, admitted: anytype, capture: anytype, expected: [32]u8, statement: @import("span_statement_blake3.zig").SpanStatement, conversions: [2]*const @import("air/blake3_memory_custody.zig").Prepared) !void {
++pub fn attachSpan(a: std.mem.Allocator, result: anytype, admitted: anytype, capture: anytype, expected: [32]u8, statement: @import("span_statement_blake3.zig").SpanStatement, conversions: [2]*const @import("air/blake3_memory_custody.zig").Prepared) !void {
+     const binding = try @import("blake3_execution_span.zig").bind(a, admitted, capture, expected, statement, &conversions[0].plan, &conversions[1].plan);
+     if (!std.mem.eql(u8, &result.context.child_key_id, &expected) or result.context.statement_identity != null or result.context.span_binding_id != null) return error.InvalidParentSpanAttachment;
+     const statement_id = (try @import("span_identity_blake3.zig").hash(&try statement.canonicalWords(), .statement)).bytes;
+--- a/src/frontends/riscv/recursion/air/blake3_parent_custody_rows.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_custody_rows.zig
+@@ -2,7 +2,6 @@
+ //! Byte sources are public constants: emit them at each hash input directly,
+ //! avoiding a redundant private-copy AIR and its caller-side producers.
+ const std = @import("std");
+-const storage = @import("blake3_parent_row_storage.zig");
+ const append = @import("blake3_parent_append.zig");
+ const custody = @import("blake3_memory_custody.zig");
+ const chain = @import("blake3_memory_update_chain.zig");
+@@ -10,7 +9,19 @@
+ const M = @import("stwo_core").fields.m31.M31;
+ pub const NAMESPACE_START: u32 = 1_000_000_000;
+ pub const NAMESPACE_END: u32 = 1_100_000_000;
+-pub fn extend(target: *storage.Prepared, conversions: [2]*const custody.Prepared, identities: [2][32]u8) !void {
++/// Allocation sizing only. extend independently authenticates every conversion
++/// and admits its rows before publishing any values to the destination.
++pub fn hashCounts(conversions: [2]*const custody.Prepared) !@import("../blake3_native_hash_layout.zig").Counts {
++    var counts = @import("../blake3_native_hash_layout.zig").Counts{ .g = 0, .xor = 0 };
++    for (conversions) |conversion| for (conversion.rows.updates) |update| {
++        inline for (.{ update.before, update.after }) |path| {
++            counts.g = try std.math.add(usize, counts.g, path.g_rows.len);
++            counts.xor = try std.math.add(usize, counts.xor, path.xor_rows.len);
++        }
++    };
++    return counts;
++}
++pub fn extend(target: anytype, conversions: [2]*const custody.Prepared, identities: [2][32]u8) !void {
+     var ends: [2]u64 = undefined;
+     for (conversions, identities, &ends) |conversion, identity, *end| {
+         const plan = &conversion.plan;
+--- a/src/frontends/riscv/prover/blake3_segment_parent.zig
++++ b/src/frontends/riscv/prover/blake3_segment_parent.zig
+@@ -6,6 +6,8 @@
+ const parent = @import("../recursion/blake3_execution_parent_preparation.zig");
+ const spans = @import("../recursion/span_statement_blake3.zig");
+ const aggregate = @import("../recursion/blake3_execution_aggregate.zig");
++const hash_columns = @import("../recursion/blake3_native_hash_columns.zig");
++const custody_rows = @import("../recursion/air/blake3_parent_custody_rows.zig");
+ const Custody = @import("../recursion/air/blake3_memory_custody.zig").Prepared;
+ const binding = @import("../recursion/blake3_execution_span.zig");
+ pub fn ForBackend(comptime Backend: type) type {
+@@ -18,6 +20,7 @@
+ fn ForProfile(comptime Backend: type, comptime ethereum: bool) type {
+     return struct {
+         const Api = if (ethereum) @import("blake3_ethereum_proof.zig").ForBackend(Backend) else execution.ForBackend(Backend);
++        const Verified = if (ethereum) @import("blake3_ethereum_proof.zig").Verified else execution.Verified;
+         const Owner = if (ethereum) @import("blake3_ethereum_witness.zig").Owner else segment.Owner;
+         /// Borrows all inputs. Checks admission and custody before generating
+         /// interactions. The returned preparation owns its columns and retains
+@@ -48,8 +51,8 @@
+         }
+         /// Consumes distinct execution owners on every path, including admission
+         /// failure. An aliased owner is destroyed once. Verifiers stay borrowed.
+-        /// Each completed child's execution storage and custody are released
+-        /// before the next child is proved, bounding simultaneous residency.
++        /// Each execution owner is released after capture and planning. Captures
++        /// and custody remain alive until final-layout emission and attachment.
+         pub fn preparePairOwnedWithPool(a: std.mem.Allocator, owners: [2]*Owner, verifiers: [2]*Api.PreparedVerifier, expected: [2][32]u8, statements: [2]spans.SpanStatement, capacity: u32, pool: ?*Pool) !aggregate.Fold {
+             return preparePairInternal(true, a, owners, verifiers, expected, statements, capacity, pool);
+         }
+@@ -67,24 +70,39 @@
+             var right_admission = try admit(a, owners[1], verifiers[1], expected[1], statements[1]);
+             var right_admission_alive = true;
+             defer if (right_admission_alive) right_admission.deinit();
+-            var left = try proveAdmitted(a, owners[0], verifiers[0], expected[0], statements[0], capacity, &left_admission, pool);
++            // Captures remain at stable addresses until their plans are consumed.
++            var left_capture = try proveCapture(a, owners[0], verifiers[0], expected[0], pool);
++            defer left_capture.deinit();
++            var left_plan = try parent.State.plan(a, verifiers[0], &left_capture, expected[0], capacity);
++            defer left_plan.deinit();
++            if (consume) {
++                owners[0].deinit();
++                owned[0] = false;
++            }
++            var right_capture = try proveCapture(a, owners[1], verifiers[1], expected[1], pool);
++            defer right_capture.deinit();
++            var right_plan = try parent.State.plan(a, verifiers[1], &right_capture, expected[1], capacity);
++            defer right_plan.deinit();
++            if (consume) {
++                owners[1].deinit();
++                owned[1] = false;
++            }
++            var shared = try hash_columns.Shared.initReserved(a, .{ left_plan.layout, right_plan.layout }, .{
++                try custody_rows.hashCounts(.{ &left_admission.entry, &left_admission.exit }),
++                try custody_rows.hashCounts(.{ &right_admission.entry, &right_admission.exit }),
++            });
++            defer shared.deinit();
++            var left = try emitAttached(a, &left_plan, try shared.partition(0), verifiers[0], &left_capture, expected[0], statements[0], &left_admission);
+             var left_alive = true;
+             defer if (left_alive) left.deinit();
+             left_admission.deinit();
+             left_admission_alive = false;
+-            if (consume) {
+-                owners[0].deinit();
+-                owned[0] = false;
+-            }
+-            var right = try proveAdmitted(a, owners[1], verifiers[1], expected[1], statements[1], capacity, &right_admission, pool);
++            var right = try emitAttached(a, &right_plan, try shared.partition(1), verifiers[1], &right_capture, expected[1], statements[1], &right_admission);
+             right_admission.deinit();
+             right_admission_alive = false;
+-            if (consume) {
+-                owners[1].deinit();
+-                owned[1] = false;
+-            }
++            // Aggregate preparation consumes both partitions on every path.
+             left_alive = false;
+-            return aggregate.prepareOwned(a, &left, &right, statements);
++            return aggregate.prepareShared(a, &left, &right, statements, &shared.owner);
+         }
+         const Admitted = struct {
+             entry: Custody,
+@@ -121,9 +139,20 @@
+             try binding.validate(a, statement, &shape.public_data, verifier.admission(), verifier.config, &entry.plan, &exit.plan);
+             return .{ .entry = entry, .exit = exit };
+         }
++        fn emitAttached(a: std.mem.Allocator, plan: *parent.Planned, columns: hash_columns.Owner, verifier: *Api.PreparedVerifier, capture: *Verified, expected: [32]u8, statement: spans.SpanStatement, admitted: *Admitted) !parent.PartitionPrepared {
++            const state = try plan.emitPartition(columns);
++            defer state.deinit();
++            var result = try state.finishPartition();
++            errdefer result.deinit();
++            try parent.attachSpan(a, &result, verifier, capture, expected, statement, .{ &admitted.entry, &admitted.exit });
++            return result;
++        }
++        fn proveCapture(a: std.mem.Allocator, owner: *Owner, verifier: *Api.PreparedVerifier, expected: [32]u8, pool: ?*Pool) !Verified {
++            const proof = if (ethereum) try Api.prove(a, owner, verifier, expected, pool.?) else if (verifier.ranges != null) try Api.proveCompact(a, owner.native, owner.hashes, try owner.admission(), verifier.config) else try Api.prove(a, owner.native, owner.hashes, try owner.admission(), verifier.config);
++            return if (ethereum) Api.verifyCaptureOwned(a, proof.proof, verifier, expected) else Api.verifyPreparedCaptureOwned(a, proof.proof, verifier, expected);
++        }
+         fn proveAdmitted(a: std.mem.Allocator, owner: *Owner, verifier: *Api.PreparedVerifier, expected: [32]u8, statement: spans.SpanStatement, capacity: u32, admitted: *Admitted, pool: ?*Pool) !parent.Prepared {
+-            const proof = if (ethereum) try Api.prove(a, owner, verifier, expected, pool.?) else if (verifier.ranges != null) try Api.proveCompact(a, owner.native, owner.hashes, try owner.admission(), verifier.config) else try Api.prove(a, owner.native, owner.hashes, try owner.admission(), verifier.config);
+-            var capture = if (ethereum) try Api.verifyCaptureOwned(a, proof.proof, verifier, expected) else try Api.verifyPreparedCaptureOwned(a, proof.proof, verifier, expected);
++            var capture = try proveCapture(a, owner, verifier, expected, pool);
+             defer capture.deinit();
+             return parent.prepareSpan(a, verifier, &capture, expected, capacity, statement, .{ &admitted.entry, &admitted.exit });
+         }

@@ -1,0 +1,12 @@
+[package]
+name = "stwo-evm-recovery-tests"
+version = "0.1.0"
+edition = "2024"
+[workspace]
+[features]
+collect-evm-hints = []
+[dependencies]
+alloy-primitives = { version = "=1.6.1", default-features = false }
+k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
+revm-precompile = { version = "=42.0.1", default-features = false }
+critical-section = { version = "=1.2.0", features = ["std", "restore-state-bool"] }

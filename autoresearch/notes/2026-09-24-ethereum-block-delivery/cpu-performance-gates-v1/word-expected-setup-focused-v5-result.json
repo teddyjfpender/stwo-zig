@@ -1,0 +1,22 @@
+{
+  "source_candidate": "word-expected-setup-focused-v5-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 153.5780251249671,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 44,
+  "test_summary": [
+    "All 44 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-expected-setup-focused-v5.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-word-expected-setup-focused-v5",
+    "bytes": 115656856,
+    "sha256": "954645b4bcc2a7759598aa56c2e3e8a4421122f3b954db6e0a43e8f6312aa902"
+  }
+}

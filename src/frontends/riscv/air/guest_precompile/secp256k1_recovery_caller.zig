@@ -185,6 +185,22 @@ pub fn rowPairs(
     main: *const [Layout.main_columns]S,
     relations: anytype,
 ) [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) {
+    const events = rowEvents(S, main, relations);
+    var pairs: [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) = undefined;
+    for (&pairs, 0..) |*pair, index| pair.* = .{
+        .n1 = events[2 * index].n1,
+        .d1 = events[2 * index].d1,
+        .n2 = events[2 * index + 1].n1,
+        .d2 = events[2 * index + 1].d1,
+    };
+    return pairs;
+}
+
+pub fn rowEvents(
+    comptime S: type,
+    main: *const [Layout.main_columns]S,
+    relations: anytype,
+) [event_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) {
     comptime requireSupportedField(S);
     const active = main[Layout.is_active];
     const clock = main[Layout.execution_clock];
@@ -299,14 +315,7 @@ pub fn rowPairs(
         );
     }
 
-    var pairs: [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) = undefined;
-    for (&pairs, 0..) |*pair, index| pair.* = .{
-        .n1 = events[2 * index].n1,
-        .d1 = events[2 * index].d1,
-        .n2 = events[2 * index + 1].n1,
-        .d2 = events[2 * index + 1].d1,
-    };
-    return pairs;
+    return events;
 }
 
 pub fn rangePairs(

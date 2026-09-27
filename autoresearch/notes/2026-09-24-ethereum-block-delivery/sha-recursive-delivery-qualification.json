@@ -1,0 +1,54 @@
+{
+  "base_qualification": "sha-combined-leaf-qualification.json",
+  "archive": "sha-recursive-delivery-source.tar.gz",
+  "archive_sha256": "1ac5e1e16429f2c7e7c99f5f477d927bf4e33c307769c6e4a03378b61c72e4f3",
+  "source_sha256": {
+    "src/frontends/riscv/prover/guest_precompile/ethereum_sha_types.zig": "669481b26e881156166b740f8618730fc88461754bd44efa0e7b91cdc16b570f",
+    "src/frontends/riscv/recursion/air/blake3_execution_profile.zig": "23d65a70b3169d1c511edfd14570bf8ae0cb4db9c155f45239debc1790c6fb13",
+    "src/frontends/riscv/recursion/air/blake3_execution_transcript.zig": "c04f53d82423514a84e4167c0fb510f8d27827a11f91d8d6e1055bf3f76bcfb8",
+    "src/frontends/riscv/recursion/air/blake3_extension_verifier_components.zig": "d173a68ec5e1cb63cb58eb5d7c8427e9c0a3ae5abc47e9defc8cc6cf252ae5cb",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_assembly.zig": "78565e16e3342c4ec5331fa49092b0fdcb663763804f9915dbc96342f645d0eb",
+    "src/frontends/riscv/recursion/ethereum_composition_extension_geometry_v2.zig": "8e3c436f2cec83378de3c28038e403cb401afc9055e139503f4eddd8008a69d8",
+    "src/frontends/riscv/recursion/air/blake3_sha_composition_extension.zig": "125a86792e4db6990f993054eaae7e65f02c1985b68133c9cc61fe16c8e2398f",
+    "src/frontends/riscv/recursion/air/blake3_execution_composition.zig": "076333b1a2894c2e7459cd24a6ded025c3ba3729016b99fb66a89283869acf9f",
+    "src/frontends/riscv/prover/blake3_ethereum_sha_proof_test.zig": "2bbd8b465018538cb3ffb105b3fdfc833be969e744491833c7aa178f884ba96b",
+    "src/frontends/riscv/prover/blake3_segment_parent.zig": "e23f88f448406cd0277965256820a65c107c87b8424dff5b54a87400b8edee2e",
+    "src/frontends/riscv/prover/blake3_ethereum_segment_test.zig": "613c2ee78dcbb9e19e7dd3a753a0ec0c61fc146b6c8d0f9ad80ea1b31ab1c70f",
+    "src/frontends/riscv/blake3_aggregation_test_root.zig": "a4cbc24e71d273b97e00faa2a4e04e208940ea8999f8b8438ad98d743953cea0",
+    "src/frontends/riscv/prover/blake3_execution_preflight.zig": "4242d4893702587a1c1084a66772dbf58bff691d6155efa7a2f281bf8994c431",
+    "src/frontends/riscv/ethereum_block_stream.zig": "ae7904c3f69f76c1e466474bb88ea6d17c69136d3037a746e6cd7daa66fd73b4",
+    "src/frontends/riscv/ethereum_block_execution.zig": "b003c2cf7f22fdc6871a9d1d86feca3ec11fc6d5068eb3d5677a08df811d757f",
+    "src/frontends/riscv/isa/sha256_compression_v1.zig": "7876ac747f44442844305b93770432035592484739eb54a39b9f6be2fc57282f",
+    "src/frontends/riscv/runner/guest_precompile/sha256_compression_v1.zig": "8abf89bd11b45281412349ca766f16d5da66196b31bffceddb314992e67b2072",
+    "src/frontends/riscv/runner/guest_precompile/ethereum_sha.zig": "e782a7f105d02266800af52da8ee559f0d59b862568137f8814b8bd751305169",
+    "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.toml": "84589681c8a90ba0f34b0329d3a7b4292651d82beec49e780247da0b921f2e1b",
+    "autoresearch/benchmarks/guest_runtime/ethereum/src/main.rs": "35d5a2e6cdb059971b5239051966b8718b074ca5e7b84ae11455198df45f8a96",
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_v1.rs": "d7cbc62b1d4b8bf739c3c5722bb20e7dbe2ef99731cbce4e836d771e1aa6c0a7",
+    "autoresearch/benchmarks/guest_runtime/sha256_precompile_tests/Cargo.toml": "fb5d7aa44f2a085aa18c21d1e210464b672d2d630e2fdadc7a57ed70a3d031a0",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/build_sha_ethereum_guest.py": "a531ff9dda1126f3265ca7fa1d255d3cf7dbddfb82c6bad133c0048c8947b4cd",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/build_stream_memory_lifetimes.py": "86f509f6f54fe55b08138492bdd82c800713e09b3e700464eeaa91b940d919fe"
+  },
+  "tests": [
+    {
+      "log": "test-sha-recursive-parent-1.log",
+      "tests_passed": 8
+    },
+    {
+      "log": "test-sha-recursive-segments-1.log",
+      "tests_passed": 11
+    }
+  ],
+  "canonical_sha_recursion_verified": true,
+  "canonical_sha_adjacent_segments_full_memory_custody_verified": true,
+  "ethereum_evm_sha_provider_default_enabled": true,
+  "rust_framing_tests_passed": 3,
+  "rust_native_sha_function_exercised_by_mainnet_fixture": false,
+  "mainnet_execution_report": "sha-default-v2-block-execution.json",
+  "full_ethereum_block_root_verified": false,
+  "active_full_block_run": "measurements-mainnet-24628607-sha-canonical-4194304",
+  "binary_sha256": {
+    "block-stream-sha": "d0781862122e7bc7935df4ebb9e24856a6c54284b34daa2207e304407ded80d3",
+    "block-execute-sha": "0bb29651a82ccae84a1733c23c53577c4b6d48875ed533d204fa34bab27927c3",
+    "ethereum-block-sha-default-v2.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "label": "expanded-io",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "workers": 16,
+  "worker_limit_gib": 48,
+  "samples_per_case": 1,
+  "opening_storage_change_preserves_16_tx_proof_bytes": true,
+  "results": [
+    {
+      "transactions": 32,
+      "verified": true,
+      "process_wall_seconds": 102.69003683401388,
+      "peak_process_footprint_bytes": 52929153688,
+      "peak_process_footprint_gib": 49.29411568492651,
+      "worker_peak_bytes": 50712217436,
+      "worker_peak_gib": 47.22943290695548,
+      "preparation_retained_bytes": 8544589616,
+      "parent_proving_seconds": 53.154054083,
+      "leaf_proving_seconds": 12.930669208,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 16777216,
+          "fixed_rows": 14528808,
+          "fixed_columns": 16,
+          "retained_bytes": 6432772528
+        }
+      ],
+      "hash_partition_seconds": 0.0,
+      "proof_bytes": 923941,
+      "cycles": 286847
+    },
+    {
+      "transactions": 64,
+      "verified": false,
+      "exit_code": 1
+    }
+  ]
+}

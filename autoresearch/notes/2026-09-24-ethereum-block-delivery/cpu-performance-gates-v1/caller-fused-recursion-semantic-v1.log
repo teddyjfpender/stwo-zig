@@ -1,0 +1,6 @@
+src/frontends/riscv/prover/block_v5_caller_fused_recursive_admission_v1.zig:37:51: error: function parameter shadows declaration of 'pin'
+    pub fn init(a: std.mem.Allocator, index: u32, pin: Receiver.Pin, sealed: Seal.Sealed, pins: Seal.Pins, entries: []const Seal.Entry, limits: Limits) !Prepared {
+                                                  ^~~
+src/frontends/riscv/prover/block_v5_caller_fused_recursive_admission_v1.zig:61:9: note: declared here
+    pub fn pin(self: *const Prepared) Receiver.Pin {
+    ~~~~^~

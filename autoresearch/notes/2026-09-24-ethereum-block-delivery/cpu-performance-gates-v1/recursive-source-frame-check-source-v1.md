@@ -1,0 +1,11 @@
+# Original Source frame comparison integration candidate v1
+
+Source-frozen, qualification pending. No compiler, test, STARK, guest, segment, device or benchmark invocation by the agent. Previous helper and original Source qualification receipts remain immutable.
+
+PUBLIC21 and VERSION20 Source.validate retain the original fresh.validate, authority acquisition and exact public-term checks. They now call the same private requireFrame tested by the fixtures. This synchronously invokes ORIGINAL authority.mix against the allocation-free exact Comparator rather than building another complete owned Statement. Independently expected sealed/root auxiliary offsets are zero, matching original record. Original word/felt/step caps, nonempty/feltcount grammar and final singleton transition coordinate remain checked. Bounds and every Step offset pass comparison before coordinate arithmetic. Constructor/record/deinit, all Admission methods, original fresh verification and equations are unchanged.
+
+PUBLIC21 retains its separately qualified track_root_offsets=false recorder. A96-root fixture uses that ORIGINAL record once and rechecks its772words/100steps25times under a failing owner allocator, then rejects a mutation in the final root. Both Source kernels have100-repeat denial-allocator parity and exact payload/last-offset/metadata mutation checks. Identical original calls cannot waive nonempty, final singleton or VERSION20two/three-field restrictions. All configured caps remain independently pinned. Actual Source.validate and Admission.validate bodies are retained, never invoked with a fabricated Fresh.
+
+Five new behavioral groups plus eight original Comparator regressions, one real-body marker and root import are proposed. Root: src/frontends/riscv/block_v5_recursive_source_frame_check_test_root.zig. Filters: recursive source frame check and recursive statement compare. Candidate: recursive-source-frame-check-source-candidate-v1.json.
+
+PUBLIC21 embeds its Source bytes in sourceAuthority, so the compiled independent recipe identity correctly evolves with this change; it is not a relabel of a prior snapshot. Only FRAME comparison is allocation-free. Other original fresh/authority validation remains unchanged, and no proof success, complete block authority or timing improvement is claimed.

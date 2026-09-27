@@ -1,0 +1,159 @@
+{
+  "steps": 1726,
+  "execution_ms": 2,
+  "plan": [
+    {
+      "airgroup_id": 0,
+      "air_id": 0,
+      "name": "Main",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 1,
+      "name": "Rom",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 2,
+      "name": "Mem",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 3,
+      "name": "InputData",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 4,
+      "name": "RomData",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 5,
+      "name": "MemAlign",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 13,
+      "name": "Binary",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 22,
+      "name": "BinaryExtension",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 36,
+      "name": "Keccakf",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 42,
+      "name": "Dma",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 46,
+      "name": "Dma64AlignedMem",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 49,
+      "name": "DmaUnaligned",
+      "count": 1
+    },
+    {
+      "airgroup_id": 0,
+      "air_id": 50,
+      "name": "DmaPrePost",
+      "count": 1
+    }
+  ],
+  "output_bytes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "execution_only": true
+}

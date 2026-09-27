@@ -1,0 +1,22 @@
+{
+  "source_candidate": "heterogeneous-scoped-owned-selected-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 121.92598975001602,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 16,
+  "test_summary": [
+    "All 16 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/heterogeneous-scoped-owned-selected-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-heterogeneous-scoped-owned-selected-focused-v1",
+    "bytes": 11067368,
+    "sha256": "5062ce08026cde5ec10c14c540943b3364129e5f2716d5b2a8be57652e541daa"
+  }
+}

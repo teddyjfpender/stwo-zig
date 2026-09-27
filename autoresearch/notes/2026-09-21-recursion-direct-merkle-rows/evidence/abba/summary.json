@@ -1,0 +1,19 @@
+{
+  "median_seconds": {
+    "baseline": 5.676281083,
+    "candidate": 5.535802854
+  },
+  "paired_round_ratios": [
+    0.9748885974426568,
+    0.9755676144586894,
+    0.9786200117700504
+  ],
+  "candidate_over_baseline": 0.9761609595325216,
+  "ratio_ci95": [
+    0.9748885974426568,
+    0.9786200117700504
+  ],
+  "speedup": 1.0244212188929323,
+  "improvement_supported": true,
+  "samples_per_arm": 6
+}

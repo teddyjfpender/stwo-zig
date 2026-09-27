@@ -1,0 +1,11 @@
+   Compiling stwo-ethereum-guest v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum)
+warning: function `observe` is never used
+  --> src/evm_hints.rs:59:8
+   |
+59 | pub fn observe(success: bool) {
+   |        ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `stwo-ethereum-guest` (bin "stwo-ethereum-guest") generated 1 warning
+    Finished `release` profile [optimized] target(s) in 12.96s

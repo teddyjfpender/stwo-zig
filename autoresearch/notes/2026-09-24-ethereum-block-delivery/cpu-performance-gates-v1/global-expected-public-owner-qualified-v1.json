@@ -1,0 +1,68 @@
+{
+  "status": "qualified_nonproving_source",
+  "evidence": {
+    "global-expected-public-owner-semantic-v2": {
+      "source_candidate": "global-expected-public-owner-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 5.638151999970432,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-expected-public-owner-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "global-expected-public-owner-focused-v1": {
+      "source_candidate": "global-expected-public-owner-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 80.67348408303224,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-expected-public-owner-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-global-expected-public-owner-focused-v1",
+        "bytes": 9382992,
+        "sha256": "f2a790a3cf0ce75c8970e650a8bd6ac0520a58cc5ea392de71afb81bb55567c9"
+      }
+    }
+  },
+  "source_candidate": "global-expected-public-owner-source-candidate-v1.json",
+  "historical_semantic": "global-expected-public-owner-semantic-v1-result.json",
+  "root_corrections": [
+    "Original public fresh verifier shares one private kernel through additive verifyPrepared",
+    "Owned fresh receiver builds the original Public.Owner once for actual verification and normalization",
+    "Body codegen retains actual verifyPrepared"
+  ],
+  "emitted_body_marker": [
+    "0000000100000780 T _stwo_global_expected_public_body_gate"
+  ],
+  "tests_passed": 22,
+  "named_behavioral_checks": 13,
+  "scope": [
+    "Exact durable independent expected public DTO has one shared input",
+    "Retained atomic owner and aggregate allocator survive session teardown",
+    "Exact lazy original transcript coordinates, binary frame lookup, new actual serializer beyond one-million cells",
+    "Full-u64 descriptor bytes and original frame identity; mutation/resource/exhaustive allocation rollback",
+    "Actual publisher/fresh verifier/normalizer production bodies emitted and retained, never invoked"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "canonical_driver_enabled": false,
+  "complete_block_authority": false,
+  "speed_or_peak_rss_claim": false
+}

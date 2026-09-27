@@ -1,0 +1,74 @@
+{
+  "status": "focused-nonproving-fixed-port-qualification-only",
+  "authoritative_source_snapshots": [
+    "requester-public-fixed-ports-legacy-focused-v2-source.json",
+    "requester-public-fixed-ports-selected-focused-v1-source.json"
+  ],
+  "successful_attempts": [
+    {
+      "source_candidate": "requester-public-fixed-ports-legacy-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.435071166954003,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-fixed-ports-legacy-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-public-fixed-ports-legacy-focused-v2",
+        "bytes": 45083272,
+        "sha256": "c89abca6679ea17187f2396275800408f93d2a51dc6365bbdc118d1912c66189"
+      }
+    },
+    {
+      "source_candidate": "requester-public-fixed-ports-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.391422833956312,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 22,
+      "test_summary": [
+        "All 22 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-fixed-ports-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-public-fixed-ports-selected-focused-v1",
+        "bytes": 45083128,
+        "sha256": "877a9bdcc3076cbb5167ebc243db9ef9286b088d18b3251f14155c9b31638380"
+      }
+    }
+  ],
+  "source_pin_counts": [
+    1925,
+    1925
+  ],
+  "behavioral_checks_each_recipe": 13,
+  "scope": [
+    "Original requester packed scalar/tuple row weights, source descriptors and supplier signs",
+    "One original live/fixed PUBLIC21 tuple/B5SS kernel with full fixed tails, identity and schedule parity",
+    "PUBLIC21 setup replay uses one original Statement.recordAt flattened words-first/felt-tail coordinate mapping",
+    "Interleaved words/felts at67/4096root operation counts, allocation rollback/custody/mutation checks",
+    "Original requester/PUBLIC21 actual fixed factories and live producer/receiver bodies retained only"
+  ],
+  "remaining": [
+    "Complete PUBLIC21 independently compiled fixed namespace join/context/key assembly",
+    "Full native memory/PAGE expected setup and final standalone closure",
+    "Positive complete proof and time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

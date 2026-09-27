@@ -1,0 +1,22 @@
+{
+  "source_candidate": "source-page-raw-parity-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 12.321416541992221,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 5,
+  "test_summary": [
+    "All 5 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/source-page-raw-parity-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-source-page-raw-parity-focused-v1",
+    "bytes": 14383976,
+    "sha256": "31328f73569d7a89ed3181b636f3ec1d76f0830fe8d1832b4f87a5f86c2a7ab1"
+  }
+}

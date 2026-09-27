@@ -1,0 +1,19 @@
+ETH_AUTH_EXECUTION cycles=12419 keccak=6 recoveries=1 output=0100000001000000ad40f6a7de9e85a4284678f80e678537a5a54a5e8b9c93762ca7c5cbc4d4f44cb1b6df74a5bca3624ff555fd4d4dc116504421a8e2fb2c69f8dd8e570638aefa
+        0.48 real         0.00 user         0.00 sys
+             6406144  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 575  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                   8  involuntary context switches
+            38606744  instructions retired
+            18257852  cycles elapsed
+             5489024  peak memory footprint

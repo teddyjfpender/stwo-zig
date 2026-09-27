@@ -1,0 +1,28 @@
+{
+  "power_before": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t92%; discharging; 14:46 remaining present: true\n",
+  "power_after": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t92%; discharging; 14:36 remaining present: true\n",
+  "merkle_worker_override": "1",
+  "trace_parity_cases": 256,
+  "trace_words_each": 625,
+  "pipeline_constant_cases": 12,
+  "identical_before_after_checksums": true,
+  "binaries": {
+    "before-protocol.dylib": "90132b5ff86c263c2022eac158a825087ade5817213d928a2e65196427083556",
+    "after-primitive.dylib": "1ff52ce7779b68d0bd2d15b72da1d79be6c858f357db4f0ff6840fe054d5dc6e",
+    "after-protocol.dylib": "2e7b3df765c8a56c57b57760c0b22696fef5266faa518b37c28dc1455aadae77",
+    "after-pipeline.dylib": "e0b26ccd1aebe9c107ac6f70a61914bad25b3a4e4bfa3e61a8ca717d9edef8f5",
+    "before-pipeline.dylib": "80de5364bb212992bddf6985786e75671450879b74b45d5a38d2aec990233c8b",
+    "after-system.dylib": "fdc7a83b4ff892934de3624591ef63453d43df0ed8c2a753ccd1a2782c5e0405",
+    "before-system.dylib": "67358f485cc9f707d3531bfc258857201a5ebb1aad6dd960e72bc87f4facbdc1",
+    "peer-pipeline.dylib": "3295cfcb0ecee78425ea130715f0158a872c69f28950220253069e2cdf17d7d5",
+    "candidate2-system.dylib": "397419b3ca59b46726ecf5211574cd27166a30b6f8e606413e7cb9edbc620bd6",
+    "candidate3-pipeline.dylib": "96f7e2ef19cde18fb5329f65cadeb3748968b1bd1a84f293d8cd99740c7f9f78",
+    "candidate2-primitive.dylib": "a6006ca172415738eda57d2169c7328295272a32a33a6c34b6e393369a12f70f",
+    "candidate3-system.dylib": "573db9de47898a15a3844a8d0fe4ff4307ccdba1287021657fcb6c84195c448a",
+    "candidate2-pipeline.dylib": "95e63fa896c0eef058e72c64a34d784d5a1c243cac0f1267e8871cba4afc8b37",
+    "candidate3-primitive.dylib": "0572a659801dc2c3dc1292da46b27387a71134e8009e23378688dfef4667f5f1",
+    "candidate2-protocol.dylib": "e1dbf793f0290ff6c3f4db7e17abd978738feed048913c512cba2e048d64ad2c",
+    "before-primitive.dylib": "fb6c93a25985c21e9e852468327b0ce9074af31d4639722046e8fc6ef18cafb3",
+    "candidate3-protocol.dylib": "30899faa68d05377d9a1d9559501d86f3b866ac55f3dc9f4a5ebc4176411f5f9"
+  }
+}

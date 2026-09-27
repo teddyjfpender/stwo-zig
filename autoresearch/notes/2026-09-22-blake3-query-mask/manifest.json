@@ -1,0 +1,13 @@
+{
+  "README.md": "d4a1823d81e150dc673c1c6684e456f6ebbcce65b846e8e9f484e3d562ce5d2c",
+  "combined-run.log": "906acda98a809d2efa16838985061a20f01fcb2408ac7e0015b4aae56b44f13d",
+  "sources/autoresearch/notes/20260922-blake3-query-mask-problem-match.md": "c0bf3543952b838655bb36dede6980ccbee85cbf3316fc6661fc53727f16e671",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "513b8e5b7aa797d153a1304678bc735a6738a8188e057662df86b922f729b122",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "f478cb9b2e94245c69495adf48fda70aabae9624bdc782f4fbfe022e2cfd70cd",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "ee5c6b04f13c872327ec44b96d5612a79ed1e46da04a933159d041db5de6f239",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_mask.zig": "4fadb3aeaa4cbe8e27dda77eecab0c6687a179a2417fa420044767d99a8f7335",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_mask_test.zig": "7bcda3a41165e1d443f14f76035ee8911e34c47a6388840c0c7a333f94d66b3b",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_proof_test.zig": "7e0a2db5b1f89b18da53039615c9e9c686af55582ac89547f3ffc3445a48bd60",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "e0440cdf21022491cdfaec0e4e34ae78a437447972f6475edfe7f19049837713",
+  "unit-final.log": "3702afcd53cc8aee522785c68b096002d1400e190f9ec17e7fcf49a811f3e35f"
+}

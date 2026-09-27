@@ -19,6 +19,7 @@ pub const DeviceCompositionStage = device_composition.Stage;
 pub const QuotientOpsError = column.QuotientOpsError;
 pub const CpuCompositionContentionPolicy = engine.CpuCompositionContentionPolicy;
 pub const CpuCompositionExecutionRequest = engine.CpuCompositionExecutionRequest;
+pub const CpuCompositionPreparation = engine.CpuCompositionPreparation;
 pub const ProveDiagnostic = engine.ProveDiagnostic;
 pub const ProvePhase = engine.ProvePhase;
 pub const CompositionSubphase = engine.CompositionSubphase;

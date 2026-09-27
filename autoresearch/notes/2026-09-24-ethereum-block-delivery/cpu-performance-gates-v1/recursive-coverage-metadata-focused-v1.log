@@ -1,0 +1,7 @@
+1/6 block_v5_recursive_coverage_plan_test_root.test_0...OK
+2/6 prover.block_v5_recursive_coverage_plan_test_v1.test.coverage metadata: exact logical physical census sparse caller triplet and odd topology...OK
+3/6 prover.block_v5_recursive_coverage_plan_test_v1.test.coverage metadata: genuine typed empty RAM inventory has no RAM range or dummy leaves...OK
+4/6 prover.block_v5_recursive_coverage_plan_test_v1.test.coverage metadata: missing duplicate sparse subtype hash mode security and source obligations reject...OK
+5/6 prover.block_v5_recursive_coverage_plan_test_v1.test.coverage metadata: transported topology key roots logical maps and proof subtypes are only candidates...OK
+6/6 prover.block_v5_recursive_coverage_plan_test_v1.test.coverage metadata: every owned allocation fails cleanly and caps precede allocation...OK
+All 6 tests passed.

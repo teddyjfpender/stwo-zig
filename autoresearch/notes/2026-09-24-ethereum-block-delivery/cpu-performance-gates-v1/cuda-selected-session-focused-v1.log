@@ -1,0 +1,18 @@
+src/backends/cuda/runtime/session_selected_test_v1.zig:28:85: error: missing struct field: lane_count
+    result.context = .{ .failed = .{ .cause = error.OutOfMemory, .teardown = Context{ .handle = handle, .stream = handle, .device = 2, .owner_thread_id = std.Thread.getCurrentId(), .teardown_pending = true } } };
+                                                                             ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/backends/cuda/runtime/context.zig:14:12: note: struct declared here
+    return struct {
+           ^~~~~~
+referenced by:
+    test.CUDA selected session: process outcome retains failed owner and lease thread guard: src/backends/cuda/runtime/session_selected_test_v1.zig:115:165
+    test_0: src/backends/cuda/session_selected_test_root_v1.zig:3:17
+src/backends/cuda/runtime/session_selected_test_v1.zig:104:89: error: incompatible types: '?*anyopaque' and '*u8'
+        try std.testing.expect(result.failed.cleanup.?.context.failed.teardown.?.handle == &sentinel);
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+src/backends/cuda/runtime/session_selected_test_v1.zig:104:81: note: type '?*anyopaque' here
+        try std.testing.expect(result.failed.cleanup.?.context.failed.teardown.?.handle == &sentinel);
+                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+src/backends/cuda/runtime/session_selected_test_v1.zig:104:92: note: type '*u8' here
+        try std.testing.expect(result.failed.cleanup.?.context.failed.teardown.?.handle == &sentinel);
+                                                                                           ^~~~~~~~~

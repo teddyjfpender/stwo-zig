@@ -1,0 +1,22 @@
+{
+  "source_candidate": "requester-public-fixed-ports-legacy-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 25.435071166954003,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 22,
+  "test_summary": [
+    "All 22 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-fixed-ports-legacy-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-requester-public-fixed-ports-legacy-focused-v2",
+    "bytes": 45083272,
+    "sha256": "c89abca6679ea17187f2396275800408f93d2a51dc6365bbdc118d1912c66189"
+  }
+}

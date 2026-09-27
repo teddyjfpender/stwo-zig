@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 4/4 tests passed
+test-recursion-framework-interaction success
++- stwo_riscv_frontend test count floor success
+   +- run test 4 passed 400ms MaxRSS:2M
+      +- compile test ReleaseFast native success 5s MaxRSS:435M
+

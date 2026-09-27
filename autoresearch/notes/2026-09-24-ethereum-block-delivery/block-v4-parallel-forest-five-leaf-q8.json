@@ -1,0 +1,24 @@
+{
+  "scope": "five real execution leaves; provisional dyadic forest only; diagnostic q8/PoW0",
+  "verified": true,
+  "fresh_parent_verification": true,
+  "serial_parallel_pin_and_roster_parity": true,
+  "execution_leaves": 5,
+  "dyadic_parents": 3,
+  "exact_roots": 2,
+  "parallel_lanes": 2,
+  "serial_forest_ns": 54875156333,
+  "parallel_forest_ns": 39121949833,
+  "parallel_scoped_tracked_peak_bytes": 4368854747,
+  "test_result": "7/7 passed",
+  "test_root": "src/frontends/riscv/block_v3_recursive_test_root.zig",
+  "test_filter": "block-v4 five real leaves stage a two-lane exact forest",
+  "source_sha256": {
+    "plan": "1f5aae214780a3717b9928c2dff58922d779f8b34cd04566024f69c1948d5dda",
+    "queue": "d08e76fb3ab5dfb32b219416f89fe5b6e63d206a61e01c9137e21cf7088b23b8",
+    "stage": "dee0883500a640258bc5c2f27f82b5659f81fc45952bed3f0934e79bbb9879c9",
+    "fixture": "3dc957d189597602ca69a905d447ccf26d4ed98812a24b007f9ab8cd5ce5c823",
+    "five_leaf_test": "284918d9a39a49b67af0b090f29164cff6f7f367baa8c51619acb9ea593a35c1"
+  },
+  "limitation": "No q70 or 218-leaf throughput claim; parent stage only, not a complete block receiver"
+}

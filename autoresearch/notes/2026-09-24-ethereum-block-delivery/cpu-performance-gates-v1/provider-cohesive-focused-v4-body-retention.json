@@ -1,0 +1,17 @@
+{
+  "binary": "/tmp/block-v5-provider-qualified-tests-v4",
+  "byte_len": 10636040,
+  "sha256": "7332066f807d25f00fd20589e82bff668d667aac6b743c08d5913d59bf50a001",
+  "symbol_counts": {
+    "export": 1,
+    "range_stage": 1,
+    "ram_stage": 2,
+    "rom_stage": 1,
+    "lookup_stage": 1,
+    "reader": 4
+  },
+  "source_snapshot": "provider-cohesive-focused-v4-source.json",
+  "genuine_stage_or_loader_invoked": false,
+  "retention_marker_invoked": true,
+  "scope": "Actual Stage publication/full native capture/parent construction/cache/cold branches and strict four-family loader code emitted; only function pointers retained, no proof constructed."
+}

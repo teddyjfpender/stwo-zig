@@ -1,0 +1,25 @@
+{
+  "url": "https://storage.googleapis.com/zisk-setup/zisk-provingkey-1.3.0-alpha-blake3.tar.gz",
+  "status": 200,
+  "headers": {
+    "Content-Type": "application/x-tar",
+    "X-GUploader-UploadID": "AP6rU81-eYQx1FRSp6DRmJSc0o3JM3LpKznmycFMnk1j72kqyNOUMTEAbCGR-AaYeQyAJQHRE56kvGg",
+    "Expires": "Thu, 24 Sep 2026 17:54:21 GMT",
+    "Date": "Thu, 24 Sep 2026 16:54:21 GMT",
+    "Cache-Control": "public, max-age=3600",
+    "Last-Modified": "Fri, 18 Sep 2026 10:44:44 GMT",
+    "ETag": "\"-CJzogbX595YDEAE=\"",
+    "x-goog-generation": "1789728284242972",
+    "x-goog-metageneration": "1",
+    "x-goog-stored-content-encoding": "identity",
+    "x-goog-stored-content-length": "6460671142",
+    "x-goog-hash": "crc32c=UpOtfA==",
+    "x-goog-component-count": "32",
+    "x-goog-storage-class": "STANDARD",
+    "Accept-Ranges": "bytes",
+    "Content-Length": "6460671142",
+    "Server": "UploadServer",
+    "Alt-Svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+    "Connection": "close"
+  }
+}

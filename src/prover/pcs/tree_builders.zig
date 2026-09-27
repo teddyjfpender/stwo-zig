@@ -110,8 +110,16 @@ pub fn appendCommittedTree(
     // A deferred first-tree build (if any) joins and mixes its root here,
     // before this tree is appended — preserving the sequential mix order.
     try deferred_commit.resolve(MC, scheme, allocator, channel);
-    try scheme.trees.append(allocator, tree);
-    const root = tree.root();
+    var retained = tree;
+    // Admit capacity first. Compaction is fail-atomic, so an error leaves
+    // the caller's complete tree ownership intact.
+    try scheme.trees.ensureUnusedCapacity(allocator, 1);
+    if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
+        if (scheme.compact_polynomial_storage)
+            try retained.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);
+    }
+    scheme.trees.appendAssumeCapacity(retained);
+    const root = retained.root();
     MC.mixRoot(channel, root);
     if (comptime @hasDecl(@TypeOf(scheme.*), "observePreOpeningRootMix")) {
         scheme.observePreOpeningRootMix(
@@ -224,6 +232,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
         /// Each entry stores the *extended* column values and their log_size.
         retained_columns: std.ArrayList(ColumnEvaluation),
         retained_column_allocator: ?std.mem.Allocator,
+        retained_column_backings: std.ArrayList(commitment_tree.ColumnBacking) = .empty,
 
         /// Original PCS position for each retained column. Streaming hashes
         /// columns in log-size order, then restores this order before commit.
@@ -232,11 +241,21 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
         /// Coefficient polynomials retained for sampled-value evaluation
         /// (only when the retention policy says to keep them).
         retained_coefficients: std.ArrayList(prover_circle.CircleCoefficients),
+        retained_coefficient_buffers: std.ArrayList([]M31) = .empty,
 
         /// Whether we should retain coefficients.
         retain_coefficients: bool,
+        compact_committer: ?CompactCommitter = null,
+        compact_column_count: usize = 0,
+        compact_failed: bool = false,
 
         const Self = @This();
+        const CompactHasher = if (H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher)
+            @import("../vcs_lifted/compact_blake3_leaf.zig").Hasher
+        else
+            H;
+        const compact_max_columns = if (@hasDecl(CompactHasher, "max_columns")) CompactHasher.max_columns else 0;
+        const CompactCommitter = @import("../vcs_lifted/streaming_committer.zig").StreamingCommitter(CompactHasher, MerkleProver);
 
         pub fn init(
             allocator: std.mem.Allocator,
@@ -253,14 +272,23 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 .retained_column_indices = std.ArrayList(usize).empty,
                 .retained_coefficients = std.ArrayList(prover_circle.CircleCoefficients).empty,
                 .retain_coefficients = scheme.coefficient_retention_policy == .always,
+                .compact_committer = if (H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher and
+                    B.MerkleTree(H) == MerkleProver and scheme.compact_polynomial_storage)
+                    CompactCommitter.init(allocator)
+                else
+                    null,
             };
         }
 
         pub fn deinit(self: *Self) void {
             self.streaming_committer.deinit();
-            for (self.retained_columns.items) |col| {
+            if (self.compact_committer) |*committer| committer.deinit();
+            if (self.retained_column_backings.items.len > 0) {
+                for (self.retained_column_backings.items) |backing| backing.deinit(self.allocator);
+            } else for (self.retained_columns.items) |col| {
                 if (col.values.len > 0) (self.retained_column_allocator orelse self.allocator).free(col.values);
             }
+            self.retained_column_backings.deinit(self.allocator);
             self.retained_columns.deinit(self.allocator);
             self.retained_column_indices.deinit(self.allocator);
             for (self.retained_coefficients.items) |*coeff| {
@@ -268,6 +296,8 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 c.deinit(self.allocator);
             }
             self.retained_coefficients.deinit(self.allocator);
+            for (self.retained_coefficient_buffers.items) |buffer| self.allocator.free(buffer);
+            self.retained_coefficient_buffers.deinit(self.allocator);
             self.* = undefined;
         }
 
@@ -301,6 +331,13 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             recorder: ?*stage_profile.Recorder,
         ) !void {
             std.debug.assert(owned_batch.len == original_indices.len);
+            if (self.compact_failed) {
+                column_storage.freeOwnedColumnEvaluations(self.allocator, owned_batch);
+                return error.IncrementalCommitmentFailed;
+            }
+            errdefer if (self.compact_committer != null) {
+                self.compact_failed = true;
+            };
             if (owned_batch.len == 0) {
                 self.allocator.free(owned_batch);
                 return;
@@ -338,6 +375,50 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             };
             errdefer prepared.deinit(self.allocator);
 
+            if (self.compact_committer) |*committer| {
+                if (prepared.columns.len > compact_max_columns - self.compact_column_count)
+                    return error.CompactMerkleLeafTooWide;
+                const references = try self.allocator.alloc(MerkleProver.ColumnRef, prepared.columns.len);
+                defer self.allocator.free(references);
+                for (prepared.columns, references, 0..) |column, *reference, index| reference.* = .{
+                    .log_size = column.log_size,
+                    .values = column.values,
+                    .original_index = index,
+                };
+                // The public streaming API requires ascending domain sizes.
+                for (references, 0..) |reference, index| {
+                    if ((index != 0 and reference.log_size < references[index - 1].log_size) or
+                        (committer.initialized and reference.log_size < committer.leaf_log_size))
+                        return error.InvalidColumnSize;
+                }
+                try committer.addColumns(references);
+                self.compact_column_count += references.len;
+                // Compact the prepared batch immediately, before accepting another.
+                // Adopt a dummy host commitment solely to reuse the ownership logic.
+                var batch_tree = commitment_tree.CommitmentTreeProver(H){
+                    .columns = prepared.columns,
+                    .coefficients = prepared.coefficients,
+                    .column_backing_buffers = prepared.column_backing_buffers,
+                    .coefficient_backing_buffers = prepared.coefficient_backing_buffers,
+                    .column_backing_alignment = prepared.column_backing_alignment,
+                    .commitment = .{ .layers = &.{}, .layer_allocator = self.allocator },
+                };
+                try batch_tree.compactPolynomialStorage(self.allocator, self.commitment_scheme.compact_polynomial_min_log_size);
+                prepared.columns = batch_tree.columns;
+                prepared.column_backing_buffers = batch_tree.column_backing_buffers;
+                prepared.coefficients = batch_tree.coefficients;
+                prepared.coefficient_backing_buffers = batch_tree.coefficient_backing_buffers;
+            }
+
+            // Retain preparation layout through openings. Explicit retained
+            // storage still relocates independent LDE allocations.
+            const preserve_lde = self.compact_committer == null and self.retained_column_allocator == null and
+                !std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_LDE");
+            if (std.process.hasEnvVarConstant("STWO_ZIG_DETACH_STREAMING_COEFFICIENTS"))
+                try prepared.detachBacking(self.allocator)
+            else if (!preserve_lde)
+                try prepared.detachColumnBacking(self.allocator);
+
             if (self.retained_column_allocator != null and
                 (prepared.column_backing_buffers != null or prepared.coefficients != null))
                 return error.UnsupportedRetainedColumnStorage;
@@ -348,6 +429,12 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             if (prepared.coefficients) |coeffs| {
                 try self.retained_coefficients.ensureUnusedCapacity(self.allocator, coeffs.len);
             }
+            if (prepared.coefficient_backing_buffers) |buffers|
+                try self.retained_coefficient_buffers.ensureUnusedCapacity(self.allocator, buffers.len);
+            if (preserve_lde) try self.retained_column_backings.ensureUnusedCapacity(
+                self.allocator,
+                if (prepared.column_backing_buffers) |buffers| buffers.len else prepared.columns.len,
+            );
 
             if (self.retained_column_allocator) |retained_allocator| {
                 const original = prepared.columns;
@@ -356,6 +443,18 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             }
 
             // From here, all operations are guaranteed not to fail (no try).
+            if (preserve_lde) {
+                if (prepared.column_backing_buffers) |buffers| {
+                    for (buffers) |buffer| self.retained_column_backings.appendAssumeCapacity(.{
+                        .values = buffer,
+                        .alignment = prepared.column_backing_alignment,
+                    });
+                    self.allocator.free(buffers);
+                } else for (prepared.columns) |column| self.retained_column_backings.appendAssumeCapacity(.{
+                    .values = @constCast(column.values),
+                    .alignment = .of(M31),
+                });
+            }
             // Retain extended columns (needed for decommitment and quotient evaluation).
             for (prepared.columns, original_indices) |col, original_index| {
                 self.retained_columns.appendAssumeCapacity(col);
@@ -368,6 +467,11 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                     self.retained_coefficients.appendAssumeCapacity(coeff);
                 }
                 self.allocator.free(coeffs);
+            }
+
+            if (prepared.coefficient_backing_buffers) |buffers| {
+                self.retained_coefficient_buffers.appendSliceAssumeCapacity(buffers);
+                self.allocator.free(buffers);
             }
 
             // The prepared.columns outer slice was consumed into retained_columns
@@ -454,56 +558,77 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 active.workCaptureRecorder()
             else
                 null;
-            const col_refs = try self.allocator.alloc([]const M31, self.retained_columns.items.len);
-            defer self.allocator.free(col_refs);
-            for (self.retained_columns.items, col_refs) |column, *reference| {
-                reference.* = column.values;
-            }
-            const sorted = try MerkleProver.sortColumnsByLogSizeAsc(self.allocator, col_refs);
-            defer self.allocator.free(sorted);
-            emitColumnHistogram(H, sorted);
-            const leaf_count: usize = if (sorted.len == 0)
-                1
-            else
-                sorted[sorted.len - 1].values.len;
-
-            // An armed layer source may supply the tree outright. Its bytes flow
-            // into exactly the pipeline a built tree would, so a wrong load can
-            // only produce a transcript the verifier rejects.
-            const loaded = self.loadCachedTree(sorted);
-
-            // BLAKE2s' domain-prefixed state can finalize its compact lifted
-            // tail directly. Other suites use a bounded native-height prefix:
-            // this preserves the old path's critical prefix reuse without
-            // retaining a full-domain hasher array. For Poseidon2 at log 21,
-            // the explicit 96 MiB cap selects log 20 (72 MiB of state), then
-            // writes the 64 MiB final leaf layer directly. The prior full-state
-            // path peaked at 208 MiB during this phase; a purely row-batched
-            // fallback was smaller but replayed lower-height prefixes and was
-            // measured at roughly 10x end-to-end on the real proof workload.
-            const supports_sparse_tail = comptime blk: {
-                if (!@hasDecl(H, "domainPrefixBytes")) break :blk false;
-                break :blk H.domainPrefixBytes() == 64;
+            if (self.compact_failed) return error.IncrementalCommitmentFailed;
+            const incremental = self.compact_committer != null;
+            const leaf_count: usize = if (self.compact_committer) |committer|
+                if (committer.initialized) @as(usize, 1) << @intCast(committer.leaf_log_size) else 1
+            else blk: {
+                var count: usize = 1;
+                for (self.retained_columns.items) |column| count = @max(count, column.values.len);
+                break :blk count;
             };
-            var bounded_stats: MerkleProver.BoundedPrefixStats = .{};
-            var merkle = loaded orelse if (supports_sparse_tail)
-                try self.streaming_committer.commitColumnsWithSparseTail(sorted)
-            else if (self.commitment_scheme.reuse_bounded_merkle_tail)
-                try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(
-                    sorted,
-                    bounded_prefix_state_budget_bytes,
-                    &bounded_stats,
-                )
-            else
-                try self.streaming_committer.commitColumnsWithBoundedPrefix(
-                    sorted,
-                    bounded_prefix_state_budget_bytes,
-                    &bounded_stats,
-                );
-            if (loaded == null and !supports_sparse_tail) {
-                emitBoundedPrefixStats(bounded_stats);
-            }
-            if (loaded == null) self.storeCachedTree(sorted, merkle);
+            var built_complete_tree = true;
+            var merkle = if (self.compact_committer) |*committer| blk: {
+                const result = try committer.finalize();
+                self.compact_committer = null;
+                break :blk result;
+            } else legacy: {
+                const col_refs = try self.allocator.alloc([]const M31, self.retained_columns.items.len);
+                defer self.allocator.free(col_refs);
+                for (self.retained_columns.items, col_refs) |column, *reference| {
+                    reference.* = column.values;
+                }
+                const sorted = try MerkleProver.sortColumnsByLogSizeAsc(self.allocator, col_refs);
+                defer self.allocator.free(sorted);
+                emitColumnHistogram(H, sorted);
+
+                // An armed layer source may supply the tree outright. Its bytes flow
+                // into exactly the pipeline a built tree would, so a wrong load can
+                // only produce a transcript the verifier rejects.
+                const loaded = self.loadCachedTree(sorted);
+
+                // BLAKE2s' domain-prefixed state can finalize its compact lifted
+                // tail directly. Other suites use a bounded native-height prefix:
+                // this preserves the old path's critical prefix reuse without
+                // retaining a full-domain hasher array. For Poseidon2 at log 21,
+                // the explicit 96 MiB cap selects log 20 (72 MiB of state), then
+                // writes the 64 MiB final leaf layer directly. The prior full-state
+                // path peaked at 208 MiB during this phase; a purely row-batched
+                // fallback was smaller but replayed lower-height prefixes and was
+                // measured at roughly 10x end-to-end on the real proof workload.
+                const supports_sparse_tail = comptime blk: {
+                    if (!@hasDecl(H, "domainPrefixBytes")) break :blk false;
+                    break :blk H.domainPrefixBytes() == 64;
+                };
+                var bounded_stats: MerkleProver.BoundedPrefixStats = .{};
+                const device_tree = if (comptime @hasDecl(B, "tryCommitStreamingMerkle")) blk: {
+                    break :blk if (loaded == null) try B.tryCommitStreamingMerkle(H, self.allocator, col_refs) else null;
+                } else null;
+                const legacy_merkle = loaded orelse device_tree orelse if (supports_sparse_tail)
+                    try self.streaming_committer.commitColumnsWithSparseTail(sorted)
+                else if (self.commitment_scheme.reuse_bounded_merkle_tail and
+                    !std.process.hasEnvVarConstant("STWO_ZIG_REPLAY_BOUNDED_MERKLE_TAIL"))
+                    try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(
+                        sorted,
+                        bounded_prefix_state_budget_bytes,
+                        &bounded_stats,
+                    )
+                else
+                    try self.streaming_committer.commitColumnsWithBoundedPrefix(
+                        sorted,
+                        bounded_prefix_state_budget_bytes,
+                        &bounded_stats,
+                    );
+                if (loaded == null and device_tree == null and !supports_sparse_tail) {
+                    emitBoundedPrefixStats(bounded_stats);
+                }
+                if (loaded == null) self.storeCachedTree(sorted, legacy_merkle);
+                built_complete_tree = loaded == null;
+                break :legacy legacy_merkle;
+            };
+            // Compact only host trees whose query reader can reconstruct leaves.
+            // Device adoption retains its existing full-layer contract.
+            if (comptime B.MerkleTree(H) == MerkleProver) merkle.compactForQueries();
             // streaming_committer is now consumed; reinitialize to safe state for deinit.
             self.streaming_committer = MerkleProver.StreamingCommitter.init(self.allocator);
             errdefer merkle.deinit(self.allocator);
@@ -512,11 +637,13 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             self.retained_column_indices = std.ArrayList(usize).empty;
             defer self.allocator.free(original_indices);
 
+            // Backing allocations remain with the builder until final transfer.
+            const backed_columns = self.retained_column_backings.items.len > 0;
             // Assemble the retained columns and coefficients into original PCS order.
             const columns = blk: {
                 const streamed = try self.retained_columns.toOwnedSlice(self.allocator);
                 self.retained_columns = std.ArrayList(ColumnEvaluation).empty;
-                errdefer commitment_tree.freeRetainedColumns(self.allocator, self.retained_column_allocator orelse self.allocator, streamed);
+                errdefer if (backed_columns) self.allocator.free(streamed) else commitment_tree.freeRetainedColumns(self.allocator, self.retained_column_allocator orelse self.allocator, streamed);
 
                 const ordered = try self.allocator.alloc(ColumnEvaluation, streamed.len);
                 for (streamed, original_indices) |column, original_index| {
@@ -525,7 +652,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 self.allocator.free(streamed);
                 break :blk ordered;
             };
-            errdefer commitment_tree.freeRetainedColumns(self.allocator, self.retained_column_allocator orelse self.allocator, columns);
+            errdefer if (backed_columns) self.allocator.free(columns) else commitment_tree.freeRetainedColumns(self.allocator, self.retained_column_allocator orelse self.allocator, columns);
 
             var coefficients: ?[]prover_circle.CircleCoefficients = null;
             errdefer if (coefficients) |owned| column_storage.deinitOwnedCoefficientColumns(self.allocator, owned);
@@ -548,15 +675,34 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 }
             }
 
+            const coefficient_buffers: ?[][]M31 = if (self.retained_coefficient_buffers.items.len > 0)
+                try self.retained_coefficient_buffers.toOwnedSlice(self.allocator)
+            else
+                null;
+            errdefer if (coefficient_buffers) |buffers| {
+                for (buffers) |buffer| self.allocator.free(buffer);
+                self.allocator.free(buffers);
+            };
+            const column_backings: ?[]commitment_tree.ColumnBacking = if (backed_columns)
+                try self.retained_column_backings.toOwnedSlice(self.allocator)
+            else
+                null;
+            errdefer if (column_backings) |backings| {
+                for (backings) |backing| backing.deinit(self.allocator);
+                self.allocator.free(backings);
+            };
             const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
             const tree = BackendCommitmentTree{
                 .columns = columns,
                 .retained_column_allocator = self.retained_column_allocator,
+                .coefficient_backing_buffers = coefficient_buffers,
+                .streaming_column_backings = column_backings,
                 .coefficients = coefficients,
+                .compact_polynomials = incremental,
                 .commitment = try adoptStreamingCommitment(B, H, merkle),
             };
             try appendCommittedTree(MC, self.commitment_scheme, self.allocator, tree, channel);
-            recordStreamingMerkleWork(work_recorder, loaded == null, leaf_count);
+            recordStreamingMerkleWork(work_recorder, built_complete_tree, leaf_count);
         }
     };
 }

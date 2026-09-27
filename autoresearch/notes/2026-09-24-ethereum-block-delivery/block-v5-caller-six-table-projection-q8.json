@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "command": "zig test -OReleaseFast -lc -mcpu=native --test-filter 'block-v5' --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_cpu_backend -Mroot=src/frontends/riscv/block_v5_precompile_lookup_test_root.zig -Mstwo_core=src/core/mod.zig --dep stwo_core -Mstwo_backend_contracts=src/backend/mod.zig --dep stwo_core --dep stwo_backend_contracts -Mstwo_prover_api=src/prover_api/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep interop_postcard -Mstwo_prover_engine=src/prover/mod.zig --dep stwo_core --dep stwo_proof_wire -Mstwo_riscv_frontend=src/frontends/riscv/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Minterop_postcard=src/interop/postcard.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig -Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+  "result": {
+    "exit_code": 0,
+    "tests_passed": 9,
+    "tests_failed": 0,
+    "allocator": "std.testing.allocator; clean teardown"
+  },
+  "security": {
+    "scope": "diagnostic q8/PoW0",
+    "queries": 8,
+    "pow_bits": 0,
+    "log_blowup_factor": 1
+  },
+  "fixtures": [
+    {
+      "sha_calls": 2,
+      "keccak_calls": 1,
+      "signer_calls": 0,
+      "memory_events": 103
+    },
+    {
+      "sha_calls": 0,
+      "keccak_calls": 1,
+      "signer_calls": 1,
+      "memory_events": 94
+    }
+  ],
+  "qualified": [
+    "Fresh family11 arithmetic proofs and same fixed/main PCS-root table projection proofs",
+    "Immutable first-round tree leases survive projection proving and fresh family11 verification",
+    "All six projected consumer claims equal independent shipped signed table-counter sums",
+    "All five SHA AIRs contribute authenticated selected shared-table events",
+    "Canonical exact memory census includes each physical caller transition",
+    "Altered projected claim and altered caller root are rejected",
+    "Independently derived six-table multiplicity bounds cover centered absolute counter mass",
+    "Actual bounded collect/proveWithHooks pipeline stages the table proof without consuming the warm arithmetic scheme",
+    "Independently reconstructed table demand helper rejects altered admission bounds"
+  ],
+  "fix": {
+    "file": "src/frontends/riscv/prover/block_v5_precompile_witness_v1.zig",
+    "detail": "SHA standalone memory admission derives the exact equal positive/negative typed effect count; old extra-plus-two reservation lost one access per SHA call."
+  },
+  "auxiliary_clock_memory": {
+    "sum": "zero",
+    "basis": "Dedicated family11 roster has no clock_update/accessChain component; exact authenticated SHA memory event census and shipped Keccak/signer memory effects equal real caller transition count."
+  },
+  "not_qualified": [
+    "Full native-v3+ROM+tables+packed-memory caller global join",
+    "Caller TableJoin hooks/body through a complete positive caller fixture",
+    "Exact recursive forest or canonical q70 security",
+    "Mainnet block"
+  ],
+  "timing": "Not separately instrumented",
+  "memory": "Not separately instrumented",
+  "producer_pipeline": {
+    "entrypoints": [
+      "block_v5_precompile_batch_v1.ForBackend.collect",
+      "block_v5_precompile_batch_v1.ForBackend.proveWithHooks",
+      "block_v5_precompile_lookup_stage_v1.ForBackend.hooks"
+    ],
+    "witness_loads_per_fixture": 2,
+    "first_round_lifetime": "one live arithmetic scheme; table stage borrows immutable roots before arithmetic proving",
+    "fresh_verification": "Both table and arithmetic proofs fresh-verified after bounded production returns",
+    "state_stage": "Optional state sink body compiled but not exercised by this table-only hook fixture"
+  },
+  "output": [
+    "BLOCK_V5_CALLER_TABLES warm_pipeline=true witness_loads=2 same_roots=true authentic_six_partitions=true sha=2 keccak=1 signer=0 memory_events=103 auxiliary_clock=0 complete=false",
+    "BLOCK_V5_CALLER_TABLES warm_pipeline=true witness_loads=2 same_roots=true authentic_six_partitions=true sha=0 keccak=1 signer=1 memory_events=94 auxiliary_clock=0 complete=false"
+  ]
+}

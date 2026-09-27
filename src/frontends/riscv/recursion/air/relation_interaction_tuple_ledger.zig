@@ -21,7 +21,7 @@ pub const entry_validation = @import("relation_interaction_entry_validation.zig"
 pub const claims_derivation = @import("relation_interaction_claims.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
-pub const MAX_ARENA_NODES: usize = 512;
+pub const MAX_ARENA_NODES: usize = 640;
 pub const MAX_COMPILED_NODES: usize = 192;
 pub const MAX_ARITY: usize = universal.MAX_ARITY;
 pub const NO_SLOT = std.math.maxInt(u16);
@@ -312,6 +312,7 @@ pub const EvalOp = union(enum) {
     mul: BinarySlots,
     neg: u16,
     select: SelectSlots,
+    machine: expr.MachineDerived,
 };
 
 pub const EvalNode = struct {
@@ -336,6 +337,8 @@ pub const BatchPlan = struct {
     ordinal: u8,
     first: u8,
     second: ?u8,
+    third: ?u8 = null,
+    fourth: ?u8 = null,
     interaction_column_start: u16,
 };
 

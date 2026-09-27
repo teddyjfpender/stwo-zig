@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-25",
+  "scope": "Canonical q70/PoW26 two-segment CPU block-v4 real public-I/O fixture: file-backed staged core and recursive proofs, persisted bundle metadata, separately SHA-pinned candidate/final manifests and recursion policy, detached rehydration and fresh complete verification",
+  "security": {"fri_queries": 70, "pow_bits": 26, "profile": "csp_q70_pow26"},
+  "verification": {
+    "fresh_incremental_core": true,
+    "staged_recursive_proofs_loaded_one_at_a_time": true,
+    "complete_block_verified": true,
+    "wrong_bundle_sha_rejected_before_proof": true,
+    "wrong_final_manifest_sha_rejected_before_proof": true,
+    "wrong_recursion_policy_sha_rejected": true,
+    "tracked_allocations_live_after_teardown": 0,
+    "focused_tests_passed": 1
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "first_segment_external_events": 0,
+  "recursive_proof_bytes": {"leaf": [971827, 976652], "dyadic": 980608, "outer": 933914},
+  "fresh_core_plus_staged_leaf_generation_elapsed_ns": 105111027333,
+  "dyadic_forest_proving_elapsed_ns": 41143927833,
+  "exact_outer_proving_elapsed_ns": 62868933916,
+  "detached_complete_receiver_elapsed_ns": 5434544125,
+  "whole_build_and_test_wall_seconds": 402.31,
+  "whole_build_and_test_max_rss_bytes": 14192869376,
+  "receiver_only_peak_bytes": null,
+  "limits": [
+    "The 402.31-second wall and 14,192,869,376-byte max RSS are for the enclosing build-and-test command, not isolated proving or receiver measurements.",
+    "The fixture creates the candidate/final policy hashes and recursion-policy hash, then supplies those hashes separately to the detached receiver. A production verifier must obtain the pins from an independent policy source.",
+    "The receiver reconstructs a fresh runner Source from pinned ELF/input/oracle/schedule and performs bounded host replay before fresh proof verification; this is not succinct verification.",
+    "This qualifies two real-I/O segments with a zero-precompile first leaf and 51 terminal Keccak accesses, not the 218-segment mainnet block."
+  ],
+  "command": "zig build test-block-v4-detached-bundle -Doptimize=ReleaseFast"
+}

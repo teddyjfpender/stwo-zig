@@ -1,6 +1,7 @@
 //! Resident trace materialization, commitment ABI, and resource ownership.
 
 const std = @import("std");
+const ExternalReservation = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget.ExternalReservation;
 
 extern fn stwo_zig_metal_buffer_destroy(buffer: ?*anyopaque) void;
 
@@ -298,9 +299,13 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
             handle: *anyopaque,
             contents: *anyopaque,
             byte_length: usize,
+            /// Explicit consuming owner; empty preserves legacy allocations.
+            /// Canonical resident factories reserve before device allocation.
+            external_reservation: ExternalReservation = .empty(),
 
             pub fn deinit(self: *ResidentBuffer) void {
                 destroyOpaque(self.handle);
+                self.external_reservation.deinit();
                 self.* = undefined;
             }
 
@@ -313,9 +318,13 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
             handle: *anyopaque,
             runtime_handle: *anyopaque,
             log_size: u32,
+            external_reservation: ExternalReservation = .empty(),
+            shared_external_reservation: @import("fri_reservation_owner_v1.zig").Ref = .{},
 
             pub fn deinit(self: *Tree) void {
                 stwo_zig_metal_tree_destroy(self.handle);
+                self.external_reservation.deinit();
+                self.shared_external_reservation.deinit();
                 self.* = undefined;
             }
 
@@ -541,3 +550,39 @@ test "resident commitment bindings retain pointer ABI" {
     try std.testing.expect(batch.params[3].type.? == [*]const [*]const u32);
     try std.testing.expect(batch.params[6].type.? == u32);
 }
+
+pub extern fn stwo_zig_metal_blake3_leaf_absorb_compact_v1(
+    runtime: *anyopaque,
+    arena: *anyopaque,
+    column_offsets: [*]const u32,
+    column_logs: [*]const u32,
+    column_count: u32,
+    source_offset: u32,
+    source_log: u32,
+    destination_offset: u32,
+    destination_log: u32,
+    first_column: u32,
+    is_final: u32,
+    state_words: u32,
+    gpu_ms: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+
+pub extern fn stwo_zig_metal_blake3_leaf_absorb_submit_v1(
+    runtime: *anyopaque,
+    arena: *anyopaque,
+    column_offsets: [*]const u32,
+    column_logs: [*]const u32,
+    column_count: u32,
+    source_offset: u32,
+    source_log: u32,
+    destination_offset: u32,
+    destination_log: u32,
+    first_column: u32,
+    is_final: u32,
+    state_words: u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_blake3_leaf_absorb_finish_v1(command: *anyopaque, gpu_ms: *f64, error_message: [*]u8, error_message_len: usize) bool;

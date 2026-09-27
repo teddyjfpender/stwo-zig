@@ -1,0 +1,14 @@
+{
+  "README.md": "3117c1ce8d18633f869dd57fa696348de0b4c556d512c88697e5e7595435511d",
+  "initial-unit.log": "d0ebf836e7ff3be8e4bdce3723eea488e0dd092892fd8d4b778cc8851137e461",
+  "proof-tests.log": "2dd771cd990a2e6bbdaa26f73cca16e5d260ec4bc30a1af397e28c0c00f33db2",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "10e878cd717e89bbabebb532e31658879d9d48721086517c4fe59ad8d3e14fa3",
+  "sources/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig": "84742e78cf77efbb1de6bb56a68849c22f2c674cfac13c7a7667a2f0f5798fb9",
+  "sources/src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig": "ae644df440b9aa30a95e6434fcc63ca185bb0eaa233cdf3d2275859d82dd0543",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "731b0fbae19b8e7b6aca3d5446062edb735d8db52e2bd87910e5b9c2804330a1",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_pcs_fixture.zig": "feb34ce49b09f1f8369cc9863f5802d6befbfde7baad1acf40d245ab5ab33479",
+  "sources/src/frontends/riscv/recursion/pcs_arithmetic_capture.zig": "aaf14f167ad9fab65f8743d8bd1d70dab774887fd349d9d88980c547208f0c45",
+  "sources/src/frontends/riscv/recursion/pcs_arithmetic_capture_test.zig": "0e8d454e325365ae26db2c5edcdc9cb75a34ae2906dfff1f76ebbee356a99f83",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "f503a5f85fa00e98292d7a0dee6f4f478d73d1600a16a166ecfe6a9fcc5ebba2",
+  "unit-tests.log": "9d9f960a53761b3502049dd2714c9f4ebe1684dbc757423018bff3947a9ab00c"
+}

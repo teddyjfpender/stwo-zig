@@ -1,0 +1,20 @@
+{
+  "blake2s": {
+    "queries": 70,
+    "pow_bits": 26,
+    "execution_ns": 1851375,
+    "proving_ns": 858626541,
+    "verify_ns": 296245250,
+    "cycles": 1828,
+    "proof_bytes": 3748143
+  },
+  "blake3": {
+    "queries": 70,
+    "pow_bits": 26,
+    "execution_ns": 1852584,
+    "proving_ns": 2523295083,
+    "verify_ns": 191454291,
+    "cycles": 1828,
+    "proof_bytes": 3748258
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "iterations": 4096,
+  "digest": "f34fce81c22cd52be6ede2808cda3a2f269bb810d9b14bed56e3acaf9d6d1c35",
+  "local_verified": true,
+  "peer_aggregated_proof_verified_against_guest_key": true,
+  "local_public_input_binding_checked": true,
+  "peer_public_iteration_count_checked": true,
+  "independent_python_digest_check": true,
+  "security_normalized": false
+}

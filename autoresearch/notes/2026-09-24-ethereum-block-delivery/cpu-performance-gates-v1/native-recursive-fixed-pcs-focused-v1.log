@@ -1,0 +1,11 @@
+1/10 block_v5_native_fixed_pcs_test_root_v1.test_0...OK
+2/10 block_v5_native_fixed_pcs_test_root_v1.test.native fixed PCS: genuine native and original parent factory body retention...OK
+3/10 prover.block_v5_native_fixed_pcs_test_v1.test.native fixed PCS: original RAM query root ordering and all fixed ports cold parity...OK
+4/10 prover.block_v5_native_fixed_pcs_test_v1.test.native fixed PCS: original range16 table geometry and source mutations...OK
+5/10 prover.block_v5_native_fixed_pcs_test_v1.test.native fixed PCS: new query projection terminal port construction exhaustive OOM...OK
+6/10 prover.block_v5_native_fixed_pcs_test_v1.test.native fixed PCS: allocation owner can release before final query path port frees...OK
+7/10 prover.block_v5_native_fixed_pcs_test_v1.test.native fixed PCS: original raw PAGE ten-root masks columns and FRI ordinal...OK
+8/10 prover.block_v5_native_fixed_pcs_test_v1.test.native fixed PCS: original fold PAGE ten-root masks columns and FRI ordinal...OK
+9/10 air.lookups.tables.mod.test_0...OK
+10/10 air.lookups.tables.source_ingest.test_0...OK
+All 10 tests passed.

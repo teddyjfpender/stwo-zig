@@ -15,7 +15,7 @@ const ir = @import("../../air/lang/ir.zig");
 const types = @import("../../air/lang/types.zig");
 const validate = @import("../../air/lang/validate.zig");
 
-pub const MAX_NODES: usize = 512;
+pub const MAX_NODES: usize = 640;
 pub const MAX_CONSTRAINTS: usize = 192;
 const NO_SLOT = std.math.maxInt(u16);
 
@@ -42,6 +42,7 @@ const Selection = struct {
     when_false: u16,
 };
 
+const machine = @import("closed_machine_expression.zig");
 pub const Op = union(enum) {
     constant: u32,
     add: Binary,
@@ -49,6 +50,7 @@ pub const Op = union(enum) {
     mul: Binary,
     neg: u16,
     select: Selection,
+    machine: expr.MachineDerived,
 };
 
 pub const Node = struct {
@@ -132,7 +134,7 @@ pub fn authenticate(
 ) Error!Program {
     try validate.validate(arena);
     const identity = try digest.computeIdentity(arena);
-    if (identity.format_version != digest.typed_effect_format_version or
+    if (!machine.supportedFormat(identity.format_version) or
         !std.mem.eql(u8, &identity.bytes, &expected_digest))
     {
         return error.BindingSealMismatch;
@@ -212,6 +214,11 @@ fn prepareEvaluationNodes(program: *Program) void {
         const node = program.nodes[index];
         if (!live[node.destination]) continue;
         switch (node.op) {
+            .machine => |v| {
+                for (machine.operands(v)) |operand| if (operand) |id| {
+                    live[types.idIndex(id)] = true;
+                };
+            },
             .constant => {},
             .add, .sub, .mul => |binary| {
                 live[binary.lhs] = true;
@@ -246,7 +253,13 @@ fn compileOp(op: expr.Op, source_index: usize) Error!Op {
             .when_true = try priorSlot(selection.when_true, source_index),
             .when_false = try priorSlot(selection.when_false, source_index),
         } },
-        .input, .hint_output, .call_output, .machine_derived => error.UnsupportedExpression,
+        .machine_derived => |v| .{ .machine = try machine.mapped(v, struct {
+            index: usize,
+            pub fn get(self: @This(), id: types.ValueId) Error!types.ValueId {
+                return @enumFromInt(try priorSlot(id, self.index));
+            }
+        }{ .index = source_index }) },
+        .input, .hint_output, .call_output => error.UnsupportedExpression,
     };
 }
 
@@ -271,6 +284,7 @@ fn slot(index: usize) Error!u16 {
 
 inline fn evaluateBaseOp(op: Op, values: *const [MAX_NODES]M31) M31 {
     return switch (op) {
+        .machine => |v| machine.evaluate(M31, v, values),
         .constant => |value| M31.fromU64(value),
         .add => |binary| values[binary.lhs].add(values[binary.rhs]),
         .sub => |binary| values[binary.lhs].sub(values[binary.rhs]),
@@ -285,6 +299,7 @@ inline fn evaluateBaseOp(op: Op, values: *const [MAX_NODES]M31) M31 {
 
 inline fn evaluateSecureOp(op: Op, values: *const [MAX_NODES]QM31) QM31 {
     return switch (op) {
+        .machine => |v| machine.evaluate(QM31, v, values),
         .constant => |value| QM31.fromBase(M31.fromU64(value)),
         .add => |binary| values[binary.lhs].add(values[binary.rhs]),
         .sub => |binary| values[binary.lhs].sub(values[binary.rhs]),

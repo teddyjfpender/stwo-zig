@@ -1,0 +1,10 @@
+{
+  "candidate": {
+    "source": "/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/c64160d1a49d6b69c5a7b28e04f7887f/test",
+    "sha256": "2a2446447c77fc9813a77e7e08de8f5d41220fe7f25279d86bb1b200390ab38c"
+  },
+  "control": {
+    "source": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-deferred-parent-emission/candidate-tree-test",
+    "sha256": "405f5d2c86d6e85bd706f62bb58cfe00ce29dbcec6ae6264a28bbda9b4e03310"
+  }
+}

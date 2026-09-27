@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-page-policy-positive-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 8.866489582986105,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 5,
+  "test_summary": [
+    "All 5 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-policy-positive-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-page-policy-positive-focused-v1",
+    "bytes": 11300664,
+    "sha256": "f87b9abfe1778277c1716baad2f5c2d2a43a9063007b492e0791dba1e6110827"
+  }
+}

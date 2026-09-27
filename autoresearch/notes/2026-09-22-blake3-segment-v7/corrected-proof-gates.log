@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-blake3-ethereum-segment-artifact success
++- BLAKE3 v7 segment artifact guard success
+   +- run test 1 passed 10s MaxRSS:1G
+      +- compile test ReleaseSafe native success 3m MaxRSS:6G
+test-ethereum-segment-v2-signer-proof success
++- Ethereum SegmentV2 signer proof identity guard success
+   +- run test 1 passed 6s MaxRSS:1G
+      +- compile test ReleaseSafe native success 3m MaxRSS:6G
+

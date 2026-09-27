@@ -54,6 +54,7 @@ pub fn Assembly(comptime direction: Direction) type {
         recovery: secp_component.Component(secp_config.Recovery),
         byte: secp_component.Component(secp_config.ByteTable),
         recovery_caller: secp_component.Component(secp_config.RecoveryCaller),
+        recovery_caller_local_zero: ?secp_component.Component(secp_config.RecoveryCallerLocalZero),
         handles: [max_handles]Handle,
         len: usize,
 
@@ -171,13 +172,95 @@ pub fn Assembly(comptime direction: Direction) type {
                 extension,
                 base_interaction_columns,
             );
+            return createPlaced(allocator, extension, relations, base, claim, placements, circuit_profile);
+        }
+
+        pub fn createBlake3(
+            allocator: std.mem.Allocator,
+            native: *const base_statement.Blake3ExecutionStatement,
+            extension: *const statement_mod.Statement,
+            pin: @import("../blake3_commitment_plan.zig").Admission,
+            hash_logs: @import("../blake3_ethereum_statement.zig").HashLogs,
+            relations: *const relations_mod.Relations,
+            base: []const Handle,
+            claim: *const types.ExtensionClaim,
+        ) !*Self {
+            return createBlake3WithRanges(allocator, native, extension, pin, hash_logs, relations, base, claim, null);
+        }
+
+        pub fn createBlake3WithRanges(
+            allocator: std.mem.Allocator,
+            native: *const base_statement.Blake3ExecutionStatement,
+            extension: *const statement_mod.Statement,
+            pin: @import("../blake3_commitment_plan.zig").Admission,
+            hash_logs: @import("../blake3_ethereum_statement.zig").HashLogs,
+            relations: *const relations_mod.Relations,
+            base: []const Handle,
+            claim: *const types.ExtensionClaim,
+            ranges: ?@import("../../recursion/air/compact_range_geometry.zig").Plan,
+        ) !*Self {
+            try @import("../blake3_ethereum_statement.zig").validate(extension, native, pin, hash_logs);
+            const origin = try blake3OffsetsWithRanges(native, ranges);
+            return createPlaced(allocator, extension, relations, base, claim, try Placements.initAt(origin, extension), .legacy_v4);
+        }
+
+        /// A containing SHA protocol supplies and validates the combined memory
+        /// certificate; the Ethereum prefix cannot validate it as a two-family leaf.
+        pub fn createBlake3WithSha(
+            allocator: std.mem.Allocator,
+            native: *const base_statement.Blake3ExecutionStatement,
+            extension: *const @import("../blake3_ethereum_sha_statement.zig").Statement,
+            pin: @import("../blake3_commitment_plan.zig").Admission,
+            hash_logs: @import("../blake3_ethereum_statement.zig").HashLogs,
+            relations: *const relations_mod.Relations,
+            base: []const Handle,
+            claim: *const types.ExtensionClaim,
+            ranges: ?@import("../../recursion/air/compact_range_geometry.zig").Plan,
+        ) !*Self {
+            try extension.validate(allocator, native, pin, hash_logs);
+            const origin = try blake3OffsetsWithRanges(native, ranges);
+            return createPlaced(allocator, &extension.ethereum, relations, base, claim, try Placements.initAt(origin, &extension.ethereum), .legacy_v4);
+        }
+
+        /// Standalone block-v5 precompile family. Only typed extension columns
+        /// occupy these roots; program/memory/machine requests remain open for
+        /// the common B5SS global providers. No native or custody offset enters
+        /// this component placement.
+        pub fn createBlockV5Standalone(
+            allocator: std.mem.Allocator,
+            extension: *const statement_mod.Statement,
+            total_steps: u32,
+            relations: *const relations_mod.Relations,
+            claim: *const types.ExtensionClaim,
+        ) !*Self {
+            return createBlockV5StandaloneForCircuitProfileV1(allocator, extension, total_steps, relations, claim, @import("../block_v5_precompile_protocol_v1.zig").circuit_profile);
+        }
+
+        pub fn createBlockV5StandaloneForCircuitProfileV1(
+            allocator: std.mem.Allocator,
+            extension: *const statement_mod.Statement,
+            total_steps: u32,
+            relations: *const relations_mod.Relations,
+            claim: *const types.ExtensionClaim,
+            circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+        ) !*Self {
+            try circuit_profile.requireCallerExecution(.rv32im_zkvm_ethereum_v1);
+            try extension.validateGeometryWithCircuitProfileV1(total_steps, circuit_profile);
+            const origin = PlacementDescriptor{ .preprocessed_offset = 0, .main_offset = 0, .interaction_offset = 0 };
+            return createPlaced(allocator, extension, relations, &.{}, claim, try Placements.initAt(origin, extension), circuit_profile);
+        }
+
+        fn createPlaced(allocator: std.mem.Allocator, extension: *const statement_mod.Statement, relations: *const relations_mod.Relations, base: []const Handle, claim: *const types.ExtensionClaim, placements: Placements, circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1) !*Self {
+            try claim.validate(extension);
+            if (base.len > proof_workspace.MAX_COMPONENT_HANDLES) return error.TooManyComponentHandles;
             const self = try allocator.create(Self);
             errdefer allocator.destroy(self);
-            self.keccak = try keccak_component.KeccakShardComponent.initWithMaximumLogSize(
+            self.keccak = try keccak_component.KeccakShardComponent.initForRecipe(
                 claim.keccak_shard,
                 placements.keccak,
                 &relations.keccak,
                 circuit_profile.keccakMaximumLogSize(),
+                circuit_profile.localZeroCustody(),
             );
             self.chi = if (direction == .prover)
                 try keccak_table_component.KeccakTableComponent.initProver(
@@ -217,7 +300,15 @@ pub fn Assembly(comptime direction: Direction) type {
             self.table = try secp_component.Component(secp_config.Table).init(claim.table, placements.secp[7], &relations.secp);
             self.recovery = try secp_component.Component(secp_config.Recovery).init(claim.recovery, placements.secp[8], &relations.secp);
             self.byte = try secp_component.Component(secp_config.ByteTable).init(claim.byte, placements.secp[9], &relations.secp);
-            self.recovery_caller = try secp_component.Component(secp_config.RecoveryCaller).init(claim.recovery_caller, placements.secp[10], &relations.secp);
+            self.recovery_caller_local_zero = null;
+            if (circuit_profile.localZeroCustody()) {
+                self.recovery_caller_local_zero = try secp_component.Component(secp_config.RecoveryCallerLocalZero).init(.{
+                    .log_size = claim.recovery_caller.log_size,
+                    .n_rows = claim.recovery_caller.n_rows,
+                    .batch_sums = claim.recovery_caller.batch_sums,
+                    .component_sum = claim.recovery_caller.component_sum,
+                }, placements.secp[10], &relations.secp);
+            } else self.recovery_caller = try secp_component.Component(secp_config.RecoveryCaller).init(claim.recovery_caller, placements.secp[10], &relations.secp);
 
             @memcpy(self.handles[0..base.len], base);
             var cursor = base.len;
@@ -235,7 +326,6 @@ pub fn Assembly(comptime direction: Direction) type {
                 &self.table,
                 &self.recovery,
                 &self.byte,
-                &self.recovery_caller,
             }) |component| {
                 self.handles[cursor] = if (direction == .prover)
                     component.asProverComponent()
@@ -243,6 +333,11 @@ pub fn Assembly(comptime direction: Direction) type {
                     component.asVerifierComponent();
                 cursor += 1;
             }
+            self.handles[cursor] = if (self.recovery_caller_local_zero) |*component|
+                (if (direction == .prover) component.asProverComponent() else component.asVerifierComponent())
+            else
+                (if (direction == .prover) self.recovery_caller.asProverComponent() else self.recovery_caller.asVerifierComponent());
+            cursor += 1;
             self.len = cursor;
             return self;
         }
@@ -271,7 +366,7 @@ pub fn Assembly(comptime direction: Direction) type {
                 normalPlacement(self.table.placement),
                 normalPlacement(self.recovery.placement),
                 normalPlacement(self.byte.placement),
-                normalPlacement(self.recovery_caller.placement),
+                normalPlacement(if (self.recovery_caller_local_zero) |component| component.placement else self.recovery_caller.placement),
             };
         }
 
@@ -310,9 +405,12 @@ const Placements = struct {
         extension: *const statement_mod.Statement,
         base_interaction_columns: usize,
     ) !Placements {
-        var pp: usize = core.nPreprocessedColumns();
-        var main: usize = core.nMainColumns();
-        var interaction = base_interaction_columns;
+        return initAt(.{ .preprocessed_offset = core.nPreprocessedColumns(), .main_offset = core.nMainColumns(), .interaction_offset = base_interaction_columns }, extension);
+    }
+    fn initAt(origin: PlacementDescriptor, extension: *const statement_mod.Statement) !Placements {
+        var pp = origin.preprocessed_offset;
+        var main = origin.main_offset;
+        var interaction = origin.interaction_offset;
         const keccak = keccak_component.Placement{
             .preprocessed_offset = pp,
             .main_offset = main,
@@ -340,9 +438,9 @@ const Placements = struct {
             main = try add(main, descriptor.main_columns);
             interaction = try add(interaction, descriptor.interaction_columns);
         }
-        var expected_pp: usize = core.nPreprocessedColumns();
-        var expected_main: usize = core.nMainColumns();
-        var expected_interaction = base_interaction_columns;
+        var expected_pp = origin.preprocessed_offset;
+        var expected_main = origin.main_offset;
+        var expected_interaction = origin.interaction_offset;
         for (extension.components) |descriptor| {
             expected_pp = try add(expected_pp, descriptor.preprocessed_columns);
             expected_main = try add(expected_main, descriptor.main_columns);
@@ -359,6 +457,17 @@ const Placements = struct {
         return .{ .keccak = keccak, .chi = chi, .xor5 = xor5, .secp = secp };
     }
 };
+
+/// Extension placement follows native execution and the full BLAKE3 roster.
+pub fn blake3Offsets(native: *const base_statement.Blake3ExecutionStatement) !PlacementDescriptor {
+    var result = PlacementDescriptor{ .preprocessed_offset = native.nPreprocessedColumns(), .main_offset = native.nMainColumns(), .interaction_offset = native.nInteractionColumns() };
+    inline for (@import("../blake3_commitment_components.zig").Airs) |Air| {
+        result.preprocessed_offset = try add(result.preprocessed_offset, Air.PREPROCESSED_COLUMN_COUNT);
+        result.main_offset = try add(result.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+        result.interaction_offset = try add(result.interaction_offset, Air.INTERACTION_COLUMN_COUNT);
+    }
+    return result;
+}
 
 fn tablePlacement(
     pp: usize,
@@ -497,4 +606,16 @@ fn retainedSegmentZeroRows(family: trace_mod.OpcodeFamily) u32 {
         .mul => 2,
         else => 0,
     };
+}
+
+pub fn blake3OffsetsWithRanges(native: *const base_statement.Blake3ExecutionStatement, ranges: ?@import("../../recursion/air/compact_range_geometry.zig").Plan) !PlacementDescriptor {
+    var origin = try blake3Offsets(native);
+    if (ranges) |compact| {
+        try compact.validate();
+        inline for (@import("../../recursion/air/compact_range_roster.zig").Roster.Airs) |Air| {
+            origin.main_offset = try add(origin.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+            origin.interaction_offset = try add(origin.interaction_offset, Air.INTERACTION_COLUMN_COUNT);
+        }
+    }
+    return origin;
 }

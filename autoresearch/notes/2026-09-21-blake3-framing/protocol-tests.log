@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 6/6 tests passed
+test-blake3-framing success
++- BLAKE3 framing guard success
+   +- run test 1 passed 489ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 3s MaxRSS:425M
+test-blake3-protocol success
++- BLAKE3 protocol test guard success
+   +- run test 5 passed 530ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 9s MaxRSS:817M
+

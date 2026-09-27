@@ -1,0 +1,23 @@
+
+Build Summary: 20/20 steps succeeded; 6/6 tests passed
+test-blake3-counter-step success
++- BLAKE3 counter step guard success
+   +- run test 1 passed 459ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:632M
+test-blake3-bounded-draw success
++- BLAKE3 bounded draw guard success
+   +- run test 1 passed 455ms MaxRSS:5M
+      +- compile test ReleaseSafe native success 3s MaxRSS:458M
+test-blake3-bounded-draw-proof success
++- BLAKE3 bounded draw proof guard success
+   +- run test 1 passed 4s MaxRSS:354M
+      +- compile test ReleaseSafe native success 23s MaxRSS:1G
+test-blake3-framing success
++- BLAKE3 framing guard success
+   +- run test 1 passed 453ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 3s MaxRSS:425M
+test-blake3-transcript-sequence success
++- BLAKE3 transcript sequence guard success
+   +- run test 2 passed 4s MaxRSS:394M
+      +- compile test ReleaseSafe native success 22s MaxRSS:1G
+

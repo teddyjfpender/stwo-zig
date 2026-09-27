@@ -1,0 +1,12 @@
+{
+  "README.md": "d1547c66cfda0b150a9138111e4d9c5f1bdf4549e30bdfafcb46e7b4a4bbd4be",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/autoresearch/notes/20260922-blake3-ordered-draw-problem-match.md": "37ac71eb3d199710f44ec67a1a3198764e6ab022fa8da7366b7244f760f574c5",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "fdf3e5a66ea75c8cf8f0f77aff8df1c3131f214e0482d6b6016b7f2e47d5eb98",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "435d71f46a46e79601dcbf371fcd14e8ca017458b43206423d62f08b75ce97b2",
+  "sources/src/frontends/riscv/recursion/air/blake3_challenge_committed_test.zig": "17e7cbc248a56f260a10e65820171cfcfa5d7e2ef7de35c46f68faa58515bfd7",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness.zig": "d7dce75eb4151ba8cf07874bff369a6acb43686836dd2b22113a37efa5a8d81a",
+  "sources/src/frontends/riscv/recursion/air/blake3_draw_witness_test.zig": "15442e8c9fd80a3ce9e686cf58e252fc339992b80d7e0e1ae35feab8958d40c3",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "0ae7fcab6cb7d3da3be34d67136e7f919d490bd979ceca615f4604356fe05660",
+  "tests.log": "6be365da9c4c84529b24a834c19ff5bfdfd3c057c55f8a5230d1d8eb0d1b912d"
+}

@@ -1,0 +1,202 @@
+{
+  "verified": true,
+  "recursive": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 12419,
+  "keccak_calls": 6,
+  "recovery_calls": 1,
+  "segments": 1,
+  "execution_ns": 2837125,
+  "witness_admission_ns": 771586333,
+  "leaf_and_recursion_preparation_ns": 12563118958,
+  "parent_proving_ns": 25648470042,
+  "final_verification_ns": 8823458,
+  "total_ns": 43973083583,
+  "proof_bytes": 881792,
+  "worker_peak_bytes": 26176424834,
+  "preparation_retained_bytes": 4522264444,
+  "geometry": [
+    {
+      "index": 0,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 8388608,
+      "fixed_rows": 6972840,
+      "fixed_columns": 16,
+      "retained_bytes": 3197727152
+    },
+    {
+      "index": 1,
+      "name": "recursion.air.blake3_xor_call",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1992240,
+      "fixed_columns": 6,
+      "retained_bytes": 148477344
+    },
+    {
+      "index": 2,
+      "name": "recursion.air.blake3_boundary",
+      "main_columns": 4,
+      "main_rows": 2097152,
+      "fixed_rows": 1502758,
+      "fixed_columns": 8,
+      "retained_bytes": 81642784
+    },
+    {
+      "index": 3,
+      "name": "recursion.air.qm31_mul_add_v1",
+      "main_columns": 17,
+      "main_rows": 524288,
+      "fixed_rows": 378085,
+      "fixed_columns": 10,
+      "retained_bytes": 50775392
+    },
+    {
+      "index": 4,
+      "name": "recursion.air.qm31_inv",
+      "main_columns": 14,
+      "main_rows": 4096,
+      "fixed_rows": 3427,
+      "fixed_columns": 18,
+      "retained_bytes": 476456
+    },
+    {
+      "index": 5,
+      "name": "recursion.air.linear_ops",
+      "main_columns": 21,
+      "main_rows": 262144,
+      "fixed_rows": 231967,
+      "fixed_columns": 30,
+      "retained_bytes": 49856640
+    },
+    {
+      "index": 6,
+      "name": "recursion.air.blake3_challenge_block",
+      "main_columns": 71,
+      "main_rows": 256,
+      "fixed_rows": 166,
+      "fixed_columns": 15,
+      "retained_bytes": 84368
+    },
+    {
+      "index": 7,
+      "name": "recursion.air.blake3_byte_route",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1761127,
+      "fixed_columns": 45,
+      "retained_bytes": 417666444
+    },
+    {
+      "index": 8,
+      "name": "recursion.air.blake3_query_mask",
+      "main_columns": 8,
+      "main_rows": 128,
+      "fixed_rows": 71,
+      "fixed_columns": 10,
+      "retained_bytes": 7128
+    },
+    {
+      "index": 9,
+      "name": "recursion.air.blake3_private_word",
+      "main_columns": 4,
+      "main_rows": 262144,
+      "fixed_rows": 164744,
+      "fixed_columns": 4,
+      "retained_bytes": 6830304
+    },
+    {
+      "index": 10,
+      "name": "recursion.air.blake3_field_bytes",
+      "main_columns": 24,
+      "main_rows": 1048576,
+      "fixed_rows": 1044562,
+      "fixed_columns": 9,
+      "retained_bytes": 138268104
+    },
+    {
+      "index": 11,
+      "name": "recursion.air.qm31_pack_wire",
+      "main_columns": 4,
+      "main_rows": 65536,
+      "fixed_rows": 46024,
+      "fixed_columns": 8,
+      "retained_bytes": 2521440
+    },
+    {
+      "index": 12,
+      "name": "recursion.air.scalar_wire_source",
+      "main_columns": 1,
+      "main_rows": 2097152,
+      "fixed_rows": 1086098,
+      "fixed_columns": 6,
+      "retained_bytes": 34454984
+    },
+    {
+      "index": 13,
+      "name": "recursion.air.blake3_path_select",
+      "main_columns": 17,
+      "main_rows": 262144,
+      "fixed_rows": 179498,
+      "fixed_columns": 12,
+      "retained_bytes": 26442104
+    },
+    {
+      "index": 14,
+      "name": "recursion.air.blake3_retry_control",
+      "main_columns": 12,
+      "main_rows": 256,
+      "fixed_rows": 166,
+      "fixed_columns": 22,
+      "retained_bytes": 27184
+    },
+    {
+      "index": 15,
+      "name": "recursion.air.blake3_counter_step",
+      "main_columns": 24,
+      "main_rows": 256,
+      "fixed_rows": 175,
+      "fixed_columns": 9,
+      "retained_bytes": 31452
+    },
+    {
+      "index": 16,
+      "name": "recursion.air.readonly_consistency",
+      "main_columns": 19,
+      "main_rows": 1048576,
+      "fixed_rows": 1002190,
+      "fixed_columns": 6,
+      "retained_bytes": 103744792
+    },
+    {
+      "index": 17,
+      "name": "recursion.air.readonly_input",
+      "main_columns": 5,
+      "main_rows": 1048576,
+      "fixed_rows": 1002190,
+      "fixed_columns": 6,
+      "retained_bytes": 45024200
+    },
+    {
+      "index": 18,
+      "name": "recursion.air.detached_opening_accumulate4_v1",
+      "main_columns": 41,
+      "main_rows": 1048576,
+      "fixed_rows": 792645,
+      "fixed_columns": 13,
+      "retained_bytes": 213184988
+    },
+    {
+      "index": 19,
+      "name": "recursion.air.native_pcs_opening4_v1",
+      "main_columns": 29,
+      "main_rows": 32768,
+      "fixed_rows": 23450,
+      "fixed_columns": 13,
+      "retained_bytes": 5021184
+    }
+  ],
+  "output": "0100000001000000ad40f6a7de9e85a4284678f80e678537a5a54a5e8b9c93762ca7c5cbc4d4f44cb1b6df74a5bca3624ff555fd4d4dc116504421a8e2fb2c69f8dd8e570638aefa"
+}

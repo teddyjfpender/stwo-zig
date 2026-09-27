@@ -1,0 +1,14 @@
+{
+  "README.md": "5f47935d2386a3f8b736efb5b77b8c86793d83cb6aab908e221ad094d2129fe9",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/autoresearch/notes/20260921-blake3-private-input-problem-match.md": "7fe9f85fd0b30de03a575b386538d5d46a74d70b985c72c114a3becb2b7ba76c",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "cd64baea96a41243daf523732f7c6b0babcaf133c8b34e8daedf052f4b75b1a2",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "0f948d333bcffc8092ca83779cd893946856f54db1803db015886a65869a83bd",
+  "sources/src/frontends/riscv/recursion/air/blake3_hash_plan.zig": "1da33f23ce1f860fd4c0495b66b38b7f7e10d6386e405785b8f4f425eed83005",
+  "sources/src/frontends/riscv/recursion/air/blake3_hash_witness.zig": "cb244f6ae7ad80a1e4d824591ccaf5d0a9f83ba5074fbd1cd3159e0020c3c53c",
+  "sources/src/frontends/riscv/recursion/air/blake3_input_bridge.zig": "2c50ec7549407c9f3ed7500b430da04ab15212eb4663b6416c65cd23832f218a",
+  "sources/src/frontends/riscv/recursion/air/blake3_private_hash_witness.zig": "5b3e9d0bfd6f9f2ba2da50fef191d744648290b06cef061116913a4595d53045",
+  "sources/src/frontends/riscv/recursion/air/blake3_private_input_test.zig": "f99d0806804ee3cc11caa203b90aea24d33da02ba0103c19f91e7eadff846076",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "92d772ace1a9143bcceb674e384bf0332a447b4ae5e8b3e47bb137211dd08f35",
+  "tests.log": "9e711a8a8dc43839e6660765fd0a524144ca9b6be98f410dc06ef699fe795c3c"
+}

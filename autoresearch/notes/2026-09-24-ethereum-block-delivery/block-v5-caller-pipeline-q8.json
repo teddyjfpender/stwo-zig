@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "command": "zig test -OReleaseFast -lc -mcpu=native --test-filter 'block-v5' --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_cpu_backend -Mroot=src/frontends/riscv/block_v5_precompile_lookup_test_root.zig -Mstwo_core=src/core/mod.zig --dep stwo_core -Mstwo_backend_contracts=src/backend/mod.zig --dep stwo_core --dep stwo_backend_contracts -Mstwo_prover_api=src/prover_api/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep interop_postcard -Mstwo_prover_engine=src/prover/mod.zig --dep stwo_core --dep stwo_proof_wire -Mstwo_riscv_frontend=src/frontends/riscv/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Minterop_postcard=src/interop/postcard.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig -Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+  "result": {
+    "exit_code": 0,
+    "tests_passed": 13,
+    "tests_failed": 0,
+    "allocator": "std.testing.allocator; clean teardown"
+  },
+  "security": {
+    "scope": "diagnostic q8/PoW0",
+    "queries": 8,
+    "pow_bits": 0,
+    "log_blowup_factor": 1
+  },
+  "fixtures": [
+    {
+      "sha_calls": 2,
+      "keccak_calls": 1,
+      "signer_calls": 0,
+      "memory_events": 103,
+      "arithmetic_proof_callbacks": 1
+    },
+    {
+      "sha_calls": 0,
+      "keccak_calls": 1,
+      "signer_calls": 1,
+      "memory_events": 94,
+      "arithmetic_proof_callbacks": 1
+    }
+  ],
+  "production_api": {
+    "file": "src/frontends/riscv/prover/block_v5_caller_pipeline_v1.zig",
+    "collect": "ForBackend.collectSegment",
+    "late_bind": "Proposal.lateBind",
+    "produce": "ForBackend.proveSegment",
+    "input": "Driver-owned already-live EthereumShaSegmentResult; no execution replay callback",
+    "proposal": "Value-owned statement, physical roots/key, packed witness root, frame, byte census and six-table snapshots/bounds; no retained matrices or PCS",
+    "sinks": [
+      "put_caller",
+      "put_program",
+      "put_state",
+      "put_tables",
+      "put_memory"
+    ],
+    "ownership": "Successful sink consumes the typed proof; failed sink leaves producer cleanup",
+    "arithmetic_matrix_generation": "One Profile.mainWitness per physical commitment in each of the two passes; zero in warm side stages"
+  },
+  "qualified": [
+    "Actual collection, late binding and checked one-record production from the live segment",
+    "Different eventual native instance IDs produce distinct family11/12/13 instance IDs without changing physical roots",
+    "Second-pass family11 key/roots, packed witness root, byte snapshot and all six counter snapshots match first-pass proposal before publication",
+    "All four warm side proofs share original immutable caller fixed/main trees",
+    "Fresh family11 arithmetic verification succeeds after packed memory, table/state and program callbacks",
+    "Fresh packed13, family12, state and authentic six-table projections verify under B5SS and original caller binding",
+    "Independent six-table signed counter oracles equal projected claims",
+    "Arithmetic proof hook receives the actual original proof exactly once per case",
+    "Authentic SHA/Keccak/signer memory tuple and unchanged sorted-address regressions pass"
+  ],
+  "negatives": [
+    "Changed bound root",
+    "Changed canonical proposal/record key",
+    "Changed packed memory universal claim",
+    "Changed family12 program claim",
+    "Swapped family12 caller roots",
+    "Changed six-table claim",
+    "Swapped six-table caller roots",
+    "Noncanonical standalone table admission"
+  ],
+  "fixes": [
+    "Counter snapshot iteration supplies typed const counter pointers",
+    "Trace.initSelected validates full descriptor geometry plus every actually read source span, without requiring unused Keccak arithmetic evaluations",
+    "Packed-only external quotient evaluation recovers from the entire immutable committed LDE, rejects high coefficients, then evaluates the admitted quotient domain; Keccak +27 state offset unchanged"
+  ],
+  "compatibility": {
+    "old_trace_init": "Still requires full component evaluations",
+    "old_external_domain": "Default v2/nonpacked quotient support path retained",
+    "proof_format": "Unchanged",
+    "NativeV3_Global_driver_edits": "None"
+  },
+  "scope": {
+    "block_authority": "None; complete=false",
+    "source_seal": "Scoped independently constructed diagnostic roster; native/program/memory entries are placeholders",
+    "fresh_native_proof": "Not part of this focused pipeline gate",
+    "field_safe_groups": "Caller must supply independently planned field-safe counter context; native shape demands remain separate",
+    "global_kernel": "Not rerun by this gate",
+    "detached_store": "Typed sink ownership exercised in memory, no durable store qualification",
+    "canonical_q70": false,
+    "mainnet_block": false
+  },
+  "output": [
+    "BLOCK_V5_CALLER_TABLES live_segment=true late_binding=true physical_commit=true memory_borrowed=true family12_borrowed=true selected_columns=true state_borrowed=true authentic_six_partitions=true sha=2 keccak=1 signer=0 memory_events=103 auxiliary_clock=0 complete=false",
+    "BLOCK_V5_CALLER_TABLES live_segment=true late_binding=true physical_commit=true memory_borrowed=true family12_borrowed=true selected_columns=true state_borrowed=true authentic_six_partitions=true sha=0 keccak=1 signer=1 memory_events=94 auxiliary_clock=0 complete=false"
+  ],
+  "timing": "Not separately instrumented",
+  "memory": "Not separately instrumented"
+}

@@ -1,0 +1,674 @@
+--- /dev/null
++++ b/src/frontends/riscv/recursion/air/blake3_frontier_capture.zig
+@@ -0,0 +1,58 @@
++//! Native witness discovery only. Fixed topology and query equalities are proved
++//! by the frontier AIR rows; host agreement never replaces those constraints.
++const std = @import("std");
++const core = @import("stwo_core");
++const frontier = @import("blake3_two_level_frontier.zig");
++const Digest = [32]u8;
++pub const Opening = struct {
++    leaves: u32,
++    words: u32,
++    index: u32,
++    values: []const core.fields.m31.M31,
++    siblings: []const Digest,
++    directions: []const @import("blake3_path_select.zig").Endpoint,
++};
++fn node(pair: [2]Digest) Digest {
++    return (core.channel.blake3.Frame{ .node = .{ .left = pair[0], .right = pair[1] } }).hash();
++}
++pub fn collect(a: std.mem.Allocator, plan: frontier.Plan, openings: []const Opening, root: Digest) !frontier.Context {
++    try plan.validate();
++    if (openings.len != plan.queries or openings[0].leaves == 0 or !std.math.isPowerOfTwo(openings[0].leaves)) return error.InvalidFrontierCapture;
++    const hashes = try a.alloc(Digest, openings[0].leaves);
++    defer a.free(hashes);
++    var witness = frontier.empty_witness;
++    var seen = false;
++    const depth = openings[0].siblings.len;
++    if (depth < 2 or depth > 31) return error.InvalidFrontierCapture;
++    for (openings) |opening| {
++        if (opening.leaves != hashes.len or opening.siblings.len != depth or opening.directions.len != depth or opening.words == 0 or opening.index >= @as(u32, 1) << @intCast(depth) or opening.values.len != try std.math.mul(usize, opening.leaves, opening.words)) return error.InvalidFrontierCapture;
++        for (hashes, 0..) |*hash, i| hash.* = (core.channel.blake3.Frame{ .leaf = opening.values[i * opening.words ..][0..opening.words] }).hash();
++        var count = hashes.len;
++        while (count > 1) : (count /= 2) for (0..count / 2) |i| {
++            hashes[i] = node(.{ hashes[2 * i], hashes[2 * i + 1] });
++        };
++        var current = hashes[0];
++        for (opening.siblings[0 .. depth - 2], 0..) |sibling, level| {
++            const side: usize = (opening.index >> @intCast(level)) & 1;
++            var pair: [2]Digest = undefined;
++            pair[side] = current;
++            pair[side ^ 1] = sibling;
++            current = node(pair);
++        }
++        const side: usize = (opening.index >> @intCast(depth - 2)) & 1;
++        var inputs: [2]Digest = undefined;
++        inputs[side] = current;
++        inputs[side ^ 1] = opening.siblings[depth - 2];
++        const branch: usize = (opening.index >> @intCast(depth - 1)) & 1;
++        var upper: [2]Digest = undefined;
++        upper[branch] = node(inputs);
++        upper[branch ^ 1] = opening.siblings[depth - 1];
++        if (!std.mem.eql(u8, &node(upper), &root) or (seen and !std.meta.eql(upper, witness.opaque_digests))) return error.InvalidFrontierCapture;
++        if (witness.active[branch] == 1 and !std.meta.eql(inputs, witness.inputs[branch])) return error.InvalidFrontierCapture;
++        witness.inputs[branch] = inputs;
++        witness.active[branch] = 1;
++        witness.opaque_digests = upper;
++        seen = true;
++    }
++    return .{ .plan = plan, .witness = witness };
++}
+--- /dev/null
++++ b/src/frontends/riscv/recursion/air/blake3_frontier_emission_test_support.zig
+@@ -0,0 +1,72 @@
++//! Focused final-layout and capture-discovery checks for the shared frontier.
++const std = @import("std");
++const core = @import("stwo_core");
++const frontier = @import("blake3_two_level_frontier.zig");
++const group = @import("blake3_merkle_group_witness.zig");
++const M = core.fields.m31.M31;
++const Digest = [32]u8;
++pub fn columns(a: std.mem.Allocator) !void {
++    const context = frontier.Context{ .plan = .{ .namespace = 1000, .queries = 3, .root_source = .{ .circuit = 800, .first_wire = 0 } }, .witness = .{ .inputs = .{ .{ @splat(17), @splat(29) }, .{ @splat(37), @splat(43) } }, .opaque_digests = .{ @splat(53), @splat(61) }, .active = .{ 1, 0 } } };
++    var full = try frontier.prepare(a, context.plan, context.witness);
++    defer full.deinit();
++    const counts = @import("../blake3_native_hash_layout.zig").Counts{ .g = full.g_rows.len, .xor = full.xor_rows.len };
++    const prefix = @import("../blake3_native_hash_layout.zig").Counts{ .g = 13, .xor = 5 };
++    const total = @import("../blake3_native_hash_layout.zig").Counts{ .g = counts.g + prefix.g, .xor = counts.xor + prefix.xor };
++    var owner = try @import("../blake3_native_hash_columns.zig").Owner.init(a, .{ .transcript = prefix, .paths = counts, .total = total, .logs = .{ std.math.log2_int_ceil(usize, total.g), std.math.log2_int_ceil(usize, total.xor) } });
++    defer owner.deinit();
++    var compact = try frontier.emit(a, context, true, null, try owner.paths());
++    defer compact.deinit();
++    try std.testing.expectEqual(full.root, compact.root);
++    try std.testing.expectEqual(@as(usize, 0), compact.g_rows.len + compact.xor_rows.len);
++    var metadata = try @import("blake3_hash_metadata.zig").Rows.allocate(a, counts.g, counts.xor);
++    defer metadata.free(a);
++    var trusted = try frontier.emit(a, context, false, .{ .fixed = metadata }, null);
++    defer trusted.deinit();
++    inline for (.{ group.g, group.xor }, .{ full.g_rows, full.xor_rows }, .{ metadata.g_rows, metadata.xor_rows }, .{ prefix.g, prefix.xor }, 0..) |Air, rows, fixed, start, cohort| {
++        for (rows, fixed, 0..) |row, tail, i| {
++            try std.testing.expectEqualSlices(M, row[Air.PHYSICAL_MAIN_COLUMN_COUNT..], &tail);
++            for (owner.main[cohort], 0..) |column, c| try std.testing.expectEqual(row[c], column.values[@import("framework_interaction.zig").committedRow(start + i, column.log_size)]);
++        }
++        for (owner.main[cohort]) |column| for (0..start) |i| try std.testing.expect(column.values[@import("framework_interaction.zig").committedRow(i, column.log_size)].isZero());
++    }
++}
++fn node(left: Digest, right: Digest) Digest {
++    return (core.channel.blake3.Frame{ .node = .{ .left = left, .right = right } }).hash();
++}
++pub fn capture(a: std.mem.Allocator) !void {
++    const discovery = @import("blake3_frontier_capture.zig");
++    const directions = [_]group.select.Endpoint{ .{ .circuit = 700, .wire = 0 }, .{ .circuit = 700, .wire = 1 } };
++    for ([_]u32{ 1, 2 }) |leaves| {
++        const values = try a.alloc(M, 4 * leaves * 2);
++        for (values, 0..) |*v, i| v.* = M.fromCanonical(@intCast(i + 17));
++        var roots: [4]Digest = undefined;
++        for (&roots, 0..) |*root, i| {
++            var leaf_hashes: [2]Digest = undefined;
++            for (0..leaves) |l| leaf_hashes[l] = (core.channel.blake3.Frame{ .leaf = values[(i * leaves + l) * 2 ..][0..2] }).hash();
++            root.* = if (leaves == 1) leaf_hashes[0] else node(leaf_hashes[0], leaf_hashes[1]);
++        }
++        const upper = [2]Digest{ node(roots[0], roots[1]), node(roots[2], roots[3]) };
++        const root = node(upper[0], upper[1]);
++        const paths = [2][2]Digest{ .{ roots[1], upper[1] }, .{ roots[2], upper[0] } };
++        const plan = frontier.Plan{ .namespace = 1000, .queries = 2, .root_source = .{ .circuit = 800, .first_wire = 0 } };
++        var openings = [2]discovery.Opening{
++            .{ .leaves = leaves, .words = 2, .index = 0, .values = values[0 .. leaves * 2], .siblings = &paths[0], .directions = &directions },
++            .{ .leaves = leaves, .words = 2, .index = 3, .values = values[3 * leaves * 2 ..], .siblings = &paths[1], .directions = &directions },
++        };
++        const both = try discovery.collect(a, plan, &openings, root);
++        try std.testing.expectEqual([2]u1{ 1, 1 }, both.witness.active);
++        try std.testing.expectEqual([2][2]Digest{ .{ roots[0], roots[1] }, .{ roots[2], roots[3] } }, both.witness.inputs);
++        var prepared = try frontier.prepare(a, plan, both.witness);
++        defer prepared.deinit();
++        try std.testing.expectEqual(root, prepared.root);
++        openings[1] = openings[0];
++        const one = try discovery.collect(a, plan, &openings, root);
++        try std.testing.expectEqual([2]u1{ 1, 0 }, one.witness.active);
++        var single = try frontier.prepare(a, plan, one.witness);
++        defer single.deinit();
++        try std.testing.expectEqual(root, single.root);
++        var bad = root;
++        bad[0] ^= 1;
++        try std.testing.expectError(error.InvalidFrontierCapture, discovery.collect(a, plan, &openings, bad));
++    }
++}
+--- a/src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig
++++ b/src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig
+@@ -28,6 +28,7 @@
+     root_source: ?routing.Caller = null,
+     directions: ?[]const select.Endpoint = null,
+     shared_root: ?shared.Sharing = null,
++    frontier: ?@import("blake3_two_level_frontier.zig").Use = null,
+ };
+ pub const Prepared = struct {
+     arena: std.heap.ArenaAllocator,
+@@ -129,6 +130,7 @@
+     const zeros = try a.alloc(M31, s.words_per_leaf);
+     @memset(zeros, M31.zero());
+     const plans = try cache.get(try (core.channel.blake3.Frame{ .leaf = zeros }).encodedSize());
++    if (s.frontier) |frontier| try frontier.validate(s);
+     const sharing = try shared.derive(s, (try output(0, plans.node)).first_wire);
+     const shape = try hashShape(s, plans);
+     const leaf_shape = shape.leaf;
+@@ -191,8 +193,9 @@
+         if (s.directions) |directions| {
+             const selected = [2]routing.Caller{ .{ .circuit = next + 1, .first_wire = 0 }, .{ .circuit = next + 1, .first_wire = 8 } };
+             const final_shared = if (level + 1 == s.depth) sharing else null;
++            const final_frontier = if (level + 2 == s.depth) s.frontier else null;
+             const borrow_root = if (final_shared) |plan| !plan.owner else false;
+-            var parent: ?Node = if (borrow_root) null else try merge(backing, next + 2, selected, digests, if (level + 1 == s.depth) s.root else @splat(0), values != null, try destination.take(node_shape), plans.node);
++            var parent: ?Node = if (borrow_root or final_frontier != null) null else try merge(backing, next + 2, selected, digests, if (level + 1 == s.depth) s.root else @splat(0), values != null, try destination.take(node_shape), plans.node);
+             errdefer if (parent) |*owned| owned.data.deinit();
+             consume(&nodes.items[current], @splat(1));
+             const current_digest = digests[side];
+@@ -209,6 +212,13 @@
+                     const equality = try rootEquality(selected[branch], final_shared.?.inputs[branch], @intCast(i));
+                     try shared_routes.append(a, if (values != null) try route.logicalRow(equality, .{ std.mem.readInt(u32, digests[branch][4 * i ..][0..4], .little), 0 }) else try route.fixedRow(equality));
+                 };
++            }
++            if (final_frontier) |frontier| {
++                const finish = try frontier.finish(s, selected, digests, if (siblings) |v| v[s.depth - 1] else null);
++                try selections.appendSlice(a, &finish.rows.select_rows);
++                try shared_routes.appendSlice(a, &finish.rows.route_rows);
++                shared_digest = finish.root;
++                break;
+             }
+             if (parent) |owned| {
+                 try nodes.append(a, owned);
+@@ -237,7 +247,7 @@
+         try rs.appendSlice(a, node.data.route_rows);
+     }
+     try rs.appendSlice(a, shared_routes.items);
+-    if (s.root_source) |source| {
++    if (if (s.frontier == null) s.root_source else null) |source| {
+         const last = nodes.items[nodes.items.len - 1];
+         const digest = shared_digest orelse last.data.digest orelse @as(Digest, @splat(0));
+         for (0..8) |i| {
+@@ -253,10 +263,7 @@
+ fn consume(node: *Node, uses: [8]u32) void {
+     for (uses, 0..) |n, i| @import("blake3_hash_metadata.zig").xorUse(node.data.rows.xor_rows, node.data.hash_metadata, (if (node.data.hash_metadata) |m| m.xor_rows.len else node.data.rows.xor_rows.len) - 16 + i).* = M31.fromCanonical(n);
+ }
+-fn output(circuit: u32, plan: *const graph.Plan) !routing.Caller {
+-    for (plan.output, 0..) |wire, i| if (wire != plan.output[0] + i) return error.InvalidBlake3MerkleGroup;
+-    return .{ .circuit = circuit, .first_wire = plan.output[0] };
+-}
++const output = shared.output;
+ fn merge(a: std.mem.Allocator, circuit: u32, callers: [2]routing.Caller, digests: [2]Digest, claim: Digest, live: bool, destination: HashPart, shape: *const graph.Plan) !Node {
+     const f = core.channel.blake3.Frame{ .node = .{ .left = digests[0], .right = digests[1] } };
+     const bindings = [_]frame.Binding{ .{ .role = .left, .caller = callers[0] }, .{ .role = .right, .caller = callers[1] } };
+@@ -266,11 +273,7 @@
+ }
+ 
+ /// Two consumes with identical bytes: computed digest and canonical root.
+-pub fn rootEquality(computed: routing.Caller, canonical: routing.Caller, word_index: u3) !route.Schedule {
+-    if (computed.circuit == canonical.circuit) return error.InvalidBlake3MerkleGroup;
+-    return .{ .sources = .{ .{ .circuit = computed.circuit, .wire = try std.math.add(u32, computed.first_wire, word_index) }, null }, .destination = .{ .circuit = canonical.circuit, .wire = try std.math.add(u32, canonical.first_wire, word_index) }, .uses = core.fields.m31.Modulus - 1, .bytes = .{ .{ .source = .{ .word = 0, .byte = 0 } }, .{ .source = .{ .word = 0, .byte = 1 } }, .{ .source = .{ .word = 0, .byte = 2 } }, .{ .source = .{ .word = 0, .byte = 3 } } } };
+-}
+-
++pub const rootEquality = shared.rootEquality;
+ pub const HashCounts = shared.HashCounts;
+ const hashShape = shared.hashShape;
+ const HashPart = struct {
+--- a/src/frontends/riscv/recursion/air/blake3_path_sharing_census.zig
++++ b/src/frontends/riscv/recursion/air/blake3_path_sharing_census.zig
+@@ -26,7 +26,7 @@
+     }
+     return .{ .openings = positions.len, .unique_groups = groups.count(), .upper_hashes = try std.math.mul(usize, positions.len, depth), .unique_upper_hashes = nodes.count() };
+ }
+-pub fn report(a: std.mem.Allocator, capture: anytype, path_g_rows: usize, shared_root_g_rows: usize) !void {
++pub fn report(a: std.mem.Allocator, capture: anytype, path_g_rows: usize, shared_path_g_rows: usize) !void {
+     var total: usize = 0;
+     var unique: usize = 0;
+     // Reset the census for every authenticated tree; never merge by digest alone.
+@@ -46,7 +46,7 @@
+     var plan = try @import("blake3_hash_plan.zig").build(a, len);
+     defer plan.deinit();
+     const gross = try std.math.mul(usize, total - unique, plan.g.len);
+-    std.debug.print("BLAKE3_PATH_SHARING_TOTAL upper_hashes={d} unique_upper_hashes={d} node_g_rows={d} gross_candidate_g_rows={d} path_g_rows={d} shared_root_g_rows={d} remaining_sharing_implemented=false\n", .{ total, unique, plan.g.len, try std.math.sub(usize, gross, shared_root_g_rows), path_g_rows, shared_root_g_rows });
++    std.debug.print("BLAKE3_PATH_SHARING_TOTAL upper_hashes={d} unique_upper_hashes={d} node_g_rows={d} gross_candidate_g_rows={d} path_g_rows={d} shared_path_g_rows={d} remaining_sharing_implemented=false\n", .{ total, unique, plan.g.len, try std.math.sub(usize, gross, shared_path_g_rows), path_g_rows, shared_path_g_rows });
+ }
+ fn print(kind: []const u8, tree: usize, depth: u32, c: Counts) void {
+     std.debug.print("BLAKE3_PATH_SHARING kind={s} tree={d} depth={d} openings={d} unique_groups={d} upper_hashes={d} unique_upper_hashes={d}\n", .{ kind, tree, depth, c.openings, c.unique_groups, c.upper_hashes, c.unique_upper_hashes });
+--- a/src/frontends/riscv/recursion/air/blake3_query_links.zig
++++ b/src/frontends/riscv/recursion/air/blake3_query_links.zig
+@@ -22,6 +22,12 @@
+     pub fn traceDirections(self: *Prepared, a: std.mem.Allocator, query: usize, lifting: u32, tree_log: u32) ![]const Endpoint {
+         if (tree_log > lifting) return error.InvalidParentQueryLink;
+         return self.mappedDirections(a, query, lifting - tree_log, tree_log, true);
++    }
++    pub fn addPathUses(self: *Prepared, query: usize, bit: usize, extra: u32) !void {
++        if (query >= self.queries.len or bit >= 31 or self.queries[query].bits[bit].deep == missing) return error.InvalidParentQueryLink;
++        const uses = try std.math.add(u32, self.queries[query].path_uses[bit], extra);
++        if (uses >= @import("stwo_core").fields.m31.Modulus) return error.InvalidParentQueryLink;
++        self.queries[query].path_uses[bit] = uses;
+     }
+     fn mappedDirections(self: *Prepared, a: std.mem.Allocator, query: usize, first: u32, count: u32, preserve_parity: bool) ![]const Endpoint {
+         if (query >= self.queries.len or @as(u64, first) + count > 31) return error.InvalidParentQueryLink;
+--- a/src/frontends/riscv/recursion/air/blake3_shared_root_plan.zig
++++ b/src/frontends/riscv/recursion/air/blake3_shared_root_plan.zig
+@@ -28,9 +28,19 @@
+     const node_shape = HashCounts{ .g = plans.node.g.len, .xor = plans.node.xor.len };
+     const full_merges = try std.math.add(usize, s.leaf_count - 1, s.depth);
+     const borrowed = if (s.shared_root) |plan| plan.query_index > 0 else false;
+-    const merges = if (borrowed) try std.math.sub(usize, full_merges, 1) else full_merges;
++    const removed: usize = if (s.frontier != null) 2 else @intFromBool(borrowed);
++    const merges = try std.math.sub(usize, full_merges, removed);
+     return .{ .leaf = leaf_shape, .node = node_shape, .total = .{
+         .g = try std.math.add(usize, try std.math.mul(usize, s.leaf_count, leaf_shape.g), try std.math.mul(usize, merges, node_shape.g)),
+         .xor = try std.math.add(usize, try std.math.mul(usize, s.leaf_count, leaf_shape.xor), try std.math.mul(usize, merges, node_shape.xor)),
+     } };
+ }
++
++pub fn output(circuit: u32, plan: *const @import("blake3_hash_plan.zig").Plan) !Caller {
++    for (plan.output, 0..) |wire, i| if (wire != plan.output[0] + i) return error.InvalidBlake3MerkleGroup;
++    return .{ .circuit = circuit, .first_wire = plan.output[0] };
++}
++pub fn rootEquality(computed: Caller, canonical: Caller, word_index: u3) !@import("blake3_byte_route.zig").Schedule {
++    if (computed.circuit == canonical.circuit) return error.InvalidBlake3MerkleGroup;
++    return .{ .sources = .{ .{ .circuit = computed.circuit, .wire = try std.math.add(u32, computed.first_wire, word_index) }, null }, .destination = .{ .circuit = canonical.circuit, .wire = try std.math.add(u32, canonical.first_wire, word_index) }, .uses = core.fields.m31.Modulus - 1, .bytes = .{ .{ .source = .{ .word = 0, .byte = 0 } }, .{ .source = .{ .word = 0, .byte = 1 } }, .{ .source = .{ .word = 0, .byte = 2 } }, .{ .source = .{ .word = 0, .byte = 3 } } } };
++}
+--- a/src/frontends/riscv/recursion/air/blake3_stark_paths.zig
++++ b/src/frontends/riscv/recursion/air/blake3_stark_paths.zig
+@@ -5,6 +5,8 @@
+ const suite = @import("../blake3_engine_protocol.zig");
+ const group = @import("blake3_merkle_group_witness.zig");
+ const inputs = @import("blake3_opening_inputs.zig");
++const frontier = @import("blake3_two_level_frontier.zig");
++const discovery = @import("blake3_frontier_capture.zig");
+ const leaf = @import("blake3_lifted_leaf_plan.zig");
+ pub const word = group.word;
+ const Capture = core.verifier.ProofCapture(suite.Hasher);
+@@ -82,20 +84,44 @@
+     next: u32 = 2_000_000,
+     payload: u32 = 0,
+     count: usize = 0,
+-    shared_root_g_rows: usize = 0,
++    shared_path_g_rows: usize = 0,
+     profile_timer: ?std.time.Timer = null,
+     profile_ns: [4]u64 = @splat(0),
+     fn profileLap(self: *Builder, phase: usize) void {
+         if (self.profile_timer) |*timer| self.profile_ns[phase] += timer.lap();
+     }
+-    fn opening(self: *Builder, leaves: u32, words: u32, index: u32, depth: u32, root_index: usize, root: [32]u8, directions: []const group.select.Endpoint, values: []const M31, siblings: []const [32]u8, sharing: ?@import("blake3_shared_root_plan.zig").Sharing) ![]const u32 {
++    fn beginFrontier(self: *Builder, openings: []const discovery.Opening, root_index: usize, root: [32]u8) !?frontier.Context {
++        if (openings.len < 2 or openings[0].siblings.len < 2) return null;
++        const plan = frontier.Plan{ .namespace = self.next, .queries = @intCast(openings.len), .root_source = try @import("blake3_root_sources.zig").caller(root_index) };
++        const context = try discovery.collect(self.backing, plan, openings, root);
++        self.next = try std.math.add(u32, self.next, try std.math.add(u32, 7, plan.queries));
++        if (self.next >= 3_000_000) return error.InvalidStarkPathNamespace;
++        const len = try (core.channel.blake3.Frame{ .node = .{ .left = @splat(0), .right = @splat(0) } }).encodedSize();
++        const plans = try self.cache.get(len);
++        const counts = group.HashCounts{ .g = 3 * plans.node.g.len, .xor = 3 * plans.node.xor.len };
++        const destination: ?group.HashDestination = if (self.columns == null) try self.live.reserveHash(self.backing, counts) else null;
++        const columns: ?group.MainColumns = if (self.columns) |out| try out.slice(self.g_used, counts.g, self.xor_used, counts.xor) else null;
++        var live = try frontier.emitWithPlan(self.backing, context, true, destination, columns, plans.node);
++        defer live.deinit();
++        if (!std.mem.eql(u8, &live.root, &root)) return error.InvalidStarkPathRoot;
++        const fixed_destination = if (self.fixed_metadata) |m| group.HashDestination{ .fixed = try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) } else try self.fixed.reserveHash(self.backing, counts);
++        var fixed = try frontier.emitWithPlan(self.backing, context, false, fixed_destination, null, plans.node);
++        defer fixed.deinit();
++        try self.live.append(self.backing, live);
++        try self.fixed.append(self.backing, fixed);
++        self.g_used += counts.g;
++        self.xor_used += counts.xor;
++        self.shared_path_g_rows += (2 * openings.len - 3) * plans.node.g.len;
++        return context;
++    }
++    fn opening(self: *Builder, leaves: u32, words: u32, index: u32, depth: u32, root_index: usize, root: [32]u8, directions: []const group.select.Endpoint, values: []const M31, siblings: []const [32]u8, sharing: ?@import("blake3_shared_root_plan.zig").Sharing, frontier_use: ?frontier.Use) ![]const u32 {
+         const span = try std.math.add(u32, try std.math.sub(u32, try std.math.mul(u32, leaves, 2), 1), try std.math.mul(u32, depth, 3));
+         const end = try std.math.add(u32, self.next, span);
+         if (end >= 3_000_000 or depth > 31) return error.InvalidStarkPathNamespace;
+-        const statement = group.Statement{ .namespace = self.next, .payload = .{ .circuit = 3_000_000, .first_wire = self.payload }, .leaf_count = leaves, .words_per_leaf = words, .index = index, .depth = @intCast(depth), .root = root, .root_source = try @import("blake3_root_sources.zig").caller(root_index), .directions = directions, .shared_root = sharing };
++        const statement = group.Statement{ .namespace = self.next, .payload = .{ .circuit = 3_000_000, .first_wire = self.payload }, .leaf_count = leaves, .words_per_leaf = words, .index = index, .depth = @intCast(depth), .root = root, .root_source = try @import("blake3_root_sources.zig").caller(root_index), .directions = directions, .shared_root = sharing, .frontier = frontier_use };
+         const counts = try group.requiredHashRowsCached(self.backing, statement, self.cache);
+         if (sharing) |plan| {
+-            if (plan.query_index > 0) self.shared_root_g_rows += self.cache.node.?.g.len;
++            if (plan.query_index > 0) self.shared_path_g_rows += self.cache.node.?.g.len;
+         }
+         const live_destination = if (self.columns == null) try self.live.reserveHash(self.backing, counts) else group.HashDestination{ .g_rows = &.{}, .xor_rows = &.{} };
+         const fixed_destination = if (self.fixed_metadata) |m| group.HashDestination{ .fixed = try m.slice(self.g_used, counts.g, self.xor_used, counts.xor) } else try self.fixed.reserveHash(self.backing, counts);
+@@ -171,29 +197,40 @@
+         }
+         try geometry.admitQueries(a, positions, query_columns);
+         const query = try a.alloc(M31, query_columns.len);
++        const openings = try a.alloc(discovery.Opening, positions.len);
++        for (positions, openings, 0..) |position, *opening, q| {
++            for (query, query_columns) |*value, column| value.* = column[q];
++            opening.* = .{ .leaves = 1, .words = @intCast(query.len), .index = @intCast(position), .values = try geometry.leaf(a, query), .siblings = path.path(q), .directions = try queries.traceDirections(a, q, lifting, geometry.max_log) };
++        }
++        const shared_frontier = try b.beginFrontier(openings, tree, root);
+         const first_namespace = b.next;
+-        for (positions, 0..) |position, q| {
+-            for (query, query_columns) |*value, column| value.* = column[q];
+-            const ordered = try geometry.leaf(a, query);
++        for (openings, 0..) |opening, q| {
+             const payload = b.payload;
+-            const uses = try b.opening(1, @intCast(ordered.len), @intCast(position), path.path_depth, tree, root, try queries.traceDirections(a, q, lifting, geometry.max_log), ordered, path.path(q), if (n > 1 and path.path_depth > 0) .{ .first_namespace = first_namespace, .query_index = @intCast(q), .queries = @intCast(n) } else null);
+-            for (geometry.order, ordered, uses, 0..) |column, value, count, i| try links.trace(tree, column, q, try geometry.columnIndex(column, @intCast(position)), value, try std.math.add(u32, payload, @intCast(i)), count);
++            if (shared_frontier != null) try queries.addPathUses(q, lifting - 1, 9);
++            const uses = try b.opening(opening.leaves, opening.words, opening.index, path.path_depth, tree, root, opening.directions, opening.values, opening.siblings, if (shared_frontier == null and n > 1 and path.path_depth > 0) .{ .first_namespace = first_namespace, .query_index = @intCast(q), .queries = @intCast(n) } else null, if (shared_frontier) |*context| .{ .context = context, .query = @intCast(q) } else null);
++            for (geometry.order, opening.values, uses, 0..) |column, value, count, i| try links.trace(tree, column, q, try geometry.columnIndex(column, opening.index), value, try std.math.add(u32, payload, @intCast(i)), count);
+         }
+     }
+     if (capture.queried_values.len != cursor) return error.InvalidStarkPathValues;
+     for (capture.fri.layers, 0..) |layer, l| {
+         const leaf_width: u32 = if (layer.fold_step > 1) 4 else 1;
+-        const values = try a.alloc(M31, layer.fold_width * 4);
++        const openings = try a.alloc(discovery.Opening, layer.positions.len);
++        for (layer.positions, openings, 0..) |position, *opening, q| {
++            const values = try a.alloc(M31, layer.fold_width * 4);
++            for (layer.queryValues(q), 0..) |value, i| values[i * 4 ..][0..4].* = value.toM31Array();
++            opening.* = .{ .leaves = layer.fold_width / leaf_width, .words = leaf_width * 4, .index = @intCast(position >> @intCast(layer.fold_step)), .values = values, .siblings = layer.queryPath(q), .directions = try queries.directions(a, q, lifting - layer.path_depth, layer.path_depth) };
++        }
++        const shared_frontier = try b.beginFrontier(openings, capture.commitments.len + l, layer.commitment);
+         const first_namespace = b.next;
+-        for (layer.positions, 0..) |position, q| {
+-            for (layer.queryValues(q), 0..) |value, i| values[i * 4 ..][0..4].* = value.toM31Array();
++        for (openings, 0..) |opening, q| {
+             const payload = b.payload;
+-            const uses = try b.opening(layer.fold_width / leaf_width, leaf_width * 4, @intCast(position >> @intCast(layer.fold_step)), layer.path_depth, capture.commitments.len + l, layer.commitment, try queries.directions(a, q, lifting - layer.path_depth, layer.path_depth), values, layer.queryPath(q), if (n > 1 and layer.path_depth > 0) .{ .first_namespace = first_namespace, .query_index = @intCast(q), .queries = @intCast(n) } else null);
++            if (shared_frontier != null) try queries.addPathUses(q, lifting - 1, 9);
++            const uses = try b.opening(opening.leaves, opening.words, opening.index, layer.path_depth, capture.commitments.len + l, layer.commitment, opening.directions, opening.values, opening.siblings, if (shared_frontier == null and n > 1 and layer.path_depth > 0) .{ .first_namespace = first_namespace, .query_index = @intCast(q), .queries = @intCast(n) } else null, if (shared_frontier) |*context| .{ .context = context, .query = @intCast(q) } else null);
+             try links.friGroup(l, q, layer.queryValues(q), payload, uses);
+         }
+     }
+     if ((4 + capture.fri.layers.len) * n != b.count) return error.InvalidStarkPathGeometry;
+-    if (std.posix.getenv("STWO_RISCV_PATH_SHARING_CENSUS") != null) try @import("blake3_path_sharing_census.zig").report(backing, capture, b.g_used, b.shared_root_g_rows);
++    if (std.posix.getenv("STWO_RISCV_PATH_SHARING_CENSUS") != null) try @import("blake3_path_sharing_census.zig").report(backing, capture, b.g_used, b.shared_path_g_rows);
+     if (columns) |out| if (b.g_used != out.g_rows.metadata.len or b.xor_used != out.xor_rows.metadata.len) return error.InvalidBlake3WitnessDestination;
+     const linked = try links.finish();
+     try b.live.route_rows.appendSlice(backing, linked.projection.routed);
+--- a/src/frontends/riscv/recursion/air/blake3_two_level_frontier.zig
++++ b/src/frontends/riscv/recursion/air/blake3_two_level_frontier.zig
+@@ -25,6 +25,31 @@
+     }
+ };
+ pub const Witness = struct { inputs: [2][2]Digest, opaque_digests: [2]Digest, active: [2]u1 };
++pub const empty_witness = Witness{ .inputs = @splat(@splat(@splat(0))), .opaque_digests = @splat(@splat(0)), .active = @splat(0) };
++pub const Context = struct { plan: Plan, witness: Witness };
++pub const Use = struct {
++    context: *const Context,
++    query: u32,
++    pub fn validate(self: Use, s: anytype) !void {
++        const plan = self.context.plan;
++        try plan.validate();
++        if (s.shared_root != null or s.depth < 2 or s.directions == null or s.root_source == null or self.query >= plan.queries or plan.namespace + 7 + plan.queries > s.namespace or !std.meta.eql(plan.root_source, s.root_source.?)) return error.InvalidTwoLevelFrontier;
++    }
++    pub fn finish(self: Use, s: anytype, sources: [2]Caller, values: [2]Digest, last_sibling: ?Digest) !struct { rows: QueryRows, root: ?Digest } {
++        const high: u1 = @intCast((s.index >> @intCast(s.depth - 1)) & 1);
++        const live = last_sibling != null;
++        const rows = try queryRows(self.context.plan, self.query, .{ .high_bit = s.directions.?[s.depth - 1], .inputs = sources }, values, if (live) high else 0, if (live) self.context.witness else empty_witness);
++        var root: ?Digest = null;
++        if (last_sibling) |sibling| {
++            var pair: [2]Digest = undefined;
++            pair[high] = (core.channel.blake3.Frame{ .node = .{ .left = values[0], .right = values[1] } }).hash();
++            pair[high ^ 1] = sibling;
++            root = (core.channel.blake3.Frame{ .node = .{ .left = pair[0], .right = pair[1] } }).hash();
++            if (!std.mem.eql(u8, &root.?, &s.root)) return error.InvalidTwoLevelFrontier;
++        }
++        return .{ .rows = rows, .root = root };
++    }
++};
+ pub const Prepared = struct {
+     arena: std.heap.ArenaAllocator,
+     g_rows: []group.g.Row,
+@@ -34,6 +59,7 @@
+     word_rows: []group.word.Row,
+     select_rows: []group.select.Row,
+     root: Digest,
++    hash_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
+     pub fn deinit(self: *Prepared) void {
+         self.arena.deinit();
+         self.* = undefined;
+@@ -49,7 +75,7 @@
+     return .{ .circuit = circuit, .first_wire = hash.output[0] };
+ }
+ fn useOutput(p: *frame.Prepared, count: u32) void {
+-    for (0..8) |i| @import("blake3_hash_metadata.zig").xorUse(p.rows.xor_rows, p.hash_metadata, p.rows.xor_rows.len - 16 + i).* = M.fromCanonical(count);
++    for (0..8) |i| @import("blake3_hash_metadata.zig").xorUse(p.rows.xor_rows, p.hash_metadata, (if (p.hash_metadata) |m| m.xor_rows.len else p.rows.xor_rows.len) - 16 + i).* = M.fromCanonical(count);
+ }
+ /// Query sources are external producers: 17 high-bit uses and one use of each
+ /// ordered input word. The caller must bind the latter to its lower path.
+@@ -77,6 +103,18 @@
+     return result;
+ }
+ pub fn prepare(backing: std.mem.Allocator, plan: Plan, w: Witness) !Prepared {
++    return build(backing, plan, w, true, null, null, null);
++}
++pub fn emit(backing: std.mem.Allocator, context: Context, live: bool, destination: ?frame.HashDestination, columns: ?frame.MainColumns) !Prepared {
++    return build(backing, context.plan, if (live) context.witness else empty_witness, live, destination, columns, null);
++}
++pub fn emitWithPlan(backing: std.mem.Allocator, context: Context, live: bool, destination: ?frame.HashDestination, columns: ?frame.MainColumns, hash: *const @import("blake3_hash_plan.zig").Plan) !Prepared {
++    return build(backing, context.plan, if (live) context.witness else empty_witness, live, destination, columns, hash);
++}
++fn part(destination: ?frame.HashDestination, columns: ?frame.MainColumns, index: usize, gs: usize, xs: usize) !struct { rows: ?frame.HashDestination, columns: ?frame.MainColumns } {
++    return .{ .columns = if (columns) |out| try out.slice(index * gs, gs, index * xs, xs) else null, .rows = if (destination) |out| if (out.fixed) |fixed| .{ .fixed = try fixed.slice(index * gs, gs, index * xs, xs) } else .{ .g_rows = out.g_rows[index * gs ..][0..gs], .xor_rows = out.xor_rows[index * xs ..][0..xs] } else null };
++}
++fn build(backing: std.mem.Allocator, plan: Plan, w: Witness, live: bool, destination: ?frame.HashDestination, columns: ?frame.MainColumns, borrowed: ?*const @import("blake3_hash_plan.zig").Plan) !Prepared {
+     try plan.validate();
+     var arena = std.heap.ArenaAllocator.init(backing);
+     errdefer arena.deinit();
+@@ -89,24 +127,30 @@
+     var ss: std.ArrayList(group.select.Row) = .empty;
+     const zero: Digest = @splat(0);
+     const node_len = try (core.channel.blake3.Frame{ .node = .{ .left = zero, .right = zero } }).encodedSize();
+-    var hash = try @import("blake3_hash_plan.zig").build(backing, node_len);
+-    defer hash.deinit();
++    var owned = if (borrowed == null) try @import("blake3_hash_plan.zig").build(backing, node_len) else null;
++    defer if (owned) |*value| value.deinit();
++    const hash = borrowed orelse &owned.?;
++    if (hash.input_len != node_len) return error.InvalidBlake3Input;
++    if (columns != null and destination != null) return error.InvalidBlake3WitnessDestination;
++    if (columns) |out| try out.validate(3 * hash.g.len, 3 * hash.xor.len);
++    if (destination) |out| try out.validate(3 * hash.g.len, 3 * hash.xor.len);
+     var selected: [2]Digest = undefined;
+     var adopted: [2]Caller = undefined;
+     // Compute parent source-use counts from the authenticated canonical frame plan.
+     const root_bindings = [2]frame.Binding{ .{ .role = .left, .caller = .{ .circuit = plan.namespace + 4, .first_wire = 0 } }, .{ .role = .right, .caller = .{ .circuit = plan.namespace + 5, .first_wire = 0 } } };
+-    var root_shape = try frame.destinationWithPlan(backing, plan.namespace + 6, core.channel.blake3.Frame{ .node = .{ .left = zero, .right = zero } }, &root_bindings, null, zero, false, null, null, &hash);
++    var root_shape = try frame.destinationWithPlan(backing, plan.namespace + 6, core.channel.blake3.Frame{ .node = .{ .left = zero, .right = zero } }, &root_bindings, null, zero, false, null, null, hash);
+     defer root_shape.deinit();
+     for (0..2) |branch| {
+         const bindings = [2]frame.Binding{ .{ .role = .left, .caller = plan.input(branch, 0) }, .{ .role = .right, .caller = plan.input(branch, 1) } };
+-        var node = try frame.destinationWithPlan(backing, plan.namespace + 2 + @as(u32, @intCast(branch)), core.channel.blake3.Frame{ .node = .{ .left = w.inputs[branch][0], .right = w.inputs[branch][1] } }, &bindings, null, zero, true, null, null, &hash);
++        const target = try part(destination, columns, branch, hash.g.len, hash.xor.len);
++        var node = try frame.destinationWithPlan(backing, plan.namespace + 2 + @as(u32, @intCast(branch)), core.channel.blake3.Frame{ .node = .{ .left = w.inputs[branch][0], .right = w.inputs[branch][1] } }, &bindings, null, zero, live, target.rows, target.columns, hash);
+         defer node.deinit();
+         useOutput(&node, 1);
+         try gs.appendSlice(a, node.rows.g_rows);
+         try xs.appendSlice(a, node.rows.xor_rows);
+         try bs.appendSlice(a, node.rows.boundary_rows[0 .. node.rows.boundary_rows.len - 8]);
+         try rs.appendSlice(a, node.route_rows);
+-        const computed = node.digest.?;
++        const computed = node.digest orelse zero;
+         adopted[branch] = .{ .circuit = plan.namespace + 4 + @as(u32, @intCast(branch)), .first_wire = 0 };
+         selected[branch] = if (w.active[branch] == 1) computed else w.opaque_digests[branch];
+         for (0..2) |side| for (0..8) |i| try ws.append(a, try group.word.logicalRow(plan.namespace, @intCast(branch * 16 + side * 8 + i), try std.math.add(u32, plan.queries, node.source_uses[side][i]), word(w.inputs[branch][side], i)));
+@@ -114,12 +158,13 @@
+         for (0..8) |i| {
+             const opaque_source = Caller{ .circuit = plan.namespace + 1, .first_wire = @intCast(branch * 8) };
+             try ws.append(a, try group.word.logicalRow(opaque_source.circuit, opaque_source.first_wire + @as(u32, @intCast(i)), 1, word(w.opaque_digests[branch], i)));
+-            const schedule = scalar.Schedule{ .bit = plan.flag(branch), .current = endpoint(opaque_source, i), .sibling = endpoint(output(plan.namespace + 2 + @as(u32, @intCast(branch)), &hash), i), .destination_circuit = adopted[branch].circuit, .left_wire = @intCast(i), .right_wire = @intCast(8 + i), .left_uses = root_shape.source_uses[branch][i], .right_uses = 0 };
++            const schedule = scalar.Schedule{ .bit = plan.flag(branch), .current = endpoint(opaque_source, i), .sibling = endpoint(output(plan.namespace + 2 + @as(u32, @intCast(branch)), hash), i), .destination_circuit = adopted[branch].circuit, .left_wire = @intCast(i), .right_wire = @intCast(8 + i), .left_uses = root_shape.source_uses[branch][i], .right_uses = 0 };
+             try ss.append(a, try scalar.logicalRow(schedule, w.active[branch], word(w.opaque_digests[branch], i), word(computed, i)));
+         }
+     }
+     try bs.append(a, try group.boundary.logicalRow(plan.namespace, 34, M.fromCanonical(plan.queries), 1));
+-    var root = try frame.destinationWithPlan(backing, plan.namespace + 6, core.channel.blake3.Frame{ .node = .{ .left = selected[0], .right = selected[1] } }, &root_bindings, null, zero, true, null, null, &hash);
++    const root_target = try part(destination, columns, 2, hash.g.len, hash.xor.len);
++    var root = try frame.destinationWithPlan(backing, plan.namespace + 6, core.channel.blake3.Frame{ .node = .{ .left = selected[0], .right = selected[1] } }, &root_bindings, null, zero, live, root_target.rows, root_target.columns, hash);
+     defer root.deinit();
+     useOutput(&root, plan.queries);
+     try gs.appendSlice(a, root.rows.g_rows);
+@@ -127,8 +172,8 @@
+     try bs.appendSlice(a, root.rows.boundary_rows[0 .. root.rows.boundary_rows.len - 8]);
+     try rs.appendSlice(a, root.route_rows);
+     for (0..plan.queries) |_| for (0..8) |i| {
+-        const equality = try group.rootEquality(output(plan.namespace + 6, &hash), plan.root_source, @intCast(i));
+-        try rs.append(a, try group.route.logicalRow(equality, .{ word(root.digest.?, i), 0 }));
++        const equality = try group.rootEquality(output(plan.namespace + 6, hash), plan.root_source, @intCast(i));
++        try rs.append(a, try group.route.logicalRow(equality, .{ word(root.digest orelse zero, i), 0 }));
+     };
+-    return .{ .arena = arena, .g_rows = try gs.toOwnedSlice(a), .xor_rows = try xs.toOwnedSlice(a), .boundary_rows = try bs.toOwnedSlice(a), .route_rows = try rs.toOwnedSlice(a), .word_rows = try ws.toOwnedSlice(a), .select_rows = try ss.toOwnedSlice(a), .root = root.digest.? };
++    return .{ .arena = arena, .g_rows = try gs.toOwnedSlice(a), .xor_rows = try xs.toOwnedSlice(a), .boundary_rows = try bs.toOwnedSlice(a), .route_rows = try rs.toOwnedSlice(a), .word_rows = try ws.toOwnedSlice(a), .select_rows = try ss.toOwnedSlice(a), .root = root.digest orelse zero, .hash_metadata = if (columns) |out| out.metadata() else if (destination) |out| out.fixed else null };
+ }
+--- /dev/null
++++ b/src/frontends/riscv/recursion/air/blake3_two_level_frontier_test.zig
+@@ -0,0 +1,111 @@
++const std = @import("std");
++const core = @import("stwo_core");
++const frontier = @import("blake3_two_level_frontier.zig");
++const group = @import("blake3_merkle_group_witness.zig");
++const support = @import("blake3_shared_hash_test_support.zig");
++const interaction = @import("relation_interaction.zig");
++const M = core.fields.m31.M31;
++const Digest = [32]u8;
++const Data = struct {
++    owner: frontier.Prepared,
++    g_rows: []const group.g.Row,
++    xor_rows: []const group.xor.Row,
++    boundary_rows: []const group.boundary.Row,
++    route_rows: []const group.route.Row,
++    word_rows: []const group.word.Row,
++    select_rows: []const group.select.Row,
++};
++fn fixture(a: std.mem.Allocator, active: [2]u1, queries: [3]u1, scramble_unused: bool) !Data {
++    const inputs = [2][2]Digest{ .{ @splat(13), @splat(29) }, .{ @splat(37), @splat(53) } };
++    var w = frontier.Witness{ .inputs = inputs, .opaque_digests = undefined, .active = active };
++    for (inputs, &w.opaque_digests) |pair, *d| d.* = (core.channel.blake3.Frame{ .node = .{ .left = pair[0], .right = pair[1] } }).hash();
++    // Valid cases must work without preimages for opaque branches and without
++    // trusting opaque alternatives for active branches. Invalid cases retain
++    // matching hashes so membership, alone, has to reject their activity flags.
++    if (scramble_unused) for (0..2) |branch| {
++        if (active[branch] == 1) w.opaque_digests[branch] = @splat(0xaa) else w.inputs[branch] = @splat(@splat(0xbb));
++    };
++    const plan = frontier.Plan{ .namespace = 1000, .queries = 3, .root_source = .{ .circuit = 800, .first_wire = 0 } };
++    var base = try frontier.prepare(a, plan, w);
++    errdefer base.deinit();
++    var ss: std.ArrayList(group.select.Row) = .empty;
++    var rs: std.ArrayList(group.route.Row) = .empty;
++    var ws: std.ArrayList(group.word.Row) = .empty;
++    var bs: std.ArrayList(group.boundary.Row) = .empty;
++    try ss.appendSlice(a, base.select_rows);
++    try rs.appendSlice(a, base.route_rows);
++    try ws.appendSlice(a, base.word_rows);
++    try bs.appendSlice(a, base.boundary_rows);
++    for (0..8) |i| try bs.append(a, try group.boundary.logicalRow(800, @intCast(i), M.fromCanonical(3), std.mem.readInt(u32, base.root[4 * i ..][0..4], .little)));
++    for (queries, 0..) |bit, q| {
++        const sources = frontier.Query{ .high_bit = .{ .circuit = 700, .wire = @intCast(q) }, .inputs = .{ .{ .circuit = @intCast(600 + q), .first_wire = 0 }, .{ .circuit = @intCast(600 + q), .first_wire = 8 } } };
++        const query = try frontier.queryRows(plan, @intCast(q), sources, inputs[bit], bit, w);
++        try ss.appendSlice(a, &query.select_rows);
++        try rs.appendSlice(a, &query.route_rows);
++        try ws.append(a, try group.word.logicalRow(700, @intCast(q), 17, bit));
++        for (inputs[bit], 0..) |d, side| for (0..8) |i| try ws.append(a, try group.word.logicalRow(@intCast(600 + q), @intCast(side * 8 + i), 1, std.mem.readInt(u32, d[4 * i ..][0..4], .little)));
++    }
++    return .{ .owner = base, .g_rows = base.g_rows, .xor_rows = base.xor_rows, .boundary_rows = try bs.toOwnedSlice(a), .route_rows = try rs.toOwnedSlice(a), .word_rows = try ws.toOwnedSlice(a), .select_rows = try ss.toOwnedSlice(a) };
++}
++fn fingerprint(data: Data) Digest {
++    var hash = std.crypto.hash.Blake3.init(.{});
++    inline for (frontier.Airs, support.rows(data)) |Air, rows| for (rows) |row| hash.update(std.mem.sliceAsBytes(row[Air.PHYSICAL_MAIN_COLUMN_COUNT..]));
++    var result: Digest = undefined;
++    hash.final(&result);
++    return result;
++}
++test "two level BLAKE3 frontier constrains queried activity with fixed topology" {
++    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
++    defer arena.deinit();
++    const a = arena.allocator();
++    const cases = [_]struct { active: [2]u1, bits: [3]u1, valid: bool }{
++        .{ .active = .{ 1, 1 }, .bits = .{ 0, 1, 0 }, .valid = true },
++        .{ .active = .{ 1, 0 }, .bits = .{ 0, 0, 0 }, .valid = true },
++        .{ .active = .{ 0, 1 }, .bits = .{ 1, 1, 1 }, .valid = true },
++        .{ .active = .{ 0, 0 }, .bits = .{ 0, 0, 0 }, .valid = false },
++        .{ .active = .{ 1, 0 }, .bits = .{ 0, 1, 0 }, .valid = false },
++    };
++    var first: ?Digest = null;
++    for (cases) |case| {
++        var data = try fixture(a, case.active, case.bits, case.valid);
++        defer data.owner.deinit();
++        const fixed = fingerprint(data);
++        if (first) |expected| try std.testing.expectEqual(expected, fixed) else first = fixed;
++        try std.testing.expectEqual(@as(usize, 336), data.g_rows.len);
++        var ledger = interaction.TupleLedger.init(a);
++        defer ledger.deinit();
++        inline for (frontier.Airs, support.rows(data)) |Air, rows| try support.add(Air, a, &ledger, rows);
++        try std.testing.expectEqual(case.valid, ledger.classify().isClosed());
++    }
++    try std.testing.expectError(error.InvalidTwoLevelFrontier, (frontier.Plan{ .namespace = 1000, .queries = 3, .root_source = .{ .circuit = 1001, .first_wire = 0 } }).validate());
++    const dead = group.select.Schedule{ .bit = .{ .circuit = 1, .wire = 0 }, .current = .{ .circuit = 2, .wire = 0 }, .sibling = .{ .circuit = 3, .wire = 0 }, .destination_circuit = 4, .left_wire = 0, .right_wire = 1, .left_uses = 0, .right_uses = 0 };
++    try std.testing.expectError(error.InvalidBlake3PathSelect, group.select.fixedRow(dead));
++    // A real standalone STARK qualifies the existing AIRs and all lookup domains.
++    var live = try fixture(a, .{ 1, 1 }, .{ 0, 1, 0 }, true);
++    defer live.owner.deinit();
++    var trusted = try fixture(a, .{ 1, 0 }, .{ 0, 0, 0 }, true);
++    defer trusted.owner.deinit();
++    try prove(a, live, trusted);
++    try @import("blake3_frontier_emission_test_support.zig").columns(a);
++    try @import("blake3_frontier_emission_test_support.zig").capture(a);
++}
++
++fn prove(a: std.mem.Allocator, live: Data, trusted: Data) !void {
++    const f = @import("blake3_proof_fixture.zig");
++    const F = @import("blake3_fixture_roster.zig").WithExtras(.{ group.route, group.word, group.select });
++    const Rows = @TypeOf(support.rows(live));
++    var padded: Rows = undefined;
++    var logs: [6]u32 = undefined;
++    var pp: std.ArrayList(f.Column) = .empty;
++    inline for (frontier.Airs, support.rows(live), support.rows(trusted), 0..) |Air, rows, fixed, i| {
++        logs[i] = if (rows.len < 2) 1 else std.math.log2_int_ceil(usize, rows.len);
++        padded[i] = try f.padded(Air, a, rows, logs[i]);
++        try f.project(Air, a, fixed, logs[i], 0, &pp);
++    }
++    for (f.kinds) |kind| try f.tablePreprocessed(a, kind, &pp);
++    const false_pp = try a.dupe(f.Column, pp.items);
++    const changed = try a.dupe(M, false_pp[0].values);
++    changed[0] = changed[0].add(M.one());
++    false_pp[0].values = changed;
++    try @import("blake3_proof_gate_test_support.zig").runFor(F, a, padded, logs, pp.items, false_pp);
++}
+--- a/src/frontends/riscv/recursion/blake3_native_hash_layout.zig
++++ b/src/frontends/riscv/recursion/blake3_native_hash_layout.zig
+@@ -11,14 +11,16 @@
+     logs: [2]u32,
+     pub fn init(a: std.mem.Allocator, transcript: Counts, capture: *const core.verifier.ProofCapture(suite.Hasher)) !Layout {
+         if (capture.column_log_sizes.len != 4 or capture.trace_paths.len != 4 or capture.fri.layers.len == 0) return error.InvalidNativeHashLayout;
++        var cache = group.PlanCache.init(a);
++        defer cache.deinit();
+         var paths = Counts{ .g = 0, .xor = 0 };
+         for (capture.column_log_sizes, capture.trace_paths) |columns, path| {
+-            try addGroup(a, &paths, 1, columns.len, path.path_depth, path.positions.len);
++            try addGroup(a, &cache, &paths, 1, columns.len, path.path_depth, path.positions.len);
+         }
+         for (capture.fri.layers) |layer| {
+             const width: u32 = if (layer.fold_step > 1) 4 else 1;
+             if (layer.fold_width % width != 0) return error.InvalidNativeHashLayout;
+-            try addGroup(a, &paths, layer.fold_width / width, width * 4, layer.path_depth, layer.positions.len);
++            try addGroup(a, &cache, &paths, layer.fold_width / width, width * 4, layer.path_depth, layer.positions.len);
+         }
+         return fromCounts(transcript, paths);
+     }
+@@ -35,13 +37,15 @@
+ fn rowLog(count: usize) u32 {
+     return if (count <= 1) 1 else std.math.log2_int_ceil(usize, count);
+ }
+-fn addGroup(a: std.mem.Allocator, total: *Counts, leaves: u32, words: usize, depth: u32, openings: usize) !void {
++fn addGroup(a: std.mem.Allocator, cache: *group.PlanCache, total: *Counts, leaves: u32, words: usize, depth: u32, openings: usize) !void {
+     if (depth > 31 or words > std.math.maxInt(u32) or openings > std.math.maxInt(u32)) return error.InvalidNativeHashLayout;
+-    var statement = group.Statement{ .namespace = 2_000_000, .payload = .{ .circuit = 3_000_000, .first_wire = 0 }, .leaf_count = leaves, .words_per_leaf = @intCast(words), .index = 0, .depth = @intCast(depth), .root = @splat(0) };
+-    const counts = try group.requiredHashRows(a, statement);
++    const statement = group.Statement{ .namespace = 2_000_000, .payload = .{ .circuit = 3_000_000, .first_wire = 0 }, .leaf_count = leaves, .words_per_leaf = @intCast(words), .index = 0, .depth = @intCast(depth), .root = @splat(0) };
++    const counts = try group.requiredHashRowsCached(a, statement, cache);
+     if (openings == 0) return;
+-    statement.shared_root = if (depth > 0 and openings > 1) .{ .first_namespace = statement.namespace, .query_index = 1, .queries = @intCast(openings) } else null;
+-    const rest = try group.requiredHashRows(a, statement);
+-    total.g = try std.math.add(usize, total.g, try std.math.add(usize, counts.g, try std.math.mul(usize, rest.g, openings - 1)));
+-    total.xor = try std.math.add(usize, total.xor, try std.math.add(usize, counts.xor, try std.math.mul(usize, rest.xor, openings - 1)));
++    const removed_nodes = if (depth >= 2 and openings > 1) try std.math.sub(usize, try std.math.mul(usize, openings, 2), 3) else if (depth == 1 and openings > 1) openings - 1 else 0;
++    const node = cache.node.?;
++    const gs = try std.math.sub(usize, try std.math.mul(usize, counts.g, openings), try std.math.mul(usize, removed_nodes, node.g.len));
++    const xs = try std.math.sub(usize, try std.math.mul(usize, counts.xor, openings), try std.math.mul(usize, removed_nodes, node.xor.len));
++    total.g = try std.math.add(usize, total.g, gs);
++    total.xor = try std.math.add(usize, total.xor, xs);
+ }

@@ -106,7 +106,7 @@ pub fn validateColumns(
     columns: []const []const M31,
     size: usize,
 ) !void {
-    if (columns.len != trace.nColumnsForFamily(family))
+    if (columns.len != trace.nColumnsForFamily(family) and columns.len != try @import("../x0_native_envelope_v1.zig").mainColumnCount(family))
         return error.InvalidColumnCount;
     for (columns) |column| {
         if (column.len != size) return error.InvalidColumnLength;

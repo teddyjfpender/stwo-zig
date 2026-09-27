@@ -1,0 +1,20 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "sha-admission-setup-cache-semantic-v1-result.json",
+  "focused": "sha-admission-setup-cache-focused-v1-result.json",
+  "checks": 6,
+  "named_behavioral_checks": 5,
+  "scope": "Production SHA admission uses one immutable typed-effect census per executable recipe. Original count-dependent geometry/padding/field bounds remain checked. Original uncached effect-by-effect oracle agrees on output and rejection class across10 counts for both recipes. Initialization failure leaves no published census, warm setup requires no allocation, and concurrent callers publish exactly once.",
+  "protocol_values_changed": false,
+  "cached_material": "Per-AIR per-call/padding table and signed memory multiplicity coefficients only; no witness, roots, challenge or accepted proof is cached.",
+  "source": "src/frontends/riscv/air/guest_precompile/sha256_coefficient_bounds.zig",
+  "source_sha256": "6ef37fa6ea438d7138ea377fa25971522047aba9c70c78e402aab72c716a705e",
+  "pending": [
+    "Complete recursive/source/global driver integration",
+    "Fresh successful complete proof and timing/peak-memory measurement"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "end_to_end_speedup_measured": false
+}

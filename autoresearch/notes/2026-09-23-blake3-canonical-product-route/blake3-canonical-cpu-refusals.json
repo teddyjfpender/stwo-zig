@@ -1,0 +1,24 @@
+[
+  {
+    "args": [
+      "--proof-suite",
+      "blake2s",
+      "bench",
+      "--elf",
+      "/tmp/absent-retired-route.elf",
+      "--backend",
+      "cpu"
+    ],
+    "returncode": 1,
+    "stderr": "error: LegacyProofGenerationRemoved\n"
+  },
+  {
+    "args": [
+      "--proof-suite",
+      "blake2s",
+      "ecdsa-csp-bench"
+    ],
+    "returncode": 1,
+    "stderr": "error: LegacyProofGenerationRemoved\n"
+  }
+]

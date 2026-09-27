@@ -1,0 +1,42 @@
+test-blake3-native-tree-aot
++- run test stderr
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56858 arithmetic_rows=160880
+BLAKE3_NATIVE_QUERY_FUSION groups=7840 removed_scalars=31360
+BLAKE3_NATIVE_FUSION dot4=15505 fma=56860 arithmetic_rows=160876
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=250.39362499956042
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.482999996980652
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=3.080208320170641
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9570416770875454
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5391250015236437
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=918746 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=7560 removed_scalars=30240
+BLAKE3_NATIVE_FUSION dot4=14350 fma=56672 arithmetic_rows=159015
+BLAKE3_NATIVE_QUERY_FUSION groups=8820 removed_scalars=35280
+BLAKE3_NATIVE_FUSION dot4=18459 fma=58931 arithmetic_rows=168994
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=242.8254583501257
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.467125021619722
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=1 gpu_ms=2.9916666680946946
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9650416797958314
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5463749985210598
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=911657 queries=70 pow_bits=26
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28602 fma=87565 arithmetic_rows=243970
+BLAKE3_NATIVE_QUERY_FUSION groups=19390 removed_scalars=77560
+BLAKE3_NATIVE_FUSION dot4=28530 fma=88069 arithmetic_rows=244817
+METAL_FRAMEWORK_INTERACTION rows=8388608 batches=31 gpu_ms=245.37108332151547
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=4 gpu_ms=4.42849998944439
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=1 gpu_ms=9.841833350947127
+METAL_FRAMEWORK_INTERACTION rows=2097152 batches=2 gpu_ms=3.9526250038761646
+METAL_FRAMEWORK_INTERACTION rows=524288 batches=2 gpu_ms=0.5301249912008643
+BLAKE3_TREE_NODE verified=true height=2 artifact_bytes=904156 queries=70 pow_bits=26
+CANONICAL_TREE_BUDGET peak_bytes=30309734580 limit_bytes=51539607552
+BLAKE3_TREE_PARAMETERS leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 canonical=true
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=5110278888
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-blake3-native-tree-aot success
++- run test 7 passed 2m MaxRSS:42G
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "bundle-reader-adapter-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 6.859452708973549,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 8,
+  "test_summary": [
+    "All 8 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/bundle-reader-adapter-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-bundle-reader-adapter-focused-v1",
+    "bytes": 9026872,
+    "sha256": "7a63b022f643cdcf66f652d3b8e46e9f33992e8355d4b8e6c04c7d423dfac7e6"
+  }
+}

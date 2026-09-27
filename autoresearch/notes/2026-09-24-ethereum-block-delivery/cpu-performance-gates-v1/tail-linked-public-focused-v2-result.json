@@ -1,0 +1,22 @@
+{
+  "source_candidate": "tail-linked-public-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 19.651301167032216,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 31,
+  "test_summary": [
+    "All 31 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/tail-linked-public-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-tail-linked-public-focused-v2",
+    "bytes": 37216584,
+    "sha256": "5531088abdacaea161014060e88bcd0fda01d45ef3286889c09c50e1a503e896"
+  }
+}

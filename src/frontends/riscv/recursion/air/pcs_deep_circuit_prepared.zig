@@ -8,7 +8,7 @@ pub const Prepared = struct {
     handle: *Handle,
 
     const Handle = opaque {};
-    const Storage = struct { value: circuit.Circuit };
+    const Storage = struct { value: circuit.Circuit, references: std.atomic.Value(usize) = .init(1) };
 
     pub const View = struct {
         bindings: []const circuit.InputBinding,
@@ -27,8 +27,27 @@ pub const Prepared = struct {
         return .{ .handle = @ptrCast(backing) };
     }
 
+    /// Explicit immutable lease. Like Prepared itself, the returned value is move-only.
+    pub fn retain(self: *const Prepared) Prepared {
+        const backing: *Storage = @ptrCast(@alignCast(self.handle));
+        _ = backing.references.fetchAdd(1, .monotonic);
+        return .{ .handle = self.handle };
+    }
+
+    pub fn retainedBytes(self: *const Prepared) usize {
+        const value = self.ownedCircuit();
+        var bytes: usize = @sizeOf(Storage);
+        inline for (.{ "bindings", "outputs", "nodes", "sample_layouts", "mask_log_sizes", "column_log_storage", "trees" }) |field| {
+            const values = @field(value, field);
+            bytes += values.len * @sizeOf(@TypeOf(values[0]));
+        }
+        return bytes;
+    }
+
     pub fn deinit(self: *Prepared) void {
         const backing: *Storage = @ptrCast(@alignCast(self.handle));
+        self.* = undefined;
+        if (backing.references.fetchSub(1, .acq_rel) != 1) return;
         const allocator = backing.value.allocator;
         backing.value.deinit();
         allocator.destroy(backing);

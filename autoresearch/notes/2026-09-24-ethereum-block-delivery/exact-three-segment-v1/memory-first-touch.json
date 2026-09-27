@@ -1,0 +1,19 @@
+{
+  "scope": "host-only execution replay and sorted first-touch roster; no STARK proof",
+  "proof_verified": false,
+  "execution_profile": "rv32im_zkvm_ethereum_v1",
+  "segments": 3,
+  "cycles": 21635,
+  "memory_events": 51929,
+  "first_touch_keys": 4747,
+  "source_counts": {
+    "register": 31,
+    "rw_root": 4683,
+    "public_input_in_rw_root": 33,
+    "program_root": 0
+  },
+  "record_format": "10 bytes: space u8, address LE u32, initial value LE u32, source enum u8",
+  "roster_sha256": "c76b0c8dcf41bde037ea735441b18857df4fcaf43eb1b9853b0df60ae79636db",
+  "elapsed_ns": 19910542,
+  "peak_tracked_bytes": 9350228
+}

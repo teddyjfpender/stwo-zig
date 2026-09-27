@@ -1,0 +1,20 @@
+[
+  "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-blake3-device-composition/candidate-products/bin/stwo-zig-riscv-metal",
+  "bench",
+  "--elf",
+  "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+  "--input",
+  "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_2048.bin",
+  "--proof-out",
+  "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-bounded-metal-stream-leaves/shape.b3proof",
+  "--report-out",
+  "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-bounded-metal-stream-leaves/shape.json",
+  "--warmups",
+  "0",
+  "--samples",
+  "1",
+  "--backend",
+  "metal",
+  "--protocol",
+  "secure"
+]

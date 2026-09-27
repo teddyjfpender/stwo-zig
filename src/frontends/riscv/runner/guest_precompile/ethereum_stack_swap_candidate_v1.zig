@@ -144,7 +144,7 @@ pub const State = struct {
                 &self.ethereum.signer_recovery_calls,
                 &self.ethereum.signer_recovery_rows,
             ),
-            .poseidon2_m31_permute_in_place_v1 => return error.InvalidPrecompileEncoding,
+            .poseidon2_m31_permute_in_place_v1, .sha256_compress_v1 => return error.InvalidPrecompileEncoding,
         }
     }
 };

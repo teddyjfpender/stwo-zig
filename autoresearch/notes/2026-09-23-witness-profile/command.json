@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-streaming-lde-arenas/candidate-products/bin/stwo-zig-riscv-cpu",
+    "bench",
+    "--elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+    "--input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+    "--proof-out",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-witness-profile/keccak.b3proof",
+    "--report-out",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-23-witness-profile/keccak.json",
+    "--warmups",
+    "0",
+    "--samples",
+    "6",
+    "--backend",
+    "cpu",
+    "--protocol",
+    "secure"
+  ],
+  "environment": {
+    "STWO_ZIG_WORKERS": "16",
+    "STWO_ZIG_MERKLE_WORKERS": "16",
+    "STWO_RISCV_EXECUTION_PROFILE": "1"
+  },
+  "sample_seconds": 12,
+  "sample_interval_ms": 1
+}

@@ -1,0 +1,26 @@
+{
+  "environment": {
+    "STWO_HOST_MEMORY_PROFILE": "1",
+    "STWO_RISCV_RECURSIVE_PARENT_PROFILE": "1"
+  },
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-assembly-release",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.input",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.expected",
+    "1024",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/stream-assembly-release-auth1-canonical-1024.proof",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/stream-assembly-release-auth1-canonical-1024.json",
+    "canonical"
+  ],
+  "exit_code": 1,
+  "wall_seconds": 0.022657916008029133,
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-stream-assembly-release": "491782e6f956ffb3ea7f9611f5fac5f1f52d89a73e3bf7c4e025aa842d69c400",
+    "autoresearch/notes/2026-09-24-recursive-memory/eth-auth-stwo-expanded.elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.input": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d",
+    "autoresearch/notes/2026-09-24-recursive-memory/fixtures/batch-1.expected": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138"
+  }
+}

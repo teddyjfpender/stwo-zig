@@ -1,0 +1,3 @@
+src/frontends/riscv/recursion/air/block_v5_open_parent_composition_v2.zig:72:47: error: invalid left-hand side to assignment
+    for (public_coordinates, 0..) |*tuple, i| for (tuple, 0..) |*symbolic, j|
+                                              ^~~

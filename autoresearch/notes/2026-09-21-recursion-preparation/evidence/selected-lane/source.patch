@@ -1,0 +1,117 @@
+diff --git a/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig b/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig
+index aa97ab9c2..5ba931bbc 100644
+--- a/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig
++++ b/src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig
+@@ -175,6 +175,35 @@ pub const Executor = struct {
+         return preprocessing.generatePreprocessedInto(reference, columns, self);
+     }
+ 
++    /// Bulk admission is identical to the column writer; output is owned and
++    /// only the selected lane is materialized. No per-row authority rescans.
++    pub fn generateLogicalForLane(
++        self: *const Executor,
++        allocator: std.mem.Allocator,
++        preprocessing: *const Preprocessed,
++        reference: Reference,
++        evaluations: Evaluations,
++        kind: ProofKind,
++        verifier_id: u32,
++    ) Error![][component.LOGICAL_INPUT_COUNT]M31 {
++        _ = self;
++        if (verifier_id != 1 and verifier_id != 2) return error.InvalidWitness;
++        try preprocessing.validateAgainst(reference);
++        try validateEvaluationsHot(reference, evaluations, kind);
++        var count: usize = 0;
++        for (preprocessing.rows) |row| count += @intFromBool(row.verifier_id == verifier_id);
++        const result = try allocator.alloc([component.LOGICAL_INPUT_COUNT]M31, count);
++        errdefer allocator.free(result);
++        var cursor: usize = 0;
++        for (preprocessing.rows) |row| {
++            if (row.verifier_id != verifier_id) continue;
++            const value = evaluations.at(row.lane).values[row.node_id].tryIntoM31() catch return error.InputIsNotBaseField;
++            result[cursor] = logicalInputs(.{ M31.one(), value }, row.values(), kind);
++            cursor += 1;
++        }
++        return result;
++    }
++
+     pub fn generateMainInto(
+         self: *const Executor,
+         preprocessing: *const Preprocessed,
+diff --git a/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig b/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig
+index 48db8a59b..0dfdb70e3 100644
+--- a/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig
++++ b/src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig
+@@ -59,6 +59,34 @@ pub const Executor = struct {
+         return preprocessing.generatePreprocessedInto(reference, columns, self);
+     }
+ 
++    /// Admit the complete schedule and witness once, then materialize only the
++    /// requested lane directly in logical-row order. Internally allocated output
++    /// cannot alias the borrowed authority or witness.
++    pub fn generateLogicalForLane(
++        self: *const Executor,
++        allocator: std.mem.Allocator,
++        preprocessing: *const Preprocessed,
++        reference: Reference,
++        input_witness: InputWitness,
++        proof_kind: ProofKind,
++        verifier_id: u32,
++    ) Error![][component.LOGICAL_INPUT_COUNT]M31 {
++        _ = self;
++        if (verifier_id != 1 and verifier_id != 2) return error.InvalidWitness;
++        try preprocessing.validateAgainst(reference);
++        try validateWitness(reference, input_witness, proof_kind);
++        var count: usize = 0;
++        for (preprocessing.rows) |row| count += @intFromBool(row.verifier_id == verifier_id);
++        const result = try allocator.alloc([component.LOGICAL_INPUT_COUNT]M31, count);
++        var cursor: usize = 0;
++        for (preprocessing.rows) |row| {
++            if (row.verifier_id != verifier_id) continue;
++            result[cursor] = logicalInputs(.{ M31.one(), input_witness.lanes[row.lane].input_values[row.binding] }, row.values(), proof_kind);
++            cursor += 1;
++        }
++        return result;
++    }
++
+     pub fn generateMainInto(
+         self: *const Executor,
+         preprocessing: *const Preprocessed,
+diff --git a/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig b/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig
+index 3715f57b4..79128e04b 100644
+--- a/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig
++++ b/src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig
+@@ -250,9 +250,13 @@ fn buildRows(value: *OwnedV1.Storage, child: anytype, comptime selected_lane_onl
+     else
+         try prepared.trace_merkle_executor.generateMainInto(&prepared.trace_merkle_preprocessing, prepared.trace_merkle_reference, &trace_merkle.columns, trace);
+     value.view_value.trace_merkle = try selectRows(A.trace_merkle, allocator, value.lane, prepared.trace_merkle_preprocessing.rows, trace_merkle.columns, try W.trace_merkle.logicalRow(prepared.trace_merkle_reference, &prepared.trace_merkle_preprocessing, 0, trace));
+-    var pcs_deep = try Columns(W.pcs_deep).init(scratch, prepared.pcs_preprocessing.log_size);
+-    try prepared.pcs_executor.generateMainInto(&prepared.pcs_preprocessing, prepared.pcs_reference, &pcs_deep.columns, prepared.pcs_inputs, .binary_node);
+-    value.view_value.pcs_deep = try selectRows(A.pcs_deep, allocator, value.lane, prepared.pcs_preprocessing.rows, pcs_deep.columns, try W.pcs_deep.logicalRow(prepared.pcs_reference, &prepared.pcs_preprocessing, 0, prepared.pcs_inputs, .binary_node));
++    if (selected_lane_only) {
++        value.view_value.pcs_deep = try prepared.pcs_executor.generateLogicalForLane(allocator, &prepared.pcs_preprocessing, prepared.pcs_reference, prepared.pcs_inputs, .binary_node, value.lane);
++    } else {
++        var pcs_deep = try Columns(W.pcs_deep).init(scratch, prepared.pcs_preprocessing.log_size);
++        try prepared.pcs_executor.generateMainInto(&prepared.pcs_preprocessing, prepared.pcs_reference, &pcs_deep.columns, prepared.pcs_inputs, .binary_node);
++        value.view_value.pcs_deep = try selectRows(A.pcs_deep, allocator, value.lane, prepared.pcs_preprocessing.rows, pcs_deep.columns, try W.pcs_deep.logicalRow(prepared.pcs_reference, &prepared.pcs_preprocessing, 0, prepared.pcs_inputs, .binary_node));
++    }
+     var fri_leaf = try Columns(W.fri_leaf).init(scratch, prepared.fri_leaf_preprocessing.log_size);
+     if (selected_lane_only)
+         try prepared.fri_leaf_executor.generateMainForLaneInto(&prepared.fri_leaf_preprocessing, prepared.fri_reference, &fri_leaf.columns, fri, value.lane)
+@@ -274,9 +278,13 @@ fn buildRows(value: *OwnedV1.Storage, child: anytype, comptime selected_lane_onl
+     var fri_control = try Columns(W.fri_control).init(scratch, prepared.control_preprocessing.log_size);
+     try prepared.control_executor.generateMainInto(&prepared.control_preprocessing, prepared.control_reference, &fri_control.columns, query);
+     value.view_value.fri_control = try selectRows(A.fri_control, allocator, value.lane, prepared.control_preprocessing.rows, fri_control.columns, try W.fri_control.logicalRow(prepared.control_reference, &prepared.control_preprocessing, 0, query));
+-    var fri_input = try Columns(W.fri_input).init(scratch, prepared.input_preprocessing.log_size);
+-    try prepared.input_executor.generateMainInto(&prepared.input_preprocessing, prepared.input_reference, &fri_input.columns, evaluations, .binary_node);
+-    value.view_value.fri_input = try selectRows(A.fri_input, allocator, value.lane, prepared.input_preprocessing.rows, fri_input.columns, try W.fri_input.logicalRow(prepared.input_reference, &prepared.input_preprocessing, 0, evaluations, .binary_node));
++    if (selected_lane_only) {
++        value.view_value.fri_input = try prepared.input_executor.generateLogicalForLane(allocator, &prepared.input_preprocessing, prepared.input_reference, evaluations, .binary_node, value.lane);
++    } else {
++        var fri_input = try Columns(W.fri_input).init(scratch, prepared.input_preprocessing.log_size);
++        try prepared.input_executor.generateMainInto(&prepared.input_preprocessing, prepared.input_reference, &fri_input.columns, evaluations, .binary_node);
++        value.view_value.fri_input = try selectRows(A.fri_input, allocator, value.lane, prepared.input_preprocessing.rows, fri_input.columns, try W.fri_input.logicalRow(prepared.input_reference, &prepared.input_preprocessing, 0, evaluations, .binary_node));
++    }
+     value.view_value.pcs_metadata = try selectedMetadata(W.pcs_deep.Row, allocator, value.lane, prepared.pcs_preprocessing.rows);
+     value.view_value.fri_metadata = try selectedMetadata(W.fri_input.Row, allocator, value.lane, prepared.input_preprocessing.rows);
+     var control: std.ArrayList(air.control_witness.Row) = .empty;

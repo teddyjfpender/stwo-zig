@@ -1,0 +1,29 @@
+{
+  "base_qualification": "sha-recursive-delivery-qualification.json",
+  "source_archive": "sha-preflight-profile-fix-source.tar.gz",
+  "source_archive_sha256": "0f11cb3a8520c6cc63eaf56e810f69185f42855881d25bbb32b53f54fbe003d1",
+  "source_sha256": {
+    "src/frontends/riscv/prover/blake3_execution_preflight.zig": "9847c0ed3a45b8fe1b64db124170e883f7de1786728dc706ff96f494e1d4fcb5",
+    "src/frontends/riscv/ethereum_preflight_check.zig": "25548b2b45067e9f3e604fa99d914d589354096b243c4c25389c8b9fd4120bda"
+  },
+  "test_log": "test-sha-terminal-planning-1.log",
+  "tests_passed": 15,
+  "first_mainnet_proof_attempt": "measurements-mainnet-24628607-sha-canonical-4194304/measurement.json",
+  "first_mainnet_proof_attempt_error": "InvalidPrecompileEncoding in preflight program commitment using legacy profile",
+  "full_block_root_verified": false,
+  "binary_sha256": "56cc4a5ef1750656a1dc8e8afe26164e83fb918e8bee62c1ffca0b4de6eade1b",
+  "full_block_preflight_cycles": 139214856,
+  "full_block_preflight_ns": 10049406584,
+  "full_block_attempts": [
+    {
+      "path": "measurements-mainnet-24628607-sha-canonical-4194304-v2",
+      "status": "failed",
+      "error": "CommitmentTraceTooLarge",
+      "planned_leaves": 64
+    },
+    {
+      "path": "measurements-mainnet-24628607-sha-canonical-262144",
+      "status": "started_unqualified"
+    }
+  ]
+}

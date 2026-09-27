@@ -1,0 +1,7 @@
+1/5 air.block.memory_order_test.test.block memory ordering proves wide clocks values and address transitions...BLOCK_MEMORY_ORDER identity=a1de6d7d98a71bbab8f3dad997f76bb0e8337e74465f648c09bf2ffa85df4c28 constraints=41 range_events=24
+OK
+2/5 air.block.memory_order_test.test.block memory ordering rejects value bypass clocks carries and unbounded bytes...OK
+3/5 air.block.memory_order_test.test.block memory ordering rejects 64-bit wrap even with consistent lower limbs...OK
+4/5 air.block.memory_event.test.block memory events share one global clock across leaf-local and continuous frames...OK
+5/5 air.block.memory_event.test.block memory event projection validates real tracker access and wire encoding...OK
+All 5 tests passed.

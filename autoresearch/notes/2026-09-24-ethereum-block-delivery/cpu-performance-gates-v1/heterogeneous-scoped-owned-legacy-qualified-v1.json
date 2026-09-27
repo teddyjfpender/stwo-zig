@@ -1,0 +1,46 @@
+{
+  "status": "qualified_nonproving_legacy_owner_source",
+  "source_candidate": "heterogeneous-scoped-owner-source-candidate-v3.json",
+  "evidence": {
+    "source_candidate": "heterogeneous-scoped-owned-legacy-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 102.46011858299607,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 16,
+    "test_summary": [
+      "All 16 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/heterogeneous-scoped-owned-legacy-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-heterogeneous-scoped-owned-legacy-focused-v2",
+      "bytes": 11067144,
+      "sha256": "d7a6ea339d6b5ae48ea4f29348e7a38cb95d85a03eb3f83cb50b0ed8f865bcf5"
+    }
+  },
+  "historical_semantic": "heterogeneous-scoped-owned-legacy-semantic-v4-result.json",
+  "historical_failed_focused": "heterogeneous-scoped-owned-legacy-focused-v1-result.json",
+  "failed_fixture_correction": "Local.init explicitly initializes its genuine one-wire schedule; starting from undefined bypassed struct field defaults. Production admission was preserved.",
+  "tests_passed": 16,
+  "named_behavioral_checks": 8,
+  "scope": [
+    "Immutable independently admitted job metadata owns proposal bytes and borrows authenticated setup",
+    "Local source schedule and selector mutation rejection; bounded leases and allocation rollback",
+    "Full-u64 scalar adjacency/carries and original typed/generic row parity",
+    "Actual production setup preparation publication and fresh receiver bodies retained, never invoked"
+  ],
+  "not_qualified": [
+    "Selected execution-policy root",
+    "Complete source or global authority",
+    "Canonical driver activation or block proof"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

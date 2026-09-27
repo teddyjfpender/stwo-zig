@@ -1,0 +1,574 @@
+[
+  {
+    "arm": "control-first",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-native-parent-metal/parent-test"
+    ],
+    "binary_sha256": "3e9aabf1958014c07c8ae1755a87a4cdaf1e9e22e3df7aba45fb8094b3334d66",
+    "wall_seconds": 26.629571833997034,
+    "recorded_parent_stage_seconds": 14.104747,
+    "profile": {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.validation",
+          "label": "Authenticated row validation",
+          "seconds": 0.012689,
+          "children": null
+        },
+        {
+          "id": "parent.main_setup",
+          "label": "Main columns and lookup counts",
+          "seconds": 4.691826,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 1.761132,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_generation",
+          "label": "Interaction generation",
+          "seconds": 0.711711,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 1.659916,
+          "children": null
+        },
+        {
+          "id": "parent.core",
+          "label": "Core STARK proof",
+          "seconds": 5.267473,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 3e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.758508,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.01928,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.03612,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.01523,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 3.998197,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 5.5e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.302115,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.011504,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.030553,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.041336,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.1e-05,
+              "children": null
+            }
+          ]
+        }
+      ]
+    },
+    "tracked_peak_bytes": 12412536622,
+    "peak_rss_bytes": 20979515392,
+    "artifact_sha256": "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+    "verified": true,
+    "plan_reuse": [
+      1540,
+      6,
+      2
+    ],
+    "peak_physical_footprint_bytes": 27331309832
+  },
+  {
+    "arm": "candidate-first",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-base-lookup-visitation/parent-test"
+    ],
+    "binary_sha256": "7c87b41007eb706c67677d1facb287dfef3c588fb7bd40598aba92df8a30397d",
+    "wall_seconds": 24.222104999993462,
+    "recorded_parent_stage_seconds": 10.965458,
+    "profile": {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.validation",
+          "label": "Authenticated row validation",
+          "seconds": 0.012987,
+          "children": null
+        },
+        {
+          "id": "parent.main_setup",
+          "label": "Main columns and lookup counts",
+          "seconds": 1.56361,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 1.755307,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_generation",
+          "label": "Interaction generation",
+          "seconds": 0.69445,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 1.670781,
+          "children": null
+        },
+        {
+          "id": "parent.core",
+          "label": "Core STARK proof",
+          "seconds": 5.268323,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 4e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.4e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.757654,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.019988,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.0381,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.015172,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 3.997402,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 6e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.301206,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.012117,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.030724,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.041255,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000102,
+              "children": null
+            }
+          ]
+        }
+      ]
+    },
+    "tracked_peak_bytes": 12412536622,
+    "peak_rss_bytes": 20884406272,
+    "artifact_sha256": "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+    "verified": true,
+    "plan_reuse": [
+      1540,
+      6,
+      2
+    ],
+    "peak_physical_footprint_bytes": 27381707352
+  },
+  {
+    "arm": "candidate-last",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-base-lookup-visitation/parent-test"
+    ],
+    "binary_sha256": "7c87b41007eb706c67677d1facb287dfef3c588fb7bd40598aba92df8a30397d",
+    "wall_seconds": 23.748780082998564,
+    "recorded_parent_stage_seconds": 11.040909000000001,
+    "profile": {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.validation",
+          "label": "Authenticated row validation",
+          "seconds": 0.013148,
+          "children": null
+        },
+        {
+          "id": "parent.main_setup",
+          "label": "Main columns and lookup counts",
+          "seconds": 1.587708,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 1.772493,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_generation",
+          "label": "Interaction generation",
+          "seconds": 0.713005,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 1.675013,
+          "children": null
+        },
+        {
+          "id": "parent.core",
+          "label": "Core STARK proof",
+          "seconds": 5.279542,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 4e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.774391,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.019919,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.036253,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.015354,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 4.005424,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 5.8e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.304933,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.012381,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.032414,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.025841,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 8.4e-05,
+              "children": null
+            }
+          ]
+        }
+      ]
+    },
+    "tracked_peak_bytes": 12412536622,
+    "peak_rss_bytes": 20881604608,
+    "artifact_sha256": "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+    "verified": true,
+    "plan_reuse": [
+      1540,
+      6,
+      2
+    ],
+    "peak_physical_footprint_bytes": 27381428488
+  },
+  {
+    "arm": "control-last",
+    "command": [
+      "/usr/bin/time",
+      "-l",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-native-parent-metal/parent-test"
+    ],
+    "binary_sha256": "3e9aabf1958014c07c8ae1755a87a4cdaf1e9e22e3df7aba45fb8094b3334d66",
+    "wall_seconds": 26.94712183298543,
+    "recorded_parent_stage_seconds": 14.221783,
+    "profile": {
+      "schema_version": 1,
+      "runtime": "native",
+      "example": "blake3-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.validation",
+          "label": "Authenticated row validation",
+          "seconds": 0.013135,
+          "children": null
+        },
+        {
+          "id": "parent.main_setup",
+          "label": "Main columns and lookup counts",
+          "seconds": 4.719283,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 1.777337,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_generation",
+          "label": "Interaction generation",
+          "seconds": 0.713315,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 1.672579,
+          "children": null
+        },
+        {
+          "id": "parent.core",
+          "label": "Core STARK proof",
+          "seconds": 5.326134,
+          "children": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 4e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.4e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.759894,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.019868,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.035288,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.015197,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 4.039531,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 6.2e-05,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.310547,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.011994,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.051341,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.028632,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 9e-05,
+              "children": null
+            }
+          ]
+        }
+      ]
+    },
+    "tracked_peak_bytes": 12412536622,
+    "peak_rss_bytes": 20883505152,
+    "artifact_sha256": "87eacb69ec7dcf9d5aad70f4f36ff5ac8839bf78366fb11e7ac20da38755ce7b",
+    "verified": true,
+    "plan_reuse": [
+      1540,
+      6,
+      2
+    ],
+    "peak_physical_footprint_bytes": 27381756360
+  }
+]

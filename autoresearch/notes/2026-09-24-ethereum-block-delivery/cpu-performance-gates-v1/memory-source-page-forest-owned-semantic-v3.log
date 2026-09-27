@@ -1,0 +1,8 @@
+src/frontends/riscv/prover/block_v5_memory_source_page_forest_policy_owner_v1.zig:285:41: error: expected type '?usize', found '?u32'
+                if (self.forest.geometry.root == index) {
+                    ~~~~~~~~~~~~~~~~~~~~^~~~~
+src/frontends/riscv/prover/block_v5_memory_source_page_forest_policy_owner_v1.zig:285:41: note: optional type child 'u32' cannot cast into optional type child 'usize'
+referenced by:
+    stwo_source_page_forest_owned_body_gate: src/frontends/riscv/block_v5_memory_source_page_forest_owned_codegen_v1.zig:18:621
+    stwo_source_page_forest_owned_body_gate: src/frontends/riscv/block_v5_memory_source_page_forest_owned_codegen_v1.zig:17:5
+    1 reference(s) hidden; use '-freference-trace=3' to see all references

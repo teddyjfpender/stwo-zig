@@ -1,0 +1,5 @@
+bench-keccakf-blake3-system
++- Keccak-f BLAKE3 system benchmark identity guard
+   +- run test stderr
+Keccak-f BLAKE3 system profile: queries=70 pow=26 workers=16
+Keccak-f proof timings: witness=2.068ms pp=15.424ms main=7.820ms interaction-gen=2.184ms interaction-commit=8.135ms prove=52.877ms verify=8.152ms

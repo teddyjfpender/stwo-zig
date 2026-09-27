@@ -1,0 +1,8 @@
+1/7 block_v5_capacity_exact_test_root.test_0...OK
+2/7 prover.block_v5_capacity_exact_forest_test_v1.test.capacity exact: adapter preserves actual B5CT frames counts and immutable geometry without legacy receipt conversion...OK
+3/7 prover.block_v5_capacity_exact_forest_test_v1.test.capacity exact: independent security census and fresh base claim reject before outer proof loader...OK
+4/7 prover.block_v5_capacity_exact_forest_test_v1.test.capacity exact: default public policy stays NativeV3 and transport output types stay shared...OK
+5/7 prover.block_v5_capacity_exact_forest_test_v1.test.capacity exact: detached manifest preserves canonical grammar and independently pins outer before file consumption...OK
+6/7 air.semantic_eval.test_0...OK
+7/7 air.memory_commitment.poseidon2_air.test_0...OK
+All 7 tests passed.

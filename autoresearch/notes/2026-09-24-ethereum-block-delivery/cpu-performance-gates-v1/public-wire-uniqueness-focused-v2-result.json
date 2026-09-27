@@ -1,0 +1,22 @@
+{
+  "source_candidate": "public-wire-uniqueness-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.6316897500073537,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 6,
+  "test_summary": [
+    "All 6 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/public-wire-uniqueness-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-public-wire-uniqueness-focused-v2",
+    "bytes": 1683128,
+    "sha256": "b6e3ca83d8c246f8a026c691d603bb7f3d248bbc09ad98ec9184f9a36c2d651f"
+  }
+}

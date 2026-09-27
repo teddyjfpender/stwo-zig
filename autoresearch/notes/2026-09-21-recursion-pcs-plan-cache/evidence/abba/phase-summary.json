@@ -1,0 +1,10 @@
+{
+  "off": {
+    "median_rss_bytes": 4393050112.0,
+    "median_child_capture_seconds": 0.8768587295
+  },
+  "on": {
+    "median_rss_bytes": 4427735040.0,
+    "median_child_capture_seconds": 0.5180050629999999
+  }
+}

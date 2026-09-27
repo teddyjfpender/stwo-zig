@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "tests_passed": 11,
+  "declared_tests": 5,
+  "scope": "Nonproving exact masks/domain/OODS equation parity against original program/state/table/external components for all caller types, fresh/seal census/absence negatives, actual proof/receiver/warm callback codegen. No STARK or execution segment. Canonical integration not covered.",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-full-fusion-equations-codegen.log",
+    "sha256": "c4c0360d87c45191c7b8ddffc86fbb8ad8133c92b3a5b45dc7d412bc8c1fa3ad"
+  },
+  "sources": {
+    "src/frontends/riscv/block_v5_caller_fused_unit_test_root.zig": "e7dc9a542b58d8666d85ad90b48c2aefa60cffbc62a00e9d51198ad3ba825153",
+    "src/frontends/riscv/prover/block_v5_caller_fused_proof_v1.zig": "982ef191fecaad801cc4bb4d672bff52e714dd2652d637cab29c5709ec0e34c9",
+    "src/frontends/riscv/prover/block_v5_caller_fused_component_v1.zig": "a915c80e8186534dcf4c76b27d69c43164ce94a39c527e2dfa0ffbb7c6a1217f",
+    "src/frontends/riscv/prover/block_v5_caller_fused_stage_v1.zig": "dc5300c8d03c3aede6fe9f1fed0d2e772fa54664f9eb48a5c8bee77ffc3431c1",
+    "src/frontends/riscv/prover/block_v5_caller_fused_receiver_v1.zig": "117b64468ade06da03195ded6fd6cbdf7a9d55ed33470abf1725fd51df31dd64",
+    "src/frontends/riscv/prover/block_v5_caller_fused_schedule_v1.zig": "c33f40f7c9fb893a9977dbb40c535a7f5a06e878128e17337d391616b8ada3a2",
+    "src/frontends/riscv/prover/block_v5_caller_fused_unit_test.zig": "8db0ed643d721647fbaa4743a4f09f1fd8248a6030111fe0fd4963248cb1e12a",
+    "src/frontends/riscv/prover/block_v5_composite_projection_adapter_v1.zig": "28a63d1a5592448a4b99ad5ff7849ce34acfe8816f3583d651fdf4259cb6558f",
+    "src/frontends/riscv/prover/block_v5_composite_pcs_v1.zig": "ab5e247c811c24783378ce3f147bb145e347204d8331788fa2c98d8cfa6cadca"
+  }
+}

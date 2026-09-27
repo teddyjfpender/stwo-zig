@@ -1,0 +1,24 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 2499s
+1/19 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller binds disjoint pointers and exact bounded access clocks...SHA_MEMORY_CALLER constraints=63 events=189 digest=e6a6504bd77f318065725524cd55e3378c71bced21c6bf1fc3c4260d8a067ed9
+OK
+2/19 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller closes the complete compression graph and exact memory tuples...OK
+3/19 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller uses the full address range and rejects malformed closed access groups...OK
+4/19 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller compiles and exports exact base and secure machine expressions...SHA_CALLER_COMPILER arena_nodes=536
+OK
+5/19 air.guest_precompile.sha256_memory_caller_test.test.SHA memory caller program PC admission follows derived addresses and rejects invalid policies...OK
+6/19 isa.sha256_compression_v1.test.SHA compression encoding preserves both registers and rejects reserved bits...OK
+7/19 runner.guest_precompile.sha256_compression_v1_test.test.SHA transaction commits exact memory and is atomic at every allocation failure...OK
+8/19 air.lang.access_schedule_memory_test.test.fixed memory plans preserve exact streams and prepared physical order...OK
+9/19 air.lang.access_schedule_memory_test.test.aligned address and load/store clocks replay at uint20 boundaries...OK
+10/19 air.lang.access_schedule_memory_test.test.whole-program validation rejects malformed memory plans...OK
+11/19 air.lang.access_schedule_memory_test.test.memory identity v4 is stable under exact node reuse history...OK
+12/19 air.lang.access_schedule_memory_test.test.fixed memory plan rollback is exact under every allocation failure...OK
+13/19 air.lang.access_schedule_memory_test.test.prepared memory plan validation allocates zero bytes...OK
+14/19 air.lang.effects_test.test.typed effect constructors reject semantic type errors before mutation...OK
+15/19 air.lang.effects_test.test.whole-program validation rejects forged relation bindings and liveness...OK
+16/19 air.lang.effects_test.test.state retirement pairing rejects reversal splitting and activation drift...OK
+17/19 air.lang.effects_test.test.typed effects use explicit manifest v4 and semantic digest v2 identities...OK
+18/19 air.lang.effects_test.test.typed effect construction releases every partial allocation...OK
+19/19 runner.decode.test_0...OK
+All 19 tests passed.

@@ -1,0 +1,319 @@
+{
+  "zisk/vadcop_final/vadcop_final.starkinfo.json": {
+    "nBits": 19,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 5,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 21,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 21
+      },
+      {
+        "nBits": 17
+      },
+      {
+        "nBits": 13
+      },
+      {
+        "nBits": 10
+      },
+      {
+        "nBits": 7
+      }
+    ],
+    "nQueries": 106
+  },
+  "zisk/Zisk/airs/RomData/air/RomData.starkinfo.json": {
+    "nBits": 22,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 23,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/Mem/air/Mem.starkinfo.json": {
+    "nBits": 22,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 23,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/Main/air/Main.starkinfo.json": {
+    "nBits": 22,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 23,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/Rom/air/Rom.starkinfo.json": {
+    "nBits": 22,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 23,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/BinaryExtension/air/BinaryExtension.starkinfo.json": {
+    "nBits": 22,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 23,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/Dma64AlignedMemSet/air/Dma64AlignedMemSet.starkinfo.json": {
+    "nBits": 21,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 22,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 22
+      },
+      {
+        "nBits": 18
+      },
+      {
+        "nBits": 14
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/InputData/air/InputData.starkinfo.json": {
+    "nBits": 22,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 23,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/MemAlign/air/MemAlign.starkinfo.json": {
+    "nBits": 21,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 22,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 22
+      },
+      {
+        "nBits": 18
+      },
+      {
+        "nBits": 14
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  },
+  "zisk/Zisk/airs/BinaryLarge/air/BinaryLarge.starkinfo.json": {
+    "nBits": 22,
+    "merkleTreeArity": 2,
+    "transcriptArity": 2,
+    "merkleTreeCustom": true,
+    "lastLevelVerification": 4,
+    "powBits": 24,
+    "hashCommits": true,
+    "nBitsExt": 23,
+    "verificationHashType": "GL",
+    "steps": [
+      {
+        "nBits": 23
+      },
+      {
+        "nBits": 19
+      },
+      {
+        "nBits": 15
+      },
+      {
+        "nBits": 11
+      },
+      {
+        "nBits": 8
+      },
+      {
+        "nBits": 5
+      }
+    ],
+    "nQueries": 211
+  }
+}

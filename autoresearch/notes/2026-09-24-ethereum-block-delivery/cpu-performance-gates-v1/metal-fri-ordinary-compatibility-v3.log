@@ -1,0 +1,30 @@
+1/23 metal_fri_budget_test_root.test.FRI budget: cascade framing and folded ownership extents are exact...OK
+2/23 metal_fri_budget_test_root.test.FRI budget: shared arena survives root and releases one charge at last tree...OK
+3/23 metal_fri_budget_test_root.test.FRI budget: shared owner rejects foreign allocation before consumption...OK
+4/23 metal_fri_budget_test_root.test.FRI budget: inverse cache retains exact hits and drains typed owners...OK
+5/23 metal_fri_budget_test_root.test.FRI budget: replacement overlap and checked cancellation preserve old cache...OK
+6/23 metal_fri_budget_test_root.test.FRI budget: multi-buffer factory failure rolls back reservations and lock...OK
+7/23 metal_fri_budget_test_root.test.FRI budget: foreign budget and runtime mismatch cannot borrow cached inverses...OK
+8/23 metal_fri_budget_test_root.test.FRI budget: pending cache abort survives original allocator owner release...OK
+9/23 metal_fri_budget_test_root.test.FRI budget: failed checked completion cannot publish a generated inverse...OK
+10/23 metal_fri_budget_test_root.test.FRI budget: domain admission rejects active poles and matches scalar coordinates...OK
+11/23 metal_fri_budget_test_root.test.FRI budget: every requested inverse domain is admitted before factory work...OK
+12/23 metal_fri_budget_test_root.test.FRI budget: control allocation failures retain or release the correct charge...OK
+13/23 metal_fri_budget_test_root.test.FRI budget: resident storage uses owner context and preserves real device handle...OK
+14/23 metal_fri_budget_test_root.test.FRI budget: contending cache transactions reuse the same admitted buffers...OK
+15/23 metal_fri_budget_test_root.test.FRI budget: actual prover teardown keeps heap arrays alive after root owner release...OK
+16/23 metal_fri_budget_test_root.test.FRI budget: concurrent arena references keep a single external charge...OK
+17/23 metal_fri_budget_test_root.test.FRI budget: explicit ordinary policy preserves original allocator and source ownership...OK
+18/23 metal_fri_budget_test_root.test.FRI budget: explicit ordinary option cannot bypass a supplied shared cap...OK
+19/23 metal_fri_budget_test_root.test.FRI budget: uncapped owner binds extent and source allocator independently...OK
+20/23 metal_fri_budget_test_root.test.FRI budget: ordinary inverse buffers are ephemeral after checked completion...OK
+21/23 metal_fri_budget_test_root.test.FRI budget: ephemeral inverse failure and cancellation release only after terminal work...error: the following test command crashed:
+.zig-cache/o/bdb80ba0ee0fe3e1fb65974d71cecf30/root --seed=0x5c2069a5
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py", line 15, in <module>
+    subprocess.run([z,'test',*filter_args,'-O' + args.optimize,'-lc','-mcpu=native','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_cpu_backend','--dep','interop_postcard','--dep','stwo_prover_api','--dep','stwo_backend_contracts','-Mroot=' + args.root,'-Mstwo_core=src/core/mod.zig','--dep','stwo_core','--dep','stwo_backend_contracts','--dep','stwo_prover_api','-Mstwo_prover_engine=src/prover/mod.zig','--dep','stwo_core','-Mstwo_backend_contracts=src/backend/mod.zig','--dep','stwo_core','-Mstwo_prover_api=src/prover_api/mod.zig','--dep','stwo_core','--dep','stwo_prover_engine','--dep','stwo_backend_contracts','-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig','--dep','stwo_core','--dep','stwo_proof_wire','-Minterop_postcard=src/interop/postcard.zig','--dep','stwo_core','-Mstwo_proof_wire=src/interop/proof_wire/mod.zig'],check=True,cwd=R)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/opt/homebrew/opt/zig@0.15/bin/zig', 'test', '--test-filter', 'FRI budget:', '-OReleaseFast', '-lc', '-mcpu=native', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_cpu_backend', '--dep', 'interop_postcard', '--dep', 'stwo_prover_api', '--dep', 'stwo_backend_contracts', '-Mroot=src/metal_fri_budget_test_root.zig', '-Mstwo_core=src/core/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_backend_contracts', '--dep', 'stwo_prover_api', '-Mstwo_prover_engine=src/prover/mod.zig', '--dep', 'stwo_core', '-Mstwo_backend_contracts=src/backend/mod.zig', '--dep', 'stwo_core', '-Mstwo_prover_api=src/prover_api/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_prover_engine', '--dep', 'stwo_backend_contracts', '-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig', '--dep', 'stwo_core', '--dep', 'stwo_proof_wire', '-Minterop_postcard=src/interop/postcard.zig', '--dep', 'stwo_core', '-Mstwo_proof_wire=src/interop/proof_wire/mod.zig']' returned non-zero exit status 1.

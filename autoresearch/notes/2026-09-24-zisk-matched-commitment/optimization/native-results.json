@@ -1,0 +1,381 @@
+{
+  "binaries": {
+    "before": "96f7e2ef19cde18fb5329f65cadeb3748968b1bd1a84f293d8cd99740c7f9f78",
+    "after": "c9e3277c6338ff3d3e524fa05b00b43fcd3e7c98ab84d04aeec0a411899c9ee1"
+  },
+  "power": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t85%; discharging; 13:30 remaining present: true\n",
+  "cases": [
+    {
+      "input_rows": 1024,
+      "width": 8,
+      "root": "59efc74dfad45b977645cb9264595b498dcc1a22b6298890997aa60597ddd264",
+      "samples": {
+        "before": [
+          {
+            "total_ns": 1150292,
+            "lde_ns": 59916,
+            "commit_ns": 963292
+          },
+          {
+            "total_ns": 1072458,
+            "lde_ns": 54334,
+            "commit_ns": 893333
+          },
+          {
+            "total_ns": 994542,
+            "lde_ns": 48583,
+            "commit_ns": 839333
+          },
+          {
+            "total_ns": 986125,
+            "lde_ns": 48458,
+            "commit_ns": 831250
+          },
+          {
+            "total_ns": 980666,
+            "lde_ns": 48375,
+            "commit_ns": 828500
+          },
+          {
+            "total_ns": 936833,
+            "lde_ns": 48500,
+            "commit_ns": 785125
+          },
+          {
+            "total_ns": 892917,
+            "lde_ns": 43375,
+            "commit_ns": 754791
+          }
+        ],
+        "after": [
+          {
+            "total_ns": 1105417,
+            "lde_ns": 54667,
+            "commit_ns": 927709
+          },
+          {
+            "total_ns": 962542,
+            "lde_ns": 48709,
+            "commit_ns": 804250
+          },
+          {
+            "total_ns": 953625,
+            "lde_ns": 48333,
+            "commit_ns": 798916
+          },
+          {
+            "total_ns": 958084,
+            "lde_ns": 48292,
+            "commit_ns": 805333
+          },
+          {
+            "total_ns": 959625,
+            "lde_ns": 48250,
+            "commit_ns": 807500
+          },
+          {
+            "total_ns": 849167,
+            "lde_ns": 43375,
+            "commit_ns": 713125
+          },
+          {
+            "total_ns": 869292,
+            "lde_ns": 43250,
+            "commit_ns": 733458
+          }
+        ]
+      },
+      "median_ms": {
+        "before": {
+          "total_ns": 0.986125,
+          "lde_ns": 0.0485,
+          "commit_ns": 0.83125
+        },
+        "after": {
+          "total_ns": 0.958084,
+          "lde_ns": 0.048292,
+          "commit_ns": 0.80425
+        }
+      }
+    },
+    {
+      "input_rows": 16384,
+      "width": 8,
+      "root": "ab38d58d6ba503ea6bac3bdc1150d9700db688ef227206f52a0918d99f8b2466",
+      "samples": {
+        "before": [
+          {
+            "total_ns": 8039125,
+            "lde_ns": 726000,
+            "commit_ns": 7112334
+          },
+          {
+            "total_ns": 7521500,
+            "lde_ns": 684916,
+            "commit_ns": 6644583
+          },
+          {
+            "total_ns": 7241458,
+            "lde_ns": 639042,
+            "commit_ns": 6416500
+          },
+          {
+            "total_ns": 7389459,
+            "lde_ns": 607875,
+            "commit_ns": 6604416
+          },
+          {
+            "total_ns": 6644750,
+            "lde_ns": 570875,
+            "commit_ns": 5903166
+          },
+          {
+            "total_ns": 6843333,
+            "lde_ns": 577625,
+            "commit_ns": 6093958
+          },
+          {
+            "total_ns": 6780334,
+            "lde_ns": 571458,
+            "commit_ns": 6045791
+          }
+        ],
+        "after": [
+          {
+            "total_ns": 8021959,
+            "lde_ns": 764500,
+            "commit_ns": 7035334
+          },
+          {
+            "total_ns": 7346083,
+            "lde_ns": 658375,
+            "commit_ns": 6502667
+          },
+          {
+            "total_ns": 6847583,
+            "lde_ns": 642750,
+            "commit_ns": 6031708
+          },
+          {
+            "total_ns": 7054542,
+            "lde_ns": 595541,
+            "commit_ns": 6288292
+          },
+          {
+            "total_ns": 6937208,
+            "lde_ns": 593167,
+            "commit_ns": 6177000
+          },
+          {
+            "total_ns": 6830500,
+            "lde_ns": 572791,
+            "commit_ns": 6103292
+          },
+          {
+            "total_ns": 6850667,
+            "lde_ns": 568291,
+            "commit_ns": 6121042
+          }
+        ]
+      },
+      "median_ms": {
+        "before": {
+          "total_ns": 7.241458,
+          "lde_ns": 0.607875,
+          "commit_ns": 6.4165
+        },
+        "after": {
+          "total_ns": 6.937208,
+          "lde_ns": 0.595541,
+          "commit_ns": 6.177
+        }
+      }
+    },
+    {
+      "input_rows": 65536,
+      "width": 8,
+      "root": "76ed495158d924cc1521d65ad1262174827847cd6bfcdaa63edecad6e9b1b8bc",
+      "samples": {
+        "before": [
+          {
+            "total_ns": 21727000,
+            "lde_ns": 2618875,
+            "commit_ns": 18494042
+          },
+          {
+            "total_ns": 22352834,
+            "lde_ns": 2609750,
+            "commit_ns": 19062333
+          },
+          {
+            "total_ns": 22045375,
+            "lde_ns": 2623958,
+            "commit_ns": 18802125
+          },
+          {
+            "total_ns": 22153125,
+            "lde_ns": 2643958,
+            "commit_ns": 18899500
+          },
+          {
+            "total_ns": 21758917,
+            "lde_ns": 2604458,
+            "commit_ns": 18541667
+          },
+          {
+            "total_ns": 21990042,
+            "lde_ns": 2671292,
+            "commit_ns": 18674041
+          },
+          {
+            "total_ns": 21707334,
+            "lde_ns": 2630834,
+            "commit_ns": 18485209
+          }
+        ],
+        "after": [
+          {
+            "total_ns": 20935792,
+            "lde_ns": 2633333,
+            "commit_ns": 17700083
+          },
+          {
+            "total_ns": 21383417,
+            "lde_ns": 2726667,
+            "commit_ns": 17984041
+          },
+          {
+            "total_ns": 21246542,
+            "lde_ns": 2618208,
+            "commit_ns": 17995625
+          },
+          {
+            "total_ns": 21453583,
+            "lde_ns": 2609625,
+            "commit_ns": 18193250
+          },
+          {
+            "total_ns": 21071917,
+            "lde_ns": 2727250,
+            "commit_ns": 17719042
+          },
+          {
+            "total_ns": 21403292,
+            "lde_ns": 2664916,
+            "commit_ns": 18141208
+          },
+          {
+            "total_ns": 21208792,
+            "lde_ns": 2603167,
+            "commit_ns": 17989125
+          }
+        ]
+      },
+      "median_ms": {
+        "before": {
+          "total_ns": 21.990042,
+          "lde_ns": 2.623958,
+          "commit_ns": 18.674041
+        },
+        "after": {
+          "total_ns": 21.246542,
+          "lde_ns": 2.633333,
+          "commit_ns": 17.989125
+        }
+      }
+    },
+    {
+      "input_rows": 16384,
+      "width": 64,
+      "root": "665f0fdcbc68bfac028a49db47a3c6ed478cbc39642ea0e763d23e2821a42794",
+      "samples": {
+        "before": [
+          {
+            "total_ns": 12784750,
+            "lde_ns": 4799292,
+            "commit_ns": 7261167
+          },
+          {
+            "total_ns": 13408459,
+            "lde_ns": 4729583,
+            "commit_ns": 7926166
+          },
+          {
+            "total_ns": 12938792,
+            "lde_ns": 4803542,
+            "commit_ns": 7380792
+          },
+          {
+            "total_ns": 12617625,
+            "lde_ns": 4745667,
+            "commit_ns": 7136625
+          },
+          {
+            "total_ns": 12888792,
+            "lde_ns": 4964041,
+            "commit_ns": 7156834
+          },
+          {
+            "total_ns": 12607250,
+            "lde_ns": 4781292,
+            "commit_ns": 7086083
+          },
+          {
+            "total_ns": 12606333,
+            "lde_ns": 4806792,
+            "commit_ns": 7074708
+          }
+        ],
+        "after": [
+          {
+            "total_ns": 12706334,
+            "lde_ns": 4748916,
+            "commit_ns": 7233250
+          },
+          {
+            "total_ns": 12839708,
+            "lde_ns": 4766916,
+            "commit_ns": 7261583
+          },
+          {
+            "total_ns": 12891583,
+            "lde_ns": 4834459,
+            "commit_ns": 7320667
+          },
+          {
+            "total_ns": 12530917,
+            "lde_ns": 4783875,
+            "commit_ns": 7014750
+          },
+          {
+            "total_ns": 12748083,
+            "lde_ns": 4776084,
+            "commit_ns": 7186250
+          },
+          {
+            "total_ns": 12967333,
+            "lde_ns": 4819375,
+            "commit_ns": 7363125
+          },
+          {
+            "total_ns": 12753875,
+            "lde_ns": 4852334,
+            "commit_ns": 7129500
+          }
+        ]
+      },
+      "median_ms": {
+        "before": {
+          "total_ns": 12.78475,
+          "lde_ns": 4.799292,
+          "commit_ns": 7.156834
+        },
+        "after": {
+          "total_ns": 12.753875,
+          "lde_ns": 4.783875,
+          "commit_ns": 7.23325
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "README.md": "23b3306f9e69a470b4eca317fd6d015d4fad78f119c7485afe0c041fa2a303d6",
+  "sources/autoresearch/notes/20260922-blake3-pow-sequence-problem-match.md": "d732afbe12d7393457976f346f5cc3b2e9eea127e784f50e37ea46965371e541",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "27abb0a41d175625a78b9184cfe65fad0db90330dff087f9fb853988f4063089",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_mask.zig": "ca31c90b51ad0d41e821f8a657c0f3d08827ecbf3ae933b31304dba9ffb4f49a",
+  "sources/src/frontends/riscv/recursion/air/blake3_query_mask_test.zig": "b1fac5fd4c34b66dcaf66991ee8a19db16a040140ef4d9fa81e24f4023645575",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig": "83710c28c414cff1e060faf9a66c8784845636868d93f3f877e3cd5e3cad0b0f",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "6d7f07be920164ce760e29d5645357a8fb777a8939ce986f9f3ca038a894db5b",
+  "tests.log": "1682bbe47e82eb26865051c0fd9f5982245aa9db05effe999c72389edf065ce1"
+}

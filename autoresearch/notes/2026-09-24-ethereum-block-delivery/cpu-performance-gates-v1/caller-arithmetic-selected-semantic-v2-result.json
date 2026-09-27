@@ -1,0 +1,13 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 5.400207790953573,
+  "source_candidate": "caller-arithmetic-selected-semantic-v2-source.json",
+  "changed_source_pins": [],
+  "qualified": true,
+  "tests_run": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-arithmetic-selected-semantic-v2.log",
+  "test_summary": []
+}

@@ -1,0 +1,562 @@
+[
+  {
+    "case": "cpu-sha256-128",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 68868
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 1687
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 105
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 90
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 244
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-256",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 70422
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 1846
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 105
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 90
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 256
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-512",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 73320
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 2159
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 105
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 90
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 256
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-1024",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 78587
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 2794
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 105
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 90
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 256
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 87741
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 4058
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 105
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 90
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 256
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-128",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 71189
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 1640
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 33
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 19
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 206
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-256",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 75631
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 2029
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 35
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 22
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 257
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-512",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 83398
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 2458
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 36
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 22
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 257
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-1024",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 95880
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 3086
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 36
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 22
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 257
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-2048",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 112171
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 4361
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 37
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 22
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65536
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 257
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-2",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 66097
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 734
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 6195
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 137
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65099
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 32
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-4",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 66225
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 758
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 11462
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 137
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65282
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 33
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-8",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 66356
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 766
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 19211
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 137
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65426
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 35
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-12",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 66415
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 785
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 25453
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 137
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65484
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 37
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-16",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 66496
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 796
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 29942
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 137
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65512
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 40
+      }
+    ]
+  },
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "tables": [
+      {
+        "kind": "bitwise",
+        "domain_rows": 262144,
+        "distinct_nonzero": 65570
+      },
+      {
+        "kind": "range_check_20",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 557
+      },
+      {
+        "kind": "range_check_8_11",
+        "domain_rows": 524288,
+        "distinct_nonzero": 27
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "domain_rows": 1048576,
+        "distinct_nonzero": 13
+      },
+      {
+        "kind": "range_check_8_8",
+        "domain_rows": 65536,
+        "distinct_nonzero": 65510
+      },
+      {
+        "kind": "range_check_m31",
+        "domain_rows": 32768,
+        "distinct_nonzero": 256
+      }
+    ]
+  }
+]

@@ -1,0 +1,3 @@
+src/frontends/riscv/prover/block_v5_input_request_forest_test_v1.zig:186:56: error: use of undeclared identifier 'ranges'
+    var geometry = try Plan.derive(owner.allocator(), &ranges, 7, .{});
+                                                       ^~~~~~

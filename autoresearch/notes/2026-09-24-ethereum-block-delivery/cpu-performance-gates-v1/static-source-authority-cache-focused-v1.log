@@ -1,0 +1,6 @@
+1/5 source_authority_cache_v1_test_root.test.static source authority root...OK
+2/5 recursion.source_authority_cache_v1_test.test.static source authority: exact deterministic identity is constructed once...OK
+3/5 recursion.source_authority_cache_v1_test.test.static source authority: concurrent workers observe one fully published identity...OK
+4/5 recursion.source_authority_cache_v1_test.test.static source authority: distinct recipes have distinct cache storage...OK
+5/5 recursion.source_authority_cache_v1_test.test.static source authority: dependency recipes can initialize safely without rebuilding...OK
+All 5 tests passed.

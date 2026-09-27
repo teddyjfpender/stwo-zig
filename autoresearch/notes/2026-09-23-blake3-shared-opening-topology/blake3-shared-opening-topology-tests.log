@@ -1,0 +1,6 @@
+1/5 blake3_shared_opening_topology.test.shared opening topology preserves duplicate requests and canonical node order...OK
+2/5 blake3_shared_opening_topology.test.shared opening topology admits zero depth and rejects invalid positions...OK
+3/5 blake3_shared_opening_topology.test.shared opening topology releases every failed allocation...OK
+4/5 blake3_shared_opening_topology.test.shared opening DAG reconstructs independently built binary trees...OK
+5/5 blake3_shared_opening_topology.test.shared opening admission rejects changed routes and consumer counts...OK
+All 5 tests passed.

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "passed": true,
+  "device_free_test_count": 16,
+  "scope": "Shared heap/external exact boundary, resize/contention/overflow, reserve-before-factory rollback, joined completion/cancel/invalid-status, consuming move and original-owner release, no-copy host lifetime, actual PCS tree/shared-wrapper backing teardown through resource-only backend; pure actual Metal private Merkle/interaction extent and alias-alignment math. Production RAM/quotient Metal body compilation and hardware behavior are outside this receipt.",
+  "stark_proved": false,
+  "segment_executed": false,
+  "device_executed": false,
+  "production_body_qualified": false,
+  "whole_process_rss_cap_enforced": false,
+  "log_sha256": {
+    "shared-external-memory-v1.log": "fc7082513e5a0815bfc6d25f4d7bf7ef64072d48341464eea3ef10333fc75f1e",
+    "shared-external-pcs-budget-v1.log": "332ebe9de2f04428e2e00ef4954b89a256dc6354ee409e124afb85c466603d47",
+    "metal-resident-budget-v1.log": "95df34948d05ffa4535efec54e6c078df9df4c2f479394b2931b0f5e9cffc502"
+  },
+  "source_sha256": {
+    "src/prover/host_budget_allocator.zig": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+    "src/prover/shared_external_memory_v1.zig": "d2cecd2d3cf5fb1dbb4611a8c7ed6b7a1da14738e376215c580a8d53b3c18fc2",
+    "src/prover/pcs/commitment_tree.zig": "84e12f093aaf78f0c1398a2de0919eae69fc41283953170e169e4d635a877f09",
+    "src/shared_external_memory_test_root.zig": "39ef107d3144e6bd23c24c2487b7c6e8c383c189bc622711769bae88c11b6c2c",
+    "src/shared_external_pcs_budget_test_root.zig": "788c4d8b2bd3ccadb084b71c3eea3082763fe41b492e27a235b1c2cf9d8308bc",
+    "src/metal_resident_budget_test_root.zig": "2eb098e7e2c0f9733422e91210561f89ea8f0a79010057db2db59fa643db5435",
+    "src/backends/metal/runtime/resident_budget_v1.zig": "4cba627d474555d26707b31e011008c2c01c1445d3cc952cab5797a04e712ddb"
+  }
+}

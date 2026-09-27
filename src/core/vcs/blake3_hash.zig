@@ -30,6 +30,7 @@ pub const Blake3Hasher = struct {
     }
 
     pub fn hash(data: []const u8) Blake3Hash {
+        if (data.len <= 1024) return hashChunk(data);
         var out: Blake3Hash = undefined;
         Blake3.hash(data, out[0..], .{});
         return out;
@@ -42,6 +43,42 @@ pub const Blake3Hasher = struct {
         return hasher.finalize();
     }
 };
+
+// A single BLAKE3 chunk needs no streaming state or CV stack. The last
+// compression carries ROOT, including the empty message and full final block.
+fn hashChunk(data: []const u8) Blake3Hash {
+    const compression = @import("../crypto/blake3_compression.zig");
+    var cv = compression.IV;
+    var at: usize = 0;
+    while (true) {
+        const len = @min(64, data.len - at);
+        const last = at + len == data.len;
+        var bytes: [64]u8 = @splat(0);
+        @memcpy(bytes[0..len], data[at..][0..len]);
+        var block: [16]u32 = undefined;
+        inline for (0..16) |i| block[i] = std.mem.readInt(u32, bytes[i * 4 ..][0..4], .little);
+        const flags: u32 = (if (at == 0) @as(u32, 1) else 0) | (if (last) @as(u32, 2 | 8) else 0);
+        const output = compression.compress(cv, block, 0, @intCast(len), flags) catch unreachable;
+        if (last) {
+            var digest: Blake3Hash = undefined;
+            inline for (0..8) |i| std.mem.writeInt(u32, digest[i * 4 ..][0..4], output[i], .little);
+            return digest;
+        }
+        cv = output[0..8].*;
+        at += len;
+    }
+}
+
+test "blake3 hash: short chunk and streaming boundary differential" {
+    var input: [4097]u8 = undefined;
+    var rng = std.Random.DefaultPrng.init(0x20260924);
+    rng.random().bytes(&input);
+    for (0..input.len + 1) |len| {
+        var expected: Blake3Hash = undefined;
+        Blake3.hash(input[0..len], &expected, .{});
+        try std.testing.expectEqualSlices(u8, &expected, &Blake3Hasher.hash(input[0..len]));
+    }
+}
 
 fn digestToHex(digest: Blake3Hash) [64]u8 {
     return std.fmt.bytesToHex(digest, .lower);

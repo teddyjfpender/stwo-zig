@@ -1,0 +1,10 @@
+{
+  "candidate": {
+    "source": "src/integrations/riscv_metal/.zig-cache/o/edc18ad75580b7b31eed8ffb0294167e/test",
+    "sha256": "d018a98ec89c80cf7c68edd70003d423b20ed46356af162d1570690b0a1a5c1d"
+  },
+  "control": {
+    "source": "autoresearch/notes/2026-09-24-host-barycentric-staging/final-parent-test",
+    "sha256": "08d07450d545ad7fef3346c81dd8120fed796786d49eee29274a80da24d29fc6"
+  }
+}

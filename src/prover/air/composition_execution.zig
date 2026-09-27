@@ -9,6 +9,7 @@ const work_pool = @import("../work_pool.zig");
 const StageRecorder = api.stage_profile.Recorder;
 
 pub const Execution = struct {
+    preparation: api.CpuCompositionPreparation = .eager,
     worker_budget: work_pool.WorkerBudget,
     pool: ?*work_pool.WorkPool,
     host_byte_budget: usize,
@@ -43,6 +44,7 @@ pub const Execution = struct {
             const pool = if (worker_budget.count == 1) null else work_pool.getGlobalPool();
             try work_pool.observeProofPoolStageForTest(.composition, pool);
             return .{
+                .preparation = explicit.preparation,
                 .worker_budget = worker_budget,
                 .pool = pool,
                 .host_byte_budget = explicit.host_byte_budget,

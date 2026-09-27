@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 9/9 tests passed
+test-blake3-fri-cascade success
++- run test 9 passed 727ms MaxRSS:73M
+   +- compile test ReleaseSafe native success 12s MaxRSS:817M
+

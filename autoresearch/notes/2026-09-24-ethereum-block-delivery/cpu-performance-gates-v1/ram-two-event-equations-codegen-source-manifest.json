@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "tests_passed": 6,
+  "scope": "Nonproving legacy row/fraction/counter parity; mutation, degree4, mask/OODS/domain and packed parity;2051 event odd-tail streaming. No actual two-event proof or canonical pipeline integration.",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/ram-two-event-equations-codegen.log",
+    "sha256": "f7d077877a59cfc0348fbdb4dbac2f1c0b49f52f295395f2de41deed5595d23e"
+  },
+  "sources": {
+    "src/frontends/riscv/block_v5_ram_lanes_unit_test_root.zig": "7a988011db6585f1def9a02593a63ec76f367f363fffea9537b117fa2a0da0d8",
+    "src/frontends/riscv/prover/block_v5_ram_lanes_component_v1.zig": "6de73a60d7769350e3eefc86310fe62aa78b7ebc75b7b69ea2f224b284b43175",
+    "src/frontends/riscv/prover/block_v5_ram_lanes_protocol_v1.zig": "2c3a1438e1cd3fb84737efc764f125c8d37f949e7b6cc23df08ca43924a30efb",
+    "src/frontends/riscv/prover/block_v5_ram_lanes_interaction_v1.zig": "0b1a84ac92ba760d4a872a017d63bda986ac9768002fcd5fd32564fb89992313",
+    "src/frontends/riscv/prover/block_v5_ram_lanes_unit_test.zig": "57d1d896ed984d7fced7fe8c1008725f417b552f7ba47647c35228e647125712",
+    "src/frontends/riscv/air/block/word_memory_lanes_v1.zig": "e977143009ab01533481193d3f12196628f9177c35d88e625d0101d15bb32fe2",
+    "src/frontends/riscv/air/block/word_memory_lanes_trace_v1.zig": "2a2d792edb5a590f37566e95fe5add7497e6d804ea382eabaa2ed434327c0ed8"
+  }
+}

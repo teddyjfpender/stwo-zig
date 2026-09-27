@@ -1,0 +1,28 @@
+BLOCK_V5_PREFLIGHT started=true segment_cycle_budget=2097152
+BLOCK_V5_PREFLIGHT complete=true guest_cycles=139214856 segments=67 preflight_ms=42926
+BLOCK_V5_COLLECT segment=1/67 cycles=2077834 memory_events=5028065
+BLOCK_V5_COLLECT segment=17/67 cycles=35323178 memory_events=89781134
+BLOCK_V5_COLLECT segment=33/67 cycles=68568522 memory_events=174627069
+BLOCK_V5_COLLECT segment=49/67 cycles=101813862 memory_events=260921246
+BLOCK_V5_COLLECT segment=65/67 cycles=135059190 memory_events=346222830
+BLOCK_V5_COLLECT segment=67/67 cycles=139214856 memory_events=356303914
+BLOCK_V5_COLLECT sorted_events=356303914 lookup_groups=14 global_roots_started=true
+error: InvalidV5InitialSourceLayout
+     1173.87 real      1655.73 user        43.99 sys
+          9642622976  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            40649926  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                2232  voluntary context switches
+              895595  involuntary context switches
+      21844406083206  instructions retired
+       7354771072341  cycles elapsed
+          9652521392  peak memory footprint

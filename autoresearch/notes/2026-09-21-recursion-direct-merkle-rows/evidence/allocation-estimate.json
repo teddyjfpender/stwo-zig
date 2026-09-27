@@ -1,0 +1,39 @@
+{
+  "scope": "derived removed temporary column allocation volume for the qualified root; not measured peak RSS",
+  "components": [
+    {
+      "component": "trace_merkle",
+      "selected_rows_per_child": 47478,
+      "template_rows": 142434,
+      "padded_height": 262144,
+      "main_columns": 42,
+      "staging_bytes_per_child": 44040192
+    },
+    {
+      "component": "fri_leaf",
+      "selected_rows_per_child": 11580,
+      "template_rows": 34740,
+      "padded_height": 65536,
+      "main_columns": 43,
+      "staging_bytes_per_child": 11272192
+    },
+    {
+      "component": "fri_node",
+      "selected_rows_per_child": 2895,
+      "template_rows": 8685,
+      "padded_height": 16384,
+      "main_columns": 34,
+      "staging_bytes_per_child": 2228224
+    },
+    {
+      "component": "fri_anchor",
+      "selected_rows_per_child": 965,
+      "template_rows": 2895,
+      "padded_height": 4096,
+      "main_columns": 10,
+      "staging_bytes_per_child": 163840
+    }
+  ],
+  "per_child_bytes": 57704448,
+  "two_children_allocation_volume_bytes": 115408896
+}

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-requester-job-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 26.663954874966294,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 14,
+  "test_summary": [
+    "All 14 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-requester-job-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-requester-job-focused-v1",
+    "bytes": 48416040,
+    "sha256": "72b0073e1685d9854f83e30e23999a2980d0707af18a49d06e25c8d48040663c"
+  }
+}

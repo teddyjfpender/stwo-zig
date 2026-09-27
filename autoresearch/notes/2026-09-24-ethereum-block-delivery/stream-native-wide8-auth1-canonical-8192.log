@@ -1,0 +1,43 @@
+BLOCK_STREAM preflight_cycles=21635 proof_segments=4 preflight_ns=10658750
+BLAKE3_NATIVE_QUERY_FUSION groups=19810 removed_scalars=79240
+BLAKE3_NATIVE_FUSION dot4=805463 fma=149386 arithmetic_rows=1408487
+BLOCK_STREAM proved_segments=1/4 paired=false retained_nodes=1 peak_bytes=17286876494 elapsed_ns=42893252042
+BLAKE3_NATIVE_QUERY_FUSION groups=16800 removed_scalars=67200
+BLAKE3_NATIVE_FUSION dot4=792917 fma=147498 arithmetic_rows=1388163
+BLAKE3_NATIVE_QUERY_FUSION groups=33950 removed_scalars=135800
+BLAKE3_NATIVE_QUERY_FUSION groups=33950 removed_scalars=135800
+BLAKE3_NATIVE_FUSION dot4=44535 fma=77660 arithmetic_rows=244914
+BLAKE3_NATIVE_FUSION dot4=44533 fma=77884 arithmetic_rows=245557
+BLOCK_STREAM proved_segments=2/4 paired=false retained_nodes=1 peak_bytes=19229854962 elapsed_ns=117641524292
+BLAKE3_NATIVE_QUERY_FUSION groups=23450 removed_scalars=93800
+BLAKE3_NATIVE_FUSION dot4=815797 fma=147007 arithmetic_rows=1416602
+BLOCK_STREAM proved_segments=3/4 paired=false retained_nodes=2 peak_bytes=19306352195 elapsed_ns=159567402667
+BLAKE3_NATIVE_QUERY_FUSION groups=21140 removed_scalars=84560
+BLAKE3_NATIVE_FUSION dot4=810040 fma=142668 arithmetic_rows=1399228
+BLAKE3_NATIVE_QUERY_FUSION groups=33950 removed_scalars=135800
+BLAKE3_NATIVE_QUERY_FUSION groups=33950 removed_scalars=135800
+BLAKE3_NATIVE_FUSION dot4=44533 fma=77884 arithmetic_rows=245557
+BLAKE3_NATIVE_FUSION dot4=44533 fma=77884 arithmetic_rows=245557
+BLAKE3_NATIVE_QUERY_FUSION groups=33950 removed_scalars=135800
+BLAKE3_NATIVE_QUERY_FUSION groups=33950 removed_scalars=135800
+BLAKE3_NATIVE_FUSION dot4=44535 fma=77663 arithmetic_rows=244981
+BLAKE3_NATIVE_FUSION dot4=44533 fma=77887 arithmetic_rows=245615
+BLOCK_STREAM proved_segments=4/4 paired=false retained_nodes=1 peak_bytes=19431040243 elapsed_ns=265686419875
+      266.40 real      1358.22 user        35.70 sys
+         15460057088  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            28797876  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   3  voluntary context switches
+              393490  involuntary context switches
+      16498677434778  instructions retired
+       5713249409535  cycles elapsed
+         15463974504  peak memory footprint

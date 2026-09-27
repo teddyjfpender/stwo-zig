@@ -1,0 +1,27 @@
+test-blake3-native-segment
++- BLAKE3 native segment guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig:92:20: error: unable to resolve comptime value
+        for (rows, fixed) |live, trusted| {
+                   ^~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig:92:20: note: tuple field index must be comptime-known
+referenced by:
+    prepareMode__anon_161430: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig:143:21
+    prepare__anon_161413: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig:62:23
+    3 reference(s) hidden; use '-freference-trace=5' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_artifact_store --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/segment_v2_native_proof_test.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "BLAKE3 V2 segment proofs verify nonfinal capture and final completion" --test-filter "native V2 proves and independently verifies real nonfinal and final segments" --test-filter "native V2 proves a rebased leaf-local V3 segment without widening the AIR" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 4/8 steps succeeded; 1 failed; 2/2 tests passed
+test-blake3-transcript-plan success
++- BLAKE3 transcript plan guard success
+   +- run test 2 passed 4s MaxRSS:9M
+      +- compile test ReleaseSafe native success 5s MaxRSS:571M
+test-blake3-native-segment transitive failure
++- BLAKE3 native segment guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8180b417eeea67d0db51aae16fa50508/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xbff85e32 -Z8ebd196ff16b617e --maxrss 25769803776 -j1 test-blake3-transcript-plan test-blake3-native-segment -Doptimize=ReleaseSafe --summary all

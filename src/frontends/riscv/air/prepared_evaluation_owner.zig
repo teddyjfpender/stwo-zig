@@ -17,6 +17,7 @@ const prover_component = @import("stwo_prover_engine").air.component_prover;
 const prover_poly = @import("stwo_prover_engine").poly.circle.poly;
 const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const work_pool = @import("stwo_prover_engine").work_pool;
+const checked_recovery = @import("../recursion/air/universal_typed_component_contract.zig");
 
 pub const Error = error{
     InvalidProofShape,
@@ -121,6 +122,26 @@ pub const Owner = struct {
         }
         self.allocator.free(self.buffers);
         self.* = undefined;
+    }
+
+    /// Versioned higher-degree recipes may recover discarded coefficients
+    /// from the full immutable LDE. Recovery checks the entire recovered degree
+    /// before extending in the same quotient-sized buffer; no truncation or
+    /// additional trace-sized scratch is permitted.
+    pub fn valueRecovering(
+        self: *Owner,
+        poly: prover_component.Poly,
+        trace_log_size: u32,
+        evaluation_log_size: u32,
+        evaluation_size: usize,
+        twiddles: ?prover_twiddles.TwiddleTree([]const M31),
+    ) ![]const M31 {
+        return checked_recovery.evaluationValues(self.allocator, poly, trace_log_size, evaluation_log_size, evaluation_size, twiddles, self.buffers, &self.initialized);
+    }
+
+    pub fn finishWithTwiddles(self: *Owner, evaluation_domain: anytype, twiddles: prover_twiddles.TwiddleTree([]const M31)) !void {
+        if (self.initialized != self.buffers.len) return error.InvalidProofShape;
+        if (self.buffers.len != 0) try prover_poly.evaluateBuffersWithTwiddles(self.buffers, evaluation_domain, twiddles);
     }
 
     /// Returns a stable quotient-domain view.  Equal-domain sources remain

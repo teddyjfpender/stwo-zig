@@ -7,6 +7,7 @@
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const caller = @import("keccakf_caller.zig");
+const local_zero = @import("keccakf_caller_local_zero_v1.zig");
 const relations = @import("keccakf_relations.zig");
 const trace = @import("keccakf_trace.zig");
 const witness = @import("keccakf_witness.zig");
@@ -26,7 +27,11 @@ pub const constraint_count: usize = activation_constraints +
     slice_glue_constraints + terminal_parity_constraints +
     padding_constraints + caller.direct_constraint_count;
 
-pub const Error = error{InvalidTraceShape};
+pub fn constraintCount(local_zero_enabled: bool) usize {
+    return constraint_count + (if (local_zero_enabled) @as(usize, 2 + 17) else 0);
+}
+
+pub const Error = error{ InvalidTraceShape, InvalidX0CallerGeometry };
 
 /// All inputs are evaluations at the same trace point except the explicitly
 /// named row offsets.  `previous` is needed only for the compact I/O block;
@@ -43,7 +48,23 @@ pub fn evaluateGeneric(
     second_active: S,
     sink: anytype,
 ) Error!void {
-    if (main.len != trace.Layout.main_columns or
+    return evaluateGenericForRecipe(S, main, previous_io, state_minus_two, state_minus_one, state_plus_one, state_plus_two, selectors, second_active, sink, false);
+}
+
+pub fn evaluateGenericForRecipe(
+    comptime S: type,
+    main: []const S,
+    previous_io: []const S,
+    state_minus_two: []const S,
+    state_minus_one: []const S,
+    state_plus_one: []const S,
+    state_plus_two: []const S,
+    selectors: []const S,
+    second_active: S,
+    sink: anytype,
+    local_zero_enabled: bool,
+) Error!void {
+    if (main.len != trace.Layout.main_columns + @as(usize, if (local_zero_enabled) 2 else 0) or
         previous_io.len != 2 * relations.io_arity or
         state_minus_two.len != witness.state_cell_count or
         state_minus_one.len != witness.state_cell_count or
@@ -119,12 +140,10 @@ pub fn evaluateGeneric(
     const caller_active = selectors[0].add(
         selectors[1].mul(in_use_b),
     );
-    try caller.evaluateDirect(
-        S,
-        main[trace.Layout.caller..][0..caller.Layout.main_columns],
-        caller_active,
-        sink,
-    );
+    if (local_zero_enabled)
+        try local_zero.evaluateDirect(S, main[trace.Layout.caller..], caller_active, sink)
+    else
+        try caller.evaluateDirect(S, main[trace.Layout.caller..][0..caller.Layout.main_columns], caller_active, sink);
 }
 
 fn packCurrentStateChunk(

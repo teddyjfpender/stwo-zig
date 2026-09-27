@@ -1,0 +1,31 @@
+test-blake3-native-parent-aot
++- run test
+   +- compile test ReleaseFast native 2 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig:27:55: error: ambiguous reference
+            pub fn prepare(a: std.mem.Allocator, job: Job, limit: usize) !Prepared {
+                                                      ^~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig:24:17: note: declared here
+            pub const Job = Self.Job;
+            ~~~~^~~~~~~~~~~~~~~~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig:16:13: note: also declared here
+        pub const Job = struct {
+        ~~~~^~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig:34:35: error: ambiguous reference
+            pub fn prove(worker: *Worker, prepared: *const Prepared, job: Job) !artifact.Owned {
+                                  ^~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig:25:17: note: declared here
+            pub const Worker = Self.Worker;
+            ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig:15:13: note: also declared here
+        pub const Worker = @import("blake3_native_parent_worker.zig").WorkerForProtocol(Backend, protocol);
+        ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -lobjc -fstrip -OReleaseFast --dep stwo_core --dep stwo_prover_engine --dep stwo_prover_api --dep stwo_riscv_frontend --dep stwo_metal_backend --dep stwo_cpu_backend --dep interop_postcard --dep blake3_runtime -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_metal_qualification_test_root.zig -OReleaseFast -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseFast --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseFast --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -cflags -fobjc-arc -fblocks -- /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/runtime.m -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_metal_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseFast --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseFast -Mblake3_runtime=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal/blake3_runtime.zig -OReleaseFast --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseFast -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseFast -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseFast -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseFast --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig -framework Foundation -framework Metal -lc --test-filter "Metal compact canonical native BLAKE3 parent matches CPU qualification" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-blake3-native-parent-aot transitive failure
++- run test transitive failure
+   +- compile test ReleaseFast native 2 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/1eb90274f49c888aab243044b67585d7/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x4ea0c793 -Za1c0267e84a508ac --maxrss 25769803776 -j1 test-blake3-native-parent-aot -Dmetal-core-aot-bundle=/Users/theodorepender/code/cryptography/stwo-zig/zig-out/share/stwo-zig/metal/core -Doptimize=ReleaseFast --summary all

@@ -1,0 +1,14 @@
+src/frontends/riscv/recursion/block_v5_requester_public_recursive_shape_admission_v1.zig:31:15: error: local constant shadows declaration of 'authority'
+        const authority = try Protocol.Admission.init(key, independently_expected, wires, .{ .public = public });
+              ^~~~~~~~~
+src/frontends/riscv/recursion/block_v5_requester_public_recursive_shape_admission_v1.zig:55:5: note: declared here
+    fn authority(self: *const Source) !Protocol.Admission {
+    ^~
+src/frontends/riscv/recursion/air/block_v5_recursive_fixed_port_rows_v1.zig:28:29: error: evaluation exceeded 1000 backwards branches
+            errdefer inline for (0..slots.len) |i| a.free(result.rows[i]);
+                     ~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_fixed_port_rows_v1.zig:28:29: note: use @setEvalBranchQuota() to raise the branch limit from 1000
+referenced by:
+    prepareKernel__anon_42073: src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:124:46
+    prepareFixed: src/frontends/riscv/recursion/air/block_v5_global_public_export_rows_v1.zig:77:33
+    2 reference(s) hidden; use '-freference-trace=4' to see all references

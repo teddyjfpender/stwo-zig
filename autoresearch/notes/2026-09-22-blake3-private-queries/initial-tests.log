@@ -1,0 +1,70 @@
+test-blake3-combined-fri
++- BLAKE3 combined FRI guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:40: error: capture group with incompatible types
+        .fri_position, .fri_offset => |s| {
+                                       ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:40: note: incompatible types: 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_29436' and 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_29437'
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:10: note: type 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_29436' here
+        .fri_position, .fri_offset => |s| {
+        ~^~~~~~~~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:25: note: type 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_29437' here
+        .fri_position, .fri_offset => |s| {
+                       ~^~~~~~~~~~
+referenced by:
+    check__anon_45417: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_composition_proof_fixture.zig:122:65
+    runForParametersObserved__anon_38084: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig:127:27
+    2 reference(s) hidden; use '-freference-trace=4' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_framework_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "BLAKE3 private FRI values join all paths and canonical arithmetic in one proof" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+test-qm31-pack-wire
++- QM31 weighted pack guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:40: error: capture group with incompatible types
+        .fri_position, .fri_offset => |s| {
+                                       ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:40: note: incompatible types: 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_22629' and 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_22630'
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:10: note: type 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_22629' here
+        .fri_position, .fri_offset => |s| {
+        ~^~~~~~~~~~~~
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/blake3_query_links.zig:59:25: note: type 'recursion.air.fri_verifier_circuit_circuit.InputSource__struct_22630' here
+        .fri_position, .fri_offset => |s| {
+                       ~^~~~~~~~~~
+referenced by:
+    test.QM31 weighted packing preserves tuple identity and canonical sample links: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/recursion/air/qm31_pack_wire_test.zig:87:42
+    comptime: /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_hash_test_root.zig:2:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/blake3_hash_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/code/cryptography/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "QM31 weighted packing preserves tuple identity and canonical sample links" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+test-blake3-path-select
++- BLAKE3 path selector guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.blake3_path_select_test.test.BLAKE3 path selector pins typed semantics and authenticates both directions' failed
+error: while executing test 'recursion.air.blake3_path_select_test.test.BLAKE3 path selector pins typed semantics and authenticates both directions', the following test command failed:
+./.zig-cache/o/bdf61a33a2d88d4f1b82adb0f9387180/test --cache-dir=./.zig-cache --seed=0x1d6c3dc --listen=-
+
+Build Summary: 9/20 steps succeeded; 3 failed; 3/4 tests passed; 1 failed
+test-blake3-path-select transitive failure
++- BLAKE3 path selector guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:666M
+test-qm31-pack-wire transitive failure
++- QM31 weighted pack guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+test-blake3-routed-transcript success
++- BLAKE3 routed transcript guard success
+   +- run test 2 passed 4s MaxRSS:352M
+      +- compile test ReleaseSafe native success 25s MaxRSS:1G
+test-blake3-combined-fri transitive failure
++- BLAKE3 combined FRI guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+test-blake3-fri-arithmetic-proof success
++- BLAKE3 FRI arithmetic guard success
+   +- run test 1 passed 5s MaxRSS:368M
+      +- compile test ReleaseSafe native success 31s MaxRSS:2G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e2f769f3a885be77dbf599dfff2ad5f9/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x1d6c3dc -Z38361aa3a0ed2096 --maxrss 25769803776 -j1 test-blake3-path-select test-qm31-pack-wire test-blake3-routed-transcript test-blake3-combined-fri test-blake3-fri-arithmetic-proof -Doptimize=ReleaseSafe --summary all

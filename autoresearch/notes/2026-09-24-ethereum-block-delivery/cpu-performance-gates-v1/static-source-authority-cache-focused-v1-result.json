@@ -1,0 +1,22 @@
+{
+  "source_candidate": "static-source-authority-cache-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 1.1049182080314495,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 5,
+  "test_summary": [
+    "All 5 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/static-source-authority-cache-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-static-source-authority-cache-focused-v1",
+    "bytes": 1543472,
+    "sha256": "854b17efa1aef5c779f1a6a44b6a43dd333532b78fe18f890ee7a254a1f4d617"
+  }
+}

@@ -1,0 +1,29 @@
+test-blake3-poseidon-parent-aot
++- run test stderr
+BLAKE3_EXTENSION_METAL verified_on_cpu=true preprocessing_equal=true ethereum=false queries=70 pow_bits=26 artifact_bytes=976328 dispatches=270 fallbacks=30 runtime=authenticated_aot witness_released=true
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=prepare_start
+BLAKE3_NATIVE_QUERY_FUSION groups=23870 removed_scalars=95480
+BLAKE3_NATIVE_FUSION dot4=53054 fma=75115 arithmetic_rows=250761
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=prepared retained_bytes=2707426052
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=key_admitted
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=worker_ready
+BLAKE3_EXTENSION_METAL_PARENT verified_on_cpu=true queries=70 pow_bits=26 artifact_bytes=867999 worker_peak_bytes=12979996846 dispatches=117 fallbacks=2 worker_and_rows_released=true
+test-blake3-ethereum-parent-aot
++- run test stderr
+BLAKE3_EXTENSION_METAL verified_on_cpu=true preprocessing_equal=true ethereum=true queries=70 pow_bits=26 artifact_bytes=5497028 dispatches=1663 fallbacks=240 runtime=authenticated_aot witness_released=true
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=prepare_start
+BLAKE3_NATIVE_QUERY_FUSION groups=19110 removed_scalars=76440
+BLAKE3_NATIVE_FUSION dot4=795795 fma=149241 arithmetic_rows=1395462
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=prepared retained_bytes=5899803296
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=key_admitted
+BLAKE3_EXTENSION_METAL_PARENT_STAGE stage=worker_ready
+BLAKE3_EXTENSION_METAL_PARENT verified_on_cpu=true queries=70 pow_bits=26 artifact_bytes=907299 worker_peak_bytes=27580232194 dispatches=168 fallbacks=2 worker_and_rows_released=true
+
+Build Summary: 6/6 steps succeeded; 16/16 tests passed
+test-blake3-poseidon-parent-aot success
++- run test 8 passed 2m MaxRSS:16G
+   +- compile test ReleaseSafe native success 1m MaxRSS:6G
+test-blake3-ethereum-parent-aot success
++- run test 8 passed 4m MaxRSS:35G
+   +- compile test ReleaseSafe native success 4m MaxRSS:8G
+

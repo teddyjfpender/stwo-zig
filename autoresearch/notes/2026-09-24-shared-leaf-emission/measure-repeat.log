@@ -1,0 +1,5 @@
+0 candidate 47.721
+1 control 51.157
+2 control 50.95
+3 candidate 50.114
+{"control": {"samples": 2, "wall_median_seconds": 51.05352997900627, "leaf_preparation_total_median_seconds": 12.266846937499999, "root_preparation_median_seconds": 3.9630943545, "peak_routed_bytes": 26459992736, "peak_physical_bytes": 39161847568}, "candidate": {"samples": 2, "wall_median_seconds": 48.917933499993524, "leaf_preparation_total_median_seconds": 10.681918165999999, "root_preparation_median_seconds": 3.9118926045, "peak_routed_bytes": 26459992736, "peak_physical_bytes": 38988307352}}

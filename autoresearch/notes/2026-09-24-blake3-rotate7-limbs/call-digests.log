@@ -1,0 +1,8 @@
+1/5 blake3_digest_tmp.test.print caller digests...CALL_DIGEST=ca75e2b278cff2175543718315da9c86afb558c3304d7db454b84768eed03af5
+ROUND_DIGEST=b24966225b9c270adc8a907f53a82cb6c5c674e59b73a520241acf6473788c7e
+OK
+2/5 recursion.air.relation_effect.test.R-012 universal relation group authors multiple schemas atomically...OK
+3/5 recursion.air.relation_effect.test.R-012 universal relation authoring fails closed on base Merkle ABI gap...OK
+4/5 recursion.air.relation_effect.test.R-012 universal relation authoring rejects every group before mutation...OK
+5/5 recursion.air.relation_effect.test.R-012 universal relation group releases every allocation failure...OK
+All 5 tests passed.

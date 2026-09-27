@@ -24,7 +24,10 @@ pub const Poly = struct {
 
     pub fn validate(self: Poly) Error!void {
         const expected = try checkedPow2(self.log_size);
-        if (self.values.len != expected) return error.InvalidColumnLength;
+        if (self.values.len == 0) {
+            const coefficients = self.coefficients orelse return error.InvalidColumnLength;
+            if (coefficients.coefficients().len > expected) return error.InvalidColumnLength;
+        } else if (self.values.len != expected) return error.InvalidColumnLength;
     }
 
     pub fn valueAtLiftingPosition(
@@ -48,6 +51,7 @@ pub const Poly = struct {
 };
 
 pub const Trace = struct {
+    partition_coefficient_composition: bool = false,
     polys: TreeVec([]const Poly),
     /// Optional execution storage for owned quotient-domain M31 values. The
     /// owner outlives this borrowed trace and every prepared evaluator. Source

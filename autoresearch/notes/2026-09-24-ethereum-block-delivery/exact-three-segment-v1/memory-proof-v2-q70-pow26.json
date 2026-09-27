@@ -1,0 +1,62 @@
+{
+  "scope": "isolated CPU proof of the exact-three-segment fixture's complete sorted-memory instance; fresh PCS verifier passed; execution transition and authenticated initial-value providers are not yet closed into this proof",
+  "host": {
+    "os": "Darwin",
+    "architecture": "arm64",
+    "cpu": "Apple M5 Max",
+    "physical_memory_bytes": 68719476736
+  },
+  "security": {
+    "hash_suite": "Blake3",
+    "fri_queries": 70,
+    "pow_bits": 26,
+    "fri_log_blowup_factor": 1,
+    "fri_log_last_layer_degree_bound": 0,
+    "composition_log_split": 2
+  },
+  "witness": {
+    "execution_segments_replayed": 3,
+    "sorted_memory_events": 51929,
+    "sorted_memory_instances": 1,
+    "instance_log_size": 16,
+    "instance_domain_rows": 65536,
+    "range_check_8_8_requests_per_row_max": 35
+  },
+  "result": {
+    "proof_verified_fresh": true,
+    "proof_bytes_postcard": 264044,
+    "proof_bytes_scope": "StarkProof payload only; public memory/range/provider claims and SourceSeal metadata are separate",
+    "tracked_peak_bytes": 438123168,
+    "samples_ns": [
+      {
+        "replay_and_sort": 42759375,
+        "first_round_commit": 109080833,
+        "prove": 1213036917,
+        "fresh_verify": 46890583
+      },
+      {
+        "replay_and_sort": 44641083,
+        "first_round_commit": 124699167,
+        "prove": 1275445666,
+        "fresh_verify": 47400250
+      }
+    ],
+    "pow_stage_ns": null,
+    "pow_stage_note": "The prover does not expose a separate PoW timer here; total prove times may vary with geometric PoW search."
+  },
+  "fixture_sha256": {
+    "elf": "094a437f5b535d139ad70ed22b65c035d4c80358554edb5c60d7c23cec59ce1c",
+    "input": "0c8f6cd069ca1286d13f793a4a6140a615743fb2a6d3d1da33a8f9343a2cd40d",
+    "expected_output": "efac234e5ada5ef41fc6a8812d8e156d13107123ee9bab23235ad536c9f8d138",
+    "schedule": "cc3b908b390b914743b705751a8199741c40ecab507a97c51ac2c74df19fdc41"
+  },
+  "source_sha256_at_measurement": {
+    "memory_real_fixture_bench_test.zig": "86a2c2253ec230a7c42e176f5ac6311f9cccebf9703457095e3ac1c61925af22",
+    "memory_component.zig": "ee82589dae8cb9d8a2b628e658cc4b676cc19f63da24f6cd73f56b60e0d9bb1a",
+    "memory_component_trace.zig": "11b1ec772787f6772cb6dc06541879b553cc209443847b248bf1c1c3c3387cc7",
+    "memory_component_stark.zig": "63b0d4b99ab3144edfe00d163ecceb873dca984bbb0e9003c1daed6a434fac92",
+    "block_memory_proof_v2.zig": "dd8403d8de2d0a51dd4a4786dff658ee044440450d614c0e1e029f55d036cd44",
+    "block_memory_relation_v2.zig": "0ea9f468c886c070af9c3bb9e9bc5f6bca43d60f5f99428b728e7be1d15cd7c7"
+  },
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_memory_real_fixture_test_root.zig 'real three-segment sorted memory proves'"
+}

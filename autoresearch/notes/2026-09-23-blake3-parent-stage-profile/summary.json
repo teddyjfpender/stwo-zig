@@ -1,0 +1,51 @@
+{
+  "runs": [
+    {
+      "name": "parallel-1",
+      "total_seconds": 41.834038542,
+      "proving_seconds": 32.239125708,
+      "lookup_setup_seconds": 1.100169,
+      "proof_blake3": "fd93fe9cceba1f7a3c275634647f7d6459b995f05aeb016e9f99892a6b300741"
+    },
+    {
+      "name": "serial-1",
+      "total_seconds": 54.829278125,
+      "proving_seconds": 45.220269334,
+      "lookup_setup_seconds": 13.741749,
+      "proof_blake3": "fd93fe9cceba1f7a3c275634647f7d6459b995f05aeb016e9f99892a6b300741"
+    },
+    {
+      "name": "serial-2",
+      "total_seconds": 55.308152917,
+      "proving_seconds": 45.439628833,
+      "lookup_setup_seconds": 13.896014,
+      "proof_blake3": "fd93fe9cceba1f7a3c275634647f7d6459b995f05aeb016e9f99892a6b300741"
+    },
+    {
+      "name": "parallel-2",
+      "total_seconds": 43.155973375,
+      "proving_seconds": 33.181943333,
+      "lookup_setup_seconds": 1.141302,
+      "proof_blake3": "fd93fe9cceba1f7a3c275634647f7d6459b995f05aeb016e9f99892a6b300741"
+    }
+  ],
+  "medians": {
+    "serial": {
+      "total_seconds": 55.068715521,
+      "proving_seconds": 45.3299490835,
+      "lookup_setup_seconds": 13.8188815
+    },
+    "parallel": {
+      "total_seconds": 42.4950059585,
+      "proving_seconds": 32.710534520500005,
+      "lookup_setup_seconds": 1.1207354999999999
+    }
+  },
+  "total_speedup": 1.295886758429433,
+  "total_reduction_percent": 22.832763472947025,
+  "lookup_speedup": 12.330189861925495,
+  "same_proof_bytes": true,
+  "security_parameters_changed": false,
+  "samples_per_arm": 2,
+  "warmups": 0
+}

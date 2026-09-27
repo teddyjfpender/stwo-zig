@@ -1,0 +1,8 @@
+{
+  "README.md": "427c7ede9096544e38088df2782abbe7155b4b7aa967b3fc6b9750486259c62c",
+  "sources/autoresearch/notes/20260922-fri-scalar-pack-problem-match.md": "6bbc79ee3f48257676d47c5fc33893e10d456ccf4df0888891e735575b6e56c5",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "af4014135c904fa096658fe8df0ee9f53731973a86a2848c69f97986b65a50e5",
+  "sources/src/frontends/riscv/recursion/air/blake3_fri_group_test.zig": "ec4c6f334fc6fed8fdeb0885710c9fa3de989cbb86bd7eb0c61417b3222a3e6f",
+  "sources/src/frontends/riscv/recursion/air/qm31_pack_wire.zig": "cee21ac30fbed5e9cf9ba3a85d7ab2b8beda04821cffc7f5965daee88de4fe20",
+  "tests.log": "49fd98f8251f93a144d1997c9c125ea86cea625c074df57ae5df0e0b41be11b6"
+}

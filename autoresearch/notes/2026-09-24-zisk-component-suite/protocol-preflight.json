@@ -1,0 +1,36 @@
+{
+  "power": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=35192931)\t100%; discharging; 13:11 remaining present: true\n",
+  "canonical_xof_cases": 35,
+  "pow_scalar_batch_checks": 1024,
+  "peer_grinding_checks": [
+    {
+      "seed": 17,
+      "bits": 12,
+      "nonce": 731,
+      "attempts": 732,
+      "elapsed_ns": 922500
+    },
+    {
+      "seed": 29,
+      "bits": 12,
+      "nonce": 3599,
+      "attempts": 3600,
+      "elapsed_ns": 258917
+    },
+    {
+      "seed": 41,
+      "bits": 12,
+      "nonce": 740,
+      "attempts": 741,
+      "elapsed_ns": 54166
+    },
+    {
+      "seed": 53,
+      "bits": 12,
+      "nonce": 5736,
+      "attempts": 5737,
+      "elapsed_ns": 402208
+    }
+  ],
+  "timing_accepted": false
+}

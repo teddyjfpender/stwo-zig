@@ -100,6 +100,7 @@ test "graph cache is plan keyed, fixed address, replayed, and fail closed" {
         .stream = &stream_word,
         .device = 0,
         .lane_count = 1,
+        .owner_thread_id = std.Thread.getCurrentId(),
     };
     var cache = Cache{};
     const allocator = std.testing.allocator;

@@ -110,6 +110,7 @@ pub const ComponentProver = struct {
     composition_geometry_override_v1: ?CompositionGeometryOverrideV1 = null,
     profile_identity: ?ComponentProfileIdentity = null,
     backend_composition_capability: ?BackendCompositionCapability = null,
+    secure_polynomial_capability_v1: ?@import("secure_polynomial_capability_v1.zig").Capability = null,
     /// Optional exact one-row formula authority for profiled domain
     /// composition. The callback is cold and allocation-explicit; ordinary
     /// proving never invokes it. Backend aggregation remains a separate owner

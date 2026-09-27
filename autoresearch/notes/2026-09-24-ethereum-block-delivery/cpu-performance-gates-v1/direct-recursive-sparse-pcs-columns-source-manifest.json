@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "tests_passed": 12,
+  "scope": "Nonproving column/fixed/inventory parity and allocation failures, sparse matcher lookup boundaries, duplicate/missing/source mutation rejection, full65,536-node graph parity, all allocation failures through matched direct-output lifecycle. No recursive proof.",
+  "log": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/direct-recursive-sparse-pcs-columns.log",
+    "sha256": "b761e824636432260e230544c979002a83a94a0e15d7c4c70f17335dcd663e3f"
+  },
+  "sources": {
+    "src/frontends/riscv/block_v5_recursive_direct_columns_test_root.zig": "5a1a2ef17c308151d5e703f72413832b5124c87d53c3968a676184b530fd15e4",
+    "src/frontends/riscv/recursion/air/blake3_recursive_column_inventory_test.zig": "d71eb0be3528edef37c934e5553d2ea16c59823bf11a1b4ed3ea917a6fd822e3",
+    "src/frontends/riscv/recursion/air/blake3_recursive_column_rows_v1.zig": "924c789a7d4865ff7670b0d6ab898f4fd60ba431325cb5896043e81b613504dc",
+    "src/frontends/riscv/recursion/air/blake3_parent_input_inventory.zig": "1adb02e007bbbcbee86d9bad30e4a3ff4b1eb3c303f21d5d35b071282340e811",
+    "src/frontends/riscv/recursion/air/blake3_direct_source_columns_v1.zig": "43801e153ee3a3d9d37813fc63bfb5b934dbbbd59489d05251829df3d65e30d4",
+    "src/frontends/riscv/recursion/air/blake3_direct_source_columns_test.zig": "ab41fdcb084bd84dcb26a71f7470226319c955bf8f1767d76b118cbe39adff75",
+    "src/frontends/riscv/recursion/air/blake3_direct_cohort_columns_v1.zig": "55f6ad844e8f7f6be49905a872727838e02c417f9d1e522184f9e9ab9b3983db",
+    "src/frontends/riscv/recursion/air/native_pcs_fusion_rows.zig": "4296728079d720aeefab17302a58e65fb146035cd1ea0adc81526bffa4d51ec4",
+    "src/frontends/riscv/recursion/air/detached_pcs_opening_plan.zig": "e2e11b30165972ab82db7196e437749712a9066df72e77822417a64984f2fc97"
+  }
+}

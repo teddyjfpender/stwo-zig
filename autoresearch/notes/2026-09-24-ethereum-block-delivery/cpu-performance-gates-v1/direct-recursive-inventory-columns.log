@@ -1,0 +1,11 @@
+1/10 block_v5_recursive_direct_columns_test_root.test_0...OK
+2/10 recursion.air.blake3_direct_cohort_columns_v1.test.direct recursive columns preserve canonical scattered layout and fixed metadata...OK
+3/10 recursion.air.blake3_direct_cohort_columns_v1.test.direct recursive columns reject incomplete count and clean up cap failures...OK
+4/10 recursion.air.arithmetic_fusion_direct_columns_test.test.direct recursive arithmetic emitter matches legacy FMA inverse linear dot4 in both modes...OK
+5/10 recursion.air.blake3_direct_source_columns_test.test.direct PCS public source cohorts match legacy scattered columns and transfer ownership...OK
+6/10 recursion.air.blake3_direct_source_columns_test.test.direct source columns preserve fixed admission and fail incomplete geometry before transfer...OK
+7/10 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory matches legacy rows and rejects source custody mutations without leaks...OK
+8/10 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory cleans up every failing allocation...OK
+9/10 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive borrowed rows reject malformed committed geometry...OK
+10/10 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive boundary columns release initial rows before appending public terms...OK
+All 10 tests passed.

@@ -1,0 +1,11 @@
+1/10 block_v5_blake3_words_tail_test_root.test.original words tail body: real shared Builder and routed AIR source retention...OK
+2/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: scalar original framing parity at956 and chunk tree edges...OK
+3/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: exact disjoint frontier and independent counter geometry...OK
+4/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: generic1024-byte no-tail ROOT and absolute final chunk counters...OK
+5/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: actual joined hash equations and shared byte source supplies...OK
+6/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: tail is evaluated once and exactly shared by four frames plus input root...OK
+7/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: independent root claim mutation cannot close original graph...OK
+8/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: bounded fanin and foreign source namespaces reject before rows...OK
+9/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: plan witness preprocessing construction failure rollback...OK
+10/10 prover.block_v5_blake3_words_tail_test_v1.test.original words tail: owned rows retain shared budget after original owner release...OK
+All 10 tests passed.

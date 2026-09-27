@@ -1,0 +1,98 @@
+{
+  "status": "qualified_nonproving_original_words_tail_snapshot",
+  "authored_candidate": "original-words-tail-source-candidate-v1.json",
+  "evidence": {
+    "original-words-tail-semantic-v1": {
+      "source_candidate": "original-words-tail-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 0.16614791698521003,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/original-words-tail-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "original-words-tail-semantic-v2": {
+      "source_candidate": "original-words-tail-semantic-v2-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 0.17021262500202283,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/original-words-tail-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "original-words-tail-semantic-v3": {
+      "source_candidate": "original-words-tail-semantic-v3-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 0.2500541670015082,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/original-words-tail-semantic-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "original-words-tail-focused-v1": {
+      "source_candidate": "original-words-tail-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 10.602686374972109,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 10,
+      "test_summary": [
+        "All 10 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/original-words-tail-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-original-words-tail-focused-v1",
+        "bytes": 961144,
+        "sha256": "4f9239497093dbfe926ec43b3f646a07caad966d4a7b34c01c76f94c5bddf02c"
+      }
+    }
+  },
+  "tests_passed": 10,
+  "source_pins": 639,
+  "scope": [
+    "Exact original 68-byte header, 956-byte first input region and absolute chunk counters",
+    "Standard BLAKE3 scalar oracle including domain hash and exact-full-chunk ROOT handling",
+    "Original joined hash equations, shared source supplies and four-frame plus independent input-root reuse",
+    "Claim mutation, foreign source namespace, bounded fan-in and allocation/retained-budget rollback",
+    "Actual original hash-plan and routed AIR production bodies retained without proving"
+  ],
+  "repairs": [
+    "Corrected hand-counted framing assertions against the original encoded bytes",
+    "Same domain hash derived at comptime through canonical one-block compression; independently checked against runtime std BLAKE3"
+  ],
+  "not_qualified": [
+    "Job-wide carrier across separate window ranges",
+    "Common-ancestor provider placement and complete source/global closure",
+    "Canonical driver activation, complete block proof or end-to-end performance"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "speed_or_peak_rss_claim": false
+}

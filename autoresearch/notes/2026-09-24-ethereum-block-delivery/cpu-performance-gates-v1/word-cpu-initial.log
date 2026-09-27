@@ -1,0 +1,33 @@
+1/32 prover.block_v5_word_cpu_optimization_test.test.block-v5 range inverse table exhaustively preserves sealed denominators and active zero rejection...OK
+2/32 prover.block_v5_word_cpu_optimization_test.test.block-v5 packed quotient equations match scalar extension field constraints lane by lane...OK
+3/32 prover.block_v5_word_cpu_optimization_test.test.block-v5 parallel quotient rows preserve fresh and additive accumulation under shared lease contention...OK
+4/32 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+5/32 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+6/32 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+7/32 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+8/32 recursion.air.universal_challenges.test.R-012 universal challenges use exact 47-relation descriptor geometry...OK
+9/32 recursion.air.universal_challenges.test.R-012 universal challenge bulk draw is transcript-equivalent to 47 pair draws...OK
+10/32 recursion.air.universal_challenges.test.R-012 universal challenge bundle rejects seal and arity mutation...OK
+11/32 recursion.air.universal_challenges.test.R-012 universal challenge combine uses exact alpha-power convention...OK
+12/32 recursion.air.universal_challenges.test.R-012 universal challenge packed base combination matches extension oracle at every arity...OK
+13/32 air.block.memory_transition.test.sorted real memory accesses reconstruct before and after values across writes...OK
+14/32 air.block.memory_transition.test.new sorted address requires an independently supplied initial value...OK
+15/32 runner.state_chain.test.state_chain: register access tracking...OK
+16/32 runner.state_chain.test.state_chain: clock gap filling...OK
+17/32 runner.state_chain.test.state_chain: decomposeU32...OK
+18/32 runner.state_chain.test.state_chain: memory access tracking...OK
+19/32 runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+20/32 runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+21/32 runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+22/32 runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+23/32 runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+24/32 runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+25/32 runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+26/32 air.block.memory_spool.test.bounded memory spool sorts across runs with exact coverage and rejects duplicate clocks...OK
+27/32 air.block.memory_spool.test.spool accepts real segment accesses and globally orders leaf-local clocks...OK
+28/32 air.block.memory_spool.test.run admission rejects truncated and surplus records before merge...OK
+29/32 air.block.memory_event.test.block memory events share one global clock across leaf-local and continuous frames...OK
+30/32 air.block.memory_event.test.block memory event projection validates real tracker access and wire encoding...OK
+31/32 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+32/32 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+All 32 tests passed.

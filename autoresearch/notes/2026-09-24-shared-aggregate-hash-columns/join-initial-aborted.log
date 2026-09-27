@@ -1,0 +1,15 @@
+test-blake3-parent-join
++- BLAKE3 parent join guard
+   +- run test failure
+BLAKE3_JOIN_PEAK borrowed_bytes=11409648 draining_bytes=7073360
+error: while executing test 'recursion.air.blake3_parent_join_test.test.BLAKE3 shared hash partitions preserve join values padding and ownership', the following command terminated with signal 15 (expected exited with code 0):
+./.zig-cache/o/97f74a91c904f64cd332327d792ec20d/test --cache-dir=./.zig-cache --seed=0x827534ab --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 5/5 tests passed
+test-blake3-parent-join transitive failure
++- BLAKE3 parent join guard transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 7s MaxRSS:668M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/6e04e1f6e1c5dfb083660297a921fd33/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x827534ab -Z39011fb8b91a1dc3 --maxrss 25769803776 -j1 test-blake3-parent-join -Doptimize=ReleaseSafe --summary all

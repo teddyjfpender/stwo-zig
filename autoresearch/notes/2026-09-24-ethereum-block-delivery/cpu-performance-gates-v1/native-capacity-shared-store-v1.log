@@ -1,0 +1,22 @@
+1/21 block_v5_capacity_artifact_store_test_root.test_0...OK
+2/21 prover.block_v5_native_capacity_store_test.test.capacity store actual admitted policy publishes consumes loads independent literal proof...OK
+3/21 prover.block_v5_native_capacity_store_test.test.capacity store publication failures retain proof caps roots identity and existing bytes...OK
+4/21 prover.block_v5_native_capacity_store_test.test.capacity store failed tampered load burns slot and cannot substitute file...OK
+5/21 prover.block_v5_native_capacity_store_test.test.capacity store manifest rejects count metadata grammar total and hashes before bulk allocation...OK
+6/21 prover.block_v5_native_capacity_store_test.test.capacity store exhaustive allocation failures retain publication and deep load ownership...OK
+7/21 prover.block_v5_native_capacity_store_test.test.capacity store real fresh capture loader and legacy I O bodies compile without invocation...OK
+8/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused wire distinct four and five tree inventories roundtrip owned canonical arrays...OK
+9/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused wire rejects old grammar count frame mode roots seal and noncanonical claims before received allocations...OK
+10/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused wire every allocation failure preserves decoded array postcard and envelope owners...OK
+11/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store independently admitted policy owns exclusive publication manifest and one-shot load...OK
+12/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store rejects root census cap and existing file while retaining producer ownership...OK
+13/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store independent source policy rejects exact count frame catalog and stale seal replacements...OK
+14/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused store independent policy and slot owners survive every allocation failure...OK
+15/21 prover.block_v5_native_capacity_fused_transport_test_v1.test.capacity fused artifact CPU fresh verifier and owned store bodies compile only...OK
+16/21 air.semantic_eval.test_0...OK
+17/21 air.memory_commitment.poseidon2_air.test_0...OK
+18/21 prover.block_execution_external_trace_v2.test_0...OK
+19/21 air.lookups.tables.mod.test_0...OK
+20/21 prover.block_execution_external_access_bridge_v2.test_0...OK
+21/21 air.lookups.tables.source_ingest.test_0...OK
+All 21 tests passed.

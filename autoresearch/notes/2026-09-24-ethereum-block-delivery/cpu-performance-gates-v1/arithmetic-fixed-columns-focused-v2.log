@@ -1,0 +1,18 @@
+1/14 recursion.air.arithmetic_fusion_direct_columns_test.test.direct recursive arithmetic emitter matches legacy FMA inverse linear dot4 in both modes...OK
+2/14 recursion.air.arithmetic_fusion_direct_columns_test.test.fixed recursive arithmetic: empty active mode retains canonical padded fixed cohorts...FAIL (MissingProofMode)
+3/14 recursion.air.arithmetic_fusion_direct_columns_test.test.fixed recursive arithmetic: original fixed helpers reject routing outside canonical M31...OK
+4/14 recursion.air.arithmetic_fusion_direct_columns_test.test.fixed recursive arithmetic: actual legacy direct and witness-free constructors retained...OK
+5/14 recursion.air.qm31_mul_add_v1_test.test.multiply-add semantic identity and degree...qm31_mul_add_v1 semantic digest: eb8d491f5b07bf17fb4b6b4e7c408da1289dd1907b66926547bd39d204b0f849
+OK
+6/14 recursion.air.qm31_mul_add_v1_test.test.multiply-add constrains all extension coordinates and signed modes...OK
+7/14 recursion.air.qm31_mul_add_v1_test.test.fusion preserves shared and exported products and reserved subgraphs...OK
+8/14 recursion.air.qm31_mul_add_v1_test.test.multiply-add exact wire boundary equals separate authenticated operations...OK
+9/14 recursion.air.detached_opening_accumulate4_v1_test.test.opening accumulation has a pinned degree-two typed definition...OK
+10/14 recursion.air.detached_opening_accumulate4_v1_test.test.opening accumulation matches native QM31 dot products and rejects every coordinate mutation...OK
+11/14 recursion.air.detached_opening_accumulate4_v1_test.test.opening matcher hides only four unshared multiply-add terms and retains external uses...OK
+12/14 recursion.air.detached_opening_accumulate4_v1_test.test.opening matcher obeys actual graph consumers and authenticated exports...OK
+13/14 recursion.air.detached_opening_accumulate4_v1_test.test.opening matcher composes adjacent blocks without hiding their shared boundary...OK
+14/14 recursion.air.detached_opening_accumulate4_v1_test.test.fused arithmetic adapters admit cubic LogUp and close every active and padded row...OK
+13 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-arithmetic-fixed-columns-focused-v2 --seed=0xf230d450

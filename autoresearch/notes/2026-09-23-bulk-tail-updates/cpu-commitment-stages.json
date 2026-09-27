@@ -1,0 +1,58 @@
+[
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "arm": "control",
+    "execution.fixed": 0.034106,
+    "execution.main": 0.064559,
+    "execution.interaction_commit": 0.064275
+  },
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "arm": "candidate",
+    "execution.fixed": 0.033436,
+    "execution.main": 0.056699,
+    "execution.interaction_commit": 0.058498
+  },
+  {
+    "case": "cpu-sha256-128",
+    "arm": "control",
+    "execution.fixed": 0.081146,
+    "execution.main": 0.186403,
+    "execution.interaction_commit": 0.205291
+  },
+  {
+    "case": "cpu-sha256-128",
+    "arm": "candidate",
+    "execution.fixed": 0.074642,
+    "execution.main": 0.165272,
+    "execution.interaction_commit": 0.180526
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "arm": "control",
+    "execution.fixed": 0.139491,
+    "execution.main": 0.441186,
+    "execution.interaction_commit": 0.454899
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "arm": "candidate",
+    "execution.fixed": 0.128632,
+    "execution.main": 0.363654,
+    "execution.interaction_commit": 0.385582
+  },
+  {
+    "case": "cpu-keccak-128",
+    "arm": "control",
+    "execution.fixed": 0.140278,
+    "execution.main": 0.436196,
+    "execution.interaction_commit": 0.471917
+  },
+  {
+    "case": "cpu-keccak-128",
+    "arm": "candidate",
+    "execution.fixed": 0.124758,
+    "execution.main": 0.35135,
+    "execution.interaction_commit": 0.390365
+  }
+]

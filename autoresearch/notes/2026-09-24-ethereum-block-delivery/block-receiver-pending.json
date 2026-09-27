@@ -1,0 +1,11 @@
+{
+  "status": "source written; format/syntax checks only; build and runtime qualification queued behind live block proof",
+  "qualification_session": 16783,
+  "sha256": {
+    "src/frontends/riscv/ethereum_block_verify.zig": "28c3eaee3aee1f127ce64aeb3f4e9ee76ed2eecc97ea9edba5710fb408d1f955",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/qualify_block_receiver.py": "9f858657ee236e516e97ace11acdb273176dc7dec4a72b30b9acda7605cb4036"
+  },
+  "scope": "canonical root receiver requires independent key pin; no mainnet proof or verifier-build completion claim",
+  "qualification": "block-receiver-qualification-v1/qualification.json",
+  "result": "all six fixture checks passed; actual mainnet root remains unavailable"
+}

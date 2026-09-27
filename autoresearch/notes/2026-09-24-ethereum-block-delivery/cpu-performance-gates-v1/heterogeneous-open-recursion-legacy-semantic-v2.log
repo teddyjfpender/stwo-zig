@@ -1,0 +1,17 @@
+src/frontends/riscv/recursion/block_v5_ram_lanes_recursive_public_bus_v1.zig:81:28: error: expected type '*channel.blake3.Channel', found '*recursion.block_v5_heterogeneous_child_frames_v1.Collector'
+        self.pin.claim.mix(channel);
+                           ^~~~~~~
+src/frontends/riscv/recursion/block_v5_ram_lanes_recursive_public_bus_v1.zig:81:28: note: pointer type child 'recursion.block_v5_heterogeneous_child_frames_v1.Collector' cannot cast into pointer type child 'channel.blake3.Channel'
+src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:275:19: note: struct declared here
+const Collector = struct {
+                  ^~~~~~
+src/core/channel/blake3.zig:23:21: note: struct declared here
+pub const Channel = struct {
+                    ^~~~~~
+src/frontends/riscv/prover/block_v5_ram_lanes_protocol_v1.zig:69:38: note: parameter type declared here
+    pub fn mix(self: Claim, channel: *core.proof_suites.Blake3.Channel) void {
+                                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    mix__anon_67797: src/frontends/riscv/recursion/block_v5_reusable_ram_lanes_parent_protocol_v1.zig:76:24
+    normalize: src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig:217:30
+    5 reference(s) hidden; use '-freference-trace=7' to see all references

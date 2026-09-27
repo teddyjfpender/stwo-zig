@@ -1,0 +1,46 @@
+test-blake3-native-parent-aot
++- run test stderr
+CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_RESIDUAL_FUSION_CENSUS lane=1500 multiply=2224 linear=837 inverse=52 quotient_accumulations=0 prelinear_products=151 prelinear_hidden_rows=151 candidate_only=true
+BLAKE3_ARITHMETIC_CENSUS lane=1500 nodes=6612 multiply=3451 linear=2064 inverse=52 dot4=41 fma=1063 removable_rows=1350
+BLAKE3_RESIDUAL_FUSION_CENSUS lane=1502 multiply=12778 linear=8722 inverse=842 quotient_accumulations=210 prelinear_products=3203 prelinear_hidden_rows=3203 candidate_only=true
+BLAKE3_ARITHMETIC_CENSUS lane=1502 nodes=233112 multiply=90977 linear=86921 inverse=842 dot4=17052 fma=9991 removable_rows=129355
+BLAKE3_RESIDUAL_FUSION_CENSUS lane=1504 multiply=52168 linear=13581 inverse=1260 quotient_accumulations=0 prelinear_products=3501 prelinear_hidden_rows=3501 candidate_only=true
+BLAKE3_ARITHMETIC_CENSUS lane=1504 nodes=199436 multiply=110745 linear=72158 inverse=1260 dot4=2520 fma=48497 removable_rows=66137
+BLAKE3_PCS_QUERY_FUSION_CENSUS nodes=233112 query_inputs=48440 single_use=38640 shared=9800 dot4=17052 eligible=9170 scope=pre_lowering_graph_candidates
+BLAKE3_ARITHMETIC_CENSUS total_rows=368470 removable_rows=196842 removed_relation_events=393684 scope=graph_match_census
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59551 arithmetic_rows=171628
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=129.67070832382888
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.1496666595339775
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.409083342878148
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9546666590031236
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.286666676402092
+CANONICAL_PARENT_WORKERS count=8 host_cpus=18
+NATIVE_PARENT_DEVICE_WORK host_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK resident_merkle_commits=23
+NATIVE_PARENT_DEVICE_WORK metal_quotient_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_proof_of_work_dispatches=38
+NATIVE_PARENT_DEVICE_WORK metal_framework_polynomial_dispatches=5
+NATIVE_PARENT_DEVICE_WORK metal_streaming_leaf_dispatches=1216
+NATIVE_PARENT_DEVICE_WORK metal_framework_interaction_dispatches=20
+NATIVE_PARENT_DEVICE_WORK metal_sampled_value_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_circle_transform_dispatches=2
+NATIVE_PARENT_DEVICE_WORK metal_circle_lde_dispatches=79
+NATIVE_PARENT_DEVICE_WORK metal_fri_circle_fold_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_fri_fold_commit_epochs=1
+NATIVE_PARENT_DEVICE_WORK cpu_streaming_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK cpu_composition_components=17
+NATIVE_PARENT_DEVICE_WORK metal_commit_source_uploads=79
+NATIVE_PARENT_METAL dispatches=1387 fallbacks=2
+CANONICAL_PARENT_MEMORY peak_bytes=11993421766 limit_bytes=25769803776
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=857591 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40432 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-blake3-native-parent-aot success
++- run test 7 passed 14s MaxRSS:20G
+   +- compile test ReleaseFast native success 1m MaxRSS:2G
+

@@ -1,0 +1,14 @@
+1/13 block_v5_native_capacity_unit_test_root.test_0...OK
+2/13 prover.block_v5_native_capacity_unit_test.test.native capacity prefix counts powers tails and catches holes last count and nonboolean selectors...OK
+3/13 prover.block_v5_native_capacity_unit_test.test.native capacity template reuses same bucket binds exact instance and rejects legacy protocol and shape mutations...OK
+4/13 prover.block_v5_native_capacity_unit_test.test.native capacity fixed rows are count invariant and column generation cleans every allocation failure...OK
+5/13 prover.block_v5_native_capacity_unit_test.test.native capacity combined masks clean every allocation failure without double owning aliases...OK
+6/13 prover.block_v5_native_capacity_unit_test.test.native capacity preserves original point equations masks and binds the appended selector...OK
+7/13 prover.block_v5_native_capacity_unit_test.test.native capacity each activity equation degree bound is explicit at three...OK
+8/13 prover.block_v5_native_capacity_unit_test.test.native capacity legal empty ordinary path retains genuine typed frame and exact instance count...OK
+9/13 prover.block_v5_native_capacity_unit_test.test.native capacity transcript binds seal roots ordinal instance and rejects protocol downgrade...OK
+10/13 prover.block_v5_native_capacity_unit_test.test.native capacity mixed bucket domain preserves native quotients and shifted count equations...OK
+11/13 prover.block_v5_native_capacity_unit_test.test.native capacity real CPU first round prove and fresh receive bodies compile without executing...OK
+12/13 air.semantic_eval.test_0...OK
+13/13 air.memory_commitment.poseidon2_air.test_0...OK
+All 13 tests passed.

@@ -1,0 +1,10 @@
+src/frontends/riscv/prover/block_v5_native_fused_recursive_selection_test_v1.zig:93:82: error: enum 'recursion.block_v5_recursive_fused_public_bus_v1.ForFamily(recursion.block_v5_native_capacity_fused_recursive_public_bus_v1.Policy).Source' has no member named 'open_sum'
+const wires = [_]C.Bus.Wire{.{ .circuit = 1500, .wire = 0, .uses = 1, .source = .open_sum, .coordinate = 0 }};
+                                                                                ~^~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_fused_public_bus_v1.zig:15:28: note: enum declared here
+        pub const Source = enum(u8) { word, felt_word, public_input, first_root };
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    template: src/frontends/riscv/prover/block_v5_native_fused_recursive_selection_test_v1.zig:96:60
+    test.native fused selection: genuine empty first execution selects only required companion and preserves dense defaults: src/frontends/riscv/prover/block_v5_native_fused_recursive_selection_test_v1.zig:112:29
+    1 reference(s) hidden; use '-freference-trace=3' to see all references

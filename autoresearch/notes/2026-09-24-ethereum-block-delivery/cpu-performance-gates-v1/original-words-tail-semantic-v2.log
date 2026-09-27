@@ -1,0 +1,23 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:288:35: error: destination type 'u8' has more bits than source type 'u6'
+        self.block_len += @as(u8, @truncate(take));
+                                  ^~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:288:35: note: destination type has 8 bits
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:288:45: note: operand type has 6 bits
+        self.block_len += @as(u8, @truncate(take));
+                                            ^~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:316:38: note: called at comptime here
+            input = self.fillBlockBuf(input);
+                    ~~~~~~~~~~~~~~~~~^~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:454:36: note: called at comptime here
+            self.chunk_state.update(input[0..take]);
+            ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/blake3.zig:406:17: note: called at comptime here
+        d.update(b);
+        ~~~~~~~~^~~
+src/frontends/riscv/recursion/blake3_words_tail_v1.zig:14:32: note: called at comptime here
+    std.crypto.hash.Blake3.hash("stwo-zig/block-v5/original-words-tail-input/v1\x00", &state_digest, .{});
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    init: src/frontends/riscv/recursion/blake3_words_tail_v1.zig:134:41
+    stwo_original_words_tail_body_gate: src/frontends/riscv/block_v5_blake3_words_tail_codegen_v1.zig:8:211
+    2 reference(s) hidden; use '-freference-trace=4' to see all references

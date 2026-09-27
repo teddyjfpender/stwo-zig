@@ -1,0 +1,258 @@
+[
+  {
+    "index": 0,
+    "variant": "control",
+    "binary_sha256": "cb2b155e86236745057b6838c0c45139cc097fbb6c65e8790ec5f6bd8037faf8",
+    "wall_seconds": 37.03749250000692,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "5474270750"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "5473873792"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "5929327500"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "5464794166"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "3405429166"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "10325026125"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 38903815688,
+    "peak_rss_bytes": 37117181952
+  },
+  {
+    "index": 1,
+    "variant": "candidate",
+    "binary_sha256": "44c348f0bd4c1eb435abcc9ae78c876826cf199f2914fec3a15e320eb6f5a587",
+    "wall_seconds": 46.56624295798247,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "5067801500"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "5499661459"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "4745569167"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "9026291375"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "4129287875"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "17123743334"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 38982572640,
+    "peak_rss_bytes": 36939366400
+  },
+  {
+    "index": 2,
+    "variant": "candidate",
+    "binary_sha256": "44c348f0bd4c1eb435abcc9ae78c876826cf199f2914fec3a15e320eb6f5a587",
+    "wall_seconds": 52.62007870897651,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7101890792"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "9014066125"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "5791914917"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "8890696750"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "4109856875"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "17114143291"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 38719454936,
+    "peak_rss_bytes": 36938301440
+  },
+  {
+    "index": 3,
+    "variant": "control",
+    "binary_sha256": "cb2b155e86236745057b6838c0c45139cc097fbb6c65e8790ec5f6bd8037faf8",
+    "wall_seconds": 54.654442208004184,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "845993",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "849496",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "889364",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7039566042"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "9037540458"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7287521000"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "9285632750"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "4250422459"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "17139517875"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "26459992736",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 39161290392,
+    "peak_rss_bytes": 37117640704
+  }
+]

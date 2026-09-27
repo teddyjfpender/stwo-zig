@@ -8,7 +8,7 @@ const command_epoch = @import("command_epoch.zig");
 const shader_manifest = @import("shaders/manifest.zig");
 
 comptime {
-    if (shader_manifest.core_shader_abi != 22) @compileError("Metal core shader ABI drift");
+    if (shader_manifest.core_shader_abi != 24) @compileError("Metal core shader ABI drift");
 }
 
 pub const CommandEpoch = command_epoch.CommandEpoch;
@@ -128,6 +128,10 @@ pub const LdeCommitResult = struct {
 /// redundant submissions and completion fences between independent groups.
 pub const CircleLdeBatch = struct {
     handle: *anyopaque,
+    runtime_handle: *anyopaque,
+    admission: @import("runtime/external_allocation_admission_v1.zig").Scope,
+    failed: bool = false,
+    ordinary_compatibility: bool = false,
 };
 
 pub const CircleLdeBatchStats = struct {
@@ -197,9 +201,12 @@ pub const Runtime = struct {
     pub const prepareFixedTable = prepared_ops.prepareFixedTable;
     pub const prepareFixedTableBatch = prepared_ops.prepareFixedTableBatch;
     pub const fixedTableBatchPrepared = prepared_ops.fixedTableBatchPrepared;
+    pub const prepareMerkleParentChainForFamily = prepared_ops.prepareMerkleParentChainForFamily;
     pub const prepareMerkleParentChain = prepared_ops.prepareMerkleParentChain;
+    pub const prepareMerkleLeavesForFamily = prepared_ops.prepareMerkleLeavesForFamily;
     pub const prepareMerkleLeaves = prepared_ops.prepareMerkleLeaves;
     pub const merkleLeavesPrepared = prepared_ops.merkleLeavesPrepared;
+    pub const prepareStagedBlake3ResidentMerkle = prepared_ops.prepareStagedBlake3ResidentMerkle;
     pub const prepareResidentMerkle = prepared_ops.prepareResidentMerkle;
     pub const prepareResidentMerkleForHash = prepared_ops.prepareResidentMerkleForHash;
     pub const prepareStagedPoseidonResidentMerkleV1 = prepared_ops.prepareStagedPoseidonResidentMerkleV1;
@@ -244,9 +251,11 @@ pub const Runtime = struct {
     pub const foldFriLine = opening_ops.foldFriLine;
     pub const foldFriLineAndCommit = opening_ops.foldFriLineAndCommit;
     pub const foldFriLineAndCommitForHash = opening_ops.foldFriLineAndCommitForHash;
+    pub const foldFriCircleLineCascadeForSuite = fri_cascade_ops.foldFriCircleLineCascadeForSuite;
     pub const foldFriCircleLineCascade = fri_cascade_ops.foldFriCircleLineCascade;
     pub const foldFriCircleLineCascadeWithReceipt = fri_cascade_ops.foldFriCircleLineCascadeWithReceipt;
     pub const foldFriLineCascade = fri_cascade_ops.foldFriLineCascade;
+    pub const foldBlake3FriLineCascadeWithReceipt = fri_cascade_ops.foldBlake3FriLineCascadeWithReceipt;
     pub const foldFriLineCascadeWithReceipt = fri_cascade_ops.foldFriLineCascadeWithReceipt;
     pub const prepareFriFold = opening_ops.prepareFriFold;
     pub const friFoldPrepared = opening_ops.friFoldPrepared;
@@ -255,12 +264,14 @@ pub const Runtime = struct {
     pub const accumulateQuotientCoefficientsResident = opening_ops.accumulateQuotientCoefficientsResident;
     pub const prepareFriRound = opening_ops.prepareFriRound;
     pub const friRoundPrepared = opening_ops.friRoundPrepared;
+    pub const prepareFriTreeForFamily = opening_ops.prepareFriTreeForFamily;
     pub const prepareFriTree = opening_ops.prepareFriTree;
     pub const friTreePrepared = opening_ops.friTreePrepared;
     pub const prepareFriFinal = opening_ops.prepareFriFinal;
     pub const friFinalPrepared = opening_ops.friFinalPrepared;
     pub const transcriptInit = opening_ops.transcriptInit;
     pub const transcriptMix = opening_ops.transcriptMix;
+    pub const blake3Transcript = opening_ops.blake3Transcript;
     pub const transcriptDrawSecure = opening_ops.transcriptDrawSecure;
     pub const transcriptDrawQueries = opening_ops.transcriptDrawQueries;
     pub const decommitNormalizeQueries = opening_ops.decommitNormalizeQueries;
@@ -284,6 +295,9 @@ pub const Runtime = struct {
     pub const publicMemorySeed = resident_ops.publicMemorySeed;
     pub const leafAbsorb = resident_ops.leafAbsorb;
     pub const leafAbsorbForHash = resident_ops.leafAbsorbForHash;
+    pub const blake3LeafStateWords = resident_ops.blake3LeafStateWords;
+    pub const blake3LeafAbsorbCompact = resident_ops.blake3LeafAbsorbCompact;
+    pub const submitBlake3LeafAbsorbCompact = resident_ops.submitBlake3LeafAbsorbCompact;
     pub const leafAbsorbCompact = resident_ops.leafAbsorbCompact;
     pub const leafAbsorbCompactForHash = resident_ops.leafAbsorbCompactForHash;
     pub const parentSeeded = resident_ops.parentSeeded;
@@ -315,6 +329,7 @@ pub const Runtime = struct {
     pub const transformCircleLde = polynomial_ops.transformCircleLde;
     pub const transformCircleLdeInto = polynomial_ops.transformCircleLdeInto;
     pub const beginCircleLdeBatch = polynomial_ops.beginCircleLdeBatch;
+    pub const beginCircleLdeBatchWithAllocator = polynomial_ops.beginCircleLdeBatchWithAllocator;
     pub const destroyCircleLdeBatch = polynomial_ops.destroyCircleLdeBatch;
     pub const finishCircleLdeBatch = polynomial_ops.finishCircleLdeBatch;
     pub const transformCircleLdeIntoBatch = polynomial_ops.transformCircleLdeIntoBatch;
@@ -322,6 +337,7 @@ pub const Runtime = struct {
     pub const transformCircleLdeAndCommit = combined_commit_ops.transformCircleLdeAndCommit;
     pub const transformCircleLdeAndCommitPrepared = combined_commit_ops.transformCircleLdeAndCommitPrepared;
     pub const transformCircleLdeAndCommitPreparedForHash = combined_commit_ops.transformCircleLdeAndCommitPreparedForHash;
+    pub const grindBlake3ProofOfWork = proof_of_work_ops.grindBlake3ProofOfWork;
     pub const grindBlake2sProofOfWork = proof_of_work_ops.grindBlake2sProofOfWork;
     pub const grindPoseidon2ChannelProofOfWork = proof_of_work_ops.grindPoseidon2ChannelProofOfWork;
 };

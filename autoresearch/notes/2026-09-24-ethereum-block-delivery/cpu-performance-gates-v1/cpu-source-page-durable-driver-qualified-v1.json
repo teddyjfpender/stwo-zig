@@ -1,0 +1,119 @@
+{
+  "status": "qualified_nonproving_durable_source_policy_and_actual_split_driver_bodies",
+  "evidence": {
+    "cpu-source-page-durable-driver-semantic-v1": {
+      "source_candidate": "cpu-source-page-durable-driver-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 11.459795750037301,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-source-page-durable-driver-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "cpu-source-page-durable-driver-semantic-v2": {
+      "source_candidate": "cpu-source-page-durable-driver-semantic-v2-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 11.667334875033703,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-source-page-durable-driver-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "cpu-source-page-durable-driver-semantic-v3": {
+      "source_candidate": "cpu-source-page-durable-driver-semantic-v3-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 12.838330666010734,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-source-page-durable-driver-semantic-v3.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-durable-focused-v1": {
+      "source_candidate": "memory-source-page-durable-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 41.3710342089762,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 13,
+      "test_summary": [
+        "All 13 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-durable-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-durable-focused-v1",
+        "bytes": 58498096,
+        "sha256": "6697f971b486288a6f4528a06bf2b1811704e38854bc267f69a456999385d62d"
+      }
+    },
+    "cpu-source-page-durable-driver-focused-v1": {
+      "source_candidate": "cpu-source-page-durable-driver-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 63.1106591669959,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 18,
+      "test_summary": [
+        "All 18 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-source-page-durable-driver-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-source-page-durable-driver-focused-v1",
+        "bytes": 103160160,
+        "sha256": "80f4cc0dd54082527c941a2b1c23c1d8efcab49ac9ebd20eef61ea8d642a16e5"
+      }
+    }
+  },
+  "scope": [
+    "SourcePages.publish stages actual PAGE artifacts and independent SHA/length-pinned normative policy; no verified claim scalar is transported",
+    "Actual capacity Driver releases producer Job/PCS/setup/metadata before cold standalone complete receiver selection",
+    "PAGE receiver independently reconstructs original Metadata/Globals, PAGE Context and all original family policy; retains borrowing owners and one admitted consuming Store",
+    "Actual selected Driver uses one original PAGE-backed complete global/native/caller/provider/forest receive rather than transition receive followed by old detached receive",
+    "Original Fold inventory reconstruction shared by Job and durable loaders, including original geometry/recipe/inventory checks and exact descriptor ownership",
+    "Both actual legacy/capacity Driver and publication/complete receiver bodies compile and are retained, never proof-invoked",
+    "13 durable and18 Driver focused nonproving checks pass; exact actual source pin snapshots remain unchanged during each gate",
+    "Initial semantic failures retained: exact ABI default digest exceeded Zig1000 and100000 compile-time branch quotas; local1M quota preserves exact original digest",
+    "Explicit report verification_scope=complete_bundle and returned independent source_page_policy_pin; source option remains null by default"
+  ],
+  "not_qualified": [
+    "Positive normative policy round trip from genuine complete original admissions",
+    "Positive actual PAGE/base/provider/complete forest proof execution",
+    "Final recursive source/caller/RAM/ROM/lookup compensation closure",
+    "Canonical activation, complete block proving or end-to-end time/peak memory"
+  ],
+  "canonical_security_changed": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_claim": null
+}

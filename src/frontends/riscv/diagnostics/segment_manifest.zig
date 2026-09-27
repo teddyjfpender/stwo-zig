@@ -200,6 +200,17 @@ pub fn streamObserved(
             writer,
             observer,
         ),
+        .rv32im_zkvm_ethereum_sha_v1 => streamForProfile(
+            .rv32im_zkvm_ethereum_sha_v1,
+            allocator,
+            elf_bytes,
+            input,
+            segment_step_budget,
+            strict_completion,
+            clock_frame,
+            writer,
+            observer,
+        ),
         .rv32im_zkvm_ethereum_v1 => streamForProfile(
             .rv32im_zkvm_ethereum_v1,
             allocator,
@@ -695,12 +706,16 @@ fn initializeDefaultExternalFamilyRows(
         .calls = 0,
         .execution_rows = 0,
     };
-    if (comptime profile != .rv32im_zkvm_ethereum_v1) return storage[0..1];
+    if (comptime profile != .rv32im_zkvm_ethereum_v1 and profile != .rv32im_zkvm_ethereum_sha_v1) return storage[0..1];
     storage[1] = .{
         .family = execution_profile.secp256k1_recover_capability,
         .calls = 0,
         .execution_rows = 0,
     };
+    if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
+        storage[2] = .{ .family = execution_profile.sha256_capability, .calls = 0, .execution_rows = 0 };
+        return storage[0..3];
+    }
     return storage[0..2];
 }
 
@@ -714,6 +729,13 @@ fn defaultSegmentExternalFamilyRows(
     if (comptime profile == .rv32im_zkvm_v1) {
         if (external_rows != 0) return error.ExtensionRowInventoryMismatch;
         return rows;
+    } else if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
+        rows[0].calls = try u64FromUsize(configured.extension.keccakf_calls.len());
+        rows[0].execution_rows = try u64FromUsize(configured.extension.keccakf_execution_rows.rows().len);
+        rows[1].calls = try u64FromUsize(configured.extension.signer_recovery_calls.len());
+        rows[1].execution_rows = try u64FromUsize(configured.extension.signer_recovery_execution_rows.rows().len);
+        rows[2].calls = try u64FromUsize(configured.extension.sha_calls.len());
+        rows[2].execution_rows = rows[2].calls;
     } else if (comptime profile == .rv32im_zkvm_ethereum_v1) {
         rows[0].calls = try u64FromUsize(configured.keccakf_calls.len());
         rows[0].execution_rows = try u64FromUsize(configured.keccakf_execution_rows.rows().len);

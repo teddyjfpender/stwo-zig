@@ -1,0 +1,23 @@
+1/22 block_v5_heterogeneous_scoped_test_root.test_0...OK
+2/22 block_v5_heterogeneous_scoped_test_root.test.scoped hierarchy: actual original leaf compact producer fresh receiver and independent scoped planner bodies retained...OK
+3/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: genuine byte-lifted compact merge preserves all four QM31 limbs and rejects output/source mutation...OK
+4/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: complete keyed scope is constrained zero rather than discarded or canceled across windows...OK
+5/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: compact original row lowering cleans every allocation and detects stale independent bytes...OK
+6/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: exact contribution source selection and pending scoped disposition cannot flatten table kinds...OK
+7/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: deficits and surpluses in two execution scopes cannot cancel at complete node...OK
+8/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: original known residual constrains auxiliary sign and once byte total while compensations remain open...OK
+9/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: actual shared parent row equations and original public tuples close exact lower summary requests...OK
+10/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: canonical exact five-leaf routing closes only complete LCA scopes and preserves open zero exports...OK
+11/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: exact route constructor releases every capped ownership allocation...OK
+12/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: re-sealed selectors signs and terms cannot replace independently derived semantic recipe...OK
+13/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: original reordered word-frame claims lift identical QM31 and reject canonical limb violations...OK
+14/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: provider-only span absence and exact source kind/multiplicity schedules remain distinct...OK
+15/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: exact 75-leaf compact cohorts use carried tails and provider span absence under hard census caps...OK
+16/22 prover.block_v5_heterogeneous_scoped_test_v1.test.scoped hierarchy: exact compact cohort metadata ownership handles every allocation failure...OK
+17/22 prover.block_execution_external_trace_v2.test_0...OK
+18/22 air.lookups.tables.mod.test_0...OK
+19/22 air.semantic_eval.test_0...OK
+20/22 prover.block_execution_external_access_bridge_v2.test_0...OK
+21/22 air.memory_commitment.poseidon2_air.test_0...OK
+22/22 air.lookups.tables.source_ingest.test_0...OK
+All 22 tests passed.

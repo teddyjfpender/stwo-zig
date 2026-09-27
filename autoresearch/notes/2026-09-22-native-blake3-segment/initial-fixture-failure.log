@@ -1,0 +1,16 @@
+test-blake3-native-segment
++- BLAKE3 native segment guard
+   +- run test 0/2 passed, 2 failed
+error: 'segment_v2_native_proof_test.test.native V2 proves and independently verifies real nonfinal and final segments' failed: V2_NATIVE_PROOF_SUITE suite=blake2s-default queries=1 pow_bits=0
+error: 'segment_v2_native_proof_test.test.BLAKE3 native V2 proves and independently verifies real nonfinal and final segments' failed: V2_NATIVE_PROOF_SUITE suite=blake3.experimental.v1 queries=1 pow_bits=0
+error: while executing test 'segment_v2_native_proof_test.test.BLAKE3 native V2 proves and independently verifies real nonfinal and final segments', the following test command failed:
+./.zig-cache/o/b1f44a00e35537f45f2359f57ff44c29/test --cache-dir=./.zig-cache --seed=0xad46a330 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/2 tests passed; 2 failed
+test-blake3-native-segment transitive failure
++- BLAKE3 native segment guard transitive failure
+   +- run test 0/2 passed, 2 failed
+      +- compile test ReleaseSafe native success 53s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/7d7d89e0f3524434b14aec5ab4195753/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xad46a330 -Z74e146b717c0ad31 --maxrss 25769803776 -j1 test-blake3-native-segment -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,58 @@
+{
+  "status": "qualified_nonproving_actual_bodies_and_focused_contracts",
+  "evidence": {
+    "memory-source-page-policy-positive-semantic-v1": {
+      "source_candidate": "memory-source-page-policy-positive-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 2.0641873339773156,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-policy-positive-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "memory-source-page-policy-positive-focused-v1": {
+      "source_candidate": "memory-source-page-policy-positive-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 8.866489582986105,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 5,
+      "test_summary": [
+        "All 5 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-policy-positive-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-policy-positive-focused-v1",
+        "bytes": 11300664,
+        "sha256": "f87b9abfe1778277c1716baad2f5c2d2a43a9063007b492e0791dba1e6110827"
+      }
+    }
+  },
+  "scope": [
+    "Original small Globals.validate/Source.admit/Batch/plans/B5SS/Context metadata admission, real raw/fold six-tree CPU premix commitments and positive Export.write->Policy.read->reconstruct",
+    "Five original empty-stream SHA padding compressions and2 empty/root Fold operations; source logs3/1 and original fixed tableslog16",
+    "Exactly one raw/fold commitment construction outside exhaustive parser/reconstruction allocation-failure sweep; no STARK/FRI/guest/proof receiver invoked",
+    "Independent owned rosters/original roots/epoch, retained parent-before-child teardown and SHA/Global/config/plan/seal tampering",
+    "5/5 focused checks pass with1785 unchanged literal pins; actual native/ROM/provider roots and absent artifact hashes explicitly remain UNVERIFIED metadata proposals"
+  ],
+  "not_qualified": [
+    "Positive actual original native/PAGE/RAM/range/provider/complete bundle proof execution",
+    "Canonical security proof qualification or full block proof time/peak memory"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "performance_claim": null
+}

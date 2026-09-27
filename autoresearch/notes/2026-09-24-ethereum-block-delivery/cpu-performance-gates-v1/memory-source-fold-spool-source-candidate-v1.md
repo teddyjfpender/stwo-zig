@@ -1,0 +1,9 @@
+# One-pass canonical source fold spool candidate v1
+
+Source-only unqualified. Three behavioral fixtures plus root/body checks are ready for the parent serial lane. No compiler, test, proof, guest, segment or device job was run by the agent.
+
+Actual capacity Controller collection now traverses the original Fold.Cursor once, writing canonical250-byte operations in64-record buffers while computing the exact census. A synced exclusive B5FSPL01 spool binds exact admission/source/seal and ends in the full B5FSEND1 census/count. Its SHA/length are file integrity only. Typed Job.collectWithOperations checks the exact source/census and aggregate disk cap, decodes the bounded spool, and requires the complete order/footer/hash finish before source sealing. Every original raw/fold/core/capture commitment and subsequent fresh proof obligation stays unchanged; the cold Job.collect API is preserved.
+
+The scalar original tree oracle and original Cursor are compared against every decoded operation for a dense64-word fixture crossing more than128 records. Negative fixtures cover invalid cap/admission, untouched allocator/callbacks, exact file cap, order, footer, streaming hash, incomplete consumption and truncation. Actual constructors/collection/replay/Job commit/controller bodies are retained, never invoked as proofs.
+
+All full-spool bytes count toward the aggregate operand file cap. Per-page operands still duplicate the spool's bytes; the next explicit indexed range format can remove that copy. Independent durable PAGE policy/manifest admission, private synchronous roster publication to remove quadratic redraw, replacing the transitional duplicate detached native/caller loop, actual source proof qualification and final recursive/global source closure remain open. Host census/file checks never grant source authority.

@@ -1,0 +1,22 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "memory-source-binding-semantic-v2-result.json",
+  "focused": "memory-source-binding-focused-v1-result.json",
+  "checks": 11,
+  "named_behavioral_checks": 9,
+  "scope": "Original-main binding equations, independently rebuilt circuit routes/node use census, four-tree masks, exact epoch ordering, scalar/SIMD parity, bounded streamed replay, exclusive publication and ownership/allocation/error cleanup. Real point/domain/recommit bodies retained without PCS invocation.",
+  "shared_adapter_correction": {
+    "path": "src/frontends/riscv/prover/block_v5_word_quotient_adapter_v1.zig",
+    "sha256": "e77437201f445d032c43e1c73e8a11a9c030bdbf2403b2cbb68abda4623bdf9a",
+    "change": "Two unnecessary inline mask loops replaced by ordinary loops; exact mask arity and framing/equations unchanged. Original wide-source compile exceeded default branch budget."
+  },
+  "pending": [
+    "fresh source arithmetic STARK and receiver",
+    "shared batch-tree hash operation/source/routing proof closure",
+    "complete aggregate and canonical driver activation",
+    "block time and peak memory measurements"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

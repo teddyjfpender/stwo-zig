@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-proof-of-work success
++- run test 1 passed 491ms MaxRSS:6M
+   +- compile test ReleaseSafe native success 5s MaxRSS:349M
+

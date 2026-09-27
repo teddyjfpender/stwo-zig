@@ -1,0 +1,8 @@
+1/7 host_budget_allocator.test.host budget allocator admits the exact live-byte boundary...OK
+2/7 host_budget_allocator.test.host budget allocator distinguishes child exhaustion from its limit...OK
+3/7 host_budget_allocator.test.host budget allocator accounts in-place resize and remap...OK
+4/7 host_budget_allocator.test.shared host budget preserves exact accounting across thread transfer...OK
+5/7 host_budget_allocator.test.shared host budget lease survives original owner release...OK
+6/7 host_budget_allocator.test.shared host budget nested owner survives backing release and every allocation failure...OK
+7/7 host_budget_allocator.test.shared host budget nested descendants and external lease preserve backing chain...OK
+All 7 tests passed.

@@ -1,0 +1,27 @@
+1/9 block_v5_page_fixed_transcript_test_root_v1.test_0...OK
+2/9 block_v5_page_fixed_transcript_test_root_v1.test.PAGE fixed transcript: genuine admitted owner PCS and original live body retention...OK
+3/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: original raw first six roots semantic epoch47 and claims exact native parity...FAIL (InvalidSourceFirstPlan)
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_memory_source_first_protocol_common_v1.zig:46:52: 0x102b8cef3 in require (root)
+                if (!std.meta.eql(self, expected)) return error.InvalidSourceFirstPlan;
+                                                   ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_memory_source_packed_sha_replay_v1.zig:34:9: 0x102b90e6b in require (root)
+        try plan.require(admitted, limits.first);
+        ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_page_fixed_transcript_test_v1.zig:53:5: 0x102f4b58b in rawMetadata (root)
+    try pin.require(&admitted.source, plan, .{});
+    ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_page_fixed_transcript_test_v1.zig:100:18: 0x102f9c72b in parity__anon_86705 (root)
+    const meta = try if (kind == .raw) rawMetadata() else foldMetadata();
+                 ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_page_fixed_transcript_test_v1.zig:205:5: 0x102fa0393 in test.PAGE fixed transcript: original raw first six roots semantic epoch47 and claims exact native parity (root)
+    try parity(.raw);
+    ^
+4/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: original fold first six roots semantic epoch47 and claims exact native parity...OK
+5/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: count-only layout allocator failures preserve original OOM...OK
+6/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: bounds canonical public fields and old root grammar remain closed...OK
+7/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: count owner lease is held until final frees...OK
+8/9 air.lookups.tables.mod.test_0...OK
+9/9 air.lookups.tables.source_ingest.test_0...OK
+8 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-page-recursive-fixed-transcript-focused-v2 --seed=0x4f422096

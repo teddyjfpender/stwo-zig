@@ -1,0 +1,40 @@
+{
+  "queries": 70,
+  "pow_bits": 26,
+  "scope": "authentication plus recursive wrapper; single observations; not full block or multi-segment proof scaling",
+  "results": [
+    {
+      "transactions": 16,
+      "execution_segments": 1,
+      "verified": true,
+      "process_peak_bytes": 17329438128,
+      "worker_peak_bytes": 17196546521,
+      "wall_seconds": 36.21245200000703,
+      "parent_seconds": 12.337814958,
+      "prover_sha256": "2c6dcab7d3fc262801db59e968d3e4c76070f1a3ec89e901d6850c800bb90d82",
+      "proof_sha256": "3ec13506adcfe0a0eea33b0c1e7cdd9a388c62dcc8aa598bd4fb6372c58524cf"
+    },
+    {
+      "transactions": 32,
+      "execution_segments": 1,
+      "verified": true,
+      "process_peak_bytes": 18055643216,
+      "worker_peak_bytes": 17815627533,
+      "wall_seconds": 41.07406225003069,
+      "parent_seconds": 13.378377917,
+      "prover_sha256": "2c6dcab7d3fc262801db59e968d3e4c76070f1a3ec89e901d6850c800bb90d82",
+      "proof_sha256": "3ff6955f78a0bf9b3b1740dabe72da9e386771d0e18d07dd8792a6339b937f18"
+    },
+    {
+      "transactions": 64,
+      "execution_segments": 1,
+      "verified": true,
+      "process_peak_bytes": 17923833912,
+      "worker_peak_bytes": 17823198543,
+      "wall_seconds": 45.69168962497497,
+      "parent_seconds": 13.333459333,
+      "prover_sha256": "2c6dcab7d3fc262801db59e968d3e4c76070f1a3ec89e901d6850c800bb90d82",
+      "proof_sha256": "52f644d132b8fc88a7ce5d082a3de7792ebea6bd56e0c60b774ddfc15ea05a00"
+    }
+  ]
+}

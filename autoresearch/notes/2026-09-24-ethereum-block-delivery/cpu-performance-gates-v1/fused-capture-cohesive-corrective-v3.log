@@ -1,0 +1,6 @@
+1/5 prover.block_v5_caller_capture_unit_test.test.caller capture: arithmetic borrowed early rejection preserves source and owned rejection consumes it...OK
+2/5 prover.block_v5_caller_capture_unit_test.test.caller capture: combined independent census rejection never retains either input proof...OK
+3/5 prover.block_v5_caller_capture_unit_test.test.caller capture: original caller arithmetic and fused channels retain separate exact reset geometry...OK
+4/5 prover.block_execution_external_trace_v2.test_0...OK
+5/5 prover.block_execution_external_access_bridge_v2.test_0...OK
+All 5 tests passed.

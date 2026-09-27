@@ -1,0 +1,16 @@
+1/12 block_v5_caller_fused_recursive_test_root.test_0...OK
+2/12 block_v5_caller_fused_recursive_test_root.test.caller fused recursion: actual original capture all cohorts publication and receiver bodies retained...OK
+3/12 prover.block_v5_caller_fused_recursive_test_v1.test.caller fused recursion: independent exact schedule rejects altered masks slots roots resource policy...OK
+4/12 prover.block_v5_caller_fused_recursive_test_v1.test.caller fused recursion: original first phase restart Word5 and full claim frames preserve channel bytes...OK
+5/12 prover.block_v5_caller_fused_recursive_test_v1.test.caller fused recursion: owned statement and public claims survive cloning and every allocation failure...OK
+6/12 prover.block_v5_caller_fused_recursive_test_v1.test.caller fused recursion: all original scalar OODS equations match symbolic replay with sample and claim mutations...expected error.ConstraintViolation, found error.UnsatisfiedCircuit
+FAIL (TestUnexpectedError)
+7/12 prover.block_execution_external_trace_v2.test_0...OK
+8/12 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+9/12 prover.block_execution_external_access_bridge_v2.test_0...OK
+10/12 air.memory_commitment.poseidon2_air.test_0...OK
+11/12 air.lookups.tables.mod.test_0...OK
+12/12 air.lookups.tables.source_ingest.test_0...OK
+11 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-caller-fused-recursion-focused-v1 --seed=0x2213072a

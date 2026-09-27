@@ -1,0 +1,530 @@
+[
+  {
+    "mode": "serial",
+    "pair_seconds": 10.643224833,
+    "nodes": [
+      {
+        "node": 0,
+        "seconds": 5.364911583,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/0-serial-0",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0",
+          "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1",
+          "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json",
+          "--parent-key-sha256",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/0-serial-0",
+        "verified": true,
+        "artifacts": {
+          "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+          "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/0-serial-0",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json"
+        ]
+      },
+      {
+        "node": 1,
+        "seconds": 5.278199708,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/0-serial-1",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2",
+          "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3",
+          "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json",
+          "--parent-key-sha256",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/0-serial-1",
+        "verified": true,
+        "artifacts": {
+          "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+          "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/0-serial-1",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json"
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "parallel",
+    "pair_seconds": 34.27178275,
+    "nodes": [
+      {
+        "node": 0,
+        "seconds": 5.548541,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/1-parallel-0",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0",
+          "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1",
+          "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json",
+          "--parent-key-sha256",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/1-parallel-0",
+        "verified": true,
+        "artifacts": {
+          "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+          "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/1-parallel-0",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json"
+        ]
+      },
+      {
+        "node": 1,
+        "seconds": 34.270017875,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/1-parallel-1",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2",
+          "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3",
+          "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json",
+          "--parent-key-sha256",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/1-parallel-1",
+        "verified": true,
+        "artifacts": {
+          "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+          "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/1-parallel-1",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json"
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "parallel",
+    "pair_seconds": 6.384349583,
+    "nodes": [
+      {
+        "node": 0,
+        "seconds": 6.384063542,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/2-parallel-0",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0",
+          "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1",
+          "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json",
+          "--parent-key-sha256",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/2-parallel-0",
+        "verified": true,
+        "artifacts": {
+          "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+          "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/2-parallel-0",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json"
+        ]
+      },
+      {
+        "node": 1,
+        "seconds": 6.329174667,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/2-parallel-1",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2",
+          "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3",
+          "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json",
+          "--parent-key-sha256",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/2-parallel-1",
+        "verified": true,
+        "artifacts": {
+          "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+          "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/2-parallel-1",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json"
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "serial",
+    "pair_seconds": 10.822652542,
+    "nodes": [
+      {
+        "node": 0,
+        "seconds": 5.414121542,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/3-serial-0",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0",
+          "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1",
+          "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json",
+          "--parent-key-sha256",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/3-serial-0",
+        "verified": true,
+        "artifacts": {
+          "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+          "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/3-serial-0",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json"
+        ]
+      },
+      {
+        "node": 1,
+        "seconds": 5.408420292,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/3-serial-1",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2",
+          "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3",
+          "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json",
+          "--parent-key-sha256",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/3-serial-1",
+        "verified": true,
+        "artifacts": {
+          "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+          "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/3-serial-1",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json"
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "serial",
+    "pair_seconds": 10.860988833,
+    "nodes": [
+      {
+        "node": 0,
+        "seconds": 5.435726666,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/4-serial-0",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0",
+          "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1",
+          "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json",
+          "--parent-key-sha256",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/4-serial-0",
+        "verified": true,
+        "artifacts": {
+          "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+          "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/4-serial-0",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json"
+        ]
+      },
+      {
+        "node": 1,
+        "seconds": 5.425142208,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/4-serial-1",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2",
+          "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3",
+          "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json",
+          "--parent-key-sha256",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/4-serial-1",
+        "verified": true,
+        "artifacts": {
+          "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+          "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/4-serial-1",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json"
+        ]
+      }
+    ]
+  },
+  {
+    "mode": "parallel",
+    "pair_seconds": 6.516081083,
+    "nodes": [
+      {
+        "node": 0,
+        "seconds": 6.460284458,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/5-parallel-0",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0",
+          "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1",
+          "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json",
+          "--parent-key-sha256",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/5-parallel-0",
+        "verified": true,
+        "artifacts": {
+          "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+          "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/5-parallel-0",
+          "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json"
+        ]
+      },
+      {
+        "node": 1,
+        "seconds": 6.515719708,
+        "argv": [
+          "/tmp/stwo-recursion-final-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+          "--aot-bundle",
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+          "--aot-manifest-sha256",
+          "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+          "--aot-profile",
+          "recursive-framework-v1",
+          "--profile",
+          "tiny-parent-span-v2",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/5-parallel-1",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2",
+          "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json",
+          "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3",
+          "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json",
+          "--parent-key",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json",
+          "--parent-key-sha256",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "--proof-profile",
+          "recursive_q193_v1"
+        ],
+        "bundle": "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/5-parallel-1",
+        "verified": true,
+        "artifacts": {
+          "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+          "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+        },
+        "verify_argv": [
+          "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+          "/tmp/stwo-recursion-peer-research-20260921/parallel-probe/5-parallel-1",
+          "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+          "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json"
+        ]
+      }
+    ]
+  }
+]

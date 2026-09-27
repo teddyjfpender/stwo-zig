@@ -1,0 +1,48 @@
+{
+  "scope": "one isolated request-only sorted-memory STARK for the first log20 instance of the frozen SHA Ethereum-block fixture; not a complete block proof",
+  "date_utc": "2026-09-25",
+  "host": {
+    "cpu": "Apple M5 Max",
+    "physical_memory_bytes": 68719476736,
+    "backend": "stwo_cpu_backend.CpuBackend",
+    "build": "ReleaseFast -mcpu=native"
+  },
+  "configuration": {
+    "fri_queries": 70,
+    "pow_bits": 26,
+    "fri_log_blowup_factor": 1,
+    "fri_log_last_layer_degree_bound": 0,
+    "segments_replayed": 218,
+    "total_sorted_memory_events": 356303914,
+    "proved_instance_index": 0,
+    "proved_instance_rows": 1048576,
+    "proved_instance_log_size": 20,
+    "shared_range_table_proved": false,
+    "execution_transition_bus_closed": false,
+    "initial_source_bus_closed": false
+  },
+  "measurement": {
+    "status": "request-only PCS proof freshly verified",
+    "replay_and_sort_ns": 63492204708,
+    "first_round_commit_ns": 2278330125,
+    "prove_ns": 22644896083,
+    "fresh_verify_ns": 381168542,
+    "postcard_stark_bytes": 406342,
+    "tracked_peak_live_bytes": 6463831637,
+    "pow_ns": null,
+    "note": "PoW26 search time has geometric variance; prover time is a single sample. Peak is the host-budget allocator's tracked live bytes, not system RSS. The sorted replay is measured over all 218 segments; proof stages measure only the first memory instance."
+  },
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_memory_mainnet_first_test_root.zig 'mainnet first log20 sorted-memory request proves'",
+  "input_sha256": {
+    "ethereum-block-sha-default-v3.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "fixture/stwo-runner-input-evm-hints.bin": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "exact-schedule-proposal-v1/schedule.json": "f72b127f065b234251dcc328c1c9884baec716c03776a303c57de0b050f9d99d"
+  },
+  "source_sha256_observed_during_run": {
+    "src/frontends/riscv/air/block/memory_mainnet_first_bench_test.zig": "c04742027c90a62c82011abd17ce4c748034c04962c01f00dcebd9835e883948",
+    "src/frontends/riscv/prover/block_memory_shared_instance_proof_v2.zig": "872e6dfdc773a64974bad6c47f8a7d5e17e0ba93a66923f7e629f8cffd46aaa6",
+    "src/frontends/riscv/air/block/memory_component_stark.zig": "63b0d4b99ab3144edfe00d163ecceb873dca984bbb0e9003c1daed6a434fac92"
+  },
+  "source_identity_note": "The shared-instance file changed after the run to add only replayFirstRound; commitFirstRound/prove/verifyOwned semantics were unchanged, confirmed by its owner. Its SHA-256 at reporting was 4bf8dc92d0d4714eb918bdb0fa50408574106103d0daadc2b6957d0d30d76321."
+}

@@ -1,0 +1,73 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "authoritative_source_snapshot": "cpu-recursive-completion-focused-v1-source.json",
+  "successful_attempts": [
+    {
+      "source_candidate": "cpu-recursive-completion-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 13.354498833999969,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-completion-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "source_candidate": "cpu-recursive-completion-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 65.36013979202835,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 16,
+      "test_summary": [
+        "All 16 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-completion-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-recursive-completion-focused-v1",
+        "bytes": 110522256,
+        "sha256": "412c0d5a0a5cab585a5d1e13227cce859c7275fa56cf747cd53f7be0a60425ff"
+      }
+    }
+  ],
+  "source_pin_count": 2020,
+  "behavioral_checks": 3,
+  "bodies_retained": [
+    "Actual four-stage requester/PAGE/RAM/FINAL22 completion",
+    "Both legacy and capacity full CPU Driver bodies",
+    "Genuine consumed-row producers and fresh receivers from all stages"
+  ],
+  "integration": [
+    "Typed selected Driver option requires recursive_families and source_pages",
+    "Mutually exclusive with old all-family scoped_job",
+    "Register-local windows required before collection",
+    "All stages under retained common aggregate allocator",
+    "Proof-file bytes/count and per-stage timings plus peak aggregate storage included in Driver.Result",
+    "Requester Fresh released only after PUBLIC21 independently owned verifier rows"
+  ],
+  "remaining": [
+    "Positive assembled proof qualification",
+    "Complete global/source closure and CompleteBlock authority",
+    "Standalone/reusable expected setup",
+    "Canonical default activation and removal of redundant detached/base verification when justified",
+    "End-to-end time and process peak memory",
+    "GPU resident implementation and device qualification"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

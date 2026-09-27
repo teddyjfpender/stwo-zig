@@ -1,0 +1,142 @@
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:54:96: error: ambiguous reference
+            pub fn init(a: std.mem.Allocator, pieces: *const PiecesType, fixed_root: [32]u8) !*Owned {
+                                                                                               ^~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:44:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:219:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:208:34: error: ambiguous reference
+            pub fn deinit(self: *Owned) void {
+                                 ^~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:44:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/air/block_v5_recursive_parent_fixed_sources_v1.zig:219:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:87:107: error: ambiguous reference
+            pub fn init(a: std.mem.Allocator, pieces: *const Pieces.Owned, admission: *const Admission) !*Owned {
+                                                                                                          ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:75:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:138:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:115:49: error: ambiguous reference
+            pub fn validateAgainst(self: *const Owned, pieces: *const Pieces.Owned, admission: *const Admission) !void {
+                                                ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:75:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:138:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:123:46: error: ambiguous reference
+            pub fn requireComplete(_: *const Owned) error{MissingRecursiveParentFixedPorts}!void {
+                                             ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:75:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:138:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:126:34: error: ambiguous reference
+            pub fn deinit(self: *Owned) void {
+                                 ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:75:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_assembly_v1.zig:138:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:33:105: error: ambiguous reference
+            pub fn init(a: std.mem.Allocator, admission: *const Admission, retry_capacity: u32, limits: Limits) !*Owned {
+                                                                                                        ^~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:21:13: note: declared here
+        pub const Limits = AdmissionLimits;
+        ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:12:5: note: also declared here
+pub const Limits = struct {
+~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:54:49: error: ambiguous reference
+            pub fn validateAgainst(self: *const Owned, admission: *const Admission) !void {
+                                                ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:22:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:77:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:61:34: error: ambiguous reference
+            pub fn deinit(self: *Owned) void {
+                                 ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:22:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_pieces_v1.zig:77:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:74:124: error: ambiguous reference
+            pub fn derive(a: std.mem.Allocator, admission: *const Admission, retry_capacity: u32, limits: Pieces.Limits) !*Owned {
+                                                                                                                           ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:59:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:187:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:82:107: error: ambiguous reference
+            pub fn init(a: std.mem.Allocator, pieces: *const Pieces.Owned, admission: *const Admission) !*Owned {
+                                                                                                          ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:59:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:187:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:158:49: error: ambiguous reference
+            pub fn validateAgainst(self: *const Owned, admission: *const Admission, retry_capacity: u32, limits: Pieces.Limits) !void {
+                                                ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:59:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:187:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:171:53: error: ambiguous reference
+            pub fn requireClosedNodeSetup(_: *const Owned) error{MissingRecursiveParentFixedAttachments}!void {
+                                                    ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:59:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:187:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:174:34: error: ambiguous reference
+            pub fn deinit(self: *Owned) void {
+                                 ^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:59:13: note: declared here
+        pub const Owned = struct {
+        ~~~~^~~~~
+src/frontends/riscv/recursion/block_v5_recursive_parent_fixed_roster_v1.zig:187:5: note: also declared here
+pub const Owned = Default.Owned;
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_recursive_fixed_attachments_test_v1.zig:220:42: error: expected type '*recursion.air.blake3_parent_row_storage.Prepared', found '*recursion.blake3_execution_parent_preparation.Prepared'
+    const closure = try Supply.append(a, &parent, &.{mapped}, Values{}, .{});
+                                         ^~~~~~~
+src/frontends/riscv/prover/block_v5_recursive_fixed_attachments_test_v1.zig:220:42: note: pointer type child 'recursion.blake3_execution_parent_preparation.Prepared' cannot cast into pointer type child 'recursion.air.blake3_parent_row_storage.Prepared'
+src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig:69:22: note: struct declared here
+pub const Prepared = struct {
+                     ^~~~~~
+src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig:39:22: note: struct declared here
+pub const Prepared = struct {
+                     ^~~~~~
+src/frontends/riscv/recursion/air/block_v5_closed_public_supply_v1.zig:24:45: note: parameter type declared here
+pub fn append(a: std.mem.Allocator, parent: *Storage.Prepared, wires: []const Bus.Wire, values: anytype, limits: Limits) ![32]u8 {
+                                            ^~~~~~~~~~~~~~~~~
+referenced by:
+    test.recursive fixed attachment: original signed supplier boundary and join order: src/frontends/riscv/prover/block_v5_recursive_fixed_attachments_test_v1.zig:231:29
+    test_0: src/frontends/riscv/block_v5_recursive_fixed_attachments_test_root_v1.zig:2:17

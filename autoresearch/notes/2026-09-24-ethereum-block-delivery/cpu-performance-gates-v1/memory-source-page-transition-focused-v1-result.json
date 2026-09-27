@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-page-transition-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 38.228299834008794,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 14,
+  "test_summary": [
+    "All 14 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-page-transition-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-page-transition-focused-v1",
+    "bytes": 50456464,
+    "sha256": "638be109ee3bc6c50614ca86446225a261b886f5e0bde9b29ec51d649071a67f"
+  }
+}

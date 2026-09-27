@@ -26,6 +26,8 @@ const prover_twiddles = @import("stwo_prover_engine").poly.twiddles;
 const row_window = @import("lang/row_window.zig");
 const runtime_program = @import("extract/runtime_program.zig");
 const semantic_eval = @import("semantic_eval.zig");
+const local_zero = @import("x0_native_envelope_v1.zig");
+const checked_recovery = @import("../recursion/air/universal_typed_component_contract.zig");
 const trace = @import("../runner/trace.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
@@ -63,6 +65,12 @@ pub const SemanticComponent = struct {
         };
     }
 
+    pub fn initLocalZero(family: trace.OpcodeFamily, log_size: u32, is_active_col_idx: usize, main_col_offset: usize) !SemanticComponent {
+        var result = try init(family, log_size, is_active_col_idx, main_col_offset);
+        result.mask_binding = try row_window.SemanticMaskBinding.initLocalZero(family);
+        return result;
+    }
+
     pub fn asVerifierComponent(self: *const @This()) core_air_components.Component {
         return Adapter.asVerifierComponent(self);
     }
@@ -74,7 +82,7 @@ pub const SemanticComponent = struct {
         component.oods_work_profile = oodsWorkProfileErased;
         component.backend_composition_capability = .{
             .base_polynomial_v1 = .{
-                .program_id = (@as(u64, 1) << 32) | @intFromEnum(self.family),
+                .program_id = (@as(u64, if (self.mask_binding.local_zero) 7 else 1) << 32) | @intFromEnum(self.family),
                 .trace_log_size = self.log_size,
                 .selector_tree_index = 0,
                 .selector_column = self.is_active_col_idx,
@@ -109,7 +117,7 @@ pub const SemanticComponent = struct {
         allocator: std.mem.Allocator,
     ) anyerror!@import("stwo_prover_engine").air.composition_work.ComponentProfile {
         const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
-        var program = try runtime_program.build(allocator, self.family);
+        var program = if (self.mask_binding.local_zero) try local_zero.directProgram(allocator, self.family) else try runtime_program.build(allocator, self.family);
         defer program.deinit();
         return composition_work_support.baseProgramProfile(
             allocator,
@@ -135,7 +143,7 @@ pub const SemanticComponent = struct {
         allocator: std.mem.Allocator,
     ) !prover_component.OwnedBasePolynomialProgram {
         const self: *const SemanticComponent = @ptrCast(@alignCast(ctx));
-        return runtime_program.build(allocator, self.family);
+        return if (self.mask_binding.local_zero) local_zero.directProgram(allocator, self.family) else runtime_program.build(allocator, self.family);
     }
 
     pub fn mainColumnCount(self: *const @This()) usize {
@@ -143,11 +151,11 @@ pub const SemanticComponent = struct {
     }
 
     pub fn nConstraints(self: *const @This()) usize {
-        return semantic_eval.constraintCount(self.family);
+        return if (self.mask_binding.local_zero) local_zero.constraintCount(self.family) catch unreachable else semantic_eval.constraintCount(self.family);
     }
 
     pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
-        return semantic_eval.constraintLogDegreeBound(self.family, self.log_size);
+        return if (self.mask_binding.local_zero) self.log_size + 2 else semantic_eval.constraintLogDegreeBound(self.family, self.log_size);
     }
 
     pub fn traceLogDegreeBounds(
@@ -307,7 +315,7 @@ pub const SemanticComponent = struct {
             return error.InvalidProofShape;
         }
 
-        const eval_log_size = try quotientEvaluationLogSize(self.log_size);
+        const eval_log_size = try quotientEvaluationLogSize(self.log_size + @intFromBool(self.mask_binding.local_zero));
         const eval_domain = canonic.CanonicCoset.new(eval_log_size).circleDomain();
         const eval_size = eval_domain.size();
         const source_count = std.math.add(usize, 1, n_main) catch
@@ -316,61 +324,40 @@ pub const SemanticComponent = struct {
         errdefer allocator.free(evaluations);
 
         var owned_count: usize = 0;
-        try validateEvaluationSource(
-            preprocessed[self.is_active_col_idx],
-            self.log_size,
-            eval_log_size,
-        );
-        if (preprocessed[self.is_active_col_idx].log_size != eval_log_size) {
-            owned_count = std.math.add(usize, owned_count, 1) catch
-                return error.ResourceReservationOverflow;
+        for (0..source_count) |index| {
+            const poly = if (index == 0) preprocessed[self.is_active_col_idx] else main[self.main_col_offset + index - 1];
+            const needs_owned = if (self.mask_binding.local_zero)
+                try checked_recovery.sourceNeedsExtension(poly, self.log_size, eval_log_size)
+            else blk: {
+                try validateEvaluationSource(poly, self.log_size, eval_log_size);
+                break :blk poly.log_size != eval_log_size;
+            };
+            owned_count = std.math.add(usize, owned_count, @intFromBool(needs_owned)) catch return error.ResourceReservationOverflow;
         }
-        for (main[self.main_col_offset..main_end]) |poly| {
-            try validateEvaluationSource(poly, self.log_size, eval_log_size);
-            if (poly.log_size != eval_log_size) {
-                owned_count = std.math.add(usize, owned_count, 1) catch
-                    return error.ResourceReservationOverflow;
-            }
-        }
-
         const owned_buffers = try allocator.alloc([]M31, owned_count);
         var owned_initialized: usize = 0;
         errdefer {
             for (owned_buffers[0..owned_initialized]) |values| allocator.free(values);
             allocator.free(owned_buffers);
         }
-        evaluations[0] = try prepareEvaluationValues(
-            allocator,
-            preprocessed[self.is_active_col_idx],
-            eval_log_size,
-            eval_size,
-            owned_buffers,
-            &owned_initialized,
-        );
-        for (main[self.main_col_offset..main_end], evaluations[1..]) |poly, *values| {
-            values.* = try prepareEvaluationValues(
-                allocator,
-                poly,
-                eval_log_size,
-                eval_size,
-                owned_buffers,
-                &owned_initialized,
-            );
+        // The same immutable tower handles full-LDE interpolation and target
+        // evaluation. Its lifetime ends before publishing prepared row tasks.
+        var twiddles: ?prover_twiddles.TwiddleTree([]M31) = null;
+        defer if (twiddles) |*owned| prover_twiddles.deinitM31(allocator, owned);
+        if (owned_count != 0) twiddles = try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset);
+        const transform: ?prover_twiddles.TwiddleTree([]const M31) = if (twiddles) |owned|
+            prover_twiddles.TwiddleTree([]const M31).init(owned.root_coset, owned.twiddles, owned.itwiddles)
+        else
+            null;
+        for (evaluations, 0..) |*values, index| {
+            const poly = if (index == 0) preprocessed[self.is_active_col_idx] else main[self.main_col_offset + index - 1];
+            values.* = if (self.mask_binding.local_zero)
+                try checked_recovery.evaluationValues(allocator, poly, self.log_size, eval_log_size, eval_size, transform, owned_buffers, &owned_initialized)
+            else
+                try prepareEvaluationValues(allocator, poly, eval_log_size, eval_size, owned_buffers, &owned_initialized);
         }
         std.debug.assert(owned_initialized == owned_count);
-        if (owned_buffers.len != 0) {
-            var twiddles = try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset);
-            defer prover_twiddles.deinitM31(allocator, &twiddles);
-            try prover_poly.evaluateBuffersWithTwiddles(
-                owned_buffers,
-                eval_domain,
-                prover_twiddles.TwiddleTree([]const M31).init(
-                    twiddles.root_coset,
-                    twiddles.twiddles,
-                    twiddles.itwiddles,
-                ),
-            );
-        }
+        if (transform) |ready| try prover_poly.evaluateBuffersWithTwiddles(owned_buffers, eval_domain, ready);
 
         const denominator_inv = try quotientDenominators(
             allocator,
@@ -430,19 +417,15 @@ pub const SemanticComponent = struct {
             for (sampled[0..n_main], evaluations[1..]) |*value, column| {
                 value.* = semantic_eval.BaseScalar.fromBase(column[row]);
             }
-            var evaluation: semantic_eval.BaseEval.Evaluation = undefined;
-            try semantic_eval.BaseEval.evaluateInto(
-                self.family,
-                sampled[0..n_main],
-                semantic_eval.BaseScalar.fromBase(evaluations[0][row]),
-                &evaluation,
-            );
-            var folded = QM31.zero();
-            for (evaluation.values[0..evaluation.len], 0..) |constraint, index| {
-                folded = folded.add(
-                    powers[powers.len - 1 - index].mulM31(constraint.value),
-                );
-            }
+            const selector = semantic_eval.BaseScalar.fromBase(evaluations[0][row]);
+            const folded = if (self.mask_binding.local_zero) blk: {
+                const evaluation = try local_zero.Builder(semantic_eval.BaseScalar).direct(self.family, sampled[0..n_main], selector);
+                break :blk foldBaseConstraints(powers, evaluation.values[0..evaluation.len]);
+            } else blk: {
+                var evaluation: semantic_eval.BaseEval.Evaluation = undefined;
+                try semantic_eval.BaseEval.evaluateInto(self.family, sampled[0..n_main], selector, &evaluation);
+                break :blk foldBaseConstraints(powers, evaluation.values[0..evaluation.len]);
+            };
             column_accumulator.accumulate(
                 row,
                 folded.mulM31(state.denominator_inv[row >> denominator_shift]),
@@ -454,23 +437,31 @@ pub const SemanticComponent = struct {
         self: *const @This(),
         main: []const QM31,
         is_active: QM31,
-    ) !semantic_eval.Evaluation {
+    ) !semantic_eval.Eval(QM31).RecipeEvaluation {
         if (!semantic_eval.isTraceCompatible(self.family)) {
             return error.IncompatibleCommittedTrace;
         }
-        return semantic_eval.evaluate(self.family, main, is_active);
+        var result: semantic_eval.Eval(QM31).RecipeEvaluation = undefined;
+        try semantic_eval.Eval(QM31).evaluateForRecipeInto(self.family, main, is_active, self.mask_binding.local_zero, &result);
+        return result;
     }
 
     fn validateMaskBinding(self: *const @This()) !void {
         try self.mask_binding.validate();
         if (self.mask_binding.family != self.family or
             self.mask_binding.owned_main_current_columns !=
-                semantic_eval.mainColumnCount(self.family))
+                (if (self.mask_binding.local_zero) try local_zero.mainColumnCount(self.family) else semantic_eval.mainColumnCount(self.family)))
         {
             return error.InvalidProofShape;
         }
     }
 };
+
+fn foldBaseConstraints(powers: []const QM31, values: []const semantic_eval.BaseScalar) QM31 {
+    var folded = QM31.zero();
+    for (values, 0..) |constraint, index| folded = folded.add(powers[powers.len - 1 - index].mulM31(constraint.value));
+    return folded;
+}
 
 const PreparedDomainState = struct {
     const CANCELLATION_POLL_ROWS: usize = 4096;

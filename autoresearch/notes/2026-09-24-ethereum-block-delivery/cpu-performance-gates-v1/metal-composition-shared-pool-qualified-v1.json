@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "scope": "Four device-free composition/BLAKE3 scratch-pool ownership, exact charging, eviction, lifetime and rollback fixtures; actual pooled/unpooled allocation, composition preparation, streaming BLAKE3, teardown and backend shutdown bodies compiled without execution",
+  "passed": 4,
+  "log": "metal-composition-shared-pool-v2.log",
+  "body_log": "metal-composition-pool-production-body-v1.log",
+  "body_object": "metal-composition-pool-production-body-v1.o",
+  "sources": {
+    "src/metal_composition_pool_test_root.zig": "84d2e674e2c9e4c7255764625a216de309b12fb211c6430feb74b3a742dc29b6",
+    "src/metal_composition_pool_codegen.zig": "5e00a05201505c255518347833bf8f5ab57b8926163957b16adfac384e3fbc2a",
+    "src/backends/metal/runtime/composition_resident_pool_v1.zig": "c34a8edbd3569ea5aa4dc4d1ae92e54ff4b49a8d1098a845b5accf221c0e7ace",
+    "src/backends/metal/runtime/composition_domain_scratch.zig": "22bdad7c5fd6741af0552847fec9359056e997fbfdb8519e9461ffd3224aab4f",
+    "src/backends/metal/runtime/blake3_streaming_leaves.zig": "49ce5ded913e43bc5428cb856507add22b2cf1e3bf5cc819d47fee1d150abf68",
+    "src/backends/metal/runtime/base_polynomial_composition.zig": "6b162a7e6e9c154fc3351edc4aa486acf4485ddea8866c78553e497995becad6",
+    "src/backends/metal/commit_backend.zig": "adfc7139db7d70d2da78a4f909c9b54bebef4d3ac34a89c579eddcaaf6331fbc",
+    "src/backends/metal/runtime/fri_inverse_cache_v1.zig": "54af314bfbbfaeebd7dc679ecb7b86aa6168118af581e1a3a6b82eb2fa81d63f",
+    "src/prover/shared_external_memory_v1.zig": "d2cecd2d3cf5fb1dbb4611a8c7ed6b7a1da14738e376215c580a8d53b3c18fc2",
+    "src/prover/host_budget_allocator.zig": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+    "src/backends/metal/runtime/resident_data.zig": "c6bf467853e78e9b276d80eccaf458af38dd7a87da0257b2d768523d5764fc2f"
+  },
+  "guest_executed": false,
+  "device_executed": false,
+  "stark_proved": false,
+  "performance_measured": false,
+  "whole_process_rss_enforced": false,
+  "log_sha256": "b44bab14444213f683be3251a06944ebe3b0c9da869c204ae7f8b34a4588d6a5",
+  "body_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "body_object_sha256": "dbf561ed66a87252e7f5c1010d1b295aad842a678dee3e259c9a44806066a8bc"
+}

@@ -1,0 +1,2 @@
+1/1 blake3_commitment_geometry.test.hash geometry admits log25 and rejects overflow without allocating columns...OK
+All 1 tests passed.

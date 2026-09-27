@@ -1,0 +1,51 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "cpu-requester-job-source-candidate-v1.json",
+  "successful_attempts": [
+    {
+      "attempt": "cpu-requester-job-focused-v1-result.json",
+      "source_candidate": "cpu-requester-job-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 26.663954874966294,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-requester-job-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-requester-job-focused-v1",
+        "bytes": 48416040,
+        "sha256": "72b0073e1685d9854f83e30e23999a2980d0707af18a49d06e25c8d48040663c"
+      }
+    }
+  ],
+  "authoritative_source_snapshots": [
+    "cpu-requester-job-focused-v1-source.json"
+  ],
+  "behavioral_checks": 6,
+  "evidence_scope": [
+    "Single canonical bounded fold statically supports complete/requester recipes",
+    "Already-fresh requester root and actual allocator retained",
+    "Original child captures released after verifier rows own source metadata; consuming worker drops rows before fresh receiving",
+    "Subtype coverage report follows actual capacity/caller adapters",
+    "Budget/resource/rollback and metadata fixture guards; genuine bodies retained only"
+  ],
+  "remaining": [
+    "Canonical completed root authority",
+    "Positive proof, lifecycle peak memory and end-to-end timing",
+    "Standalone/reusable expected setup"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

@@ -1,0 +1,20 @@
+ETH_AUTH_EXECUTION cycles=149924 keccak=87 recoveries=16 output=010000001000000058fd7193c9c0d6e71780fd4723b240cedf505932233bae1d8e7790c225a9a2b6bd0575ce257a9043d57b5b6074042a8c86ee337744aa6ae620c0836f811b9140
+error: ConstraintsNotSatisfied
+       24.62 real       234.21 user         2.30 sys
+         10024828928  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1309082  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              101425  involuntary context switches
+       4901042819700  instructions retired
+        942617897687  cycles elapsed
+         10026082944  peak memory footprint

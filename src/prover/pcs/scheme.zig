@@ -81,17 +81,21 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
     comptime backend_merkle.assertMerkleOps(B, H);
     const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
     return struct {
+        pub const CommittedTree = BackendCommitmentTree;
         trees: std.ArrayListUnmanaged(BackendCommitmentTree),
         config: PcsConfig,
         coefficient_retention_policy: CoefficientRetentionPolicy,
+        /// CPU coefficient-backed residency; commitment/proof geometry is unchanged.
+        compact_polynomial_storage: bool = false,
+        compact_polynomial_min_log_size: u32 = 20,
         /// Optional storage for retained LDE values only. Its owner must outlive
         /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
         retained_column_allocator: ?std.mem.Allocator = null,
         /// Optional scratch storage for typed AIR quotient-domain values.
         /// Its owner must outlive proving and all prepared evaluators.
         quotient_values_allocator: ?std.mem.Allocator = null,
-        /// Execution-only opt-in; CSP and existing callers retain their path.
-        reuse_bounded_merkle_tail: bool = false,
+        /// Reuse lifted prefixes by default for full-width BLAKE3 commitments.
+        reuse_bounded_merkle_tail: bool = H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher,
         /// Execution-only opt-in for adopting backends; keeps source and
         /// coefficient storage in the same aligned arena.
         pack_owned_source_by_log: bool = false,
@@ -142,6 +146,12 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             self.* = undefined;
         }
 
+        pub fn setCompactPolynomialStorage(self: *Self, minimum_log_size: u32) void {
+            self.compact_polynomial_min_log_size = @max(1, minimum_log_size);
+            self.compact_polynomial_storage = true;
+            self.coefficient_retention_policy = .always;
+        }
+
         pub fn setStorePolynomialsCoefficients(self: *Self) void {
             self.coefficient_retention_policy = .always;
         }
@@ -180,6 +190,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         pub const commitPolysWithRecorder = CommitOps.commitPolysWithRecorder;
         pub const treeBuilder = CommitOps.treeBuilder;
         pub const streamingTreeBuilder = CommitOps.streamingTreeBuilder;
+        pub const commitBorrowedStreaming = CommitOps.commitBorrowedStreaming;
+        pub const commitBorrowedStreamingWithRecorder = CommitOps.commitBorrowedStreamingWithRecorder;
         pub const commitOwnedStreaming = CommitOps.commitOwnedStreaming;
         pub const commitOwnedStreamingWithRecorder = CommitOps.commitOwnedStreamingWithRecorder;
         pub fn roots(self: *Self, allocator: std.mem.Allocator) !TreeVec(H.Hash) {

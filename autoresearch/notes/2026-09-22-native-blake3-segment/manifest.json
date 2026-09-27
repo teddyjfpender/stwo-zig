@@ -1,0 +1,15 @@
+{
+  "README.md": "c201a790e81def9b1e0022ac7afb2494f86e3b7be3090c4282e0ad586f3aea18",
+  "initial-fixture-failure.log": "9f949eaa8f6c7b3c9993f84fd8b9965234c18c9676ca1f7f9fe920bd48500900",
+  "qualification.log": "e51673ee59528fc454f67a871271eb4481074b268c2ffdf43a527665bdea20d2",
+  "sources/autoresearch/notes/20260922-native-blake3-segment-problem-match.md": "ee5295270b7accd15cefcddf96a61092fc790a9a91af4117ca80f03a2fa5e200",
+  "sources/src/frontends/riscv/prover/statement_validation.zig": "1b4c2e793088165d9c509df631ceffa78cb85b24c0f01631279faa5cae4b9c32",
+  "sources/src/frontends/riscv/prover/verifier.zig": "aa33284f8d38728c2ff97a8938fa25bcbdc9db8662aa89b0fe939ba865cbe905",
+  "sources/src/frontends/riscv/prover/verifier_protocol.zig": "443630bccb8fdfa8fa6bd9083ecd3e3b2333fc2ce0660a1737c53f8e40ef778e",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_fixture.zig": "bcf001194465a4c592127d8f703249a9bc539de8efc7fd1840e4ae19fbfd6a99",
+  "sources/src/frontends/riscv/recursion/blake3_engine_protocol.zig": "0d372ff0a6b2e4a25c62f9b6db9f946bc1d888754cf8b5f892240f4e12615dbb",
+  "sources/src/frontends/riscv/recursion/engine.zig": "5d3e37091a2a3ab146c3e1e51d574120c7540e29d3655d83147ab3b53a17bb18",
+  "sources/src/frontends/riscv/recursion/segment_statement_v2_source_v2.zig": "bf5ce930c0487a7d76ffb0f5fba095743f352fe794feb94df9ae2b55ab7b6fe9",
+  "sources/src/integrations/riscv_cpu/build_proof_steps.zig": "6f649cd46a2b60fc8bda5ae441d02e98593dc625418abb6a5fac8863c983bb10",
+  "sources/src/integrations/riscv_cpu/segment_v2_native_proof_test.zig": "e369708a99e2572872ca0f68829d07e2a08991d72f106b2562af7d0fd8a2efc1"
+}

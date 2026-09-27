@@ -70,8 +70,15 @@ pub const SessionOptions = struct {
     input: []const u8 = &.{},
     stop_on_halt_flag: bool = false,
     strict_completion: bool = false,
+    /// Execution planning may cross output publication boundaries. It can
+    /// collect bytes without requiring every output access in the final chunk.
+    /// Proof replay retains the default and must produce complete local receipts.
+    require_current_output_accesses: bool = true,
     trace_retention: TraceRetention = .cumulative,
     clock_frame: SegmentClockFrame = .global_continuous,
+    /// Explicit recipe option only. Canonical collection may select this after
+    /// native, caller, counter and window admission are migrated together.
+    x0_local_custody_version: u32 = 0,
     retirement_observer: ?RetirementObserverV1 = null,
     pre_retirement_boundary_observer: ?PreRetirementBoundaryObserverV1 = null,
 };

@@ -1,0 +1,10 @@
+src/frontends/riscv/recursion/air/block_v5_recursive_frame_scaling_test_v1.zig:18:50: error: struct 'fields.qm31.QM31' has no member named 'fromU32'
+        channel.mixFelts(&.{core.fields.qm31.QM31.fromU32(17)});
+                            ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+src/core/fields/qm31.zig:29:18: note: struct declared here
+pub const QM31 = struct {
+                 ^~~~~~
+referenced by:
+    record__anon_27058: src/frontends/riscv/recursion/block_v5_requester_public_source_v1.zig:83:22
+    frameAllocation: src/frontends/riscv/recursion/air/block_v5_recursive_frame_scaling_test_v1.zig:64:47
+    3 reference(s) hidden; use '-freference-trace=5' to see all references

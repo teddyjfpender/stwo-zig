@@ -1,0 +1,32 @@
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/math.zig:709:30: error: evaluation exceeded 100000 backwards branches
+            const ar: Log2Int(T) = @intCast(@mod(r, @typeInfo(T).int.bits));
+                      ~~~~~~~^~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/math.zig:709:30: note: use @setEvalBranchQuota() to raise the branch limit from 100000
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/sha2.zig:367:46: note: called at comptime here
+                v[r.h] = v[r.h] +% (math.rotr(u32, v[r.e], @as(u32, 6)) ^ math.rotr(u32, v[r.e], @as(u32, 11)) ^ math.rotr(u32, v[r.e], @as(u32, 25))) +% (v[r.g] ^ (v[r.e] & (v[r.f] ^ v[r.g]))) +% W[r.i] +% s[r.i];
+                                    ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/sha2.zig:122:24: note: called at comptime here
+                d.round(&d.buf);
+                ~~~~~~~^~~~~~~~
+src/frontends/riscv/air/lang/relation.zig:479:16: note: called at comptime here
+    hash.update(item.reference_name);
+    ~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/relation.zig:362:49: note: called at comptime here
+    for (descriptors) |item| hashOrderDescriptor(&hash, item);
+                             ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~
+src/frontends/riscv/air/lang/relation.zig:354:38: note: called at comptime here
+    return computeRegistryOrderDigest(&universal_descriptors);
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/recursion/air/universal_challenges.zig:26:40: note: called at comptime here
+    return relation.registryOrderDigest();
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+src/frontends/riscv/prover/block_v5_memory_source_unified_page_protocol_v1.zig:125:47: note: called at comptime here
+    hash.update(&Universal.registryOrderDigest());
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~
+src/frontends/riscv/prover/block_v5_memory_source_page_policy_file_v1.zig:36:34: note: called at comptime here
+        break :blk Protocol.abiId();
+                   ~~~~~~~~~~~~~~^~
+referenced by:
+    Wire: src/frontends/riscv/prover/block_v5_memory_source_page_policy_file_v1.zig:31:18
+    write: src/frontends/riscv/prover/block_v5_memory_source_page_policy_file_v1.zig:125:81
+    4 reference(s) hidden; use '-freference-trace=6' to see all references

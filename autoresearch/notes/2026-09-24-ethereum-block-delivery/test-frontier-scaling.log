@@ -1,0 +1,30 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 6s
+1/26 runner.balanced_schedule.test.balanced execution schedule covers every cycle with nonempty binary leaves...OK
+2/26 runner.balanced_schedule.test.balanced execution schedule rejects impossible and overflowing geometry...OK
+3/26 recursion.air.blake3_public_subtrees.test.public subtree cover matches sparse tree hashes without absorbing gaps...OK
+4/26 recursion.air.blake3_public_subtrees.test.public subtree cover scales with the boundary of a large public input...PUBLIC_SUBTREE_PLAN words=675173 ranges=17 path_hashes=640 old_path_hashes=40510380
+OK
+5/26 recursion.blake3_stream_frontier.test.stream frontier ownership scales logarithmically beyond sixteen segments...OK
+6/26 recursion.blake3_stream_frontier.test.stream frontier retains bounded nodes and requires authenticated padding...OK
+7/26 recursion.blake3_stream_frontier.test.stream frontier carry failure preserves input and all prior nodes...OK
+8/26 recursion.blake3_stream_frontier.test.stream frontier rejects wrong order job and returned parent without mutation...OK
+9/26 recursion.blake3_identity_digest.test.BLAKE3 identity encoding pins byte order and preserves all high bits...OK
+10/26 recursion.blake3_identity_digest.test.BLAKE3 identity rejects M31-canonical aliases at every limb...OK
+11/26 recursion.blake3_identity_digest.test.every BLAKE3 digest bit changes its field encoding...OK
+12/26 air.public_data.test.public data: versioned transcript preserves pinned Stark-V field order...OK
+13/26 air.public_data.test.public data: absent roots and empty input preserve versioned field calls...OK
+14/26 air.public_data.test.public data: statement transcript version is a nonzero domain prefix...OK
+15/26 air.public_data.test.public data: pack input words is little endian with zero padding...OK
+16/26 air.public_data.test.public data: validator accepts the pinned input and output shape...OK
+17/26 air.public_data.test.public data: validator rejects missing root and malformed input...OK
+18/26 air.public_data.test.public data: validator rejects malformed output structure...OK
+19/26 air.public_data.test.public data: empty output forms retain the pinned segment distinction...OK
+20/26 air.public_data.test.public data: output regions use checked, non-overlapping addresses...OK
+21/26 air.public_data.test.public data: unaligned output length is outside the supported proof profile...OK
+22/26 air.public_data.test.BLAKE3 public data binds every root bit and separates absence and version...OK
+23/26 air.public_data.test.public input byte binding rejects changed bytes lengths and padding...OK
+24/26 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+25/26 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+26/26 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+All 26 tests passed.

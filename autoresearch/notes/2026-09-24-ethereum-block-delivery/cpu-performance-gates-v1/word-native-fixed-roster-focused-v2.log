@@ -1,0 +1,6 @@
+1/5 block_v5_word_fixed_sources_test_root_v1.test_0...OK
+2/5 block_v5_word_fixed_sources_test_root_v1.test.word fixed sources: actual typed native and original default parent bodies retained...OK
+3/5 prover.block_v5_word_fixed_sources_test_v1.test.word fixed sources: native RAM private root and sample suppliers preserve external public ports...OK
+4/5 prover.block_v5_word_fixed_sources_test_v1.test.word fixed sources: native range16 original 52-pair draw and terminal suppliers...OK
+5/5 prover.block_v5_word_fixed_sources_test_v1.test.word fixed sources: original arena and retained owner release through every allocation failure...OK
+All 5 tests passed.

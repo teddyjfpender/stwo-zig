@@ -51,6 +51,11 @@ pub const PackedCM31 = struct {
             .b = m31.addPacked(value.a, m31.addPacked(value.b, value.b)),
         };
     }
+
+    pub inline fn mulByI(value: PackedCM31) PackedCM31 {
+        const zeros: PackedM31 = @splat(0);
+        return .{ .a = m31.subPacked(zeros, value.b), .b = value.a };
+    }
 };
 
 pub const PackedQM31 = struct {
@@ -117,6 +122,19 @@ pub const PackedQM31 = struct {
 
     pub inline fn sub(lhs: PackedQM31, rhs: PackedQM31) PackedQM31 {
         return .{ .c0 = lhs.c0.sub(rhs.c0), .c1 = lhs.c1.sub(rhs.c1) };
+    }
+
+    pub inline fn neg(value: PackedQM31) PackedQM31 {
+        return zero().sub(value);
+    }
+
+    pub inline fn fromPartialEvals(evals: [qm31.SECURE_EXTENSION_DEGREE]PackedQM31) PackedQM31 {
+        // Multiplication by i, u and iu is a coordinate permutation and
+        // additions (u² = 2+i); no general secure-field products are needed.
+        const by_i = PackedQM31{ .c0 = evals[1].c0.mulByI(), .c1 = evals[1].c1.mulByI() };
+        const by_u = PackedQM31{ .c0 = evals[2].c1.mulByR(), .c1 = evals[2].c0 };
+        const by_iu = PackedQM31{ .c0 = evals[3].c1.mulByR().mulByI(), .c1 = evals[3].c0.mulByI() };
+        return evals[0].add(by_i).add(by_u).add(by_iu);
     }
 
     pub inline fn mul(lhs: PackedQM31, rhs: PackedQM31) PackedQM31 {

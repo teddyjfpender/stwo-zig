@@ -1,0 +1,19 @@
+
+Build Summary: 16/16 steps succeeded; 6/6 tests passed
+test-blake3-path-select success
++- BLAKE3 path selector guard success
+   +- run test 1 passed 475ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 5s MaxRSS:669M
+test-blake3-byte-route success
++- BLAKE3 byte route guard success
+   +- run test 3 passed 644ms MaxRSS:8M
+      +- compile test ReleaseSafe native success 6s MaxRSS:675M
+test-qm31-pack-wire success
++- QM31 weighted pack guard success
+   +- run test 1 passed 768ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:526M
+test-blake3-combined-fri success
++- BLAKE3 combined FRI guard success
+   +- run test 1 passed 30s MaxRSS:6G
+      +- compile test ReleaseSafe native success 37s MaxRSS:2G
+

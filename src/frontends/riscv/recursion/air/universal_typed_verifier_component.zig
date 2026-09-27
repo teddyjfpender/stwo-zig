@@ -102,6 +102,7 @@ pub fn ComponentForManifest(comptime Air: type, comptime Relation: type, comptim
         pub const maxConstraintLogDegreeBound = Shared.maxConstraintLogDegreeBound;
         pub const traceLogDegreeBounds = Shared.traceLogDegreeBounds;
         pub const maskPoints = Shared.maskPoints;
+        pub const staticMaskPoints = Shared.staticMaskPoints;
         pub const evaluateBaseRowInto = Shared.evaluateBaseRowInto;
         pub const preprocessedColumnIndices = Shared.preprocessedColumnIndices;
         pub const evaluateConstraintQuotientsAtPoint = Shared.evaluateConstraintQuotientsAtPoint;
@@ -227,9 +228,13 @@ pub fn Methods(comptime Self: type, comptime Air: type, comptime Relation: type,
             point: CirclePointQM31,
             max_log_degree_bound: u32,
         ) !core_air_components.MaskPoints {
+            return staticMaskPoints(self.log_size, allocator, point, max_log_degree_bound);
+        }
+        /// Original immutable AIR/log masks, independent of claims/relations.
+        pub fn staticMaskPoints(log_size: u32, allocator: std.mem.Allocator, point: CirclePointQM31, max_log_degree_bound: u32) !core_air_components.MaskPoints {
             // The core callback supplies the largest committed trace degree,
             // not the larger quotient-evaluation degree.
-            if (max_log_degree_bound < self.log_size)
+            if (max_log_degree_bound < log_size)
                 return error.InvalidProofShape;
             const pp = try currentPointColumns(allocator, PP_COUNT, point);
             errdefer freePointColumns(allocator, pp);

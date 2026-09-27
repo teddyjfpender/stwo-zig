@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-blake3-combined-fri success
++- BLAKE3 combined FRI guard success
+   +- run test 1 passed 28s MaxRSS:6G
+      +- compile test ReleaseSafe native success 35s MaxRSS:2G
+test-blake3-fri-arithmetic-proof success
++- BLAKE3 FRI arithmetic guard success
+   +- run test 1 passed 5s MaxRSS:368M
+      +- compile test ReleaseSafe native success 27s MaxRSS:1G
+

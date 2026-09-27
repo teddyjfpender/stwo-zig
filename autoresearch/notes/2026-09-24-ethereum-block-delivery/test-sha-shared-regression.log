@@ -1,0 +1,28 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 226s
+1/25 sha256_pair_candidate_test_root.test.fixed64 SHA-256 pair candidate declarations compile...OK
+2/25 air.guest_precompile.sha256_compression.test.SHA compression arbitrary chaining states match independent standard library...OK
+3/25 air.guest_precompile.sha256_compression.test.SHA compression composes with message padding at block boundaries...OK
+4/25 opcode_manifest.test.opcode manifest is complete and preserves legacy protocol ids...OK
+5/25 opcode_manifest.test.host-control instructions have no proof-family field...OK
+6/25 opcode_manifest.test.opcode manifest owns a unique fail-closed decoder matrix...OK
+7/25 air.transcript.claims.test.claim transcript: canonical component order is pinned...OK
+8/25 air.transcript.claims.test.claim transcript: main and interaction mix call boundaries are canonical...OK
+9/25 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+10/25 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+11/25 air.guest_precompile.sha256_pair_candidate_v1_test.test.fixed SHA-256 pair owns exact two-block semantics...OK
+12/25 air.guest_precompile.sha256_pair_candidate_v1_test.test.fixed SHA-256 pair rejects semantic trace and identity mutations...OK
+13/25 air.guest_precompile.sha256_pair_candidate_v1_test.test.round AIR closes every two-block row and boundary relation...OK
+14/25 air.guest_precompile.sha256_pair_candidate_v1_test.test.round AIR rejects arithmetic transition boundary and padding mutations...OK
+15/25 air.guest_precompile.sha256_pair_candidate_v1_test.test.caller binds fixed input output and all memory chains...OK
+16/25 air.guest_precompile.sha256_pair_candidate_v1_test.test.caller rejects output clock pointer and relation mutations...OK
+17/25 air.guest_precompile.sha256_pair_candidate_v1_test.test.retained prefix projection isolates 1385 fixed pairs and keeps variable SHA...OK
+18/25 air.lookups.entry.test.lookup entry domains retain transcript order...OK
+19/25 air.lookups.entry.test.lookup entry arities cover all twelve relation domains and fail closed...OK
+20/25 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+21/25 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+22/25 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+23/25 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+24/25 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+25/25 air.trace_columns.m_extension.test.RV32M layouts expose exact oracle boundary fields...OK
+All 25 tests passed.

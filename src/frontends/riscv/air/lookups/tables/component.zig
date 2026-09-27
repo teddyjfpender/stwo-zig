@@ -169,6 +169,7 @@ pub const LookupTableComponent = struct {
     pub const traceLogDegreeBounds = VerifierMethods.traceLogDegreeBounds;
 
     pub const maskPoints = VerifierMethods.maskPoints;
+    pub const staticMaskPoints = VerifierMethods.staticMaskPoints;
 
     pub const preprocessedColumnIndices = VerifierMethods.preprocessedColumnIndices;
 

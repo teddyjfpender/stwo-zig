@@ -1,0 +1,8 @@
+1/7 block_v5_native_projection_fused_unit_test_root.test_0...OK
+2/7 prover.block_v5_native_projection_fused_unit_test.test.block-v5 fused native nonproving masks OODS and domain equations match separate projections...OK
+3/7 prover.block_v5_native_projection_fused_unit_test.test.block-v5 fused native nonproving producer and fresh receiver APIs compile...OK
+4/7 air.semantic_eval.test_0...OK
+5/7 air.lookups.tables.mod.test_0...OK
+6/7 air.memory_commitment.poseidon2_air.test_0...OK
+7/7 air.lookups.tables.source_ingest.test_0...OK
+All 7 tests passed.

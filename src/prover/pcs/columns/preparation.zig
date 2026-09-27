@@ -240,17 +240,19 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
         };
     }
 
-    if (work_plan == .combined) {
-        return prepareColumnsCombinedForBackend(
-            B,
-            allocator,
-            owned_columns,
-            log_blowup_factor,
-            retain_coefficients,
-            twiddle_source,
-            source_arena,
-            work_recorder,
-        );
+    if (comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers")) {
+        if (work_plan == .combined) {
+            return prepareColumnsCombinedForBackend(
+                B,
+                allocator,
+                owned_columns,
+                log_blowup_factor,
+                retain_coefficients,
+                twiddle_source,
+                source_arena,
+                work_recorder,
+            );
+        }
     }
     if (source_arena != null) return error.UnsupportedTraceArena;
 
@@ -423,7 +425,12 @@ fn prepareColumnsCombinedForBackend(
     const supports_circle_lde_batch = comptime @hasDecl(B, "CircleLdeBatch") and
         @hasDecl(B, "interpolateAndEvaluateCircleBuffersBatched");
     var circle_lde_batch: if (supports_circle_lde_batch) B.CircleLdeBatch else void =
-        if (supports_circle_lde_batch) try B.CircleLdeBatch.init() else {};
+        if (supports_circle_lde_batch)
+            if (comptime @hasDecl(B.CircleLdeBatch, "initWithAllocator"))
+                try B.CircleLdeBatch.initWithAllocator(allocator)
+            else
+                try B.CircleLdeBatch.init()
+        else {};
     defer if (supports_circle_lde_batch) circle_lde_batch.deinit();
 
     for (groups.items) |group| {

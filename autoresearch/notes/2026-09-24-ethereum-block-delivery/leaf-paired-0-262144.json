@@ -1,0 +1,26 @@
+{
+  "segment_verified": true,
+  "block_verified": false,
+  "segment_index": 0,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 262144,
+  "execution_ns": 126190750,
+  "witness_ns": 19317450042,
+  "prove_ns": 64983965375,
+  "total_ns": 108172655292,
+  "peak_bytes": 37852116288,
+  "programs": 729419,
+  "memory_boundaries": 67429,
+  "hash_logs": [
+    24,
+    22,
+    23,
+    22,
+    11,
+    17,
+    17,
+    20
+  ],
+  "proof_bytes": 2241005
+}

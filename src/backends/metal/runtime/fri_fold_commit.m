@@ -195,7 +195,7 @@ void *stwo_zig_metal_fri_fold_line_and_commit(
 
         [command commit];
         [command waitUntilCompleted];
-        if (command.status == MTLCommandBufferStatusError) {
+        if (command.status != MTLCommandBufferStatusCompleted) {
             write_error(error_message, error_message_len,
                         command.error.localizedDescription ?: @"Metal FRI fold + commitment failed");
             return NULL;
@@ -220,7 +220,7 @@ void *stwo_zig_metal_fri_fold_line_and_commit(
     }
 }
 
-bool stwo_zig_metal_fri_line_cascade(
+static bool stwo_zig_metal_fri_line_cascade_configured_v1(
     void *runtime_ptr, void *source_ptr, uint32_t source_count,
     void *circle_source_ptr, const uint32_t *circle_alpha,
     void *prior_channel_buffer_ptr, uint32_t prior_state_word_offset,
@@ -230,8 +230,10 @@ bool stwo_zig_metal_fri_line_cascade(
     void *const *coordinate_ptrs, void *final_destination_ptr,
     uint32_t fri_layer_count,
     const uint32_t *leaf_seed, const uint32_t *node_seed,
-    uint32_t domain_prefix_bytes, uint32_t *channel_state,
+    uint32_t domain_prefix_bytes, uint32_t hash_family, uint32_t *channel_state,
     void **tree_outputs, uint32_t *inverse_generation_mask,
+    void *external_circle_inverse, void *external_line_inverse,
+    bool generate_external_circle, bool generate_external_line,
     StwoZigCommandEpochStats *stats,
     char *error_message, size_t error_message_len
 ) {
@@ -251,6 +253,13 @@ bool stwo_zig_metal_fri_line_cascade(
         return false;
     }
 
+    const bool blake3=hash_family==StwoZigCommitmentHashFamilyBlake3V1;
+    if(!blake3 && hash_family!=StwoZigCommitmentHashFamilyBlake2sV1) return false;
+    const uint32_t state_words=blake3 ? 11u : 10u;
+    if(blake3) {
+        if(domain_prefix_bytes!=0u || channel_state[10]!=0u) return false;
+        for(uint32_t i=0;i<8u;++i) if(leaf_seed[i]!=0u || node_seed[i]!=0u) return false;
+    }
     uint64_t expected_inverse_count = 0u;
     uint32_t count = source_count;
     for (uint32_t stage = 0u; stage < fri_layer_count; ++stage) {
@@ -264,6 +273,12 @@ bool stwo_zig_metal_fri_line_cascade(
 
     @autoreleasepool {
         StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        id<MTLComputePipelineState> coordinate_pipeline=blake3 ? runtime.blake3Qm31ToCoordinates : runtime.qm31ToCoordinates;
+        id<MTLComputePipelineState> fold_pipeline=blake3 ? runtime.blake3FriFoldLine : runtime.friFoldLine;
+        id<MTLComputePipelineState> parent_pipeline=stwo_zig_commitment_parents_pipeline(runtime,hash_family);
+        id<MTLComputePipelineState> tail_pipeline=stwo_zig_commitment_parent_tail_pipeline(runtime,hash_family);
+        if(coordinate_pipeline==nil || fold_pipeline==nil || parent_pipeline==nil || tail_pipeline==nil) return false;
+
         id<MTLBuffer> initial_source = (__bridge id<MTLBuffer>)source_ptr;
         id<MTLBuffer> circle_source = circle_source_ptr == NULL
             ? nil
@@ -276,20 +291,20 @@ bool stwo_zig_metal_fri_line_cascade(
         if (initial_source.length < (NSUInteger)source_count * 16u ||
             (circle_source != nil && circle_source.length < (NSUInteger)source_count * 32u) ||
             (prior_channel_buffer != nil &&
-                (prior_state_word_offset > UINT32_MAX - 10u ||
+                (prior_state_word_offset > UINT32_MAX - state_words ||
                  prior_alpha_word_offset > UINT32_MAX - 4u ||
                  prior_channel_buffer.length <
-                    (NSUInteger)(MAX(prior_state_word_offset + 10u,
+                    (NSUInteger)(MAX(prior_state_word_offset + state_words,
                                     prior_alpha_word_offset + 4u)) * sizeof(uint32_t))) ||
             final_destination.length < (NSUInteger)final_count * 16u) {
             write_error(error_message, error_message_len, @"Metal FRI cascade evaluation buffer is too small");
             return false;
         }
 
-        id<MTLBuffer> circle_inverse_buffer = nil;
+        id<MTLBuffer> circle_inverse_buffer = (__bridge id<MTLBuffer>)external_circle_inverse;
         bool build_circle_inverse_cache = false;
         if (circle_source != nil) {
-            @synchronized(runtime) {
+            if (circle_inverse_buffer == nil) @synchronized(runtime) {
                 if (runtime.friCircleInverseCache != nil &&
                     runtime.friCircleInverseCacheCount == source_count &&
                     runtime.friCircleInverseCacheInitialIndex == domain_initial_index &&
@@ -309,10 +324,10 @@ bool stwo_zig_metal_fri_line_cascade(
             }
         }
 
-        id<MTLBuffer> inverse_buffer = nil;
+        id<MTLBuffer> inverse_buffer = (__bridge id<MTLBuffer>)external_line_inverse;
         bool build_inverse_cache = false;
         if (inverse_x == NULL) {
-            @synchronized(runtime) {
+            if (inverse_buffer == nil) @synchronized(runtime) {
                 if (runtime.friLineInverseCache != nil &&
                     runtime.friLineInverseCacheSourceCount == source_count &&
                     runtime.friLineInverseCacheLayerCount == fri_layer_count &&
@@ -332,6 +347,10 @@ bool stwo_zig_metal_fri_line_cascade(
                 length:(NSUInteger)inverse_x_count * sizeof(uint32_t)
                 options:MTLResourceStorageModeShared];
         }
+        if ((external_circle_inverse != NULL && (circle_source == nil || circle_inverse_buffer.length != (size_t)source_count * 4u)) ||
+            (external_line_inverse != NULL && inverse_buffer.length != (size_t)inverse_x_count * 4u) ||
+            (generate_external_circle && external_circle_inverse == NULL) ||
+            (generate_external_line && external_line_inverse == NULL)) return false;
         const uint32_t transcript_state_base = 0u;
         const uint32_t transcript_root_base = 16u;
         const uint32_t transcript_alpha_base = transcript_root_base + fri_layer_count * 8u;
@@ -368,7 +387,7 @@ bool stwo_zig_metal_fri_line_cascade(
         }
         memset(transcript_arena.contents, 0, (NSUInteger)transcript_words * sizeof(uint32_t));
         if (prior_channel_buffer == nil)
-            memcpy(transcript_arena.contents, channel_state, 10u * sizeof(uint32_t));
+            memcpy(transcript_arena.contents, channel_state, state_words * sizeof(uint32_t));
 
         NSMutableArray<StwoZigMetalTree *> *trees =
             [NSMutableArray arrayWithCapacity:fri_layer_count];
@@ -451,7 +470,7 @@ bool stwo_zig_metal_fri_line_cascade(
                           sourceOffset:(NSUInteger)prior_state_word_offset * sizeof(uint32_t)
                               toBuffer:transcript_arena
                      destinationOffset:0u
-                                  size:10u * sizeof(uint32_t)];
+                                  size:state_words * sizeof(uint32_t)];
             [state_copy endEncoding];
             blit_encoders += 1u;
         }
@@ -461,7 +480,7 @@ bool stwo_zig_metal_fri_line_cascade(
                 write_error(error_message, error_message_len, @"Metal FRI circle cascade encoder failed");
                 return false;
             }
-            if (build_circle_inverse_cache) {
+            if (build_circle_inverse_cache || generate_external_circle) {
                 encode_fri_inverse_domain(
                     runtime, circle_encoder, circle_inverse_buffer, 0u, source_count,
                     domain_initial_index, domain_step_size, 2u
@@ -498,7 +517,7 @@ bool stwo_zig_metal_fri_line_cascade(
         }
         const uint32_t disabled_transcript_config[3] = {0u, 0u, 0u};
 
-        if (build_inverse_cache) {
+        if (build_inverse_cache || generate_external_line) {
             uint32_t domain_count = source_count;
             uint32_t current_initial = domain_initial_index;
             uint32_t current_step = domain_step_size;
@@ -520,7 +539,7 @@ bool stwo_zig_metal_fri_line_cascade(
 
         id<MTLBuffer> initial_coordinates = (__bridge id<MTLBuffer>)coordinate_ptrs[0];
         StwoZigMetalTree *initial_tree = trees[0];
-        [encoder setComputePipelineState:runtime.qm31ToCoordinates];
+        [encoder setComputePipelineState:coordinate_pipeline];
         [encoder setBuffer:initial_source offset:0u atIndex:0];
         [encoder setBuffer:initial_coordinates offset:0u atIndex:1];
         [encoder setBytes:&source_count length:sizeof(source_count) atIndex:2];
@@ -531,8 +550,8 @@ bool stwo_zig_metal_fri_line_cascade(
         [encoder setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:5];
         uint32_t write_initial_leaf = 1u;
         [encoder setBytes:&write_initial_leaf length:sizeof(write_initial_leaf) atIndex:6];
-        NSUInteger initial_width = MIN(runtime.qm31ToCoordinates.maxTotalThreadsPerThreadgroup,
-                                       runtime.qm31ToCoordinates.threadExecutionWidth * 8u);
+        NSUInteger initial_width = MIN(coordinate_pipeline.maxTotalThreadsPerThreadgroup,
+                                       coordinate_pipeline.threadExecutionWidth * 8u);
         [encoder dispatchThreads:MTLSizeMake(source_count, 1u, 1u)
              threadsPerThreadgroup:MTLSizeMake(initial_width, 1u, 1u)];
         [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
@@ -541,11 +560,11 @@ bool stwo_zig_metal_fri_line_cascade(
         id<MTLBuffer> evaluation = initial_source;
         count = source_count;
         NSUInteger inverse_offset = 0u;
-        NSUInteger tail_static_bytes = runtime.parentTailSparse.staticThreadgroupMemoryLength;
+        NSUInteger tail_static_bytes = tail_pipeline.staticThreadgroupMemoryLength;
         NSUInteger tail_available_bytes = runtime.device.maxThreadgroupMemoryLength > tail_static_bytes
             ? runtime.device.maxThreadgroupMemoryLength - tail_static_bytes : 0u;
         uint32_t tail_capacity = (uint32_t)MIN((NSUInteger)256u,
-            MIN(runtime.parentTailSparse.maxTotalThreadsPerThreadgroup,
+            MIN(tail_pipeline.maxTotalThreadsPerThreadgroup,
                 tail_available_bytes / (8u * sizeof(uint32_t))));
         for (uint32_t stage = 0u; stage < fri_layer_count; ++stage) {
             StwoZigMetalTree *tree = trees[stage];
@@ -578,7 +597,7 @@ bool stwo_zig_metal_fri_line_cascade(
                     local_count >>= 1u;
                 }
 
-                [encoder setComputePipelineState:runtime.parentTailSparse];
+                [encoder setComputePipelineState:tail_pipeline];
                 [encoder setBuffer:transcript_arena offset:0u atIndex:0];
                 [encoder setBytes:child_offsets
                     length:(NSUInteger)bottom_levels * sizeof(uint32_t) atIndex:1];
@@ -612,7 +631,7 @@ bool stwo_zig_metal_fri_line_cascade(
             }
             for (uint32_t level = first_parent_level; level < tail_level; ++level) {
                 uint32_t level_index = level - 1u;
-                [encoder setComputePipelineState:runtime.parents];
+                [encoder setComputePipelineState:parent_pipeline];
                 [encoder setBuffer:transcript_arena
                     offset:(NSUInteger)child_offsets[level_index] * sizeof(uint32_t) atIndex:0];
                 [encoder setBuffer:transcript_arena
@@ -620,8 +639,8 @@ bool stwo_zig_metal_fri_line_cascade(
                 [encoder setBytes:&parent_counts[level_index] length:sizeof(uint32_t) atIndex:2];
                 [encoder setBuffer:node_seed_buffer offset:0u atIndex:3];
                 [encoder setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:4];
-                NSUInteger parent_width = MIN(runtime.parents.maxTotalThreadsPerThreadgroup,
-                                              runtime.parents.threadExecutionWidth * 8u);
+                NSUInteger parent_width = MIN(parent_pipeline.maxTotalThreadsPerThreadgroup,
+                                              parent_pipeline.threadExecutionWidth * 8u);
                 [encoder dispatchThreads:MTLSizeMake(parent_counts[level_index], 1u, 1u)
                      threadsPerThreadgroup:MTLSizeMake(parent_width, 1u, 1u)];
                 [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
@@ -637,7 +656,7 @@ bool stwo_zig_metal_fri_line_cascade(
                 uint32_t transcript_config[3] = {
                     transcript_state_base, alpha_base, fused_transcript ? 1u : 0u,
                 };
-                [encoder setComputePipelineState:runtime.parentTailSparse];
+                [encoder setComputePipelineState:tail_pipeline];
                 [encoder setBuffer:transcript_arena offset:0u atIndex:0];
                 [encoder setBytes:child_offsets + tail_index
                     length:(NSUInteger)tail_levels * sizeof(uint32_t) atIndex:1];
@@ -654,7 +673,7 @@ bool stwo_zig_metal_fri_line_cascade(
                     atIndex:0];
                 [encoder dispatchThreadgroups:MTLSizeMake(1u, 1u, 1u)
                      threadsPerThreadgroup:MTLSizeMake(
-                         MAX((NSUInteger)tail_width, runtime.parentTailSparse.threadExecutionWidth),
+                         MAX((NSUInteger)tail_width, tail_pipeline.threadExecutionWidth),
                          1u, 1u)];
                 [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
                 dispatches += 1u;
@@ -662,22 +681,24 @@ bool stwo_zig_metal_fri_line_cascade(
 
             if (!fused_transcript) {
                 uint32_t source_words = 8u;
-                [encoder setComputePipelineState:runtime.transcriptMixResident];
+                [encoder setComputePipelineState:blake3 ? runtime.blake3Transcript : runtime.transcriptMixResident];
                 [encoder setBuffer:transcript_arena offset:0u atIndex:0];
                 [encoder setBytes:&transcript_state_base length:sizeof(transcript_state_base) atIndex:1];
                 [encoder setBytes:&root_base length:sizeof(root_base) atIndex:2];
                 [encoder setBytes:&source_words length:sizeof(source_words) atIndex:3];
+                if(blake3) { uint32_t operation=4u; [encoder setBytes:&operation length:4u atIndex:4]; }
                 [encoder dispatchThreads:MTLSizeMake(1u, 1u, 1u)
                      threadsPerThreadgroup:MTLSizeMake(1u, 1u, 1u)];
                 [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
                 dispatches += 1u;
 
                 uint32_t felt_count = 1u;
-                [encoder setComputePipelineState:runtime.transcriptDrawSecureResident];
+                [encoder setComputePipelineState:blake3 ? runtime.blake3Transcript : runtime.transcriptDrawSecureResident];
                 [encoder setBuffer:transcript_arena offset:0u atIndex:0];
                 [encoder setBytes:&transcript_state_base length:sizeof(transcript_state_base) atIndex:1];
                 [encoder setBytes:&alpha_base length:sizeof(alpha_base) atIndex:2];
                 [encoder setBytes:&felt_count length:sizeof(felt_count) atIndex:3];
+                if(blake3) { uint32_t operation=5u; [encoder setBytes:&operation length:4u atIndex:4]; }
                 [encoder dispatchThreads:MTLSizeMake(1u, 1u, 1u)
                      threadsPerThreadgroup:MTLSizeMake(1u, 1u, 1u)];
                 [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
@@ -687,7 +708,7 @@ bool stwo_zig_metal_fri_line_cascade(
             uint32_t destination_count = count >> 1u;
             id<MTLBuffer> destination = destinations[stage];
             uint32_t prepare_next = stage + 1u != fri_layer_count ? 1u : 0u;
-            [encoder setComputePipelineState:runtime.friFoldLine];
+            [encoder setComputePipelineState:fold_pipeline];
             [encoder setBuffer:evaluation offset:0u atIndex:0];
             [encoder setBuffer:inverse_buffer offset:inverse_offset atIndex:1];
             [encoder setBuffer:transcript_arena
@@ -710,8 +731,8 @@ bool stwo_zig_metal_fri_line_cascade(
                 [encoder setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:8];
             }
             [encoder setBytes:&prepare_next length:sizeof(prepare_next) atIndex:9];
-            NSUInteger fold_width = MIN(runtime.friFoldLine.maxTotalThreadsPerThreadgroup,
-                                        runtime.friFoldLine.threadExecutionWidth * 8u);
+            NSUInteger fold_width = MIN(fold_pipeline.maxTotalThreadsPerThreadgroup,
+                                        fold_pipeline.threadExecutionWidth * 8u);
             [encoder dispatchThreads:MTLSizeMake(destination_count, 1u, 1u)
                  threadsPerThreadgroup:MTLSizeMake(fold_width, 1u, 1u)];
             if (stage + 1u != fri_layer_count)
@@ -726,7 +747,7 @@ bool stwo_zig_metal_fri_line_cascade(
 
         [command commit];
         [command waitUntilCompleted];
-        if (command.status == MTLCommandBufferStatusError) {
+        if (command.status != MTLCommandBufferStatusCompleted) {
             write_error(error_message, error_message_len,
                         command.error.localizedDescription ?: @"Metal FRI cascade failed");
             return false;
@@ -740,11 +761,11 @@ bool stwo_zig_metal_fri_line_cascade(
             }
         }
         uint32_t *completed_state = (uint32_t *)transcript_arena.contents;
-        if (completed_state[9] != 0u) {
+        if (completed_state[state_words-1u] != 0u) {
             write_error(error_message, error_message_len, @"Metal FRI cascade transcript rejection limit exceeded");
             return false;
         }
-        memcpy(channel_state, completed_state, 10u * sizeof(uint32_t));
+        memcpy(channel_state, completed_state, state_words * sizeof(uint32_t));
         if (build_inverse_cache) {
             @synchronized(runtime) {
                 runtime.friLineInverseCache = inverse_buffer;
@@ -772,9 +793,83 @@ bool stwo_zig_metal_fri_line_cascade(
         }
         if (inverse_generation_mask != NULL) {
             *inverse_generation_mask =
-                (build_circle_inverse_cache ? 1u : 0u) |
-                (build_inverse_cache ? 2u : 0u);
+                ((build_circle_inverse_cache || generate_external_circle) ? 1u : 0u) |
+                ((build_inverse_cache || generate_external_line) ? 2u : 0u);
         }
         return true;
     }
+}
+
+bool stwo_zig_metal_fri_line_cascade_v2(
+    void *runtime_ptr, void *source_ptr, uint32_t source_count,
+    void *circle_source_ptr, const uint32_t *circle_alpha,
+    void *prior_channel_buffer_ptr, uint32_t prior_state_word_offset,
+    uint32_t prior_alpha_word_offset,
+    const uint32_t *inverse_x, uint32_t inverse_x_count,
+    uint32_t domain_initial_index, uint32_t domain_step_size,
+    void *const *coordinate_ptrs, void *final_destination_ptr,
+    uint32_t fri_layer_count,
+    const uint32_t *leaf_seed, const uint32_t *node_seed,
+    uint32_t domain_prefix_bytes, uint32_t hash_family, uint32_t *channel_state,
+    void **tree_outputs, uint32_t *inverse_generation_mask,
+    StwoZigCommandEpochStats *stats,
+    char *error_message, size_t error_message_len
+) {
+    return stwo_zig_metal_fri_line_cascade_configured_v1(runtime_ptr,source_ptr,source_count,circle_source_ptr,circle_alpha,
+        prior_channel_buffer_ptr,prior_state_word_offset,prior_alpha_word_offset,
+        inverse_x,inverse_x_count,domain_initial_index,domain_step_size,
+        coordinate_ptrs,final_destination_ptr,fri_layer_count,leaf_seed,node_seed,
+        domain_prefix_bytes,hash_family,channel_state,tree_outputs,inverse_generation_mask,
+        NULL,NULL,false,false,stats,error_message,error_message_len);
+}
+
+bool stwo_zig_metal_fri_line_cascade_budgeted_v1(
+    void *runtime_ptr, void *source_ptr, uint32_t source_count,
+    void *circle_source_ptr, const uint32_t *circle_alpha,
+    void *prior_channel_buffer_ptr, uint32_t prior_state_word_offset,
+    uint32_t prior_alpha_word_offset,
+    const uint32_t *inverse_x, uint32_t inverse_x_count,
+    uint32_t domain_initial_index, uint32_t domain_step_size,
+    void *const *coordinate_ptrs, void *final_destination_ptr,
+    uint32_t fri_layer_count,
+    const uint32_t *leaf_seed, const uint32_t *node_seed,
+    uint32_t domain_prefix_bytes, uint32_t hash_family, uint32_t *channel_state,
+    void **tree_outputs, uint32_t *inverse_generation_mask,
+    void *external_circle_inverse, void *external_line_inverse,
+    bool generate_external_circle, bool generate_external_line,
+    StwoZigCommandEpochStats *stats,
+    char *error_message, size_t error_message_len
+) {
+    // Required explicit inverses prevent legacy unowned cache allocation.
+    if (external_line_inverse == NULL || (circle_source_ptr != NULL && external_circle_inverse == NULL) || inverse_x != NULL) return false;
+    return stwo_zig_metal_fri_line_cascade_configured_v1(runtime_ptr,source_ptr,source_count,circle_source_ptr,circle_alpha,
+        prior_channel_buffer_ptr,prior_state_word_offset,prior_alpha_word_offset,
+        inverse_x,inverse_x_count,domain_initial_index,domain_step_size,
+        coordinate_ptrs,final_destination_ptr,fri_layer_count,leaf_seed,node_seed,
+        domain_prefix_bytes,hash_family,channel_state,tree_outputs,inverse_generation_mask,
+        external_circle_inverse,external_line_inverse,generate_external_circle,
+        generate_external_line,stats,error_message,error_message_len);
+}
+
+bool stwo_zig_metal_fri_line_cascade(
+    void *runtime_ptr, void *source_ptr, uint32_t source_count,
+    void *circle_source_ptr, const uint32_t *circle_alpha,
+    void *prior_channel_buffer_ptr, uint32_t prior_state_word_offset,
+    uint32_t prior_alpha_word_offset,
+    const uint32_t *inverse_x, uint32_t inverse_x_count,
+    uint32_t domain_initial_index, uint32_t domain_step_size,
+    void *const *coordinate_ptrs, void *final_destination_ptr,
+    uint32_t fri_layer_count,
+    const uint32_t *leaf_seed, const uint32_t *node_seed,
+    uint32_t domain_prefix_bytes, uint32_t *channel_state,
+    void **tree_outputs, uint32_t *inverse_generation_mask,
+    StwoZigCommandEpochStats *stats,
+    char *error_message, size_t error_message_len
+) {
+    return stwo_zig_metal_fri_line_cascade_v2(runtime_ptr,source_ptr,source_count,
+        circle_source_ptr,circle_alpha,prior_channel_buffer_ptr,prior_state_word_offset,
+        prior_alpha_word_offset,inverse_x,inverse_x_count,domain_initial_index,domain_step_size,
+        coordinate_ptrs,final_destination_ptr,fri_layer_count,leaf_seed,node_seed,
+        domain_prefix_bytes,StwoZigCommitmentHashFamilyBlake2sV1,channel_state,tree_outputs,
+        inverse_generation_mask,stats,error_message,error_message_len);
 }

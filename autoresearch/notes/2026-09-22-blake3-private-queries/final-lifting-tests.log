@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-qm31-pack-wire success
++- QM31 weighted pack guard success
+   +- run test 1 passed 1s MaxRSS:2M
+      +- compile test ReleaseSafe native success 5s MaxRSS:533M
+test-blake3-combined-fri success
++- BLAKE3 combined FRI guard success
+   +- run test 1 passed 30s MaxRSS:6G
+      +- compile test ReleaseSafe native success 37s MaxRSS:2G
+

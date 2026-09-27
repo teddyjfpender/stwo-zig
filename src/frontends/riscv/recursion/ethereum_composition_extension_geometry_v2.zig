@@ -123,6 +123,34 @@ pub const GeometryV2 = struct {
             profile.main_column_count,
             profile.interaction_column_count,
         };
+        return initAdmitted(allocator, profile.identity_digest, base_counts, profile.composition_log_degree_bound, extension);
+    }
+
+    /// The B3EH caller has independently admitted the complete full-width key.
+    pub fn initBlake3(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const ethereum_statement.Statement, pin: @import("../prover/blake3_commitment_plan.zig").Admission, logs: anytype, key_id: [32]u8, composition_log: u32) !GeometryV2 {
+        return initBlake3WithRanges(allocator, native, extension, pin, logs, key_id, composition_log, null);
+    }
+    pub fn initBlake3WithRanges(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const ethereum_statement.Statement, pin: @import("../prover/blake3_commitment_plan.zig").Admission, logs: anytype, key_id: [32]u8, composition_log: u32, ranges: ?@import("air/compact_range_geometry.zig").Plan) !GeometryV2 {
+        try @import("../prover/blake3_ethereum_statement.zig").validate(extension, native, pin, logs);
+        var offsets = try @import("../prover/guest_precompile/ethereum_assembly.zig").blake3Offsets(native);
+        if (ranges) |compact| {
+            _ = try (@import("../prover/compact_extension_contract.zig").ForProfile(@import("../prover/blake3_ethereum_profile.zig")){ .native = native, .extension = extension, .ranges = compact }).validate(pin, logs);
+            inline for (@import("air/compact_range_roster.zig").Roster.Airs) |Air| {
+                offsets.main_offset = try std.math.add(usize, offsets.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+                offsets.interaction_offset = try std.math.add(usize, offsets.interaction_offset, Air.INTERACTION_COLUMN_COUNT);
+            }
+        }
+        return initAdmitted(allocator, key_id, .{ @intCast(offsets.preprocessed_offset), @intCast(offsets.main_offset), @intCast(offsets.interaction_offset) }, composition_log, extension);
+    }
+    /// The Ethereum prefix of a separately admitted SHA-capable leaf retains
+    /// identical equations, but its shared-table certificate covers three families.
+    pub fn initBlake3WithSha(allocator: std.mem.Allocator, native: *const base_statement.Blake3ExecutionStatement, extension: *const @import("../prover/blake3_ethereum_sha_statement.zig").Statement, pin: @import("../prover/blake3_commitment_plan.zig").Admission, logs: anytype, key_id: [32]u8, composition_log: u32, ranges: ?@import("air/compact_range_geometry.zig").Plan) !GeometryV2 {
+        try extension.validate(allocator, native, pin, logs);
+        if (ranges) |compact| _ = try (@import("../prover/compact_extension_contract.zig").ForProfile(@import("../prover/blake3_ethereum_sha_profile.zig")){ .allocator = allocator, .native = native, .extension = extension, .ranges = compact }).validate(pin, logs);
+        const offsets = try @import("../prover/guest_precompile/ethereum_assembly.zig").blake3OffsetsWithRanges(native, ranges);
+        return initAdmitted(allocator, key_id, .{ @intCast(offsets.preprocessed_offset), @intCast(offsets.main_offset), @intCast(offsets.interaction_offset) }, composition_log, &extension.ethereum);
+    }
+    fn initAdmitted(allocator: std.mem.Allocator, key_id: [32]u8, base_counts: [TREE_COUNT]u32, composition_log: u32, extension: *const ethereum_statement.Statement) !GeometryV2 {
         var extension_counts = [TREE_COUNT]u32{ 0, 0, 0 };
         for (extension.components) |descriptor| {
             extension_counts[0] = try add(
@@ -148,7 +176,7 @@ pub const GeometryV2 = struct {
 
         var result = GeometryV2{
             .allocator = allocator,
-            .base_profile_identity = profile.identity_digest,
+            .base_profile_identity = key_id,
             .extension_semantic_digest = extension.semantic_digest,
             .base_column_counts = base_counts,
             .components = undefined,
@@ -156,7 +184,7 @@ pub const GeometryV2 = struct {
             .sampled_value_count = 0,
             .detailed_claim_count = 0,
             .air_instruction_count = 0,
-            .max_log_degree_bound = profile.composition_log_degree_bound,
+            .max_log_degree_bound = composition_log,
             .identity_sha256 = undefined,
         };
         errdefer result.deinit();

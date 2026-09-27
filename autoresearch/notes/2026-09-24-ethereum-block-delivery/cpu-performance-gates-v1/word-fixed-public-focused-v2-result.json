@@ -1,0 +1,22 @@
+{
+  "source_candidate": "word-fixed-public-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 5.4822515830164775,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 9,
+  "test_summary": [
+    "All 9 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/word-fixed-public-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-word-fixed-public-focused-v2",
+    "bytes": 7645560,
+    "sha256": "bcdd43e3ec9c9d401acfbd5853a6bff48e2c5c0ae135d100ab4537f9990bc1fa"
+  }
+}

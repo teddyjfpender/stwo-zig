@@ -80,164 +80,234 @@ pub fn nPreprocessedColumnsForInfra(kind: InfraKind) u32 {
         2;
 }
 
-pub const RiscVStatement = struct {
-    n_components: u32,
-    component_descs: [MAX_COMPONENTS]FamilyComponentDesc,
-    initial_pc: u32,
-    final_pc: u32,
-    total_steps: u32,
-    public_data: PublicData,
-    n_infra: u32 = 0,
-    infra_descs: [MAX_INFRA_COMPONENTS]InfraComponentDesc = undefined,
+pub const RiscVStatement = ExecutionStatement(false);
+/// Execution/clock/lookup shape for the full-width BLAKE3 public contract.
+/// Program and memory providers are admitted by the BLAKE3 commitment roster.
+pub const Blake3ExecutionStatement = ExecutionStatement(true);
+fn ExecutionStatement(comptime blake3: bool) type {
+    return struct {
+        const Self = @This();
+        n_components: u32,
+        component_descs: [MAX_COMPONENTS]FamilyComponentDesc,
+        initial_pc: u32,
+        final_pc: u32,
+        total_steps: u32,
+        public_data: if (blake3) public_data.Blake3PublicData else PublicData,
+        /// Zero is explicit compatibility. Canonical activation waits for caller custody.
+        x0_local_custody_version: u32 = 0,
+        n_infra: u32 = 0,
+        infra_descs: [MAX_INFRA_COMPONENTS]InfraComponentDesc = undefined,
 
-    /// Initializes every fixed-capacity descriptor slot to a valid canonical
-    /// zero value. Encoders consume only active prefixes, but owned/cold
-    /// reconstructions must never retain undefined enum values in the inactive
-    /// capacity: whole-value custody checks and diagnostic formatters may walk
-    /// those slots after the producing workspace has gone away.
-    pub fn initializeDescriptorStorage(self: *RiscVStatement) void {
-        const empty_component: FamilyComponentDesc = .{
-            .family = .base_alu_reg,
-            .log_size = 0,
-            .n_rows = 0,
-            .n_columns = 0,
-        };
-        const empty_infrastructure: InfraComponentDesc = .{
-            .kind = .program,
-            .log_size = 0,
-            .n_rows = 0,
-            .n_columns = 0,
-        };
-        self.component_descs = .{empty_component} ** MAX_COMPONENTS;
-        self.infra_descs = .{empty_infrastructure} ** MAX_INFRA_COMPONENTS;
-    }
-
-    pub fn nPreprocessedColumns(self: *const RiscVStatement) u32 {
-        var total = 2 * self.n_components;
-        for (0..self.n_infra) |index| {
-            total += nPreprocessedColumnsForInfra(self.infra_descs[index].kind);
+        pub fn localZeroCustody(self: *const Self) bool {
+            return blake3 and self.x0_local_custody_version == @import("x0_local_custody_v1.zig").VERSION;
         }
-        return total;
-    }
 
-    pub fn preprocessedOffsetForInfra(self: *const RiscVStatement, infra_index: usize) usize {
-        std.debug.assert(infra_index <= self.n_infra);
-        var offset: usize = 2 * self.n_components;
-        for (0..infra_index) |index| {
-            offset += nPreprocessedColumnsForInfra(self.infra_descs[index].kind);
+        /// Admits only execution geometry; commitment-plan/key admission must
+        /// separately bind provider components and full-width public roots.
+        pub fn validateBlake3Execution(self: *const Self) !void {
+            return self.validateBlake3ExecutionWithExternal(0);
         }
-        return offset;
-    }
 
-    pub fn nOpcodeMainColumns(self: *const RiscVStatement) u32 {
-        var total: u32 = 0;
-        for (0..self.n_components) |i| total += self.component_descs[i].n_columns;
-        return total;
-    }
+        /// Native geometry only. An extension verifier must independently bind
+        /// and prove every external retirement; base-only admission passes zero.
+        pub fn validateBlake3ExecutionWithExternal(self: *const Self, external_retirements: u32) !void {
+            if (!blake3) @compileError("BLAKE3 execution requires full-width public roots");
+            if (self.n_components > MAX_COMPONENTS or self.n_infra > MAX_INFRA_COMPONENTS) return error.InvalidStatement;
+            try self.public_data.validate();
+            if (self.x0_local_custody_version > @import("x0_local_custody_v1.zig").VERSION) return error.InvalidStatement;
+            if (self.localZeroCustody()) try @import("x0_local_custody_v1.zig").requirePublic(&self.public_data);
+            if (self.initial_pc >= (1 << 30) or self.final_pc >= (1 << 30)) return error.InvalidStatement;
+            if (self.initial_pc != self.public_data.initial_pc or self.final_pc != self.public_data.final_pc or self.total_steps != self.public_data.clock) return error.InvalidStatement;
+            const order = @import("component_order.zig");
+            const max_shard_rows: u32 = 1 << 16;
+            if (self.total_steps > MAX_COMPONENTS * max_shard_rows or @import("../access_clock.zig").maximum(self.total_steps) >= @import("../runner/state_chain.zig").CLOCK_PREV_BOUND) return error.InvalidStatement;
+            var rows: u64 = 0;
+            var previous_family: ?usize = null;
+            var previous_rows: u32 = 0;
+            for (self.component_descs[0..self.n_components]) |desc| {
+                if (desc.n_rows == 0 or desc.n_rows > max_shard_rows or desc.log_size != @max(1, std.math.log2_int_ceil(u32, desc.n_rows)) or desc.n_columns != (if (self.localZeroCustody()) try @import("x0_native_envelope_v1.zig").mainColumnCount(desc.family) else trace_mod.nColumnsForFamily(desc.family))) return error.InvalidStatement;
+                if (!@import("semantic_eval.zig").isTraceCompatible(desc.family)) return error.InvalidStatement;
+                const family = order.opcodeFamilyIndex(desc.family);
+                if (previous_family) |previous| {
+                    if (family < previous or (family == previous and previous_rows != max_shard_rows)) return error.InvalidStatement;
+                }
+                previous_family = family;
+                previous_rows = desc.n_rows;
+                rows += desc.n_rows;
+            }
+            if (rows + @as(u64, external_retirements) != self.total_steps) return error.InvalidStatement;
+            var previous_infra: ?usize = null;
+            for (self.infra_descs[0..self.n_infra]) |desc| {
+                switch (desc.kind) {
+                    .program, .memory, .merkle, .poseidon2 => return error.LegacyCommitmentInBlake3Execution,
+                    else => {},
+                }
+                if (desc.log_size == 0 or desc.log_size > 24 or desc.n_rows == 0 or desc.n_rows > @as(u32, 1) << @intCast(desc.log_size)) return error.InvalidStatement;
+                const rank: usize = if (tableKind(desc.kind)) |kind| blk: {
+                    if (desc.log_size != table_schema.logSize(kind) or desc.n_rows != table_schema.size(kind) or desc.n_columns != 1) return error.InvalidStatement;
+                    break :blk 1 + order.lookupTableIndex(kind);
+                } else blk: {
+                    if (desc.kind != .clock_update or desc.n_columns != @import("../infra_trace.zig").CLOCK_UPDATE_COLS or desc.log_size != @max(1, std.math.log2_int_ceil(u32, desc.n_rows))) return error.InvalidStatement;
+                    break :blk 0;
+                };
+                if (previous_infra) |previous| if (rank <= previous) return error.InvalidStatement;
+                previous_infra = rank;
+            }
+        }
 
-    pub fn nInfraColumns(self: *const RiscVStatement) u32 {
-        var total: u32 = 0;
-        for (0..self.n_infra) |i| total += self.infra_descs[i].n_columns;
-        return total;
-    }
+        /// Initializes every fixed-capacity descriptor slot to a valid canonical
+        /// zero value. Encoders consume only active prefixes, but owned/cold
+        /// reconstructions must never retain undefined enum values in the inactive
+        /// capacity: whole-value custody checks and diagnostic formatters may walk
+        /// those slots after the producing workspace has gone away.
+        pub fn initializeDescriptorStorage(self: *Self) void {
+            const empty_component: FamilyComponentDesc = .{
+                .family = .base_alu_reg,
+                .log_size = 0,
+                .n_rows = 0,
+                .n_columns = 0,
+            };
+            const empty_infrastructure: InfraComponentDesc = .{
+                .kind = .program,
+                .log_size = 0,
+                .n_rows = 0,
+                .n_columns = 0,
+            };
+            self.component_descs = .{empty_component} ** MAX_COMPONENTS;
+            self.infra_descs = .{empty_infrastructure} ** MAX_INFRA_COMPONENTS;
+        }
 
-    pub fn nMainColumns(self: *const RiscVStatement) u32 {
-        return self.nOpcodeMainColumns() + self.nInfraColumns();
-    }
+        pub fn nPreprocessedColumns(self: *const Self) u32 {
+            var total = 2 * self.n_components;
+            for (0..self.n_infra) |index| {
+                total += nPreprocessedColumnsForInfra(self.infra_descs[index].kind);
+            }
+            return total;
+        }
 
-    pub fn nInteractionColumns(self: *const RiscVStatement) u32 {
-        var total: u32 = 0;
-        for (0..self.n_components) |i| {
-            total += @intCast(opcode_interaction.nColumns(self.component_descs[i].family));
+        pub fn preprocessedOffsetForInfra(self: *const Self, infra_index: usize) usize {
+            std.debug.assert(infra_index <= self.n_infra);
+            var offset: usize = 2 * self.n_components;
+            for (0..infra_index) |index| {
+                offset += nPreprocessedColumnsForInfra(self.infra_descs[index].kind);
+            }
+            return offset;
         }
-        for (0..self.n_infra) |i| total += nInteractionColsForInfra(self.infra_descs[i].kind);
-        return total;
-    }
 
-    pub fn nPreprocessedCells(self: *const RiscVStatement) u64 {
-        var total: u64 = 0;
-        for (0..self.n_components) |i| {
-            total += @as(u64, 2) << @intCast(self.component_descs[i].log_size);
+        pub fn nOpcodeMainColumns(self: *const Self) u32 {
+            var total: u32 = 0;
+            for (0..self.n_components) |i| total += self.component_descs[i].n_columns;
+            return total;
         }
-        for (0..self.n_infra) |i| {
-            total += @as(u64, nPreprocessedColumnsForInfra(self.infra_descs[i].kind)) <<
-                @intCast(self.infra_descs[i].log_size);
-        }
-        return total;
-    }
 
-    pub fn nMainCells(self: *const RiscVStatement) u64 {
-        var total: u64 = 0;
-        for (0..self.n_components) |i| {
-            total += @as(u64, self.component_descs[i].n_columns) <<
-                @intCast(self.component_descs[i].log_size);
+        pub fn nInfraColumns(self: *const Self) u32 {
+            var total: u32 = 0;
+            for (0..self.n_infra) |i| total += self.infra_descs[i].n_columns;
+            return total;
         }
-        for (0..self.n_infra) |i| {
-            total += @as(u64, self.infra_descs[i].n_columns) <<
-                @intCast(self.infra_descs[i].log_size);
-        }
-        return total;
-    }
 
-    pub fn nInteractionCells(self: *const RiscVStatement) u64 {
-        var total: u64 = 0;
-        for (0..self.n_components) |i| {
-            total += @as(u64, @intCast(opcode_interaction.nColumns(self.component_descs[i].family))) <<
-                @intCast(self.component_descs[i].log_size);
+        pub fn nMainColumns(self: *const Self) u32 {
+            return self.nOpcodeMainColumns() + self.nInfraColumns();
         }
-        for (0..self.n_infra) |i| {
-            total += @as(u64, nInteractionColsForInfra(self.infra_descs[i].kind)) <<
-                @intCast(self.infra_descs[i].log_size);
-        }
-        return total;
-    }
 
-    pub fn canonicalMainClaim(self: *const RiscVStatement) transcript_claims.MainClaim {
-        var log_sizes = [_]u32{0} ** transcript_claims.COMPONENT_COUNT;
-        for (0..self.n_components) |i| {
-            const desc = self.component_descs[i];
-            const index = @intFromEnum(
-                composition_manifest.transcriptComponent(desc.family),
-            );
-            log_sizes[index] = @max(log_sizes[index], desc.log_size);
+        pub fn nInteractionColumns(self: *const Self) u32 {
+            var total: u32 = 0;
+            for (0..self.n_components) |i| {
+                total += @intCast(opcode_interaction.nColumns(self.component_descs[i].family));
+            }
+            for (0..self.n_infra) |i| total += nInteractionColsForInfra(self.infra_descs[i].kind);
+            return total;
         }
-        for (0..self.n_infra) |i| {
-            const desc = self.infra_descs[i];
-            const index = @intFromEnum(componentForInfra(desc.kind));
-            log_sizes[index] = @max(log_sizes[index], desc.log_size);
-        }
-        return transcript_claims.MainClaim.init(log_sizes);
-    }
 
-    /// Domain-separated extension to Stark-V's canonical 27-component claim.
-    /// Upstream has one table per family; Zig shards large tables and must bind
-    /// the complete shard geometry before drawing relation challenges.
-    pub fn mixShardManifest(self: RiscVStatement, channel: anytype) void {
-        channel.mixU32s(&.{
-            0x5348_5244, // "SHRD"
-            self.n_components,
-            self.n_infra,
-        });
-        for (0..self.n_components) |i| {
-            const desc = self.component_descs[i];
+        pub fn nPreprocessedCells(self: *const Self) u64 {
+            var total: u64 = 0;
+            for (0..self.n_components) |i| {
+                total += @as(u64, 2) << @intCast(self.component_descs[i].log_size);
+            }
+            for (0..self.n_infra) |i| {
+                total += @as(u64, nPreprocessedColumnsForInfra(self.infra_descs[i].kind)) <<
+                    @intCast(self.infra_descs[i].log_size);
+            }
+            return total;
+        }
+
+        pub fn nMainCells(self: *const Self) u64 {
+            var total: u64 = 0;
+            for (0..self.n_components) |i| {
+                total += @as(u64, self.component_descs[i].n_columns) <<
+                    @intCast(self.component_descs[i].log_size);
+            }
+            for (0..self.n_infra) |i| {
+                total += @as(u64, self.infra_descs[i].n_columns) <<
+                    @intCast(self.infra_descs[i].log_size);
+            }
+            return total;
+        }
+
+        pub fn nInteractionCells(self: *const Self) u64 {
+            var total: u64 = 0;
+            for (0..self.n_components) |i| {
+                total += @as(u64, @intCast(opcode_interaction.nColumns(self.component_descs[i].family))) <<
+                    @intCast(self.component_descs[i].log_size);
+            }
+            for (0..self.n_infra) |i| {
+                total += @as(u64, nInteractionColsForInfra(self.infra_descs[i].kind)) <<
+                    @intCast(self.infra_descs[i].log_size);
+            }
+            return total;
+        }
+
+        pub fn canonicalMainClaim(self: *const Self) transcript_claims.MainClaim {
+            var log_sizes = [_]u32{0} ** transcript_claims.COMPONENT_COUNT;
+            for (0..self.n_components) |i| {
+                const desc = self.component_descs[i];
+                const index = @intFromEnum(
+                    composition_manifest.transcriptComponent(desc.family),
+                );
+                log_sizes[index] = @max(log_sizes[index], desc.log_size);
+            }
+            for (0..self.n_infra) |i| {
+                const desc = self.infra_descs[i];
+                const index = @intFromEnum(componentForInfra(desc.kind));
+                log_sizes[index] = @max(log_sizes[index], desc.log_size);
+            }
+            return transcript_claims.MainClaim.init(log_sizes);
+        }
+
+        /// Domain-separated extension to Stark-V's canonical 27-component claim.
+        /// Upstream has one table per family; Zig shards large tables and must bind
+        /// the complete shard geometry before drawing relation challenges.
+        pub fn mixShardManifest(self: Self, channel: anytype) void {
+            if (self.localZeroCustody()) {
+                channel.mixU32s(&.{ @import("x0_local_custody_v1.zig").TAG, self.x0_local_custody_version });
+                channel.mixRoot(@import("x0_local_custody_v1.zig").abiId());
+            }
             channel.mixU32s(&.{
-                @intFromEnum(desc.family),
-                desc.log_size,
-                desc.n_rows,
-                desc.n_columns,
+                if (blake3) 0x4253_4852 else 0x5348_5244, // "BSHR" / legacy "SHRD"
+                self.n_components,
+                self.n_infra,
             });
+            for (0..self.n_components) |i| {
+                const desc = self.component_descs[i];
+                channel.mixU32s(&.{
+                    @intFromEnum(desc.family),
+                    desc.log_size,
+                    desc.n_rows,
+                    desc.n_columns,
+                });
+            }
+            for (0..self.n_infra) |i| {
+                const desc = self.infra_descs[i];
+                channel.mixU32s(&.{
+                    @intFromEnum(desc.kind),
+                    desc.log_size,
+                    desc.n_rows,
+                    desc.n_columns,
+                });
+            }
         }
-        for (0..self.n_infra) |i| {
-            const desc = self.infra_descs[i];
-            channel.mixU32s(&.{
-                @intFromEnum(desc.kind),
-                desc.log_size,
-                desc.n_rows,
-                desc.n_columns,
-            });
-        }
-    }
-};
+    };
+}
 
 pub const CanonicalInteractionClaim = struct {
     claimed_sums: [transcript_claims.COMPONENT_COUNT]QM31,

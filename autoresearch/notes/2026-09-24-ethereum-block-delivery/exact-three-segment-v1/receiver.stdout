@@ -1,0 +1,10 @@
+{
+  "complete_execution_proof_verified": true,
+  "verification_scope": "fresh process; canonical security; independently pinned V2 exact-count roster; every dyadic proof checked",
+  "proof_count": 2,
+  "segment_count": 3,
+  "cycle_count": 21635,
+  "trusted_roster_digest": "62b32e8816a1829f54f2c27b1ec324c8861979b3d56b3693e7b7c7239b740d61",
+  "verification_ns": 40049791,
+  "peak_tracked_bytes": 7304341
+}

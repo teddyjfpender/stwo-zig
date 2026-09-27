@@ -1,0 +1,22 @@
+{
+  "source_candidate": "closed-input-policy-owner-v2-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 18.924318916979246,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 14,
+  "test_summary": [
+    "All 14 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/closed-input-policy-owner-v2-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-closed-input-policy-owner-v2-focused-v1",
+    "bytes": 36435888,
+    "sha256": "9c93c9e45d1d893bf995b9ec3058184f9e87371506529545d142b08224ad230b"
+  }
+}

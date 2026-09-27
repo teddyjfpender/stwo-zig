@@ -1,0 +1,9 @@
+1/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: callback admits before factory and a failed growth is sticky...OK
+2/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: joined hash arena owns exactly its retained charge...OK
+3/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: uncommitted and discrete readback extents are distinct...OK
+4/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: malformed retention never releases the admitted envelope...OK
+5/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: layer offsets retain ABI padding at small and large heights...OK
+6/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: callback holds the allocator through original owner teardown...OK
+7/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: explicit ordinary APIs preserve uncapped policy without overflow...OK
+8/8 metal_quotient_allocation_budget_test_root.test.quotient allocation: concurrent dispatches compete for one supplied cap...OK
+All 8 tests passed.

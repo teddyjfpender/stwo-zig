@@ -1,0 +1,62 @@
+1/7 blake3_metal_qualification_test_root.test.Metal compact canonical native BLAKE3 parent matches CPU qualification...CANONICAL_PARENT_ALLOCATOR mode=smp
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_HASH_METADATA g_rows=2444008 xor_rows=698288 full_row_bytes=1301608832 compact_bytes=173175424 removed_bytes=1128433408
+BLAKE3_PATH_PLAN_REUSE openings=1540 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=1281835520 compact_bytes=170544640 removed_bytes=1111290880
+BLAKE3_NATIVE_QUERY_FUSION groups=9170 removed_scalars=36680
+BLAKE3_NATIVE_QUOTIENT_FUSION rows=210 inverse_rows=1944
+BLAKE3_NATIVE_FUSION dot4=19613 fma=59341 arithmetic_rows=171418
+METAL_FRAMEWORK_INTERACTION rows=4194304 batches=31 gpu_ms=128.5386249946896
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=4 gpu_ms=2.3632500087842345
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=1 gpu_ms=1.4138749975245446
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=2 gpu_ms=1.9475833396427333
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=2 gpu_ms=0.27079167193733156
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.012974,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":0.425087,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":0.96324,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":0.681342,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":0.857681,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":1.495,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000009,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.70825,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.021157,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.039897,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000073,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.347538,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000036,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.280811,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.012813,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.002874,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.021325,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.00011,"children":null}]}]}
+CANONICAL_PARENT_WORKERS count=8 host_cpus=18
+NATIVE_PARENT_DEVICE_WORK host_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK resident_merkle_commits=23
+NATIVE_PARENT_DEVICE_WORK metal_quotient_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_proof_of_work_dispatches=39
+NATIVE_PARENT_DEVICE_WORK metal_framework_polynomial_dispatches=5
+NATIVE_PARENT_DEVICE_WORK metal_streaming_leaf_dispatches=1216
+NATIVE_PARENT_DEVICE_WORK metal_framework_interaction_dispatches=20
+NATIVE_PARENT_DEVICE_WORK metal_sampled_value_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_circle_transform_dispatches=2
+NATIVE_PARENT_DEVICE_WORK metal_circle_lde_dispatches=81
+NATIVE_PARENT_DEVICE_WORK metal_fri_circle_fold_dispatches=1
+NATIVE_PARENT_DEVICE_WORK metal_fri_fold_commit_epochs=1
+NATIVE_PARENT_DEVICE_WORK cpu_streaming_merkle_commits=2
+NATIVE_PARENT_DEVICE_WORK cpu_composition_components=18
+NATIVE_PARENT_DEVICE_WORK metal_commit_source_uploads=81
+NATIVE_PARENT_METAL dispatches=1390 fallbacks=2
+CANONICAL_PARENT_MEMORY peak_bytes=11992980190 limit_bytes=25769803776
+BLAKE3_PARENT_ARTIFACT_SHA256 2b48ccfaebc6a4742d38a223ff2732cf15a67fd971ca0f863c0da8939ba1a08f
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=866453 successful_worker_rekey=true fixed_plan_reused=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=40992 child_queries=70 child_pow_bits=26
+COMPACT_RECURSIVE_PARENT child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=483375 independently_verified=true
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.
+       14.29 real        17.35 user         2.73 sys
+         21398175744  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2461985  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               11948  involuntary context switches
+        323176408332  instructions retired
+         88440172125  cycles elapsed
+         27765928296  peak memory footprint

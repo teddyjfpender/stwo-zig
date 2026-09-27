@@ -37,6 +37,7 @@ pub fn replayRelation(
     @memcpy(slots[0..Runtime.LOGICAL_INPUT_COUNT], &row);
     for (plan.compiled_nodes[0..plan.compiled_node_count]) |node| {
         slots[node.destination] = switch (node.op) {
+            .machine => |v| @import("closed_machine_expression.zig").evaluate(Scalar,v,slots),
             .constant => |value| Scalar.fromBase(M31.fromU64(value)),
             .add => |binary| slots[binary.lhs].add(slots[binary.rhs]),
             .sub => |binary| slots[binary.lhs].sub(slots[binary.rhs]),
@@ -67,6 +68,16 @@ pub fn replayRelation(
                 .n2 = Scalar.zero(),
                 .d2 = Scalar.one(),
             };
+        }
+        if (batch.third) |third| {
+            const next = try relationFraction(plan.events[third], &slots, challenges);
+            pair.n1 = pair.n1.mul(next.denominator).add(next.numerator.mul(pair.d1));
+            pair.d1 = pair.d1.mul(next.denominator);
+        }
+        if (batch.fourth) |fourth| {
+            const next = try relationFraction(plan.events[fourth], &slots, challenges);
+            pair.n2 = pair.n2.mul(next.denominator).add(next.numerator.mul(pair.d2));
+            pair.d2 = pair.d2.mul(next.denominator);
         }
     }
     try currentBuilder().check();
@@ -274,6 +285,7 @@ pub fn preflightRelation(
             destination >= slot_count)
             return error.InvalidRelationPlan;
         switch (node.op) {
+            .machine => |v| { for(@import("closed_machine_expression.zig").operands(v)) |operand| if(operand) |id| { if(@intFromEnum(id)>=destination) return error.InvalidRelationPlan; }; },
             .constant => {},
             .add, .sub, .mul => |binary| {
                 if (binary.lhs >= destination or binary.rhs >= destination)
@@ -311,11 +323,14 @@ pub fn preflightRelation(
     }
     for (plan.batches, 0..) |batch, ordinal| {
         const expected_first = ordinal * Runtime.BATCH_SIZE;
-        const expected_second: ?usize = if (Runtime.BATCH_SIZE == 2 and
+        const expected_second: ?usize = if (Runtime.BATCH_SIZE >= 2 and
             expected_first + 1 < Runtime.EVENT_COUNT)
             expected_first + 1
         else
             null;
+        const expected_third: ?u8 = if (Runtime.BATCH_SIZE >= 3 and expected_first + 2 < Runtime.EVENT_COUNT) @intCast(expected_first + 2) else null;
+        const expected_fourth: ?u8 = if (Runtime.BATCH_SIZE >= 4 and expected_first + 3 < Runtime.EVENT_COUNT) @intCast(expected_first + 3) else null;
+        if (batch.third != expected_third or batch.fourth != expected_fourth) return error.InvalidRelationPlan;
         if (batch.ordinal != ordinal or batch.first >= Runtime.EVENT_COUNT or
             batch.first != expected_first or
             batch.interaction_column_start != 4 * ordinal or

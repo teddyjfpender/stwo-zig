@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-packed-blake-columns-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 7.55585299996892,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 4,
+  "test_summary": [
+    "All 4 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-packed-blake-columns-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-packed-blake-columns-focused-v2",
+    "bytes": 750392,
+    "sha256": "e046d3193b8e7777394f78c2146c8ca1cc5bc5854570cea75db238ade7b99c43"
+  }
+}

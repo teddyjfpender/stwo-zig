@@ -1,0 +1,30 @@
+{
+  "segment_verified": true,
+  "block_verified": false,
+  "keccak_calls": 7,
+  "recovery_calls": 1,
+  "segment_index": 1680,
+  "warmup_segment_cycles": 32768,
+  "global_first_cycle": 55050241,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 32768,
+  "execution_ns": 83873650250,
+  "witness_ns": 5720668834,
+  "prove_ns": 5777099000,
+  "total_ns": 97720854334,
+  "peak_bytes": 4114576623,
+  "programs": 818624,
+  "memory_boundaries": 3870,
+  "hash_logs": [
+    20,
+    18,
+    19,
+    18,
+    13,
+    12,
+    12,
+    20
+  ],
+  "proof_bytes": 5966307
+}

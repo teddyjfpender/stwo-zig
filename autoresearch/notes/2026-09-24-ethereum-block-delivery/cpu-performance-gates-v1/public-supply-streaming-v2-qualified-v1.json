@@ -1,0 +1,95 @@
+{
+  "scope": "Pure canonical recipe byte identities and synchronous immutable custody, no proofs. New optional closed-node version only; production integration qualification remains open.",
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_public_supply_identity_v2.zig",
+      "sha256": "869310c3643e423348d9dba1266595a2d315d9b42811776395852562a3973e0a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_public_supply_session_v2.zig",
+      "sha256": "23cf8714eb164d1d107441fa1618aeddf62a3205e8f20fbf8501db0716c034b1"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_public_supply_identity_v2_test.zig",
+      "sha256": "5162ab76e87ca42fa78de2518eba28be04f05af617c3bc2f131f8cef3a65283a"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_public_supply_identity_v2_test_root.zig",
+      "sha256": "97c5085b16967818f1b7eea14f85993e19c8931594a714a27b4e490de6026074"
+    }
+  ],
+  "attempts": [
+    {
+      "name": "public-supply-streaming-v2-semantic-v1",
+      "source_candidate": "public-supply-streaming-v2-semantic-v1-source.json",
+      "exit_code": 1,
+      "elapsed_seconds": 0.2243355839746073,
+      "changed_source_pins": [],
+      "qualified": false,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/public-supply-streaming-v2-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "public-supply-streaming-v2-semantic-v2",
+      "source_candidate": "public-supply-streaming-v2-semantic-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 0.23653512500459328,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/public-supply-streaming-v2-semantic-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "name": "public-supply-streaming-v2-focused-v1",
+      "source_candidate": "public-supply-streaming-v2-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 1.184578042011708,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 7,
+      "test_summary": [
+        "All 7 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/public-supply-streaming-v2-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-public-supply-streaming-v2-focused-v1",
+        "bytes": 1580640,
+        "sha256": "9df5ed589a28d42485b23d95243b3c9120d45414382f99427def61ba88a209fa"
+      }
+    }
+  ],
+  "behavioral_tests": 6,
+  "buffer_records": 64,
+  "schedule_record_bytes": 32,
+  "value_record_bytes": 16,
+  "guards": "Full schedule, canonical field and original Values admission at entry/exit; per-wire exact lookup only. Failed/partial/excess/finalized builders cannot produce accepted identity.",
+  "performance_claim": "Structural elimination of per-record Channel framing, bounded 3072-byte record buffers. No measured proof speedup.",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "complete_block_authority": false,
+  "remaining": [
+    "Integration into actual closed-node rows and protocol source-authority hashing",
+    "Qualification of genuine production body and independent expected-key reconstruction",
+    "Canonical final closure and end-to-end timing/memory"
+  ]
+}

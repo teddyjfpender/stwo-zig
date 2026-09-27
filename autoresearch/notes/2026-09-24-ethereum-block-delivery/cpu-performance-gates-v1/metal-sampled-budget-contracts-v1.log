@@ -1,0 +1,10 @@
+1/9 metal_sampled_budget_test_root.test.sampled budget: joined streaming waves share heap cap and retain persistent outputs...OK
+2/9 metal_sampled_budget_test_root.test.sampled budget: partial factory failure preserves sticky OOM through joined cleanup...OK
+3/9 metal_sampled_budget_test_root.test.sampled budget: ordinary aliases are explicit and shared allocators always reject guessed custody...OK
+4/9 metal_sampled_budget_test_root.test.sampled budget: exact allocator and owner survive original owner release through heap cleanup...OK
+5/9 metal_sampled_budget_test_root.test.sampled budget: cancellation and malformed command receipts cannot promote outputs...OK
+6/9 metal_sampled_budget_test_root.test.sampled budget: release extent and callback overflow fail closed...OK
+7/9 metal_sampled_budget_test_root.test.sampled budget: persistent constructor extents preserve constant and streamed branches...OK
+8/9 metal_sampled_budget_test_root.test.sampled budget: byte thresholds join before copies including oversized single columns...OK
+9/9 metal_sampled_budget_test_root.test.sampled budget: resident barycentric scratch accounts numeric payload and private buffers once...OK
+All 9 tests passed.

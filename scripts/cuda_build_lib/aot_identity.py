@@ -53,6 +53,10 @@ def validate_native_aot_identity(
     base_fields: set[str],
     index: int,
 ) -> None:
+    from .secure_identity import SECURE_SCHEMAS, validate_secure_identity
+    if entry["abi_schema"] in SECURE_SCHEMAS:
+        validate_secure_identity(generated_dir, entry, base_fields, index)
+        return
     if entry["abi_schema"] == CAIRO_EVAL_SCHEMA:
         validate_cairo_eval_identity(
             generated_dir,

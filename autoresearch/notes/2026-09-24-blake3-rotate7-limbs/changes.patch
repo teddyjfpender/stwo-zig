@@ -1,0 +1,200 @@
+--- a/src/frontends/riscv/recursion/air/blake3_g_packed.zig
++++ b/src/frontends/riscv/recursion/air/blake3_g_packed.zig
+@@ -7,12 +7,12 @@
+ const effects = @import("relation_effect.zig");
+ const Id = lang.types.ValueId;
+ const span = lang.source.SourceSpan.generated();
+-pub const COLUMN_COUNT = 112;
+-pub const CONSTRAINT_COUNT = 56;
+-pub const EVENT_COUNT = 52;
++pub const COLUMN_COUNT = 90;
++pub const CONSTRAINT_COUNT = 32;
++pub const EVENT_COUNT = 46;
+ pub const SEMANTIC_DIGEST: [32]u8 = blk: {
+     var out: [32]u8 = undefined;
+-    _ = std.fmt.hexToBytes(&out, "9c571892e3c6acfb17302af37b1f60a59860379e9befe708563faff6a0505fa7") catch @compileError("invalid packed BLAKE3 digest");
++    _ = std.fmt.hexToBytes(&out, "c3a1b7bd7c2857fdac7d04a37db2bf6a35b21adaf2119e5053a5de1654204820") catch @compileError("invalid packed BLAKE3 digest");
+     break :blk out;
+ };
+ pub const Row = [COLUMN_COUNT]core.fields.m31.M31;
+@@ -25,6 +25,18 @@
+     }
+ };
+ pub fn build(allocator: std.mem.Allocator) !Definition {
++    var result = try buildRaw(allocator);
++    errdefer result.deinit();
++    const identity = try lang.digest.computeIdentity(&result.arena);
++    if (!std.mem.eql(u8, &identity.bytes, &SEMANTIC_DIGEST)) return error.InvalidBlake3PackedSemantics;
++    return result;
++}
++pub fn computeSemanticDigest(allocator: std.mem.Allocator) ![32]u8 {
++    var result = try buildRaw(allocator);
++    defer result.deinit();
++    return (try lang.digest.computeIdentity(&result.arena)).bytes;
++}
++fn buildRaw(allocator: std.mem.Allocator) !Definition {
+     var ops = Typed{ .arena = lang.ir.Arena.init(allocator) };
+     errdefer ops.arena.deinit();
+     var input: [6]Typed.Word = undefined;
+@@ -32,8 +44,6 @@
+     const output = try core.crypto.blake3_compression.g(Typed, &ops, input);
+     try lang.validate.validate(&ops.arena);
+     if (ops.columns != COLUMN_COUNT or ops.arena.constraintsView().len != CONSTRAINT_COUNT or ops.arena.effectsView().len != EVENT_COUNT) return error.InvalidBlake3PackedGeometry;
+-    const identity = try lang.digest.computeIdentity(&ops.arena);
+-    if (!std.mem.eql(u8, &identity.bytes, &SEMANTIC_DIGEST)) return error.InvalidBlake3PackedSemantics;
+     return .{ .arena = ops.arena, .input = input, .output = output };
+ }
+ /// Predeclare physical inputs for consumers whose layout contract requires an
+@@ -145,22 +155,35 @@
+             for (&out, 0..) |*id, i| id.* = xors[(i + rotation / 8) % 4];
+             return out;
+         }
+-        const shift = rotation % 8;
+-        var low: Word = undefined;
+-        var high: Word = undefined;
+-        for (xors, 0..) |value, i| {
+-            low[i] = try self.narrowByte(shift);
+-            high[i] = if (shift == 7) try self.bit() else try self.narrowByte(4);
+-            const joined = try self.arena.add(low[i], try self.arena.mul(try self.constant(1 << shift), high[i], span), span);
+-            try self.constrain(try self.arena.sub(value, joined, span));
++        if (rotation == 7) {
++            // ROTR7(x) = ROTL1(ROTR8(x)). Two bounded 16-bit limbs
++            // replace four separate byte splits. Boolean cyclic carries and
++            // byte-bounded outputs keep both equalities below 2^17 in M31.
++            const result = try self.word(true);
++            const carries = [2]Id{ try self.bit(), try self.bit() };
++            for (0..2) |limb| {
++                const at = 2 * limb;
++                const input_limb = try self.arena.add(xors[(at + 1) % 4], try self.arena.mul(try self.constant(256), xors[(at + 2) % 4], span), span);
++                const output_limb = try self.arena.add(result[at], try self.arena.mul(try self.constant(256), result[at + 1], span), span);
++                const lhs = try self.arena.add(try self.arena.mul(try self.constant(2), input_limb, span), carries[1 - limb], span);
++                const rhs = try self.arena.add(output_limb, try self.arena.mul(try self.constant(65536), carries[limb], span), span);
++                try self.constrain(try self.arena.sub(lhs, rhs, span));
++            }
++            return result;
+         }
+-        // Bounded low/high pieces make each joined rotation byte < 256.
+-        // Equality below pins the byte without another range-table request.
+-        const result = try self.word(false);
+-        for (result, 0..) |out, i| {
+-            const at = (i + rotation / 8) % 4;
+-            const joined = try self.arena.add(high[at], try self.arena.mul(try self.constant(1 << (8 - shift)), low[(at + 1) % 4], span), span);
+-            try self.constrain(try self.arena.sub(out, joined, span));
++        if (rotation != 12) @compileError("unsupported BLAKE3 rotation");
++        // ROTR12(x) = ROTR4(ROTR8(x)). Two four-bit cyclic carries
++        // suffice for the 16-bit limbs. Both sides stay below 2^20;
++        // the scaled-byte lookup bounds each carry to [0,15].
++        const result = try self.word(true);
++        const carries = [2]Id{ try self.narrowByte(4), try self.narrowByte(4) };
++        for (0..2) |limb| {
++            const at = 2 * limb;
++            const input_limb = try self.arena.add(xors[(at + 1) % 4], try self.arena.mul(try self.constant(256), xors[(at + 2) % 4], span), span);
++            const output_limb = try self.arena.add(result[at], try self.arena.mul(try self.constant(256), result[at + 1], span), span);
++            const lhs = try self.arena.add(input_limb, try self.arena.mul(try self.constant(65536), carries[1 - limb], span), span);
++            const rhs = try self.arena.add(try self.arena.mul(try self.constant(16), output_limb, span), carries[limb], span);
++            try self.constrain(try self.arena.sub(lhs, rhs, span));
+         }
+         return result;
+     }
+--- a/src/frontends/riscv/recursion/air/blake3_g_packed_witness.zig
++++ b/src/frontends/riscv/recursion/air/blake3_g_packed_witness.zig
+@@ -35,17 +35,21 @@
+         self.word(xors);
+         const result = std.math.rotr(u32, xors, rotation);
+         if (rotation == 16 or rotation == 8) return result;
+-        const shift = rotation % 8;
+-        for (0..4) |i| {
+-            const byte = (xors >> @as(u5, @intCast(i * 8))) & 255;
+-            const low = byte & ((1 << shift) - 1);
+-            const high = byte >> shift;
++        if (rotation == 7) {
++            self.word(result);
++            const rotated = std.math.rotr(u32, xors, 8);
++            self.value((rotated >> 15) & 1);
++            self.value(rotated >> 31);
++            return result;
++        }
++        if (rotation != 12) @compileError("unsupported BLAKE3 rotation");
++        self.word(result);
++        const rotated = std.math.rotr(u32, xors, 8);
++        for (0..2) |i| {
++            const low = (rotated >> @as(u5, @intCast(i * 16))) & 15;
+             self.value(low);
+-            self.value(low << (8 - shift));
+-            self.value(high);
+-            if (shift == 4) self.value(high << 4);
++            self.value(low << 4);
+         }
+-        self.word(result);
+         return result;
+     }
+ };
+--- a/src/frontends/riscv/recursion/air/blake3_g_call.zig
++++ b/src/frontends/riscv/recursion/air/blake3_g_call.zig
+@@ -12,13 +12,13 @@
+ pub const LOGICAL_INPUT_COUNT = PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
+ pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+ pub const DIRECT_CONSTRAINT_COUNT = arithmetic.CONSTRAINT_COUNT;
+-pub const RELATION_EVENT_COUNT = 62;
++pub const RELATION_EVENT_COUNT = arithmetic.EVENT_COUNT + 10;
+ pub const LOOKUP_BATCH_SIZE: u8 = 2;
+-pub const INTERACTION_BATCH_COUNT = 31;
+-pub const INTERACTION_COLUMN_COUNT = 124;
++pub const INTERACTION_BATCH_COUNT = @as(usize, RELATION_EVENT_COUNT) / LOOKUP_BATCH_SIZE;
++pub const INTERACTION_COLUMN_COUNT = INTERACTION_BATCH_COUNT * 4;
+ pub const SEMANTIC_DIGEST: [32]u8 = blk: {
+     var out: [32]u8 = undefined;
+-    _ = std.fmt.hexToBytes(&out, "878a0938353a5e45fc932363ddb324721a1797de85a52a36aa5d64b918713ee5") catch @compileError("invalid BLAKE3 G call digest");
++    _ = std.fmt.hexToBytes(&out, "321d2cec0cc041eca4f6db7836ea0b005338b3fc853a06da960ecaabcb8024bf") catch @compileError("invalid BLAKE3 G call digest");
+     break :blk out;
+ };
+ pub const Row = [LOGICAL_INPUT_COUNT]M31;
+--- a/src/frontends/riscv/recursion/air/blake3_compression_partition_test.zig
++++ b/src/frontends/riscv/recursion/air/blake3_compression_partition_test.zig
+@@ -88,6 +88,6 @@
+         cells += group.mainColumns();
+         events += group.lookupEvents();
+     }
+-    try std.testing.expectEqual(@as(usize, 5824), cells);
+-    try std.testing.expectEqual(@as(usize, 3024), events);
++    try std.testing.expectEqual(@as(usize, 4592), cells);
++    try std.testing.expectEqual(@as(usize, 2688), events);
+ }
+--- a/src/frontends/riscv/blake3_rotation_test_root.zig
++++ b/src/frontends/riscv/blake3_rotation_test_root.zig
+@@ -0,0 +1,6 @@
++test {
++    _ = @import("recursion/air/blake3_g_packed_test.zig");
++    _ = @import("recursion/air/blake3_compression_partition_test.zig");
++    _ = @import("recursion/air/direct_constraint_program.zig");
++    _ = @import("recursion/air/relation_interaction_tuple_ledger.zig");
++}
+--- a/src/frontends/riscv/blake3_hash_test_root.zig
++++ b/src/frontends/riscv/blake3_hash_test_root.zig
+@@ -1,4 +1,6 @@
+ comptime {
++    _ = @import("recursion/air/blake3_g_packed_test.zig");
++    _ = @import("recursion/air/blake3_committed_test.zig");
+     _ = @import("recursion/air/blake3_native_recorder_test.zig");
+     _ = @import("recursion/air/blake3_transcript_plan_test.zig");
+     _ = @import("recursion/air/blake3_projection_links_test.zig");
+--- a/src/integrations/riscv_cpu/build_blake3_steps.zig
++++ b/src/integrations/riscv_cpu/build_blake3_steps.zig
+@@ -11,6 +11,17 @@
+     const integration = ctx.integration;
+     const hash_root = support.createHarnessModule(b, "../../frontends/riscv/blake3_hash_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+     hash_root.addImport("stwo_prover_engine", prover);
++    const rotation_names: []const []const u8 = &.{
++        "BLAKE3 compact G matches typed bit reference and canonical lookup schemas",
++        "BLAKE3 compact G rejects coordinate mutations and requires lookup bounds",
++        "BLAKE3 compact G covers all seven rounds of a native compression trace",
++        "BLAKE3 compression committed proof verifies with trusted preprocessing",
++        "BLAKE3 full hash committed proofs cover empty partial and unbalanced chunk trees",
++        "BLAKE3 framed Merkle node proof matches the native commitment",
++    };
++    const rotation_tests = b.addTest(.{ .root_module = hash_root, .filters = rotation_names });
++    b.step("test-blake3-rotation-precompile", "Qualify shared G rotations through full hash and framed commitment proofs")
++        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(rotation_tests), rotation_names, "BLAKE3 rotation precompile guard"));
+     const bounded_names: []const []const u8 = &.{"BLAKE3 bounded draws preserve private counters and native retries"};
+     const bounded_tests = b.addTest(.{ .root_module = hash_root, .filters = bounded_names });
+     b.step("test-blake3-bounded-draw", "Check fixed-capacity private native draw counters")

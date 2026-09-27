@@ -1,0 +1,31 @@
+COMPRESSION arm=zisk_scalar index=0 calls=5000000 ns=296418208 checksum=7b64db17
+COMPRESSION arm=stwo_author index=1 calls=5000000 ns=236162625 checksum=7b64db17
+COMPRESSION arm=zig_native_xof index=2 calls=5000000 ns=343171875 checksum=7b64db17
+COMPRESSION arm=zig_native_xof index=3 calls=5000000 ns=339389000 checksum=7b64db17
+COMPRESSION arm=stwo_author index=4 calls=5000000 ns=237663000 checksum=7b64db17
+COMPRESSION arm=zisk_scalar index=5 calls=5000000 ns=299435542 checksum=7b64db17
+COMPRESSION arm=zisk_scalar index=6 calls=5000000 ns=297229083 checksum=7b64db17
+COMPRESSION arm=stwo_author index=7 calls=5000000 ns=234241209 checksum=7b64db17
+COMPRESSION arm=zig_native_xof index=8 calls=5000000 ns=339391292 checksum=7b64db17
+COMPRESSION arm=zig_native_xof index=9 calls=5000000 ns=339364709 checksum=7b64db17
+COMPRESSION arm=stwo_author index=10 calls=5000000 ns=233431666 checksum=7b64db17
+COMPRESSION arm=zisk_scalar index=11 calls=5000000 ns=296091125 checksum=7b64db17
+PARITY cases=1024 passed=true batch_outputs_equal=true
+        4.17 real         3.59 user         0.01 sys
+             1540096  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 272  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                 351  involuntary context switches
+         77288731646  instructions retired
+         16383992474  cycles elapsed
+             1130784  peak memory footprint

@@ -1,0 +1,22 @@
+[ethereum-auth-local-execute] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-local-execute] acquired after 383s
+local batch-1 passed
+local batch-2 passed
+local batch-4 passed
+local batch-8 passed
+local batch-16 passed
+local bad-type passed
+local bad-parity passed
+local zero-r passed
+local high-s passed
+local bad-rlp passed
+peer batch-1 passed
+peer batch-2 passed
+peer batch-4 passed
+peer batch-8 passed
+peer batch-16 passed
+peer bad-type passed
+peer bad-parity passed
+peer zero-r passed
+peer high-s passed
+peer bad-rlp passed

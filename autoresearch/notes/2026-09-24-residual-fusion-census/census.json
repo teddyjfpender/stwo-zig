@@ -1,0 +1,29 @@
+[
+  {
+    "lane": 1500,
+    "multiply": 2224,
+    "linear": 837,
+    "inverse": 52,
+    "quotient_accumulations": 0,
+    "prelinear_products": 151,
+    "prelinear_hidden_rows": 151
+  },
+  {
+    "lane": 1502,
+    "multiply": 12778,
+    "linear": 8722,
+    "inverse": 842,
+    "quotient_accumulations": 210,
+    "prelinear_products": 3203,
+    "prelinear_hidden_rows": 3203
+  },
+  {
+    "lane": 1504,
+    "multiply": 52168,
+    "linear": 13581,
+    "inverse": 1260,
+    "quotient_accumulations": 0,
+    "prelinear_products": 3501,
+    "prelinear_hidden_rows": 3501
+  }
+]

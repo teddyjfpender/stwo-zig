@@ -1,0 +1,15 @@
+In file included from /Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-zisk-component-suite/peer_stages.cpp:1:
+In file included from /tmp/stwo-recursion-peer-research-20260921/pil2-proofman/pil2-stark/src/goldilocks/src/goldilocks_base_field.hpp:6:
+/opt/homebrew/opt/gmp/include/gmpxx.h:2163:29: warning: identifier '_mpz' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 2163 | inline mpz_class operator"" _mpz(const char* s)
+      |                  ~~~~~~~~~~~^~~~
+      |                  operator""_mpz
+/opt/homebrew/opt/gmp/include/gmpxx.h:2168:29: warning: identifier '_mpq' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 2168 | inline mpq_class operator"" _mpq(const char* s)
+      |                  ~~~~~~~~~~~^~~~
+      |                  operator""_mpq
+/opt/homebrew/opt/gmp/include/gmpxx.h:2175:29: warning: identifier '_mpf' preceded by whitespace in a literal operator declaration is deprecated [-Wdeprecated-literal-operator]
+ 2175 | inline mpf_class operator"" _mpf(const char* s)
+      |                  ~~~~~~~~~~~^~~~
+      |                  operator""_mpf
+3 warnings generated.

@@ -1,0 +1,6 @@
+src/frontends/riscv/recursion/air/block_v5_requester_public_composition_v1.zig:120:56: error: capture shadows declaration of 'word'
+                    for (ref.selectors, &coordinates) |word, *coordinate| {
+                                                       ^~~~
+src/frontends/riscv/recursion/air/block_v5_requester_public_composition_v1.zig:83:5: note: declared here
+    fn word(self: *@This(), window: u32, coordinate: u32) !Tuple.Word(S) {
+    ^~

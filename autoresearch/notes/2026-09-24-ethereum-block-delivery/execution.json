@@ -1,0 +1,14 @@
+{
+  "execution_verified": true,
+  "proof_verified": false,
+  "cycles": 253646998,
+  "segments": 968,
+  "planned_proof_segments": 1024,
+  "max_segment_cycles": 262144,
+  "keccak_calls": 32835,
+  "recovery_calls": 66,
+  "elapsed_ns": 79523622208,
+  "elf_sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+  "input_sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+  "output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+}

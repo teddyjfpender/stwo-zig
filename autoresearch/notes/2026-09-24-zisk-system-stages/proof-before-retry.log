@@ -1,0 +1,11 @@
+test-keccakf-precompile-proof
++- Keccak-f native proof identity guard
+   +- run test stderr
+Keccak-f proof timings: witness=10.265ms pp=6.306ms main=3.463ms interaction-gen=2.839ms interaction-commit=4.415ms prove=28.370ms verify=4.282ms
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-keccakf-precompile-proof success
++- Keccak-f native proof identity guard success
+   +- run test 1 passed 788ms MaxRSS:24M
+      +- compile test ReleaseFast native success 15s MaxRSS:1G
+

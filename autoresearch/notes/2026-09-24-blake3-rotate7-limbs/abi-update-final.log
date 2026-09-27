@@ -1,0 +1,14 @@
+export stwo_zig_framework_interaction_v1_09e5d73cbdf0c555c8c13929f50142adf9a016936fb53fa4d1b1529ee4b87ad6: MissingKernelDeclaration
+error: MissingKernelDeclaration
+update-abi-declaration-digests
++- run exe abi-declaration-digests-update failure
+error: the following command exited with error code 1:
+./.zig-cache/o/9dc925addbee66b3f9920f53c57f9f3d/abi-declaration-digests-update /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/shaders/abi_declaration_digests.zig
+
+Build Summary: 1/3 steps succeeded; 1 failed
+update-abi-declaration-digests transitive failure
++- run exe abi-declaration-digests-update failure
+   +- compile exe abi-declaration-digests-update ReleaseSafe native success 2s MaxRSS:314M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/f52a26fdc553e03895698daa51029409/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x5d3bdb68 -Z372fcdad056e196b --maxrss 25769803776 -j1 update-abi-declaration-digests -Doptimize=ReleaseSafe --summary all

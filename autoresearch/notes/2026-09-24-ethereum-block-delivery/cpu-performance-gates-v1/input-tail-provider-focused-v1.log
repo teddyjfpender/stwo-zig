@@ -1,0 +1,29 @@
+1/13 block_v5_input_tail_test_root.test.input tail provider body: genuine publisher receiver nested capture and bounded B5PD hash bodies...OK
+2/13 prover.block_v5_input_tail_test_v1.test.input tail provider: exact original CV call selection covers unbalanced and partial final chunks...expected 1, found 7
+FAIL (TestExpectedEqual)
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:110:17: 0x103b28867 in expectEqualInner__anon_149820 (root)
+                return error.TestExpectedEqual;
+                ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_input_tail_test_v1.zig:89:13: 0x103b28c97 in test.input tail provider: exact original CV call selection covers unbalanced and partial final chunks (root)
+            try std.testing.expectEqual(@as(u32, 1), plan.uses[plan.calls[call].output[0]]);
+            ^
+3/13 prover.block_v5_input_tail_test_v1.test.input tail provider: bounded consumer original scalar parity exact fixed routes and byte multiset...FAIL (TestUnexpectedResult)
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/testing.zig:607:14: 0x103b287bb in expect (root)
+    if (!ok) return error.TestUnexpectedResult;
+             ^
+/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/prover/block_v5_input_tail_test_v1.zig:121:13: 0x103b35fe3 in test.input tail provider: bounded consumer original scalar parity exact fixed routes and byte multiset (root)
+            try std.testing.expect(!try constraints(R, actual.route_rows));
+            ^
+4/13 prover.block_v5_input_tail_test_v1.test.input tail provider: public owner mutation exact leases and exhaustive allocation rollback...OK
+5/13 prover.block_v5_input_tail_test_v1.test.input tail provider: durable expected owner and alias survive original shared budget release...OK
+6/13 prover.block_v5_input_tail_test_v1.test.input tail provider: actual original hash and private word AIR has exact public export sinks...OK
+7/13 prover.block_v5_input_tail_test_v1.test.input tail provider: source normalization key identity and cap rejects are metadata only...OK
+8/13 prover.block_v5_input_tail_test_v1.test.input tail provider: original B5PD chain uses bounded input hash calls and unchanged final digest...OK
+9/13 prover.block_v5_input_tail_test_v1.test.input tail provider: bounded consumer exhaustive failure cleanup and large mathematical extent...OK
+10/13 prover.block_v5_input_tail_test_v1.test.input tail provider: durable original and consumer columns retain backing budget after owner release...OK
+11/13 air.memory_commitment.poseidon2_air.test_0...OK
+12/13 air.lookups.tables.mod.test_0...OK
+13/13 air.lookups.tables.source_ingest.test_0...OK
+11 passed; 0 skipped; 2 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-input-tail-provider-focused-v1 --seed=0x577bbd50

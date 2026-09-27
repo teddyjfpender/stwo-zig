@@ -58,7 +58,7 @@ pub const Builder = struct {
     outputs: std.ArrayList(u32) = .empty,
     interned: std.AutoHashMap(OpKey, u32),
     input_count: usize = 0,
-    failure: ?anyerror = null,
+    failure: ?Error = null,
     active: bool = false,
 
     pub fn init(allocator: std.mem.Allocator) Builder {
@@ -246,13 +246,16 @@ pub const Builder = struct {
         return node_id;
     }
 
-    fn poison(self: *Builder, failure: anyerror) Handle {
+    fn poison(self: *Builder, failure: Error) Handle {
         if (self.failure == null) self.failure = failure;
         return .{ .constant = QM31.zero() };
     }
 
     pub fn check(self: *const Builder) Error!void {
-        if (self.failure != null) return error.GraphConstructionFailed;
+        // Infallible field operations keep the first failure sticky. Preserve
+        // its cause so allocation rollback sees OutOfMemory; no partial graph
+        // may resume recording or gain authority after any failure.
+        if (self.failure) |failure| return failure;
     }
 
     fn requireActive(self: *const Builder) Error!void {
@@ -404,6 +407,7 @@ pub fn replayDirect(
     @memcpy(slots[0..inputs.len], inputs);
     for (program.nodes[0..program.compiled_node_count]) |node| {
         slots[node.destination] = switch (node.op) {
+            .machine => |v| @import("closed_machine_expression.zig").evaluate(Scalar, v, slots),
             .constant => |value| Scalar.fromBase(M31.fromU64(value)),
             .add => |binary| slots[binary.lhs].add(slots[binary.rhs]),
             .sub => |binary| slots[binary.lhs].sub(slots[binary.rhs]),
@@ -490,6 +494,11 @@ pub fn preflightDirect(program: *const direct.Program) Error!void {
         if (destination != input_count + ordinal or destination >= node_count)
             return error.InvalidDirectProgram;
         switch (node.op) {
+            .machine => |v| {
+                for (@import("closed_machine_expression.zig").operands(v)) |operand| if (operand) |id| {
+                    if (@intFromEnum(id) >= destination) return error.InvalidDirectProgram;
+                };
+            },
             .constant => {},
             .add, .sub, .mul => |binary| {
                 if (binary.lhs >= destination or binary.rhs >= destination)

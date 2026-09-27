@@ -1,0 +1,20 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 9.754510416998528,
+  "source_candidate": "memory-source-auth-focused-v2-source.json",
+  "changed_source_pins": [],
+  "qualified": true,
+  "tests_run": true,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-auth-focused-v2.log",
+  "test_summary": [
+    "All 12 tests passed."
+  ],
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-auth-focused-v2",
+    "bytes": 749352,
+    "sha256": "8067d1753259f1050b787f8cbeda03245bc74bf3219258475948b9acdc60aef5"
+  }
+}

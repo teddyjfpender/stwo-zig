@@ -1,0 +1,13 @@
+{
+  "README.md": "2a44b913215426137db7eb25187703fb3275080e8ab73813ea534cb5dcb355d7",
+  "sources/src/frontends/riscv/recursion/air/blake3_arithmetic_proof_fixture.zig": "fd1ea14c9d41a16de9bcdd8303d3fc901694df108d080c04399f093fd789996e",
+  "sources/src/frontends/riscv/recursion/air/blake3_byte_route_test.zig": "1072123b935179b1aa03927ae24a9fe1beca34d5cd76c4ba279e6e8197f0a650",
+  "sources/src/frontends/riscv/recursion/air/blake3_merkle_group_witness.zig": "b5f868545c4c4146b0324046e9fff861bc1c669154eb32f21058c31c5e61630a",
+  "sources/src/frontends/riscv/recursion/air/blake3_pcs_transcript.zig": "c204c96cb7780ce3b32dd0b65729d7ebd6ee5d1e50ab771896ee1e537d96eb3f",
+  "sources/src/frontends/riscv/recursion/air/blake3_root_sources.zig": "e70c2d0387441afb5151f9ac525622d425583fe1c2f64bdd0791b1f9ed46ed9b",
+  "sources/src/frontends/riscv/recursion/air/blake3_routed_transcript_test.zig": "8dc12e5692779f641c951dfba15f64fb25e333bb91c18cabd9571cddefee54d0",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_paths_fixture.zig": "6190ee73b750d6fee4ecae56f84379017280ad19edef104887783a44f4851c88",
+  "sources/src/frontends/riscv/recursion/air/blake3_stark_prefix_fixture.zig": "631c81914263be85a50bf5b8b95ec6b72c24a6e56e7dd6f5b71cfa9243020e39",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "ecd65a99919baf9de69f9222f647ba9d8630975ec22b5a619a8b7eedba72bd51",
+  "tests.log": "dc5f71cf466f2984ce7d0796258b51cf2fcd2d0c3763d12dc943570044038b29"
+}

@@ -1,0 +1,15 @@
+1/13 prover.block_v5_word_cpu_optimization_test.test.block-v5 assembled driver integration compiles without launching segment proving...OK
+2/13 prover.block_v5_word_cpu_optimization_test.test.block-v5 word quotient kernel benchmark scalar packed and shared pool...WORD_QUOTIENT_KERNEL rows=32768 constraints=63 main_columns=27 interaction_columns=68 scalar_median_ns=55897334 packed_median_ns=40515500 parallel_median_ns=14350709 workers=3 verified_all_rows=true scope=quotient_rows_only
+OK
+3/13 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+4/13 air.lookups.tables.mod.test_0...OK
+5/13 runner.mod.test_0...OK
+6/13 runner.decode.test_0...OK
+7/13 air.memory_commitment.poseidon2_air.test_0...OK
+8/13 air.semantic_eval.test_0...OK
+9/13 prover.block_execution_external_trace_v2.test_0...OK
+10/13 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/13 prover.block_v5_committed_trace_column_v1.test_0...OK
+12/13 air.lookups.tables.source_ingest.test_0...OK
+13/13 diagnostics.mod.test_0...OK
+All 13 tests passed.

@@ -1,0 +1,15 @@
+{
+  "scope": "Complete one-transaction authentication guest, 16 actual execution leaves and four aggregation levels; not a full Ethereum block",
+  "queries": 70,
+  "pow_bits": 26,
+  "segments": 16,
+  "cycles": 21635,
+  "old_peak_bytes": 20927931793,
+  "peak_bytes": 19389625682,
+  "old_process_peak_bytes": 16465062096,
+  "process_peak_bytes": 15461261384,
+  "old_total_ns": 618470395333,
+  "total_ns": 678913719541,
+  "proof_byte_identical": true,
+  "proof_sha256": "1e505e87f1844a706c707fad552919f2eb28267d9667235a756410dae27a8fc3"
+}

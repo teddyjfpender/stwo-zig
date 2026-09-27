@@ -1,0 +1,10 @@
+{
+  "src/frontends/riscv/recursion/air/detached_pcs_opening_plan_test.zig": "f98e62cfb170f6722bd1f190cb8d55eb3b29214a4a0b2d7cd92b5dc1aa812749",
+  "src/frontends/riscv/recursion/air/detached_pcs_opening_plan.zig": "42a321cd916f7ddb4e7878a19e5d73be41637fa74e13164a6b9b6b97a34d0cfb",
+  "src/frontends/riscv/recursion/air/detached_pcs_opening4_v1_test.zig": "1c4ffcbfbb3b8352865a982967cec513642f2a263742f6297199a7dae6b32308",
+  "src/frontends/riscv/recursion/air/detached_pcs_opening4_v1.zig": "b6f25475919173e56fc2ac5035ab7c3d96ca73f31b128d96fe6ec25ef1654643",
+  "src/frontends/riscv/recursion/air/detached_pcs_opening_closure_test.zig": "ba21b3eb0df7c6fea53c790db52ead12661df0c917a82943aa7c206e647e3001",
+  "src/frontends/riscv/pcs_opening_test_root.zig": "e9ba91d2fc0a92e02ac6f41337b0450b7b9a19a6a95540f5ec019d8a25201e52",
+  "src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig": "6c96b6b486b5bb9a4e848852fbba035bbac2f842348115b360ac7b6a505c7dbd",
+  "src/integrations/riscv_cpu/build_segment_steps.zig": "f2c660c4a14fb9b98e7a227082f68a490ec70c86554184bed417937b8693782f"
+}

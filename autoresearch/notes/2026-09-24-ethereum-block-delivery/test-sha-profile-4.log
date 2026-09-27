@@ -1,0 +1,19 @@
+1/18 runner.guest_precompile.ethereum_sha_profile_test.test.SHA profile exact admission and declared program operands preserve legacy identities...OK
+2/18 runner.guest_precompile.ethereum_sha_profile_test.test.SHA profile segmented execution owns frozen tapes across both clock frames...OK
+3/18 runner.guest_precompile.ethereum_sha_profile_test.test.SHA profile one shot result uses the canonical session and old ELF rejects SHA...OK
+4/18 isa.execution_profile.test.execution profile wire IDs, names, and semantic identity are pinned...OK
+5/18 air.program.decode.test.decoded program: Poseidon2 profile appends one exact CUSTOM-0 tuple...OK
+6/18 air.program.decode.test.decoded program: CUSTOM-0 authority remains profile-separated...OK
+7/18 isa.custom0.test.Poseidon2 CUSTOM-0 admits exactly the 32 rs1 encodings in the extension profile...OK
+8/18 isa.custom0.test.Poseidon2 CUSTOM-0 compares every fixed encoding bit...OK
+9/18 isa.custom0.test.CUSTOM-0 decoder does not claim ordinary RV32IM words...OK
+10/18 runner.mod.test_0...OK
+11/18 runner.elf_loader.test.ELF admission selects base without a note and exact Poseidon2 with one...OK
+12/18 runner.elf_loader.test.ELF admission rejects section and note envelope drift...OK
+13/18 runner.elf_loader.test.ELF admission rejects every descriptor identity mismatch...OK
+14/18 runner.elf_loader.test.ELF admission selects the exact Keccak-f profile identity...OK
+15/18 runner.elf_loader.test.ELF admission rejects duplicate notes, duplicate sections, and invalid tables...OK
+16/18 runner.elf_loader.test.ELF admission bounds every truncation of the canonical note...OK
+17/18 runner.decode.test_0...OK
+18/18 runner.guest_precompile.mod.test_0...OK
+All 18 tests passed.

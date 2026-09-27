@@ -1,0 +1,22 @@
+{
+  "source_candidate": "original-words-tail-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 10.602686374972109,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 10,
+  "test_summary": [
+    "All 10 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/original-words-tail-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-original-words-tail-focused-v1",
+    "bytes": 961144,
+    "sha256": "4f9239497093dbfe926ec43b3f646a07caad966d4a7b34c01c76f94c5bddf02c"
+  }
+}

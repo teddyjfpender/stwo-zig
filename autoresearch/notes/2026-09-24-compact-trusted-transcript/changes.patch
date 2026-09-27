@@ -1,0 +1,565 @@
+--- control/blake3_bounded_draw.zig
++++ src/frontends/riscv/recursion/air/blake3_bounded_draw.zig
+@@ -75,9 +75,14 @@
+     defer plan.deinit();
+     for (plan.output, 0..) |wire, j| if (wire != plan.output[0] + j) return error.InvalidBoundedBlake3Draw;
+     const counts = try layout.counts(&plan, s.capacity);
+-    if (borrowed) |out| if (out.g_rows.len != counts.g or out.xor_rows.len != counts.xor) return error.InvalidBlake3WitnessDestination;
++    if (borrowed) |out| {
++        try out.validate(counts.g, counts.xor);
++        if (live and out.fixed != null) return error.InvalidBlake3WitnessDestination;
++    }
++    const fixed_metadata = if (borrowed) |out| out.fixed else null;
+     if (columns) |out| try out.validate(counts.g, counts.xor);
+     const hash_rows = HashDestination{
++        .fixed = fixed_metadata,
+         .g_rows = if (columns != null) &.{} else if (borrowed) |out| out.g_rows else try a.alloc(draw.g.Row, counts.g),
+         .xor_rows = if (columns != null) &.{} else if (borrowed) |out| out.xor_rows else try a.alloc(draw.xor.Row, counts.xor),
+     };
+@@ -96,7 +101,7 @@
+         const message = core.channel.blake3.Frame{ .draw = .{ .state = s.state, .index = current } };
+         const bindings = [_]frame.Binding{.{ .role = .state, .caller = s.state_source }};
+         const payload = frame.PayloadBinding{ .role = .draw_index, .caller = source, .word_count = 2 };
+-        const out = if (columns != null) HashDestination{ .g_rows = &.{}, .xor_rows = &.{} } else HashDestination{ .g_rows = hash_rows.g_rows[i * plan.g.len ..][0..plan.g.len], .xor_rows = hash_rows.xor_rows[i * plan.xor.len ..][0..plan.xor.len] };
++        const out = if (columns != null) HashDestination{} else try hash_rows.slice(i * plan.g.len, plan.g.len, i * plan.xor.len, plan.xor.len);
+         var hash = if (columns) |target| try frame.prepareMainColumns(backing, hash_circuit, message, &bindings, payload, @splat(0), try target.slice(i * plan.g.len, plan.g.len, i * plan.xor.len, plan.xor.len)) else if (live) try frame.prepareInto(backing, hash_circuit, message, &bindings, payload, @splat(0), out) else try frame.trustedInto(backing, hash_circuit, message, &bindings, payload, @splat(0), out);
+         defer hash.deinit();
+         for (&state_uses, hash.source_uses[0]) |*sum, uses| {
+@@ -139,5 +144,5 @@
+     try lists.boundary_rows.append(a, try draw.boundary.logicalCoordinates(pending_circuit, s.capacity, M31.one().neg(), @splat(M31.zero())));
+     try lists.boundary_rows.append(a, try draw.boundary.privateCoordinates(output.circuit, 8, M31.one().neg(), .{ M31.fromCanonical(consumed), M31.zero(), M31.zero(), M31.zero() }));
+     const rows = try lists.finish(a, hash_rows);
+-    return .{ .hash_metadata = if (columns) |out| out.metadata() else null, .arena = arena, .rows = rows, .state_uses = state_uses, .counter_uses = initial_counter_uses, .output = output, .final_counter = .{ .circuit = counter_circuit, .first_wire = 2 * (s.capacity - 1) }, .next_counter = if (live) current else null, .selected = if (live) selected else null };
++    return .{ .hash_metadata = if (columns) |out| out.metadata() else fixed_metadata, .arena = arena, .rows = rows, .state_uses = state_uses, .counter_uses = initial_counter_uses, .output = output, .final_counter = .{ .circuit = counter_circuit, .first_wire = 2 * (s.capacity - 1) }, .next_counter = if (live) current else null, .selected = if (live) selected else null };
+ }
+--- control/blake3_frame_witness.zig
++++ src/frontends/riscv/recursion/air/blake3_frame_witness.zig
+@@ -54,6 +54,14 @@
+     xor_rows: []@import("blake3_xor_call.zig").Row = &.{},
+     /// Trusted preprocessing may target compact tails instead of full rows.
+     fixed: ?Metadata = null,
++    pub fn slice(self: @This(), gf: usize, gs: usize, xf: usize, xs: usize) !@This() {
++        if (self.fixed) |m| {
++            if (self.g_rows.len != 0 or self.xor_rows.len != 0) return error.InvalidBlake3WitnessDestination;
++            return .{ .fixed = try m.slice(gf, gs, xf, xs) };
++        }
++        if (gf > self.g_rows.len or gs > self.g_rows.len - gf or xf > self.xor_rows.len or xs > self.xor_rows.len - xf) return error.InvalidBlake3WitnessDestination;
++        return .{ .g_rows = self.g_rows[gf..][0..gs], .xor_rows = self.xor_rows[xf..][0..xs] };
++    }
+     pub fn validate(self: @This(), gs: usize, xs: usize) !void {
+         if (self.fixed) |m| {
+             if (self.g_rows.len != 0 or self.xor_rows.len != 0) return error.InvalidBlake3WitnessDestination;
+--- control/blake3_main_column_test_support.zig
++++ src/frontends/riscv/recursion/air/blake3_main_column_test_support.zig
+@@ -24,14 +24,18 @@
+ pub fn expectRows(out: frame.MainColumns, expected: anytype, fixed: @TypeOf(expected)) !void {
+     const rows = if (@hasField(@TypeOf(expected), "rows")) expected.rows else expected;
+     const trusted = if (@hasField(@TypeOf(fixed), "rows")) fixed.rows else fixed;
+-    inline for (.{ g, xor }, .{ out.g_rows, out.xor_rows }, .{ rows.g_rows, rows.xor_rows }, .{ trusted.g_rows, trusted.xor_rows }) |Air, dst, live_rows, trusted_rows| {
++    const metadata: ?@import("blake3_hash_metadata.zig").Rows = if (@hasField(@TypeOf(fixed), "hash_metadata")) fixed.hash_metadata else null;
++    inline for (.{ g, xor }, .{ out.g_rows, out.xor_rows }, .{ rows.g_rows, rows.xor_rows }, .{ trusted.g_rows, trusted.xor_rows }, 0..) |Air, dst, live_rows, trusted_rows, cohort| {
+         const Runtime = framework.Runtime(binding.Binding(Air).Runtime);
+         var view = Runtime.ColumnRows{ .columns = @splat(&.{}), .first = dst.first, .count = live_rows.len, .main_count = Air.PHYSICAL_MAIN_COLUMN_COUNT, .compact_metadata = std.mem.bytesAsSlice(@import("stwo_core").fields.m31.M31, std.mem.sliceAsBytes(dst.metadata)) };
+         for (view.columns[0..Air.PHYSICAL_MAIN_COLUMN_COUNT], dst.columns) |*column, fields| column.* = fields;
+         try view.validate(dst.log_size);
+-        for (live_rows, trusted_rows, 0..) |row, trusted_row, i| {
++        const tails = if (metadata) |m| (if (cohort == 0) m.g_rows else m.xor_rows) else null;
++        try std.testing.expectEqual(live_rows.len, if (tails) |v| v.len else trusted_rows.len);
++        for (live_rows, 0..) |row, i| {
+             try std.testing.expectEqualDeep(row, view.read(i, dst.log_size));
+-            try std.testing.expectEqualSlices(M, trusted_row[Air.PHYSICAL_MAIN_COLUMN_COUNT..], &dst.metadata[i]);
++            const tail = if (tails) |v| &v[i] else trusted_rows[i][Air.PHYSICAL_MAIN_COLUMN_COUNT..];
++            try std.testing.expectEqualSlices(M, tail, &dst.metadata[i]);
+         }
+         for (0..dst.columns[0].len) |logical| if (logical < dst.first or logical >= dst.first + live_rows.len) {
+             for (dst.columns) |column| try std.testing.expectEqual(@as(u32, 123), column[framework.committedRow(logical, dst.log_size)].v);
+--- control/blake3_native_parent_rows.zig
++++ src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
+@@ -103,8 +103,8 @@
+     const temp = arena.allocator();
+     var b = Builder.init(a);
+     defer b.deinit();
+-    try b.reserve(0, try std.math.add(usize, source.transcript.plan.fixed.g_rows.len, if (source.paths.fixed_hash_metadata) |m| m.g_rows.len else source.paths.fixed.g_rows.len));
+-    try b.reserve(1, try std.math.add(usize, source.transcript.plan.fixed.xor_rows.len, if (source.paths.fixed_hash_metadata) |m| m.xor_rows.len else source.paths.fixed.xor_rows.len));
++    try b.reserve(0, try std.math.add(usize, source.transcript.plan.fixed.hashCounts().g, if (source.paths.fixed_hash_metadata) |m| m.g_rows.len else source.paths.fixed.g_rows.len));
++    try b.reserve(1, try std.math.add(usize, source.transcript.plan.fixed.hashCounts().xor, if (source.paths.fixed_hash_metadata) |m| m.xor_rows.len else source.paths.fixed.xor_rows.len));
+     try b.reserve(7, try std.math.add(usize, source.transcript.live.route_rows.len, source.paths.live.route_rows.len));
+     const graphs = source.graphs();
+     const values = source.evaluations();
+@@ -143,8 +143,16 @@
+         try b.append(11, &.{row.packing}, &.{row.fixed_packing});
+         try b.append(10, &.{row.encoded}, &.{row.fixed_encoded});
+     }
+-    if (source.transcript.live.hash_metadata) |compact| try b.appendMetadata(0, compact.g_rows, source.transcript.plan.fixed.g_rows) else try b.append(0, source.transcript.live.g_rows, source.transcript.plan.fixed.g_rows);
+-    if (source.transcript.live.hash_metadata) |compact| try b.appendMetadata(1, compact.xor_rows, source.transcript.plan.fixed.xor_rows) else try b.append(1, source.transcript.live.xor_rows, source.transcript.plan.fixed.xor_rows);
++    if (source.transcript.plan.fixed.hash_metadata) |trusted| {
++        if (source.transcript.live.hash_metadata) |compact| try b.appendMetadata(0, compact.g_rows, trusted.g_rows) else try b.appendCompact(0, source.transcript.live.g_rows, trusted.g_rows);
++    } else {
++        if (source.transcript.live.hash_metadata) |compact| try b.appendMetadata(0, compact.g_rows, source.transcript.plan.fixed.g_rows) else try b.append(0, source.transcript.live.g_rows, source.transcript.plan.fixed.g_rows);
++    }
++    if (source.transcript.plan.fixed.hash_metadata) |trusted| {
++        if (source.transcript.live.hash_metadata) |compact| try b.appendMetadata(1, compact.xor_rows, trusted.xor_rows) else try b.appendCompact(1, source.transcript.live.xor_rows, trusted.xor_rows);
++    } else {
++        if (source.transcript.live.hash_metadata) |compact| try b.appendMetadata(1, compact.xor_rows, source.transcript.plan.fixed.xor_rows) else try b.append(1, source.transcript.live.xor_rows, source.transcript.plan.fixed.xor_rows);
++    }
+     try b.append(2, source.transcript.live.boundary_rows, source.transcript.plan.fixed.boundary_rows);
+     try b.append(6, source.transcript.live.challenge_rows, source.transcript.plan.fixed.challenge_rows);
+     try b.append(7, source.transcript.live.route_rows, source.transcript.plan.fixed.route_rows);
+--- control/blake3_native_transcript.zig
++++ src/frontends/riscv/recursion/air/blake3_native_transcript.zig
+@@ -42,7 +42,7 @@
+     }
+     pub fn hashCounts(self: *const Planned) !@import("blake3_draw_hash_layout.zig").Counts {
+         try self.plan.validate();
+-        return .{ .g = self.plan.fixed.g_rows.len, .xor = self.plan.fixed.xor_rows.len };
++        return self.plan.fixed.hashCounts();
+     }
+     /// Transfers planning ownership only on success; caller retains it on error.
+     pub fn emit(self: *Planned, a: std.mem.Allocator) !Prepared {
+@@ -110,8 +110,15 @@
+         .felts => |*v| v.* = try a.dupe(core.fields.qm31.QM31, v.*),
+         else => {},
+     };
+-    var plan = try plan_mod.Plan.init(backing, .{ .namespace = 1_000_000, .attempt_capacity = capacity }, r.operations.items);
++    var plan = try plan_mod.Plan.initCompact(backing, .{ .namespace = 1_000_000, .attempt_capacity = capacity }, r.operations.items);
+     errdefer plan.deinit();
++    if (std.posix.getenv("STWO_RISCV_PARENT_PREPARATION_PROFILE") != null) {
++        const counts = plan.fixed.hashCounts();
++        const metadata = @import("blake3_hash_metadata.zig");
++        const full_bytes = try std.math.add(usize, try std.math.mul(usize, counts.g, @sizeOf(t.g.Row)), try std.math.mul(usize, counts.xor, @sizeOf(t.xor.Row)));
++        const compact_bytes = try std.math.add(usize, try std.math.mul(usize, counts.g, @sizeOf(metadata.Row(t.g))), try std.math.mul(usize, counts.xor, @sizeOf(metadata.Row(t.xor))));
++        std.debug.print("BLAKE3_TRUSTED_TRANSCRIPT_STORAGE g_rows={d} xor_rows={d} prior_full_bytes={d} compact_bytes={d} removed_bytes={d}\n", .{ counts.g, counts.xor, full_bytes, compact_bytes, full_bytes - compact_bytes });
++    }
+     const operations = try r.operations.toOwnedSlice(a);
+     const claim_payloads = try r.payloads.toOwnedSlice(a);
+     return .{ .arena = arena.*, .operations = operations, .claim_payloads = claim_payloads, .plan = plan, .end = r.native };
+--- control/blake3_parent_row_storage.zig
++++ src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
+@@ -88,13 +88,23 @@
+         try self.fixed[i].appendSlice(self.a, rows);
+     }
+     pub fn append(self: *Builder, comptime i: usize, rows: []const Airs[i].Row, fixed: []const Airs[i].Row) !void {
++        return self.appendRows(i, Airs[i].Row, rows, fixed);
++    }
++    pub fn appendCompact(self: *Builder, comptime i: usize, rows: []const Airs[i].Row, fixed: []const FixedRow(Airs[i])) !void {
++        comptime std.debug.assert(i < 2);
++        return self.appendRows(i, FixedRow(Airs[i]), rows, fixed);
++    }
++    fn appendRows(self: *Builder, comptime i: usize, comptime Fixed: type, rows: []const Airs[i].Row, fixed: []const Fixed) !void {
+         if (rows.len != fixed.len) return error.InvalidNativeParentRows;
+-        for (rows, fixed) |live, trusted| for (live[Airs[i].PHYSICAL_MAIN_COLUMN_COUNT..], trusted[Airs[i].PHYSICAL_MAIN_COLUMN_COUNT..]) |actual, expected| {
+-            if (!actual.eql(expected)) return error.InvalidNativeParentRows;
+-        };
++        for (rows, fixed) |live, trusted| {
++            const tail: FixedRow(Airs[i]) = if (@TypeOf(trusted) == Airs[i].Row) compactFixed(Airs[i], trusted) else trusted;
++            for (live[Airs[i].PHYSICAL_MAIN_COLUMN_COUNT..], tail) |actual, expected| {
++                if (!actual.eql(expected)) return error.InvalidNativeParentRows;
++            }
++        }
+         if (!directCohort(i)) try self.rows[i].appendSlice(self.a, rows);
+         try self.fixed[i].ensureUnusedCapacity(self.a, fixed.len);
+-        for (fixed) |row| self.fixed[i].appendAssumeCapacity(compactFixed(Airs[i], row));
++        for (fixed) |row| self.fixed[i].appendAssumeCapacity(if (@TypeOf(row) == Airs[i].Row) compactFixed(Airs[i], row) else row);
+     }
+ };
+ pub fn directCohort(comptime i: usize) bool {
+--- control/blake3_query_witness.zig
++++ src/frontends/riscv/recursion/air/blake3_query_witness.zig
+@@ -89,7 +89,11 @@
+     var plan = try layout.build(backing);
+     defer plan.deinit();
+     const counts = try layout.counts(&plan, blocks);
+-    if (borrowed) |out| if (out.g_rows.len != counts.g or out.xor_rows.len != counts.xor) return error.InvalidBlake3WitnessDestination;
++    if (borrowed) |out| {
++        try out.validate(counts.g, counts.xor);
++        if (live and out.fixed != null) return error.InvalidBlake3WitnessDestination;
++    }
++    const fixed_metadata = if (borrowed) |out| out.fixed else null;
+     if (columns) |out| try out.validate(counts.g, counts.xor);
+     const g_rows: []g.Row = if (columns != null) &.{} else if (borrowed) |out| out.g_rows else try a.alloc(g.Row, counts.g);
+     const xor_rows: []xor.Row = if (columns != null) &.{} else if (borrowed) |out| out.xor_rows else try a.alloc(xor.Row, counts.xor);
+@@ -102,7 +106,7 @@
+         const frame = core.channel.blake3.Frame{ .draw = .{ .state = s.state, .index = s.start + block } };
+         const bindings = [_]frame_hash.Binding{.{ .role = .state, .caller = s.state_source }};
+         const payload: ?frame_hash.PayloadBinding = if (final_counter) |source| .{ .role = .draw_index, .caller = source, .word_count = 2 } else null;
+-        const out = if (columns != null) HashDestination{ .g_rows = &.{}, .xor_rows = &.{} } else HashDestination{ .g_rows = g_rows[block * plan.g.len ..][0..plan.g.len], .xor_rows = xor_rows[block * plan.xor.len ..][0..plan.xor.len] };
++        const out = if (columns != null) HashDestination{} else try (HashDestination{ .g_rows = g_rows, .xor_rows = xor_rows, .fixed = fixed_metadata }).slice(block * plan.g.len, plan.g.len, block * plan.xor.len, plan.xor.len);
+         var hash = if (columns) |target| try frame_hash.prepareMainColumns(backing, circuit, frame, &bindings, payload, @splat(0), try target.slice(block * plan.g.len, plan.g.len, block * plan.xor.len, plan.xor.len)) else if (live) try frame_hash.prepareInto(backing, circuit, frame, &bindings, payload, @splat(0), out) else try frame_hash.trustedInto(backing, circuit, frame, &bindings, payload, @splat(0), out);
+         defer hash.deinit();
+         if (payload) |binding| {
+@@ -139,5 +143,5 @@
+     const boundary_rows = try bs.toOwnedSlice(a);
+     const mask_rows = try ms.toOwnedSlice(a);
+     const route_rows = try rs.toOwnedSlice(a);
+-    return .{ .hash_metadata = if (columns) |out| out.metadata() else null, .counter_rows = try counters.toOwnedSlice(a), .counter_uses = initial_counter_uses, .final_counter = final_counter, .outputs = try outputs.toOwnedSlice(a), .arena = arena, .g_rows = g_rows, .xor_rows = xor_rows, .boundary_rows = boundary_rows, .mask_rows = mask_rows, .route_rows = route_rows, .state_uses = state_uses, .next_draw = next };
++    return .{ .hash_metadata = if (columns) |out| out.metadata() else fixed_metadata, .counter_rows = try counters.toOwnedSlice(a), .counter_uses = initial_counter_uses, .final_counter = final_counter, .outputs = try outputs.toOwnedSlice(a), .arena = arena, .g_rows = g_rows, .xor_rows = xor_rows, .boundary_rows = boundary_rows, .mask_rows = mask_rows, .route_rows = route_rows, .state_uses = state_uses, .next_draw = next };
+ }
+--- control/blake3_transcript_plan.zig
++++ src/frontends/riscv/recursion/air/blake3_transcript_plan.zig
+@@ -10,7 +10,13 @@
+     fixed: t.Prepared,
+     id: [32]u8,
+     pub fn init(a: std.mem.Allocator, config: Config, operations: []const t.Operation) !Plan {
+-        var fixed = try t.trustedBounded(a, config.namespace, operations, config.attempt_capacity);
++        return initStorage(a, config, operations, false);
++    }
++    pub fn initCompact(a: std.mem.Allocator, config: Config, operations: []const t.Operation) !Plan {
++        return initStorage(a, config, operations, true);
++    }
++    fn initStorage(a: std.mem.Allocator, config: Config, operations: []const t.Operation, compact: bool) !Plan {
++        var fixed = if (compact) try t.trustedBoundedCompact(a, config.namespace, operations, config.attempt_capacity) else try t.trustedBounded(a, config.namespace, operations, config.attempt_capacity);
+         errdefer fixed.deinit();
+         return .{ .config = config, .fixed = fixed, .id = fingerprint(config, &fixed) };
+     }
+@@ -26,6 +32,7 @@
+         return fixed;
+     }
+     pub fn validate(self: *const Plan) !void {
++        if (self.fixed.hash_metadata != null and (self.fixed.g_rows.len != 0 or self.fixed.xor_rows.len != 0)) return error.CorruptBlake3TranscriptPlan;
+         if (!std.mem.eql(u8, &self.id, &fingerprint(self.config, &self.fixed))) return error.CorruptBlake3TranscriptPlan;
+     }
+     /// No implicit capacity escalation. Caller must explicitly admit another
+@@ -38,7 +45,8 @@
+     }
+     fn prepareWithColumns(self: *const Plan, a: std.mem.Allocator, operations: []const t.Operation, columns: ?t.MainColumns) !t.Prepared {
+         try self.validate();
+-        if (columns) |out| try out.validate(self.fixed.g_rows.len, self.fixed.xor_rows.len);
++        const counts = self.fixed.hashCounts();
++        if (columns) |out| try out.validate(counts.g, counts.xor);
+         var live = if (columns) |out| try t.prepareBoundedMainColumns(a, self.config.namespace, operations, self.config.attempt_capacity, out) else try t.prepareBounded(a, self.config.namespace, operations, self.config.attempt_capacity);
+         errdefer live.deinit();
+         if (!std.mem.eql(u8, &self.id, &fingerprint(self.config, &live))) return error.Blake3TranscriptPlanMismatch;
+--- control/blake3_transcript_plan_test.zig
++++ src/frontends/riscv/recursion/air/blake3_transcript_plan_test.zig
+@@ -10,8 +10,25 @@
+         .{ .routed_integer = .{ .value = @import("blake3_rejection_fixture.zig").SEED, .source = .{ .circuit = 10, .first_wire = 0 } } },
+         .{ .secure = .{ .output = .oods, .attempts = 0, .values = @splat(M.zero()) } },
+     };
+-    var key = try plan.Plan.init(a, .{ .namespace = 100, .attempt_capacity = 3 }, &ops);
++    var key = try plan.Plan.initCompact(a, .{ .namespace = 100, .attempt_capacity = 3 }, &ops);
+     defer key.deinit();
++    var full = try plan.Plan.init(a, key.config, &ops);
++    defer full.deinit();
++    try std.testing.expectEqualSlices(u8, &full.id, &key.id);
++    try std.testing.expect(key.fixed.owns_hash_metadata);
++    try std.testing.expectEqual(@as(usize, 0), key.fixed.g_rows.len);
++    try std.testing.expectEqual(@as(usize, 0), key.fixed.xor_rows.len);
++    inline for (.{ t.g, t.xor }, .{ full.fixed.g_rows, full.fixed.xor_rows }, .{ key.fixed.hash_metadata.?.g_rows, key.fixed.hash_metadata.?.xor_rows }) |Air, rows, compact| {
++        try std.testing.expectEqual(rows.len, compact.len);
++        for (rows, compact) |row, tail| try std.testing.expectEqualSlices(M, row[Air.PHYSICAL_MAIN_COLUMN_COUNT..], &tail);
++        for (&compact[0]) |*field| {
++            const saved = field.*;
++            field.* = saved.add(M.one());
++            try std.testing.expectError(error.CorruptBlake3TranscriptPlan, key.validate());
++            field.* = saved;
++        }
++    }
++    try key.validate();
+     var live = try key.prepare(a, &ops);
+     defer live.deinit();
+     try std.testing.expectEqual(@as(u64, 2), live.next_draw);
+@@ -54,7 +71,7 @@
+         .{ .secure = .{ .output = .oods, .attempts = 0, .values = @splat(M.zero()) } },
+         .{ .routed_integer = .{ .value = 99, .source = .{ .circuit = 12, .first_wire = 0 } } },
+     };
+-    var key = try plan.Plan.init(a, .{ .namespace = 100, .attempt_capacity = 3 }, &ops);
++    var key = try plan.Plan.initCompact(a, .{ .namespace = 100, .attempt_capacity = 3 }, &ops);
+     var live = key.prepare(a, &ops) catch |err| {
+         key.deinit();
+         return err;
+@@ -76,7 +93,7 @@
+     const operations = try arena.allocator().dupe(t.Operation, &.{.{ .integer = 42 }});
+     var end = core.channel.blake3.Channel{};
+     end.mixU64(42);
+-    const key = try plan.Plan.init(a, .{ .namespace = 100, .attempt_capacity = 1 }, operations);
++    const key = try plan.Plan.initCompact(a, .{ .namespace = 100, .attempt_capacity = 1 }, operations);
+     var planned = native.Planned{ .arena = arena, .operations = operations, .claim_payloads = &.{}, .plan = key, .end = end };
+     owns_arena = false;
+     var owns_planned = true;
+@@ -119,8 +136,25 @@
+         .{ .routed_words = .{ .values = &words, .source = .{ .circuit = 13, .first_wire = 0 } } },
+         .{ .routed_felts = .{ .values = &felts, .source = .{ .circuit = 14, .first_wire = 0 } } },
+     };
+-    var key = try plan.Plan.init(a, .{ .namespace = 100, .attempt_capacity = 3 }, &ops);
++    var key = try plan.Plan.initCompact(a, .{ .namespace = 100, .attempt_capacity = 3 }, &ops);
+     defer key.deinit();
++    var full = try plan.Plan.init(a, key.config, &ops);
++    defer full.deinit();
++    try std.testing.expectEqualSlices(u8, &full.id, &key.id);
++    try std.testing.expect(key.fixed.owns_hash_metadata);
++    try std.testing.expectEqual(@as(usize, 0), key.fixed.g_rows.len);
++    try std.testing.expectEqual(@as(usize, 0), key.fixed.xor_rows.len);
++    inline for (.{ t.g, t.xor }, .{ full.fixed.g_rows, full.fixed.xor_rows }, .{ key.fixed.hash_metadata.?.g_rows, key.fixed.hash_metadata.?.xor_rows }) |Air, rows, compact| {
++        try std.testing.expectEqual(rows.len, compact.len);
++        for (rows, compact) |row, tail| try std.testing.expectEqualSlices(M, row[Air.PHYSICAL_MAIN_COLUMN_COUNT..], &tail);
++        for (&compact[0]) |*field| {
++            const saved = field.*;
++            field.* = saved.add(M.one());
++            try std.testing.expectError(error.CorruptBlake3TranscriptPlan, key.validate());
++            field.* = saved;
++        }
++    }
++    try key.validate();
+     var expected = try key.prepare(a, &ops);
+     defer expected.deinit();
+     var arena = std.heap.ArenaAllocator.init(a);
+@@ -180,10 +214,16 @@
+         defer b.deinit();
+         try b.appendMetadata(cohort, &compact, &trusted);
+         try std.testing.expectEqualDeep(&compact, b.fixed[cohort].items);
++        var row_builder = storage.Builder.init(a);
++        defer row_builder.deinit();
++        try row_builder.appendCompact(cohort, &trusted, &trusted_compact);
++        try std.testing.expectEqualDeep(&trusted_compact, row_builder.fixed[cohort].items);
+         for (0..compact[1].len) |i| {
+             compact[1][i] = compact[1][i].add(M.one());
+             try std.testing.expectError(error.InvalidNativeParentRows, b.appendMetadata(cohort, &compact, &trusted));
+             try std.testing.expectError(error.InvalidNativeParentRows, b.appendMetadata(cohort, &compact, &trusted_compact));
++            try std.testing.expectError(error.InvalidNativeParentRows, row_builder.appendCompact(cohort, &trusted, &compact));
++            try std.testing.expectEqual(@as(usize, 2), row_builder.fixed[cohort].items.len);
+             try std.testing.expectEqual(@as(usize, 2), b.fixed[cohort].items.len);
+             compact[1][i] = compact[1][i].sub(M.one());
+         }
+@@ -195,6 +235,7 @@
+                 try builder.appendMetadata(cohort, tail, rows);
+                 const trusted_tails = [2]storage.FixedRow(Air){ storage.compactFixed(Air, rows[0]), storage.compactFixed(Air, rows[1]) };
+                 try builder.appendMetadata(cohort, tail, &trusted_tails);
++                try builder.appendCompact(cohort, rows, &trusted_tails);
+             }
+         };
+         try std.testing.checkAllAllocationFailures(a, Case.run, .{ &compact, &trusted });
+--- control/blake3_transcript_witness.zig
++++ src/frontends/riscv/recursion/air/blake3_transcript_witness.zig
+@@ -3,6 +3,7 @@
+ const std = @import("std");
+ const core = @import("stwo_core");
+ const M31 = core.fields.m31.M31;
++const Metadata = @import("blake3_hash_metadata.zig");
+ const frame_hash = @import("blake3_frame_witness.zig");
+ const draw = @import("blake3_draw_witness.zig");
+ const bounded = @import("blake3_bounded_draw.zig");
+@@ -42,8 +43,9 @@
+ };
+ pub const Prepared = struct {
+     row_allocator: std.mem.Allocator,
+-    /// Main columns and G/XOR metadata are borrowed in this mode.
++    /// Live column metadata is borrowed; compact trusted metadata is owned below.
+     hash_metadata: ?@import("blake3_hash_metadata.zig").Rows = null,
++    owns_hash_metadata: bool = false,
+     arena: std.heap.ArenaAllocator,
+     g_rows: []g.Row,
+     xor_rows: []xor.Row,
+@@ -60,6 +62,7 @@
+     query_outputs: []const QueryOutput,
+     final_digest: ?[32]u8,
+     pub fn deinit(self: *Prepared) void {
++        if (self.owns_hash_metadata) self.hash_metadata.?.free(self.row_allocator);
+         self.row_allocator.free(self.g_rows);
+         self.row_allocator.free(self.xor_rows);
+         self.row_allocator.free(self.boundary_rows);
+@@ -71,6 +74,9 @@
+         self.arena.deinit();
+         self.* = undefined;
+     }
++    pub fn hashCounts(self: *const Prepared) @import("blake3_draw_hash_layout.zig").Counts {
++        return .{ .g = if (self.hash_metadata) |m| m.g_rows.len else self.g_rows.len, .xor = if (self.hash_metadata) |m| m.xor_rows.len else self.xor_rows.len };
++    }
+     pub fn logs(self: *const Prepared) [6]u32 {
+         return .{ log(if (self.hash_metadata) |m| m.g_rows.len else self.g_rows.len), log(if (self.hash_metadata) |m| m.xor_rows.len else self.xor_rows.len), log(self.boundary_rows.len), log(self.challenge_rows.len), log(self.route_rows.len), log(self.query_rows.len) };
+     }
+@@ -79,25 +85,29 @@
+     }
+ };
+ pub fn prepare(a: std.mem.Allocator, namespace: u32, operations: []const Operation) !Prepared {
+-    return build(a, namespace, operations, true, null, null);
++    return build(a, namespace, operations, true, null, null, false);
+ }
+ pub fn trusted(a: std.mem.Allocator, namespace: u32, operations: []const Operation) !Prepared {
+-    return build(a, namespace, operations, false, null, null);
++    return build(a, namespace, operations, false, null, null, false);
+ }
+ /// Capacity is verifier-owned; recorded attempt counts are ignored in this mode.
+ pub fn prepareBounded(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32) !Prepared {
+-    return build(a, namespace, operations, true, capacity, null);
++    return build(a, namespace, operations, true, capacity, null, false);
+ }
+ pub fn trustedBounded(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32) !Prepared {
+-    return build(a, namespace, operations, false, capacity, null);
++    return build(a, namespace, operations, false, capacity, null, false);
++}
++pub fn trustedBoundedCompact(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32) !Prepared {
++    return build(a, namespace, operations, false, capacity, null, true);
+ }
+ pub const MainColumns = frame_hash.MainColumns;
+ /// Caller owns columns/metadata. Later operation errors may leave unpublished
+ /// output partially written. Plan.prepareMainColumns admits exact fixed counts.
+ pub fn prepareBoundedMainColumns(a: std.mem.Allocator, namespace: u32, operations: []const Operation, capacity: u32, columns: MainColumns) !Prepared {
+-    return build(a, namespace, operations, true, capacity, columns);
+-}
+-fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operation, live: bool, capacity: ?u32, columns: ?MainColumns) !Prepared {
++    return build(a, namespace, operations, true, capacity, columns, false);
++}
++fn build(backing: std.mem.Allocator, namespace: u32, operations: []const Operation, live: bool, capacity: ?u32, columns: ?MainColumns, compact: bool) !Prepared {
++    if (compact and (live or capacity == null or columns != null)) return error.InvalidBlake3Transcript;
+     if (capacity != null and capacity.? == 0) return error.InvalidBlake3Transcript;
+     var end: u64 = @as(u64, namespace) + @intFromBool(capacity != null);
+     for (operations) |op| {
+@@ -144,6 +154,10 @@
+     if (columns) |out| try out.validate(out.g_rows.metadata.len, out.xor_rows.metadata.len);
+     var g_used: usize = 0;
+     var xor_used: usize = 0;
++    var fixed_g: std.ArrayList(Metadata.Row(g)) = .empty;
++    defer fixed_g.deinit(backing);
++    var fixed_x: std.ArrayList(Metadata.Row(xor)) = .empty;
++    defer fixed_x.deinit(backing);
+     var gs: std.ArrayList(g.Row) = .empty;
+     defer gs.deinit(backing);
+     var xs: std.ArrayList(xor.Row) = .empty;
+@@ -199,23 +213,23 @@
+             };
+             var plan = try graph.build(backing, try frame.encodedSize());
+             defer plan.deinit();
+-            const destination = try reserveHash(backing, &gs, &xs, columns, g_used, xor_used, plan.g.len, plan.xor.len);
++            const destination = try reserveHash(backing, &gs, &xs, if (compact) &fixed_g else null, &fixed_x, columns, g_used, xor_used, plan.g.len, plan.xor.len);
+             var prepared = if (columns) |out| try frame_hash.prepareMainColumns(backing, hash_circuit, frame, active, payload, @splat(0), try out.slice(g_used, plan.g.len, xor_used, plan.xor.len)) else if (live) try frame_hash.prepareInto(backing, hash_circuit, frame, active, payload, @splat(0), destination) else try frame_hash.trustedInto(backing, hash_circuit, frame, active, payload, @splat(0), destination);
+             defer prepared.deinit();
+             if (payload) |binding| try reads.append(a, .{ .operation = ordinal, .source = binding.caller, .uses = try a.dupe(u32, prepared.payload_uses) });
+-            try addUses(xs.items, if (columns) |c| c.metadata() else null, producer, &initial_uses, prepared.source_uses[0]);
++            try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, prepared.source_uses[0]);
+             if (op == .routed_root) try roots.append(a, .{ .operation = ordinal, .source = op.routed_root.source, .uses = prepared.source_uses[1] });
+             if (op == .root) for (prepared.source_uses[1], 0..) |uses, i| {
+                 try bs.append(backing, try boundary.logicalRow(circuit, @intCast(i), M31.fromCanonical(uses), std.mem.readInt(u32, op.root[4 * i ..][0..4], .little)));
+             };
+             g_used += plan.g.len;
+-            if (columns == null) gs.items.len = g_used;
++            if (columns == null and !compact) gs.items.len = g_used;
+             xor_used += plan.xor.len;
+-            if (columns == null) xs.items.len = xor_used;
++            if (columns == null and !compact) xs.items.len = xor_used;
+             try bs.appendSlice(backing, prepared.rows.boundary_rows[0 .. prepared.rows.boundary_rows.len - 8]);
+             try rs.appendSlice(backing, prepared.route_rows);
+             producer = xor_used - 16;
+-            for (0..8) |i| @import("blake3_hash_metadata.zig").xorUse(xs.items, if (columns) |c| c.metadata() else null, producer.? + i).* = M31.zero();
++            for (0..8) |i| @import("blake3_hash_metadata.zig").xorUse(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer.? + i).* = M31.zero();
+             for (plan.output, 0..) |wire, i| if (wire != plan.output[0] + i) return error.InvalidBlake3Transcript;
+             caller = .{ .circuit = hash_circuit, .first_wire = plan.output[0] };
+             state = prepared.digest orelse @splat(0);
+@@ -230,16 +244,16 @@
+             const payload: ?frame_hash.PayloadBinding = if (pow.nonce_source) |source| .{ .role = .nonce, .caller = source, .word_count = 2 } else null;
+             var plan = try graph.build(backing, try frame.encodedSize());
+             defer plan.deinit();
+-            const destination = try reserveHash(backing, &gs, &xs, columns, g_used, xor_used, plan.g.len, plan.xor.len);
++            const destination = try reserveHash(backing, &gs, &xs, if (compact) &fixed_g else null, &fixed_x, columns, g_used, xor_used, plan.g.len, plan.xor.len);
+             var prepared = if (columns) |out| try frame_hash.prepareMainColumns(backing, circuit, frame, &bindings, payload, @splat(0), try out.slice(g_used, plan.g.len, xor_used, plan.xor.len)) else if (live) try frame_hash.prepareInto(backing, circuit, frame, &bindings, payload, @splat(0), destination) else try frame_hash.trustedInto(backing, circuit, frame, &bindings, payload, @splat(0), destination);
+             defer prepared.deinit();
+             if (payload) |binding| try reads.append(a, .{ .operation = ordinal, .source = binding.caller, .uses = try a.dupe(u32, prepared.payload_uses) });
+-            try addUses(xs.items, if (columns) |c| c.metadata() else null, producer, &initial_uses, prepared.source_uses[0]);
++            try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, prepared.source_uses[0]);
+             for (0..8) |i| @import("blake3_hash_metadata.zig").xorUse(prepared.rows.xor_rows, prepared.hash_metadata, plan.xor.len - 16 + i).* = M31.fromCanonical(if (i == 0) 1 else 0);
+             g_used += plan.g.len;
+-            if (columns == null) gs.items.len = g_used;
++            if (columns == null and !compact) gs.items.len = g_used;
+             xor_used += plan.xor.len;
+-            if (columns == null) xs.items.len = xor_used;
++            if (columns == null and !compact) xs.items.len = xor_used;
+             try bs.appendSlice(backing, prepared.rows.boundary_rows[0 .. prepared.rows.boundary_rows.len - 8]);
+             try rs.appendSlice(backing, prepared.route_rows);
+             const schedule = query_mask.Schedule{ .source_circuit = circuit, .source_wire = plan.output[0], .destination_circuit = circuit + 1, .destination_wire = 0, .uses = 1, .log_domain_size = pow.bits };
+@@ -253,14 +267,14 @@
+         .queries => |q| {
+             const statement = queries.Statement{ .namespace = circuit, .state = state, .state_source = caller, .start = counter, .log_domain_size = q.log_domain_size, .values = q.values, .export_outputs = q.export_outputs, .counter_source = if (capacity != null) counter_source else null, .final_counter_uses = .{ 0, 0 } };
+             const counts = try queries.requiredHashRows(backing, q.values.len);
+-            const destination = try reserveHash(backing, &gs, &xs, columns, g_used, xor_used, counts.g, counts.xor);
++            const destination = try reserveHash(backing, &gs, &xs, if (compact) &fixed_g else null, &fixed_x, columns, g_used, xor_used, counts.g, counts.xor);
+             var prepared = if (columns) |out| try queries.prepareMainColumns(backing, statement, try out.slice(g_used, counts.g, xor_used, counts.xor)) else if (live) try queries.prepareInto(backing, statement, destination) else try queries.trustedInto(backing, statement, destination);
+             defer prepared.deinit();
+-            try addUses(xs.items, if (columns) |c| c.metadata() else null, producer, &initial_uses, prepared.state_uses);
++            try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, prepared.state_uses);
+             g_used += counts.g;
+-            if (columns == null) gs.items.len = g_used;
++            if (columns == null and !compact) gs.items.len = g_used;
+             xor_used += counts.xor;
+-            if (columns == null) xs.items.len = xor_used;
++            if (columns == null and !compact) xs.items.len = xor_used;
+             try bs.appendSlice(backing, prepared.boundary_rows);
+             try rs.appendSlice(backing, prepared.route_rows);
+             try qs.appendSlice(backing, prepared.mask_rows);
+@@ -279,15 +293,15 @@
+             if (capacity) |limit| {
+                 const statement = bounded.Statement{ .namespace = circuit, .capacity = limit, .state = state, .state_source = caller, .start = counter, .counter_source = counter_source, .consumption = s.consumption, .final_counter_uses = .{ 0, 0 } };
+                 const counts = try bounded.requiredHashRows(backing, limit);
+-                const destination = try reserveHash(backing, &gs, &xs, columns, g_used, xor_used, counts.g, counts.xor);
++                const destination = try reserveHash(backing, &gs, &xs, if (compact) &fixed_g else null, &fixed_x, columns, g_used, xor_used, counts.g, counts.xor);
+                 var prepared = if (columns) |out| try bounded.prepareMainColumns(backing, statement, try out.slice(g_used, counts.g, xor_used, counts.xor)) else if (live) try bounded.prepareInto(backing, statement, destination) else try bounded.trustedInto(backing, statement, destination);
+                 defer prepared.deinit();
+-                try addUses(xs.items, if (columns) |c| c.metadata() else null, producer, &initial_uses, prepared.state_uses);
++                try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, prepared.state_uses);
+                 try addCounterUses(counters.items, counter_producer, &zero_counter_uses, prepared.counter_uses);
+                 g_used += counts.g;
+-                if (columns == null) gs.items.len = g_used;
++                if (columns == null and !compact) gs.items.len = g_used;
+                 xor_used += counts.xor;
+-                if (columns == null) xs.items.len = xor_used;
++                if (columns == null and !compact) xs.items.len = xor_used;
+                 try bs.appendSlice(backing, prepared.rows.boundary_rows);
+                 try cs.appendSlice(backing, prepared.rows.challenge_rows);
+                 try rs.appendSlice(backing, prepared.rows.route_rows);
+@@ -307,14 +321,14 @@
+             } else {
+                 const statement = draw.Statement{ .namespace = circuit, .state = state, .start = counter, .attempts = s.attempts, .values = s.values, .consumption = s.consumption, .export_outputs = s.output != null, .state_source = caller };
+                 const counts = try draw.requiredHashRows(backing, s.attempts);
+-                const destination = try reserveHash(backing, &gs, &xs, columns, g_used, xor_used, counts.g, counts.xor);
++                const destination = try reserveHash(backing, &gs, &xs, if (compact) &fixed_g else null, &fixed_x, columns, g_used, xor_used, counts.g, counts.xor);
+                 var prepared = if (columns) |out| try draw.prepareMainColumns(backing, statement, try out.slice(g_used, counts.g, xor_used, counts.xor)) else if (live) try draw.prepareInto(backing, statement, destination) else try draw.trustedInto(backing, statement, destination);
+                 defer prepared.deinit();
+-                try addUses(xs.items, if (columns) |c| c.metadata() else null, producer, &initial_uses, prepared.state_uses);
++                try addUses(xs.items, if (columns) |c| c.metadata() else if (compact) Metadata.Rows{ .g_rows = fixed_g.items, .xor_rows = fixed_x.items } else null, producer, &initial_uses, prepared.state_uses);
+                 g_used += counts.g;
+-                if (columns == null) gs.items.len = g_used;
++                if (columns == null and !compact) gs.items.len = g_used;
+                 xor_used += counts.xor;
+-                if (columns == null) xs.items.len = xor_used;
++                if (columns == null and !compact) xs.items.len = xor_used;
+                 try bs.appendSlice(backing, prepared.boundary_rows);
+                 try cs.appendSlice(backing, prepared.challenge_rows);
+                 try rs.appendSlice(backing, prepared.route_rows);
+@@ -327,6 +341,12 @@
+     for (initial_uses, 0..) |uses, i| if (uses != 0) try bs.append(backing, try boundary.logicalRow(namespace, @intCast(i), M31.fromCanonical(uses), std.mem.readInt(u32, initial[4 * i ..][0..4], .little)));
+     if (capacity != null) for (zero_counter_uses, 0..) |uses, i| if (uses != 0) try bs.append(backing, try boundary.logicalRow(zero_counter.circuit, @intCast(i), M31.fromCanonical(uses), 0));
+     if (columns) |out| if (g_used != out.g_rows.metadata.len or xor_used != out.xor_rows.metadata.len) return error.InvalidBlake3WitnessDestination;
++    const owned_metadata: ?Metadata.Rows = if (compact) blk: {
++        const g_tail = try fixed_g.toOwnedSlice(backing);
++        errdefer backing.free(g_tail);
++        break :blk .{ .g_rows = g_tail, .xor_rows = try fixed_x.toOwnedSlice(backing) };
++    } else null;
++    errdefer if (owned_metadata) |m| m.free(backing);
+     const g_rows = try gs.toOwnedSlice(backing);
+     errdefer backing.free(g_rows);
+     const xor_rows = try xs.toOwnedSlice(backing);
+@@ -343,7 +363,7 @@
+     errdefer backing.free(control_rows);
+     const counter_rows = try counters.toOwnedSlice(backing);
+     errdefer backing.free(counter_rows);
+-    return .{ .hash_metadata = if (columns) |out| out.metadata() else null, .row_allocator = backing, .control_rows = control_rows, .counter_rows = counter_rows, .query_outputs = try query_outputs.toOwnedSlice(a), .root_reads = try roots.toOwnedSlice(a), .draw_outputs = try outputs.toOwnedSlice(a), .payload_reads = try reads.toOwnedSlice(a), .final_digest = if (live) state else null, .query_rows = query_rows, .arena = arena, .g_rows = g_rows, .xor_rows = xor_rows, .boundary_rows = boundary_rows, .challenge_rows = challenge_rows, .route_rows = route_rows, .next_draw = counter };
++    return .{ .hash_metadata = if (columns) |out| out.metadata() else owned_metadata, .owns_hash_metadata = compact, .row_allocator = backing, .control_rows = control_rows, .counter_rows = counter_rows, .query_outputs = try query_outputs.toOwnedSlice(a), .root_reads = try roots.toOwnedSlice(a), .draw_outputs = try outputs.toOwnedSlice(a), .payload_reads = try reads.toOwnedSlice(a), .final_digest = if (live) state else null, .query_rows = query_rows, .arena = arena, .g_rows = g_rows, .xor_rows = xor_rows, .boundary_rows = boundary_rows, .challenge_rows = challenge_rows, .route_rows = route_rows, .next_draw = counter };
+ }
+ fn addUses(rows: []xor.Row, compact: ?@import("blake3_hash_metadata.zig").Rows, producer: ?usize, initial: *[8]u32, counts: [8]u32) !void {
+     for (counts, 0..) |count, i| {
+@@ -363,11 +383,16 @@
+     }
+ }
+ 
+-fn reserveHash(a: std.mem.Allocator, gs: *std.ArrayList(g.Row), xs: *std.ArrayList(xor.Row), columns: ?MainColumns, g_used: usize, xor_used: usize, g_count: usize, xor_count: usize) !frame_hash.HashDestination {
++fn reserveHash(a: std.mem.Allocator, gs: *std.ArrayList(g.Row), xs: *std.ArrayList(xor.Row), fixed_g: ?*std.ArrayList(Metadata.Row(g)), fixed_x: *std.ArrayList(Metadata.Row(xor)), columns: ?MainColumns, g_used: usize, xor_used: usize, g_count: usize, xor_count: usize) !frame_hash.HashDestination {
+     if (columns) |target| {
+         _ = try target.slice(g_used, g_count, xor_used, xor_count);
+         return .{ .g_rows = &.{}, .xor_rows = &.{} };
+     }
++    if (fixed_g) |fg| {
++        try fg.resize(a, try std.math.add(usize, g_used, g_count));
++        try fixed_x.resize(a, try std.math.add(usize, xor_used, xor_count));
++        return .{ .fixed = .{ .g_rows = fg.items[g_used..], .xor_rows = fixed_x.items[xor_used..] } };
++    }
+     try gs.ensureUnusedCapacity(a, g_count);
+     try xs.ensureUnusedCapacity(a, xor_count);
+     return .{ .g_rows = gs.unusedCapacitySlice()[0..g_count], .xor_rows = xs.unusedCapacitySlice()[0..xor_count] };

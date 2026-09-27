@@ -1,0 +1,21 @@
+{
+  "README.md": "c361d9c80986d8d996126704e6d6237e5b2009065cd33216a66fd5f79cbbdc04",
+  "native-hash-samples.jsonl": "b51c8141c6e663442aa3ddff2d5c859a4c43c8a89f41ec3b20ccbd04eb97146d",
+  "native-hash-summary.json": "5fbd8e7973ff80c14c3bff3990b5918472426647095daf16dd413fa3b9a9892f",
+  "official-vectors.json": "d02b524ea538af8450c866e162ddd7ad0f43a1eb577b2501fa12ac20220717f0",
+  "oracle.json": "dc0e17ebc4051e41124f12e2fffc1033a20ed26e324415fd8e219a0057f40866",
+  "oracle.py": "35ff4f204d7535e58b4dd572573683120d0142f8a1f74c0ecef83c304758b738",
+  "source-conformance.log": "2d5b0e8957c24d4bf2df6dd065c3c7cbf1c56619450697bd90a87947a5335635",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "8f7ccc228586a1ebf4b7ef49873f5e5058e127cf2706004084c551c038bac2f8",
+  "sources/src/core/channel/blake3.zig": "588f5611f6067de5f46791bd4df20010904fa5bc2d00289c36be802f24d26cc6",
+  "sources/src/core/channel/mod.zig": "5e665e8214173ffe286ae402690b99fb486d4bf2f1ef8db88ae2ca2479e4ea0a",
+  "sources/src/core/vcs/blake3_hash.zig": "eb5ec83b44f02d57d573476fa8b75448f7c59b9319b39a66aceb6e18a14a92be",
+  "sources/src/core/vcs_lifted/blake3_merkle.zig": "d7eae0d44d117caf23125b3ae6873d59f4e2ed78feaa4041c2bed0e7d1125649",
+  "sources/src/core/vcs_lifted/mod.zig": "fe77d78d33e8cdfa75f10d1cf77f161cad60580bfa8a9997b23c1a35814c1291",
+  "sources/src/integrations/riscv_cpu/blake3_hash_benchmark.zig": "1df093e5ea1a9f1715a16898c99e7c6517f27c0e770e0890b96051dfc697a157",
+  "sources/src/integrations/riscv_cpu/blake3_pcs_test.zig": "4d9b6267691104432a378b63b7029f71ed9f9729c05e1e47b361491b4dc393f2",
+  "sources/src/integrations/riscv_cpu/blake3_protocol_test.zig": "1b9bf102607e8009921423a4c787840cd97af8bb4a314c404ea84f51465bce16",
+  "sources/src/integrations/riscv_cpu/blake3_test_root.zig": "860de9a9768b95e10b0caf15444655508363351d80c2d1c5d6c5d6fa54de2074",
+  "sources/src/integrations/riscv_cpu/build_segment_steps.zig": "a629552271d9f88f3e91afaff94125df471b3db568959d285f0819c4f9670798",
+  "tests.log": "8ed0a76b7cf069bfb69b7065df86d637bbd7796568a2bfba300e4a265dc91ca1"
+}

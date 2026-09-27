@@ -1,0 +1,5 @@
+1/4 coefficient_storage_test_root.test_0...OK
+2/4 pcs.coefficient_storage_test.test.coefficient storage openings preserve mixed columns, duplicates, pruned hashes and shared leases...OK
+3/4 pcs.coefficient_storage_test.test.coefficient storage cleans up every opening and compaction allocation failure...OK
+4/4 pcs.coefficient_storage_test.test.coefficient storage quotient folding matches full LDEs across domains and sample batches...OK
+All 4 tests passed.

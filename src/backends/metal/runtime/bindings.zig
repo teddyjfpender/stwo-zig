@@ -99,6 +99,7 @@ pub extern fn stwo_zig_metal_validate_raw_quotient_source_views_v2(
     row_count: u32,
     batch_count: u32,
 ) bool;
+pub extern fn stwo_zig_metal_prefer_segmented_quotient_v2(raw_words: u64, source_runs: usize) bool;
 pub extern fn stwo_zig_metal_local_raw_quotient_view_v2(
     source: *const RawQuotientSourceViewV2,
     local_offset: u64,
@@ -125,6 +126,16 @@ pub extern fn stwo_zig_metal_blake2s_pow_search(
     error_message_len: usize,
 ) bool;
 pub extern fn stwo_zig_metal_poseidon2_channel_pow_search(
+    runtime: *anyopaque,
+    prefix_state: *const [16]u32,
+    pow_bits: u32,
+    nonce: *u64,
+    gpu_milliseconds: *f64,
+    dispatch_count: *u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_blake3_pow_search(
     runtime: *anyopaque,
     prefix_state: *const [16]u32,
     pow_bits: u32,
@@ -794,6 +805,7 @@ pub const stwo_zig_metal_quotient_combine_prepared = opening_bindings.stwo_zig_m
 pub const stwo_zig_metal_quotient_coefficients_resident = opening_bindings.stwo_zig_metal_quotient_coefficients_resident;
 pub const stwo_zig_metal_fri_round_prepare = opening_bindings.stwo_zig_metal_fri_round_prepare;
 pub const stwo_zig_metal_fri_round_prepared = opening_bindings.stwo_zig_metal_fri_round_prepared;
+pub const stwo_zig_metal_fri_tree_prepare_v2 = opening_bindings.stwo_zig_metal_fri_tree_prepare_v2;
 pub const stwo_zig_metal_fri_tree_prepare = opening_bindings.stwo_zig_metal_fri_tree_prepare;
 pub const stwo_zig_metal_fri_tree_prepared = opening_bindings.stwo_zig_metal_fri_tree_prepared;
 pub const stwo_zig_metal_fri_final_prepare = opening_bindings.stwo_zig_metal_fri_final_prepare;
@@ -868,13 +880,21 @@ pub extern fn stwo_zig_metal_compute_quotients(
     fri_layer_count: u32,
     fri_domain_initial_index: u32,
     fri_domain_step_size: u32,
-    fri_channel_state: ?*[10]u32,
+    fri_channel_state: ?[*]u32,
     fri_trees: ?[*]?*anyopaque,
     fri_inverse_generation_mask: ?*u32,
     fri_stats: ?*CommandEpochStats,
+    fri_circle_inverse: ?*anyopaque,
+    fri_line_inverse: ?*anyopaque,
+    fri_generate_circle: bool,
+    fri_generate_line: bool,
     quotient_work_receipt: ?*QuotientWorkReceipt,
     quotient_parity_context: ?*anyopaque,
     quotient_parity_observer: ?quotient_internal_parity_abi.ObserverV1,
+    budget_context: *anyopaque,
+    budget_admit: *const fn (*anyopaque, usize) callconv(.c) bool,
+    retain_domain_cache: bool,
+    retained_external_bytes: *usize,
     tree: *?*anyopaque,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
@@ -904,7 +924,26 @@ pub extern fn stwo_zig_metal_eval_polynomials(
 ) bool;
 pub extern fn stwo_zig_metal_eval_barycentric_resident_v1(
     runtime: *anyopaque,
-    resident_trees: [*]const *anyopaque,
+    resident_trees: [*]const ?*anyopaque,
+    tree_count: u32,
+    columns: [*]const [*]const u32,
+    column_lengths: [*]const usize,
+    output_indices: [*]const u32,
+    column_count: u32,
+    point_plans: [*]const SampledBarycentricPointPlanV1,
+    point_plan_count: u32,
+    groups: [*]const SampledBarycentricColumnGroupV1,
+    group_count: u32,
+    output_count: u32,
+    output: [*]u32,
+    receipt: *SampledBarycentricReceiptV1,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_eval_barycentric_host_v1(
+    runtime: *anyopaque,
+    resident_trees: [*]const ?*anyopaque,
     tree_count: u32,
     columns: [*]const [*]const u32,
     column_lengths: [*]const usize,
@@ -997,6 +1036,61 @@ pub extern fn stwo_zig_metal_circle_lde(
     error_message: [*]u8,
     error_message_len: usize,
 ) bool;
+pub extern fn stwo_zig_metal_circle_lde_batch_enqueue_budgeted_v1(
+    runtime: *anyopaque,
+    batch: *anyopaque,
+    source_columns: [*]const [*]const u32,
+    base_columns: [*]const [*]u32,
+    transform_words: [*]u32,
+    transform_word_count: usize,
+    extended_start: u32,
+    extended_stride: u32,
+    column_count: u32,
+    base_log_size: u32,
+    extended_log_size: u32,
+    inverse_twiddles: [*]const u32,
+    forward_twiddles: [*]const u32,
+    scale_factor: u32,
+    budget_context: *anyopaque,
+    budget_admit: *const fn (*anyopaque, usize) callconv(.c) bool,
+    queued_operation: *u32,
+    source_binding: *u32,
+    normalization_batch_count: *u32,
+    forward_skipped_layers: *u32,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_circle_lde_budgeted_v1(
+    runtime: *anyopaque,
+    source_columns: [*]const [*]const u32,
+    base_columns: [*]const [*]u32,
+    transform_words: [*]u32,
+    transform_word_count: usize,
+    extended_start: u32,
+    extended_stride: u32,
+    column_count: u32,
+    base_log_size: u32,
+    extended_log_size: u32,
+    inverse_twiddles: [*]const u32,
+    forward_twiddles: [*]const u32,
+    scale_factor: u32,
+    budget_context: *anyopaque,
+    budget_admit: *const fn (*anyopaque, usize) callconv(.c) bool,
+    queued_operation: *u32,
+    /// Out: which source binding the commit actually took, as
+    /// `telemetry.CommitSourceBinding`. Reported from the branch itself so the
+    /// no-copy alias can be attributed rather than assumed.
+    source_binding: *u32,
+    /// Out: actual interpolation normalization batches completed by this
+    /// dispatch. Written only after successful command completion.
+    normalization_batch_count: *u32,
+    /// Out: logical forward FFT layers elided by the executed fused branch.
+    forward_skipped_layers: *u32,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_circle_lde_merkle_commit(
     runtime: *anyopaque,
     source_columns: [*]const [*]const u32,
@@ -1045,3 +1139,25 @@ pub extern fn stwo_zig_metal_recurrence_composition(
     error_message: [*]u8,
     error_message_len: usize,
 ) bool;
+
+pub const stwo_zig_metal_blake3_leaf_absorb_compact_v1 = resident_data_bindings.stwo_zig_metal_blake3_leaf_absorb_compact_v1;
+pub const stwo_zig_metal_blake3_leaf_absorb_submit_v1 = resident_data_bindings.stwo_zig_metal_blake3_leaf_absorb_submit_v1;
+pub const stwo_zig_metal_blake3_leaf_absorb_finish_v1 = resident_data_bindings.stwo_zig_metal_blake3_leaf_absorb_finish_v1;
+
+pub extern fn stwo_zig_metal_resident_merkle_prepare_staged_blake3_v1(
+    runtime: *anyopaque,
+    column_offsets: [*]const u32,
+    column_logs: [*]const u32,
+    column_count: u32,
+    lifting_log: u32,
+    layer_offsets: [*]const u32,
+    layer_count: u32,
+    state_offsets: *const [2]u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+
+pub extern fn stwo_zig_metal_blake3_transcript_v1(runtime: *anyopaque, arena: *anyopaque, state_base: u32, data_base: u32, count: u32, operation: u32, gpu_ms: *f64, error_message: [*]u8, error_message_len: usize) bool;
+
+pub const stwo_zig_metal_fri_line_cascade_v2 = opening_bindings.stwo_zig_metal_fri_line_cascade_v2;
+pub const stwo_zig_metal_fri_line_cascade_budgeted_v1 = opening_bindings.stwo_zig_metal_fri_line_cascade_budgeted_v1;

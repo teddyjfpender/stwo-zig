@@ -1,0 +1,74 @@
+{
+  "comparison": "current_full_width_only",
+  "speedup_established": false,
+  "cpu": {
+    "median_seconds": {
+      "execution": 0.000414208,
+      "witness": 2.714516292,
+      "admission": 0.396531541,
+      "proving": 7.414464584,
+      "artifact_encoding": 0.065575042,
+      "fresh_verification": 0.5393955,
+      "total": 11.124404458
+    },
+    "samples_seconds": [
+      11.124404458,
+      11.05462975,
+      11.138489333
+    ],
+    "physical_peak_bytes": 3635533368,
+    "tracked_peak_bytes": 3384008876,
+    "proof_sha256": "007ce5f9ad02ab821affd7003dc3acd8608d38483cbf1af40d63f654457016fb"
+  },
+  "metal": {
+    "median_seconds": {
+      "execution": 0.0004205,
+      "witness": 2.652185084,
+      "admission": 0.430604625,
+      "proving": 7.437362834,
+      "artifact_encoding": 0.073497416,
+      "fresh_verification": 0.525067,
+      "total": 11.100503458
+    },
+    "samples_seconds": [
+      11.04868525,
+      11.100503458,
+      11.163158667
+    ],
+    "physical_peak_bytes": 5451110568,
+    "tracked_peak_bytes": 3061590108,
+    "proof_sha256": "007ce5f9ad02ab821affd7003dc3acd8608d38483cbf1af40d63f654457016fb"
+  },
+  "parent_qualification": {
+    "seconds": {
+      "preparation": 32.644251125,
+      "admission": 3.626391917,
+      "worker_init": 3.715119417,
+      "proving": 61.817330541,
+      "cleanup_and_encoding": 0.045477584,
+      "fresh_verification": 0.120761083,
+      "total": 101.969331667
+    },
+    "workers": 4,
+    "samples": 1,
+    "worker_peak_bytes": 15439320038,
+    "scope": "canonical_guest_poseidon_parent_from_authenticated_capture",
+    "leaf_proving_included": false
+  },
+  "parent_product_settings": {
+    "seconds": {
+      "preparation": 7.003636917,
+      "admission": 1.516745125,
+      "worker_init": 1.47514475,
+      "proving": 45.468925125,
+      "cleanup_and_encoding": 0.030582542,
+      "fresh_verification": 0.009445416,
+      "total": 55.504479875
+    },
+    "workers": 16,
+    "samples": 1,
+    "worker_peak_bytes": 15464486038,
+    "scope": "canonical_guest_poseidon_parent_from_authenticated_capture",
+    "leaf_proving_included": false
+  }
+}

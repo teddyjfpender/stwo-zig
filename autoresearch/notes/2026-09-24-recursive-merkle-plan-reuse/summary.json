@@ -1,0 +1,14 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_median_seconds": 75.72920233299374,
+    "parent_stage_median_seconds": 43.534392,
+    "peak_rss_bytes": 16339468288
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_median_seconds": 61.19221516700054,
+    "parent_stage_median_seconds": 43.539514,
+    "peak_rss_bytes": 16339517440
+  }
+}

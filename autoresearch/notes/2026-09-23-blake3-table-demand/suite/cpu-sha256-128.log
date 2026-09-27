@@ -1,0 +1,6 @@
+BLAKE3_LOOKUP_DEMAND {"kind":"bitwise","domain_rows":262144,"distinct_nonzero":68868}
+BLAKE3_LOOKUP_DEMAND {"kind":"range_check_20","domain_rows":1048576,"distinct_nonzero":1687}
+BLAKE3_LOOKUP_DEMAND {"kind":"range_check_8_11","domain_rows":524288,"distinct_nonzero":105}
+BLAKE3_LOOKUP_DEMAND {"kind":"range_check_8_8_4","domain_rows":1048576,"distinct_nonzero":90}
+BLAKE3_LOOKUP_DEMAND {"kind":"range_check_8_8","domain_rows":65536,"distinct_nonzero":65536}
+BLAKE3_LOOKUP_DEMAND {"kind":"range_check_m31","domain_rows":32768,"distinct_nonzero":244}

@@ -1,0 +1,2594 @@
+{
+  "scope": "parent DAG replay with retained leaves; not full-program proving",
+  "input_sha256": {
+    "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal": "c965b16fbe002f7042163b8b9d2323ea86342080dd3a6b37ebf066fe1fd172b0",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0-accepted.json": "5a2adccefb1dd3c6e383f2114433c5c0ec96a19ae1feed301d4959fba4ff2cc5",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1-accepted.json": "2e52dc4bb3334e11895591db54cbab53c2d0889cfd4c366ddc63b0a2e561d3c4",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2-accepted.json": "b8f5971a209679462ca3a7045eea57c968a050360817032ea94a904d02b0ca9a",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3-accepted.json": "53f978b382ebb8043bc868211414d8e2a55a7f2943e28231ccec3f709b58da62",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0-accepted.json": "cb8416e6034c12328ce81e0a019b9009a7baa26addbbcfbea5524b3d0ab3ef53",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1-accepted.json": "fbdde456006d931d189aec4badd58f8b61f8d0808ddd2b26331e1eeb888559af",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-3-0-accepted.json": "f8fb192189264297613b7507815b25cc9c8b053297fe44a4ecc7d6fada607a45",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0/key.json": "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0/claims.json": "46fcafc9ffdd10a908eba1e0716e8db772f5384c5cc7b09b7263a835af3e18c6",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-0/proof.bin": "185b3209d48f90c99f2d5837123579e573e6c94e9a656c97aa5a17bbce81833a",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-0/key.json": "f89dba4d444dc441deb47e64ae7d23c64258669b989f36bc1aa5998fe70c1f9d",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-0/claims.json": "d766b6595e3c3f3bb27b0f27d3589166add031ac7c9e928e92e61ffcd3f11eb0",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-0/proof.bin": "119636993c55e42bdd5db29f689ac1dff3f15f8e64d057bb4fcfefdb54668d52",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-1/key.json": "d6a99fb9c255cd3f3c71ba6304be18231f392bd73cf340e8884a41143849c998",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-1/claims.json": "5ef70cafc66f335e148f4287ff89f8c19ee8535dfca67564b5c38bfcaf1d3e71",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-1/proof.bin": "510b163d3999ca6b46cee208641f370caf458674d451ddc27dd5f53d34045d19",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/1e3c08bd374a322b9b7cf63b7411191f3109ce6bd70a345202cc2e41c0cf83ff.json": "1e3c08bd374a322b9b7cf63b7411191f3109ce6bd70a345202cc2e41c0cf83ff",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/f57f9c7e9e43c9fbcd5df81d544001ba27375617d174a2346a16b95eba42d3dc.json": "f57f9c7e9e43c9fbcd5df81d544001ba27375617d174a2346a16b95eba42d3dc",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197.json": "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834.json": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834",
+    "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify": "382d3585ebbe93abdfdd7cf77505792043378ab3add971d1b3b52b0863f6d53b",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json": "a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1/key.json": "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1/claims.json": "91746ba0855d778123aef74c18eb951d596b8e39e5a6e143281e6e4b5c76823f",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-1/proof.bin": "b5d31e75c9630eb89dcd3fb7a345d4ef8a701115b6d2d03491a79b005ec270f0",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-2/key.json": "fd0743bd228b936c88f910fbd8c151d119f280bdb2310b22c1818efab77bde0c",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-2/claims.json": "ef1b7c1ef6b363069951e8dfe98d45b4c8227275bd95ebb9e92fba855aa429c1",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-2/proof.bin": "d7ba8837a68c80688277fd4280a4671f9c0e01a942f43486fc48e937f28c5cbf",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-3/key.json": "e9d3b5d9f429c77bf49575f5e97c6bf9976c375679f399b3ca7f9de211f29de5",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-3/claims.json": "ef755f0507b725c1b1b1ae8f2a59b8756f0d4644481ccbad91ca1d54837a4ada",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-3/proof.bin": "fec8b9ee7b7ad45db44300ef56913d51bb7a3ba200327de5777784b3184a0c3c",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/60708c938cd807ad860da73a225619e42b6e01d58a00efcdbbb1ab51469890f8.json": "60708c938cd807ad860da73a225619e42b6e01d58a00efcdbbb1ab51469890f8",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/78c8a3a7869e27289dd0c218f90285bc798ffff177749f46d5f2a125b60cdb74.json": "78c8a3a7869e27289dd0c218f90285bc798ffff177749f46d5f2a125b60cdb74",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5.json": "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json": "e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2/key.json": "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2/claims.json": "8935c72abec0562916ae493594b8874f18e8c142c61c3fc80886bbdc145736fa",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-2/proof.bin": "60bdea0feb6fe84077b200af6d424fe01f6302eeae727b441530c9dd7dc825de",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-4/key.json": "1a2897d967339dd8ca86bcd79235e41e6d05b1fcfc5dc25f3fff5d5cbe652882",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-4/claims.json": "0d6185c0b9ec105e19e8f2095ccdc932f4fe8c61f76f8bcc2010161ff155af25",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-4/proof.bin": "f488869bca431e7785e69f1e58a8fc51748bf7a757fd7a6dccb666d9b8505eb8",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-5/key.json": "e50dc9b87640583fef7574e554350343d90f427cede45eb28eb61416ab24cc8a",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-5/claims.json": "36bacee63f184357d2d05397a6ecb41519bed215923d6a31e0082f17e8eab5ff",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-5/proof.bin": "1073d39fb65d9e7129e29258c6ad6ad2b77672e46939e7793d86082272c8509b",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/12c609a6ec31c22f844bfe371d5f772ab45cdcfd4ce69ab116a2c140a6c5920b.json": "12c609a6ec31c22f844bfe371d5f772ab45cdcfd4ce69ab116a2c140a6c5920b",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/09c5b6111f8f0050067412fee888e2812a3af89e4f907e76d683148ff965df8a.json": "09c5b6111f8f0050067412fee888e2812a3af89e4f907e76d683148ff965df8a",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79.json": "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json": "6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3/key.json": "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3/claims.json": "735fbb6d6ffa63f344e1f8df491a71a9da738c99abb3ff8d71e939d19532f592",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-1-3/proof.bin": "e2234e8b036861bf0748bcfa1993f4fc43c3aa77448b1c61f970225d0a38b16a",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-6/key.json": "1514c9939e7156cd0e087e6529695ea9ca77681d9ade351b5901f64aa0c3129f",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-6/claims.json": "39df78f95633bdee82f2e2729ba2eec2b0c0de92e3bf7fcf93836deb74e44167",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-6/proof.bin": "07715ba0865c70b09d355691e16ecaff68c33ca2cd3fb7a663d95909f32647ff",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-7/key.json": "fe0d56ccd719a6106ef0b12d9ac475a1962fdb0d05b5ec73c2c71f9f16a95917",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-7/claims.json": "3ef2f2b997db93ecfa846d2154c086bf59347fe26d3f39b13254090d6e5a3bd2",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-7/proof.bin": "1e1b8094b6c081a0bffa73c09ab5a1b77b4d9b549393d83b1536909a955ee119",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/4a7b69b9f5c24b232b8231606ec5827006955fc839a1ec64860e1e6d92f66824.json": "4a7b69b9f5c24b232b8231606ec5827006955fc839a1ec64860e1e6d92f66824",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/22f2faa14f5e7ecd51befb71a016f0d638fffe69e5af2ba86f64821d050012a4.json": "22f2faa14f5e7ecd51befb71a016f0d638fffe69e5af2ba86f64821d050012a4",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d.json": "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json": "295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0/key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0/claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-0/proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json": "854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1/key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1/claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-2-1/proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json": "eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-3-0/key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-3-0/claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+    "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-3-0/proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json": "bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac"
+  },
+  "scheduler_sha256": "cf38d9da2b6f9eba4dfa9880625dceb7ed0434a9afa1d9aec36b9d273b4b7197",
+  "driver_sha256": "138b61e45a3c853c5867123c80437bc261acb28f1cf573e22543b6591f0fe0b0",
+  "expected_artifacts": {
+    "parent-1-0": {
+      "key.json": "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+      "claims.json": "46fcafc9ffdd10a908eba1e0716e8db772f5384c5cc7b09b7263a835af3e18c6",
+      "proof.bin": "185b3209d48f90c99f2d5837123579e573e6c94e9a656c97aa5a17bbce81833a"
+    },
+    "parent-1-1": {
+      "key.json": "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+      "claims.json": "91746ba0855d778123aef74c18eb951d596b8e39e5a6e143281e6e4b5c76823f",
+      "proof.bin": "b5d31e75c9630eb89dcd3fb7a345d4ef8a701115b6d2d03491a79b005ec270f0"
+    },
+    "parent-1-2": {
+      "key.json": "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+      "claims.json": "8935c72abec0562916ae493594b8874f18e8c142c61c3fc80886bbdc145736fa",
+      "proof.bin": "60bdea0feb6fe84077b200af6d424fe01f6302eeae727b441530c9dd7dc825de"
+    },
+    "parent-1-3": {
+      "key.json": "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+      "claims.json": "735fbb6d6ffa63f344e1f8df491a71a9da738c99abb3ff8d71e939d19532f592",
+      "proof.bin": "e2234e8b036861bf0748bcfa1993f4fc43c3aa77448b1c61f970225d0a38b16a"
+    },
+    "parent-2-0": {
+      "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+      "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+      "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+    },
+    "parent-2-1": {
+      "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+      "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+      "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+    },
+    "parent-3-0": {
+      "key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+      "claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+      "proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb"
+    }
+  },
+  "worker_transport_sha256": "1bd52523940e4f22fbbfd3f2db757c0deac24f4643fa4c7242cac8ae2e3f6c5a",
+  "passed": true,
+  "workers": 2,
+  "memory_budget_bytes": 16000000000,
+  "memory_scope": "caller reservations; not measured peak RSS",
+  "jobs": {
+    "parent-1-0": {
+      "accepted": true,
+      "dependencies": [],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+            "--aot-bundle",
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+            "--aot-manifest-sha256",
+            "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+            "--aot-profile",
+            "recursive-framework-v1",
+            "--profile",
+            "tiny-memory-span-v2",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-0",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-0",
+            "f89dba4d444dc441deb47e64ae7d23c64258669b989f36bc1aa5998fe70c1f9d",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/1e3c08bd374a322b9b7cf63b7411191f3109ce6bd70a345202cc2e41c0cf83ff.json",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-1",
+            "d6a99fb9c255cd3f3c71ba6304be18231f392bd73cf340e8884a41143849c998",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/f57f9c7e9e43c9fbcd5df81d544001ba27375617d174a2346a16b95eba42d3dc.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197.json",
+            "--parent-key-sha256",
+            "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+            "--proof-profile",
+            "recursive_q193_v1",
+            "--boundary-profile",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834.json",
+            "--boundary-profile-sha256",
+            "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-0-0.log",
+          "started_ns": 154209,
+          "exit_code": 0,
+          "seconds": 7.029882541
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-0",
+            "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-0-1.log",
+          "started_ns": 7031500709,
+          "exit_code": 0,
+          "seconds": 0.0812425
+        }
+      ],
+      "artifacts": {
+        "key.json": "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+        "claims.json": "46fcafc9ffdd10a908eba1e0716e8db772f5384c5cc7b09b7263a835af3e18c6",
+        "proof.bin": "185b3209d48f90c99f2d5837123579e573e6c94e9a656c97aa5a17bbce81833a"
+      },
+      "completed_ns": 7113971292
+    },
+    "parent-1-1": {
+      "accepted": true,
+      "dependencies": [],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+            "--aot-bundle",
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+            "--aot-manifest-sha256",
+            "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+            "--aot-profile",
+            "recursive-framework-v1",
+            "--profile",
+            "tiny-memory-continuation-span-v2",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-1",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-2",
+            "fd0743bd228b936c88f910fbd8c151d119f280bdb2310b22c1818efab77bde0c",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/60708c938cd807ad860da73a225619e42b6e01d58a00efcdbbb1ab51469890f8.json",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-3",
+            "e9d3b5d9f429c77bf49575f5e97c6bf9976c375679f399b3ca7f9de211f29de5",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/78c8a3a7869e27289dd0c218f90285bc798ffff177749f46d5f2a125b60cdb74.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5.json",
+            "--parent-key-sha256",
+            "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+            "--proof-profile",
+            "recursive_q193_v1",
+            "--boundary-profile",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json",
+            "--boundary-profile-sha256",
+            "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-1-0.log",
+          "started_ns": 279792,
+          "exit_code": 0,
+          "seconds": 6.89637875
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-1",
+            "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-1-1.log",
+          "started_ns": 6897936209,
+          "exit_code": 0,
+          "seconds": 0.085714291
+        }
+      ],
+      "artifacts": {
+        "key.json": "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+        "claims.json": "91746ba0855d778123aef74c18eb951d596b8e39e5a6e143281e6e4b5c76823f",
+        "proof.bin": "b5d31e75c9630eb89dcd3fb7a345d4ef8a701115b6d2d03491a79b005ec270f0"
+      },
+      "completed_ns": 6984895709
+    },
+    "parent-1-2": {
+      "accepted": true,
+      "dependencies": [],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+            "--aot-bundle",
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+            "--aot-manifest-sha256",
+            "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+            "--aot-profile",
+            "recursive-framework-v1",
+            "--profile",
+            "tiny-memory-continuation-span-v2",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-2",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-4",
+            "1a2897d967339dd8ca86bcd79235e41e6d05b1fcfc5dc25f3fff5d5cbe652882",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/12c609a6ec31c22f844bfe371d5f772ab45cdcfd4ce69ab116a2c140a6c5920b.json",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-5",
+            "e50dc9b87640583fef7574e554350343d90f427cede45eb28eb61416ab24cc8a",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/09c5b6111f8f0050067412fee888e2812a3af89e4f907e76d683148ff965df8a.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79.json",
+            "--parent-key-sha256",
+            "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+            "--proof-profile",
+            "recursive_q193_v1",
+            "--boundary-profile",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json",
+            "--boundary-profile-sha256",
+            "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-2-0.log",
+          "started_ns": 6984963542,
+          "exit_code": 0,
+          "seconds": 6.406406542
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-2",
+            "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-2-1.log",
+          "started_ns": 13392603375,
+          "exit_code": 0,
+          "seconds": 0.090145709
+        }
+      ],
+      "artifacts": {
+        "key.json": "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+        "claims.json": "8935c72abec0562916ae493594b8874f18e8c142c61c3fc80886bbdc145736fa",
+        "proof.bin": "60bdea0feb6fe84077b200af6d424fe01f6302eeae727b441530c9dd7dc825de"
+      },
+      "completed_ns": 13483944584
+    },
+    "parent-2-0": {
+      "accepted": true,
+      "dependencies": [
+        "parent-1-0",
+        "parent-1-1"
+      ],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+            "--aot-bundle",
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+            "--aot-manifest-sha256",
+            "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+            "--aot-profile",
+            "recursive-framework-v1",
+            "--profile",
+            "tiny-parent-span-v2",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-2-0",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-0",
+            "0a6db3688ef5f0b2b5f781bfb01446412415b0952c4870e2f323f721d1a68197",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/a36cbaa4ebb96d6dfd861ac53e3f511f84d19020ce3f1c43431cd36c1e8669a4.json",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-1",
+            "8368166dc740d4ecbd58174c784211457dacadfb2d34eb90e5631a260f1043e5",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/e76a9308b1c03df2d2159db3e048a86fe4ded67c4527b01c1416e16fa4936dfd.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f.json",
+            "--parent-key-sha256",
+            "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+            "--proof-profile",
+            "recursive_q193_v1"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-2-0-0.log",
+          "started_ns": 7114029584,
+          "exit_code": 0,
+          "seconds": 6.100732958
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-2-0",
+            "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-2-0-1.log",
+          "started_ns": 13216100084,
+          "exit_code": 0,
+          "seconds": 0.086728
+        }
+      ],
+      "artifacts": {
+        "key.json": "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+        "claims.json": "918f33f277474c273fa491ed0b898ae4239f2fc1bc8c88edc7b0ec28b59170f4",
+        "proof.bin": "ee33dcb1d3f9c7c48e61b865b754f92fc2b57958d323e0a9e10a82b58fb7204d"
+      },
+      "completed_ns": 13304013167
+    },
+    "parent-1-3": {
+      "accepted": true,
+      "dependencies": [],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+            "--aot-bundle",
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+            "--aot-manifest-sha256",
+            "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+            "--aot-profile",
+            "recursive-framework-v1",
+            "--profile",
+            "tiny-memory-continuation-span-v2",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-3",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-6",
+            "1514c9939e7156cd0e087e6529695ea9ca77681d9ade351b5901f64aa0c3129f",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/4a7b69b9f5c24b232b8231606ec5827006955fc839a1ec64860e1e6d92f66824.json",
+            "/private/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/leaves/child-7",
+            "fe0d56ccd719a6106ef0b12d9ac475a1962fdb0d05b5ec73c2c71f9f16a95917",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/22f2faa14f5e7ecd51befb71a016f0d638fffe69e5af2ba86f64821d050012a4.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d.json",
+            "--parent-key-sha256",
+            "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+            "--proof-profile",
+            "recursive_q193_v1",
+            "--boundary-profile",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json",
+            "--boundary-profile-sha256",
+            "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-3-0.log",
+          "started_ns": 13304069917,
+          "exit_code": 0,
+          "seconds": 5.697917
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-3",
+            "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-1-3-1.log",
+          "started_ns": 19003271042,
+          "exit_code": 0,
+          "seconds": 0.087241125
+        }
+      ],
+      "artifacts": {
+        "key.json": "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+        "claims.json": "735fbb6d6ffa63f344e1f8df491a71a9da738c99abb3ff8d71e939d19532f592",
+        "proof.bin": "e2234e8b036861bf0748bcfa1993f4fc43c3aa77448b1c61f970225d0a38b16a"
+      },
+      "completed_ns": 19091856625
+    },
+    "parent-2-1": {
+      "accepted": true,
+      "dependencies": [
+        "parent-1-2",
+        "parent-1-3"
+      ],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+            "--aot-bundle",
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+            "--aot-manifest-sha256",
+            "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+            "--aot-profile",
+            "recursive-framework-v1",
+            "--profile",
+            "tiny-parent-span-v2",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-2-1",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-2",
+            "29c1cf44178d8716250c5c8ffb15d3d1fd1926963f110ef49570ff8607739a79",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/6ead5e613ba2b5ac340aed09d4cd0b2943e447ace77373d8fa4cdcd03f1d5587.json",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-1-3",
+            "43d1e122917641a2cb8d7820bb7f75eb59e8225df8265ace08ac051a521aad4d",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/295d3f6adb86b76b9a588fb941712e90099d5b31bb375117e016ee9ed5d6e214.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19.json",
+            "--parent-key-sha256",
+            "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+            "--proof-profile",
+            "recursive_q193_v1"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-2-1-0.log",
+          "started_ns": 19091915084,
+          "exit_code": 0,
+          "seconds": 5.298632708
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-2-1",
+            "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-2-1-1.log",
+          "started_ns": 24391905584,
+          "exit_code": 0,
+          "seconds": 0.079864291
+        }
+      ],
+      "artifacts": {
+        "key.json": "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+        "claims.json": "ab3f2123829fdec51d89a76efd30bb2c7e519c42de4974e5fff49c67d8d160a9",
+        "proof.bin": "dcacf9fda8921b05e3ed9373eccd68fb22b43134557e465dd1d5694779641153"
+      },
+      "completed_ns": 24473081209
+    },
+    "parent-3-0": {
+      "accepted": true,
+      "dependencies": [
+        "parent-2-0",
+        "parent-2-1"
+      ],
+      "memory_bytes": 8000000000,
+      "phases": [
+        {
+          "argv": [
+            "/private/tmp/stwo-recursion-worker-metal-20260921/bin/recursive-segment-v2-detached-parent-prove-metal",
+            "--aot-bundle",
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/aot",
+            "--aot-manifest-sha256",
+            "d3c68ca5dcfdb83c885c4bb81c6ba86cdc5501f1b8b4e19ba6f51fc3aa049899",
+            "--aot-profile",
+            "recursive-framework-v1",
+            "--profile",
+            "tiny-parent-root-v2",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-3-0",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-2-0",
+            "d63c18d75da1204540368912153c024299f7d75dd647c4bf5a430f9e1d814e6f",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/854de9650be8d98956e387fff51ba32b3046fb695a62b4277fbe55db384433b8.json",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-2-1",
+            "34657afc47ebdc2c3e2a16f195f47458d92e86057e2d7253bce541c93d801e19",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/eb6431dcf4213f9e62723ec579d532249fd19d7aac71c2d0a8a372cb95f15bc9.json",
+            "--parent-key",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c.json",
+            "--parent-key-sha256",
+            "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+            "--proof-profile",
+            "recursive_q193_v1"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-3-0-0.log",
+          "started_ns": 24473136750,
+          "exit_code": 0,
+          "seconds": 5.411167125
+        },
+        {
+          "argv": [
+            "/private/tmp/pr198-product-metal-typed-closure-20260921-v1/cpu/bin/recursive-segment-v2-detached-parent-verify",
+            "/private/tmp/stwo-recursion-worker-tree-20260921/parent-3-0",
+            "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+            "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260918/larger-memory-ladder-qualified-v1/inputs/bdf9957fe01d6e72c8ae97afe787518263c59d4981e00fd226f9bcb9b4f558ac.json"
+          ],
+          "log": "/private/tmp/stwo-recursion-worker-tree-20260921/logs/parent-3-0-1.log",
+          "started_ns": 29885699542,
+          "exit_code": 0,
+          "seconds": 0.0861505
+        }
+      ],
+      "artifacts": {
+        "key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+        "claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+        "proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb"
+      },
+      "completed_ns": 29973352459
+    }
+  },
+  "maximum_reserved_bytes": 16000000000,
+  "maximum_active_jobs": 2,
+  "resident_worker_reservation_bytes": 16000000000,
+  "rss_samples": [
+    {
+      "elapsed_ns": 118511167,
+      "process_bytes": {
+        "72999": 32768,
+        "73000": 32768
+      },
+      "total_bytes": 65536
+    },
+    {
+      "elapsed_ns": 244568959,
+      "process_bytes": {
+        "72999": 32768,
+        "73000": 32768
+      },
+      "total_bytes": 65536
+    },
+    {
+      "elapsed_ns": 370693334,
+      "process_bytes": {
+        "72999": 32768,
+        "73000": 32768
+      },
+      "total_bytes": 65536
+    },
+    {
+      "elapsed_ns": 502569917,
+      "process_bytes": {
+        "72999": 5111808,
+        "73000": 32768
+      },
+      "total_bytes": 5144576
+    },
+    {
+      "elapsed_ns": 612942500,
+      "process_bytes": {
+        "72999": 68993024,
+        "73000": 69058560
+      },
+      "total_bytes": 138051584
+    },
+    {
+      "elapsed_ns": 728357459,
+      "process_bytes": {
+        "72999": 82395136,
+        "73000": 82657280
+      },
+      "total_bytes": 165052416
+    },
+    {
+      "elapsed_ns": 843820042,
+      "process_bytes": {
+        "72999": 132579328,
+        "73000": 132743168
+      },
+      "total_bytes": 265322496
+    },
+    {
+      "elapsed_ns": 959387542,
+      "process_bytes": {
+        "72999": 232423424,
+        "73000": 232587264
+      },
+      "total_bytes": 465010688
+    },
+    {
+      "elapsed_ns": 1072895167,
+      "process_bytes": {
+        "72999": 195543040,
+        "73000": 195706880
+      },
+      "total_bytes": 391249920
+    },
+    {
+      "elapsed_ns": 1187711625,
+      "process_bytes": {
+        "72999": 315015168,
+        "73000": 315179008
+      },
+      "total_bytes": 630194176
+    },
+    {
+      "elapsed_ns": 1298989209,
+      "process_bytes": {
+        "72999": 346374144,
+        "73000": 346537984
+      },
+      "total_bytes": 692912128
+    },
+    {
+      "elapsed_ns": 1414193375,
+      "process_bytes": {
+        "72999": 375586816,
+        "73000": 375750656
+      },
+      "total_bytes": 751337472
+    },
+    {
+      "elapsed_ns": 1529488792,
+      "process_bytes": {
+        "72999": 423444480,
+        "73000": 423608320
+      },
+      "total_bytes": 847052800
+    },
+    {
+      "elapsed_ns": 1641832209,
+      "process_bytes": {
+        "72999": 441499648,
+        "73000": 441663488
+      },
+      "total_bytes": 883163136
+    },
+    {
+      "elapsed_ns": 1756426584,
+      "process_bytes": {
+        "72999": 497434624,
+        "73000": 497598464
+      },
+      "total_bytes": 995033088
+    },
+    {
+      "elapsed_ns": 1871279334,
+      "process_bytes": {
+        "72999": 582516736,
+        "73000": 582680576
+      },
+      "total_bytes": 1165197312
+    },
+    {
+      "elapsed_ns": 1986825042,
+      "process_bytes": {
+        "72999": 708853760,
+        "73000": 680558592
+      },
+      "total_bytes": 1389412352
+    },
+    {
+      "elapsed_ns": 2098414542,
+      "process_bytes": {
+        "72999": 671186944,
+        "73000": 743309312
+      },
+      "total_bytes": 1414496256
+    },
+    {
+      "elapsed_ns": 2210266959,
+      "process_bytes": {
+        "72999": 757940224,
+        "73000": 801456128
+      },
+      "total_bytes": 1559396352
+    },
+    {
+      "elapsed_ns": 2330505250,
+      "process_bytes": {
+        "72999": 815972352,
+        "73000": 860979200
+      },
+      "total_bytes": 1676951552
+    },
+    {
+      "elapsed_ns": 2444427917,
+      "process_bytes": {
+        "72999": 875610112,
+        "73000": 860979200
+      },
+      "total_bytes": 1736589312
+    },
+    {
+      "elapsed_ns": 2556134625,
+      "process_bytes": {
+        "72999": 875610112,
+        "73000": 908836864
+      },
+      "total_bytes": 1784446976
+    },
+    {
+      "elapsed_ns": 2680064584,
+      "process_bytes": {
+        "72999": 923451392,
+        "73000": 976896000
+      },
+      "total_bytes": 1900347392
+    },
+    {
+      "elapsed_ns": 2795349542,
+      "process_bytes": {
+        "72999": 991510528,
+        "73000": 1046265856
+      },
+      "total_bytes": 2037776384
+    },
+    {
+      "elapsed_ns": 2909874000,
+      "process_bytes": {
+        "72999": 1051312128,
+        "73000": 1105887232
+      },
+      "total_bytes": 2157199360
+    },
+    {
+      "elapsed_ns": 3025538542,
+      "process_bytes": {
+        "72999": 1120124928,
+        "73000": 1617952768
+      },
+      "total_bytes": 2738077696
+    },
+    {
+      "elapsed_ns": 3141077417,
+      "process_bytes": {
+        "72999": 1619214336,
+        "73000": 1965686784
+      },
+      "total_bytes": 3584901120
+    },
+    {
+      "elapsed_ns": 3256862250,
+      "process_bytes": {
+        "72999": 1886109696,
+        "73000": 1826881536
+      },
+      "total_bytes": 3712991232
+    },
+    {
+      "elapsed_ns": 3372472459,
+      "process_bytes": {
+        "72999": 1831239680,
+        "73000": 2039021568
+      },
+      "total_bytes": 3870261248
+    },
+    {
+      "elapsed_ns": 3486328875,
+      "process_bytes": {
+        "72999": 2034253824,
+        "73000": 721403904
+      },
+      "total_bytes": 2755657728
+    },
+    {
+      "elapsed_ns": 3604591209,
+      "process_bytes": {
+        "72999": 750534656,
+        "73000": 1751498752
+      },
+      "total_bytes": 2502033408
+    },
+    {
+      "elapsed_ns": 3720214375,
+      "process_bytes": {
+        "72999": 1617428480,
+        "73000": 1487093760
+      },
+      "total_bytes": 3104522240
+    },
+    {
+      "elapsed_ns": 3838687042,
+      "process_bytes": {
+        "72999": 1780596736,
+        "73000": 1487093760
+      },
+      "total_bytes": 3267690496
+    },
+    {
+      "elapsed_ns": 3978046209,
+      "process_bytes": {
+        "72999": 1516191744,
+        "73000": 2028830720
+      },
+      "total_bytes": 3545022464
+    },
+    {
+      "elapsed_ns": 4094314584,
+      "process_bytes": {
+        "72999": 1985232896,
+        "73000": 2084732928
+      },
+      "total_bytes": 4069965824
+    },
+    {
+      "elapsed_ns": 4218065959,
+      "process_bytes": {
+        "72999": 2055553024,
+        "73000": 2136440832
+      },
+      "total_bytes": 4191993856
+    },
+    {
+      "elapsed_ns": 4345567542,
+      "process_bytes": {
+        "72999": 2113830912,
+        "73000": 2194882560
+      },
+      "total_bytes": 4308713472
+    },
+    {
+      "elapsed_ns": 4460529625,
+      "process_bytes": {
+        "72999": 2194964480,
+        "73000": 2194882560
+      },
+      "total_bytes": 4389847040
+    },
+    {
+      "elapsed_ns": 4578352042,
+      "process_bytes": {
+        "72999": 2223980544,
+        "73000": 2194948096
+      },
+      "total_bytes": 4418928640
+    },
+    {
+      "elapsed_ns": 4696438625,
+      "process_bytes": {
+        "72999": 2223980544,
+        "73000": 2215313408
+      },
+      "total_bytes": 4439293952
+    },
+    {
+      "elapsed_ns": 4814248125,
+      "process_bytes": {
+        "72999": 2224046080,
+        "73000": 2215313408
+      },
+      "total_bytes": 4439359488
+    },
+    {
+      "elapsed_ns": 4932176125,
+      "process_bytes": {
+        "72999": 2244411392,
+        "73000": 2215313408
+      },
+      "total_bytes": 4459724800
+    },
+    {
+      "elapsed_ns": 5048858417,
+      "process_bytes": {
+        "72999": 2244411392,
+        "73000": 2215575552
+      },
+      "total_bytes": 4459986944
+    },
+    {
+      "elapsed_ns": 5163832875,
+      "process_bytes": {
+        "72999": 2244411392,
+        "73000": 2215575552
+      },
+      "total_bytes": 4459986944
+    },
+    {
+      "elapsed_ns": 5280444917,
+      "process_bytes": {
+        "72999": 2244673536,
+        "73000": 3013804032
+      },
+      "total_bytes": 5258477568
+    },
+    {
+      "elapsed_ns": 5397478875,
+      "process_bytes": {
+        "72999": 2244673536,
+        "73000": 4096704512
+      },
+      "total_bytes": 6341378048
+    },
+    {
+      "elapsed_ns": 5514790334,
+      "process_bytes": {
+        "72999": 3406331904,
+        "73000": 3599630336
+      },
+      "total_bytes": 7005962240
+    },
+    {
+      "elapsed_ns": 5634657292,
+      "process_bytes": {
+        "72999": 4178690048,
+        "73000": 3599630336
+      },
+      "total_bytes": 7778320384
+    },
+    {
+      "elapsed_ns": 5758886500,
+      "process_bytes": {
+        "72999": 4131504128,
+        "73000": 3641393152
+      },
+      "total_bytes": 7772897280
+    },
+    {
+      "elapsed_ns": 5877808292,
+      "process_bytes": {
+        "72999": 3628793856,
+        "73000": 3870998528
+      },
+      "total_bytes": 7499792384
+    },
+    {
+      "elapsed_ns": 5996630209,
+      "process_bytes": {
+        "72999": 3628793856,
+        "73000": 3925016576
+      },
+      "total_bytes": 7553810432
+    },
+    {
+      "elapsed_ns": 6119735875,
+      "process_bytes": {
+        "72999": 3820126208,
+        "73000": 3977084928
+      },
+      "total_bytes": 7797211136
+    },
+    {
+      "elapsed_ns": 6237109042,
+      "process_bytes": {
+        "72999": 3986604032,
+        "73000": 4341956608
+      },
+      "total_bytes": 8328560640
+    },
+    {
+      "elapsed_ns": 6358040667,
+      "process_bytes": {
+        "72999": 3977166848,
+        "73000": 4341956608
+      },
+      "total_bytes": 8319123456
+    },
+    {
+      "elapsed_ns": 6473730667,
+      "process_bytes": {
+        "72999": 4475977728,
+        "73000": 4494802944
+      },
+      "total_bytes": 8970780672
+    },
+    {
+      "elapsed_ns": 6593594375,
+      "process_bytes": {
+        "72999": 4371120128,
+        "73000": 4478451712
+      },
+      "total_bytes": 8849571840
+    },
+    {
+      "elapsed_ns": 6707979459,
+      "process_bytes": {
+        "72999": 4461002752,
+        "73000": 4563730432
+      },
+      "total_bytes": 9024733184
+    },
+    {
+      "elapsed_ns": 6821516709,
+      "process_bytes": {
+        "72999": 4502208512,
+        "73000": 4465344512
+      },
+      "total_bytes": 8967553024
+    },
+    {
+      "elapsed_ns": 6938556625,
+      "process_bytes": {
+        "72999": 4545282048,
+        "73000": 142917632,
+        "73068": 14368768
+      },
+      "total_bytes": 4702568448
+    },
+    {
+      "elapsed_ns": 7057588417,
+      "process_bytes": {
+        "72999": 217186304,
+        "73000": 157106176,
+        "73070": 11304960
+      },
+      "total_bytes": 385597440
+    },
+    {
+      "elapsed_ns": 7169935542,
+      "process_bytes": {
+        "72999": 171081728,
+        "73000": 146669568
+      },
+      "total_bytes": 317751296
+    },
+    {
+      "elapsed_ns": 7283374417,
+      "process_bytes": {
+        "72999": 207716352,
+        "73000": 216760320
+      },
+      "total_bytes": 424476672
+    },
+    {
+      "elapsed_ns": 7401320750,
+      "process_bytes": {
+        "72999": 343900160,
+        "73000": 279035904
+      },
+      "total_bytes": 622936064
+    },
+    {
+      "elapsed_ns": 7519222792,
+      "process_bytes": {
+        "72999": 274153472,
+        "73000": 361070592
+      },
+      "total_bytes": 635224064
+    },
+    {
+      "elapsed_ns": 7633248959,
+      "process_bytes": {
+        "72999": 331317248,
+        "73000": 396705792
+      },
+      "total_bytes": 728023040
+    },
+    {
+      "elapsed_ns": 7751018709,
+      "process_bytes": {
+        "72999": 412024832,
+        "73000": 396820480
+      },
+      "total_bytes": 808845312
+    },
+    {
+      "elapsed_ns": 7868688834,
+      "process_bytes": {
+        "72999": 445726720,
+        "73000": 444547072
+      },
+      "total_bytes": 890273792
+    },
+    {
+      "elapsed_ns": 7983371084,
+      "process_bytes": {
+        "72999": 445841408,
+        "73000": 512606208
+      },
+      "total_bytes": 958447616
+    },
+    {
+      "elapsed_ns": 8098955500,
+      "process_bytes": {
+        "72999": 510083072,
+        "73000": 588169216
+      },
+      "total_bytes": 1098252288
+    },
+    {
+      "elapsed_ns": 8216921750,
+      "process_bytes": {
+        "72999": 569376768,
+        "73000": 668942336
+      },
+      "total_bytes": 1238319104
+    },
+    {
+      "elapsed_ns": 8330131959,
+      "process_bytes": {
+        "72999": 654868480,
+        "73000": 700874752
+      },
+      "total_bytes": 1355743232
+    },
+    {
+      "elapsed_ns": 8446110917,
+      "process_bytes": {
+        "72999": 726695936,
+        "73000": 820330496
+      },
+      "total_bytes": 1547026432
+    },
+    {
+      "elapsed_ns": 8564230917,
+      "process_bytes": {
+        "72999": 783843328,
+        "73000": 880803840
+      },
+      "total_bytes": 1664647168
+    },
+    {
+      "elapsed_ns": 8680986625,
+      "process_bytes": {
+        "72999": 864550912,
+        "73000": 880754688
+      },
+      "total_bytes": 1745305600
+    },
+    {
+      "elapsed_ns": 8796477709,
+      "process_bytes": {
+        "72999": 898269184,
+        "73000": 928612352
+      },
+      "total_bytes": 1826881536
+    },
+    {
+      "elapsed_ns": 8912819209,
+      "process_bytes": {
+        "72999": 932151296,
+        "73000": 946667520
+      },
+      "total_bytes": 1878818816
+    },
+    {
+      "elapsed_ns": 9026392667,
+      "process_bytes": {
+        "72999": 962576384,
+        "73000": 1041186816
+      },
+      "total_bytes": 2003763200
+    },
+    {
+      "elapsed_ns": 9141449209,
+      "process_bytes": {
+        "72999": 1022033920,
+        "73000": 1121501184
+      },
+      "total_bytes": 2143535104
+    },
+    {
+      "elapsed_ns": 9258763792,
+      "process_bytes": {
+        "72999": 1108295680,
+        "73000": 1414856704
+      },
+      "total_bytes": 2523152384
+    },
+    {
+      "elapsed_ns": 9372321209,
+      "process_bytes": {
+        "72999": 1512177664,
+        "73000": 1703100416
+      },
+      "total_bytes": 3215278080
+    },
+    {
+      "elapsed_ns": 9497843292,
+      "process_bytes": {
+        "72999": 1909096448,
+        "73000": 1500528640
+      },
+      "total_bytes": 3409625088
+    },
+    {
+      "elapsed_ns": 9615295834,
+      "process_bytes": {
+        "72999": 1932165120,
+        "73000": 2058387456
+      },
+      "total_bytes": 3990552576
+    },
+    {
+      "elapsed_ns": 9732905000,
+      "process_bytes": {
+        "72999": 1932165120,
+        "73000": 1823883264
+      },
+      "total_bytes": 3756048384
+    },
+    {
+      "elapsed_ns": 9858571334,
+      "process_bytes": {
+        "72999": 1195114496,
+        "73000": 1437057024
+      },
+      "total_bytes": 2632171520
+    },
+    {
+      "elapsed_ns": 9970968709,
+      "process_bytes": {
+        "72999": 1452900352,
+        "73000": 1496612864
+      },
+      "total_bytes": 2949513216
+    },
+    {
+      "elapsed_ns": 10087499000,
+      "process_bytes": {
+        "72999": 1452900352,
+        "73000": 1496612864
+      },
+      "total_bytes": 2949513216
+    },
+    {
+      "elapsed_ns": 10202218209,
+      "process_bytes": {
+        "72999": 1452900352,
+        "73000": 1496612864
+      },
+      "total_bytes": 2949513216
+    },
+    {
+      "elapsed_ns": 10320545000,
+      "process_bytes": {
+        "72999": 1529626624,
+        "73000": 2035679232
+      },
+      "total_bytes": 3565305856
+    },
+    {
+      "elapsed_ns": 10465462250,
+      "process_bytes": {
+        "72999": 1969127424,
+        "73000": 2055454720
+      },
+      "total_bytes": 4024582144
+    },
+    {
+      "elapsed_ns": 10580662417,
+      "process_bytes": {
+        "72999": 2025013248,
+        "73000": 2196766720
+      },
+      "total_bytes": 4221779968
+    },
+    {
+      "elapsed_ns": 10698485250,
+      "process_bytes": {
+        "72999": 2091892736,
+        "73000": 2175188992
+      },
+      "total_bytes": 4267081728
+    },
+    {
+      "elapsed_ns": 10816619125,
+      "process_bytes": {
+        "72999": 2135359488,
+        "73000": 2204139520
+      },
+      "total_bytes": 4339499008
+    },
+    {
+      "elapsed_ns": 10934817000,
+      "process_bytes": {
+        "72999": 2135425024,
+        "73000": 2204205056
+      },
+      "total_bytes": 4339630080
+    },
+    {
+      "elapsed_ns": 11051350959,
+      "process_bytes": {
+        "72999": 2140487680,
+        "73000": 2204205056
+      },
+      "total_bytes": 4344692736
+    },
+    {
+      "elapsed_ns": 11168363459,
+      "process_bytes": {
+        "72999": 2155790336,
+        "73000": 2224570368
+      },
+      "total_bytes": 4380360704
+    },
+    {
+      "elapsed_ns": 11284684500,
+      "process_bytes": {
+        "72999": 2155790336,
+        "73000": 2224570368
+      },
+      "total_bytes": 4380360704
+    },
+    {
+      "elapsed_ns": 11401480375,
+      "process_bytes": {
+        "72999": 2156052480,
+        "73000": 2224570368
+      },
+      "total_bytes": 4380622848
+    },
+    {
+      "elapsed_ns": 11522358125,
+      "process_bytes": {
+        "72999": 2156052480,
+        "73000": 2224832512
+      },
+      "total_bytes": 4380884992
+    },
+    {
+      "elapsed_ns": 11640221875,
+      "process_bytes": {
+        "72999": 2771894272,
+        "73000": 2224832512
+      },
+      "total_bytes": 4996726784
+    },
+    {
+      "elapsed_ns": 11758595542,
+      "process_bytes": {
+        "72999": 3938320384,
+        "73000": 4011753472
+      },
+      "total_bytes": 7950073856
+    },
+    {
+      "elapsed_ns": 11872530084,
+      "process_bytes": {
+        "72999": 3509272576,
+        "73000": 4111581184
+      },
+      "total_bytes": 7620853760
+    },
+    {
+      "elapsed_ns": 11988767584,
+      "process_bytes": {
+        "72999": 3509272576,
+        "73000": 4111581184
+      },
+      "total_bytes": 7620853760
+    },
+    {
+      "elapsed_ns": 12106509250,
+      "process_bytes": {
+        "72999": 3509272576,
+        "73000": 4111597568
+      },
+      "total_bytes": 7620870144
+    },
+    {
+      "elapsed_ns": 12226070750,
+      "process_bytes": {
+        "72999": 3803463680,
+        "73000": 3608887296
+      },
+      "total_bytes": 7412350976
+    },
+    {
+      "elapsed_ns": 12340046625,
+      "process_bytes": {
+        "72999": 3856695296,
+        "73000": 3608887296
+      },
+      "total_bytes": 7465582592
+    },
+    {
+      "elapsed_ns": 12459547875,
+      "process_bytes": {
+        "72999": 3984900096,
+        "73000": 3800334336
+      },
+      "total_bytes": 7785234432
+    },
+    {
+      "elapsed_ns": 12574380500,
+      "process_bytes": {
+        "72999": 4269391872,
+        "73000": 3966402560
+      },
+      "total_bytes": 8235794432
+    },
+    {
+      "elapsed_ns": 12689735500,
+      "process_bytes": {
+        "72999": 4269391872,
+        "73000": 3829055488
+      },
+      "total_bytes": 8098447360
+    },
+    {
+      "elapsed_ns": 12809169500,
+      "process_bytes": {
+        "72999": 4404264960,
+        "73000": 4350492672
+      },
+      "total_bytes": 8754757632
+    },
+    {
+      "elapsed_ns": 12928403167,
+      "process_bytes": {
+        "72999": 4404641792,
+        "73000": 4350492672
+      },
+      "total_bytes": 8755134464
+    },
+    {
+      "elapsed_ns": 13042477959,
+      "process_bytes": {
+        "72999": 4371480576,
+        "73000": 4444192768
+      },
+      "total_bytes": 8815673344
+    },
+    {
+      "elapsed_ns": 13156315000,
+      "process_bytes": {
+        "72999": 2426077184,
+        "73000": 4486512640
+      },
+      "total_bytes": 6912589824
+    },
+    {
+      "elapsed_ns": 13272758750,
+      "process_bytes": {
+        "72999": 200409088,
+        "73000": 4526702592,
+        "73133": 14794752
+      },
+      "total_bytes": 4741906432
+    },
+    {
+      "elapsed_ns": 13391355750,
+      "process_bytes": {
+        "72999": 214745088,
+        "73000": 184696832
+      },
+      "total_bytes": 399441920
+    },
+    {
+      "elapsed_ns": 13510524167,
+      "process_bytes": {
+        "72999": 203997184,
+        "73000": 132579328
+      },
+      "total_bytes": 336576512
+    },
+    {
+      "elapsed_ns": 13627815834,
+      "process_bytes": {
+        "72999": 255442944,
+        "73000": 132579328
+      },
+      "total_bytes": 388022272
+    },
+    {
+      "elapsed_ns": 13745278459,
+      "process_bytes": {
+        "72999": 317718528,
+        "73000": 132579328
+      },
+      "total_bytes": 450297856
+    },
+    {
+      "elapsed_ns": 13863005292,
+      "process_bytes": {
+        "72999": 399753216,
+        "73000": 132579328
+      },
+      "total_bytes": 532332544
+    },
+    {
+      "elapsed_ns": 13980059917,
+      "process_bytes": {
+        "72999": 435388416,
+        "73000": 132579328
+      },
+      "total_bytes": 567967744
+    },
+    {
+      "elapsed_ns": 14106261459,
+      "process_bytes": {
+        "72999": 483229696,
+        "73000": 132579328
+      },
+      "total_bytes": 615809024
+    },
+    {
+      "elapsed_ns": 14224077459,
+      "process_bytes": {
+        "72999": 501284864,
+        "73000": 132579328
+      },
+      "total_bytes": 633864192
+    },
+    {
+      "elapsed_ns": 14341571000,
+      "process_bytes": {
+        "72999": 557187072,
+        "73000": 132579328
+      },
+      "total_bytes": 689766400
+    },
+    {
+      "elapsed_ns": 14458713417,
+      "process_bytes": {
+        "72999": 642187264,
+        "73000": 132579328
+      },
+      "total_bytes": 774766592
+    },
+    {
+      "elapsed_ns": 14576576084,
+      "process_bytes": {
+        "72999": 739557376,
+        "73000": 132579328
+      },
+      "total_bytes": 872136704
+    },
+    {
+      "elapsed_ns": 14693924917,
+      "process_bytes": {
+        "72999": 801816576,
+        "73000": 132579328
+      },
+      "total_bytes": 934395904
+    },
+    {
+      "elapsed_ns": 14811517292,
+      "process_bytes": {
+        "72999": 877461504,
+        "73000": 132579328
+      },
+      "total_bytes": 1010040832
+    },
+    {
+      "elapsed_ns": 14929135542,
+      "process_bytes": {
+        "72999": 919486464,
+        "73000": 132579328
+      },
+      "total_bytes": 1052065792
+    },
+    {
+      "elapsed_ns": 15047352667,
+      "process_bytes": {
+        "72999": 919601152,
+        "73000": 132579328
+      },
+      "total_bytes": 1052180480
+    },
+    {
+      "elapsed_ns": 15165536667,
+      "process_bytes": {
+        "72999": 967344128,
+        "73000": 132579328
+      },
+      "total_bytes": 1099923456
+    },
+    {
+      "elapsed_ns": 15278286334,
+      "process_bytes": {
+        "72999": 1040449536,
+        "73000": 132579328
+      },
+      "total_bytes": 1173028864
+    },
+    {
+      "elapsed_ns": 15392149250,
+      "process_bytes": {
+        "72999": 1113374720,
+        "73000": 132579328
+      },
+      "total_bytes": 1245954048
+    },
+    {
+      "elapsed_ns": 15508309209,
+      "process_bytes": {
+        "72999": 1170341888,
+        "73000": 132579328
+      },
+      "total_bytes": 1302921216
+    },
+    {
+      "elapsed_ns": 15632282959,
+      "process_bytes": {
+        "72999": 1676394496,
+        "73000": 132579328
+      },
+      "total_bytes": 1808973824
+    },
+    {
+      "elapsed_ns": 15750033375,
+      "process_bytes": {
+        "72999": 2239971328,
+        "73000": 132579328
+      },
+      "total_bytes": 2372550656
+    },
+    {
+      "elapsed_ns": 15873421625,
+      "process_bytes": {
+        "72999": 2097004544,
+        "73000": 132579328
+      },
+      "total_bytes": 2229583872
+    },
+    {
+      "elapsed_ns": 15990758500,
+      "process_bytes": {
+        "72999": 2097004544,
+        "73000": 132579328
+      },
+      "total_bytes": 2229583872
+    },
+    {
+      "elapsed_ns": 16105699125,
+      "process_bytes": {
+        "72999": 831832064,
+        "73000": 132579328
+      },
+      "total_bytes": 964411392
+    },
+    {
+      "elapsed_ns": 16220600167,
+      "process_bytes": {
+        "72999": 1667301376,
+        "73000": 132579328
+      },
+      "total_bytes": 1799880704
+    },
+    {
+      "elapsed_ns": 16346626875,
+      "process_bytes": {
+        "72999": 1535246336,
+        "73000": 132579328
+      },
+      "total_bytes": 1667825664
+    },
+    {
+      "elapsed_ns": 16464269167,
+      "process_bytes": {
+        "72999": 2074296320,
+        "73000": 132579328
+      },
+      "total_bytes": 2206875648
+    },
+    {
+      "elapsed_ns": 16590300542,
+      "process_bytes": {
+        "72999": 2106900480,
+        "73000": 132579328
+      },
+      "total_bytes": 2239479808
+    },
+    {
+      "elapsed_ns": 16708144334,
+      "process_bytes": {
+        "72999": 2183970816,
+        "73000": 132579328
+      },
+      "total_bytes": 2316550144
+    },
+    {
+      "elapsed_ns": 16825883667,
+      "process_bytes": {
+        "72999": 2239528960,
+        "73000": 132579328
+      },
+      "total_bytes": 2372108288
+    },
+    {
+      "elapsed_ns": 16943673542,
+      "process_bytes": {
+        "72999": 2242740224,
+        "73000": 132579328
+      },
+      "total_bytes": 2375319552
+    },
+    {
+      "elapsed_ns": 17060096959,
+      "process_bytes": {
+        "72999": 2242805760,
+        "73000": 132579328
+      },
+      "total_bytes": 2375385088
+    },
+    {
+      "elapsed_ns": 17177694625,
+      "process_bytes": {
+        "72999": 2263171072,
+        "73000": 132579328
+      },
+      "total_bytes": 2395750400
+    },
+    {
+      "elapsed_ns": 17295411792,
+      "process_bytes": {
+        "72999": 2263171072,
+        "73000": 132579328
+      },
+      "total_bytes": 2395750400
+    },
+    {
+      "elapsed_ns": 17409481167,
+      "process_bytes": {
+        "72999": 2263171072,
+        "73000": 132579328
+      },
+      "total_bytes": 2395750400
+    },
+    {
+      "elapsed_ns": 17523929417,
+      "process_bytes": {
+        "72999": 2263433216,
+        "73000": 132579328
+      },
+      "total_bytes": 2396012544
+    },
+    {
+      "elapsed_ns": 17641513375,
+      "process_bytes": {
+        "72999": 2263433216,
+        "73000": 132579328
+      },
+      "total_bytes": 2396012544
+    },
+    {
+      "elapsed_ns": 17759270625,
+      "process_bytes": {
+        "72999": 3294642176,
+        "73000": 132579328
+      },
+      "total_bytes": 3427221504
+    },
+    {
+      "elapsed_ns": 17876777834,
+      "process_bytes": {
+        "72999": 3647438848,
+        "73000": 132579328
+      },
+      "total_bytes": 3780018176
+    },
+    {
+      "elapsed_ns": 17993753000,
+      "process_bytes": {
+        "72999": 3647438848,
+        "73000": 132579328
+      },
+      "total_bytes": 3780018176
+    },
+    {
+      "elapsed_ns": 18106969334,
+      "process_bytes": {
+        "72999": 3647438848,
+        "73000": 132579328
+      },
+      "total_bytes": 3780018176
+    },
+    {
+      "elapsed_ns": 18223243125,
+      "process_bytes": {
+        "72999": 3901112320,
+        "73000": 132579328
+      },
+      "total_bytes": 4033691648
+    },
+    {
+      "elapsed_ns": 18344571875,
+      "process_bytes": {
+        "72999": 4074160128,
+        "73000": 132579328
+      },
+      "total_bytes": 4206739456
+    },
+    {
+      "elapsed_ns": 18463279959,
+      "process_bytes": {
+        "72999": 4570021888,
+        "73000": 132579328
+      },
+      "total_bytes": 4702601216
+    },
+    {
+      "elapsed_ns": 18577084000,
+      "process_bytes": {
+        "72999": 4389011456,
+        "73000": 132579328
+      },
+      "total_bytes": 4521590784
+    },
+    {
+      "elapsed_ns": 18694154792,
+      "process_bytes": {
+        "72999": 4473602048,
+        "73000": 132579328
+      },
+      "total_bytes": 4606181376
+    },
+    {
+      "elapsed_ns": 18808948042,
+      "process_bytes": {
+        "72999": 4609130496,
+        "73000": 132579328
+      },
+      "total_bytes": 4741709824
+    },
+    {
+      "elapsed_ns": 18926843500,
+      "process_bytes": {
+        "72999": 4562272256,
+        "73000": 132579328
+      },
+      "total_bytes": 4694851584
+    },
+    {
+      "elapsed_ns": 19045452209,
+      "process_bytes": {
+        "72999": 205766656,
+        "73000": 132579328,
+        "73190": 14516224
+      },
+      "total_bytes": 352862208
+    },
+    {
+      "elapsed_ns": 19163395459,
+      "process_bytes": {
+        "72999": 176783360,
+        "73000": 132579328
+      },
+      "total_bytes": 309362688
+    },
+    {
+      "elapsed_ns": 19277733250,
+      "process_bytes": {
+        "72999": 223281152,
+        "73000": 132579328
+      },
+      "total_bytes": 355860480
+    },
+    {
+      "elapsed_ns": 19395365542,
+      "process_bytes": {
+        "72999": 279937024,
+        "73000": 132579328
+      },
+      "total_bytes": 412516352
+    },
+    {
+      "elapsed_ns": 19512999459,
+      "process_bytes": {
+        "72999": 389496832,
+        "73000": 132579328
+      },
+      "total_bytes": 522076160
+    },
+    {
+      "elapsed_ns": 19630437125,
+      "process_bytes": {
+        "72999": 424919040,
+        "73000": 132579328
+      },
+      "total_bytes": 557498368
+    },
+    {
+      "elapsed_ns": 19747966375,
+      "process_bytes": {
+        "72999": 451510272,
+        "73000": 132579328
+      },
+      "total_bytes": 584089600
+    },
+    {
+      "elapsed_ns": 19865365334,
+      "process_bytes": {
+        "72999": 499351552,
+        "73000": 132579328
+      },
+      "total_bytes": 631930880
+    },
+    {
+      "elapsed_ns": 19981934042,
+      "process_bytes": {
+        "72999": 515866624,
+        "73000": 132579328
+      },
+      "total_bytes": 648445952
+    },
+    {
+      "elapsed_ns": 20099589375,
+      "process_bytes": {
+        "72999": 617267200,
+        "73000": 132579328
+      },
+      "total_bytes": 749846528
+    },
+    {
+      "elapsed_ns": 20217449084,
+      "process_bytes": {
+        "72999": 701825024,
+        "73000": 132579328
+      },
+      "total_bytes": 834404352
+    },
+    {
+      "elapsed_ns": 20335158959,
+      "process_bytes": {
+        "72999": 732413952,
+        "73000": 132579328
+      },
+      "total_bytes": 864993280
+    },
+    {
+      "elapsed_ns": 20453253584,
+      "process_bytes": {
+        "72999": 843431936,
+        "73000": 132579328
+      },
+      "total_bytes": 976011264
+    },
+    {
+      "elapsed_ns": 20570520834,
+      "process_bytes": {
+        "72999": 903987200,
+        "73000": 132579328
+      },
+      "total_bytes": 1036566528
+    },
+    {
+      "elapsed_ns": 20687880875,
+      "process_bytes": {
+        "72999": 903987200,
+        "73000": 132579328
+      },
+      "total_bytes": 1036566528
+    },
+    {
+      "elapsed_ns": 20805228500,
+      "process_bytes": {
+        "72999": 951828480,
+        "73000": 132579328
+      },
+      "total_bytes": 1084407808
+    },
+    {
+      "elapsed_ns": 20922666584,
+      "process_bytes": {
+        "72999": 1020280832,
+        "73000": 132579328
+      },
+      "total_bytes": 1152860160
+    },
+    {
+      "elapsed_ns": 21040074500,
+      "process_bytes": {
+        "72999": 1085784064,
+        "73000": 132579328
+      },
+      "total_bytes": 1218363392
+    },
+    {
+      "elapsed_ns": 21155610167,
+      "process_bytes": {
+        "72999": 1361920000,
+        "73000": 132579328
+      },
+      "total_bytes": 1494499328
+    },
+    {
+      "elapsed_ns": 21273200709,
+      "process_bytes": {
+        "72999": 1565999104,
+        "73000": 132579328
+      },
+      "total_bytes": 1698578432
+    },
+    {
+      "elapsed_ns": 21390811167,
+      "process_bytes": {
+        "72999": 1636450304,
+        "73000": 132579328
+      },
+      "total_bytes": 1769029632
+    },
+    {
+      "elapsed_ns": 21508424375,
+      "process_bytes": {
+        "72999": 1937932288,
+        "73000": 132579328
+      },
+      "total_bytes": 2070511616
+    },
+    {
+      "elapsed_ns": 21626661750,
+      "process_bytes": {
+        "72999": 765657088,
+        "73000": 132579328
+      },
+      "total_bytes": 898236416
+    },
+    {
+      "elapsed_ns": 21744455542,
+      "process_bytes": {
+        "72999": 1500610560,
+        "73000": 132579328
+      },
+      "total_bytes": 1633189888
+    },
+    {
+      "elapsed_ns": 21861549500,
+      "process_bytes": {
+        "72999": 1458667520,
+        "73000": 132579328
+      },
+      "total_bytes": 1591246848
+    },
+    {
+      "elapsed_ns": 21979708917,
+      "process_bytes": {
+        "72999": 1972748288,
+        "73000": 132579328
+      },
+      "total_bytes": 2105327616
+    },
+    {
+      "elapsed_ns": 22093325125,
+      "process_bytes": {
+        "72999": 1992245248,
+        "73000": 132579328
+      },
+      "total_bytes": 2124824576
+    },
+    {
+      "elapsed_ns": 22210320292,
+      "process_bytes": {
+        "72999": 2133557248,
+        "73000": 132579328
+      },
+      "total_bytes": 2266136576
+    },
+    {
+      "elapsed_ns": 22328123834,
+      "process_bytes": {
+        "72999": 2141126656,
+        "73000": 132579328
+      },
+      "total_bytes": 2273705984
+    },
+    {
+      "elapsed_ns": 22445726042,
+      "process_bytes": {
+        "72999": 2141126656,
+        "73000": 132579328
+      },
+      "total_bytes": 2273705984
+    },
+    {
+      "elapsed_ns": 22563350084,
+      "process_bytes": {
+        "72999": 2141192192,
+        "73000": 132579328
+      },
+      "total_bytes": 2273771520
+    },
+    {
+      "elapsed_ns": 22680739292,
+      "process_bytes": {
+        "72999": 2161557504,
+        "73000": 132579328
+      },
+      "total_bytes": 2294136832
+    },
+    {
+      "elapsed_ns": 22798325917,
+      "process_bytes": {
+        "72999": 2161557504,
+        "73000": 132579328
+      },
+      "total_bytes": 2294136832
+    },
+    {
+      "elapsed_ns": 22915958209,
+      "process_bytes": {
+        "72999": 2161557504,
+        "73000": 132579328
+      },
+      "total_bytes": 2294136832
+    },
+    {
+      "elapsed_ns": 23033029167,
+      "process_bytes": {
+        "72999": 2161819648,
+        "73000": 132579328
+      },
+      "total_bytes": 2294398976
+    },
+    {
+      "elapsed_ns": 23150671000,
+      "process_bytes": {
+        "72999": 2583199744,
+        "73000": 132579328
+      },
+      "total_bytes": 2715779072
+    },
+    {
+      "elapsed_ns": 23266483875,
+      "process_bytes": {
+        "72999": 4037148672,
+        "73000": 132579328
+      },
+      "total_bytes": 4169728000
+    },
+    {
+      "elapsed_ns": 23383755209,
+      "process_bytes": {
+        "72999": 3515039744,
+        "73000": 132579328
+      },
+      "total_bytes": 3647619072
+    },
+    {
+      "elapsed_ns": 23498011709,
+      "process_bytes": {
+        "72999": 3515039744,
+        "73000": 132579328
+      },
+      "total_bytes": 3647619072
+    },
+    {
+      "elapsed_ns": 23609812250,
+      "process_bytes": {
+        "72999": 3705815040,
+        "73000": 132579328
+      },
+      "total_bytes": 3838394368
+    },
+    {
+      "elapsed_ns": 23725374209,
+      "process_bytes": {
+        "72999": 3759226880,
+        "73000": 132579328
+      },
+      "total_bytes": 3891806208
+    },
+    {
+      "elapsed_ns": 23839438125,
+      "process_bytes": {
+        "72999": 4291510272,
+        "73000": 132579328
+      },
+      "total_bytes": 4424089600
+    },
+    {
+      "elapsed_ns": 23956878000,
+      "process_bytes": {
+        "72999": 4275159040,
+        "73000": 132579328
+      },
+      "total_bytes": 4407738368
+    },
+    {
+      "elapsed_ns": 24081349209,
+      "process_bytes": {
+        "72999": 4351197184,
+        "73000": 132579328
+      },
+      "total_bytes": 4483776512
+    },
+    {
+      "elapsed_ns": 24198866750,
+      "process_bytes": {
+        "72999": 4377640960,
+        "73000": 132579328
+      },
+      "total_bytes": 4510220288
+    },
+    {
+      "elapsed_ns": 24315421834,
+      "process_bytes": {
+        "72999": 4376592384,
+        "73000": 132579328
+      },
+      "total_bytes": 4509171712
+    },
+    {
+      "elapsed_ns": 24430669917,
+      "process_bytes": {
+        "72999": 221724672,
+        "73000": 132579328,
+        "73243": 14221312
+      },
+      "total_bytes": 368525312
+    },
+    {
+      "elapsed_ns": 24544250750,
+      "process_bytes": {
+        "72999": 178094080,
+        "73000": 132579328
+      },
+      "total_bytes": 310673408
+    },
+    {
+      "elapsed_ns": 24657392375,
+      "process_bytes": {
+        "72999": 226312192,
+        "73000": 132579328
+      },
+      "total_bytes": 358891520
+    },
+    {
+      "elapsed_ns": 24775230375,
+      "process_bytes": {
+        "72999": 401833984,
+        "73000": 132579328
+      },
+      "total_bytes": 534413312
+    },
+    {
+      "elapsed_ns": 24892965917,
+      "process_bytes": {
+        "72999": 279560192,
+        "73000": 132579328
+      },
+      "total_bytes": 412139520
+    },
+    {
+      "elapsed_ns": 25010275459,
+      "process_bytes": {
+        "72999": 389103616,
+        "73000": 132579328
+      },
+      "total_bytes": 521682944
+    },
+    {
+      "elapsed_ns": 25127617334,
+      "process_bytes": {
+        "72999": 424525824,
+        "73000": 132579328
+      },
+      "total_bytes": 557105152
+    },
+    {
+      "elapsed_ns": 25243279584,
+      "process_bytes": {
+        "72999": 451100672,
+        "73000": 132579328
+      },
+      "total_bytes": 583680000
+    },
+    {
+      "elapsed_ns": 25360736917,
+      "process_bytes": {
+        "72999": 498941952,
+        "73000": 132579328
+      },
+      "total_bytes": 631521280
+    },
+    {
+      "elapsed_ns": 25478284334,
+      "process_bytes": {
+        "72999": 515457024,
+        "73000": 132579328
+      },
+      "total_bytes": 648036352
+    },
+    {
+      "elapsed_ns": 25596005292,
+      "process_bytes": {
+        "72999": 616857600,
+        "73000": 132579328
+      },
+      "total_bytes": 749436928
+    },
+    {
+      "elapsed_ns": 25710926042,
+      "process_bytes": {
+        "72999": 701415424,
+        "73000": 132579328
+      },
+      "total_bytes": 833994752
+    },
+    {
+      "elapsed_ns": 25824170000,
+      "process_bytes": {
+        "72999": 731955200,
+        "73000": 132579328
+      },
+      "total_bytes": 864534528
+    },
+    {
+      "elapsed_ns": 25937354334,
+      "process_bytes": {
+        "72999": 841515008,
+        "73000": 132579328
+      },
+      "total_bytes": 974094336
+    },
+    {
+      "elapsed_ns": 26054964542,
+      "process_bytes": {
+        "72999": 903495680,
+        "73000": 132579328
+      },
+      "total_bytes": 1036075008
+    },
+    {
+      "elapsed_ns": 26172115625,
+      "process_bytes": {
+        "72999": 903495680,
+        "73000": 132579328
+      },
+      "total_bytes": 1036075008
+    },
+    {
+      "elapsed_ns": 26289712959,
+      "process_bytes": {
+        "72999": 951353344,
+        "73000": 132579328
+      },
+      "total_bytes": 1083932672
+    },
+    {
+      "elapsed_ns": 26407697334,
+      "process_bytes": {
+        "72999": 1019805696,
+        "73000": 132579328
+      },
+      "total_bytes": 1152385024
+    },
+    {
+      "elapsed_ns": 26521648709,
+      "process_bytes": {
+        "72999": 1074298880,
+        "73000": 132579328
+      },
+      "total_bytes": 1206878208
+    },
+    {
+      "elapsed_ns": 26639741500,
+      "process_bytes": {
+        "72999": 1361100800,
+        "73000": 132579328
+      },
+      "total_bytes": 1493680128
+    },
+    {
+      "elapsed_ns": 26757435792,
+      "process_bytes": {
+        "72999": 1556758528,
+        "73000": 132579328
+      },
+      "total_bytes": 1689337856
+    },
+    {
+      "elapsed_ns": 26875336042,
+      "process_bytes": {
+        "72999": 1372536832,
+        "73000": 132579328
+      },
+      "total_bytes": 1505116160
+    },
+    {
+      "elapsed_ns": 26991159334,
+      "process_bytes": {
+        "72999": 1936556032,
+        "73000": 132579328
+      },
+      "total_bytes": 2069135360
+    },
+    {
+      "elapsed_ns": 27105694542,
+      "process_bytes": {
+        "72999": 764854272,
+        "73000": 132579328
+      },
+      "total_bytes": 897433600
+    },
+    {
+      "elapsed_ns": 27220347834,
+      "process_bytes": {
+        "72999": 1697415168,
+        "73000": 132579328
+      },
+      "total_bytes": 1829994496
+    },
+    {
+      "elapsed_ns": 27336933875,
+      "process_bytes": {
+        "72999": 1457864704,
+        "73000": 132579328
+      },
+      "total_bytes": 1590444032
+    },
+    {
+      "elapsed_ns": 27455756167,
+      "process_bytes": {
+        "72999": 1820753920,
+        "73000": 132579328
+      },
+      "total_bytes": 1953333248
+    },
+    {
+      "elapsed_ns": 27582334875,
+      "process_bytes": {
+        "72999": 1983365120,
+        "73000": 132579328
+      },
+      "total_bytes": 2115944448
+    },
+    {
+      "elapsed_ns": 27697556459,
+      "process_bytes": {
+        "72999": 2029977600,
+        "73000": 132579328
+      },
+      "total_bytes": 2162556928
+    },
+    {
+      "elapsed_ns": 27815527375,
+      "process_bytes": {
+        "72999": 2137112576,
+        "73000": 132579328
+      },
+      "total_bytes": 2269691904
+    },
+    {
+      "elapsed_ns": 27933474167,
+      "process_bytes": {
+        "72999": 2140323840,
+        "73000": 132579328
+      },
+      "total_bytes": 2272903168
+    },
+    {
+      "elapsed_ns": 28051241000,
+      "process_bytes": {
+        "72999": 2140389376,
+        "73000": 132579328
+      },
+      "total_bytes": 2272968704
+    },
+    {
+      "elapsed_ns": 28168902125,
+      "process_bytes": {
+        "72999": 2154332160,
+        "73000": 132579328
+      },
+      "total_bytes": 2286911488
+    },
+    {
+      "elapsed_ns": 28286602000,
+      "process_bytes": {
+        "72999": 2154332160,
+        "73000": 132579328
+      },
+      "total_bytes": 2286911488
+    },
+    {
+      "elapsed_ns": 28403621625,
+      "process_bytes": {
+        "72999": 2154332160,
+        "73000": 132579328
+      },
+      "total_bytes": 2286911488
+    },
+    {
+      "elapsed_ns": 28517188667,
+      "process_bytes": {
+        "72999": 2161016832,
+        "73000": 132579328
+      },
+      "total_bytes": 2293596160
+    },
+    {
+      "elapsed_ns": 28634958417,
+      "process_bytes": {
+        "72999": 2150121472,
+        "73000": 132579328
+      },
+      "total_bytes": 2282700800
+    },
+    {
+      "elapsed_ns": 28748390459,
+      "process_bytes": {
+        "72999": 4036345856,
+        "73000": 132579328
+      },
+      "total_bytes": 4168925184
+    },
+    {
+      "elapsed_ns": 28866059250,
+      "process_bytes": {
+        "72999": 3514236928,
+        "73000": 132579328
+      },
+      "total_bytes": 3646816256
+    },
+    {
+      "elapsed_ns": 28990586750,
+      "process_bytes": {
+        "72999": 3514236928,
+        "73000": 132579328
+      },
+      "total_bytes": 3646816256
+    },
+    {
+      "elapsed_ns": 29103514792,
+      "process_bytes": {
+        "72999": 3630710784,
+        "73000": 132579328
+      },
+      "total_bytes": 3763290112
+    },
+    {
+      "elapsed_ns": 29221112042,
+      "process_bytes": {
+        "72999": 3727867904,
+        "73000": 132579328
+      },
+      "total_bytes": 3860447232
+    },
+    {
+      "elapsed_ns": 29334999292,
+      "process_bytes": {
+        "72999": 4180869120,
+        "73000": 132579328
+      },
+      "total_bytes": 4313448448
+    },
+    {
+      "elapsed_ns": 29452592459,
+      "process_bytes": {
+        "72999": 4274356224,
+        "73000": 132579328
+      },
+      "total_bytes": 4406935552
+    },
+    {
+      "elapsed_ns": 29564831125,
+      "process_bytes": {
+        "72999": 4275208192,
+        "73000": 132579328
+      },
+      "total_bytes": 4407787520
+    },
+    {
+      "elapsed_ns": 29680631459,
+      "process_bytes": {
+        "72999": 4409524224,
+        "73000": 132579328
+      },
+      "total_bytes": 4542103552
+    },
+    {
+      "elapsed_ns": 29798375209,
+      "process_bytes": {
+        "72999": 4447682560,
+        "73000": 132579328
+      },
+      "total_bytes": 4580261888
+    },
+    {
+      "elapsed_ns": 29911769042,
+      "process_bytes": {
+        "72999": 223428608,
+        "73000": 132579328,
+        "73302": 10993664
+      },
+      "total_bytes": 367001600
+    }
+  ],
+  "peak_sampled_rss_bytes": 9024733184,
+  "rss_scope": "sum of resident worker and active phase process RSS; excludes device allocations and descendants",
+  "wall_ns": 30006678667,
+  "inputs_unchanged": true
+}

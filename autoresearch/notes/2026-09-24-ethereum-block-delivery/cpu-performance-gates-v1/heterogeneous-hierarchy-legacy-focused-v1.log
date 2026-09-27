@@ -1,0 +1,16 @@
+1/15 block_v5_heterogeneous_hierarchy_test_root.test_0...OK
+2/15 block_v5_heterogeneous_hierarchy_test_root.test.heterogeneous hierarchy: actual original leaf and hierarchy parent producer receiver bodies retained without invocation...OK
+3/15 prover.block_v5_heterogeneous_hierarchy_test_v1.test.heterogeneous hierarchy: genuine exact topology has 67 native spans plus providers without rounded leaves...OK
+4/15 prover.block_v5_heterogeneous_hierarchy_test_v1.test.heterogeneous hierarchy: topology allocation failures preserve exact leaf and node ownership...OK
+5/15 prover.block_v5_heterogeneous_hierarchy_test_v1.test.heterogeneous hierarchy: forwarding graph constrains each lower byte and exact span adjacency and aggregate...OK
+6/15 prover.block_v5_heterogeneous_hierarchy_test_v1.test.heterogeneous hierarchy: graph allocation failures and noncanonical or out-of-bounds source reject...OK
+7/15 prover.block_v5_heterogeneous_hierarchy_test_v1.test.heterogeneous hierarchy: provider span absence and node export schedules remain distinct and exact...OK
+8/15 prover.block_v5_heterogeneous_hierarchy_test_v1.test.heterogeneous hierarchy: forwarded coordinates lower to actual parent equations and exact original public tuple closure...OK
+9/15 prover.block_v5_heterogeneous_hierarchy_test_v1.test.heterogeneous hierarchy: genuine row lowering releases every allocation on failure...OK
+10/15 prover.block_execution_external_trace_v2.test_0...OK
+11/15 air.lookups.tables.mod.test_0...OK
+12/15 air.semantic_eval.test_0...OK
+13/15 prover.block_execution_external_access_bridge_v2.test_0...OK
+14/15 air.memory_commitment.poseidon2_air.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

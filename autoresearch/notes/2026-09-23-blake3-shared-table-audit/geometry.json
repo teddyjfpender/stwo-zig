@@ -1,0 +1,1426 @@
+[
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "artifact_sha256": "6c03a7daeac2914fd7ce2f8fc81337986a179c31ed5f27ed5c2b6d8fb9f6d103",
+    "steps": 1828,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-1024",
+    "artifact_sha256": "71ee9316d6d35f41a1c5beba85fa42f780e88c4891cbd8a28a5e706153f649d8",
+    "steps": 143416,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-128",
+    "artifact_sha256": "b0328cf0ba3649275fb685832326c3cf02e6463a433f88d19d5e9af166409adb",
+    "steps": 19114,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-2048",
+    "artifact_sha256": "4b7c7cb91efda286fb1d8c61d40f91e040949d2bf05f2baf7a195df39a49039a",
+    "steps": 285456,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 7,
+        "rows": 110,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-256",
+    "artifact_sha256": "feba5b35dd5d8e873e9bd6a713f38210828288157d231b598bd56c295bf86ead",
+    "steps": 36904,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-keccak-512",
+    "artifact_sha256": "d5cf6bd21e04a6f3e5743d4ed0e0738a6e7a9c8d7cfc6c9838efa027bf95341a",
+    "steps": 72408,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-12",
+    "artifact_sha256": "6166e66e8ff9a724d4f36a9cc45de7005043dc26b9e06c07ab0d8142d93e895e",
+    "steps": 492827,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 4,
+        "rows": 15,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-16",
+    "artifact_sha256": "68e9e66432ff36f3b551137e0df7e20fd989df19ce669e317f6d672660619f87",
+    "steps": 657039,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 5,
+        "rows": 32,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-2",
+    "artifact_sha256": "bf7c23da34e682669ca154175a8dfeee8c31bd514fa3e387455edf5097f920d5",
+    "steps": 82297,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-4",
+    "artifact_sha256": "98038df6c59327450d7f6dae0c3419bc67634d987a54ce205373556e6fb84cc7",
+    "steps": 164403,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-poseidon2_m31-8",
+    "artifact_sha256": "64e6b168a59315c909a7bb743de5e88b1c5f97b15b54a225b96ccebbf58f6497",
+    "steps": 328615,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 4,
+        "rows": 11,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-1024",
+    "artifact_sha256": "b2f8a4c8259893b06afb405ea95a1ae6dd0140648d6078677237cfbcb7250f81",
+    "steps": 75488,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-128",
+    "artifact_sha256": "e815072694892b5cd27f5f4a785b4571d856ff607e1e7314a1d8c9864d63b338",
+    "steps": 14056,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "artifact_sha256": "e73c24b436070d30975161056824c4b7e253b7a70135d50a4c6c93dacb7252a2",
+    "steps": 145696,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-256",
+    "artifact_sha256": "89649ef7c7dcdf587f8ccb9f024ee7c6f9ce2d419dafa9c8816bfc8ad16917a1",
+    "steps": 22832,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "cpu-sha256-512",
+    "artifact_sha256": "53a5610cf955285894c78f14a65d4d42d0058c39f6efe0243d0a2f335e0366e5",
+    "steps": 40384,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-ecdsa_secp256k1-32",
+    "artifact_sha256": "6c03a7daeac2914fd7ce2f8fc81337986a179c31ed5f27ed5c2b6d8fb9f6d103",
+    "steps": 1828,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-keccak-1024",
+    "artifact_sha256": "71ee9316d6d35f41a1c5beba85fa42f780e88c4891cbd8a28a5e706153f649d8",
+    "steps": 143416,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-keccak-128",
+    "artifact_sha256": "b0328cf0ba3649275fb685832326c3cf02e6463a433f88d19d5e9af166409adb",
+    "steps": 19114,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-keccak-2048",
+    "artifact_sha256": "4b7c7cb91efda286fb1d8c61d40f91e040949d2bf05f2baf7a195df39a49039a",
+    "steps": 285456,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 7,
+        "rows": 110,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-keccak-256",
+    "artifact_sha256": "feba5b35dd5d8e873e9bd6a713f38210828288157d231b598bd56c295bf86ead",
+    "steps": 36904,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-keccak-512",
+    "artifact_sha256": "d5cf6bd21e04a6f3e5743d4ed0e0738a6e7a9c8d7cfc6c9838efa027bf95341a",
+    "steps": 72408,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-poseidon2_m31-12",
+    "artifact_sha256": "6166e66e8ff9a724d4f36a9cc45de7005043dc26b9e06c07ab0d8142d93e895e",
+    "steps": 492827,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 4,
+        "rows": 15,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-poseidon2_m31-16",
+    "artifact_sha256": "68e9e66432ff36f3b551137e0df7e20fd989df19ce669e317f6d672660619f87",
+    "steps": 657039,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 5,
+        "rows": 32,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-poseidon2_m31-2",
+    "artifact_sha256": "bf7c23da34e682669ca154175a8dfeee8c31bd514fa3e387455edf5097f920d5",
+    "steps": 82297,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-poseidon2_m31-4",
+    "artifact_sha256": "98038df6c59327450d7f6dae0c3419bc67634d987a54ce205373556e6fb84cc7",
+    "steps": 164403,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-poseidon2_m31-8",
+    "artifact_sha256": "64e6b168a59315c909a7bb743de5e88b1c5f97b15b54a225b96ccebbf58f6497",
+    "steps": 328615,
+    "infra": [
+      {
+        "kind": "clock_update",
+        "log_size": 4,
+        "rows": 11,
+        "main_columns": 10
+      },
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-sha256-1024",
+    "artifact_sha256": "b2f8a4c8259893b06afb405ea95a1ae6dd0140648d6078677237cfbcb7250f81",
+    "steps": 75488,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-sha256-128",
+    "artifact_sha256": "e815072694892b5cd27f5f4a785b4571d856ff607e1e7314a1d8c9864d63b338",
+    "steps": 14056,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-sha256-2048",
+    "artifact_sha256": "e73c24b436070d30975161056824c4b7e253b7a70135d50a4c6c93dacb7252a2",
+    "steps": 145696,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-sha256-256",
+    "artifact_sha256": "89649ef7c7dcdf587f8ccb9f024ee7c6f9ce2d419dafa9c8816bfc8ad16917a1",
+    "steps": 22832,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  },
+  {
+    "case": "metal-sha256-512",
+    "artifact_sha256": "53a5610cf955285894c78f14a65d4d42d0058c39f6efe0243d0a2f335e0366e5",
+    "steps": 40384,
+    "infra": [
+      {
+        "kind": "bitwise",
+        "log_size": 18,
+        "rows": 262144,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_20",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_11",
+        "log_size": 19,
+        "rows": 524288,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8_4",
+        "log_size": 20,
+        "rows": 1048576,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_8_8",
+        "log_size": 16,
+        "rows": 65536,
+        "main_columns": 1
+      },
+      {
+        "kind": "range_check_m31",
+        "log_size": 15,
+        "rows": 32768,
+        "main_columns": 1
+      }
+    ]
+  }
+]

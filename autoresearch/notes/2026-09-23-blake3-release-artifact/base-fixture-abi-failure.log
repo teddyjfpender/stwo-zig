@@ -1,0 +1,27 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 1206s
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test 6/7 passed, 1 failed
+error: 'prover.blake3_execution_trace_test.test.BLAKE3 execution commitment real runner proves and independently verifies' failed: BLAKE3 execution join: MissingReleaseAbiSymbol
+error: while executing test 'diagnostics.mod.test_0', the following test command failed:
+./.zig-cache/products/riscv_cpu/o/2ea68bb23142270cc1220961f5522e5e/test --cache-dir=./.zig-cache/products/riscv_cpu --seed=0x174e689b --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 6/7 tests passed; 1 failed
+test-riscv-blake3-execution-commitments transitive failure
++- riscv test suite guard transitive failure
+   +- run test 6/7 passed, 1 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_cpu/o/f36e686e900ff9331ce16e8b7d8e079e/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_cpu /Users/theodorepender/.cache/zig --seed 0x174e689b -Zab388a23d66ad31a test-riscv-blake3-execution-commitments -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 -Driscv-test-filter=BLAKE3 execution commitment real runner proves -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=a112d01505569e42f3c5f31cfa879692dbd2fb3faf2f65977f83cee5cc416639
+test-riscv-blake3-execution-commitments
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build test-riscv-blake3-execution-commitments --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_cpu -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_cpu -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 "-Driscv-test-filter=BLAKE3 execution commitment real runner proves" -Dimplementation-commit=1c6c81ecf98813ca3c91988888d9f2af6474763e -Dimplementation-dirty=true -Dimplementation-tree=8a77dd1fb15f570f432fdd3720e456411ae1bbdb -Dimplementation-dirty-content-sha256=a112d01505569e42f3c5f31cfa879692dbd2fb3faf2f65977f83cee5cc416639
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv-blake3-execution-commitments transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8784352c904ce329f61fd3e5e03f8375/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x2d39afe0 -Zf17ac1112ae763a8 --maxrss 25769803776 -j1 test-riscv-blake3-execution-commitments -Driscv-test-filter=BLAKE3 execution commitment real runner proves -Doptimize=ReleaseSafe --summary all

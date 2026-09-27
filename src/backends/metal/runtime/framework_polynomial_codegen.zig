@@ -150,7 +150,10 @@ pub fn emitKernel(allocator: std.mem.Allocator, writer: anytype, name: []const u
         }
         const first: usize = batch.first_entry;
         const numerator = program.entries[first].numerator;
-        if (batch.entry_count == 1) {
+        if (batch.entry_count > 2) {
+            try emitWideFraction(writer, program, batch, index);
+            try writer.print("    RiscvQm31 constraint{} = riscv_qm_sub(riscv_qm_mul(delta{}, wide_d{}), wide_n{});\n", .{index,index,index,index});
+        } else if (batch.entry_count == 1) {
             try writer.print("    RiscvQm31 constraint{} = riscv_qm_sub(riscv_qm_mul(delta{}, denominator{}), RiscvQm31{{ l{}, 0u, 0u, 0u }});\n", .{ index, index, first, numerator });
         } else {
             try writer.print("    RiscvQm31 constraint{} = riscv_qm_sub(riscv_qm_sub(riscv_qm_mul(riscv_qm_mul(delta{}, denominator{}), denominator{}), riscv_qm_mul_base(denominator{}, l{})), riscv_qm_mul_base(denominator{}, l{}));\n", .{ index, index, first, first + 1, first + 1, numerator, first, program.entries[first + 1].numerator });
@@ -236,5 +239,15 @@ fn emitNodes(allocator: std.mem.Allocator, writer: anytype, program: *const Prog
         if (total_roots) |count| for (roots, 0..) |root, root_index| {
             if (root == index) try writer.print("    folded = riscv_qm_add(folded, riscv_qm_mul_base(riscv_load_qm31(powers, {}u), {s}{}));\n", .{ 4 * (count - 1 - root_index), prefix, root });
         };
+    }
+}
+
+/// Wider batches use the same fraction sum for composition and interaction.
+pub fn emitWideFraction(writer: anytype, program: *const Program, batch: anytype, index: usize) !void {
+    const first: usize = batch.first_entry;
+    try writer.print(" RiscvQm31 wide_n{} = {{l{},0u,0u,0u}}, wide_d{} = denominator{};\n", .{index,program.entries[first].numerator,index,first});
+    for (first+1..first+batch.entry_count) |entry| {
+        try writer.print(" wide_n{} = riscv_qm_add(riscv_qm_mul(wide_n{},denominator{}),riscv_qm_mul_base(wide_d{},l{}));\n", .{index,index,entry,index,program.entries[entry].numerator});
+        try writer.print(" wide_d{} = riscv_qm_mul(wide_d{},denominator{});\n", .{index,index,entry});
     }
 }

@@ -1,0 +1,22 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 510s
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+EXECUTION_PARENT_OPENINGS trace_trees=4 fri_layers=20 queries=8 scalar_sources=7800 path_g_rows=324352 path_xor_rows=92672
+BLAKE3_NATIVE_QUERY_FUSION groups=1256 removed_scalars=5024
+BLAKE3_NATIVE_FUSION dot4=3099 fma=10218 arithmetic_rows=35752
+EXECUTION_PARENT_ASSEMBLY inputs=13738 retained_bytes=330872532
+EXECUTION_SPAN_ATTACHED verified_child=true entry_updates=0 exit_updates=8 retained_bytes=337574740
+PARENT_NAMESPACE_REBASE circuits=10520 first=1 end=10521 buffers_reused=true
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=122611 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+BLAKE3_NATIVE_QUERY_FUSION groups=2256 removed_scalars=9024
+BLAKE3_NATIVE_FUSION dot4=3820 fma=10131 arithmetic_rows=38449
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=124900 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+EXECUTION_PARENT_OF_PARENT verified=true distinct_keys=true levels=2 inputs=18565 retained_bytes=331936700
+BLAKE3_PARENT_PROFILE verified=true queries=70 pow_bits=26 artifact_bytes=738033 successful_worker_rekey=true outputs_outlive_worker=true transcript_replayed=true transcript_g_rows=39704 child_queries=8 child_pow_bits=0
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 3m MaxRSS:6G
+

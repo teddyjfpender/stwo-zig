@@ -1,0 +1,9 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test stderr
+COMPACT_BASE_PROOF queries=70 pow_bits=26 bytes=494897 independently_verified=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-statement-codecs success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:3G
+

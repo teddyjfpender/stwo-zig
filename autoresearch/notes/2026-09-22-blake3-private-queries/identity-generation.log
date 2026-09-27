@@ -1,0 +1,28 @@
+test-blake3-path-select
++- BLAKE3 path selector guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.blake3_path_select_test.test.BLAKE3 path selector pins typed semantics and authenticates both directions' failed: path selector digest: ca02f857d38bd44000ddfe833db1ce15cee6a3d983921b01facef5b5df665b7f
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+CA 02 F8 57 D3 8B D4 40  00 DD FE 83 3D B1 CE 15  ...W...@....=...
+CE E6 A3 D9 83 92 1B 01  FA CE F5 B5 DF 66 5B 7F  .............f[.
+
+================================================
+error: while executing test 'recursion.air.blake3_path_select_test.test.BLAKE3 path selector pins typed semantics and authenticates both directions', the following test command failed:
+./.zig-cache/o/4bfacb746b5b15fbb34ff796122d063b/test --cache-dir=./.zig-cache --seed=0x16fb7aaa --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-blake3-path-select transitive failure
++- BLAKE3 path selector guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:632M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e2f769f3a885be77dbf599dfff2ad5f9/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x16fb7aaa -Zedc620fc4a259066 --maxrss 25769803776 -j1 test-blake3-path-select -Doptimize=ReleaseSafe --summary all

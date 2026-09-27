@@ -1,0 +1,16 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "global-join-semantic-mapping-semantic-v2-result.json",
+  "focused": "global-join-semantic-mapping-focused-v2-result.json",
+  "checks": 17,
+  "named_behavioral_checks": 9,
+  "scope": "Normative typed claim selectors and original byte/word decoding, independent complete recipe re-derivation and mutation rejection, actual same-parent attachment, separate state/kind/group/transition equations, and fail-closed pending authority.",
+  "pending": [
+    "terminal/register-window source export proof",
+    "RAM/link/initial/endpoint/range/accounting closure",
+    "source-proof authority and canonical block integration"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

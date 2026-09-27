@@ -1,0 +1,20 @@
+BLOCK_LEAF phase=execution cycles=262144
+error: CommitmentTraceTooLarge
+        3.84 real         3.80 user         0.03 sys
+           293683200  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               36424  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                 421  involuntary context switches
+         82744686005  instructions retired
+         16723846277  cycles elapsed
+           292963216  peak memory footprint

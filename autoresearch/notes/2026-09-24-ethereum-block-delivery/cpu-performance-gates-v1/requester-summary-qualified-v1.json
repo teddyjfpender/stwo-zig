@@ -1,0 +1,87 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "source_candidate": "requester-summary-source-candidate-v1.json",
+  "successful_attempts": [
+    {
+      "attempt": "requester-summary-semantic-v1-result.json",
+      "source_candidate": "requester-summary-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 6.1267395410104655,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-summary-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "attempt": "requester-summary-focused-v1-result.json",
+      "source_candidate": "requester-summary-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 103.02430920797633,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-summary-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-summary-focused-v1",
+        "bytes": 11251592,
+        "sha256": "a983c25a5f7b1eb46727fd2187ba33859066d29ff425ca53ee41734ddbad8d53"
+      }
+    },
+    {
+      "attempt": "requester-summary-debug-v1-result.json",
+      "source_candidate": "requester-summary-debug-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.322148874984123,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 14,
+      "test_summary": [
+        "All 14 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-summary-debug-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-summary-debug-v1",
+        "bytes": 45154256,
+        "sha256": "2bbc6758db88bf90ed116b2a78a5b89fcbf35c15c0bb201c5784927f567b5ecf"
+      }
+    }
+  ],
+  "authoritative_source_snapshot": "requester-summary-debug-v1-source.json",
+  "source_pin_count": 1919,
+  "behavioral_checks": 6,
+  "evidence_scope": [
+    "Static requester family filter; RAM/range excluded",
+    "Original local scoped equations and retained packed T",
+    "Genuine original verifier/producer/source bodies retained"
+  ],
+  "remaining": [
+    "Canonical requester CPU Fold/Driver integration",
+    "Positive proof and full block result"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "positive_proof_run": false,
+  "segments_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

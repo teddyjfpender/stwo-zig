@@ -1,0 +1,677 @@
+{
+  "version": 1,
+  "source_file": "kernels.metal",
+  "source_sha256": "850f68ae9edab27c455734ecd4b05c72b3d9c36b32a2551700274cdb1a8292ae",
+  "programs": [
+    {
+      "kind": "base",
+      "program_id": 4294967296,
+      "kernel": "stwo_zig_base_poly_e3d97ada62a6ad9f06872ffebf334097",
+      "columns": 36,
+      "equations_or_buses": 22
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967297,
+      "kernel": "stwo_zig_base_poly_94bb6ee080d963f1a9b89ba8836e6cbf",
+      "columns": 36,
+      "equations_or_buses": 22
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967298,
+      "kernel": "stwo_zig_base_poly_43fb3f4df23ca371514fbd130360efba",
+      "columns": 61,
+      "equations_or_buses": 70
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967299,
+      "kernel": "stwo_zig_base_poly_c435f0a2ee25c59eec1ebd9f12b995cd",
+      "columns": 52,
+      "equations_or_buses": 67
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967300,
+      "kernel": "stwo_zig_base_poly_116f3173573043d8dc56aa23e5c1fac4",
+      "columns": 45,
+      "equations_or_buses": 36
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967301,
+      "kernel": "stwo_zig_base_poly_63ea0b65e576f67691cdb43d14a7590b",
+      "columns": 38,
+      "equations_or_buses": 33
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967302,
+      "kernel": "stwo_zig_base_poly_782a4d5d838c828e4ae55bb81b63e389",
+      "columns": 31,
+      "equations_or_buses": 18
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967303,
+      "kernel": "stwo_zig_base_poly_0b0c9beaa20a9460c6d8ecfdfe560eba",
+      "columns": 38,
+      "equations_or_buses": 33
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967304,
+      "kernel": "stwo_zig_base_poly_766a542bb547c7b4eaf4c8a8fb9eef52",
+      "columns": 19,
+      "equations_or_buses": 9
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967305,
+      "kernel": "stwo_zig_base_poly_a995060c2a616369140d09438c7dac67",
+      "columns": 30,
+      "equations_or_buses": 17
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967306,
+      "kernel": "stwo_zig_base_poly_9228c4a31e483b8e787375ff1354be9a",
+      "columns": 42,
+      "equations_or_buses": 23
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967307,
+      "kernel": "stwo_zig_base_poly_c20d068f8ff248590d22364c7c7d5649",
+      "columns": 21,
+      "equations_or_buses": 10
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967308,
+      "kernel": "stwo_zig_base_poly_4a95ed38e5a6795e8a84b0817ddd37e1",
+      "columns": 51,
+      "equations_or_buses": 63
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967309,
+      "kernel": "stwo_zig_base_poly_706ca0b14e34ec043cbf5f04e14fb315",
+      "columns": 40,
+      "equations_or_buses": 17
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967310,
+      "kernel": "stwo_zig_base_poly_40d34cb41f90634e26f0b2bb88a77110",
+      "columns": 48,
+      "equations_or_buses": 24
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967311,
+      "kernel": "stwo_zig_base_poly_5d744c2fbb612ce7e9954dfd6cc1b4b7",
+      "columns": 68,
+      "equations_or_buses": 79
+    },
+    {
+      "kind": "base",
+      "program_id": 4294967312,
+      "kernel": "stwo_zig_base_poly_903175038c36e2a6aad8376003874197",
+      "columns": 7,
+      "equations_or_buses": 2
+    },
+    {
+      "kind": "base",
+      "program_id": 12884901888,
+      "kernel": "stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147",
+      "columns": 446,
+      "equations_or_buses": 108
+    },
+    {
+      "kind": "base",
+      "program_id": 12884901889,
+      "kernel": "stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09",
+      "columns": 446,
+      "equations_or_buses": 108
+    },
+    {
+      "kind": "base",
+      "program_id": 12884901890,
+      "kernel": "stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732",
+      "columns": 446,
+      "equations_or_buses": 108
+    },
+    {
+      "kind": "base",
+      "program_id": 12884901891,
+      "kernel": "stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c",
+      "columns": 446,
+      "equations_or_buses": 109
+    },
+    {
+      "kind": "base",
+      "program_id": 21474836480,
+      "kernel": "stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1",
+      "columns": 240,
+      "equations_or_buses": 56
+    },
+    {
+      "kind": "base",
+      "program_id": 21474836481,
+      "kernel": "stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944",
+      "columns": 240,
+      "equations_or_buses": 57
+    },
+    {
+      "kind": "base",
+      "program_id": 21474836482,
+      "kernel": "stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb",
+      "columns": 240,
+      "equations_or_buses": 57
+    },
+    {
+      "kind": "base",
+      "program_id": 21474836483,
+      "kernel": "stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681",
+      "columns": 240,
+      "equations_or_buses": 57
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771072,
+      "kernel": "stwo_zig_base_poly_133f4e4e3c62b73f2e54e7ff8cc8377b",
+      "columns": 42,
+      "equations_or_buses": 73
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771073,
+      "kernel": "stwo_zig_base_poly_7dacbce512fb1da65730dc8e536c4ea0",
+      "columns": 40,
+      "equations_or_buses": 56
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771074,
+      "kernel": "stwo_zig_base_poly_03fbb75acc054e7f21cf3e75583c725d",
+      "columns": 67,
+      "equations_or_buses": 121
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771075,
+      "kernel": "stwo_zig_base_poly_e98342ee507508d7b3d89be9274786ce",
+      "columns": 56,
+      "equations_or_buses": 101
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771076,
+      "kernel": "stwo_zig_base_poly_565f1e9f8b87771d0d1a22000d8c8edc",
+      "columns": 51,
+      "equations_or_buses": 87
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771077,
+      "kernel": "stwo_zig_base_poly_91e309498b399f9e34678e6d8a95fe86",
+      "columns": 42,
+      "equations_or_buses": 67
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771078,
+      "kernel": "stwo_zig_base_poly_5467cd2f72a81a29196fc9ec36bc10e1",
+      "columns": 35,
+      "equations_or_buses": 52
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771079,
+      "kernel": "stwo_zig_base_poly_a034d62551a325963119adf318b99458",
+      "columns": 42,
+      "equations_or_buses": 67
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771080,
+      "kernel": "stwo_zig_base_poly_6232705cfd37d60bace4b480ac8a91bd",
+      "columns": 21,
+      "equations_or_buses": 26
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771081,
+      "kernel": "stwo_zig_base_poly_89c3dd7b7f81ba4b2e04337237051d53",
+      "columns": 32,
+      "equations_or_buses": 34
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771082,
+      "kernel": "stwo_zig_base_poly_255a08b7f2477734baf39b572daeb91a",
+      "columns": 46,
+      "equations_or_buses": 57
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771083,
+      "kernel": "stwo_zig_base_poly_92ae13c195ee8ff20b01eac8e8e948b4",
+      "columns": 23,
+      "equations_or_buses": 27
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771084,
+      "kernel": "stwo_zig_base_poly_2bbc25ad6ba065a06c1a43d5eb3543a1",
+      "columns": 57,
+      "equations_or_buses": 114
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771085,
+      "kernel": "stwo_zig_base_poly_e53fe8adb4e19cdf8c8f567f94e6e545",
+      "columns": 46,
+      "equations_or_buses": 68
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771086,
+      "kernel": "stwo_zig_base_poly_ffe3261dbeb12b756c592576bf9de057",
+      "columns": 54,
+      "equations_or_buses": 75
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771087,
+      "kernel": "stwo_zig_base_poly_4fff47f2d63fe6c45761826a94861f6d",
+      "columns": 74,
+      "equations_or_buses": 130
+    },
+    {
+      "kind": "base",
+      "program_id": 30064771088,
+      "kernel": "stwo_zig_base_poly_4d93131c8a3ea3312e95ef13094aa342",
+      "columns": 7,
+      "equations_or_buses": 2
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934592,
+      "kernel": "stwo_zig_lookup_poly_a5980ef351d2fafc7a22e5aa40300954",
+      "columns": 35,
+      "equations_or_buses": 18
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934593,
+      "kernel": "stwo_zig_lookup_poly_e5715747fc906de9684a84af2d392d1e",
+      "columns": 35,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934594,
+      "kernel": "stwo_zig_lookup_poly_8a132b1e9e82b54afcec47fe86f30324",
+      "columns": 60,
+      "equations_or_buses": 20
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934595,
+      "kernel": "stwo_zig_lookup_poly_bed36219333c2c4ad3c08cfdfda0e8a2",
+      "columns": 51,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934596,
+      "kernel": "stwo_zig_lookup_poly_020adcddb227238a71dcd523f9c87a7f",
+      "columns": 44,
+      "equations_or_buses": 14
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934597,
+      "kernel": "stwo_zig_lookup_poly_d6611c9189072c08839d56f6496f63ed",
+      "columns": 37,
+      "equations_or_buses": 11
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934598,
+      "kernel": "stwo_zig_lookup_poly_94aa7ee9c1399f0ac1615227be890e54",
+      "columns": 30,
+      "equations_or_buses": 9
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934599,
+      "kernel": "stwo_zig_lookup_poly_ff8f5638e589be25d994070f031c73f4",
+      "columns": 37,
+      "equations_or_buses": 11
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934600,
+      "kernel": "stwo_zig_lookup_poly_04a5ee0118c370d4f4be88a43aa90c1b",
+      "columns": 18,
+      "equations_or_buses": 7
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934601,
+      "kernel": "stwo_zig_lookup_poly_71a7dea9a6d87e457404d7286bf51e2b",
+      "columns": 29,
+      "equations_or_buses": 12
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934602,
+      "kernel": "stwo_zig_lookup_poly_c98fc3b8440d536b2dd11e209cf33406",
+      "columns": 41,
+      "equations_or_buses": 18
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934603,
+      "kernel": "stwo_zig_lookup_poly_c7ef2b87fccb92355969d231b02a1d52",
+      "columns": 20,
+      "equations_or_buses": 8
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934604,
+      "kernel": "stwo_zig_lookup_poly_7187bd253b26502c413540ac56eccb23",
+      "columns": 50,
+      "equations_or_buses": 17
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934605,
+      "kernel": "stwo_zig_lookup_poly_ae8631b5be628fa89a790444be02b7b1",
+      "columns": 39,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934606,
+      "kernel": "stwo_zig_lookup_poly_d7203c97e13213534f5bd98272130f81",
+      "columns": 47,
+      "equations_or_buses": 22
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934607,
+      "kernel": "stwo_zig_lookup_poly_fe8c4b8e3259f973cd85613a2dd582bc",
+      "columns": 67,
+      "equations_or_buses": 25
+    },
+    {
+      "kind": "lookup",
+      "program_id": 8589934608,
+      "kernel": "stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b",
+      "columns": 6,
+      "equations_or_buses": 3
+    },
+    {
+      "kind": "lookup",
+      "program_id": 17179869185,
+      "kernel": "stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7",
+      "columns": 445,
+      "equations_or_buses": 4
+    },
+    {
+      "kind": "lookup",
+      "program_id": 25769803777,
+      "kernel": "stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763",
+      "columns": 239,
+      "equations_or_buses": 4
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738368,
+      "kernel": "stwo_zig_lookup_poly_e043b1b3232a0dbcfc8bda99c25c86b1",
+      "columns": 41,
+      "equations_or_buses": 18
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738369,
+      "kernel": "stwo_zig_lookup_poly_e5d99b83e0dd5dc59e86dbba7ce3eb48",
+      "columns": 39,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738370,
+      "kernel": "stwo_zig_lookup_poly_6399b46e486af31583503132193389c8",
+      "columns": 66,
+      "equations_or_buses": 20
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738371,
+      "kernel": "stwo_zig_lookup_poly_3d51de4528fccab699a9806402c6fd3b",
+      "columns": 55,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738372,
+      "kernel": "stwo_zig_lookup_poly_cc67684d85ad15706f9e7866fe88ec11",
+      "columns": 50,
+      "equations_or_buses": 14
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738373,
+      "kernel": "stwo_zig_lookup_poly_dab614b8c74a6c2a7c351d0c0df04801",
+      "columns": 41,
+      "equations_or_buses": 11
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738374,
+      "kernel": "stwo_zig_lookup_poly_7b74ead324c7c19f12615176d4488e65",
+      "columns": 34,
+      "equations_or_buses": 9
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738375,
+      "kernel": "stwo_zig_lookup_poly_fe119dd8ad84b74c8c1e3f2e9411dd4f",
+      "columns": 41,
+      "equations_or_buses": 11
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738376,
+      "kernel": "stwo_zig_lookup_poly_43d702ddcadb8cafe2eaa1720f173ac1",
+      "columns": 20,
+      "equations_or_buses": 7
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738377,
+      "kernel": "stwo_zig_lookup_poly_8a2fc8b521b6cf944784f89b522ddd3a",
+      "columns": 31,
+      "equations_or_buses": 12
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738378,
+      "kernel": "stwo_zig_lookup_poly_b547e97c65f9605a8a9f0570f597d5ae",
+      "columns": 45,
+      "equations_or_buses": 18
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738379,
+      "kernel": "stwo_zig_lookup_poly_bfe56690b8ba9e4ed770edb085400787",
+      "columns": 22,
+      "equations_or_buses": 8
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738380,
+      "kernel": "stwo_zig_lookup_poly_97e9f142fab4487e805c0e66245846fe",
+      "columns": 56,
+      "equations_or_buses": 17
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738381,
+      "kernel": "stwo_zig_lookup_poly_163061241838f28b8fb2a44f656566e4",
+      "columns": 45,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738382,
+      "kernel": "stwo_zig_lookup_poly_7d711f392b09898943a349cdd4a32919",
+      "columns": 53,
+      "equations_or_buses": 22
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738383,
+      "kernel": "stwo_zig_lookup_poly_7c1005880e6f5453f8fa0b4446185218",
+      "columns": 73,
+      "equations_or_buses": 25
+    },
+    {
+      "kind": "lookup",
+      "program_id": 34359738384,
+      "kernel": "stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b",
+      "columns": 6,
+      "equations_or_buses": 3
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_6e35df3dbb1bb66f7c23e82cdf0f6705509c4f08e5719edab77049660d8e632d",
+      "columns": 35,
+      "equations_or_buses": 18
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_253283e6dfe6bf332f2e466400c1f09394999e7935e86d6bb99a351d8d0b1f49",
+      "columns": 35,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_28bc2d54b9a33dccb35df8513dc35a810077488a2f4be0c88b5d36a55a9e8bf8",
+      "columns": 60,
+      "equations_or_buses": 20
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_be13b51301211f686fd16c2f88309d8f847af74402b7d38c61ef79b645d99f79",
+      "columns": 51,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_275d7261fb64f5cf5fc049ceac6422a7d6e64f153e09f81ddcf3311c1e2ffaa6",
+      "columns": 44,
+      "equations_or_buses": 14
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_c21e7087e658c83a4ea68ba0339efa466e9023c10538de1236d5e94f360cd70f",
+      "columns": 37,
+      "equations_or_buses": 11
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_6e0f5b41382a11695ffc997f00f28eb2a1fd365fac56419e6a58bd35fcecaebc",
+      "columns": 30,
+      "equations_or_buses": 9
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_330b38988296b847ce7943460949e4339ec66db537e4d03491747b2c39b920c0",
+      "columns": 37,
+      "equations_or_buses": 11
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_77f9c3e7ba9b17eb361ff2af6220464a5777f3a52ef415c3524ac42ab6e32f2c",
+      "columns": 18,
+      "equations_or_buses": 7
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_69a3e73ed85579645e6ee7eee831fcd273dc41967143d39561a8b07d44d4b8b7",
+      "columns": 29,
+      "equations_or_buses": 12
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_17d893819094787c341d61e34fc145d907ae4f229fc5bdf675450f9cbfc783e7",
+      "columns": 41,
+      "equations_or_buses": 18
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_c52d555f957bd0bb3a403a52ba9a00707ea38b95680598413ab0c999a4f2e212",
+      "columns": 20,
+      "equations_or_buses": 8
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_1d2cb31b377e1584858df2e1571ab50af833573e09a8e92b509736d894751ff5",
+      "columns": 50,
+      "equations_or_buses": 17
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_a58738eaf81c1bd3c20292b4d470433552c7c5bef4faf841e4da8e2a5a04681a",
+      "columns": 39,
+      "equations_or_buses": 16
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_a5c335d39317cb0ece5d0ffe5dd536cba3b9c4c84da54f5c8876a3b6cd5520f4",
+      "columns": 47,
+      "equations_or_buses": 22
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_23bb5dc1410c56ceab84080bd3239e6c9156f3761b93508f773dee7e448a70dc",
+      "columns": 67,
+      "equations_or_buses": 25
+    },
+    {
+      "kind": "lookup_v2",
+      "program_id": null,
+      "kernel": "stwo_zig_lookup_poly_v2_64c076e4946245d3c0f988997bf90b10774d23a6344d856e147c744b2df6d98c",
+      "columns": 6,
+      "equations_or_buses": 3
+    }
+  ],
+  "canonical_x0_activation": false,
+  "guest_executed": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "performance_measured": false
+}

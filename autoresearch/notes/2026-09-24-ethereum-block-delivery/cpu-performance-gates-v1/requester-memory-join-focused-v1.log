@@ -1,0 +1,14 @@
+1/13 block_v5_requester_memory_test_root.test_0...OK
+2/13 block_v5_requester_memory_test_root.test.requester memory join: actual genuine two-root child verifier preparation producer and standalone receiver bodies retained only...OK
+3/13 prover.block_v5_requester_memory_test_v1.test.requester memory join: original packed transition sign and byte-lifted symbolic equation reject every root limb mutation...OK
+4/13 prover.block_v5_requester_memory_test_v1.test.requester memory join: every genuine symbolic graph allocation failure releases all bounded owners...OK
+5/13 prover.block_v5_requester_memory_test_v1.test.requester memory join: actual parent receiver caps and fixed two-child policy reject before touching any child or allocating...OK
+6/13 prover.block_v5_requester_memory_test_v1.test.requester memory join: independent equal-security policy rejects query PoW FRI lifting and profile relabeling...OK
+7/13 prover.block_v5_requester_memory_test_v1.test.requester memory join: final grammar rejects original VERSION20 key and every nonempty residual supplier schedule...OK
+8/13 prover.block_execution_external_trace_v2.test_0...OK
+9/13 air.lookups.tables.mod.test_0...OK
+10/13 air.semantic_eval.test_0...OK
+11/13 prover.block_execution_external_access_bridge_v2.test_0...OK
+12/13 air.memory_commitment.poseidon2_air.test_0...OK
+13/13 air.lookups.tables.source_ingest.test_0...OK
+All 13 tests passed.

@@ -1,0 +1,19 @@
+1/9 air.guest_precompile.relation_test.test_0...OK
+2/9 prover.blake3_poseidon_witness_test.test.BLAKE3 guest Poseidon canonical parent ReleaseFast benchmark...BLAKE3_PARENT_BENCHMARK allocator=smp workers=16 samples=1 warmups=0
+BLAKE3_NATIVE_QUERY_FUSION groups=23870 removed_scalars=95480
+BLAKE3_NATIVE_FUSION dot4=53054 fma=75115 arithmetic_rows=250761
+BLAKE3_EXTENSION_PARENT_PREPARED retained_bytes=2707426052 inputs=161620
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.017621,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":13.741749,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":2.889634,"children":null},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":11.418296,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":2.843661,"children":null},{"id":"parent.core","label":"Core STARK proof","seconds":14.31006,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0.000001,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000004,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":2.695817,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.024327,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.193395,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000081,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":10.551703,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000041,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.668335,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.107209,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.008971,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.001604,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000077,"children":null}]}]}
+BLAKE3_PARENT_ARTIFACT_HASH fd93fe9cceba1f7a3c275634647f7d6459b995f05aeb016e9f99892a6b300741
+BLAKE3_EXTENSION_PARENT_TIMING optimize=ReleaseFast workers=16 preparation_ns=6690159416 admission_ns=1449617042 worker_init_ns=1434296708 proving_ns=45220269334 cleanup_and_encoding_ns=25020583 fresh_verification_ns=9915042 total_ns=54829278125
+BLAKE3_EXTENSION_PARENT verified=true leaf_queries=70 parent_queries=70 pow_bits=26 artifact_bytes=867999 worker_peak_bytes=15464487622 worker_limit_bytes=38654705664 worker_and_rows_released=true
+BLAKE3_GUEST_POSEIDON_PROOF verified=true queries=70 pow_bits=26 artifact_bytes=976328 witness_released=true fresh_key=true capture_mutations_rejected=true outer_artifact_verified=true source_and_pin_mutations_rejected=true
+OK
+3/9 runner.mod.test_0...OK
+4/9 runner.guest_precompile.mod.test_0...OK
+5/9 runner.decode.test_0...OK
+6/9 air.memory_commitment.poseidon2_air.test_0...OK
+7/9 air.semantic_eval.test_0...OK
+8/9 air.lookups.tables.source_ingest.test_0...OK
+9/9 diagnostics.mod.test_0...OK
+All 9 tests passed.

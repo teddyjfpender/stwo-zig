@@ -1,0 +1,4 @@
+no step named 'test-riscv-blake3-tree-pipeline'
+  access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/936d20acbfa791fbcd4271997b216440/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x669f5722 -Z8e0a4281a60eb0a8 --maxrss 25769803776 -j1 test-riscv-blake3-tree-pipeline -Doptimize=ReleaseSafe --summary all

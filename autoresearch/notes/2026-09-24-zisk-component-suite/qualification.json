@@ -1,0 +1,13 @@
+{
+  "power_before": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t93%; charging; 0:29 remaining present: true\n",
+  "power_after": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t93%; charging; 0:29 remaining present: true\n",
+  "parity": {
+    "hash_cases": 23,
+    "raw_compressions": 1024,
+    "witness_outputs": 128
+  },
+  "binaries": {
+    "zisk": "6b9c6100f7e765527375913a190cc3cce8c17e5282cd7eddbc26beba0ec8691c",
+    "stwo": "e20a73d8fa132028b735979163dde19cf7a6d2c952e6823a50df48ba2b7e65b4"
+  }
+}

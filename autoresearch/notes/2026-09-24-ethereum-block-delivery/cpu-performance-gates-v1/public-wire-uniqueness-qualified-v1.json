@@ -1,0 +1,54 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "authoritative_source_snapshot": "public-wire-uniqueness-focused-v2-source.json",
+  "successful_attempt": {
+    "source_candidate": "public-wire-uniqueness-focused-v2-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1.6316897500073537,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "tests_run": true,
+    "discovered_tests": 6,
+    "test_summary": [
+      "All 6 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/public-wire-uniqueness-focused-v2.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-public-wire-uniqueness-focused-v2",
+      "bytes": 1683128,
+      "sha256": "b6e3ca83d8c246f8a026c691d603bb7f3d248bbc09ad98ec9184f9a36c2d651f"
+    }
+  },
+  "source_pin_count": 1724,
+  "behavioral_checks": 5,
+  "public_schedule_modules": 8,
+  "scope": [
+    "Original schedule order/domain/word framing retained across native/capacity/open-parent/range/RAM/ROM/caller/lookup",
+    "Canonical ascending keys use linear duplicate check; arbitrary legacy order uses bounded deterministic index heap sort",
+    "Duplicate identity remains circuit+wire independent of use/source metadata; exact original per-family errors and bounds retained",
+    "Maximum caller capacity and exhaustive small tuple parity execute without STARK proving"
+  ],
+  "bounded_temporary_bytes": {
+    "caller_maximum": 65792,
+    "open_parent_maximum": 8192
+  },
+  "optimization_complexity": {
+    "sorted": "O(n)",
+    "arbitrary_order": "O(n log n)",
+    "prior": "O(n^2)"
+  },
+  "remaining": [
+    "End-to-end performance and peak memory qualification",
+    "Canonical final job integration and complete setup/global closure"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_proving_speedup": false
+}

@@ -25,6 +25,7 @@ pub const prepare = Pipeline.prepare;
 pub const planTarget = Pipeline.planTarget;
 pub const validatePrepared = Pipeline.validatePrepared;
 pub const ingress = Pipeline.ingress;
+pub const admitNode = Pipeline.admitNode;
 pub const executeNode = Pipeline.executeNode;
 
 pub fn OutputFor(comptime Transaction: type) type {

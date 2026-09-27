@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-25",
+  "scope": "Canonical q70/PoW26 two-segment CPU block-v4 real public-I/O fixture: staged native/core files, separately staged custody-free leaves, dyadic parent and exact outer proof, followed by fresh file-backed complete receiver",
+  "security": {"fri_queries": 70, "pow_bits": 26, "profile": "csp_q70_pow26"},
+  "verification": {
+    "fresh_incremental_core": true,
+    "staged_recursive_proofs_loaded_one_at_a_time": true,
+    "complete_block_verified": true,
+    "wrong_final_manifest_sha_rejected_before_proof": true,
+    "receiver_allocator_live_bytes_after_teardown": 0,
+    "tests_passed": 8
+  },
+  "segments": 2,
+  "memory_events": 70,
+  "external_events": 51,
+  "first_segment_external_events": 0,
+  "recursive_proof_bytes": {"leaf": [971827, 976652], "dyadic": 980608, "outer": 933914},
+  "fresh_core_plus_staged_leaf_generation_elapsed_ns": 106839853958,
+  "dyadic_forest_proving_elapsed_ns": 41722478917,
+  "exact_outer_proving_elapsed_ns": 63100679667,
+  "fresh_file_complete_receiver_elapsed_ns": 5473220208,
+  "fresh_receiver_tracked_peak_bytes": null,
+  "process_peak_bytes": null,
+  "staged_core_producer_elapsed_ns": null,
+  "limits": [
+    "The producer elapsed timer was not printed in this joined run; the separate earlier canonical streaming record measured 10.148 seconds for the same fixture shape, but it is not substituted here.",
+    "The fixture writes candidate/final SHA-pinned manifests after generating the proofs, then supplies their hashes out of band to the receiver. A separate SHA-pinned recursion-policy file and a detached bundle adapter are being qualified.",
+    "The receiver reconstructs a fresh runner Source from pinned ELF/input/oracle/schedule and performs bounded host replay before fresh proof verification; this is not yet succinct.",
+    "The fixture did not log a receiver tracked peak or total process peak; neither is inferred from earlier runs.",
+    "Public initial image and first-touch roster are verifier-visible. This is a two-segment qualification, not a mainnet block measurement."
+  ],
+  "command_filter": "block-v4 streaming canonical complete receiver crosses real IO and sparse external roster"
+}

@@ -1,0 +1,15 @@
+{
+  "status": "qualified_nonproving_source",
+  "semantic": "recursive-leaf-store-split-semantic-v2-result.json",
+  "focused": "recursive-leaf-store-split-focused-v2-result.json",
+  "checks": 21,
+  "scope": "All seven typed durable leaf adapters retain original fresh verification and publication bodies. Split header/metadata/proof loading shares the original payload parser, bounds allocations before I/O, preserves hash rejection precedence, and transfers the proof allocation without a full-envelope copy. Allocation-budget and injected failure fixtures qualify transport ownership only. Proof-byte transport does not confer verified state.",
+  "pending": [
+    "Canonical hierarchy and driver activation",
+    "Compact summaries and source/global equation closure",
+    "Successful complete recursive proof and end-to-end time/peak-memory measurements"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false
+}

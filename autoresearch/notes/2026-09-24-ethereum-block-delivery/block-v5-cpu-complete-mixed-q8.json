@@ -1,0 +1,18 @@
+{
+  "scope": "Genuine complete CPU driver bundle, fresh disk-loaded policy/base/source/recursive files; diagnostic security only; not mainnet or speed comparison",
+  "profile": "diagnostic_q8_pow0",
+  "segments": 2,
+  "guest_cycles": 11,
+  "memory_events": 120,
+  "base_proof_files": 17,
+  "collection_ms": 1052,
+  "proving_base_and_recursive_leaves_ms": 9258,
+  "forest_and_policy_staging_ms": 18548,
+  "fresh_complete_verification_ms": 2197,
+  "complete_bundle_verified": true,
+  "tests_passed": 10,
+  "allocator_clean": true,
+  "log_sha256": "fbbff27d26460d4e88bcc14189e750126312a4348b7c106ac646b0bc44768c37",
+  "command": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_cpu_driver_test_root.zig 'block-v5 CPU assembled mixed multi-segment complete bundle q8'",
+  "output": "1/10 block_v5_cpu_driver_test_root.test_0...OK\n2/10 prover.block_v5_cpu_driver_test.test.block-v5 CPU assembled mixed multi-segment complete bundle q8...BLOCK_V5_COLLECT segment=1/2 cycles=6 memory_events=108\nBLOCK_V5_COLLECT segment=2/2 cycles=11 memory_events=120\nBLOCK_V5_COLLECT sorted_events=120 lookup_groups=1 global_roots_started=true\nBLOCK_V5_DRIVER collected=true segments=2 memory_instances=1 base_files=17 collection_ms=1052\nBLAKE3_NATIVE_QUERY_FUSION groups=128 removed_scalars=512\nBLAKE3_NATIVE_FUSION dot4=518 fma=624 arithmetic_rows=5868\nBLOCK_V5_PROVE native_and_recursive_leaf=1/2\nBLAKE3_NATIVE_QUERY_FUSION groups=232 removed_scalars=928\nBLAKE3_NATIVE_FUSION dot4=912 fma=1172 arithmetic_rows=8527\nBLOCK_V5_PROVE native_and_recursive_leaf=2/2\nBLOCK_V5_DRIVER base_and_recursive_leaves_published=true proving_ms=9258 proof_files=17\nBLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448\nBLAKE3_NATIVE_FUSION dot4=5015 fma=10788 arithmetic_rows=43964\nBLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448\nBLAKE3_NATIVE_FUSION dot4=5005 fma=10853 arithmetic_rows=44068\nBLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448\nBLAKE3_NATIVE_FUSION dot4=5301 fma=11832 arithmetic_rows=47395\nBLOCK_V5_DRIVER exact_forest_published=true forest_ms=18548 fresh_complete_receiver_started=true\nBLOCK_V5_CPU_COMPLETE verified=true profile=diagnostic_q8_pow0 segments=2 memory_events=120 proof_files=17 collection_ms=1052 proving_ms=9258 forest_ms=18548 verify_ms=2197\nOK\n3/10 runner.mod.test_0...OK\n4/10 runner.decode.test_0...OK\n5/10 air.lookups.tables.mod.test_0...OK\n6/10 air.memory_commitment.poseidon2_air.test_0...OK\n7/10 air.semantic_eval.test_0...OK\n8/10 prover.block_execution_external_access_bridge_v2.test_0...OK\n9/10 air.lookups.tables.source_ingest.test_0...OK\n10/10 diagnostics.mod.test_0...OK\nAll 10 tests passed.\n"
+}

@@ -1,0 +1,10 @@
+1/9 block_v5_page_fixed_transcript_test_root_v1.test_0...OK
+2/9 block_v5_page_fixed_transcript_test_root_v1.test.PAGE fixed transcript: genuine admitted owner PCS and original live body retention...OK
+3/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: original raw first six roots semantic epoch47 and claims exact native parity...OK
+4/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: original fold first six roots semantic epoch47 and claims exact native parity...OK
+5/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: count-only layout allocator failures preserve original OOM...OK
+6/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: bounds canonical public fields and old root grammar remain closed...OK
+7/9 prover.block_v5_page_fixed_transcript_test_v1.test.PAGE fixed transcript: count owner lease is held until final frees...OK
+8/9 air.lookups.tables.mod.test_0...OK
+9/9 air.lookups.tables.source_ingest.test_0...OK
+All 9 tests passed.

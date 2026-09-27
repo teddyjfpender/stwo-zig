@@ -1,0 +1,26 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=17570 removed_scalars=70280
+BLAKE3_NATIVE_FUSION dot4=793003 fma=138769 arithmetic_rows=1369210
+BLAKE3_EXTENSION_PARENT_PREPARED retained_bytes=5845303552 inputs=1162117
+BLAKE3_PARENT_ARTIFACT_HASH 537ddfad2fa5bc3bd13ccbf30c1c7e3b275a2526543ea933af40dc5559de1daf
+BLAKE3_EXTENSION_PARENT_TIMING optimize=ReleaseFast workers=4 preparation_ns=41662211584 admission_ns=7727294625 worker_init_ns=7953837666 proving_ns=110422403000 cleanup_and_encoding_ns=71544084 fresh_verification_ns=125012125 total_ns=167962303084
+BLAKE3_EXTENSION_PARENT verified=true leaf_queries=70 parent_queries=70 pow_bits=26 artifact_bytes=907928 worker_peak_bytes=32274798164 worker_limit_bytes=38654705664 worker_and_rows_released=true
+COMPACT_EXTENSION_PARENT profile=rv32im_zkvm_ethereum_v1 child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_EXTENSION_PROOF profile=rv32im_zkvm_ethereum_v1 queries=70 pow_bits=26 bytes=5399267 independently_verified=true
+BLAKE3_EXTENSION_REPLAY composition=true deep=true transcript=true changed_claim_rejected=true
+BLAKE3_NATIVE_QUERY_FUSION groups=22400 removed_scalars=89600
+BLAKE3_NATIVE_FUSION dot4=50336 fma=63912 arithmetic_rows=223024
+BLAKE3_EXTENSION_PARENT_PREPARED retained_bytes=2637560172 inputs=152445
+BLAKE3_PARENT_ARTIFACT_HASH 2a7e94fd510ee04882dd5c8b10b164f68e745753b381ca5983b07ea320b12332
+BLAKE3_EXTENSION_PARENT_TIMING optimize=ReleaseFast workers=4 preparation_ns=28616339125 admission_ns=3655873125 worker_init_ns=3813134708 proving_ns=50796272625 cleanup_and_encoding_ns=45412375 fresh_verification_ns=122331792 total_ns=87049363750
+BLAKE3_EXTENSION_PARENT verified=true leaf_queries=70 parent_queries=70 pow_bits=26 artifact_bytes=863595 worker_peak_bytes=15223762412 worker_limit_bytes=38654705664 worker_and_rows_released=true
+COMPACT_EXTENSION_PARENT profile=rv32im_zkvm_poseidon2_v1 child_queries=70 child_pow_bits=26 parent_queries=70 parent_pow_bits=26 independently_verified=true
+COMPACT_EXTENSION_PROOF profile=rv32im_zkvm_poseidon2_v1 queries=70 pow_bits=26 bytes=861930 independently_verified=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-statement-codecs success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 6m MaxRSS:38G
+

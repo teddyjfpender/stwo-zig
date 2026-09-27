@@ -1,0 +1,13 @@
+1/12 block_v5_recursive_scalar_columns_test_root.test_0...OK
+2/12 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream sample columns preserve exact source and pack schedules...OK
+3/12 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream sample owners release every allocation failure...OK
+4/12 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar upstream samples reject duplicate missing and changed secure inputs...OK
+5/12 recursion.air.blake3_execution_sample_columns_test.test.direct recursive scalar canonical payload preparation body codegen...OK
+6/12 recursion.air.blake3_direct_source_columns_test.test.direct PCS public source cohorts match legacy scattered columns and transfer ownership...OK
+7/12 recursion.air.blake3_direct_source_columns_test.test.direct source columns preserve fixed admission and fail incomplete geometry before transfer...OK
+8/12 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory matches legacy rows and rejects source custody mutations without leaks...OK
+9/12 recursion.air.blake3_recursive_column_inventory_test.test.direct recursive inventory cleans up every failing allocation...OK
+10/12 recursion.air.native_pcs_fusion_rows.test.native query fusion admission rejects altered missing and duplicate sources...OK
+11/12 block_v5_recursive_parent_codegen_test_root.test.direct recursive assembled parent bodies compile with bounded phase scratch...OK
+12/12 air.memory_commitment.poseidon2_air.test_0...OK
+All 12 tests passed.

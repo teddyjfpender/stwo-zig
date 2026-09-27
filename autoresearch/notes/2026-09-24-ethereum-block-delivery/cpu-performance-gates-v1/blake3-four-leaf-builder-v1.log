@@ -1,0 +1,38 @@
+1/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch full tree matches independent std across blocks chunks and prefixes...OK
+2/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch rejects mismatched extents before reader work...OK
+3/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch direct and packed hooks preserve framing endianness and independent lanes...OK
+4/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch actual builder preserves mixed lifting scalar tails and batch geometry...OK
+5/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch empty actual builder retains literal frame...OK
+6/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch lazy secure coordinates preserves offset and every scalar tail...OK
+7/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch builder releases every partial allocation...OK
+8/9 blake3_leaf_batch_test_root.test.BLAKE3 leaf batch canonical commitment roots preserve every layer...OK
+9/9 blake3_leaf_batch_test_root.test.BLAKE3 bounded leaf builder diagnostic...BLAKE3_LEAF_BUILDER rows=16384 columns=4 mixed=false sample=0 batch_first=false scalar_ns=1848209 batch4_ns=803500
+BLAKE3_LEAF_BUILDER rows=16384 columns=4 mixed=false sample=1 batch_first=true scalar_ns=1818041 batch4_ns=792709
+BLAKE3_LEAF_BUILDER rows=16384 columns=4 mixed=false sample=2 batch_first=true scalar_ns=1858250 batch4_ns=784417
+BLAKE3_LEAF_BUILDER rows=16384 columns=4 mixed=false sample=3 batch_first=false scalar_ns=1776917 batch4_ns=754583
+BLAKE3_LEAF_BUILDER rows=16384 columns=24 mixed=false sample=0 batch_first=false scalar_ns=3784917 batch4_ns=1482625
+BLAKE3_LEAF_BUILDER rows=16384 columns=24 mixed=false sample=1 batch_first=true scalar_ns=3674125 batch4_ns=1440583
+BLAKE3_LEAF_BUILDER rows=16384 columns=24 mixed=false sample=2 batch_first=true scalar_ns=3574709 batch4_ns=1452875
+BLAKE3_LEAF_BUILDER rows=16384 columns=24 mixed=false sample=3 batch_first=false scalar_ns=3519042 batch4_ns=1396667
+BLAKE3_LEAF_BUILDER rows=16384 columns=54 mixed=false sample=0 batch_first=false scalar_ns=6423833 batch4_ns=2697917
+BLAKE3_LEAF_BUILDER rows=16384 columns=54 mixed=false sample=1 batch_first=true scalar_ns=6337875 batch4_ns=2554042
+BLAKE3_LEAF_BUILDER rows=16384 columns=54 mixed=false sample=2 batch_first=true scalar_ns=6325708 batch4_ns=2597708
+BLAKE3_LEAF_BUILDER rows=16384 columns=54 mixed=false sample=3 batch_first=false scalar_ns=6278042 batch4_ns=2601458
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=false sample=0 batch_first=false scalar_ns=10740125 batch4_ns=4517416
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=false sample=1 batch_first=true scalar_ns=10461958 batch4_ns=4525958
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=false sample=2 batch_first=true scalar_ns=10359583 batch4_ns=4483417
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=false sample=3 batch_first=false scalar_ns=10439875 batch4_ns=4496750
+BLAKE3_LEAF_BUILDER rows=16384 columns=170 mixed=false sample=0 batch_first=false scalar_ns=18725792 batch4_ns=7894833
+BLAKE3_LEAF_BUILDER rows=16384 columns=170 mixed=false sample=1 batch_first=true scalar_ns=18270667 batch4_ns=7887083
+BLAKE3_LEAF_BUILDER rows=16384 columns=170 mixed=false sample=2 batch_first=true scalar_ns=18582500 batch4_ns=7877500
+BLAKE3_LEAF_BUILDER rows=16384 columns=170 mixed=false sample=3 batch_first=false scalar_ns=18322542 batch4_ns=7905292
+BLAKE3_LEAF_BUILDER rows=16384 columns=257 mixed=false sample=0 batch_first=false scalar_ns=28430541 batch4_ns=14143709
+BLAKE3_LEAF_BUILDER rows=16384 columns=257 mixed=false sample=1 batch_first=true scalar_ns=28735792 batch4_ns=13004666
+BLAKE3_LEAF_BUILDER rows=16384 columns=257 mixed=false sample=2 batch_first=true scalar_ns=28384666 batch4_ns=14732708
+BLAKE3_LEAF_BUILDER rows=16384 columns=257 mixed=false sample=3 batch_first=false scalar_ns=28555000 batch4_ns=14169458
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=true sample=0 batch_first=false scalar_ns=10362667 batch4_ns=5429583
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=true sample=1 batch_first=true scalar_ns=10370458 batch4_ns=5364958
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=true sample=2 batch_first=true scalar_ns=10567167 batch4_ns=5368875
+BLAKE3_LEAF_BUILDER rows=16384 columns=92 mixed=true sample=3 batch_first=false scalar_ns=10164250 batch4_ns=5405541
+OK
+All 9 tests passed.

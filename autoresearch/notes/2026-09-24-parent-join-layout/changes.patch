@@ -1,0 +1,87 @@
+--- control/blake3_parent_join.zig
++++ candidate/blake3_parent_join.zig
+@@ -33,17 +33,8 @@
+         @memcpy(result.fixed[i][left.fixed[i].len..], right.fixed[i]);
+         result.main[i] = try a.alloc(Column, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+         for (result.main[i]) |*column| column.* = .{ .log_size = log, .values = &.{} };
+-        for (result.main[i], 0..) |*column, c| {
+-            const values = try a.alloc(M, @as(usize, 1) << @intCast(log));
+-            column.values = values;
+-            @memset(values, M.zero());
+-            var first: usize = 0;
+-            for ([_]*const storage.Prepared{ left, right }) |source| {
+-                const input = source.main[i][c];
+-                for (0..source.fixed[i].len) |row| values[committed(first + row, log)] = input.values[committed(row, input.log_size)];
+-                first += source.fixed[i].len;
+-            }
+-        }
++        for (result.main[i]) |*column| column.values = try a.alloc(M, @as(usize, 1) << @intCast(log));
++        copyColumns(left.main[i], right.main[i], left.fixed[i].len, count, result.main[i]);
+     }
+     return result;
+ }
+@@ -57,3 +48,32 @@
+         }
+     }
+ }
++
++/// Bounded destination-order emission. Compute the permutation once per tile,
++/// reuse it across columns, and write each output (including padding) only once.
++fn copyColumns(left: []const Column, right: []const Column, left_count: usize, count: usize, output: []Column) void {
++    if (output.len == 0) return;
++    const log = output[0].log_size;
++    const left_size = left[0].values.len;
++    const padding = std.math.maxInt(usize);
++    var indices: [1024]usize = undefined;
++    var first: usize = 0;
++    while (first < output[0].values.len) {
++        const size = @min(indices.len, output[0].values.len - first);
++        for (indices[0..size], 0..) |*index, offset| {
++            const logical = core.utils.circleDomainIndexToCosetIndex(core.utils.bitReverseIndex(first + offset, log), log);
++            index.* = if (logical < left_count)
++                committed(logical, left[0].log_size)
++            else if (logical < count)
++                left_size + committed(logical - left_count, right[0].log_size)
++            else
++                padding;
++        }
++        for (output, left, right) |column, l, r| {
++            for (@constCast(column.values)[first..][0..size], indices[0..size]) |*value, index| {
++                value.* = if (index == padding) M.zero() else if (index < left_size) l.values[index] else r.values[index - left_size];
++            }
++        }
++        first += size;
++    }
++}
+--- control/blake3_parent_join_test.zig
++++ candidate/blake3_parent_join_test.zig
+@@ -53,3 +53,29 @@
+     }
+     return result;
+ }
++
++test "BLAKE3 memory update proves tiled join matches logical rows and padding" {
++    const a = std.testing.allocator;
++    for ([_][2]usize{ .{ 0, 0 }, .{ 0, 3 }, .{ 3, 0 }, .{ 1, 1 }, .{ 3, 5 }, .{ 7, 2 }, .{ 513, 1025 }, .{ 1024, 1024 } }) |counts| {
++        var left = try fixture(a, 1, counts[0], 42);
++        defer left.deinit();
++        var right = try fixture(a, 101, counts[1], 200);
++        defer right.deinit();
++        var combined = try join.join(a, &left, &right, .{ .{ .first = 1, .end = 2 }, .{ .first = 101, .end = 102 } });
++        defer combined.deinit();
++        inline for (storage.Airs, 0..) |_, i| {
++            const n = left.fixed[i].len + right.fixed[i].len;
++            for (combined.main[i], 0..) |column, c| {
++                for (0..column.values.len) |logical| {
++                    const expected = if (logical < left.fixed[i].len)
++                        left.main[i][c].values[committed(logical, left.main[i][c].log_size)]
++                    else if (logical < n)
++                        right.main[i][c].values[committed(logical - left.fixed[i].len, right.main[i][c].log_size)]
++                    else
++                        M.zero();
++                    try std.testing.expectEqual(expected, column.values[committed(logical, column.log_size)]);
++                }
++            }
++        }
++    }
++}

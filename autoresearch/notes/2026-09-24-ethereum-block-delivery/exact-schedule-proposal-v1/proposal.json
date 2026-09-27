@@ -1,0 +1,11 @@
+{
+  "scope": "proposal only; additive 256-leaf row upper bounds, no merged-segment proof or fresh geometry admission",
+  "source": "work-schedule-qualification-v1/geometry-256.jsonl",
+  "source_sha256": "78f3caf80217525531f93905d38c17629fde07993c310dbdaa7434bd8c60552d",
+  "segments": 218,
+  "cycles": 139214856,
+  "allocated_component_rows_additive_bound": 6429904896,
+  "maximum_cycles": 4194304,
+  "row_limit": 16777216,
+  "cycle_limit": 4194304
+}

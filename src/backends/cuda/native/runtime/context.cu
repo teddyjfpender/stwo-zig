@@ -1,11 +1,12 @@
 // Minimal proof-owned CUDA execution context. Every operation is bound to one
-// nonblocking stream and one isolated async pool; there is no global state or
-// allocation fallback.
+// coordination stream, bounded additional streams and one isolated async pool.
+// There is no allocation fallback; extra lanes do not enable proof dispatch.
 
 #include <cuda_runtime_api.h>
 #include <nvtx3/nvToolsExt.h>
 
 #include "common/provider_compat.cuh"
+#include "context_options.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -13,6 +14,8 @@
 #include <limits>
 #include <cstring>
 #include <new>
+#include <atomic>
+#include <thread>
 
 namespace {
 
@@ -25,9 +28,24 @@ struct StwoNativeCudaAllocation {
     size_t bytes;
 };
 
+struct StwoNativeCudaDependency {
+    cudaEvent_t event;
+    uint64_t generation;
+    uint32_t producer_lane;
+    bool active;
+};
+
 struct StwoNativeCudaContext {
     int device;
     cudaStream_t stream;
+    cudaStream_t lanes[STWO_CUDA_CONTEXT_MAX_LANES];
+    uint32_t lane_count;
+    uint32_t dependency_capacity;
+    StwoNativeCudaDependency dependencies[STWO_CUDA_CONTEXT_MAX_DEPENDENCIES];
+    uint64_t identity;
+    std::thread::id owner_thread;
+    bool capture_active;
+    bool closing;
     cudaMemPool_t pool;
     cudaEvent_t timing_events[kTimingMarkerCount];
     uint32_t timing_marker_count;
@@ -57,16 +75,64 @@ static_assert(offsetof(StwoCudaPlatformSnapshot, total_global_memory) == 32,
 
 cudaError_t require_context(
     void *handle,
-    StwoNativeCudaContext **out_context) {
+    StwoNativeCudaContext **out_context,
+    bool allow_closing = false) {
     if (handle == nullptr || out_context == nullptr) {
         return cudaErrorInvalidValue;
     }
     auto *context = static_cast<StwoNativeCudaContext *>(handle);
+    if (context->owner_thread != std::this_thread::get_id() ||
+        (context->closing && !allow_closing)) {
+        return STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
+    }
     int current = -1;
     cudaError_t status = cudaGetDevice(&current);
     if (status != cudaSuccess) return status;
     if (current != context->device) return STWO_CUDA_ERROR_INVALID_DEVICE;
     *out_context = context;
+    return cudaSuccess;
+}
+
+// A token survives reuse of a native control-node address only when its
+// independently owned context identity and monotonic slot generation agree.
+std::atomic<uint64_t> next_context_identity{1};
+
+uint64_t acquire_context_identity() {
+    uint64_t identity = next_context_identity.load(std::memory_order_relaxed);
+    while (identity != std::numeric_limits<uint64_t>::max()) {
+        if (next_context_identity.compare_exchange_weak(
+                identity, identity + 1, std::memory_order_relaxed)) return identity;
+    }
+    return 0;
+}
+
+cudaError_t join_lanes(StwoNativeCudaContext *context) {
+    if (context->capture_active) return STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
+    cudaError_t first = cudaSuccess;
+    for (uint32_t lane = 0; lane < context->lane_count; ++lane) {
+        if (context->lanes[lane] == nullptr) continue;
+        const cudaError_t status = cudaStreamSynchronize(context->lanes[lane]);
+        if (first == cudaSuccess) first = status;
+    }
+    return first;
+}
+
+cudaError_t require_dependency(
+    StwoNativeCudaContext *context,
+    const StwoCudaDependency *token,
+    StwoNativeCudaDependency **out) {
+    if (token == nullptr || out == nullptr || context->capture_active ||
+        token->context_identity != context->identity || token->generation == 0 ||
+        token->slot >= context->dependency_capacity ||
+        token->producer_lane >= context->lane_count) {
+        return STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
+    }
+    auto *dependency = &context->dependencies[token->slot];
+    if (!dependency->active || dependency->generation != token->generation ||
+        dependency->producer_lane != token->producer_lane) {
+        return STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
+    }
+    *out = dependency;
     return cudaSuccess;
 }
 
@@ -198,27 +264,54 @@ extern "C" int stwo_cuda_platform_snapshot(
     return 0;
 }
 
-extern "C" int stwo_exec_context_create(void **out_handle) {
+extern "C" int stwo_exec_context_destroy(void *handle);
+
+extern "C" int stwo_exec_context_create_options(
+    const StwoCudaContextOptions *options,
+    void **out_handle) {
     if (out_handle == nullptr) return static_cast<int>(cudaErrorInvalidValue);
     *out_handle = nullptr;
-
-    auto *context = new (std::nothrow) StwoNativeCudaContext{
-        -1,
-        nullptr,
-        nullptr,
-        {},
-        0,
-        0,
-    };
+    if (options == nullptr || options->version != STWO_CUDA_CONTEXT_OPTIONS_VERSION ||
+        options->lane_count == 0 || options->lane_count > STWO_CUDA_CONTEXT_MAX_LANES ||
+        options->dependency_capacity > STWO_CUDA_CONTEXT_MAX_DEPENDENCIES) {
+        return static_cast<int>(cudaErrorInvalidValue);
+    }
+#if defined(STWO_CUMETAL)
+    // No compatibility emulation of NVIDIA dependency routing.
+    if (options->lane_count != 1 || options->dependency_capacity != 0)
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
+#endif
+    int previous_device = -1;
+    int device_count = 0;
+    cudaError_t status = cudaGetDevice(&previous_device);
+    if (status == cudaSuccess) status = cudaGetDeviceCount(&device_count);
+    const uint32_t selected = options->device_ordinal == UINT32_MAX
+        ? static_cast<uint32_t>(previous_device) : options->device_ordinal;
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (device_count <= 0 || selected >= static_cast<uint32_t>(device_count))
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_DEVICE);
+#if defined(STWO_CUMETAL)
+    if (selected != static_cast<uint32_t>(previous_device))
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_DEVICE);
+#else
+    status = cudaSetDevice(static_cast<int>(selected));
+    if (status != cudaSuccess) return static_cast<int>(status);
+#endif
+    auto *context = new (std::nothrow) StwoNativeCudaContext{};
     if (context == nullptr) {
+#if !defined(STWO_CUMETAL)
+        cudaSetDevice(previous_device);
+#endif
         return static_cast<int>(cudaErrorMemoryAllocation);
     }
-
-    cudaError_t status = cudaGetDevice(&context->device);
+    context->device = static_cast<int>(selected);
+    context->owner_thread = std::this_thread::get_id();
+    context->identity = acquire_context_identity();
+    context->lane_count = options->lane_count;
+    context->dependency_capacity = options->dependency_capacity;
+    if (context->identity == 0) status = STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE;
     cudaMemPoolProps properties{};
 #if defined(STWO_CUMETAL)
-    // CuMetal's UMA pool accepts a zero-valued compatibility record; its
-    // clean-room structure intentionally does not copy NVIDIA enum types.
     properties.location_type = 0;
     properties.location_id = context->device;
 #else
@@ -227,60 +320,92 @@ extern "C" int stwo_exec_context_create(void **out_handle) {
     properties.location.type = cudaMemLocationTypeDevice;
     properties.location.id = context->device;
 #endif
-    if (status == cudaSuccess) {
-        status = cudaMemPoolCreate(&context->pool, &properties);
-    }
+    if (status == cudaSuccess) status = cudaMemPoolCreate(&context->pool, &properties);
     uint64_t release_threshold = std::numeric_limits<uint64_t>::max();
-    if (status == cudaSuccess) {
-        status = cudaMemPoolSetAttribute(
-            context->pool,
-            cudaMemPoolAttrReleaseThreshold,
-            &release_threshold);
+    if (status == cudaSuccess) status = cudaMemPoolSetAttribute(
+        context->pool, cudaMemPoolAttrReleaseThreshold, &release_threshold);
+    for (uint32_t lane = 0; status == cudaSuccess && lane < context->lane_count; ++lane) {
+        status = cudaStreamCreateWithFlags(&context->lanes[lane], cudaStreamNonBlocking);
     }
-    if (status == cudaSuccess) {
-        status = cudaStreamCreateWithFlags(
-            &context->stream,
-            cudaStreamNonBlocking);
+    context->stream = context->lanes[0];
+#if !defined(STWO_CUMETAL)
+    for (uint32_t slot = 0; status == cudaSuccess && slot < context->dependency_capacity; ++slot) {
+        status = cudaEventCreateWithFlags(&context->dependencies[slot].event, cudaEventDisableTiming);
     }
+#endif
     if (status != cudaSuccess) {
-        if (context->stream != nullptr) cudaStreamDestroy(context->stream);
-        if (context->pool != nullptr) cudaMemPoolDestroy(context->pool);
-        delete context;
-        return static_cast<int>(status);
+        const cudaError_t create_status = status;
+        const cudaError_t cleanup_status = static_cast<cudaError_t>(
+            stwo_exec_context_destroy(context));
+        if (cleanup_status != cudaSuccess) {
+            // The options ABI explicitly transfers a teardown-only owner on
+            // cleanup failure. The typed Zig construction result retains it.
+            context->closing = true;
+            *out_handle = context;
+            return static_cast<int>(cleanup_status);
+        }
+#if !defined(STWO_CUMETAL)
+        cudaSetDevice(previous_device);
+#endif
+        return static_cast<int>(create_status);
     }
     *out_handle = context;
     return 0;
 }
 
+extern "C" int stwo_exec_context_create(void **out_handle) {
+    const StwoCudaContextOptions options{
+        STWO_CUDA_CONTEXT_OPTIONS_VERSION, UINT32_MAX, 1, 0};
+    return stwo_exec_context_create_options(&options, out_handle);
+}
+
 extern "C" int stwo_exec_context_destroy(void *handle) {
     StwoNativeCudaContext *context = nullptr;
-    cudaError_t status = require_context(handle, &context);
+    cudaError_t status = require_context(handle, &context, true);
     if (status != cudaSuccess) return static_cast<int>(status);
-    if (context->allocation_count != 0) {
+    if (context->allocation_count != 0 || context->capture_active)
         return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    status = join_lanes(context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    context->closing = true;
+    if (context->nvtx_depth != 0) { nvtxRangePop(); context->nvtx_depth = 0; }
+    // A failed destroy retains the control owner with remaining handles for
+    // retry; ordinary operations reject a partially closed context.
+    for (uint32_t slot = 0; slot < context->dependency_capacity; ++slot) {
+        auto *dependency = &context->dependencies[slot];
+        if (dependency->event == nullptr) continue;
+        status = cudaEventDestroy(dependency->event);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        dependency->event = nullptr;
+        dependency->active = false;
     }
-    cudaError_t event_status = cudaSuccess;
-    if (context->nvtx_depth != 0) nvtxRangePop();
     for (uint32_t marker = 0; marker < kTimingMarkerCount; ++marker) {
         if (context->timing_events[marker] == nullptr) continue;
-        const cudaError_t status =
-            cudaEventDestroy(context->timing_events[marker]);
-        if (event_status == cudaSuccess) event_status = status;
+        status = cudaEventDestroy(context->timing_events[marker]);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        context->timing_events[marker] = nullptr;
     }
-    const cudaError_t stream_status = cudaStreamDestroy(context->stream);
-    const cudaError_t pool_status = cudaMemPoolDestroy(context->pool);
+    for (uint32_t lane = 0; lane < context->lane_count; ++lane) {
+        if (context->lanes[lane] == nullptr) continue;
+        status = cudaStreamDestroy(context->lanes[lane]);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        context->lanes[lane] = nullptr;
+    }
+    if (context->pool != nullptr) {
+        status = cudaMemPoolDestroy(context->pool);
+        if (status != cudaSuccess) return static_cast<int>(status);
+        context->pool = nullptr;
+    }
     delete[] context->allocations;
     delete context;
-    if (event_status != cudaSuccess) return static_cast<int>(event_status);
-    if (stream_status != cudaSuccess) return static_cast<int>(stream_status);
-    return static_cast<int>(pool_status);
+    return 0;
 }
 
 extern "C" int stwo_exec_context_sync(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
-    return static_cast<int>(cudaStreamSynchronize(context->stream));
+    return static_cast<int>(join_lanes(context));
 }
 
 extern "C" int stwo_exec_context_memory_info(
@@ -358,9 +483,7 @@ extern "C" int stwo_exec_context_lane_count(
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
-    // The native product currently owns exactly one proof stream. Exposing it
-    // as one lane keeps admission and telemetry aligned with actual execution.
-    *out_count = 1;
+    *out_count = context->lane_count;
     return 0;
 }
 
@@ -368,7 +491,93 @@ extern "C" int stwo_exec_context_join_all_lanes(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
-    return static_cast<int>(cudaStreamSynchronize(context->stream));
+    return static_cast<int>(join_lanes(context));
+}
+
+extern "C" int stwo_exec_context_identity(void *handle, uint64_t *out_identity) {
+    if (out_identity == nullptr) return static_cast<int>(cudaErrorInvalidValue);
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    *out_identity = context->identity;
+    return 0;
+}
+
+extern "C" int stwo_exec_context_lane_stream(void *handle, uint32_t lane, void **out_stream) {
+    if (out_stream == nullptr) return static_cast<int>(cudaErrorInvalidValue);
+    *out_stream = nullptr;
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (lane >= context->lane_count || context->capture_active)
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    *out_stream = context->lanes[lane];
+    return 0;
+}
+
+extern "C" int stwo_exec_context_dependency_record(
+    void *handle, uint32_t lane, uint32_t slot, StwoCudaDependency *out_token) {
+    if (out_token == nullptr) return static_cast<int>(cudaErrorInvalidValue);
+    *out_token = {};
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->capture_active || lane >= context->lane_count ||
+        slot >= context->dependency_capacity) return static_cast<int>(cudaErrorInvalidValue);
+    auto *dependency = &context->dependencies[slot];
+    if (dependency->active || dependency->generation == std::numeric_limits<uint64_t>::max())
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+#if defined(STWO_CUMETAL)
+    return static_cast<int>(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
+#else
+    status = cudaEventRecord(dependency->event, context->lanes[lane]);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    ++dependency->generation;
+    dependency->producer_lane = lane;
+    dependency->active = true;
+    *out_token = {context->identity, dependency->generation, slot, lane};
+    return 0;
+#endif
+}
+
+extern "C" int stwo_exec_context_dependency_wait(
+    void *handle, uint32_t lane, const StwoCudaDependency *token) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    StwoNativeCudaDependency *dependency = nullptr;
+    status = require_dependency(context, token, &dependency);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    if (lane >= context->lane_count) return static_cast<int>(cudaErrorInvalidValue);
+#if defined(STWO_CUMETAL)
+    return static_cast<int>(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
+#else
+    return static_cast<int>(cudaStreamWaitEvent(context->lanes[lane], dependency->event, 0));
+#endif
+}
+
+extern "C" int stwo_exec_context_dependency_release(void *handle, const StwoCudaDependency *token) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    StwoNativeCudaDependency *dependency = nullptr;
+    status = require_dependency(context, token, &dependency);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    // Explicit terminal retirement: all producer and waiter work completes
+    // before a slot can be recorded again. This is not nonblocking reclamation.
+    status = join_lanes(context);
+    if (status == cudaSuccess) dependency->active = false;
+    return static_cast<int>(status);
+}
+
+extern "C" int stwo_exec_context_dependencies_reset(void *handle) {
+    StwoNativeCudaContext *context = nullptr;
+    cudaError_t status = require_context(handle, &context);
+    if (status == cudaSuccess) status = join_lanes(context);
+    if (status != cudaSuccess) return static_cast<int>(status);
+    for (uint32_t slot = 0; slot < context->dependency_capacity; ++slot)
+        context->dependencies[slot].active = false;
+    return 0;
 }
 
 // CUDA events are recorded at stage boundaries and resolved only after the
@@ -479,9 +688,15 @@ extern "C" int stwo_graph_capture_begin(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
-    return static_cast<int>(cudaStreamBeginCapture(
-        context->stream,
-        cudaStreamCaptureModeThreadLocal));
+    if (context->capture_active) return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    for (uint32_t slot = 0; slot < context->dependency_capacity; ++slot)
+        if (context->dependencies[slot].active)
+            return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
+    // Cross-lane graph/event routing is deliberately not admitted yet.
+    if (context->lane_count != 1) return static_cast<int>(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
+    status = cudaStreamBeginCapture(context->stream, cudaStreamCaptureModeThreadLocal);
+    if (status == cudaSuccess) context->capture_active = true;
+    return static_cast<int>(status);
 }
 
 extern "C" int stwo_graph_capture_end(
@@ -497,8 +712,10 @@ extern "C" int stwo_graph_capture_end(
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
 
+    if (!context->capture_active) return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     cudaGraph_t graph = nullptr;
     status = cudaStreamEndCapture(context->stream, &graph);
+    context->capture_active = false;
     if (status != cudaSuccess) {
         if (graph != nullptr) cudaGraphDestroy(graph);
         return static_cast<int>(status);
@@ -556,8 +773,10 @@ extern "C" int stwo_graph_capture_abort(void *handle) {
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
+    if (!context->capture_active) return static_cast<int>(STWO_CUDA_ERROR_INVALID_RESOURCE_HANDLE);
     cudaGraph_t graph = nullptr;
     status = cudaStreamEndCapture(context->stream, &graph);
+    context->capture_active = false;
     if (graph != nullptr) {
         const cudaError_t destroy_status = cudaGraphDestroy(graph);
         if (status == cudaSuccess) status = destroy_status;
@@ -574,6 +793,8 @@ extern "C" int stwo_graph_launch(
     StwoNativeCudaContext *context = nullptr;
     cudaError_t status = require_context(context_handle, &context);
     if (status != cudaSuccess) return static_cast<int>(status);
+    if (context->capture_active || context->lane_count != 1)
+        return static_cast<int>(STWO_CUDA_ERROR_INVALID_CONFIGURATION);
     return static_cast<int>(cudaGraphLaunch(
         reinterpret_cast<cudaGraphExec_t>(exec_handle),
         context->stream));
@@ -630,6 +851,7 @@ extern "C" int stwo_exec_context_free_u32(
             status = cudaErrorInvalidDevicePointer;
         }
     }
+    if (status == cudaSuccess && context->lane_count > 1) status = join_lanes(context);
     if (status == cudaSuccess) {
         status = cudaFreeAsync(pointer, context->stream);
     }

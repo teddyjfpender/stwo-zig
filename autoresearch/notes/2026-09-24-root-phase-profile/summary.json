@@ -1,0 +1,18 @@
+{
+  "control": {
+    "samples": 2,
+    "wall_median_seconds": 41.054215083495365,
+    "root_preparation_median_seconds": 4.6087442705,
+    "peak_routed_bytes": 26459992736,
+    "peak_physical_bytes": 39162027888,
+    "root_quotient_gpu_median_ms": 2359.7745
+  },
+  "candidate": {
+    "samples": 2,
+    "wall_median_seconds": 39.049204458497115,
+    "root_preparation_median_seconds": 4.4886232085,
+    "peak_routed_bytes": 26459992736,
+    "peak_physical_bytes": 39162355736,
+    "root_quotient_gpu_median_ms": 467.1875
+  }
+}

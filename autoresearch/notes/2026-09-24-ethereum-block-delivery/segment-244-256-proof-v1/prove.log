@@ -1,0 +1,8 @@
+BLOCK_STREAM required_terminal_cycles=56 terminal_leaf_cycles=94180
+BLOCK_STREAM preflight_cycles=139214856 proof_segments=256 preflight_ns=10481802792
+BLOCK_SEGMENT stage=witness_start elapsed_ns=34258641334 peak_bytes=1075098065
+BLOCK_SEGMENT stage=witness_done elapsed_ns=50640202125 peak_bytes=8703949937
+BLOCK_SEGMENT stage=key_done elapsed_ns=58840740500 peak_bytes=17632671027
+BLAKE3_NATIVE_QUERY_FUSION groups=44520 removed_scalars=178080
+BLAKE3_NATIVE_FUSION dot4=838553 fma=176467 arithmetic_rows=1510583
+BLOCK_SEGMENT stage=recursive_witness_done elapsed_ns=131787670459 peak_bytes=37323414276

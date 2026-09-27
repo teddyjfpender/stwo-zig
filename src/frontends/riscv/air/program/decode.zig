@@ -108,6 +108,7 @@ pub fn decodeProgramWordForProfile(
 
     const inst = try custom0.decode(selected_profile, word);
     return switch (inst.opcode) {
+        .sha256_compress_v1 => .{ @import("../../isa/sha256_compression_v1.zig").proof_opcode_id, 0, inst.rs1, inst.rs2 },
         .poseidon2_m31_permute_in_place_v1 => .{
             poseidon2_v1_program_opcode_id,
             0,
@@ -138,7 +139,7 @@ pub fn isDeclaredPaddingForProfile(
     selected_profile: ExecutionProfile,
     word: u32,
 ) bool {
-    return selected_profile == .rv32im_zkvm_ethereum_v1 and
+    return (selected_profile == .rv32im_zkvm_ethereum_v1 or selected_profile == .rv32im_zkvm_ethereum_sha_v1) and
         word == llvm_unimp_padding_word;
 }
 

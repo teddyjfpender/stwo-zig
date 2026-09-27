@@ -1,0 +1,43 @@
+{
+  "schema": "block-v5-capacity-async-leaf-source-candidate-v1",
+  "status": "source_frozen_unqualified",
+  "formatting": "zig fmt --check passed; no compiler invocation",
+  "tests_run": false,
+  "proofs_run": false,
+  "segments_run": false,
+  "device_run": false,
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_stage_v1.zig",
+      "sha256": "1ce431050a3927e2adff6540dceacb24afe0dbe1c75ee78d801c204d838e4d40"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_owned_ordered_queue_v1.zig",
+      "sha256": "b3b16f5eb75428f4d83a42d50cc92f1383c6cb4491e72cd61d0cce7c661b7e47"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_leaf_queue_v1.zig",
+      "sha256": "b8bdcbebe4f1d4338d8b3ff12f203ec213b1977f12f5b04d9064b389b0d333fc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_leaf_queue_test_v1.zig",
+      "sha256": "0b6609c8732281ff2162acbe4acc4f9c994af6c5cd049d436698dabb5c34f7eb"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_leaf_queue_test_root.zig",
+      "sha256": "d01db98e58bcb5850f607490f4b070f6acef3917154c12de8a6657909b1a1d94"
+    },
+    {
+      "path": "design/riscv-proving-stack/block-v5-capacity-async-leaves-v1.md",
+      "sha256": "9af66f30cb365bbdcf694188a7501438078a4ab165358062509083a499065a18"
+    }
+  ],
+  "root": "src/frontends/riscv/block_v5_native_capacity_leaf_queue_test_root.zig",
+  "filter": "block-v5 capacity leaf queue",
+  "declared_tests": 6,
+  "default_waiting_capacity": 1,
+  "ordered_coordinators": 1,
+  "proof_authority": "Genuine borrowed native verifier capture; full Prepared and mutation seal revalidation; original recursive prove + fresh leaf verifier before sink.",
+  "integration": "Driver root-owned, enqueue while source proof is live; finish/abort joins before prepared/cache/leaves/pool/forest lifetimes end.",
+  "limits": "Hard shared allocator unchanged; actual queue job counters only, no guessed capture bytes/runtime claim."
+}

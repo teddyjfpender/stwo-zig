@@ -16,6 +16,21 @@ pub fn auditPreparedDomainSums(
     expected_claimed_sum: QM31,
 ) Runtime.DomainAuditErrorSet!Runtime.DomainAuditResult {
     try relations.validate();
+    if (comptime Runtime.BATCH_SIZE > 2) {
+        var values = [_]QM31{QM31.zero()} ** universal.RELATION_COUNT;
+        for (rows) |row| for (plan.preparedEntries(row)) |entry| {
+            const denominator = try entry.denominator(relations);
+            if (denominator.eql(QM31.zero())) return error.ZeroDenominator;
+            const domain = @intFromEnum(entry.domain);
+            values[domain] = values[domain].add(entry.numerator.mul((denominator.inv() catch return error.ZeroDenominator)));
+        };
+        var total = QM31.zero();
+        for (values) |value| total = total.add(value);
+        if (!total.eql(expected_claimed_sum)) return error.ClaimMismatch;
+        return .{ .values = values, .total = total, .logical_rows = rows.len,
+            .event_terms = std.math.mul(usize, Runtime.EVENT_COUNT, rows.len) catch return error.InvalidTraceShape };
+    }
+
     const pair_count = std.math.mul(
         usize,
         Runtime.BATCH_COUNT,

@@ -1,0 +1,13 @@
+{
+  "README.md": "533fddd92c4b29c7f76cdcf355742d3fc3bffc7d5877122c5d4dee242b6ea9a9",
+  "arithmetic.log": "5df72c0aa55bbd9fa7f6969c6b8dad2bb50d090083879fdbb6479e1ce307f6d0",
+  "regression.log": "9355214e880e30749e3eea31ba1acee6108ab7d8304105b349f1fab2c08d432f",
+  "sources/autoresearch/notes/20260922-fri-arithmetic-proof-problem-match.md": "fdb58fa68f72b1bd9c8354de877130bd0e6a5a89b4fbfc7bbd63b053a2631aa8",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "5366d8aec0c72b4ea202fddbe657d5f01a9294b9a0c931e5abdae3255977d510",
+  "sources/src/frontends/riscv/recursion/air/blake3_fri_arithmetic_proof_test.zig": "f5bfe1af5acf944acdca7ff08016a891cbe2412f395889f45502a5fa809be6d0",
+  "sources/src/frontends/riscv/recursion/air/blake3_proof_gate_test_support.zig": "5991a9361d0d9e88b67f30d5beb0b279ba35eb69da987929a84fc7ac625269c4",
+  "sources/src/frontends/riscv/recursion/air/linear_ops.zig": "ba4a1b77788bf182cfbdcb793a458d2d2a6b1708785bf36ceffe4f4eed4c2eee",
+  "sources/src/frontends/riscv/recursion/air/qm31_inv.zig": "bb20ff27e73ce8335181a269c4a6c740be9b6873754f2773b45c749033021cb6",
+  "sources/src/frontends/riscv/recursion/air/qm31_mul_full.zig": "6592202126525c51585d37eb9bebb9c3295080e0a7788211965b1f57f481dea2",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "b505acbde8a923b3feb5ce2a5eb39e032202aeda1309fe7a6d680e782aaf82df"
+}

@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded; 25/25 tests passed
+test-blake3-stream success
++- run test 4 passed 8ms MaxRSS:1M
+   +- compile test ReleaseSafe native cached 53ms MaxRSS:35M
+test-merkle success
++- run test 21 passed 533ms MaxRSS:7M
+   +- compile test ReleaseSafe native success 5s MaxRSS:413M
+

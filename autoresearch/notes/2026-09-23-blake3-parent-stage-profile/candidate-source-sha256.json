@@ -1,0 +1,5 @@
+{
+  "src/frontends/riscv/recursion/blake3_native_parent_producer.zig": "b2a92a403cd1901d2c917e7c9f726d87eee83d2dfdca2b85af1b7004360626ce",
+  "src/frontends/riscv/recursion/air/blake3_parallel_lookup_counts.zig": "cb86a998a958246fe4ff300c5d95f1d6b96dfb315f78406169189298ef359d64",
+  "src/frontends/riscv/prover/blake3_extension_parent_test_support.zig": "eb48786060f0aaa64b228231567a89325693ad1ad0550de7e1914ef3e064b8ca"
+}

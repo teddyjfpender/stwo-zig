@@ -1,0 +1,17 @@
+{
+  "schema": "global-expected-public-owner-dependency-checkpoint-v1",
+  "candidate": "global-expected-public-owner-source-candidate-v1.json",
+  "reason": "Terminal root-owned optional native-fused store selection after frozen expected-public candidate. Historical candidate remains immutable.",
+  "source_pins": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_leaf_store_core_v1.zig",
+      "sha256": "3142626e4a0f995059c5a521ba08455de861f4d7736b533965713d77679831aa"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_execution_leaf_store_v1.zig",
+      "sha256": "7135900fdc98f8b8ee32e3d12d24d20c56dcdf94f4da49ce131282586ca80fe4"
+    }
+  ],
+  "compiler_or_tests_run_by_agent": false,
+  "source_only": true
+}

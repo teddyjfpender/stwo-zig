@@ -1,0 +1,9 @@
+test-riscv-statement-codecs
++- riscv test suite guard
+   +- run test stderr
+COMPACT_RANGE_EXECUTION old_main_cells=2982164 compact_main_cells=361092 counts=12/3/1
+
+Build Summary: 2/2 steps succeeded
+test-riscv-statement-codecs success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 31s MaxRSS:2G
+

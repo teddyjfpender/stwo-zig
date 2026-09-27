@@ -1,0 +1,18 @@
+{
+  "qualification": "bounded sorted-memory witness transport and typed adjacency only",
+  "production_memory_proof": false,
+  "full_block_verified": false,
+  "source_sha256": {
+    "src/frontends/riscv/air/block/memory_event.zig": "a2f889e90df99a1d4b241a94c00e4778b9c9e0e136fb7301cbb18fdd04bdd01b",
+    "src/frontends/riscv/air/block/memory_order.zig": "77f3a2395cf8e216f75ec2e56d08dbe9f58dbfb7d2dac249acea97234e04aa4c",
+    "src/frontends/riscv/air/block/memory_order_test.zig": "0229ea80a02e3035a89a6478f2ea66c1cc82d33dcba53ddf10b8f45827a5d7dd",
+    "src/frontends/riscv/air/block/memory_spool.zig": "f09f784b7b00bbf3e5bf7d9d5bbaa6292f8237dd54000de3c87f7b107d389575"
+  },
+  "tests": {
+    "test-block-memory-components-v1.log": "5 passed",
+    "test-block-memory-spool-v2.log": "6 passed",
+    "test-block-memory-spool-v3.log": "1 passed",
+    "test-block-memory-spool-v4.log": "1 passed",
+    "test-block-memory-spool-v5.log": "2 passed"
+  }
+}

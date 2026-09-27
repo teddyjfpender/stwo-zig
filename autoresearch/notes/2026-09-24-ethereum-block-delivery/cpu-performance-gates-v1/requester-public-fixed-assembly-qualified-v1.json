@@ -1,0 +1,74 @@
+{
+  "status": "focused-nonproving-fixed-family-assembly-qualification-only",
+  "authoritative_source_snapshots": [
+    "requester-public-fixed-assembly-legacy-focused-v2-source.json",
+    "requester-public-fixed-assembly-selected-focused-v1-source.json"
+  ],
+  "successful_attempts": [
+    {
+      "source_candidate": "requester-public-fixed-assembly-legacy-focused-v2-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 24.86891929199919,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 19,
+      "test_summary": [
+        "All 19 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-fixed-assembly-legacy-focused-v2.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-public-fixed-assembly-legacy-focused-v2",
+        "bytes": 44695992,
+        "sha256": "ee3da4e3b88169b829c4f0adde6abe70fb82ec960acc8f63ff948a388bda21b0"
+      }
+    },
+    {
+      "source_candidate": "requester-public-fixed-assembly-selected-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 25.056878291012254,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 19,
+      "test_summary": [
+        "All 19 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/requester-public-fixed-assembly-selected-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-requester-public-fixed-assembly-selected-focused-v1",
+        "bytes": 44696048,
+        "sha256": "4568fc1144266f0845ff9406f19eb8431bf7897b9ca833a8cb468a1502c50496"
+      }
+    }
+  ],
+  "source_pin_counts": [
+    1930,
+    1930
+  ],
+  "behavioral_checks_each_recipe": 10,
+  "scope": [
+    "Original requester packed fixed roster plus tuple/B5SS fixed rows and real independently lowered MAIN identifier namespace inventory",
+    "Original child then tuple join order, G partition and all five context channels/external wires shared with original live preparation",
+    "Actual complete fixed assembly and root-only fixed PCS/typed key admission bodies retained, not invoked",
+    "Whole live geometry namespace parity with original physical columns for every cohort; OOM/custody/mutation checks"
+  ],
+  "remaining": [
+    "Genuine independent Public.Owner and original live Prepared whole-family parity invocation",
+    "Lower requester catalogue independence and FINAL22 native memory expected setup",
+    "Canonical driver selection, positive full proof and end-to-end time/process peak memory"
+  ],
+  "segments_run": false,
+  "positive_proof_run": false,
+  "pcs_commitment_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

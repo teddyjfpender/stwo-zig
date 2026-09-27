@@ -1,0 +1,31 @@
+{
+  "status": "scoped-original-capture-custody-admission-and-actual-bodies-qualified",
+  "unique_passing_checks": 18,
+  "full_snapshot": "fused-capture-cohesive-source-v2.json",
+  "full_result": "fused-capture-cohesive-focused-v2-result.json",
+  "full_snapshot_passed_checks": 15,
+  "corrected_snapshot": "fused-capture-cohesive-source-v3.json",
+  "corrective_result": "fused-capture-cohesive-corrective-v3-result.json",
+  "corrected_previously_failed_named_checks": 3,
+  "repeated_import_checks": 2,
+  "between_snapshot_changes": [
+    "src/frontends/riscv/prover/block_v5_caller_capture_unit_test.zig"
+  ],
+  "production_source_changed_between_full_body_and_corrective_gate": false,
+  "body_binary": "/tmp/block-v5-fused-capture-qualified-tests-v2",
+  "body_byte_len": 3997624,
+  "body_sha256": "02e46d750863a7b6af34190a50797d54b3421c116c8a0a06dec29f67aa95d812",
+  "actual_symbol_counts": {
+    "native_owned": 1,
+    "native_captures": 2,
+    "caller_arithmetic_captures": 2,
+    "caller_fused_captures": 2,
+    "fresh_dual_capture": 2
+  },
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "successful_full_stark_capture_qualified": false,
+  "caller_or_native_fused_recursive_adapters_qualified": false,
+  "scope_note": "Actual original owned/borrowed full native fused, caller arithmetic, caller fused and fresh dual capture kernels generated; runtime cases exercise only metadata, genuine empty source geometry, fault ownership and early malformed/literal rejections. No accepted synthetic capture."
+}

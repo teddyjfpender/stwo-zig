@@ -1,0 +1,74 @@
+{
+  "status": "focused-nonproving-qualification-only",
+  "supersedes": "cpu-recursive-completion-qualified-v1.json",
+  "authoritative_source_snapshot": "cpu-recursive-completion-transaction-focused-v1-source.json",
+  "successful_attempts": [
+    {
+      "source_candidate": "cpu-recursive-completion-transaction-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 13.437577875040006,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-completion-transaction-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    {
+      "source_candidate": "cpu-recursive-completion-transaction-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 65.73616079200292,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 20,
+      "test_summary": [
+        "All 20 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-completion-transaction-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-cpu-recursive-completion-transaction-focused-v1",
+        "bytes": 111161480,
+        "sha256": "d583f623cf1b67faa96fc76996eb36f3af6ef5a21a967880b995fcebc2fa8658"
+      }
+    }
+  ],
+  "source_pin_count": 2039,
+  "behavioral_checks": 7,
+  "actual_bodies_retained": [
+    "Installed canonical CPU producer CLI main",
+    "Actual four-stage typed completion publisher",
+    "Both original CPU Driver bodies",
+    "Consuming/fresh receiver bodies used by each stage"
+  ],
+  "new_integration": [
+    "Optional installed --recursive-completion selects original typed capacity source/family publishers and complete completion coordinator",
+    "Canonical original collection/profile/store remain unchanged by selected completion helper",
+    "Original RAM proof/plan limits derived from original collection policy and checked before collection",
+    "Scoped fold partial publication rollback and cross-stage completion new-file-only cleanup",
+    "JSON stage ns/proof counts/bytes/final pin/peak allocation and explicit timing/authority scope"
+  ],
+  "remaining": [
+    "Positive proof and runtime custody qualification",
+    "Complete independently admitted fixed setup and public source ports",
+    "Complete global/source closure and CompleteBlock authority",
+    "Standalone/reusable expected setup; final detached consumer integration",
+    "Canonical default activation and removal of redundant detached verification when justified",
+    "End-to-end speed/peak memory qualification and resident GPU work"
+  ],
+  "canonical_queries": 70,
+  "canonical_pow_bits": 26,
+  "segments_run": false,
+  "positive_proof_run": false,
+  "device_run": false,
+  "measured_end_to_end_or_peak_memory": false
+}

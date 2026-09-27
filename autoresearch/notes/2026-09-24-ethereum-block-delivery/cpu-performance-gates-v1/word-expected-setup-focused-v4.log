@@ -1,0 +1,29 @@
+src/frontends/riscv/prover/block_v5_packed_hash_setup_v1.zig:12:34: error: evaluation exceeded 10000 backwards branches
+        break :blk std.meta.Tuple(&types);
+                   ~~~~~~~~~~~~~~^~~~~~~~
+src/frontends/riscv/prover/block_v5_packed_hash_setup_v1.zig:12:34: note: use @setEvalBranchQuota() to raise the branch limit from 10000
+src/frontends/riscv/recursion/air/block_v5_static_component_compiler_v1.zig:10:84: note: called at comptime here
+    const Setup = @import("../../prover/block_v5_packed_hash_setup_v1.zig").ForAirs(Airs);
+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_recursive_shape_v1.zig:23:48: note: called at comptime here
+    const ArithmeticCompiler = Compiler.ForAirs(ArithAirs);
+                               ~~~~~~~~~~~~~~~~^~~~~~~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_recursive_fixed_v1.zig:17:33: note: called at comptime here
+    const Native = Shape.ForKind(kind);
+                   ~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_recursive_fixed_sources_v1.zig:10:40: note: called at comptime here
+    const Native = NativeModule.ForKind(kind);
+                   ~~~~~~~~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/recursion/block_v5_memory_source_page_recursive_fixed_roster_v1.zig:27:41: note: called at comptime here
+    const TypedSources = Sources.ForKind(kind);
+                         ~~~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/prover/block_v5_page_recursive_expected_setup_v1.zig:41:42: note: called at comptime here
+            const Factory = Fixed.ForKind(kind).ForBackend(Backend);
+                            ~~~~~~~~~~~~~^~~~~~
+src/frontends/riscv/prover/block_v5_memory_source_page_forest_policy_owner_v1.zig:211:78: note: called at comptime here
+                    var expected = try ExpectedSetup.ForKind(kind).ForBackend(Backend).derive(scratch, admitted, claims, limits.transcript_capacity, profile, limits.fixed);
+                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+referenced by:
+    publish: src/frontends/riscv/prover/block_v5_cpu_owned_memory_source_page_forest_v1.zig:13:39
+    publish: src/frontends/riscv/prover/block_v5_cpu_recursive_completion_v1.zig:118:32
+    4 reference(s) hidden; use '-freference-trace=6' to see all references

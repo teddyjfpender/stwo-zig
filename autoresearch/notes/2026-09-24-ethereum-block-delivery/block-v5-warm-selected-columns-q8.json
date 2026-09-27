@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "command": "zig test -OReleaseFast -lc -mcpu=native --test-filter 'block-v5' --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_cpu_backend -Mroot=src/frontends/riscv/block_v5_precompile_lookup_test_root.zig -Mstwo_core=src/core/mod.zig --dep stwo_core -Mstwo_backend_contracts=src/backend/mod.zig --dep stwo_core --dep stwo_backend_contracts -Mstwo_prover_api=src/prover_api/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep interop_postcard -Mstwo_prover_engine=src/prover/mod.zig --dep stwo_core --dep stwo_proof_wire -Mstwo_riscv_frontend=src/frontends/riscv/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Minterop_postcard=src/interop/postcard.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig -Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+  "result": {
+    "exit_code": 0,
+    "tests_passed": 13,
+    "tests_failed": 0,
+    "allocator": "std.testing.allocator; clean teardown"
+  },
+  "security": {
+    "scope": "diagnostic q8/PoW0",
+    "queries": 8,
+    "pow_bits": 0,
+    "log_blowup_factor": 1
+  },
+  "fixtures": [
+    {
+      "sha_calls": 2,
+      "keccak_calls": 1,
+      "signer_calls": 0,
+      "memory_events": 103,
+      "witness_loads": 2
+    },
+    {
+      "sha_calls": 0,
+      "keccak_calls": 1,
+      "signer_calls": 1,
+      "memory_events": 94,
+      "witness_loads": 2
+    }
+  ],
+  "qualified": [
+    "Table/state/program hooks all run in the same bounded collect/proveWithHooks replay",
+    "Lookup and state warm proofs recover only admitted selected spans from retained immutable first-round trees",
+    "No Profile.mainWitness or Profile.preprocessed regeneration in lookup or state borrow/prove APIs",
+    "Independent canonical profile logs and configured blowup match every retained source column, including unselected columns",
+    "Original family11 arithmetic proof freshly verifies after all three same-root projections",
+    "Fresh table/state/program projections verify under the original caller roots and B5SS binding",
+    "Independent six-table signed counter oracles remain equal to fresh projected claims",
+    "Wrong retained geometry rejects before projection generation; changed claims, caller roots and canonical record key reject",
+    "Authentic SHA/Keccak/signer memory event tuple equivalence and unchanged sorted transition addresses"
+  ],
+  "api_compatibility": {
+    "old_prove_signatures": "Retained and delegate to proveFromCommitted",
+    "new_entrypoints": [
+      "block_v5_precompile_lookup_proof_v1.ForBackend.proveFromCommitted",
+      "block_v5_precompile_state_request_proof_v1.ForBackend.proveFromCommitted"
+    ],
+    "shared_helper": "block_v5_committed_projection_columns_v1"
+  },
+  "source_scope": {
+    "lookup_main_matrix_generations": "Zero",
+    "state_main_matrix_generations": "Zero",
+    "physical_family11_commit_main_matrix_generations": "One per commitment; existing family11 collect/prove replay still commits in both passes",
+    "recovery": "Existing exact circle interpolation/evaluation; selected overlapping spans recovered once per projection",
+    "first_round_commitments": "Original immutable tree leases; no new fixed/main LDE or Merkle trees"
+  },
+  "output": [
+    "BLOCK_V5_CALLER_TABLES warm_pipeline=true witness_loads=2 same_roots=true family12_borrowed=true selected_columns=true state_borrowed=true authentic_six_partitions=true sha=2 keccak=1 signer=0 memory_events=103 auxiliary_clock=0 complete=false",
+    "BLOCK_V5_CALLER_TABLES warm_pipeline=true witness_loads=2 same_roots=true family12_borrowed=true selected_columns=true state_borrowed=true authentic_six_partitions=true sha=0 keccak=1 signer=1 memory_events=94 auxiliary_clock=0 complete=false"
+  ],
+  "not_qualified": [
+    "Measured performance or peak memory gain",
+    "Whole-caller global kernel rerun using these changed projection internals",
+    "Canonical q70 security",
+    "Mainnet block",
+    "Detached stage transport"
+  ],
+  "timing": "Not separately instrumented",
+  "memory": "Not separately instrumented"
+}

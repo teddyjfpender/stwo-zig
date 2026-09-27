@@ -1,0 +1,10 @@
+{
+  "README.md": "94beac1a9a8833d0f8f1785d3fd65c33bdcda3fd9a8d14ad59234366eb581485",
+  "sources/autoresearch/notes/20260922-blake3-frame-routing-problem-match.md": "5f3c32c5c853ffe7d09dc3bd3b0b54a659a78d66845ecaf2cf3a4f327cd3a0a4",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "5b406a52c9018454b228197381387468f40ff63cf5d27f22333399901fb1b44f",
+  "sources/src/frontends/riscv/recursion/air/blake3_byte_route_test.zig": "6c91b2b85d47524704404152f97d1347d1580433f246f65361265d2e8349d2f1",
+  "sources/src/frontends/riscv/recursion/air/blake3_frame_route.zig": "a9e27bb7ee46b22a0076dbf39a4345e285ecb38f5d50b36abf13c9e933e096a3",
+  "sources/src/frontends/riscv/recursion/air/blake3_node_route.zig": "f109832d577d4f59719d6b3e971c89e96226da87f7079d621cbfc814677f520d",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "8be3ee2c1f987d7d654740789fd02f86312883078a419690cf045f7e7f860d1d",
+  "tests.log": "fcdd035229c792dfa72abc5d71f95fa87b031d535405ad593bfbced5925b9640"
+}

@@ -1,0 +1,72 @@
+{
+  "scope": "On-demand durable original PAGE recursive leaf/closed-parent owner, typed CPU publish/reconstruct, summary-only genuine Parent reception and independent metadata/live/aggregate budgets. No proof invoked.",
+  "candidate": "memory-source-page-forest-owned-source-candidate-v2.json",
+  "attempts": [
+    {
+      "result": "memory-source-page-forest-owned-budget-semantic-v1-result.json",
+      "source_pins": 1899,
+      "seconds": 5.852301292004995,
+      "checks": 0,
+      "binary": null
+    },
+    {
+      "result": "memory-source-page-forest-owned-budget-legacy-focused-v1-result.json",
+      "source_pins": 1899,
+      "seconds": 32.94873512501363,
+      "checks": 21,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-forest-owned-budget-legacy-focused-v1",
+        "bytes": 53369888,
+        "sha256": "e862f83930259e0bd233eb77a4c422327ad898da7aff8dce92de2bac5b93922b"
+      }
+    },
+    {
+      "result": "memory-source-page-forest-owned-budget-selected-focused-v1-result.json",
+      "source_pins": 1899,
+      "seconds": 33.48907966702245,
+      "checks": 21,
+      "binary": {
+        "path": "/tmp/block-v5-memory-source-page-forest-owned-budget-selected-focused-v1",
+        "bytes": 53369936,
+        "sha256": "864ea1d916d42d0c73a720abec6f7283b40973cebbb5a0541dae7043d7b35197"
+      }
+    }
+  ],
+  "behavioral_checks_per_recipe": 14,
+  "total_checks_per_recipe": 21,
+  "body_gate": "stwo_source_page_forest_owned_body_gate",
+  "old_semantic_failures": [
+    "memory-source-page-forest-owned-semantic-v1-result.json",
+    "memory-source-page-forest-owned-semantic-v2-result.json",
+    "memory-source-page-forest-owned-semantic-v3-result.json"
+  ],
+  "historical_precap_qualification": [
+    "memory-source-page-forest-owned-semantic-v4-result.json",
+    "memory-source-page-forest-owned-legacy-focused-v1-result.json",
+    "memory-source-page-forest-owned-selected-focused-v1-result.json"
+  ],
+  "root_repairs": [
+    "Mutable Dir for owned duplicate close",
+    "Typed optional u32 root comparison",
+    "One canonical ForReceiver Source/Admission implementation; summary facade removes duplicated source body",
+    "Unique private SourceImpl/AdmissionImpl names avoid public alias ambiguity"
+  ],
+  "memory_policy": "Retained metadata and <=4 direct-leaf descriptor scopes; scratch uses independent retained aggregate backing, fixing hidden1GiB metadata ceiling on8GiB live allowance. All existing local and global caps preserved.",
+  "lifetime": "Actual root Fresh/core Parent bodies retained; ordinary unadmitted Summary storage fixtures verify exact budget leases, coordinator release, temporary teardown and every allocation failure. Built destroys root before metadata owner.",
+  "complete_fixed_setup": false,
+  "standalone_key_requires_original_page_artifacts": true,
+  "canonical_enabled": false,
+  "complete_source_authority": false,
+  "complete_block_authority": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "end_to_end_speed_measured": false,
+  "peak_process_memory_measured": false,
+  "remaining": [
+    "Positive real-policy catalogue/Plan.initWithCatalogue parity without manufactured proof authority",
+    "Independent reusable expected setup/global public suppliers",
+    "Complete RAM/native/caller/register/ROM/lookup/accounting closure and driver",
+    "Canonical positive e2e qualification and actual memory/time measurement"
+  ]
+}

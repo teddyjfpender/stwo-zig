@@ -1,0 +1,1 @@
+{'paired_cases': 32, 'witness_bytes_per_case': 55738, 'histogram_entries_per_case': 9216, 'all_equal': True, 'binaries': {'before': 'b92a0dbeb3004c259806be753d3be4b7977ce56ca52c35d845498e9f3407597a', 'after': '3ba522009470a1a7157d4c54d848d36f74bbab302ace7b4bdfbfa760e93e8d37'}}

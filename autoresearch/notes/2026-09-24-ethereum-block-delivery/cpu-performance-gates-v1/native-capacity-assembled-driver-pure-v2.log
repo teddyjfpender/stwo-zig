@@ -1,0 +1,8 @@
+1/7 block_v5_cpu_capacity_driver_test_root.test_0...OK
+2/7 prover.block_v5_cpu_capacity_driver_test_v1.test.capacity driver: default aliases remain NativeV3 and capacity options retain real independent policy types...OK
+3/7 prover.block_v5_cpu_capacity_driver_test_v1.test.capacity driver: both stacks reject recursive profile downgrade and invalid aggregate scheduling before ownership...OK
+4/7 prover.block_v5_cpu_capacity_driver_test_v1.test.capacity driver: staged sources and durable sinks carry distinct capacity native proof authority...OK
+5/7 prover.block_v5_cpu_capacity_driver_test_v1.test.capacity driver: metadata accessor borrows the genuine owned proposal rather than duplicating it...OK
+6/7 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+7/7 air.memory_commitment.poseidon2_air.test_0...OK
+All 7 tests passed.

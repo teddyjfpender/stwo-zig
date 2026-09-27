@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-25",
+  "scope": "One Ethereum-SHA-profile CPU segment with real secp256k1 recovery and Keccak callers; shared execution, sorted-memory, initial-state and byte-range core proof",
+  "security": {"fri_queries": 8, "pow_bits": 0, "profile": "diagnostic_q8_pow0"},
+  "verification": {
+    "fresh_native_and_opcode_sidecar": true,
+    "fresh_signer_and_keccak_sidecar": true,
+    "fresh_sorted_memory_and_range_tables": true,
+    "initial_image_and_global_transition_closure": true,
+    "omitted_extension_proof_rejected": true,
+    "tests_passed": 8
+  },
+  "memory_events": 103,
+  "opcode_events": 9,
+  "external_events": {"signer": 43, "keccak": 51},
+  "timing_ns": null,
+  "proof_bytes": null,
+  "fixture_limits": [
+    "This is a diagnostic q8/PoW0 core proof, not a canonical-security result.",
+    "It does not include recursive leaf, parent, outer-root, or complete-block verification.",
+    "It is a small guest fixture, not an Ethereum block or throughput measurement."
+  ],
+  "command_filter": "Ethereum signer Keccak caller accesses close with opcode and sorted memory core"
+}

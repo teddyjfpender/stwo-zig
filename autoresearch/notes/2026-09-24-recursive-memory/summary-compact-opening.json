@@ -1,0 +1,70 @@
+{
+  "label": "compact-opening",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "workers": 16,
+  "worker_limit_gib": 48,
+  "samples_per_case": 1,
+  "opening_storage_change_preserves_16_tx_proof_bytes": true,
+  "results": [
+    {
+      "transactions": 1,
+      "verified": true,
+      "process_wall_seconds": 44.781902582995826,
+      "peak_process_footprint_bytes": 25200432416,
+      "peak_process_footprint_gib": 23.469731599092484,
+      "worker_peak_bytes": 26176424834,
+      "worker_peak_gib": 24.37869537062943,
+      "preparation_retained_bytes": 4522264444,
+      "parent_proving_seconds": 25.648470042,
+      "leaf_proving_seconds": 4.197954,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 8388608,
+          "fixed_rows": 6972840,
+          "fixed_columns": 16,
+          "retained_bytes": 3197727152
+        }
+      ],
+      "hash_partition_seconds": 0.0,
+      "proof_bytes": 881792,
+      "cycles": 12419
+    },
+    {
+      "transactions": 16,
+      "verified": true,
+      "process_wall_seconds": 87.67467604199192,
+      "peak_process_footprint_bytes": 47541069440,
+      "peak_process_footprint_gib": 44.276071190834045,
+      "worker_peak_bytes": 48910360988,
+      "worker_peak_gib": 45.55132332071662,
+      "preparation_retained_bytes": 7947092056,
+      "parent_proving_seconds": 52.224705292,
+      "leaf_proving_seconds": 6.624669833,
+      "g_partitions": [
+        {
+          "index": 0,
+          "name": "recursion.air.blake3_g_call",
+          "main_columns": 82,
+          "main_rows": 16777216,
+          "fixed_rows": 10506888,
+          "fixed_columns": 16,
+          "retained_bytes": 6175369648
+        }
+      ],
+      "hash_partition_seconds": 0.0,
+      "proof_bytes": 917857,
+      "cycles": 140708
+    },
+    {
+      "transactions": 32,
+      "verified": false,
+      "exit_code": 1
+    }
+  ]
+}

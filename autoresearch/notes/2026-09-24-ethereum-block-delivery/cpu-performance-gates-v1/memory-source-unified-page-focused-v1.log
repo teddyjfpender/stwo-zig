@@ -1,0 +1,21 @@
+1/20 block_v5_memory_source_unified_page_test_root.test.source unified PAGE root...OK
+2/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: original leaf/node byte framing equals independent bit hash97 and rejects input/output framing swaps...OK
+3/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: default and shared recipes cannot omit private before/after operands...OK
+4/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: all48 original BLAKE boundary wires include discarded outputs and weighted input uses...OK
+5/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: capture scalar packed off-domain equations preserve degree3 and exact normalized claims...OK
+6/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: omitted original source cells have explicit Boolean zero constraints and exact live masks...OK
+7/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: compact fold operand preserves full clocks routing and canonical enum bytes...OK
+8/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: genuine page graph direct arithmetic and all original input uses match authoritative lowering...OK
+9/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: semantic graph and complete original input-routing every allocation failure releases owners...OK
+10/20 prover.block_v5_memory_source_unified_page_test_v1.test.source unified PAGE: complete original core tables capture input and arithmetic claim closure with independent fixed projection...OK
+11/20 prover.block_v5_memory_source_page_composition_test_v1.test.source unified PAGE: exact shared masks and original scalar equations without duplicated main...OK
+12/20 prover.block_v5_memory_source_page_composition_test_v1.test.source unified PAGE: every combined mask/point-owner allocation failure is transactional...OK
+13/20 prover.block_v5_memory_source_page_composition_test_v1.test.source unified PAGE: mismatched alias geometry and bounded masks reject before equation evaluation...OK
+14/20 prover.block_v5_memory_source_unified_page_codec_test_v1.test.source unified PAGE codec: ten-tree structural parser exact counts truncation and caps...OK
+15/20 prover.block_v5_memory_source_unified_page_codec_test_v1.test.source unified PAGE codec: ten-tree overlong counts and nested sample bombs reject before allocation...OK
+16/20 prover.block_v5_memory_source_unified_page_codec_test_v1.test.source unified PAGE codec: bad domain version kind and ABI reject under deny-all allocator...OK
+17/20 prover.block_v5_memory_source_fold_fixed_test_v1.test.source unified PAGE: independent fold fixed rows match original changed shared default and branch recipes...OK
+18/20 prover.block_v5_memory_source_fold_fixed_test_v1.test.source unified PAGE: every public-only fold fixed allocation failure releases exact owners...OK
+19/20 block_v5_memory_source_unified_page_codegen.test.source unified PAGE bodies: actual compact fold six-root collect replay retained leases and one-graph direct materialization...OK
+20/20 air.memory_commitment.poseidon2_air.test_0...OK
+All 20 tests passed.

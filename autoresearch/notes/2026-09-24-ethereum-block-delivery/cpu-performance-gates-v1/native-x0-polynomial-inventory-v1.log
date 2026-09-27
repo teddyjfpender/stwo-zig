@@ -1,0 +1,7 @@
+1/6 riscv_native_polynomial_aot_test_root.test.native GPU inventory: actual capability exports cover every legacy and local-zero family...OK
+2/6 riscv_native_polynomial_aot_test_root.test.native GPU inventory: cache namespaces reject retained-provider aliasing...OK
+3/6 riscv_native_polynomial_aot_test_root.test.native GPU inventory: altered local-zero DAG cannot reuse admitted kernel identity...OK
+4/6 riscv_native_polynomial_aot_test_root.test.native GPU inventory: executable deduplication still validates every authority...OK
+5/6 frontends.riscv.air.semantic_eval.test_0...OK
+6/6 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+All 6 tests passed.

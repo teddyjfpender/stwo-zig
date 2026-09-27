@@ -1,0 +1,21 @@
+BLOCK_LEAF phase=execution cycles=262144
+BLOCK_LEAF phase=witness programs=729419 boundaries=88687 hash_logs={ 24, 23, 23, 22, 11, 17, 17, 20 } peak_bytes=9007194429
+error: UnclosedExecutionRelations
+       71.85 real       216.18 user        10.03 sys
+         33135673344  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             5646457  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              395903  involuntary context switches
+       2664859688250  instructions retired
+        968674427373  cycles elapsed
+         33151315208  peak memory footprint

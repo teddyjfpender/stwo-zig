@@ -1,0 +1,21 @@
+1/20 block_v5_cpu_final_job_test_root.test_0...OK
+2/20 block_v5_cpu_final_job_test_root.test.CPU final job: genuine PUB21 final22 consuming producers standalone receivers and custody bodies retained...OK
+3/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: exact two typed records and independent source bindings round trip...OK
+4/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: re-sealed manifest key and swapped typed records reject original expected setup...OK
+5/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: every independently pinned requester memory source and window identity rejects resealing...OK
+6/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: fixed version count length reserved grammar and zero identities reject...OK
+7/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: exact metadata per-proof aggregate and local fan-in caps reject...OK
+8/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: pinned transport rejects before touching original proof capabilities...OK
+9/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: bounded proposal loader releases every allocation failure...OK
+10/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: rollback removes only newly published roots and preserves preexisting destinations...OK
+11/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: lifecycle callback runs once and grants no proof or setup authority...OK
+12/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: copied original public windows outlive upstream buffers with OOM parity...OK
+13/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: copied signed public descriptors remain exact after upstream rows release with OOM parity...OK
+14/20 prover.block_v5_cpu_final_job_test_v1.test.CPU final job: independent metadata live and aggregate lanes retain escaping control storage across OOM...OK
+15/20 prover.block_execution_external_trace_v2.test_0...OK
+16/20 air.lookups.tables.mod.test_0...OK
+17/20 air.semantic_eval.test_0...OK
+18/20 prover.block_execution_external_access_bridge_v2.test_0...OK
+19/20 air.memory_commitment.poseidon2_air.test_0...OK
+20/20 air.lookups.tables.source_ingest.test_0...OK
+All 20 tests passed.

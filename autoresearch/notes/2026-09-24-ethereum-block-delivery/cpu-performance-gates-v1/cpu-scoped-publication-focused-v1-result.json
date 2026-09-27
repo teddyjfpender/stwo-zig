@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-scoped-publication-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 25.80569541704608,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-scoped-publication-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-scoped-publication-focused-v1",
+    "bytes": 46975368,
+    "sha256": "d55f4ffd2019932c3f624fc372a4629a21eb32c46ddabc57e8472bda2b5cb3e1"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "passed": true,
+  "test_count": 4,
+  "named_body_checks": 1,
+  "scope": "Actual CPU native fresh borrowed-capture verifier and native recursive leaf on_proof callback production body generation (addresses retained, functions never called). Immutable producer proof replaces encode/decode clone; capture claims remain independently copied; final detached receiver unchanged. Prior literal successful PCS ownership/owned-path tests retained separately. Full successful STARK capture, leaf proof generation, later parent migrations and complete bundle acceptance are outside this body gate.",
+  "native_callback_body_qualified": true,
+  "success_stark_capture_qualified": false,
+  "stark_proved": false,
+  "recursive_proved": false,
+  "segment_executed": false,
+  "device_executed": false,
+  "log_sha256": "b780aa902bfc79c54f8d1d77c94178d165eb458512d0d51d504fa3ae9a792fd8",
+  "source_sha256": {
+    "src/borrowed_native_capture_codegen_test_root.zig": "bff3d9dc5ccdf3ab83c5d7c6f1886fb3d5096ba7b9e72b3f30e70d67e4215d01",
+    "src/frontends/riscv/prover/block_v5_native_execution_proof_v3.zig": "a7ca1718e2698fb5fcf2f9613a5a7109879babdfc48c7649dd90fa21731404c1",
+    "src/frontends/riscv/prover/block_v5_native_recursive_leaf_stage_v1.zig": "34b4c0bb09edf95ade7e01e92fde1701ea6130c37e22ab1922e6ec8d4018d8cf",
+    "src/frontends/riscv/prover/block_v5_cpu_driver_v1.zig": "9d0ad991653ded22d52953e1fc4e41f9a76810478fb0f984e72be1ad67551290",
+    "src/core/verifier.zig": "8b8fb3ff311cf89679fc7c2be0c0e1183cc9a6b14961e31c5f064acf74a577b7",
+    "src/core/pcs/verifier.zig": "45e0afef0ca8ecaaa2d7a91c37592422352be90da5a38f848232ccb431271385",
+    "src/core/fri.zig": "d29bbe504390142d870198d2efd5bb9a307961307219d9716f5ae9b8c2f15ff8",
+    "src/core/fri/folding.zig": "69c0ca7854fbaf49699c02e01705b0fb53fd62968f4811158531354554045ac7",
+    "src/frontends/riscv/air/lang/opcode_composition_manifest.zig": "f94d6c0a74029ce35db0ba2e843efd13f846ac8a36cc8970c01bb6b6c2ae1d60"
+  }
+}

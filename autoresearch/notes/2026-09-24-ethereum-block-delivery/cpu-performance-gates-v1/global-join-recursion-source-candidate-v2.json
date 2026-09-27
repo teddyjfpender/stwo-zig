@@ -1,0 +1,477 @@
+{
+  "schema": "block-v5-global-join-recursion-source-candidate-v2",
+  "status": "source_frozen_unqualified",
+  "canonical_enabled": false,
+  "tests_run_by_agent": false,
+  "body_executed": false,
+  "pcs_committed": false,
+  "stark_proved": false,
+  "guest_executed": false,
+  "device_executed": false,
+  "source_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-global-join-recursion-open-v1.md",
+      "sha256": "e6a9ac07acc70c3c48dbc7af586eb599d37cc3a1a5d6e667dc6ed09ab66ada68"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_global_join_recursive_codegen_v1.zig",
+      "sha256": "0a21c0ab4f48d07e00d81d867ef008fa0013758ba10be9e8a38f053ac8717893"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_global_join_recursive_test_root.zig",
+      "sha256": "0601dfe4f7a61fa4e54de1b3d45daa0a4f329b5cb5b1acbd689eae0d228fdf30"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_join_recursive_test_v1.zig",
+      "sha256": "61c5b8dcc433517b56c23775c1ffc29dffc796fbff3b9c54182779c048439ecc"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_global_join_composition_v1.zig",
+      "sha256": "12763fc2d8252bb0fb4baf6e88933c8e65dca99a6ec25b5670a30088f3255304"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_global_join_parent_preparation_v1.zig",
+      "sha256": "47dae3f98db0085f009df68aff9c4db83ad8a2390d5d20080af68f01d09e4cc4"
+    }
+  ],
+  "integration_dependency_pins": [
+    {
+      "path": "design/riscv-proving-stack/block-v5-native-capacity-fused-recursion-v1.md",
+      "sha256": "23745d7f67b5030793e8776ad1c5c89de327c216851875c8ccbb30c1d055c35d"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fused_recursive_codegen.zig",
+      "sha256": "6af4f1ac1f5c8e878b1923f25fcf03a829f80f2bf95bd7a2deb2cb8021cb99be"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_capacity_fused_recursive_test_root.zig",
+      "sha256": "143e991b27986ef41e230c50548d5dbb27d3ea1baafd66ba79f8ddcc7f871acf"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_execution_byte_range_v2.zig",
+      "sha256": "3d75ac5b5d98638162b74c769afd79853831c5d14e25390ea5aa70d3532ceae0"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_execution_integer_algebra_v1.zig",
+      "sha256": "5d4697d9db21552c9a252b729178162e684899288535f9fe0cedeff741bef294"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_execution_integer_bridge_v2.zig",
+      "sha256": "f318c87d03ad803fd40c0e0a3ec500c47703e70d55be1b86087f1bf1a70a06bc"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_execution_sidecar_stark_v2.zig",
+      "sha256": "fb903fd5dda13646539691f9b4a341088d3acc60347845fd8615d635288aea2b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_execution_recipe_v1.zig",
+      "sha256": "6ba9a3c31a8116d710f598bc87b7d763dcef54647cb7dc5918b174fd0795959b"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_global_join_algebra_v1.zig",
+      "sha256": "bf4752dbc17fc23ab21b8f41ef30c679aaf28727d1a96ac5b0484a09bf284588"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_heterogeneous_recursive_stage_v1.zig",
+      "sha256": "72e67a0078a97689cfb1b885eeffe8439eb6f3737e85466848031db8d5bce240"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_component_v1.zig",
+      "sha256": "9423bf824a75147c8e8ec0fa76f2378ef527ce3ae7552750e8bc0fc9e687cf17"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_proof_v1.zig",
+      "sha256": "d0b8db656010c357ed7c1f71625022b49d31fb2440c9c02e1109880466eeb55c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_recursive_admission_v1.zig",
+      "sha256": "27e725ad6296c999b92a5a3d12e3d8f3da58a16d25b6bd77cf722e3722d235ab"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_recursive_capture_v1.zig",
+      "sha256": "3289445103a040ba263ea6a9f34f7eff99f2df98cf484eb795d03ea2ad155106"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_recursive_stage_v1.zig",
+      "sha256": "fdf13a4bb315ab701dc83930a6b70988f2c03449188fc370a173baf441d518f1"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_recursive_test_v1.zig",
+      "sha256": "25a056535b310dc11b34ed8cc946aea6dcc2f24190d0d205944e06c41e63fe36"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_fused_source_v1.zig",
+      "sha256": "4932344c626287b8cc981fe131dc9db2b310b5a1cac21dc764917889a2a44f6f"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_capacity_recursive_admission_v1.zig",
+      "sha256": "a5468978cde896e3800f97053aa217c874d092e5debbfacdd6f82ff4b79d2da8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_fused_algebra_v1.zig",
+      "sha256": "06e90a5de8772d4229abdf68833267ffc087601aed96bf657e40e7945b451248"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_request_source_v1.zig",
+      "sha256": "318d74a3410d2f95753921667b90b8e070f04fa1af9b4ef780af7835f6f1f2a5"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_projection_fused_source_v1.zig",
+      "sha256": "8966b6fb661ce8fb4d1092ec344d2d7e7e512d094e5d0f2cf4905fbc86655b8c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "e86cb5279c1640301ad8d5d70f3ac2a518af85978042f75a7b12160aba345cad"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_opcode_memory_interaction_v1.zig",
+      "sha256": "0b7748fb796579f6669c5ebbf423283bc69869c8c878416712c973dbf9d37e7c"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_opcode_sidecar_eval_v1.zig",
+      "sha256": "2d8cacdff8e19d3c085b92f7d967552f7346f8ae6dad6004b41e96cc0b945495"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_precompile_lookup_source_v1.zig",
+      "sha256": "391088dc9f69edce873f3d617f02b47195c1be8dd40d36d62297e2d54ac448f8"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_ram_lanes_proof_v1.zig",
+      "sha256": "e606f79cf42362bdc0b74650e3f0f6dbb490897c9190a8673c0c66b66c68958a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_recursive_coverage_plan_v1.zig",
+      "sha256": "5fe0a8b805730d882f289dc2cd48f2ddd64740d8950cccc060c61fbb7928c868"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_execution_transition_v1.zig",
+      "sha256": "3cf2afe34a0d269aae9fd8f67d785c48f9af8eb6e287ef9a4a2f69755f346d67"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_word_memory_protocol_v1.zig",
+      "sha256": "c3c1327f544317c7850adb8c9b467a14e33a1f95db965fcafbcce8cefa42ecb3"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/arithmetic_fusion_rows.zig",
+      "sha256": "677ba25ac1091c81930b0f9572a575b43c4dc67016e88ee9c45057a088be2e8f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_component_deep_v1.zig",
+      "sha256": "f88155187b40ffa4f0dca27d24e69b6bcecb1b04eb908e83a6368a85e6d002f6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_payloads.zig",
+      "sha256": "e48c62ae7fcdbf5804e1b186db6ae6671896eb8ccd0e95a010523edb7ff7dbb7"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_execution_roots.zig",
+      "sha256": "fd24f4c052da4b8c3598b993bc7a227b268665d5651bf267e153c15d6ab29e58"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_openings.zig",
+      "sha256": "4cf7138c57ce3db9946bb9661923d4f56241b46add509bcfedd254058cd60b17"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_recorder.zig",
+      "sha256": "3b4295fcc30437382e8dca3539f0a76f2b8bbe53c444bb739fe70caa147527ea"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_transcript.zig",
+      "sha256": "847861b79b81f8f501fff1a904bdc2a1846d31e8a93efb4ac31e6f90132ad2a0"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_opening_inputs.zig",
+      "sha256": "2ed7a9742d4c690b968f1f3c878acf150cf794f4c5c0525fa72c0e25773e5447"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_join.zig",
+      "sha256": "186c072269d4cee757e4680a0a173133d0bfb2be029f0b68370b9d24bbfa1e47"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_rebase.zig",
+      "sha256": "bfe8f21c0f0ecb4048fd854a04fc1a04786e1804ee7265c1ab3d9e8be7f88f60"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig",
+      "sha256": "3530c94eeeb5cadf97550571f1ef0ae2bd23c833e05dfa1cefa95cab906d5a12"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_query_links.zig",
+      "sha256": "ce611ddd7a0a6f938e84324b1600f4147561d5c6df93ae5e672e713e03622c73"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_stark_paths.zig",
+      "sha256": "51256ceb870750466c0488153467e5377a2b976550e75b355bab1f1b6acb89ec"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_graph_rows_v1.zig",
+      "sha256": "6ad38d27bf22b4b1a13049d1bcec61322706b2a191ecc4b154d1586815c54dcb"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_heterogeneous_pairing_v1.zig",
+      "sha256": "adb9ebe5f8dc1b44da9ec5a69b90b704f9262b9eb662b6a243fe65e541f1cac1"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_fused_components_v1.zig",
+      "sha256": "8a8e8edbe1d29423d918ee2a47d3d7b25fec1680785db6ec16638b63968f28fe"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_fused_composition_v1.zig",
+      "sha256": "449242360c4aec9853bf3e9018b95fefc98f5e51eede54ecc8f6f80854894c34"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_fused_deep_v1.zig",
+      "sha256": "cfe00d34ee7dded200f689813f5e513d6d3b4fc475965c6b94d9d3f8c4fd0200"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_fused_roots_v1.zig",
+      "sha256": "db37311162610b301447271907f39c85ac8d5fece12f3834f74a497e521abd7e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_fused_statement_v1.zig",
+      "sha256": "82c94068a4eae5c263fd1a1a46096414ac9a9cefc16bca496f6afa513cef49f6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_capacity_fused_transcript_v1.zig",
+      "sha256": "94836304d8a62c08b369140df8e2c11509b71f3ad308c557019f6c9165869c69"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig",
+      "sha256": "7d561b47a36994ae68161030193418a11ac36bcb6c2b7fd69703849c0fb25f00"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/pcs_deep_circuit_build.zig",
+      "sha256": "2735e6680c663a9455872b30df43c1e152785a4742047edd55b2208bfc799013"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/pcs_deep_circuit_builder.zig",
+      "sha256": "74d7e078836065f07bd432d1688a4ae0da7379169ca3543388ffae391633a9b4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/pcs_deep_circuit_circuit.zig",
+      "sha256": "d09c497c0f0669e34b31281ccd3357e6f8f4c9ecb24ce08c8f459e173a67f33c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/pcs_deep_circuit_prepared.zig",
+      "sha256": "37921eba981311fa018f73714f14f0caa8bc1e63064c10b864adda45bda50079"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/pcs_deep_circuit_test.zig",
+      "sha256": "e6d17d1fcda9acb44358d7081372a038c33c852028457ea5a1bfb60c0fc07448"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/pcs_deep_plan_cache.zig",
+      "sha256": "3785e3330fa7ae8300c4236f0a9ecea49dbc180b775067f265407a87d81c38e9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/relation_interaction_runtime.zig",
+      "sha256": "e02dbe8803f2344ab19dfb8cf2d6cf75e4e644aeeccc05819e0ff7d6ffb31f79"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_plan.zig",
+      "sha256": "b0753b65c9ef6661a32f362180d89c63495825d3328edcdd2e7669d09228a6f5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig",
+      "sha256": "929fa99677fa03ccbf06b2842b31bfedbe01ab9142c2335a2a12c894b0a30537"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "76344962abd6b1ac8ecfcc21ccb0cfd9559f1d10db5da1b9b679dd9236dd3fc3"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_hash_layout.zig",
+      "sha256": "13576e454e19791e94199edf828fcbcaeb2ffb580dc3772597dd25f79bf037ca"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_producer.zig",
+      "sha256": "3337806d63a144479ae8e3432fd38c875ccf980bd3dee6f3d69e39033f1f86d2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/blake3_native_parent_worker.zig",
+      "sha256": "90a4a0e9cf02e1ab9d0a43bbf1aa481dfb55df609582d97d3c0fd95771b07870"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_child_frames_v1.zig",
+      "sha256": "8f93a6aa0f2640c2f9c681b98069f98cd979d4c04af732abfbb5112d87bd79b2"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_leaf_definition_v1.zig",
+      "sha256": "bba19458f8e7dd5eab21a601c6abc0788803efb3f0d03bc01b47b32e051d039e"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_parent_preparation_v1.zig",
+      "sha256": "051a71ad536abfef0ea00ed063699437f442e048711546ec33a9754d32d05c0c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_parent_receiver_v1.zig",
+      "sha256": "0f45f2b022f0a3cc80191fd99e154f97cccc8a8cd04863b9fafe24c435b8d124"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_policy_v1.zig",
+      "sha256": "f2f1ffac196543b420755f73242a7b7b1506771bbf814680977eabfbf0a7f8db"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_heterogeneous_public_bus_v1.zig",
+      "sha256": "bf8bdfdc4d49e4e175e0c1515f39e8d8862fa82478d59ad88c0647395adab4b9"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_native_capacity_fused_recursive_leaf_v1.zig",
+      "sha256": "c3ab84794f46fae3d76a8a20449edcee87082f25730a181698d27664d0715a0c"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_native_capacity_fused_recursive_public_bus_v1.zig",
+      "sha256": "f1c537406f3f1de1dae202607c48cf35290da83dc4553cfea8e417d8150a7632"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_recursive_fused_public_bus_v1.zig",
+      "sha256": "00decc9f731faf125e751fbfa5177a0939a1b185362e1c330ef107c977afc0b5"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_fused_parent_protocol_v1.zig",
+      "sha256": "f13b42d099b24162c943ca3ac3a65a109018257ef397b034bdf7695ae5627f63"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_heterogeneous_parent_protocol_v1.zig",
+      "sha256": "b85ad0608c056528d3341993c46e14c70de86d5ff0654b22a926694c0ddf1be3"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_native_capacity_fused_parent_protocol_v1.zig",
+      "sha256": "894ccb1aed51f585544e25d50d253d463976cf1114f8a11e58ef4b86c71d5217"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/pcs_arithmetic_capture.zig",
+      "sha256": "8ad4966823faa87c642db69cfae300b40543b1d9ce06ba847c5a2d61a3822f75"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/sample_point_layout.zig",
+      "sha256": "51c713109384735a43ff0cfe3915a7ed0c6070f307fcb87f54f6253754753a1a"
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "sha256": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d"
+    }
+  ],
+  "qualification_commands": {
+    "pure": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "test",
+      "--test-filter",
+      "global join recursion:",
+      "-OReleaseFast",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_global_join_recursive_test_root.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ],
+    "body": [
+      "/opt/homebrew/opt/zig@0.15/bin/zig",
+      "build-obj",
+      "-OReleaseFast",
+      "-femit-bin=/tmp/block-v5-global-join-recursive-body.o",
+      "-lc",
+      "-mcpu=native",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_cpu_backend",
+      "--dep",
+      "interop_postcard",
+      "--dep",
+      "stwo_prover_api",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mroot=src/frontends/riscv/block_v5_global_join_recursive_codegen_v1.zig",
+      "-Mstwo_core=src/core/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_backend_contracts",
+      "--dep",
+      "stwo_prover_api",
+      "-Mstwo_prover_engine=src/prover/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_backend_contracts=src/backend/mod.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_prover_api=src/prover_api/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_prover_engine",
+      "--dep",
+      "stwo_backend_contracts",
+      "-Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig",
+      "--dep",
+      "stwo_core",
+      "--dep",
+      "stwo_proof_wire",
+      "-Minterop_postcard=src/interop/postcard.zig",
+      "--dep",
+      "stwo_core",
+      "-Mstwo_proof_wire=src/interop/proof_wire/mod.zig"
+    ]
+  },
+  "pure_filter": "global join recursion:",
+  "pure_named_tests": 9,
+  "pure_includes_body_retention": true,
+  "body_export": "stwo_global_join_recursive_body_gate",
+  "api": {
+    "aggregate": "block_v5_global_join_parent_preparation_v1.Aggregate{plan,pin,limits}",
+    "prepare": "prepare(backing,policy,captures,capacity,row_limits,aggregate)!heterogeneous.Rows.Prepared",
+    "publication": "heterogeneous Stage.Options.aggregate routes actual aggregate graph; default null retains OPEN source/aggregate scope"
+  },
+  "scope": "Identical existing global join algebra over original child felts reconstructed from authenticated byte coordinates; actual lower/namespace/join/supply integrated with complete original child verifier and source-pairing parent rows. Independently pinned coordinate recipe and exact scoped metadata census. No complete block/source authority or default activation.",
+  "remaining": [
+    "Root-run nine pure/body checks and actual publication codegen; no proving authorized.",
+    "Independent authenticated semantic coordinate mapping; metadata pin alone is not semantic authority.",
+    "Original public endpoint compensation/program boundary derivation and source proof closure.",
+    "RAM link/initial/endpoint/range/count and final heterogeneous block statement closure.",
+    "Canonical driver publication/final complete activation remains disabled."
+  ],
+  "supersedes": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-join-recursion-source-candidate-v1.json",
+  "repair": "Discard-free unnamed native error diagnostic parameter in symbolic Sink, preserving exact equations and typed sticky recorder failure. Actual capacity-fused Claims initializer, shared ChildFrames base alias and generic RAM mixClaims dependency corrections are pinned separately."
+}

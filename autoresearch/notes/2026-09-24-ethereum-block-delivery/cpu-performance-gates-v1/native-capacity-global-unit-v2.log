@@ -1,0 +1,13 @@
+1/12 block_v5_capacity_global_test_root.test_0...OK
+2/12 prover.block_v5_capacity_global_receiver_test_v1.test.capacity globals: typed empty table hook retains frame register and auxiliary obligations and rejects altered receipts...OK
+3/12 prover.block_v5_capacity_global_receiver_test_v1.test.capacity globals: empty hook allocation failures do not publish or leak owned source schedules...OK
+4/12 prover.block_v5_capacity_global_receiver_test_v1.test.capacity globals: separate legacy opcode and table loaders remain unsupported before touching receipt or join...OK
+5/12 prover.block_v5_capacity_global_receiver_test_v1.test.capacity globals: complete recursion security and full width dynamic schedule validate before any proof loader...OK
+6/12 prover.block_v5_capacity_global_receiver_test_v1.test.capacity globals: legacy exports preserve nominal shared types while capacity receipts and loader signatures stay distinct...OK
+7/12 prover.block_v5_capacity_global_receiver_test_v1.test.capacity globals: complete policy reconstruction owns capacity geometry uses independent external count and native limits with rollback...OK
+8/12 air.semantic_eval.test_0...OK
+9/12 air.lookups.tables.mod.test_0...OK
+10/12 prover.block_execution_external_trace_v2.test_0...OK
+11/12 air.memory_commitment.poseidon2_air.test_0...OK
+12/12 air.lookups.tables.source_ingest.test_0...OK
+All 12 tests passed.

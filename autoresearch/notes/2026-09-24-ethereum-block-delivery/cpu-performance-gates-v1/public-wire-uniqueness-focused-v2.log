@@ -1,0 +1,7 @@
+1/6 block_v5_public_wire_uniqueness_test_root.test_0...OK
+2/6 recursion.public_wire_uniqueness_test_v1.test.public wire uniqueness: all eight exact original transcript framings preserve arbitrary order...OK
+3/6 recursion.public_wire_uniqueness_test_v1.test.public wire uniqueness: separated duplicates reject regardless of differing uses and source metadata...OK
+4/6 recursion.public_wire_uniqueness_test_v1.test.public wire uniqueness: original zero size canonical field and source bounds remain fail closed...OK
+5/6 recursion.public_wire_uniqueness_test_v1.test.public wire uniqueness: maximum caller schedule and full u32 wire identity need no heap allocation...OK
+6/6 recursion.public_wire_uniqueness_test_v1.test.public wire uniqueness: exhaustive small arbitrary permutations agree with independent pairwise authority...OK
+All 6 tests passed.

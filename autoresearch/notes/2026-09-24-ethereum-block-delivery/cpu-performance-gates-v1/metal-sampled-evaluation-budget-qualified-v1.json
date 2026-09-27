@@ -1,0 +1,111 @@
+{
+  "schema": "metal-sampled-evaluation-budget-qualified-v1",
+  "status": "focused_source_qualified",
+  "test_root": "src/metal_sampled_budget_test_root.zig",
+  "test_filter": "sampled budget:",
+  "expected_selected_fixtures": 9,
+  "body_root": "src/metal_sampled_budget_codegen.zig",
+  "body_export": "stwo_metal_sampled_budget_body_gate",
+  "device_executed": false,
+  "stark_proved": false,
+  "source_freeze": true,
+  "scope": "Constructor-time sampled coefficient/resident/host barycentric admission; joined-wave release; explicit ordinary compatibility; strict owner binding of new scratch. Existing borrowed input source owner provenance remains a separate gap.",
+  "sources": [
+    {
+      "path": "src/backends/metal/runtime/polynomial_evaluation.m",
+      "sha256": "7c45859204f9f4171ce912783a2a459a0ce04c2586ed015cde76942f839a968d",
+      "bytes": 59681
+    },
+    {
+      "path": "src/backends/metal/runtime/sampled_coefficient_operations.zig",
+      "sha256": "d5ab43991da4d58a8626ba00011d7023d90738afd96db4b44a721ecffc7ce7aa",
+      "bytes": 18695
+    },
+    {
+      "path": "src/backends/metal/runtime/sampled_barycentric_operations.zig",
+      "sha256": "25b10a04dea0b0b694ea07955a48c668da47731ef5431cfbb4604ad286d251df",
+      "bytes": 33549
+    },
+    {
+      "path": "src/backends/metal/runtime/sampled_dispatch_budget_v1.zig",
+      "sha256": "740d5fdf16e74d467948533e0d3656002056d82711bbe73316d9c4f25665a7e2",
+      "bytes": 8099
+    },
+    {
+      "path": "src/backends/metal/runtime/sampled_dispatch_bindings_v1.zig",
+      "sha256": "e349fa15f5a0d85111b9dbbe3c7ebf73c43b9952ce61a7aa683c9967d9bce3e2",
+      "bytes": 2738
+    },
+    {
+      "path": "src/metal_sampled_budget_test_root.zig",
+      "sha256": "bac6c85f9c7e64f0ea10228d6f4d3dc717c0dec66179ca6a89dc36b728319402",
+      "bytes": 10498
+    },
+    {
+      "path": "src/metal_sampled_budget_codegen.zig",
+      "sha256": "c08f18af22c047b02e81ee75240ec171db4bcfcdd6296284f74ac14f1cb53b7d",
+      "bytes": 3316
+    },
+    {
+      "path": "design/riscv-proving-stack/metal-sampled-evaluation-budget-v1.md",
+      "sha256": "4bba9b2cc56dfcac00d672e1f31f0547aed59188deffc8107b97125e645ac68f",
+      "bytes": 5578
+    },
+    {
+      "path": "src/backends/metal/runtime/external_allocation_admission_v1.zig",
+      "sha256": "806f541add6edcb3035fd2a0306add30560a3679d14d6f99d750f5c74d6e83e9",
+      "bytes": 2944
+    },
+    {
+      "path": "src/prover/shared_external_memory_v1.zig",
+      "sha256": "d2cecd2d3cf5fb1dbb4611a8c7ed6b7a1da14738e376215c580a8d53b3c18fc2",
+      "bytes": 7620
+    },
+    {
+      "path": "src/prover/host_budget_allocator.zig",
+      "sha256": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+      "bytes": 16483
+    },
+    {
+      "path": "src/backends/metal/runtime.zig",
+      "sha256": "8aaef34a673e5d88ff46d4cebdf35fc310584ac606ea5a8ffc6080cc2b40c89c",
+      "bytes": 20701
+    },
+    {
+      "path": "src/backends/metal/runtime/bindings.zig",
+      "sha256": "d72440335a68b1e06cd85aee9213b3e7136e439807334da3f229af35200cc06e",
+      "bytes": 39554
+    }
+  ],
+  "tests_passed": 9,
+  "production_bodies_compiled": true,
+  "full_objective_c_runtime_syntax_checked": true,
+  "performance_measured": false,
+  "source_freeze_manifest": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/metal-sampled-evaluation-budget-source-freeze-v1.json",
+    "sha256": "98ebb82f01aa9858e199ce08a31e781a02a28062bbe5c8a78f15c590428c14ef",
+    "bytes": 3090
+  },
+  "evidence": [
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/metal-sampled-budget-contracts-v1.log",
+      "sha256": "34b13336647a00bcae3c7c21f5bca4968b07c2243475f128dfd6bdc1d99edee3",
+      "bytes": 1201
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/metal-sampled-budget-production-body-v1.o",
+      "sha256": "c5f76c4427d71a692dcdeb7f81d558c4cd0051f9667577d173d9d41139795ba6",
+      "bytes": 3918080
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/metal-sampled-budget-production-body-v1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/metal-sampled-budget-runtime-objective-c-v1.log",
+      "sha256": "7eef4dfc435115ffe1d2e542c8760732b51bf6c8dcf218a505ea14a5b7058159",
+      "bytes": 742
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "scope": "One real ordinary native-v3 execution and global provider kernel; exact recursive forest pending",
+  "security": {
+    "fri_queries": 8,
+    "pow_bits": 0,
+    "log_blowup_factor": 1
+  },
+  "command": "zig test -OReleaseFast -lc -mcpu=native --test-filter 'block-v5' --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_cpu_backend -Mroot=src/frontends/riscv/block_v5_full_join_test_root.zig -Mstwo_core=src/core/mod.zig --dep stwo_core -Mstwo_backend_contracts=src/backend/mod.zig --dep stwo_core --dep stwo_backend_contracts -Mstwo_prover_api=src/prover_api/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep interop_postcard -Mstwo_prover_engine=src/prover/mod.zig --dep stwo_core --dep stwo_proof_wire -Mstwo_riscv_frontend=src/frontends/riscv/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Minterop_postcard=src/interop/postcard.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig -Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+  "result": {
+    "passed": 14,
+    "failed": 0,
+    "allocator_teardown": "std.testing.allocator clean",
+    "executions": 1,
+    "rom_fetches": 1,
+    "memory_events": 2,
+    "byte_requests": 28,
+    "lookup_groups": 1,
+    "output": "BLOCK_V5_FULL_JOIN native3=true rom=true grouped_tables=true packed_memory=true pc_clock=true globals_closed=true recursive=pending complete=false"
+  },
+  "fresh_verification": [
+    "Global.verifyGlobals reconstructs complete SourceSeal and independent source/catalog/span policy",
+    "Native-v3 artifact reopened under independently pinned template/instance then freshly verifies once in receiver",
+    "Same-native-root ROM request and table/state/auxiliary-clock projection",
+    "Complete decoded ROM provider",
+    "Exact field-safe six-table provider group with native plus packed byte counters",
+    "Same-native-root packed opcode sidecar via fresh native hook",
+    "Packed sorted36 memory and range16 provider",
+    "Initial/final register custody and RW endpoints",
+    "Per-leaf PC/clock and exact packed transition/event closure",
+    "Final arithmetic residual zero"
+  ],
+  "negatives": [
+    "wrong independently expected source-seal digest rejected",
+    "changed provider demand rejected before proof loading",
+    "native codec wrong instance/trailing bytes rejected",
+    "separate qualified packed-memory gate re-sealed clock bit32 mismatch rejected"
+  ],
+  "complete_block_verified": false,
+  "exact_recursive_forest": "pending",
+  "sparse_precompile_jobs": "rejected until authenticated family11 six-table partition joins exact field-safe groups",
+  "performance": {
+    "timers_measured": false,
+    "tracked_peak_measured": false
+  }
+}

@@ -1,0 +1,28 @@
+test-blake3-retry-control
++- BLAKE3 retry control guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.blake3_retry_control_test.test.BLAKE3 retry controller pins first acceptance and consumed count' failed: retry controller digest: bc7f9f9df841aae93d1cff37cd8a107c584d8ba40856075ff995b08206b449f5
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+BC 7F 9F 9D F8 41 AA E9  3D 1C FF 37 CD 8A 10 7C  .....A..=..7...|
+58 4D 8B A4 08 56 07 5F  F9 95 B0 82 06 B4 49 F5  XM...V._......I.
+
+================================================
+error: while executing test 'recursion.air.blake3_retry_control_test.test.BLAKE3 retry controller pins first acceptance and consumed count', the following test command failed:
+./.zig-cache/o/19561946693a22a758a25978a478aa27/test --cache-dir=./.zig-cache --seed=0x59135d4d --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-blake3-retry-control transitive failure
++- BLAKE3 retry control guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:639M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/3258dcce5340aa5000f6a73e8bbc29da/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x59135d4d -Z89db346323c763b0 --maxrss 25769803776 -j1 test-blake3-retry-control -Doptimize=ReleaseSafe --summary all

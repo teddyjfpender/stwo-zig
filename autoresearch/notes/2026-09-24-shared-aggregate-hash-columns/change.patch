@@ -1,0 +1,597 @@
+--- a/src/frontends/riscv/recursion/blake3_execution_aggregate.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_aggregate.zig
+@@ -26,6 +26,12 @@
+     return span.SpanStatement.fold(statements[0], statements[1]);
+ }
+ pub fn prepareOwned(a: std.mem.Allocator, left: *parent.Prepared, right: *parent.Prepared, statements: [2]span.SpanStatement) !Fold {
++    return prepareImpl(a, left, right, statements, null);
++}
++pub fn prepareShared(a: std.mem.Allocator, left: *parent.PartitionPrepared, right: *parent.PartitionPrepared, statements: [2]span.SpanStatement, columns: *@import("blake3_native_hash_columns.zig").Owner) !Fold {
++    return prepareImpl(a, left, right, statements, columns);
++}
++fn prepareImpl(a: std.mem.Allocator, left: anytype, right: @TypeOf(left), statements: [2]span.SpanStatement, columns: ?*@import("blake3_native_hash_columns.zig").Owner) !Fold {
+     // One owner cannot be both children.
+     if (left == right) return error.AliasedAggregateChildren;
+     defer left.deinit();
+@@ -57,6 +63,10 @@
+     context.span_binding_id = binding.digestBytes();
+     try rebase.apply(&left.rows, &left_namespace, namespace_ids[0]);
+     try rebase.apply(&right.rows, &right_namespace, namespace_ids[1]);
+-    const rows = try join.joinDraining(a, &left.rows, &right.rows, .{ .{ .first = left_namespace.first, .end = try left_namespace.end() }, .{ .first = right_namespace.first, .end = try right_namespace.end() } });
++    const ranges = [2]join.Range{ .{ .first = left_namespace.first, .end = try left_namespace.end() }, .{ .first = right_namespace.first, .end = try right_namespace.end() } };
++    const rows = if (@TypeOf(left.*) == parent.PartitionPrepared)
++        try join.joinShared(&left.rows, &right.rows, ranges, columns orelse return error.InvalidAggregateChild)
++    else
++        try join.joinDraining(a, &left.rows, &right.rows, ranges);
+     return .{ .prepared = .{ .rows = rows, .context = context }, .statement = statement };
+ }
+--- a/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig
+@@ -38,6 +38,14 @@
+     }
+ };
+ const Budget = @import("stwo_prover_engine").host_budget_allocator.SharedHostBudget;
++pub const PartitionPrepared = struct {
++    rows: @import("air/blake3_parent_row_storage.zig").Partition,
++    context: Context,
++    pub fn deinit(self: *PartitionPrepared) void {
++        self.rows.deinit();
++        self.* = undefined;
++    }
++};
+ pub const Prepared = struct {
+     rows: rows_mod.Prepared,
+     context: Context,
+@@ -169,6 +177,9 @@
+     pub fn finish(self: *State) !Prepared {
+         return .{ .rows = try rows_mod.prepareWithHashColumns(self.sources(), &self.hash_columns), .context = self.context };
+     }
++    pub fn finishPartition(self: *State) !PartitionPrepared {
++        return .{ .rows = try rows_mod.preparePartition(self.sources(), &self.hash_columns), .context = self.context };
++    }
+     pub fn deinit(self: *State) void {
+         self.openings.deinit();
+         self.paths.deinit();
+@@ -204,6 +215,16 @@
+         self.state = null;
+     }
+     pub fn emit(owner: *Planned) !*State {
++        return owner.emitImpl(null);
++    }
++    pub fn emitPartition(owner: *Planned, columns: @import("blake3_native_hash_columns.zig").Owner) !*State {
++        errdefer owner.deinit();
++        if (owner.state == null) return error.ConsumedParentPlan;
++        if (columns.owns_backing or !std.meta.eql(owner.layout, columns.layout)) return error.InvalidNativeHashColumns;
++        _ = try columns.view();
++        return owner.emitImpl(columns);
++    }
++    fn emitImpl(owner: *Planned, borrowed: ?@import("blake3_native_hash_columns.zig").Owner) !*State {
+         const self = owner.state orelse return error.ConsumedParentPlan;
+         defer owner.deinit();
+         const a = self.allocator;
+@@ -211,7 +232,7 @@
+         const proof = owner.proof;
+         const planned = if (owner.transcript) |*value| value else return error.ConsumedParentPlan;
+         var profile = PreparationProfile.init();
+-        self.hash_columns = try @import("blake3_native_hash_columns.zig").Owner.init(a, layout);
++        self.hash_columns = borrowed orelse try @import("blake3_native_hash_columns.zig").Owner.init(a, layout);
+         errdefer self.hash_columns.deinit();
+         profile.lap("hash_columns");
+         self.transcript = try planned.emitMainColumns(a, try self.hash_columns.transcript());
+--- a/src/frontends/riscv/recursion/air/blake3_parent_rebase.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_rebase.zig
+@@ -45,7 +45,7 @@
+         return if (low < self.old.len and self.old[low] == id) self.first + @as(u32, @intCast(low)) else null;
+     }
+ };
+-pub fn prepare(a: std.mem.Allocator, parent: *const storage.Prepared, first: u32) !Plan {
++pub fn prepare(a: std.mem.Allocator, parent: anytype, first: u32) !Plan {
+     const masks = try geometry(parent);
+     var ids = std.AutoHashMap(u32, void).init(a);
+     defer ids.deinit();
+@@ -65,7 +65,7 @@
+     _ = try plan.end();
+     return plan;
+ }
+-pub fn apply(parent: *storage.Prepared, plan: *const Plan, expected: [32]u8) !void {
++pub fn apply(parent: anytype, plan: *const Plan, expected: [32]u8) !void {
+     if (!std.mem.eql(u8, &try plan.identity(), &expected)) return error.UntrustedParentRebase;
+     const masks = try geometry(parent);
+     // Complete preflight. A missing identifier cannot leave half-renamed rows.
+@@ -79,22 +79,22 @@
+             const value = M.fromCanonical(plan.map(read(Air, parent, i, col, row).toU32()).?);
+             if (col < Air.PHYSICAL_MAIN_COLUMN_COUNT) {
+                 const column = parent.main[i][col];
+-                @constCast(column.values)[committed(row, column.log_size)] = value;
++                @constCast(column.values)[committed(storage.rowBase(parent, i) + row, column.log_size)] = value;
+             } else parent.fixed[i][row][col - Air.PHYSICAL_MAIN_COLUMN_COUNT] = value;
+         };
+     };
+ }
+-fn geometry(parent: *const storage.Prepared) !Masks {
++fn geometry(parent: anytype) !Masks {
+     var masks: Masks = undefined;
+     inline for (storage.Airs, 0..) |Air, i| {
+         var definition = if (@hasDecl(Air, "Location")) try Air.build(parent.allocator, .generated) else try Air.build(parent.allocator);
+         defer definition.deinit();
+         masks[i] = try ns.renamingColumns(Air, &definition);
+         if (parent.main[i].len != Air.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentRebase;
+-        for (parent.main[i]) |column| if (column.log_size > 30 or column.values.len != @as(usize, 1) << @intCast(column.log_size) or parent.fixed[i].len > column.values.len) return error.InvalidParentRebase;
++        for (parent.main[i]) |column| if (column.log_size > 30 or column.values.len != @as(usize, 1) << @intCast(column.log_size) or storage.rowBase(parent, i) > column.values.len or parent.fixed[i].len > column.values.len - storage.rowBase(parent, i)) return error.InvalidParentRebase;
+     }
+     return masks;
+ }
+-fn read(comptime Air: type, parent: *const storage.Prepared, comptime i: usize, col: usize, row: usize) M {
+-    return if (col < Air.PHYSICAL_MAIN_COLUMN_COUNT) parent.main[i][col].values[committed(row, parent.main[i][col].log_size)] else parent.fixed[i][row][col - Air.PHYSICAL_MAIN_COLUMN_COUNT];
++fn read(comptime Air: type, parent: anytype, comptime i: usize, col: usize, row: usize) M {
++    return if (col < Air.PHYSICAL_MAIN_COLUMN_COUNT) parent.main[i][col].values[committed(storage.rowBase(parent, i) + row, parent.main[i][col].log_size)] else parent.fixed[i][row][col - Air.PHYSICAL_MAIN_COLUMN_COUNT];
+ }
+--- a/src/frontends/riscv/recursion/blake3_native_hash_layout.zig
++++ b/src/frontends/riscv/recursion/blake3_native_hash_layout.zig
+@@ -24,7 +24,7 @@
+         }
+         return fromCounts(transcript, paths);
+     }
+-    fn fromCounts(transcript: Counts, paths: Counts) !Layout {
++    pub fn fromCounts(transcript: Counts, paths: Counts) !Layout {
+         const total = Counts{ .g = try std.math.add(usize, transcript.g, paths.g), .xor = try std.math.add(usize, transcript.xor, paths.xor) };
+         const logs = [2]u32{ rowLog(total.g), rowLog(total.xor) };
+         if (logs[0] > 24 or logs[1] > 24) return error.InvalidNativeHashLayout;
+--- a/src/frontends/riscv/recursion/air/blake3_parent_namespace.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_namespace.zig
+@@ -3,7 +3,7 @@
+ const storage = @import("blake3_parent_row_storage.zig");
+ const relation = @import("../../air/lang/relation.zig");
+ const committed = @import("framework_interaction.zig").committedRow;
+-pub fn rejectRange(parent: *const storage.Prepared, start: u32, end: u32) !void {
++pub fn rejectRange(parent: anytype, start: u32, end: u32) !void {
+     inline for (storage.Airs, 0..) |Air, i| {
+         var definition = if (@hasDecl(Air, "Location")) try Air.build(parent.allocator, .generated) else try Air.build(parent.allocator);
+         defer definition.deinit();
+@@ -13,7 +13,7 @@
+             if (!used) continue;
+             if (column < Air.PHYSICAL_MAIN_COLUMN_COUNT and parent.main[i].len != Air.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentNamespaceLayout;
+             for (parent.fixed[i], 0..) |row, logical| {
+-                const value = if (column < Air.PHYSICAL_MAIN_COLUMN_COUNT) parent.main[i][column].values[committed(logical, parent.main[i][column].log_size)] else row[column - Air.PHYSICAL_MAIN_COLUMN_COUNT];
++                const value = if (column < Air.PHYSICAL_MAIN_COLUMN_COUNT) parent.main[i][column].values[committed(storage.rowBase(parent, i) + logical, parent.main[i][column].log_size)] else row[column - Air.PHYSICAL_MAIN_COLUMN_COUNT];
+                 if (value.toU32() >= start and value.toU32() < end) return error.InvalidParentCustodyNamespace;
+             }
+         }
+--- a/src/frontends/riscv/recursion/blake3_execution_tree.zig
++++ b/src/frontends/riscv/recursion/blake3_execution_tree.zig
+@@ -65,13 +65,18 @@
+     // Complete both authenticated layouts before either child allocates its
+     // final hash columns. Both waves reuse the same bounded pool policy.
+     try runWave(&jobs, pool);
+-    for (&jobs) |*job| job.emitting = true;
++    var shared = try @import("blake3_native_hash_columns.zig").Shared.init(a, .{ jobs[0].planned.?.layout, jobs[1].planned.?.layout });
++    defer shared.deinit();
++    for (&jobs, 0..) |*job, i| {
++        job.hash_columns = try shared.partition(i);
++        job.emitting = true;
++    }
+     try runWave(&jobs, pool);
+     var l = jobs[0].owned.?;
+     var r = jobs[1].owned.?;
+     jobs[0].owned = null;
+     jobs[1].owned = null;
+-    return aggregate.prepareOwned(a, &l, &r, .{ left.statement, right.statement });
++    return aggregate.prepareShared(a, &l, &r, .{ left.statement, right.statement }, &shared.owner);
+ }
+ fn runWave(jobs: *[2]Preparation, pool: ?*@import("stwo_prover_engine").work_pool.WorkPool) !void {
+     if (pool) |workers| {
+@@ -94,7 +99,8 @@
+     a: std.mem.Allocator,
+     node: *const Node,
+     capacity: u32,
+-    owned: ?parent.Prepared = null,
++    owned: ?parent.PartitionPrepared = null,
++    hash_columns: ?@import("blake3_native_hash_columns.zig").Owner = null,
+     planned: ?parent.Planned = null,
+     emitting: bool = false,
+     failure: ?anyerror = null,
+@@ -106,12 +112,12 @@
+             };
+             return;
+         }
+-        const state = self.planned.?.emit() catch |err| {
++        const state = self.planned.?.emitPartition(self.hash_columns.?) catch |err| {
+             self.failure = err;
+             return;
+         };
+         defer state.deinit();
+-        self.owned = state.finish() catch |err| {
++        self.owned = state.finishPartition() catch |err| {
+             self.failure = err;
+             return;
+         };
+--- a/src/frontends/riscv/recursion/air/blake3_parent_join_test.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_join_test.zig
+@@ -159,3 +159,78 @@
+     defer output.deinit();
+     return budget.snapshot().peak_live_bytes;
+ }
++
++const hash_columns = @import("../blake3_native_hash_columns.zig");
++const HashLayout = @import("../blake3_native_hash_layout.zig").Layout;
++fn partitionFixture(a: std.mem.Allocator, circuit: u32, count: usize, columns: *const hash_columns.Owner) !storage.Partition {
++    var source = try wideFixture(a, circuit, count);
++    defer source.deinit();
++    inline for (0..2) |i| {
++        for (source.main[i], columns.main[i]) |from, to| {
++            for (0..source.fixed[i].len) |logical| {
++                @constCast(to.values)[committed(columns.first[i] + logical, to.log_size)] = from.values[committed(logical, from.log_size)];
++            }
++            a.free(from.values);
++        }
++        a.free(source.main[i]);
++        source.main[i] = &.{};
++    }
++    var result = storage.Partition{ .allocator = a, .main = source.main, .fixed = source.fixed, .input_count = source.input_count, .first = columns.first };
++    result.main[0] = columns.main[0];
++    result.main[1] = columns.main[1];
++    source.main = @splat(&.{});
++    inline for (0..storage.Airs.len) |i| source.fixed[i] = &.{};
++    return result;
++}
++fn sharedFixture(a: std.mem.Allocator, counts: [2]usize) !hash_columns.Shared {
++    return hash_columns.Shared.init(a, .{
++        try HashLayout.fromCounts(.{ .g = counts[0], .xor = 0 }, .{ .g = 0, .xor = 0 }),
++        try HashLayout.fromCounts(.{ .g = counts[1], .xor = 0 }, .{ .g = 0, .xor = 0 }),
++    });
++}
++test "BLAKE3 shared hash partitions preserve join values padding and ownership" {
++    const a = std.testing.allocator;
++    const ranges = [2]join.Range{ .{ .first = 1, .end = 2 }, .{ .first = 101, .end = 102 } };
++    for ([_][2]usize{ .{ 0, 0 }, .{ 0, 3 }, .{ 3, 0 }, .{ 3, 5 }, .{ 513, 1025 } }) |counts| {
++        var expected_left = try wideFixture(a, 1, counts[0]);
++        defer expected_left.deinit();
++        var expected_right = try wideFixture(a, 101, counts[1]);
++        defer expected_right.deinit();
++        var expected = try join.join(a, &expected_left, &expected_right, ranges);
++        defer expected.deinit();
++        var shared = try sharedFixture(a, counts);
++        defer shared.deinit();
++        const left_columns = try shared.partition(0);
++        const right_columns = try shared.partition(1);
++        var left = try partitionFixture(a, 1, counts[0], &left_columns);
++        defer left.deinit();
++        var right = try partitionFixture(a, 101, counts[1], &right_columns);
++        defer right.deinit();
++        const original = shared.owner.main[0][0].values.ptr;
++        right.first[0] += 1;
++        try std.testing.expectError(error.InvalidParentJoinColumns, join.joinShared(&left, &right, ranges, &shared.owner));
++        right.first[0] -= 1;
++        try std.testing.expectEqual(original, shared.owner.main[0][0].values.ptr);
++        var result = try join.joinShared(&left, &right, ranges, &shared.owner);
++        defer result.deinit();
++        try std.testing.expectEqual(original, result.main[0][0].values.ptr);
++        try std.testing.expectEqual(@as(usize, 0), shared.owner.main[0].len + shared.owner.main[1].len);
++        inline for (0..storage.Airs.len) |i| {
++            try std.testing.expectEqualDeep(expected.fixed[i], result.fixed[i]);
++            for (expected.main[i], result.main[i]) |want, got| try std.testing.expectEqualDeep(want, got);
++        }
++    }
++    try std.testing.checkAllAllocationFailures(a, sharedFailureCase, .{});
++}
++fn sharedFailureCase(a: std.mem.Allocator) !void {
++    var shared = try sharedFixture(a, .{ 3, 5 });
++    defer shared.deinit();
++    const left_columns = try shared.partition(0);
++    const right_columns = try shared.partition(1);
++    var left = try partitionFixture(std.testing.allocator, 1, 3, &left_columns);
++    defer left.deinit();
++    var right = try partitionFixture(std.testing.allocator, 101, 5, &right_columns);
++    defer right.deinit();
++    var result = try join.joinShared(&left, &right, .{ .{ .first = 1, .end = 2 }, .{ .first = 101, .end = 102 } }, &shared.owner);
++    defer result.deinit();
++}
+--- a/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
++++ b/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
+@@ -59,18 +59,23 @@
+ }
+ 
+ pub fn prepare(a: std.mem.Allocator, source: anytype) !Prepared {
+-    return prepareMode(false, a, source, null);
++    return prepareMode(false, false, a, source, null);
+ }
+ pub fn prepareCensus(a: std.mem.Allocator, source: anytype) !Prepared {
+-    return prepareMode(true, a, source, null);
++    return prepareMode(true, false, a, source, null);
+ }
+ /// Transfers main-column ownership only after every fallible assembly step.
+ /// Transferred columns and the returned rows retain one allocation authority.
+ /// Stateless allocators may have an undefined context pointer: never compare it.
+ pub fn prepareWithHashColumns(source: anytype, columns: *HashColumns) !Prepared {
+-    return prepareMode(false, columns.allocator, source, columns);
+-}
+-fn prepareMode(comptime audit: bool, a: std.mem.Allocator, source: anytype, hash_columns: ?*HashColumns) !Prepared {
++    if (!columns.owns_backing) return error.InvalidNativeHashColumns;
++    return prepareMode(false, false, columns.allocator, source, columns);
++}
++pub fn preparePartition(source: anytype, columns: *HashColumns) !storage.Partition {
++    if (columns.owns_backing) return error.InvalidNativeHashColumns;
++    return prepareMode(false, true, columns.allocator, source, columns);
++}
++fn prepareMode(comptime audit: bool, comptime shared: bool, a: std.mem.Allocator, source: anytype, hash_columns: ?*HashColumns) !(if (shared) storage.Partition else Prepared) {
+     if (hash_columns) |owner| {
+         if (source.transcript.live.hash_metadata == null or source.paths.hash_metadata == null) return error.InvalidNativeHashColumns;
+         const transcript = try owner.transcript();
+@@ -266,7 +271,7 @@
+     inline for (Airs, 0..) |Air, i| {
+         const log: u32 = if (b.fixed[i].items.len <= 1) 1 else std.math.log2_int_ceil(usize, b.fixed[i].items.len);
+         const adopted: ?[]Column = if (comptime i < 2) if (hash_columns) |owner| blk: {
+-            if (log != owner.layout.logs[i]) return error.InvalidNativeHashColumns;
++            if (!shared and log != owner.layout.logs[i]) return error.InvalidNativeHashColumns;
+             break :blk owner.main[i];
+         } else null else null;
+         if (adopted) |columns| {
+@@ -289,6 +294,7 @@
+         fixed[i] = try b.fixed[i].toOwnedSlice(a);
+     }
+     if (audit) std.debug.print("NATIVE_ROW_CAPACITY scratch_released_at_return={d}\n", .{arena.queryCapacity()});
++    if (shared) return .{ .allocator = a, .main = main, .fixed = fixed, .input_count = input_count, .first = hash_columns.?.first };
+     if (hash_columns) |owner| owner.main = @splat(&.{});
+     return .{ .allocator = a, .main = main, .fixed = fixed, .input_count = input_count };
+ }
+--- a/src/frontends/riscv/prover/blake3_parent_plan_test_support.zig
++++ b/src/frontends/riscv/prover/blake3_parent_plan_test_support.zig
+@@ -35,5 +35,41 @@
+         try std.testing.expect(plan.state == null and plan.transcript == null);
+         try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+     }
++    try checkShared(a, admitted, capture, expected);
+     std.debug.print("PARENT_PLAN_LIFECYCLE abandoned=true consumed=true emission_failures=4 allocations={d}\n", .{allocations});
+ }
++
++fn checkShared(a: std.mem.Allocator, admitted: anytype, capture: anytype, expected: [32]u8) !void {
++    var emission_allocations: usize = 0;
++    for (0..3) |attempt| {
++        var tracking = std.testing.FailingAllocator.init(a, .{});
++        var backing = std.testing.FailingAllocator.init(a, .{});
++        var plan = try parent.State.plan(tracking.allocator(), admitted, capture, expected, 2);
++        defer plan.deinit();
++        var shared = try @import("../recursion/blake3_native_hash_columns.zig").Shared.init(backing.allocator(), .{ plan.layout, plan.layout });
++        var shared_alive = true;
++        defer if (shared_alive) shared.deinit();
++        const columns = try shared.partition(1);
++        const first_allocation = tracking.alloc_index;
++        if (attempt != 0) tracking.fail_index = first_allocation + (if (attempt == 1) @as(usize, 0) else emission_allocations - 1);
++        const emitted = plan.emitPartition(columns);
++        if (attempt == 0) {
++            const state = try emitted;
++            emission_allocations = tracking.alloc_index - first_allocation;
++            try std.testing.expect(emission_allocations > 0);
++            try std.testing.expect(!state.hash_columns.owns_backing);
++            try std.testing.expectEqual(shared.owner.main[0].ptr, state.hash_columns.main[0].ptr);
++            state.deinit();
++        } else if (emitted) |state| {
++            state.deinit();
++            return error.MissingInjectedEmissionFailure;
++        } else |err| try std.testing.expectEqual(error.OutOfMemory, err);
++        try std.testing.expect(plan.state == null and plan.transcript == null);
++        try std.testing.expectEqual(tracking.allocated_bytes, tracking.freed_bytes);
++        try std.testing.expectEqual(@as(usize, 0), backing.freed_bytes);
++        shared.deinit();
++        shared_alive = false;
++        try std.testing.expectEqual(backing.allocated_bytes, backing.freed_bytes);
++    }
++    std.debug.print("SHARED_PARENT_PLAN_LIFECYCLE backing_preserved=true emission_failures=2\n", .{});
++}
+--- a/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_row_storage.zig
+@@ -110,3 +110,26 @@
+ pub fn directCohort(comptime i: usize) bool {
+     return i == 0 or i == 1 or i == 7;
+ }
++
++/// An assembly-only child view. Hash columns belong to a Shared owner; other
++/// columns and all fixed metadata belong to this partition. Not a prover input.
++pub const Partition = struct {
++    allocator: std.mem.Allocator,
++    main: [Airs.len][]Column,
++    fixed: FixedTuple(false),
++    input_count: usize,
++    first: [2]usize,
++    pub fn deinit(self: *Partition) void {
++        inline for (0..Airs.len) |i| {
++            if (i >= 2) {
++                for (self.main[i]) |column| self.allocator.free(column.values);
++                self.allocator.free(self.main[i]);
++            }
++            self.allocator.free(self.fixed[i]);
++        }
++        self.* = undefined;
++    }
++};
++pub fn rowBase(parent: anytype, comptime i: usize) usize {
++    return if (@hasField(@TypeOf(parent.*), "first") and i < 2) parent.first[i] else 0;
++}
+--- a/src/integrations/riscv_cpu/build_blake3_steps.zig
++++ b/src/integrations/riscv_cpu/build_blake3_steps.zig
+@@ -16,6 +16,7 @@
+         "BLAKE3 memory update proves tiled join matches logical rows and padding",
+         "BLAKE3 draining join preserves columns and releases partial ownership",
+         "BLAKE3 draining join bounds simultaneous source and destination columns",
++        "BLAKE3 shared hash partitions preserve join values padding and ownership",
+     };
+     const join_tests = b.addTest(.{ .root_module = join_root, .filters = join_names });
+     b.step("test-blake3-parent-join", "Qualify owned column join parity, failure cleanup and peak allocation")
+--- a/src/frontends/riscv/recursion/air/blake3_parent_join.zig
++++ b/src/frontends/riscv/recursion/air/blake3_parent_join.zig
+@@ -14,20 +14,38 @@
+     }
+ };
+ pub fn join(a: std.mem.Allocator, left: *const storage.Prepared, right: *const storage.Prepared, ranges: [2]Range) !storage.Prepared {
+-    return joinImpl(false, a, left, right, ranges);
++    return joinImpl(false, a, left, right, ranges, null);
+ }
+ /// Destructive column transfer: the caller must deinit both children on success
+ /// or failure and must not reuse their rows. Admission precedes any mutation.
+ /// A bounded column batch is allocated/copied before its source buffers are freed.
+ pub fn joinDraining(a: std.mem.Allocator, left: *storage.Prepared, right: *storage.Prepared, ranges: [2]Range) !storage.Prepared {
+     if (left == right) return error.AliasedAggregateChildren;
+-    return joinImpl(true, a, left, right, ranges);
++    return joinImpl(true, a, left, right, ranges, null);
++}
++/// Both partitions must be destroyed on every path. The shared owner keeps its
++/// backing on failure and transfers it only after all fallible assembly succeeds.
++pub fn joinShared(left: *storage.Partition, right: *storage.Partition, ranges: [2]Range, owner: *@import("../blake3_native_hash_columns.zig").Owner) !storage.Prepared {
++    if (left == right or !owner.owns_backing) return error.InvalidParentJoinColumns;
++    _ = try owner.view();
++    inline for (0..2) |i| {
++        const count = try std.math.add(usize, left.fixed[i].len, right.fixed[i].len);
++        const expected = if (i == 0) owner.layout.total.g else owner.layout.total.xor;
++        if (count != expected or owner.first[i] != 0) return error.InvalidParentJoinColumns;
++        const log: u32 = if (count < 2) 1 else std.math.log2_int_ceil(usize, count);
++        if (left.first[i] != 0 or right.first[i] != left.fixed[i].len or owner.main[i].len != storage.Airs[i].PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentJoinColumns;
++        for ([_]*storage.Partition{ left, right }) |part| {
++            if (part.main[i].ptr != owner.main[i].ptr or part.main[i].len != owner.main[i].len) return error.InvalidParentJoinColumns;
++        }
++        for (owner.main[i]) |column| if (column.log_size != log or column.values.len != @as(usize, 1) << @intCast(log)) return error.InvalidParentJoinColumns;
++    }
++    return joinImpl(true, owner.allocator, left, right, ranges, owner);
+ }
+ const COLUMN_BATCH = 16;
+-fn joinImpl(comptime drain: bool, a: std.mem.Allocator, left: if (drain) *storage.Prepared else *const storage.Prepared, right: if (drain) *storage.Prepared else *const storage.Prepared, ranges: [2]Range) !storage.Prepared {
++fn joinImpl(comptime drain: bool, a: std.mem.Allocator, left: anytype, right: @TypeOf(left), ranges: [2]Range, shared: ?*@import("../blake3_native_hash_columns.zig").Owner) !storage.Prepared {
+     for (ranges) |range| try range.validate();
+     if (ranges[0].first < ranges[1].end and ranges[1].first < ranges[0].end) return error.OverlappingParentNamespaces;
+-    for ([_]*const storage.Prepared{ left, right }, ranges) |source, range| {
++    for ([_]@TypeOf(left){ left, right }, ranges) |source, range| {
+         try validateColumns(source);
+         try @import("blake3_parent_namespace.zig").rejectRange(source, 0, range.first);
+         try @import("blake3_parent_namespace.zig").rejectRange(source, range.end, core.fields.m31.Modulus);
+@@ -49,35 +67,44 @@
+             left.fixed[i] = &.{};
+             right.fixed[i] = &.{};
+         }
+-        result.main[i] = try a.alloc(Column, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+-        for (result.main[i]) |*column| column.* = .{ .log_size = log, .values = &.{} };
+-        var first: usize = 0;
+-        while (first < result.main[i].len) {
+-            const end = if (drain) @min(first + COLUMN_BATCH, result.main[i].len) else result.main[i].len;
+-            for (result.main[i][first..end]) |*column| column.values = try a.alloc(M, @as(usize, 1) << @intCast(log));
+-            copyColumns(left.main[i][first..end], right.main[i][first..end], left_count, count, result.main[i][first..end]);
+-            if (drain) {
+-                for (left.main[i][first..end]) |*column| {
+-                    left.allocator.free(column.values);
+-                    column.values = &.{};
++        if (i >= 2 or shared == null) {
++            result.main[i] = try a.alloc(Column, Air.PHYSICAL_MAIN_COLUMN_COUNT);
++            for (result.main[i]) |*column| column.* = .{ .log_size = log, .values = &.{} };
++            var first: usize = 0;
++            while (first < result.main[i].len) {
++                const end = if (drain) @min(first + COLUMN_BATCH, result.main[i].len) else result.main[i].len;
++                for (result.main[i][first..end]) |*column| column.values = try a.alloc(M, @as(usize, 1) << @intCast(log));
++                copyColumns(left.main[i][first..end], right.main[i][first..end], left_count, count, result.main[i][first..end]);
++                if (drain) {
++                    for (left.main[i][first..end]) |*column| {
++                        left.allocator.free(column.values);
++                        column.values = &.{};
++                    }
++                    for (right.main[i][first..end]) |*column| {
++                        right.allocator.free(column.values);
++                        column.values = &.{};
++                    }
+                 }
+-                for (right.main[i][first..end]) |*column| {
+-                    right.allocator.free(column.values);
+-                    column.values = &.{};
+-                }
++                first = end;
+             }
+-            first = end;
+         }
++    }
++    if (shared) |owner| {
++        result.main[0] = owner.main[0];
++        result.main[1] = owner.main[1];
++        owner.main = @splat(&.{});
+     }
+     return result;
+ }
+-fn validateColumns(parent: *const storage.Prepared) !void {
++fn validateColumns(parent: anytype) !void {
+     inline for (storage.Airs, 0..) |Air, i| {
+         const count = parent.fixed[i].len;
+         if (count > (1 << 30) or parent.main[i].len != Air.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidParentJoinColumns;
+         const log: u32 = if (count < 2) 1 else std.math.log2_int_ceil(usize, count);
+         for (parent.main[i]) |column| {
+-            if (column.log_size != log or column.values.len != @as(usize, 1) << @intCast(log)) return error.InvalidParentJoinColumns;
++            const base = storage.rowBase(parent, i);
++            const shared_hash = @hasField(@TypeOf(parent.*), "first") and i < 2;
++            if ((!shared_hash and column.log_size != log) or column.log_size > 30 or column.values.len != @as(usize, 1) << @intCast(column.log_size) or base > column.values.len or count > column.values.len - base) return error.InvalidParentJoinColumns;
+         }
+     }
+ }
+--- a/src/frontends/riscv/recursion/blake3_native_hash_columns.zig
++++ b/src/frontends/riscv/recursion/blake3_native_hash_columns.zig
+@@ -9,6 +9,8 @@
+ pub const Owner = struct {
+     allocator: std.mem.Allocator,
+     layout: Layout,
++    owns_backing: bool = true,
++    first: [2]usize = .{ 0, 0 },
+     main: [2][]Column = @splat(&.{}),
+     g_metadata: []@import("air/blake3_hash_metadata.zig").Row(g) = &.{},
+     xor_metadata: []@import("air/blake3_hash_metadata.zig").Row(xor) = &.{},
+@@ -36,6 +38,10 @@
+         return self;
+     }
+     pub fn deinit(self: *Owner) void {
++        if (!self.owns_backing) {
++            self.* = undefined;
++            return;
++        }
+         for (self.main) |columns| {
+             for (columns) |column| self.allocator.free(column.values);
+             self.allocator.free(columns);
+@@ -45,9 +51,10 @@
+         self.* = undefined;
+     }
+     pub fn view(self: *const Owner) !frame.MainColumns {
++        if (self.main[0].len != g.PHYSICAL_MAIN_COLUMN_COUNT or self.main[1].len != xor.PHYSICAL_MAIN_COLUMN_COUNT) return error.InvalidNativeHashColumns;
+         var out: frame.MainColumns = .{
+-            .g_rows = .{ .columns = undefined, .metadata = self.g_metadata, .log_size = self.layout.logs[0] },
+-            .xor_rows = .{ .columns = undefined, .metadata = self.xor_metadata, .log_size = self.layout.logs[1] },
++            .g_rows = .{ .columns = undefined, .metadata = self.g_metadata, .log_size = self.main[0][0].log_size, .first = self.first[0] },
++            .xor_rows = .{ .columns = undefined, .metadata = self.xor_metadata, .log_size = self.main[1][0].log_size, .first = self.first[1] },
+         };
+         inline for (.{ "g_rows", "xor_rows" }, 0..) |name, i| {
+             const dst = &@field(out, name);
+@@ -69,3 +76,34 @@
+         return (try self.view()).slice(self.layout.transcript.g, self.layout.paths.g, self.layout.transcript.xor, self.layout.paths.xor);
+     }
+ };
++
++/// One allocation authority and two disjoint logical emission partitions.
++pub const Shared = struct {
++    owner: Owner,
++    layouts: [2]Layout,
++    pub fn init(a: std.mem.Allocator, layouts: [2]Layout) !Shared {
++        for (layouts) |layout| try layout.validateEmitted(layout.transcript, layout.paths);
++        const combined = try Layout.fromCounts(layouts[0].total, layouts[1].total);
++        return .{ .owner = try Owner.init(a, combined), .layouts = layouts };
++    }
++    pub fn deinit(self: *Shared) void {
++        self.owner.deinit();
++        self.* = undefined;
++    }
++    pub fn partition(self: *Shared, index: usize) !Owner {
++        if (index >= 2) return error.InvalidNativeHashColumns;
++        const first: [2]usize = if (index == 0) .{ 0, 0 } else .{ self.layouts[0].total.g, self.layouts[0].total.xor };
++        const layout = self.layouts[index];
++        var result = Owner{
++            .allocator = self.owner.allocator,
++            .layout = layout,
++            .owns_backing = false,
++            .first = first,
++            .main = self.owner.main,
++            .g_metadata = self.owner.g_metadata[first[0]..][0..layout.total.g],
++            .xor_metadata = self.owner.xor_metadata[first[1]..][0..layout.total.xor],
++        };
++        _ = try result.view();
++        return result;
++    }
++};

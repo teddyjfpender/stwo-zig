@@ -1,0 +1,38 @@
+{
+  "command": [
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-geometry-all-log25",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin",
+    "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin",
+    "524288",
+    "all"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 707.1791772500146,
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/segment-geometry-all-log25": "3989366b48e2b31deebf7ef50ffaf1706a2c146cab536fdf836b537cfff137ee",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-sha-default-v3.elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/stwo-runner-input-evm-hints.bin": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/fixture/expected-output.bin": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  },
+  "summary": {
+    "kind": "summary",
+    "proof_verified": false,
+    "segments_checked": 512,
+    "cycles": 139214856,
+    "all_commitment_traces_fit": true,
+    "maximum_commitment_rows": [
+      28093016,
+      8026576,
+      8755329,
+      5560542,
+      464688,
+      126258,
+      126258,
+      818809
+    ],
+    "maximum_hash_log": 25,
+    "sizing_peak_bytes": 562587672,
+    "sizing_ns": 705950065084
+  }
+}

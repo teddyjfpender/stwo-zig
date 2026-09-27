@@ -1,0 +1,50 @@
+1/49 block_v5_word_expected_setup_test_root_v1.test_0...OK
+2/49 block_v5_word_expected_setup_test_root_v1.test.word expected setup: actual independent key cache canonical CPU receiver and memory forest bodies retained...OK
+3/49 prover.block_v5_word_expected_setup_test_v1.test.word expected setup: RAM live metadata rejects changed context key row geometry and schedule...OK
+4/49 prover.block_v5_word_expected_setup_test_v1.test.word expected setup: range live metadata retains canonical security and exact routing...OK
+5/49 prover.block_v5_word_expected_setup_test_v1.test.word expected setup: original driver options independently bound retained setup metadata...OK
+6/49 prover.block_v5_word_expected_setup_test_v1.test_0...OK
+7/49 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: genuine sparse source binds once with owned schedule but no proof authority...OK
+8/49 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: every source template and schedule allocation failure unwinds...OK
+9/49 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: equal source copy wrong key and source census cannot bind independently retained owner...OK
+10/49 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: schedule cap fails before ownership transfer and binding stays pending...OK
+11/49 prover.block_v5_cpu_recursive_publication_test_v1.test.cpu recursive publication: all seven original stages preserve absent callbacks and explicit option admission...OK
+12/49 prover.block_v5_cpu_recursive_publication_rollback_test_v1.test.cpu recursive rollback: all seven real filenames sparse successful pins pending collisions and denied allocation...OK
+13/49 prover.block_v5_cpu_recursive_publication_rollback_test_v1.test.cpu recursive rollback: reader and active reader ownership excludes every deletion...OK
+14/49 prover.block_v5_cpu_recursive_publication_rollback_test_v1.test.cpu recursive rollback: malformed bounded inventory rejects before any partial deletion...OK
+15/49 prover.block_v5_cpu_recursive_publication_rollback_test_v1.test.cpu recursive rollback: missing files release pins and I/O failure retains only retryable ownership...OK
+16/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: exact typed manifest order and final join record round trip...OK
+17/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: resealed received key proposal rejects original derived identity...OK
+18/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: framing truncation excess version and zero identities reject...OK
+19/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: independent metadata proof and aggregate resource caps...OK
+20/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: every manifest encode decode allocation releases...OK
+21/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: original independent admission remains usable after upstream buffers release...OK
+22/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: transfer allocations fail atomically with upstream admitted once...OK
+23/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: exact independent source roster mutations reject before recursive proof...OK
+24/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: canonical minimum forest uses exact original counts and bounded children...OK
+25/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: rollback removes only successfully new recursive outputs...OK
+26/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: independent cap admission precedes undefined source capabilities...OK
+27/49 prover.block_v5_ram_range_forest_owned_test_v1.test.RAM durable catalogue: memory scratch cap is independent and retains aggregate backing...OK
+28/49 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: required typed families source PAGE and exclusive topology reject before collection...OK
+29/49 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: aggregate and all four family resource policies fail before undefined sources...OK
+30/49 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: capacity selection exposes stage timings and durable final pin with explicit pending authority...OK
+31/49 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: original lane limits reject mismatch before any guest or prove loop...OK
+32/49 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: installed product selection derives matching limits and preserves canonical security...OK
+33/49 prover.block_v5_cpu_recursive_completion_test_v1.test.cpu recursive completion: report totals reject either overflow within the completion rollback scope...OK
+34/49 prover.block_v5_word_expected_setup_cache_v1.test.word expected setup: reuse fingerprint separates every geometry security retry and budget input...OK
+35/49 prover.block_v5_word_expected_setup_cache_v1.test.word expected setup: empty cache metadata custody and limits require no proof or commitment...OK
+36/49 prover.block_v5_cpu_recursive_receive_v1.test.cpu recursive publication: fixed transport records preserve sparse original indices and reject changed family order truncation and overflow...OK
+37/49 prover.block_execution_external_trace_v2.test_0...OK
+38/49 air.lookups.tables.mod.test_0...OK
+39/49 prover.block_v5_ram_lanes_recursive_stage_v1.test.word expected setup: RAM publication rejects invalid independent capacity before proof capture or allocation...OK
+40/49 prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+41/49 prover.block_v5_range16_recursive_stage_v1.test.word expected setup: range publication rejects invalid independent capacity before proof capture or allocation...OK
+42/49 air.semantic_eval.test_0...OK
+43/49 prover.block_execution_external_access_bridge_v2.test_0...OK
+44/49 runner.mod.test_0...OK
+45/49 runner.decode.test_0...OK
+46/49 air.memory_commitment.poseidon2_air.test_0...OK
+47/49 prover.block_v5_committed_trace_column_v1.test_0...OK
+48/49 air.lookups.tables.source_ingest.test_0...OK
+49/49 diagnostics.mod.test_0...OK
+All 49 tests passed.

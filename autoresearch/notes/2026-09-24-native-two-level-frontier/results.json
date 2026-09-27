@@ -1,0 +1,258 @@
+[
+  {
+    "index": 0,
+    "variant": "control",
+    "binary_sha256": "f615c22fb69afd4d5b0e9f61eccebaf8bc58c799f53f00fd535d60672d2cd9ee",
+    "wall_seconds": 60.99717995899846,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909260",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909096",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "909371",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6553008875"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "12580826750"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6827450792"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "12898017709"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "8116285125"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "13641524875"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "29832517385",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 44783526944,
+    "peak_rss_bytes": 42471096320
+  },
+  {
+    "index": 1,
+    "variant": "candidate",
+    "binary_sha256": "dee92217722cd7e45a076caf992ea6402b103aa87bc619218b036fcbc4733a14",
+    "wall_seconds": 46.72823812501156,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "853044",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "850623",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "903838",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6382689500"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "6078342584"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6745168916"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "6115235166"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "7240099708"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "13194219916"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "29486122073",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 44450931576,
+    "peak_rss_bytes": 42238328832
+  },
+  {
+    "index": 2,
+    "variant": "candidate",
+    "binary_sha256": "dee92217722cd7e45a076caf992ea6402b103aa87bc619218b036fcbc4733a14",
+    "wall_seconds": 46.59296100001666,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "853044",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "850623",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "903838",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6657875458"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "6123104334"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6812329541"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "6092846459"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "7286174792"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "13272198458"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "29486122073",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 44445098800,
+    "peak_rss_bytes": 42232545280
+  },
+  {
+    "index": 3,
+    "variant": "control",
+    "binary_sha256": "f615c22fb69afd4d5b0e9f61eccebaf8bc58c799f53f00fd535d60672d2cd9ee",
+    "wall_seconds": 62.283917249995284,
+    "nodes": [
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909260",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "1",
+        "artifact_bytes": "909096",
+        "queries": "70",
+        "pow_bits": "26"
+      },
+      {
+        "verified": "true",
+        "height": "2",
+        "artifact_bytes": "909371",
+        "queries": "70",
+        "pow_bits": "26"
+      }
+    ],
+    "phases": [
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "6873613709"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "12848598708"
+      },
+      {
+        "phase": "leaf_pair_proof_and_preparation",
+        "ns": "7085405250"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "1",
+        "ns": "13020452667"
+      },
+      {
+        "phase": "root_preparation",
+        "ns": "8311127458"
+      },
+      {
+        "phase": "aggregate_proof_and_checks",
+        "height": "2",
+        "ns": "13773443500"
+      }
+    ],
+    "budget": {
+      "peak_bytes": "29832517385",
+      "limit_bytes": "51539607552"
+    },
+    "peak_physical_bytes": 44783559712,
+    "peak_rss_bytes": 42471129088
+  }
+]

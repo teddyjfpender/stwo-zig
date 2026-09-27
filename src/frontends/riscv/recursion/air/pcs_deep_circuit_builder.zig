@@ -147,6 +147,8 @@ pub const Builder = struct {
             profile.sample_layouts,
         );
         errdefer self.allocator.free(sample_layouts);
+        const mask_log_sizes = try self.allocator.dupe(u32, profile.mask_log_sizes);
+        errdefer self.allocator.free(mask_log_sizes);
         const nodes = try self.nodes.toOwnedSlice(self.allocator);
         errdefer self.allocator.free(nodes);
         const outputs = try self.outputs.toOwnedSlice(self.allocator);
@@ -160,6 +162,7 @@ pub const Builder = struct {
             .trees = trees,
             .column_log_storage = column_log_storage,
             .sample_layouts = sample_layouts,
+            .mask_log_sizes = mask_log_sizes,
             .lifting_log_size = profile.lifting_log_size,
             .log_blowup_factor = profile.log_blowup_factor,
             .query_count = profile.query_count,
@@ -221,16 +224,13 @@ pub fn buildSampleBatches(
     const lifting_step = stwo_core.poly.circle.CanonicCoset.new(
         profile.lifting_log_size,
     ).stepSize();
-    const mask_log_size = profile.lifting_log_size - profile.log_blowup_factor;
-    const mask_step = stwo_core.poly.circle.CanonicCoset.new(
-        mask_log_size,
-    ).stepSize();
     var sample: usize = 0;
     var column: usize = 0;
     var random_power: usize = 0;
     for (profile.trees) |tree| {
         for (tree.column_log_sizes) |log_size| {
             const layout = profile.sample_layouts[column];
+            const mask_step = stwo_core.poly.circle.CanonicCoset.new(profile.maskLogSize(column)).stepSize();
             const count = layout.sampleCount();
             if (layout.hasPeriodicity()) {
                 const period_multiplier = @as(usize, 1) << @intCast(log_size);

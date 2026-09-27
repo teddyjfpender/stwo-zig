@@ -1,0 +1,301 @@
+ETH_AUTH_EXECUTION cycles=286847 keccak=172 recoveries=32 output=0100000020000000e52c29c5edfe6dc5180e343c0ed7ccee9dabdd523a71b9b0c1725ca088d76a0da4794c167af60e5182a27e29085424adea8888ce2cc62bb731bdd574f90e3f16
+PROCESS_MEMORY_STAGE auth.execution_complete current_bytes=41255488 lifetime_peak_bytes=41337408 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE auth.leaf_admission current_bytes=1438467920 lifetime_peak_bytes=2617101000 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE segment.leaf_proved current_bytes=982387040 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE segment.leaf_capture current_bytes=992692600 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE validate current_bytes=992692600 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE composition current_bytes=1005029800 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE deep current_bytes=1326222000 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE fri current_bytes=1369524984 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE transcript_plan current_bytes=1459587952 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE payloads current_bytes=1526205344 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE challenges current_bytes=1560775608 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE terminal current_bytes=1561824208 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE queries current_bytes=1595886568 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE roots current_bytes=1595886568 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+BLAKE3_HASH_METADATA g_rows=6870248 xor_rows=1962928 full_row_bytes=2834468032 compact_bytes=486806144 removed_bytes=2347661888
+PROCESS_MEMORY_STAGE hash_columns current_bytes=4449424376 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE transcript current_bytes=4538897544 lifetime_peak_bytes=7068539696 source=darwin_proc_pid_rusage_v6
+BLAKE3_PATH_PLAN_REUSE openings=1750 graph_builds=6 retained_plans=2
+BLAKE3_TRUSTED_PATH_METADATA full_row_bytes=2571613824 compact_bytes=441662208 removed_bytes=2129951616
+PROCESS_MEMORY_STAGE paths current_bytes=8144871752 lifetime_peak_bytes=8144871752 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE path_reads current_bytes=8144871752 lifetime_peak_bytes=8177459576 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE openings current_bytes=8244388264 lifetime_peak_bytes=8244388264 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE assembly.row_sources_released current_bytes=5721840000 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+BLAKE3_NATIVE_QUERY_FUSION groups=24780 removed_scalars=99120
+BLAKE3_NATIVE_FUSION dot4=822483 fma=158887 arithmetic_rows=1457651
+PROCESS_MEMORY_STAGE assembly.scratch_released current_bytes=6078716624 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE assemble current_bytes=5988358840 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE teardown current_bytes=5611526456 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE auth.parent_prepared current_bytes=5054420848 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE auth.partitioned current_bytes=4709291672 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+BLAKE3_ETHEREUM_SEGMENTS_PREPARED segments=1 cycles=286847 retained_bytes=4277650156
+PROCESS_MEMORY_STAGE auth.parent_key_derived current_bytes=4709455536 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE auth.parent_worker_created current_bytes=6111878104 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE parent.main_commitment current_bytes=6116400112 lifetime_peak_bytes=9740379712 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE parent.main_commitment live=1407665752 peak=3197280843
+PROCESS_MEMORY_STAGE parent.interaction_generation current_bytes=9481021760 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE parent.interaction_generation live=4770749096 peak=5961947976
+PROCESS_MEMORY_STAGE parent.interaction_commitment current_bytes=8381130256 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE parent.interaction_commitment live=7948735224 peak=8006430696
+PROCESS_MEMORY_STAGE parent.core_proof current_bytes=8474765032 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE parent.core_proof live=8046830136 peak=9816842880
+PROCESS_MEMORY_STAGE core.evaluation current_bytes=8474765032 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE core.evaluation live=8046830344 peak=9816842880
+PROCESS_MEMORY_STAGE core.interpolation_split current_bytes=8542119776 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE core.interpolation_split live=8114031784 peak=10290216976
+PROCESS_MEMORY_STAGE core.commitment current_bytes=8542119776 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE core.commitment live=8114032056 peak=10290216976
+PROCESS_MEMORY_STAGE core.openings current_bytes=8558782352 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE core.openings live=8130717592 peak=10290216976
+PROCESS_MEMORY_STAGE parent.complete current_bytes=1835716856 lifetime_peak_bytes=10747423928 source=darwin_proc_pid_rusage_v6
+HOST_MEMORY_STAGE parent.complete live=1408586088 peak=10290216976
+BLAKE3_PARENT_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-recursive-parent","stages":[{"id":"parent.validation","label":"Authenticated row validation","seconds":0.913769,"children":null},{"id":"parent.main_setup","label":"Main columns and lookup counts","seconds":0.614809,"children":null},{"id":"parent.main_commit","label":"Main commitment","seconds":2.38923,"children":[{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.000043,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.000053,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.000091,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.000157,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.00252,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.009332,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.00828,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.02244,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005079,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.016519,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.016861,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005366,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.017184,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.00543,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.016908,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.00509,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.017049,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005097,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.017024,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005511,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.034112,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006376,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019117,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006565,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019543,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006667,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018877,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006528,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018608,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006607,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018769,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006987,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018868,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006371,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019032,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006533,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019165,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006768,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018996,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006604,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019241,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006701,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019129,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006647,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018558,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006512,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.01944,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006781,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.01885,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006513,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019044,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006463,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018868,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006417,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.022563,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006456,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.022338,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006571,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020156,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006751,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.01917,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006588,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018808,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006589,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018786,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006611,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.01881,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006626,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019438,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006507,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018851,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006636,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019535,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006638,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019916,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006584,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019064,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006657,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019556,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.00551,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.01527,"children":null},{"id":"merkle_commit","label":"Merkle commit","seconds":0.093157,"children":null}]},{"id":"parent.interaction_generation","label":"Interaction generation","seconds":3.410316,"children":null},{"id":"parent.interaction_commit","label":"Interaction commitment","seconds":2.380305,"children":[{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.000037,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.000041,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.000024,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.000043,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.000711,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.0021,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.0042,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.014195,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006006,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.017945,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005666,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.018449,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006073,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.017673,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005853,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.017972,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005514,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.017765,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006151,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019359,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006542,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020205,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006643,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.023796,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006782,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020697,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006691,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020281,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006761,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020309,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006593,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.021176,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006764,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020029,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006633,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020231,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006635,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.021416,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006748,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020619,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006922,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020628,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.010341,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019308,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006684,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.021409,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006911,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020416,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006606,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019652,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006707,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.021395,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006694,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.01994,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006706,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019942,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006537,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020569,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.007956,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019914,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006748,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.01991,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006845,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.023507,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006721,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.024826,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006682,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019605,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006718,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.02032,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006726,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020047,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006809,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020139,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.006916,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.019287,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.007424,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020136,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.00689,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.020113,"children":null},{"id":"interpolate_columns","label":"Interpolate columns","seconds":0.005892,"children":null},{"id":"evaluate_extended_domain","label":"Evaluate extended domain","seconds":0.015337,"children":null},{"id":"merkle_commit","label":"Merkle commit","seconds":0.098361,"children":null}]},{"id":"parent.core","label":"Core STARK proof","seconds":9.535337,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000009,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":4.754765,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.012528,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.108726,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.000084,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.63904,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000058,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":1.852629,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.126,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.003549,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":1.99159,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000104,"children":null}]}]}
+ETH_AUTH_RECURSIVE {
+  "verified": true,
+  "recursive": true,
+  "queries": 70,
+  "pow_bits": 26,
+  "cycles": 286847,
+  "keccak_calls": 172,
+  "recovery_calls": 32,
+  "segments": 1,
+  "execution_ns": 16423583,
+  "witness_admission_ns": 3034619958,
+  "leaf_and_recursion_preparation_ns": 22418059584,
+  "parent_proving_ns": 19243710042,
+  "hash_partition_ns": 318580375,
+  "final_verification_ns": 13395458,
+  "total_ns": 49465014875,
+  "proof_bytes": 971396,
+  "worker_peak_bytes": 10290216976,
+  "preparation_retained_bytes": 4277650156,
+  "geometry": [
+    {
+      "index": 0,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822086864
+    },
+    {
+      "index": 1,
+      "name": "recursion.air.blake3_xor_call",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1980208,
+      "fixed_columns": 6,
+      "retained_bytes": 148188768
+    },
+    {
+      "index": 2,
+      "name": "recursion.air.blake3_boundary",
+      "main_columns": 4,
+      "main_rows": 2097152,
+      "fixed_rows": 1492152,
+      "fixed_columns": 8,
+      "retained_bytes": 81303456
+    },
+    {
+      "index": 3,
+      "name": "recursion.air.qm31_mul_add_v1",
+      "main_columns": 17,
+      "main_rows": 524288,
+      "fixed_rows": 390839,
+      "fixed_columns": 10,
+      "retained_bytes": 51285824
+    },
+    {
+      "index": 4,
+      "name": "recursion.air.qm31_inv",
+      "main_columns": 14,
+      "main_rows": 8192,
+      "fixed_rows": 4356,
+      "fixed_columns": 18,
+      "retained_bytes": 772944
+    },
+    {
+      "index": 5,
+      "name": "recursion.air.linear_ops",
+      "main_columns": 21,
+      "main_rows": 262144,
+      "fixed_rows": 239973,
+      "fixed_columns": 30,
+      "retained_bytes": 50817696
+    },
+    {
+      "index": 6,
+      "name": "recursion.air.blake3_challenge_block",
+      "main_columns": 71,
+      "main_rows": 256,
+      "fixed_rows": 168,
+      "fixed_columns": 15,
+      "retained_bytes": 85624
+    },
+    {
+      "index": 7,
+      "name": "recursion.air.blake3_byte_route",
+      "main_columns": 12,
+      "main_rows": 2097152,
+      "fixed_rows": 1748883,
+      "fixed_columns": 45,
+      "retained_bytes": 415462716
+    },
+    {
+      "index": 8,
+      "name": "recursion.air.blake3_query_mask",
+      "main_columns": 8,
+      "main_rows": 128,
+      "fixed_rows": 71,
+      "fixed_columns": 10,
+      "retained_bytes": 7256
+    },
+    {
+      "index": 9,
+      "name": "recursion.air.blake3_private_word",
+      "main_columns": 4,
+      "main_rows": 262144,
+      "fixed_rows": 168594,
+      "fixed_columns": 4,
+      "retained_bytes": 6891968
+    },
+    {
+      "index": 10,
+      "name": "recursion.air.blake3_field_bytes",
+      "main_columns": 24,
+      "main_rows": 2097152,
+      "fixed_rows": 1057364,
+      "fixed_columns": 9,
+      "retained_bytes": 239392656
+    },
+    {
+      "index": 11,
+      "name": "recursion.air.qm31_pack_wire",
+      "main_columns": 4,
+      "main_rows": 65536,
+      "fixed_rows": 47066,
+      "fixed_columns": 8,
+      "retained_bytes": 2554848
+    },
+    {
+      "index": 12,
+      "name": "recursion.air.scalar_wire_source",
+      "main_columns": 1,
+      "main_rows": 2097152,
+      "fixed_rows": 1094964,
+      "fixed_columns": 6,
+      "retained_bytes": 34667784
+    },
+    {
+      "index": 13,
+      "name": "recursion.air.blake3_path_select",
+      "main_columns": 17,
+      "main_rows": 262144,
+      "fixed_rows": 194144,
+      "fixed_columns": 12,
+      "retained_bytes": 27145384
+    },
+    {
+      "index": 14,
+      "name": "recursion.air.blake3_retry_control",
+      "main_columns": 12,
+      "main_rows": 256,
+      "fixed_rows": 168,
+      "fixed_columns": 22,
+      "retained_bytes": 27552
+    },
+    {
+      "index": 15,
+      "name": "recursion.air.blake3_counter_step",
+      "main_columns": 24,
+      "main_rows": 256,
+      "fixed_rows": 177,
+      "fixed_columns": 9,
+      "retained_bytes": 31908
+    },
+    {
+      "index": 16,
+      "name": "recursion.air.readonly_consistency",
+      "main_columns": 19,
+      "main_rows": 1048576,
+      "fixed_rows": 1014580,
+      "fixed_columns": 6,
+      "retained_bytes": 104042456
+    },
+    {
+      "index": 17,
+      "name": "recursion.air.readonly_input",
+      "main_columns": 5,
+      "main_rows": 1048576,
+      "fixed_rows": 1014580,
+      "fixed_columns": 6,
+      "retained_bytes": 45321640
+    },
+    {
+      "index": 18,
+      "name": "recursion.air.detached_opening_accumulate4_v1",
+      "main_columns": 41,
+      "main_rows": 1048576,
+      "fixed_rows": 797703,
+      "fixed_columns": 13,
+      "retained_bytes": 213448660
+    },
+    {
+      "index": 19,
+      "name": "recursion.air.native_pcs_opening4_v1",
+      "main_columns": 29,
+      "main_rows": 32768,
+      "fixed_rows": 24780,
+      "fixed_columns": 13,
+      "retained_bytes": 5090808
+    },
+    {
+      "index": 20,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822086864
+    },
+    {
+      "index": 21,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 2097152,
+      "fixed_rows": 2097152,
+      "fixed_columns": 16,
+      "retained_bytes": 822086864
+    },
+    {
+      "index": 22,
+      "name": "recursion.air.blake3_g_call",
+      "main_columns": 82,
+      "main_rows": 1048576,
+      "fixed_rows": 639272,
+      "fixed_columns": 16,
+      "retained_bytes": 384849616
+    }
+  ],
+  "output": "0100000020000000e52c29c5edfe6dc5180e343c0ed7ccee9dabdd523a71b9b0c1725ca088d76a0da4794c167af60e5182a27e29085424adea8888ce2cc62bb731bdd574f90e3f16"
+}
+       49.50 real       349.75 user        10.27 sys
+         10747232256  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             7193548  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+              132328  involuntary context switches
+       5202877983677  instructions retired
+       1381568821588  cycles elapsed
+         10747423928  peak memory footprint

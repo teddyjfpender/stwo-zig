@@ -1,0 +1,22 @@
+{
+  "source_candidate": "cpu-recursive-completion-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 65.36013979202835,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 16,
+  "test_summary": [
+    "All 16 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-recursive-completion-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-cpu-recursive-completion-focused-v1",
+    "bytes": 110522256,
+    "sha256": "412c0d5a0a5cab585a5d1e13227cce859c7275fa56cf747cd53f7be0a60425ff"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "memory-source-first-round-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 11.22204220801359,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 8,
+  "test_summary": [
+    "All 8 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/memory-source-first-round-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-memory-source-first-round-focused-v1",
+    "bytes": 1017152,
+    "sha256": "16c268078e51c43b2bc1408341be8c58b705bdeca1a3d1b60b2d1b101ee5afea"
+  }
+}

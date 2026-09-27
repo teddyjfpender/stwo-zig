@@ -1,0 +1,9 @@
+test-riscv-blake3-execution-commitments
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_FRONTIER_SCALING leaves=64 frontier=1284 batch_ns=35083 repeated_ns=253522583
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-execution-commitments success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 4s MaxRSS:450M
+

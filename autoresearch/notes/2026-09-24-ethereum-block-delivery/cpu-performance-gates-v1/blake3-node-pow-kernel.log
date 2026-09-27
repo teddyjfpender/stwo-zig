@@ -1,0 +1,6 @@
+1/1 blake3_frame_batch_test_root.test.BLAKE3 bounded node and PoW kernel diagnostic...BLAKE3_BATCH_KERNEL sample=0 operations=16384 batch_first=false node_scalar_ns=4443208 node_batch4_ns=3101250 pow_scalar_ns=1644916 pow_batch4_ns=1060542
+BLAKE3_BATCH_KERNEL sample=1 operations=16384 batch_first=true node_scalar_ns=3155000 node_batch4_ns=2839459 pow_scalar_ns=737625 pow_batch4_ns=481708
+BLAKE3_BATCH_KERNEL sample=2 operations=16384 batch_first=true node_scalar_ns=3071833 node_batch4_ns=1756375 pow_scalar_ns=1261667 pow_batch4_ns=808167
+BLAKE3_BATCH_KERNEL sample=3 operations=16384 batch_first=false node_scalar_ns=2391375 node_batch4_ns=1824583 pow_scalar_ns=860042 pow_batch4_ns=728125
+OK
+All 1 tests passed.

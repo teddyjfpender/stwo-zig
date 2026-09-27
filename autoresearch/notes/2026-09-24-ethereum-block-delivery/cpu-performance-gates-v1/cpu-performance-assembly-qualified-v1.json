@@ -1,0 +1,61 @@
+{
+  "scope": "cohesive original CPU source ownership, admission, equations, transport and actual production bodies; no proving invocation",
+  "candidate_handoffs": [
+    {
+      "path": "supplemental-recursive-worker-lifetimes-source-candidate-v2.json",
+      "sha256": "2f2e1afd91a17a225a9f5b32b8d488496249685a9c170cd4030cc832eb5189bf"
+    },
+    {
+      "path": "scoped-parent-admission-source-candidate-v1.json",
+      "sha256": "7be1937d791336b2c690538f3c9ae2d42dd0132c494832954a7c099d3333263b"
+    },
+    {
+      "path": "readonly-input-canonical-collection-source-candidate-v1.json",
+      "sha256": "b4f0f201d9fb3079e69821496acf08cec5212d13db3729cc60da9a80cbb2ab5a"
+    }
+  ],
+  "source": "cpu-performance-assembly-focused-v1-source.json",
+  "source_sha256": "c423917d6aac3ee2dc60a0b63e38fdae6f717372ee99e8b9c077908f82d4bbc6",
+  "source_pins": 2189,
+  "result": "cpu-performance-assembly-focused-v1-result.json",
+  "result_sha256": "d9a973bcaa98e481de50c4230502fb83e083439a70cac13b0e283eaff898ffde",
+  "gate": {
+    "source_candidate": "cpu-performance-assembly-focused-v1-source.json",
+    "exit_code": 0,
+    "elapsed_seconds": 68.86799933295697,
+    "changed_source_pins": [],
+    "qualified": true,
+    "semantic_only": false,
+    "object_only": false,
+    "tests_run": true,
+    "discovered_tests": 41,
+    "test_summary": [
+      "All 41 tests passed."
+    ],
+    "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/cpu-performance-assembly-focused-v1.log",
+    "segments_run": false,
+    "stark_proving_run": false,
+    "device_run": false,
+    "binary": {
+      "path": "/tmp/block-v5-cpu-performance-assembly-focused-v1",
+      "bytes": 119852272,
+      "sha256": "7d731958d023ada8042df8dd2b334dc1a99c6ad9bb2c56b7d017056b11a2f298"
+    }
+  },
+  "retained_markers": [
+    "stwo_word_expected_setup_body_gate",
+    "stwo_supplemental_recursive_lifetime_body_gate",
+    "stwo_scoped_parent_admission_isolated_body_gate"
+  ],
+  "canonical_cli_body_retained": "ethereum_block_v5_cpu_produce.main",
+  "readonly_roots_prechallenge_bound": true,
+  "prior_dynamic_cache_borrows_retained": false,
+  "supported_supplemental_worker_families": 7,
+  "readonly_recursive_grammar_qualified": false,
+  "pcs_commitment_invoked": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "complete_block_authority_qualified": false,
+  "complete_block_speed_or_rss_qualified": false
+}

@@ -1,0 +1,55 @@
+{
+  "scope": "Minimum fan-in4 independently closed RAM/range shard forest and final genuine PAGE-root+compact-memory join. Original child verifier/producer/codec/fresh receiver bodies retained only.",
+  "candidate": "ram-range-shard-forest-source-candidate-v2.json",
+  "attempts": [
+    {
+      "result": "ram-range-shard-forest-semantic-v2-result.json",
+      "source_pins": 1913,
+      "seconds": 3.4830552090425044,
+      "checks": 0,
+      "binary": null
+    },
+    {
+      "result": "ram-range-shard-forest-focused-v2-result.json",
+      "source_pins": 1913,
+      "seconds": 17.331019374949392,
+      "checks": 16,
+      "binary": {
+        "path": "/tmp/block-v5-ram-range-shard-forest-focused-v2",
+        "bytes": 31340040,
+        "sha256": "00ff91959abc7e7eb6ae19a169ddbc77b4ed062c23cacb08b6a186b6b8b086cf"
+      }
+    }
+  ],
+  "failed_attempts": [
+    "ram-range-shard-forest-semantic-v1-result.json",
+    "ram-range-shard-forest-focused-v1-result.json"
+  ],
+  "behavioral_tests": 11,
+  "retained_body_test": 1,
+  "total_checks": 16,
+  "planning": "Exact ordered physical RAM/range census; minimal per-shard merges and minimum upper merges, no proof-count power-of-two rounding. Recipe Merkle metadata padding is separate.",
+  "equations": "All17 requester planes retained through partial nodes; exactly one original range provider closes its own shard; only closed roots may aggregate. Final source/RAM predecessor/initial/endpoint/range closure; native/caller packed transition remains exported open.",
+  "fixtures": "Original admissions are metadata/claim proposals, not successful proof authority. Scalar/symbolic/OOM tests use ordinary metadata or new graphs; no fake Verified/Fresh.",
+  "root_repairs": [
+    "Authority node method-local/capture names cannot shadow node declaration",
+    "Fixture node factory renamed equationNode",
+    "Explicit Builder.deactivate before finish in both real RAM forest and final PAGE+RAM graph"
+  ],
+  "complete_fixed_setup": false,
+  "canonical_enabled": false,
+  "complete_source_authority": false,
+  "complete_block_authority": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "end_to_end_speed_measured": false,
+  "process_peak_memory_measured": false,
+  "remaining": [
+    "Durable independently reconstructed spec catalogue/manifest and typed CPU full job owner",
+    "Scalable native/caller requester-only packed transition export, excluding repeated RAM providers",
+    "Exact original public/register/state/ROM/lookup/accounting closure",
+    "Complete reusable expected setup/global public MAIN suppliers",
+    "Canonical complete driver and positive end-to-end proof/measurement qualification"
+  ]
+}

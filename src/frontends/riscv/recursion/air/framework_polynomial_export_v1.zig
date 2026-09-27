@@ -82,8 +82,8 @@ fn exportPreparedLayout(
     if (direct.input_count != Air.LOGICAL_INPUT_COUNT or direct.constraint_count != Air.DIRECT_CONSTRAINT_COUNT or
         direct.evaluation_node_count > direct.evaluation_nodes.len or direct.constraint_count > direct.constraints.len or
         relations.compiled_node_count > relations.compiled_nodes.len or relations.format_version != relation_mod.FORMAT_VERSION or
-        direct.semantic_format_version != lang.digest.typed_effect_format_version or
-        relations.semantic_format_version != lang.digest.typed_effect_format_version or
+        !@import("closed_machine_expression.zig").supportedFormat(direct.semantic_format_version) or
+        relations.semantic_format_version != direct.semantic_format_version or
         !std.mem.eql(u8, &direct.semantic_digest, &Air.SEMANTIC_DIGEST) or
         !std.mem.eql(u8, &relations.semantic_digest, &Air.SEMANTIC_DIGEST) or
         !std.mem.eql(u8, &relations.registry_order_digest, &universal.registryOrderDigest()) or
@@ -128,7 +128,9 @@ fn exportPreparedLayout(
     errdefer allocator.free(batches);
     for (relations.batches, batches, 0..) |source, *target, index| {
         if (source.ordinal != index or (source.second != null and source.second.? != @as(usize, source.first) + 1)) return error.InvalidPreparedFrameworkProgram;
-        target.* = .{ .first_entry = source.first, .entry_count = if (source.second == null) 1 else 2, .interaction_column_start = source.interaction_column_start };
+        if (source.third != null and (source.second == null or source.third.? != @as(usize, source.first) + 2)) return error.InvalidPreparedFrameworkProgram;
+        if (source.fourth != null and (source.third == null or source.fourth.? != @as(usize, source.first) + 3)) return error.InvalidPreparedFrameworkProgram;
+        target.* = .{ .first_entry = source.first, .entry_count = if (source.fourth != null) 4 else if (source.third != null) 3 else if (source.second != null) 2 else 1, .interaction_column_start = source.interaction_column_start };
     }
     const owned_inputs = try allocator.dupe(backend.TypedPolynomialInputV1, inputs);
     errdefer allocator.free(owned_inputs);
@@ -241,6 +243,10 @@ const Lowerer = struct {
     fn lower(self: *Lowerer, destination: usize, op: anytype) !void {
         if (destination >= self.slots.len or self.slots[destination] != NO_NODE) return error.InvalidPreparedFrameworkProgram;
         const lowered: backend.BasePolynomialNode = switch (op) {
+            .machine => |value| {
+                self.slots[destination] = try self.lowerMachine(value);
+                return;
+            },
             .constant => |value| .{ .op = .constant, .value = value },
             .add, .sub, .mul => |pair| .{ .op = switch (op) {
                 .add => .add,
@@ -256,5 +262,27 @@ const Lowerer = struct {
             },
         };
         self.slots[destination] = try self.append(lowered);
+    }
+
+    fn number(self: *Lowerer, value: u32) !u32 {
+        return self.append(.{.op=.constant,.value=value});
+    }
+    fn lowerMachine(self: *Lowerer, value: @import("../../air/lang/expr.zig").MachineDerived) !u32 {
+        const types = @import("../../air/lang/types.zig");
+        return switch(value) {
+            .register_address => |v| self.slot(types.idIndex(v.index)),
+            .aligned_word_address => |v| self.append(.{.op=.mul,.lhs=try self.slot(types.idIndex(v.word_index)),.rhs=try self.number(4)}),
+            .instruction_next_pc => |v| self.append(.{.op=.add,.lhs=try self.slot(types.idIndex(v.current)),.rhs=try self.number(4)}),
+            .instruction_next_clock => |v| self.append(.{.op=.add,.lhs=try self.slot(types.idIndex(v.current)),.rhs=try self.number(1)}),
+            .access_clock => |v| blk: {
+                const previous = try self.append(.{.op=.sub,.lhs=try self.slot(types.idIndex(v.instruction_clock)),.rhs=try self.number(1)});
+                const scaled = try self.append(.{.op=.mul,.lhs=previous,.rhs=try self.number(4)});
+                break :blk self.append(.{.op=.add,.lhs=scaled,.rhs=try self.number(@intFromEnum(v.phase))});
+            },
+            .strict_clock_gap => |v| blk: {
+                const difference = try self.append(.{.op=.sub,.lhs=try self.slot(types.idIndex(v.current_clock)),.rhs=try self.slot(types.idIndex(v.previous_clock))});
+                break :blk self.append(.{.op=.sub,.lhs=difference,.rhs=try self.number(1)});
+            },
+        };
     }
 };

@@ -1,0 +1,42 @@
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:62:17: error: function parameter shadows declaration of 'original'
+    pub fn init(original: Readonly.Authority, roster: *const Roster.Authority, sealed: Seal.Sealed, ordinal: u32) !Authority {
+                ^~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:69:9: note: declared here
+    pub fn original(self: Authority) Readonly.Authority {
+    ~~~~^~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:171:82: error: ambiguous reference
+    pub fn wrapVerified(original: Original.Verified, claims: anytype, authority: Authority) !Verified {
+                                                                                 ^~~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:156:9: note: declared here
+    pub const Authority = This.Authority;
+    ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:49:5: note: also declared here
+pub const Authority = struct {
+~~~~^~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:186:66: error: ambiguous reference
+    pub fn mixReceiptIdentity(channel: anytype, verified: *const Verified) void {
+                                                                 ^~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:160:9: note: declared here
+    pub const Verified = This.Verified;
+    ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_caller_readonly_global_proof_v2.zig:33:5: note: also declared here
+pub const Verified = struct {
+~~~~^~~~~
+src/frontends/riscv/prover/block_v5_native_capacity_readonly_collection_v2.zig:45:25: error: expected type '*crypto.sha2.Sha2x32(.{ 1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225 },256)', found '*const crypto.sha2.Sha2x32(.{ 1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225 },256)'
+        return self.hash.finalResult();
+               ~~~~~~~~~^~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_native_capacity_readonly_collection_v2.zig:45:25: note: cast discards const qualifier
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/sha2.zig:177:31: note: parameter type declared here
+        pub fn finalResult(d: *Self) [digest_length]u8 {
+                              ^~~~~
+referenced by:
+    collect: src/frontends/riscv/prover/block_v5_native_capacity_readonly_collection_v2.zig:100:51
+    stwo_native_readonly_stream_collection_body_gate: src/frontends/riscv/block_v5_native_readonly_stream_collection_body_v2.zig:11:27
+    2 reference(s) hidden; use '-freference-trace=4' to see all references
+src/frontends/riscv/prover/block_v5_readonly_input_counter_collection_v2.zig:186:45: error: expected type '*crypto.sha2.Sha2x32(.{ 1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225 },256)', found '*const crypto.sha2.Sha2x32(.{ 1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225 },256)'
+        record.counter_digest = pending.hash.finalResult();
+                                ~~~~~~~~~~~~^~~~~~~~~~~~
+src/frontends/riscv/prover/block_v5_readonly_input_counter_collection_v2.zig:186:45: note: cast discards const qualifier
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/crypto/sha2.zig:177:31: note: parameter type declared here
+        pub fn finalResult(d: *Self) [digest_length]u8 {
+                              ^~~~~

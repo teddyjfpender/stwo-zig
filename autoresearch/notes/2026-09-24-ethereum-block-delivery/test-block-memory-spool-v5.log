@@ -1,0 +1,3 @@
+1/2 air.block.memory_spool.test.bounded memory spool sorts across runs with exact coverage and rejects duplicate clocks...OK
+2/2 air.block.memory_spool.test.spool accepts real segment accesses and globally orders leaf-local clocks...OK
+All 2 tests passed.

@@ -1,0 +1,167 @@
+--- control/blake3_execution_parent_pipeline.zig
++++ src/frontends/riscv/recursion/blake3_execution_parent_pipeline.zig
+@@ -31,7 +31,7 @@
+                 if (!std.meta.eql(result.context, job.admission.key.context)) return error.ParentPipelineKeyMismatch;
+                 return result;
+             }
+-            pub fn prove(worker: *Self.Worker, prepared: *const Prepared, job: Self.Job) !artifact.Owned {
++            pub fn prove(worker: *Self.Worker.Lease, prepared: *const Prepared, job: Self.Job) !artifact.Owned {
+                 if (!std.meta.eql(prepared.context, job.admission.key.context)) return error.ParentPipelineKeyMismatch;
+                 return worker.proveAdmitted(&prepared.rows, job.admission);
+             }
+--- control/blake3_native_parent_pipeline.zig
++++ src/frontends/riscv/recursion/blake3_native_parent_pipeline.zig
+@@ -38,8 +38,8 @@
+         pub fn prepare(allocator: std.mem.Allocator, job: Input, limit: usize) !Prepared {
+             return preparation.prepareBounded(Engine, allocator, job.statement, job.claim, job.capture, job.config, job.capacity, limit);
+         }
+-        pub fn prove(target: *Worker, prepared: *const Prepared, _: Input) !artifact.Owned {
+-            if (!std.meta.eql(prepared.context, target.plan.admission.key.context)) return error.ParentPipelineKeyMismatch;
++        pub fn prove(target: *Worker.Lease, prepared: *const Prepared, _: Input) !artifact.Owned {
++            if (!std.meta.eql(prepared.context, target.worker.plan.admission.key.context)) return error.ParentPipelineKeyMismatch;
+             return target.prove(&prepared.rows);
+         }
+     };
+--- control/blake3_native_parent_worker.zig
++++ src/frontends/riscv/recursion/blake3_native_parent_worker.zig
+@@ -61,17 +61,39 @@
+             a.destroy(self);
+         }
+ 
++        /// An exclusive request sequence. The owner must release this lease on
++        /// its acquiring thread and must not copy it or destroy the worker.
++        pub const Lease = struct {
++            worker: *Self,
++            pub fn deinit(self: *Lease) void {
++                self.worker.busy.unlock();
++                self.* = undefined;
++            }
++            pub fn prove(self: *Lease, rows: *const native.Prepared) !artifact.Owned {
++                return self.worker.proveLocked(rows);
++            }
++            pub fn proveAdmitted(self: *Lease, rows: *const native.Prepared, admission: protocol.Admission) !artifact.Owned {
++                return self.worker.proveAdmittedLocked(rows, admission);
++            }
++        };
++        pub fn acquire(self: *Self) !Lease {
++            if (!self.busy.tryLock()) return error.ParentWorkerAlreadyLeased;
++            return .{ .worker = self };
++        }
+         pub fn prove(self: *Self, rows: *const native.Prepared) !artifact.Owned {
+-            if (!self.busy.tryLock()) return error.ParentWorkerAlreadyLeased;
+-            defer self.busy.unlock();
+-            return self.proveLocked(rows);
++            var lease = try self.acquire();
++            defer lease.deinit();
++            return lease.prove(rows);
+         }
+         /// Retains pool, workspace and matching fixed structure across admitted keys.
+         /// A failed rekey leaves the preceding immutable plan usable. Both plans
+         /// count against the same host budget while the replacement is built.
+         pub fn proveAdmitted(self: *Self, rows: *const native.Prepared, admission: protocol.Admission) !artifact.Owned {
+-            if (!self.busy.tryLock()) return error.ParentWorkerAlreadyLeased;
+-            defer self.busy.unlock();
++            var lease = try self.acquire();
++            defer lease.deinit();
++            return lease.proveAdmitted(rows, admission);
++        }
++        fn proveAdmittedLocked(self: *Self, rows: *const native.Prepared, admission: protocol.Admission) !artifact.Owned {
+             try admission.validate();
+             if (!std.mem.eql(u8, &admission.expected_id, &self.plan.admission.expected_id) and
+                 !try self.plan.tryRebindAdmission(rows, admission))
+--- control/blake3_parent_pipeline.zig
++++ src/frontends/riscv/recursion/blake3_parent_pipeline.zig
+@@ -69,6 +69,10 @@
+ pub fn run(comptime Adapter: type, a: std.mem.Allocator, policy: anytype, sizing: Sizing, worker: *Adapter.Worker, jobs: []const Adapter.Job) !Report {
+     const Handoff = @import("owned_handoff.zig").Handoff(Adapter.Prepared);
+     const admission = try admit(Adapter, policy, sizing, jobs.len);
++    // Reserve the worker before allocating or starting preparation, and retain
++    // ownership through producer cancellation/join on every exit path.
++    var lease = try worker.acquire();
++    defer lease.deinit();
+     if (worker.pool.workerCount() != admission.worker_count or worker.budget.snapshot().limit != sizing.worker_bytes) return error.ParentPipelineWorkerMismatch;
+     const spans = try a.alloc(Spans, jobs.len);
+     errdefer a.free(spans);
+@@ -126,7 +130,7 @@
+         var prepared = value;
+         defer prepared.deinit();
+         spans[completed].proving.start = (try std.time.Instant.now()).since(epoch);
+-        outputs[completed] = try Adapter.prove(worker, &prepared, jobs[completed]);
++        outputs[completed] = try Adapter.prove(&lease, &prepared, jobs[completed]);
+         completed += 1;
+         spans[completed - 1].proving.end = (try std.time.Instant.now()).since(epoch);
+     }
+--- control/blake3_tree_pipeline.zig
++++ src/frontends/riscv/recursion/blake3_tree_pipeline.zig
+@@ -56,7 +56,7 @@
+             pub fn prepareWithPool(a: std.mem.Allocator, job: TreeJob, limit: usize, pool: *@import("stwo_prover_engine").work_pool.WorkPool) !@import("blake3_tree_pipeline.zig").Prepared {
+                 return prepareBoundedWithPool(a, job, limit, pool);
+             }
+-            pub fn prove(worker: *Self.Worker, prepared: *const @import("blake3_tree_pipeline.zig").Prepared, job: TreeJob) !artifact.Owned {
++            pub fn prove(worker: *Self.Worker.Lease, prepared: *const @import("blake3_tree_pipeline.zig").Prepared, job: TreeJob) !artifact.Owned {
+                 if (!std.meta.eql(prepared.fold.prepared.context, job.admission.key.context)) return error.ParentPipelineKeyMismatch;
+                 return worker.proveAdmitted(&prepared.fold.prepared.rows, job.admission);
+             }
+--- control/blake3_tree_pipeline_test_support.zig
++++ src/frontends/riscv/prover/blake3_tree_pipeline_test_support.zig
+@@ -41,13 +41,29 @@
+     try std.testing.expectError(error.UntrustedBlake3ParentRoot, worker.proveAdmitted(&folded.prepared.rows, wrong_admission));
+     try std.testing.expectEqual(original_plan, worker.plan);
+     {
+-        worker.busy.lock();
+-        defer worker.busy.unlock();
++        var lease = try worker.acquire();
++        defer lease.deinit();
++        try std.testing.expectError(error.ParentWorkerAlreadyLeased, worker.acquire());
++        // Busy admission must precede preparation and allocation, even when the
++        // competing caller cannot allocate a single byte.
++        var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
++        try std.testing.expectError(error.ParentWorkerAlreadyLeased, Pipeline.run(failing.allocator(), &policy, sizing, worker, &.{job}));
++        try std.testing.expectEqual(@as(usize, 0), failing.alloc_index);
+         try std.testing.expectError(error.ParentWorkerAlreadyLeased, worker.proveAdmitted(&folded.prepared.rows, admitted));
+     }
+     var denied = sizing;
+     denied.preparation_bytes = 1;
+     try std.testing.expectError(error.PreparationHostBudgetExceeded, Pipeline.run(a, &policy, denied, worker, &.{job}));
++    {
++        var recovered = try worker.acquire();
++        recovered.deinit();
++    }
++    var failing = std.testing.FailingAllocator.init(a, .{ .fail_index = 0 });
++    try std.testing.expectError(error.OutOfMemory, Pipeline.run(failing.allocator(), &policy, sizing, worker, &.{job}));
++    {
++        var recovered = try worker.acquire();
++        recovered.deinit();
++    }
+     var report = try Pipeline.run(a, &policy, sizing, worker, &.{ job, job });
+     defer report.deinit();
+     try std.testing.expectEqual(@as(usize, 2), report.outputs.len);
+--- control/segment_v2_native_proof_test.zig
++++ src/integrations/riscv_cpu/segment_v2_native_proof_test.zig
+@@ -664,7 +664,7 @@
+             defer census_rows.deinit();
+             return;
+         }
+-        var expected_parent = try state.finish(allocator);
++        var expected_parent = try state.finish();
+         defer expected_parent.deinit();
+         {
+             const direct = try coordinator.State.init(ProofEngine, allocator, &left_output.statement, left_output.interaction_claim, &left_capture, test_config, 3);
+@@ -676,14 +676,14 @@
+             const metadata = &direct.prepared.live.hash_metadata.?.g_rows[0][0];
+             const saved = metadata.*;
+             metadata.* = saved.add(stwo_core.fields.m31.M31.one());
+-            try std.testing.expectError(error.InvalidNativeParentRows, direct.finish(allocator));
++            try std.testing.expectError(error.InvalidNativeParentRows, direct.finish());
+             metadata.* = saved;
+             try std.testing.expectEqual(first_column, direct.hash_columns.?.main[0][0].values.ptr);
+-            var adopted = try direct.finish(allocator);
++            var adopted = try direct.finish();
+             defer adopted.deinit();
+             try std.testing.expectEqual(first_column, adopted.rows.main[0][0].values.ptr);
+             try std.testing.expectEqual(@as(usize, 0), direct.hash_columns.?.main[0].len);
+-            try std.testing.expectError(error.InvalidNativeHashColumns, direct.finish(allocator));
++            try std.testing.expectError(error.InvalidNativeHashColumns, direct.finish());
+             direct.deinit();
+             owns_direct = false;
+             inline for (parent_rows.Airs, 0..) |_, i| {

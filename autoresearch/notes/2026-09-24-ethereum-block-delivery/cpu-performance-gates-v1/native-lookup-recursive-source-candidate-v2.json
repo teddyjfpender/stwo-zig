@@ -1,0 +1,208 @@
+{
+  "schema": "source-candidate-v1",
+  "status": "source-only-corrected-unqualified",
+  "owned_sources_frozen": true,
+  "authored_tests": 7,
+  "root": "src/frontends/riscv/block_v5_native_lookup_recursive_test_root.zig",
+  "codegen_root": "src/frontends/riscv/block_v5_native_lookup_recursive_codegen.zig",
+  "filter": "lookup recursion:",
+  "command_for_root_only": "python3 autoresearch/notes/2026-09-24-ethereum-block-delivery/test_sha_memory_proof.py --root src/frontends/riscv/block_v5_native_lookup_recursive_test_root.zig 'lookup recursion:'",
+  "executed_here": [
+    "zig fmt only; no compiler/test/proof invocation"
+  ],
+  "sources": [
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_proof_v1.zig",
+      "sha256": "9ad9d3e49d54246ea6d584dcb73d5f0cce78d61d0a1cf802c86e868c618f8876"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_recursive_admission_v1.zig",
+      "sha256": "c4b20ff16cb9de74024bbb45b7e443e56d05018fd997cb1dd0c9b6b8e7389a9a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_recursive_capture_v1.zig",
+      "sha256": "885864bd380d48d872fa34eb451081eb9a2b120bc0189d01fddc97757173a00b"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_lookup_composition_v1.zig",
+      "sha256": "b9bf1b7f64899aa221bad2d1acaa57a9bd1615ddfed8a783aaedb10afaf63c1f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_lookup_deep_v1.zig",
+      "sha256": "a66d0214471b88822f54673702636530d0a9ee25c155056b1fce8951ff2d32a0"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_lookup_transcript_v1.zig",
+      "sha256": "33e1a7f1bf65c01c7024e41d7051cdc09e1cef6adb2c43f2b69bfca4a7f6f1b4"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/block_v5_native_lookup_roots_v1.zig",
+      "sha256": "8db1d50294e870967b503ec182379c86fc77e38f305307f5e2939e742df916cc"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_native_lookup_recursive_public_bus_v1.zig",
+      "sha256": "5b1af7ad3fa86df5c364e88196f9c5fa651b48f926275cd1e0a55084291706b7"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_reusable_native_lookup_parent_protocol_v1.zig",
+      "sha256": "1a2303b614f0c3477dfbbf786cbd0f4d307409b5f0754ba5b54b6c1f89912271"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/block_v5_native_lookup_recursive_leaf_v1.zig",
+      "sha256": "38ec449a3e26c364b2f9a8ce9adb4825ad6cf1e26df7773247fa3b5ed3503dec"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_recursive_stage_v1.zig",
+      "sha256": "80515c4ecb393182318ff655458cb7e93a4fc331f410846c833ec7425f10e661"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_recursive_test_v1.zig",
+      "sha256": "fe5aa48da7855a907052dfdecca1402c3252634d0b9475c679106388d3b9f117"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_lookup_recursive_test_root.zig",
+      "sha256": "2949e8bf5f84ac0dffe46fac3df203cb1650a60f0a83859c2ca96d29566df318"
+    },
+    {
+      "path": "src/frontends/riscv/block_v5_native_lookup_recursive_codegen.zig",
+      "sha256": "da9d38e93c4b5bd390bd47d6165016ae1a7cc96509386909a80d9a3c6ffdcc00"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "src/frontends/riscv/recursion/blake3_execution_parent_preparation.zig",
+      "sha256": "9728ce12882f48e75e6dd945d77416159166781c9f2b321eded5ccc8d05548ac"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_assembly_v1.zig",
+      "sha256": "2c5a21358693c75f080b84ac12eef6e6d47e3a1e75ba7fc8eaff93ecf4dcec37"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_lookup_plan_v1.zig",
+      "sha256": "4ef9081347244348ad83c8611232291c95f05bd5fa55d8134b01af3e2e7ddeca"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a"
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig",
+      "sha256": "e86cb5279c1640301ad8d5d70f3ac2a518af85978042f75a7b12160aba345cad"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/schema_definition.zig",
+      "sha256": "849f56ef92e42a579537bd39651871fe02424068beaf1a65d4a7cc4e4e2e9bb9"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/equations.zig",
+      "sha256": "d1a1b3ebfd21ee8ec6e05845372da1dc3d8a9da957a79db07cadafe42ebd147f"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/layout.zig",
+      "sha256": "f9d870043d47dc548dd94be873b18b3ade73e02b8a670aefe455816d4be667b6"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/verifier.zig",
+      "sha256": "d0f228ed3bdfcf813b7204c171c1b31dea288ca9d5f25bc7d0cd845bf7a05ba6"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/component.zig",
+      "sha256": "fd7191c718b75a1ed826124ddd593552a0413a7b1c2faac800d4dd1e83459102"
+    },
+    {
+      "path": "src/frontends/riscv/air/lookups/tables/interaction.zig",
+      "sha256": "987837845fb8aba423896a69e899bbfbc9e71a07a4fb11c3cf967a654e8e73aa"
+    },
+    {
+      "path": "src/frontends/riscv/air/logup_equations.zig",
+      "sha256": "bc97580a9a10497ee09636207c1380f7b97c6e35ef0b970c68d430fe4d23732f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/blake3_native_recorder.zig",
+      "sha256": "049b734d7fea72ca710e73d1233b31d16a572558ff6c5fa73106987c96489d1f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/composition_graph_recorder.zig",
+      "sha256": "393ac0d6b085c909aff81ca3dfc5b06dc5bb427a7d75fc45023d443cacea656d"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_provider_relations.zig",
+      "sha256": "5bf6ca409b2bfd6f1941b413ded56e162fdf6412f103661555a7ad2ff2ed0dca"
+    }
+  ],
+  "shared_dispatch_owner": "exact_recursion; exact Lookup VerifiedCapture predicate and four State branches frozen with ROM/RAM snapshot",
+  "original_proof_unchanged": {
+    "tables": 6,
+    "logs": [
+      18,
+      20,
+      19,
+      20,
+      16,
+      15
+    ],
+    "fixed_columns": 20,
+    "signed_main_columns": 6,
+    "interaction_columns": 24,
+    "composition_columns": 8,
+    "composition_log": 21,
+    "mask_log": 20,
+    "split": 1,
+    "constraints": 6,
+    "claims": 6,
+    "trees": 4
+  },
+  "api": {
+    "admission": "Prepared.init(a,Native.Plan,roots,sealed,pins,entries,Limits)!Prepared; plan/index/roots/sealed/pins/entries/config/template_id/logs/limits",
+    "native_capture": "Native.ForBackend(B).verifyCaptureBorrowed / WithBasis and verifyCaptureOwned; same original verifyInternal take branch",
+    "capture": "Capture.ForBackend(B).verifyBorrowed(a,*Native.Proof,*Prepared)!VerifiedCapture; verifyOwned consumes source on every path",
+    "stage": "ForBackend(B).publish(a,*Native.Proof,*Prepared,Options,Sink)!void; Options{profile,transcript_capacity=2,cache:?*SetupCache=null}",
+    "sink": "put_lookup(context,index:u32,*Artifact)!void; success consumes owned artifact, error preserves stage ownership",
+    "artifact": "bytes,key,expected_key_id,schedule,native:Native.OpenReceipt,public_values:Bus.Values",
+    "native_receipt": "plan_id,roots,sealed_digest,claims:[6]Q,total:Q",
+    "public_bus": "Values.fromLookup(admitted,receipt); template/sealed/plan/plan_id/roots/claims; PUBLIC_CIRCUIT=4200008 MAX_WIRES=128",
+    "leaf": "verify(a,bytes,independentKey,independentID,independentSchedule,*Prepared,expectedOpen)!OpenEquation{equation,public_values}"
+  },
+  "authority": [
+    "original deterministic full table basis reconstructed by actual native verifier; no producer root selects fixed tuples",
+    "independently reconstructed field-safe execution demand Plan pinned by B5SS native_lookup entry; source counter centered signed mass bound and canonical schema unchanged",
+    "borrowed verifier captures full AIR/PCS/FRI/Merkle/channel through core.verifyBorrowedWithProofCapture; clone owns all arrays, original proof remains borrowed",
+    "all six shipped table equations replayed through original evaluateGeneric at native offsets/mixed domains, including first flag/full claim rather than a normalized replacement",
+    "original B5SS universal47 and B5LT1 plan identity/first roots/six canonical claims, interaction root and original finishReplay; no restart or extra challenge draw",
+    "full DEEP/FRI/Merkle/nonhash/transcript parent source route selected by exact type, with external first roots and all public claim consumers supplied",
+    "distinct reusable lookup protocol, schedule pinned independently; fresh leaf verification and public supply closure before sink publication",
+    "optional setup cache is shared ForModules body, one entry/aggregate worker cap/consuming rows; cold original Plan still available"
+  ],
+  "fixtures": [
+    "all six actual CPU point equations and native masks versus generic symbolic DAG; graph identity across changing claims; each claim/multiplicity/first/previous/domain challenge plus composition chunk mutation",
+    "exhaustive full equation graph and policy allocation failures",
+    "all 20/6/24 independent logs, group bounds/span/index, first roots, security, template and zero resource caps reject substitution",
+    "exact original native channel parity, all six claim frames, universal47 and absence of restart",
+    "distinct typed key/public group/claim/schedule closure with count relabel, field limit, invalid scalar and stale ID negatives",
+    "actual six counter schemas and centered signed request census; exhaustive counter allocation failures without commitments",
+    "fresh leaf path rejects stale independent key before decode, stage rejects profile before source proof dereference",
+    "actual borrowed/owned capture, full parent preparation/publication/cache/cold/fresh receiver bodies retained in separate codegen root without invocation"
+  ],
+  "remaining": [
+    "root serialized pure behavioral/fault and actual production-body compilation at exact consolidated provider source snapshot",
+    "fresh real six-table child and recursive parent proof/publication under independent provider policy remain unqualified; no host metadata fixture grants receipt authority",
+    "root-owned fourth-family durable transport/roster integration and canonical all-family detached selection pending source qualification",
+    "global per-group six-table requester closure remains mandatory; recursive leaf alone does not prove a complete block"
+  ],
+  "revision": 2,
+  "prior_candidate": {
+    "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-lookup-recursive-source-candidate-v1.json",
+    "sha256": "66f46ddc0a1027db8804719d1da2853035408cfe9510f79cd4c5b4366dea3963"
+  },
+  "root_gate_prior": "provider-cohesive-focused-v4.log: 38/41 overall, two lookup baseline failures; no successful lookup equation gate claimed",
+  "correction": {
+    "path": "src/frontends/riscv/prover/block_v5_native_lookup_recursive_test_v1.zig",
+    "cause": "fixture split reconstruction used T_(composition_log-1) instead of authoritative T_(composition_log-2)",
+    "authority": [
+      "src/core/proof.zig:reconstructCompositionChunkEvals",
+      "src/frontends/riscv/recursion/air/composition_graph_recorder_record_component.zig:reconstructSplitComposition"
+    ],
+    "scope": "test oracle only; full original six-table equations and production symbolic composition unchanged",
+    "new_regression": "fixture verifies both correct recombination and rejection of old off-by-one factor against core.proof"
+  }
+}

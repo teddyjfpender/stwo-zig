@@ -1,0 +1,6 @@
+src/frontends/riscv/recursion/block_v5_public_supply_identity_v2_test.zig:15:31: error: function parameter shadows declaration of 'wire'
+    pub fn at(self: *@This(), wire: Bus.Wire) ![4]M {
+                              ^~~~
+src/frontends/riscv/recursion/block_v5_public_supply_identity_v2_test.zig:20:1: note: declared here
+fn wire(index: usize) Bus.Wire {
+^~

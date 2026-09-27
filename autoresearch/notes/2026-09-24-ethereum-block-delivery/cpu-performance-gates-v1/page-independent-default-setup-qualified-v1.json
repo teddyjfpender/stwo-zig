@@ -1,0 +1,24 @@
+{
+  "status": "qualified-focused-page-policy-and-default-integration",
+  "source": "page-independent-default-setup-focused-v1-source.json",
+  "source_sha256": "22f4716450f7a5fe220d71c85cebba9bcf5dbaa18e8490fcfb06e67313a3607e",
+  "result": "page-independent-default-setup-focused-v1-result.json",
+  "result_sha256": "219d51840bd4b24f2e2e0f96668c7f153fa720626b8edec490b3b171828c8ea5",
+  "selected_checks": 23,
+  "source_pin_count": 2032,
+  "elapsed_seconds": 37.5679944580188,
+  "scope": [
+    "Policy v2 independently pins original proposed semantic claims; v1 readable but missing expected claims fail closed.",
+    "Default raw/fold leaf and PAGE16 node expected keys before original/proof read, canonical reconstruction omits private witness construction.",
+    "Canonical coordinate/cell/context/log/routing mutation, OOM/custody and original durable/consuming cache regression checks.",
+    "Actual Job, export, CPU caller, raw/fold fixed factories, default PAGE owner and original receiver/cache/stage bodies retained only."
+  ],
+  "positive_full_fixed_live_root_parity": false,
+  "complete_source_authority": false,
+  "complete_block_authority": false,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "end_to_end_time_measured": false,
+  "peak_rss_measured": false
+}

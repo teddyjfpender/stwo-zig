@@ -1,0 +1,13 @@
+1/12 block_v5_requester_public_test_root.test_0...OK
+2/12 block_v5_requester_public_test_root.test.requester public: original producer receiver tuple and source bodies retained without proving...OK
+3/12 prover.block_execution_external_trace_v2.test_0...OK
+4/12 air.lookups.tables.mod.test_0...OK
+5/12 air.semantic_eval.test_0...OK
+6/12 prover.block_execution_external_access_bridge_v2.test_0...OK
+7/12 air.memory_commitment.poseidon2_air.test_0...OK
+8/12 prover.block_v5_requester_public_test_v1.test.requester public: exact sorted scope lookup separates window coordinate and kind...OK
+9/12 prover.block_v5_requester_public_test_v1.test.requester public: schedule has distinct authority and rejects unrelated child or seal selectors...OK
+10/12 prover.block_v5_requester_public_test_v1.test.requester public: resource rejection precedes unadmitted policy and source access...OK
+11/12 prover.block_v5_requester_public_test_v1.test.requester public: all-family recipe cannot supply requester public authority...OK
+12/12 air.lookups.tables.source_ingest.test_0...OK
+All 12 tests passed.

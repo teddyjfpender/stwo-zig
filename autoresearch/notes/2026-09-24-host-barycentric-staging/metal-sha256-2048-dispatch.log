@@ -1,0 +1,20 @@
+METAL_STREAM_LEAVES columns=139 log=21 tile_log=17 scratch_bytes=67108864 working_bytes=46137344 dispatches=32 overlap=true gpu_ms=6.599
+METAL_STREAM_LEAVES columns=139 log=21 tile_log=17 scratch_bytes=67108864 working_bytes=46137344 dispatches=32 overlap=true gpu_ms=4.534
+METAL_STREAM_LEAVES columns=642 log=21 tile_log=17 scratch_bytes=67108864 working_bytes=62914560 dispatches=160 overlap=true gpu_ms=20.213
+METAL_FRAMEWORK_INTERACTION rows=1048576 batches=31 gpu_ms=35.57220831862651
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=4 gpu_ms=0.44350000098347664
+METAL_FRAMEWORK_INTERACTION rows=262144 batches=1 gpu_ms=0.3197499900124967
+METAL_FRAMEWORK_INTERACTION rows=131072 batches=2 gpu_ms=0.29062500107102096
+METAL_FRAMEWORK_INTERACTION rows=1024 batches=2 gpu_ms=0.18266664119437337
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=1 gpu_ms=0.03600001218728721
+METAL_FRAMEWORK_INTERACTION rows=4096 batches=2 gpu_ms=0.046250002924352884
+METAL_FRAMEWORK_INTERACTION rows=8192 batches=1 gpu_ms=0.03899997682310641
+METAL_STREAM_LEAVES columns=600 log=21 tile_log=17 scratch_bytes=67108864 working_bytes=62914560 dispatches=160 overlap=true gpu_ms=19.568
+METAL_FRAMEWORK_COMPOSITION components=8 groups=6 gpu_ms=56.832
+SAMPLED_DISPATCH backend=commit_backend.MetalCommitBackend coefficient=true barycentric=true mixed=true
+SAMPLED_TREE index=0 coefficients=true columns=139 max_log=21
+SAMPLED_TREE index=1 coefficients=true columns=642 max_log=21
+SAMPLED_TREE index=2 coefficients=false columns=600 max_log=21
+SAMPLED_TREE index=3 coefficients=true columns=8 max_log=21
+METAL_HOST_BARYCENTRIC staging_bytes=67108864 commands=55 columns=1056 points=28 gpu_ms=8.516
+BLAKE3_EXECUTION_STAGE_PROFILE {"schema_version":1,"runtime":"native","example":"blake3-execution","stages":[{"id":"execution.fixed","label":"Admission and fixed commitment","seconds":0.094093,"children":null},{"id":"execution.main","label":"Main commitment","seconds":0.191571,"children":null},{"id":"execution.native_interaction","label":"Native interaction generation","seconds":0.085621,"children":null},{"id":"execution.hash_interaction","label":"Hash interaction generation","seconds":0.138373,"children":null},{"id":"execution.interaction_commit","label":"Interaction closure and commitment","seconds":0.213031,"children":null},{"id":"execution.core","label":"Core STARK proof","seconds":0.456811,"children":[{"id":"draw_random_coeff","label":"Draw random coefficient","seconds":0,"children":null},{"id":"composition_trace_extract","label":"Composition trace extract","seconds":0.000006,"children":null},{"id":"composition_evaluation","label":"Composition evaluation","seconds":0.240545,"children":null},{"id":"composition_interpolate_and_split","label":"Composition interpolate and split","seconds":0.004485,"children":null},{"id":"composition_commit","label":"Composition commit","seconds":0.006505,"children":null},{"id":"oods_point_and_mask_points","label":"OODS point and mask points","seconds":0.00025,"children":null},{"id":"sampled_value_evaluation","label":"Sampled-value evaluation","seconds":0.086694,"children":null},{"id":"sampled_value_channel_mix","label":"Sampled-value channel mix","seconds":0.000048,"children":null},{"id":"fri_quotient_build_and_commit","label":"FRI quotient build + commit (lazy)","seconds":0.08198,"children":null},{"id":"proof_of_work","label":"Proof of work","seconds":0.013698,"children":null},{"id":"fri_decommit","label":"FRI decommit","seconds":0.005883,"children":null},{"id":"trace_decommit","label":"Trace decommit","seconds":0.001617,"children":null},{"id":"constraint_check_and_assembly","label":"Constraint check and assembly","seconds":0.000243,"children":null}]}]}

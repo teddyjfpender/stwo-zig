@@ -1,0 +1,11 @@
+bench-keccakf-blake3-system
++- Keccak-f BLAKE3 system benchmark identity guard
+   +- run test stderr
+Keccak-f proof timings: witness=10.560ms pp=12.765ms main=6.403ms interaction-gen=2.714ms interaction-commit=8.627ms prove=1889.677ms verify=7.749ms
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+bench-keccakf-blake3-system success
++- Keccak-f BLAKE3 system benchmark identity guard success
+   +- run test 1 passed 2s MaxRSS:48M
+      +- compile test ReleaseFast native success 14s MaxRSS:1G
+

@@ -14,6 +14,29 @@ pub const Spec = struct {
 
 pub const specs = [_]Spec{
     .{
+        .step = "test-block-execution-bridge-v2",
+        .description = "Check block-v2 typed access and integer transition bridge",
+        .root = "block_execution_access_bridge_test_root.zig",
+        .filters = &.{"block-v2"},
+        .minimum = 2,
+    },
+    .{
+        .step = "test-block-memory-range-v2",
+        .description = "Check block-v2 committed byte-range interaction and global table closure",
+        .root = "block_memory_range_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"block V2 range"},
+        .minimum = 2,
+    },
+    .{
+        .step = "test-blake3-exact-frontier",
+        .description = "Check verified exact-count recursion forest ownership and coverage",
+        .root = "blake3_stream_frontier_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"exact-count V2"},
+        .minimum = 4,
+    },
+    .{
         .step = "test-legacy-interaction-oracle",
         .description = "Check retired interaction generation and retained memory layouts",
         .root = "air_semantics_test_root.zig",
@@ -328,6 +351,14 @@ pub const specs = [_]Spec{
         .root = "row_window_expression_v2_edit_test_root.zig",
         .filters = &.{"row-window expression v2:"},
         .minimum = 5,
+    },
+    .{
+        .step = "test-guest-proof-artifact",
+        .description = "Check guest proof suite versions, bounded codecs and allocation ownership",
+        .root = "guest_precompile_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "guest proof artifact", "guest artifact header", "legacy v3 header bytes" },
+        .minimum = 7,
     },
     .{
         .step = "test-guest-precompile",
@@ -757,8 +788,9 @@ pub const specs = [_]Spec{
         .step = "test-recursion-framework-interaction",
         .description = "Run interaction column/domain parity, workspace and failure-atomicity checks",
         .root = "framework_interaction_test_root.zig",
+        .imports_prover_engine = true,
         .filters = &.{"R-012 framework"},
-        .minimum = 2,
+        .minimum = 3,
     },
     .{
         .step = "test-recursion-air-row18",

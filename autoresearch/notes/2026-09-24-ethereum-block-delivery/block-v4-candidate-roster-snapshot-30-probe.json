@@ -1,0 +1,28 @@
+{
+  "scope": "read-only first 30 native-key candidate preparations under the proposed 218-segment schedule; no STARK proof or merged geometry admission",
+  "result": "completed 30-key prefix probe; intentionally published no manifest",
+  "schedule_status": "proposal only; additive 256-leaf row upper bounds, no merged-segment proof or fresh geometry admission",
+  "host_preflight": "explicit schedule with host-only chunks capped at 262144 cycles",
+  "native_key_method": "deep-copy verifier inputs, release segment witness before PreparedVerifier.initCompact",
+  "completed_keys": 30,
+  "proposed_segments": 218,
+  "configured_tracked_limit_bytes": 17179869184,
+  "wall_seconds": 616.77,
+  "maximum_resident_set_bytes": 9774448640,
+  "tracked_peak_bytes": 9748075183,
+  "index_0_witness_ready_live_bytes": 8016450176,
+  "index_0_tracked_peak_bytes": 8084372604,
+  "index_29_witness_ready_live_bytes": 9203969057,
+  "index_29_witness_released_live_bytes": 220253194,
+  "index_29_native_key_ready_live_bytes": 294149325,
+  "index_29_after_segment_release_live_bytes": 46792290,
+  "published_manifest": false,
+  "proof_verified": false,
+  "source_sha256": {
+    "elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "input": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "oracle": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "exact_schedule_json": "f72b127f065b234251dcc328c1c9884baec716c03776a303c57de0b050f9d99d"
+  },
+  "log": "block-v4-candidate-roster-snapshot-30-probe.log"
+}

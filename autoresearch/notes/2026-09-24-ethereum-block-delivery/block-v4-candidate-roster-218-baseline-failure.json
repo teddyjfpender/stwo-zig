@@ -1,0 +1,24 @@
+{
+  "scope": "read-only native-key candidate replay; no STARK proof or geometry admission",
+  "schedule_status": "proposal only; additive 256-leaf row upper bounds, no merged-segment proof or fresh geometry admission",
+  "result": "failed before publishing candidate manifest or report",
+  "failing_segment_index": 29,
+  "failing_stage": "Native.PreparedVerifier.initCompact",
+  "error": "OutOfMemory",
+  "last_progress_completed": 16,
+  "proposed_segments": 218,
+  "failing_segment_cycles": 424889,
+  "configured_tracked_limit_bytes": 17179869184,
+  "wall_seconds": 538.98,
+  "maximum_resident_set_bytes": 16591749120,
+  "peak_memory_footprint_bytes": 16599744904,
+  "published_manifest": false,
+  "proof_verified": false,
+  "source_sha256": {
+    "elf": "ef68fdca9e627a4969e64aa97119f52f2d9c9d6b6e8d5cbbeb541fb93dab0688",
+    "input": "737368031bfec21aa2bd557a3a71d2cbf253ec730199f7ec4c3bccd628df8e82",
+    "oracle": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+    "exact_schedule_json": "f72b127f065b234251dcc328c1c9884baec716c03776a303c57de0b050f9d99d"
+  },
+  "next_diagnostic": "Instrument tracked live bytes after both host preflights, each segment load, native key preparation, and segment release before changing the budget."
+}

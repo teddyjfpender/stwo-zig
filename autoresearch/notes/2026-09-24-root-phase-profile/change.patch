@@ -1,0 +1,91 @@
+--- a/src/prover/pcs/commit_ops.zig
++++ b/src/prover/pcs/commit_ops.zig
+@@ -61,8 +61,11 @@
+         /// Prepare borrowed source columns in bounded batches. The caller keeps
+         /// ownership of every value; only copied descriptors belong to this call.
+         pub fn commitBorrowedStreaming(self: *Self, allocator: std.mem.Allocator, columns: []const ColumnEvaluation, batch_size: u32, channel: anytype) !void {
++            return self.commitBorrowedStreamingWithRecorder(allocator, columns, batch_size, null, channel);
++        }
++        pub fn commitBorrowedStreamingWithRecorder(self: *Self, allocator: std.mem.Allocator, columns: []const ColumnEvaluation, batch_size: u32, recorder: ?*stage_profile.Recorder, channel: anytype) !void {
+             const descriptors = try allocator.dupe(ColumnEvaluation, columns);
+-            return commitStreamingWithBacking(self, allocator, descriptors, null, true, batch_size, null, channel);
++            return commitStreamingWithBacking(self, allocator, descriptors, null, true, batch_size, recorder, channel);
+         }
+ 
+         /// Commits owned evaluation columns directly, avoiding an extra column clone.
+--- a/src/prover/pcs/scheme.zig
++++ b/src/prover/pcs/scheme.zig
+@@ -182,6 +182,7 @@
+         pub const treeBuilder = CommitOps.treeBuilder;
+         pub const streamingTreeBuilder = CommitOps.streamingTreeBuilder;
+         pub const commitBorrowedStreaming = CommitOps.commitBorrowedStreaming;
++        pub const commitBorrowedStreamingWithRecorder = CommitOps.commitBorrowedStreamingWithRecorder;
+         pub const commitOwnedStreaming = CommitOps.commitOwnedStreaming;
+         pub const commitOwnedStreamingWithRecorder = CommitOps.commitOwnedStreamingWithRecorder;
+         pub fn roots(self: *Self, allocator: std.mem.Allocator) !TreeVec(H.Hash) {
+--- a/src/frontends/riscv/recursion/blake3_native_parent_producer.zig
++++ b/src/frontends/riscv/recursion/blake3_native_parent_producer.zig
+@@ -215,7 +215,7 @@
+             if (std.process.hasEnvVarConstant("STWO_RISCV_PARENT_MONOLITHIC_MAIN")) {
+                 try scheme.commit(a, main.items, &channel);
+             } else {
+-                try scheme.commitBorrowedStreaming(a, main.items, @import("../prover/blake3_coefficient_retention.zig").streamingBatchColumns(), &channel);
++                try scheme.commitBorrowedStreamingWithRecorder(a, main.items, @import("../prover/blake3_coefficient_retention.zig").streamingBatchColumns(), diagnostic, &channel);
+             }
+             phase.end();
+             phase = try stage_profile.StageScope.begin(diagnostic, "parent.interaction_generation", "Interaction generation");
+@@ -259,7 +259,7 @@
+             workspace.phase = .interaction_commitment;
+             // Bound preparation even for backends preferring monolithic commits.
+             // The streaming PCS preserves original column indices and tree roots.
+-            try scheme.commitOwnedStreaming(a, try interaction.toOwnedSlice(a), @import("../prover/blake3_coefficient_retention.zig").streamingBatchColumns(), &channel);
++            try scheme.commitOwnedStreamingWithRecorder(a, try interaction.toOwnedSlice(a), @import("../prover/blake3_coefficient_retention.zig").streamingBatchColumns(), diagnostic, &channel);
+             // Both commitments own their columns. Relations/providers are inline
+             // values; only offsets and claims survive from staging into the core.
+             phase.end();
+--- a/src/backends/metal/runtime/quotients.m
++++ b/src/backends/metal/runtime/quotients.m
+@@ -675,8 +675,20 @@
+                 }
+                 uint32_t run_view_count = (uint32_t)(run_view_data.length / sizeof(StwoZigRawQuotientView));
+                 if (run_view_count != 0u) {
+-                    id<MTLBuffer> run_views = [runtime.device newBufferWithBytes:run_view_data.bytes
+-                                                                         length:run_view_data.length
++                    // A source run contributes only to its covered batch range.
++                    // Rebase both the view batch IDs and the numerator binding:
++                    // scanning every global batch otherwise reads and rewrites
++                    // gigabytes of unchanged numerators for each source run.
++                    // Keep the original views for the independent parity receipt.
++                    NSMutableData *dispatch_view_data = [run_view_data mutableCopy];
++                    StwoZigRawQuotientView *dispatch_views = dispatch_view_data.mutableBytes;
++                    for (uint32_t i = 0u; i < run_view_count; ++i)
++                        dispatch_views[i].batch -= min_batch;
++                    const uint32_t run_batch_count = max_batch - min_batch + 1u;
++                    const NSUInteger numerator_offset =
++                        (NSUInteger)min_batch * row_count * 4u * sizeof(uint32_t);
++                    id<MTLBuffer> run_views = [runtime.device newBufferWithBytes:dispatch_view_data.bytes
++                                                                         length:dispatch_view_data.length
+                                                                         options:MTLResourceStorageModeShared];
+                     [raw_sources addObject:run_views];
+                     id<MTLComputeCommandEncoder> numerator_encoder = [command computeCommandEncoder];
+@@ -687,8 +699,8 @@
+                                           atIndex:0];
+                     [numerator_encoder setBuffer:run_views offset:0 atIndex:1];
+                     [numerator_encoder setBytes:&run_view_count length:sizeof(run_view_count) atIndex:2];
+-                    [numerator_encoder setBuffer:numerators offset:0 atIndex:3];
+-                    [numerator_encoder setBytes:&batch_count length:sizeof(batch_count) atIndex:4];
++                    [numerator_encoder setBuffer:numerators offset:numerator_offset atIndex:3];
++                    [numerator_encoder setBytes:&run_batch_count length:sizeof(run_batch_count) atIndex:4];
+                     [numerator_encoder setBytes:&row_count length:sizeof(row_count) atIndex:5];
+                     NSUInteger numerator_width = MIN(runtime.quotientNumerator.maxTotalThreadsPerThreadgroup,
+                                                      runtime.quotientNumerator.threadExecutionWidth * 8u);
+--- a/src/backends/metal/runtime.m
++++ b/src/backends/metal/runtime.m
+@@ -954,6 +954,7 @@
+ #import "runtime/polynomial_evaluation.m"
+ #import "runtime/quotient_planning.m"
+ #import "runtime/quotient_completion.m"
++// Segmented quotient dispatch binds only the source run's covered batch range.
+ #import "runtime/quotients.m"
+ #import "runtime/lifecycle_and_tree.m"
+ 

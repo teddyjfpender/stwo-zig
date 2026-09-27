@@ -1,0 +1,5 @@
+1/4 borrowed_native_capture_codegen_test_root.test.borrowed proof capture actual native and leaf callback bodies codegen...OK
+2/4 frontends.riscv.air.memory_commitment.poseidon2_air.test_0...OK
+3/4 frontends.riscv.prover.block_v5_native_recursive_setup_cache_v1.test_0...OK
+4/4 frontends.riscv.air.semantic_eval.test_0...OK
+All 4 tests passed.

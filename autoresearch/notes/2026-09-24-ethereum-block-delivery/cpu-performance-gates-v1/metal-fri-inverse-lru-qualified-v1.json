@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "status": "focused-source-qualified",
+  "scope": "18 device-free lease/LRU checks plus23 strict/ordinary lifetime regressions; real cache/bank/fold/cascade/fused quotient/shutdown body object without invocation.",
+  "idle_limit": "min(256 MiB, owner.limit/8) per bank; max4 banks",
+  "entries_per_bank": 8,
+  "checks": 41,
+  "sources": {
+    "src/backends/metal/runtime/fri_inverse_cache_budget_v1.zig": "4d108dc5ccc27bff1afafe652e6a7e71d761cc7183ba8255bb57956a054796b2",
+    "src/backends/metal/runtime/fri_inverse_cache_v1.zig": "1e9066ff499bcf2ac40ee7c474f58db9486c55919e57d986b707db66f1f58d6c",
+    "src/metal_fri_inverse_lease_test_root.zig": "b5ca633c6ce8dadb57ba153631e2cc6f2af28050dcbbc41b76fffac2779b778e",
+    "src/metal_fri_budget_test_root.zig": "161009685265c0858674c686c57f27ad846c844874d697014d8da4267a2c792d",
+    "src/metal_fri_budget_codegen.zig": "7915e971d06d5ca0dcaf23f0dd9d86518f700588565ed17b5bac1963063fe678",
+    "src/prover/host_budget_allocator.zig": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+    "src/prover/shared_external_memory_v1.zig": "d2cecd2d3cf5fb1dbb4611a8c7ed6b7a1da14738e376215c580a8d53b3c18fc2"
+  },
+  "logs": {
+    "metal-fri-inverse-lru-v1.log": "2ef08eaa4c379de617270230e9a8b60f9ca4b1e44c1cdd7320d610e83a30ead6",
+    "metal-fri-inverse-lru-budget-regression-v1.log": "36098d565e6877b5b29f7e459cb32e9559d62e9a3ae57e4e9c8ae71bca69df14",
+    "metal-fri-inverse-lru-production-body-v1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "body_object": "metal-fri-inverse-lru-production-body-v1.o",
+  "body_object_sha256": "0601995af8ef9f19a9f268607b7b8363e53227f17b34342e3be9c2d984771549",
+  "device_executed": false,
+  "stark_proved": false,
+  "guest_executed": false,
+  "performance_measured": false,
+  "pressure_evictions_restored": false,
+  "remaining_scope": "No runtime devices, proof or hardware overlap executed. Later circle LDE / OODS migrations have separate qualification; this artifact does not qualify them."
+}

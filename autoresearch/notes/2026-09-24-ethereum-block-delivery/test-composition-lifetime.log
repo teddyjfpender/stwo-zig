@@ -1,0 +1,4 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 2s
+1/1 prove.test.composition deep chunks outlive borrowed coefficient backing...OK
+All 1 tests passed.

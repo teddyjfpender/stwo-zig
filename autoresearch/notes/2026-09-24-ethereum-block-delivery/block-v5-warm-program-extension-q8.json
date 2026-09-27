@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "command": "zig test -OReleaseFast -lc -mcpu=native --test-filter 'block-v5' --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_riscv_frontend --dep interop_postcard --dep stwo_cpu_backend -Mroot=src/frontends/riscv/block_v5_precompile_lookup_test_root.zig -Mstwo_core=src/core/mod.zig --dep stwo_core -Mstwo_backend_contracts=src/backend/mod.zig --dep stwo_core --dep stwo_backend_contracts -Mstwo_prover_api=src/prover_api/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep interop_postcard -Mstwo_prover_engine=src/prover/mod.zig --dep stwo_core --dep stwo_proof_wire -Mstwo_riscv_frontend=src/frontends/riscv/mod.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Minterop_postcard=src/interop/postcard.zig --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_cpu_backend=src/backends/cpu_scalar/mod.zig -Mstwo_proof_wire=src/interop/proof_wire/mod.zig",
+  "root": "src/frontends/riscv/block_v5_precompile_lookup_test_root.zig",
+  "filter": "block-v5",
+  "result": {
+    "exit_code": 0,
+    "tests_passed": 10,
+    "tests_failed": 0,
+    "allocator": "std.testing.allocator; clean teardown"
+  },
+  "security": {
+    "scope": "diagnostic q8/PoW0",
+    "queries": 8,
+    "pow_bits": 0,
+    "log_blowup_factor": 1
+  },
+  "fixtures": [
+    {
+      "sha_calls": 2,
+      "keccak_calls": 1,
+      "signer_calls": 0,
+      "memory_events": 103,
+      "program_fetches": 3,
+      "witness_loads": 2
+    },
+    {
+      "sha_calls": 0,
+      "keccak_calls": 1,
+      "signer_calls": 1,
+      "memory_events": 94,
+      "program_fetches": 2,
+      "witness_loads": 2
+    }
+  ],
+  "qualified": [
+    "Bounded collect/proveWithHooks runs table and family12 callbacks in the same second-pass witness lifetime",
+    "Family12 fixed/main roots use original immutable PCS tree leases with matching column pointers, lengths and geometry",
+    "Only selected caller trace columns and fixed selectors are recovered; arithmetic matrices, new first-round LDEs and Merkle trees are not rebuilt",
+    "Source family11 scheme remains live and its arithmetic proof fresh-verifies after both borrowed-prefix proofs",
+    "Family12 proof fresh-verifies using independently reconstructed zero-offset typed slots and the fresh arithmetic root binding",
+    "Changed family12 claim, swapped first-round roots and corrupted canonical first-pass key reject",
+    "Table projection retains independent six-partition signed-counter equality checks",
+    "Authentic 52 SHA memory IR events match all 26 external bridge pairs; sorted byte addresses remain unchanged without double multiplication"
+  ],
+  "producer_api": [
+    "block_v5_program_extension_stage_v1.firstRoundEntry",
+    "block_v5_program_extension_stage_v1.ForBackend.hooks",
+    "block_v5_program_extension_stage_v1.ForBackend.proveWarm"
+  ],
+  "output": [
+    "BLOCK_V5_CALLER_TABLES warm_pipeline=true witness_loads=2 same_roots=true family12_borrowed=true authentic_six_partitions=true sha=2 keccak=1 signer=0 memory_events=103 auxiliary_clock=0 complete=false",
+    "BLOCK_V5_CALLER_TABLES warm_pipeline=true witness_loads=2 same_roots=true family12_borrowed=true authentic_six_partitions=true sha=0 keccak=1 signer=1 memory_events=94 auxiliary_clock=0 complete=false"
+  ],
+  "not_qualified": [
+    "Whole-caller global accounting closure",
+    "Actual native-v3 execution admission in this warm callback fixture",
+    "Canonical q70 security",
+    "Mainnet block",
+    "Detached family12 stage transport"
+  ],
+  "timing": "Not separately instrumented",
+  "memory": "Not separately instrumented"
+}

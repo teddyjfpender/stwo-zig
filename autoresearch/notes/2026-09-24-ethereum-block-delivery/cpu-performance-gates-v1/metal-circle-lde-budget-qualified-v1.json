@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "status": "focused-source-qualified",
+  "scope": "Seven device-free combined cap, pre-factory failure, joined-wave, owner lifetime, allocator identity and strict/ordinary compatibility checks; actual full generic PCS commitOwned and Metal batched/standalone LDE bodies compiled without invocation; literal assembled runtime prefix through circle LDE passes Objective-C syntax.",
+  "passed": 7,
+  "sources": {
+    "src/backends/metal/runtime/external_allocation_admission_v1.zig": "806f541add6edcb3035fd2a0306add30560a3679d14d6f99d750f5c74d6e83e9",
+    "src/metal_external_allocation_admission_test_root.zig": "a03842d3143fcae801faf048310848ac601d390a4990574fd8daf4bc5c3a68b8",
+    "src/metal_circle_lde_budget_codegen.zig": "962095c948666898eba2b2e37f7251050b8bf9e09540796236c2ab1acf493e06",
+    "src/backends/metal/runtime/circle_transform_operations.zig": "6ef080c9329e2bb8fa5f8aa9a6d17d80837f4775957bfc25feb418e8eb82b154",
+    "src/backends/metal/runtime/circle_legacy.m": "1ca25caafcd97e2afe5b11a64d681cb4b9196176604ba27c6c1f38d2e4ccdead",
+    "src/backends/metal/runtime/bindings.zig": "d72440335a68b1e06cd85aee9213b3e7136e439807334da3f229af35200cc06e",
+    "src/backends/metal/runtime/abi.h": "11c97a8106f9953e34d4c5ead347977b8456d36142af61dd3f76f07092359e6a",
+    "src/backends/metal/runtime/object_model.h": "b263a4640aef111593009e0c2c625aa5bd884c5a1d53ea3421d6db0442d73812",
+    "src/backends/metal/runtime.zig": "8aaef34a673e5d88ff46d4cebdf35fc310584ac606ea5a8ffc6080cc2b40c89c",
+    "src/backends/metal/runtime/polynomial_operations.zig": "ba3b1e495fb5ad1d338e8d38c96c5319dfb360be88879c89b911e67f6b00d9d9",
+    "src/backends/metal/commit_backend.zig": "65f33ba3c1827f016d001977803c061ce0bbb56d96f7285f24bc9b07f752e373",
+    "src/prover/pcs/columns/preparation.zig": "9f4f459445aa29527d78645827b173af1159946d35565fd29e3a88ee78373a61",
+    "src/prover/pcs/commit_ops.zig": "8ebb5294ba1b0b8765177d6d3a8213bf303e27c81463cadc153084e7941f1296",
+    "src/prover/host_budget_allocator.zig": "a2dc9a846c17d3f6614232409672c3dac37f35f7a4d492bca8f5a9e22266741d",
+    "src/prover/shared_external_memory_v1.zig": "d2cecd2d3cf5fb1dbb4611a8c7ed6b7a1da14738e376215c580a8d53b3c18fc2"
+  },
+  "artifacts": {
+    "metal-external-scratch-admission-v2.log": "f831991b250915e5a63e2780d73c0c2bb956a2568438e8d212ee9ecff4a701ba",
+    "metal-circle-lde-budget-production-body-v3.o": "21406d5970c4a4f42e33368de02f0f794382096c089c7414b2a54606e2674120",
+    "metal-circle-lde-budget-production-body-v3.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "metal-circle-lde-budget-objective-c-v1.log": "c08d5cf009176fc2038f46d22b472f32a898dba0f40c37c17c54cf531c93e4bc",
+    "metal-circle-lde-budget-syntax-prefix-v1.m": "88849da7823cfe28e8edda05fc2f40fd2fc34483faf2f0fd3da826b4b68491dd"
+  },
+  "private_constructor_sites": 7,
+  "no_copy_alias_sites": 3,
+  "source_integrated": true,
+  "queued_receipt_source_integrated": true,
+  "guest_executed": false,
+  "stark_proved": false,
+  "device_executed": false,
+  "performance_measured": false,
+  "whole_process_rss_enforced": false,
+  "remaining_scope": "No executed device/PCS/hash/transform parity or proof performance. The literal runtime syntax prefix excludes later sampled OODS edits; full runtime syntax remains a separate gate. Borrowed source heap arenas remain caller-owned; aliases receive no second external charge."
+}

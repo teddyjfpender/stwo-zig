@@ -1,0 +1,17 @@
+{
+  "README.md": "0d448642171f154942eaf7534875d8a24f2cdefbadbcf54946916eeea7b8a2b7",
+  "routed-leaf-proof.log": "e6a4a0d3f4afcedaf7a3aa2845320a152665b2a65f6c372e1390f5c94ce0c89b",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/autoresearch/notes/20260921-blake3-byte-routing-problem-match.md": "8793813d560f890210d886920a54cdb787c336b6e3062115ce224ea5ac2def36",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "0671cd2a8ce18f3a60b77c2f279d9513357e1627dac308e00defe6206f6c2cb9",
+  "sources/src/core/channel/blake3_frame.zig": "0fb493bf5a4684abba08615e47affd317ac12a1bcccffbde5b3c88ab6d6c5e13",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "af374ec4d016dddf7eed56b7ab3ef952e581121b05c6fede196737d7f1dda4c4",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "35f72f18713f82ef10c603940ecdd6c4b104861254be49f2df30a8bec40d9458",
+  "sources/src/frontends/riscv/recursion/air/blake3_byte_route.zig": "db4d5c798d3d70c775f37d7fdcf1988d34564bc99653538682d5c064869212e3",
+  "sources/src/frontends/riscv/recursion/air/blake3_byte_route_test.zig": "28fd560b589accba4340a6b6a65ec86249fb7adbb53eeefdc3e4cbba5ceaf724",
+  "sources/src/frontends/riscv/recursion/air/blake3_fixture_roster.zig": "fb4fde48b9009eea4fdbc09e535c87ff2e15575f6d85eedcc52eb97454e7a33b",
+  "sources/src/frontends/riscv/recursion/air/blake3_node_route.zig": "88211165403758ca00577bcaa90e7535c93624c6d37a4cd2193328d4d426db5d",
+  "sources/src/frontends/riscv/recursion/air/blake3_routed_node_test.zig": "68d55ab4ea895839c52dd6db1df6ae1a4a6acd97f712475b8a5bae6bd7baf27e",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "1f36e3117300a9abd730991b188e47c9ddc6a071ea400d390651ff3b37bddd72",
+  "tests.log": "c2d9dc9ee89ec26e6aad0c8fe993b72397a0ec677544146e678d5365977ed4f1"
+}

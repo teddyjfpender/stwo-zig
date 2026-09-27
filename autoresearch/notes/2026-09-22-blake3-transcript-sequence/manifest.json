@@ -1,0 +1,10 @@
+{
+  "README.md": "d54d2c2f5e967a624bfa1796327003306cf5b9b0e8504dbf900d306a1d64c3d0",
+  "sources/autoresearch/notes/20260922-blake3-transcript-sequence-problem-match.md": "c87391728d343f4637cfda336a38deb5acaa60fa57b8aca225f81670458468f0",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "842e3cc056af4095d0eab4b73bfc142a49e82f2e5eb519114aec22d75651489e",
+  "sources/src/frontends/riscv/blake3_framework_test_root.zig": "14dc161725372063ad07d585067513ee96ad56e57b021ead3344747461cbb519",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_sequence_test.zig": "36059b803db38427f85334fd9dda187e9f68547410bbb947bfa6d3634739080d",
+  "sources/src/frontends/riscv/recursion/air/blake3_transcript_witness.zig": "abf5ed036c0574c92d4cb9527dd6a89d49c3ab3d32e6749205467f1454f1e320",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "2519a9a101494fd86b6d583414fb53a7494668a5d3586d57a6ac0b0ba8f9975b",
+  "tests.log": "2ed969f98d74d0517a8fa38137ae145e427dc14ed54c1835739ceafd81baf719"
+}

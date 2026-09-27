@@ -1,0 +1,16 @@
+test-blake3-parent-join
++- BLAKE3 parent join guard
+   +- run test 5/6 passed, 1 failed
+error: 'recursion.air.blake3_parent_join_test.test.BLAKE3 shared reserved append is bounded and failure atomic' failed: BLAKE3_JOIN_PEAK borrowed_bytes=11409648 draining_bytes=7073360
+expected error.InvalidParentAppend, found error.OutOfMemory
+error: while executing test 'recursion.air.blake3_parent_join_test.test.BLAKE3 shared reserved append is bounded and failure atomic', the following test command failed:
+./.zig-cache/o/faf1a9bc158c490e583d68633510c9ae/test --cache-dir=./.zig-cache --seed=0xdcf2bf22 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 5/6 tests passed; 1 failed
+test-blake3-parent-join transitive failure
++- BLAKE3 parent join guard transitive failure
+   +- run test 5/6 passed, 1 failed
+      +- compile test ReleaseSafe native success 7s MaxRSS:699M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e4070e6160634c7989231c99e68c4415/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xdcf2bf22 -Za4166e0b3a1ce1d8 --maxrss 25769803776 -j1 test-blake3-parent-join -Doptimize=ReleaseSafe --summary all

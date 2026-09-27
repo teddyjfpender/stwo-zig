@@ -1,0 +1,76 @@
+--- a/src/frontends/riscv/recursion/air/arithmetic_fusion_census.zig
++++ b/src/frontends/riscv/recursion/air/arithmetic_fusion_census.zig
+@@ -17,6 +17,10 @@
+     quotient_accumulations: usize = 0,
+     prelinear_products: usize = 0,
+     prelinear_hidden_rows: usize = 0,
++    prelinear_add: usize = 0,
++    prelinear_sub: usize = 0,
++    prelinear_neg: usize = 0,
++    prelinear_both_operands: usize = 0,
+     pub fn removedRows(self: Census) usize {
+         return 7 * self.dot4_matches + self.fma_matches;
+     }
+@@ -53,12 +57,24 @@
+                 for ([_]u32{ operands.lhs, operands.rhs }) |operand| {
+                     if (reserved[operand] or uses[operand] != 1) continue;
+                     switch (lane.graph.nodes[operand].op) {
+-                        .add, .sub, .neg => hidden += 1,
++                        .add => {
++                            hidden += 1;
++                            result.prelinear_add += 1;
++                        },
++                        .sub => {
++                            hidden += 1;
++                            result.prelinear_sub += 1;
++                        },
++                        .neg => {
++                            hidden += 1;
++                            result.prelinear_neg += 1;
++                        },
+                         else => {},
+                     }
+                 }
+                 result.prelinear_products += @intFromBool(hidden != 0);
+                 result.prelinear_hidden_rows += hidden;
++                result.prelinear_both_operands += @intFromBool(hidden == 2);
+             },
+             .add, .sub, .neg => result.remaining_linear += 1,
+             .inverse => result.remaining_inverse += 1,
+@@ -90,9 +106,25 @@
+     try std.testing.expectEqual(@as(usize, 1), candidate.quotient_accumulations);
+     try std.testing.expectEqual(@as(usize, 1), candidate.prelinear_products);
+     try std.testing.expectEqual(@as(usize, 1), candidate.prelinear_hidden_rows);
++    try std.testing.expectEqual(@as(usize, 1), candidate.prelinear_sub);
++    try std.testing.expectEqual(@as(usize, 0), candidate.prelinear_add + candidate.prelinear_neg + candidate.prelinear_both_operands);
+     lane.exports = &.{ .{ .node_id = 3, .uses = 1 }, .{ .node_id = 6, .uses = 1 } };
+     const shared = try inspect(a, lane);
+     try std.testing.expectEqual(@as(usize, 0), shared.quotient_accumulations);
+     try std.testing.expectEqual(@as(usize, 0), shared.prelinear_products);
+     try std.testing.expectEqual(candidate.remaining_multiply, shared.remaining_multiply);
++    try std.testing.expectEqual(@as(usize, 0), shared.prelinear_add + shared.prelinear_sub + shared.prelinear_neg);
++    const mixed_nodes = [_]graph.Node{
++        .{ .op = .input },                              .{ .op = .input },        .{ .op = .input },
++        .{ .op = .{ .add = .{ .lhs = 0, .rhs = 1 } } }, .{ .op = .{ .neg = 2 } }, .{ .op = .{ .mul = .{ .lhs = 3, .rhs = 4 } } },
++    };
++    const mixed_outputs = [_]u32{5};
++    const mixed_graph = try graph.CircuitGraph.authenticate(&mixed_nodes, &mixed_outputs, graph.computeGraphDigest(&mixed_nodes, &mixed_outputs));
++    const mixed = try inspect(a, .{ .circuit_id = 1502, .active_in = .segment, .circuit_identity = mixed_graph.identity_digest, .graph = mixed_graph });
++    try std.testing.expectEqual(@as(usize, 1), mixed.prelinear_products);
++    try std.testing.expectEqual(@as(usize, 2), mixed.prelinear_hidden_rows);
++    try std.testing.expectEqual(@as(usize, 1), mixed.prelinear_add);
++    try std.testing.expectEqual(@as(usize, 1), mixed.prelinear_neg);
++    try std.testing.expectEqual(@as(usize, 0), mixed.prelinear_sub);
++    try std.testing.expectEqual(@as(usize, 1), mixed.prelinear_both_operands);
+ }
+--- a/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
++++ b/src/frontends/riscv/recursion/air/blake3_native_parent_rows.zig
+@@ -48,7 +48,7 @@
+     for (sources.graphs(), 0..) |graph, i| {
+         const lane = lower.Lane{ .circuit_id = @intCast(1500 + 2 * i), .active_in = .segment, .circuit_identity = graph.identity_digest, .graph = graph };
+         const census = try @import("arithmetic_fusion_census.zig").inspect(a, lane);
+-        std.debug.print("BLAKE3_RESIDUAL_FUSION_CENSUS lane={d} multiply={d} linear={d} inverse={d} quotient_accumulations={d} prelinear_products={d} prelinear_hidden_rows={d} candidate_only=true\n", .{ lane.circuit_id, census.remaining_multiply, census.remaining_linear, census.remaining_inverse, census.quotient_accumulations, census.prelinear_products, census.prelinear_hidden_rows });
++        std.debug.print("BLAKE3_RESIDUAL_FUSION_CENSUS lane={d} multiply={d} linear={d} inverse={d} quotient_accumulations={d} prelinear_products={d} prelinear_hidden_rows={d} prelinear_add={d} prelinear_sub={d} prelinear_neg={d} prelinear_both={d} candidate_only=true\n", .{ lane.circuit_id, census.remaining_multiply, census.remaining_linear, census.remaining_inverse, census.quotient_accumulations, census.prelinear_products, census.prelinear_hidden_rows, census.prelinear_add, census.prelinear_sub, census.prelinear_neg, census.prelinear_both_operands });
+         original += census.multiply + census.linear + census.inverse;
+         removed += census.removedRows();
+         std.debug.print("BLAKE3_ARITHMETIC_CENSUS lane={d} nodes={d} multiply={d} linear={d} inverse={d} dot4={d} fma={d} removable_rows={d}\n", .{ lane.circuit_id, census.nodes, census.multiply, census.linear, census.inverse, census.dot4_matches, census.fma_matches, census.removedRows() });

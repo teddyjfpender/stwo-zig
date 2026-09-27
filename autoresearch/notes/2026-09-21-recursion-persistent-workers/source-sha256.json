@@ -1,0 +1,12 @@
+{
+  "scripts/recursive_proof_scheduler.py": "cf38d9da2b6f9eba4dfa9880625dceb7ed0434a9afa1d9aec36b9d273b4b7197",
+  "scripts/recursive_proof_worker_pool.py": "1bd52523940e4f22fbbfd3f2db757c0deac24f4643fa4c7242cac8ae2e3f6c5a",
+  "scripts/test_recursive_proof_scheduler.py": "9e1e0165673caec5f937e7118cf985eff3798bf9390920a3d73a281a452d2ef6",
+  "scripts/test_recursive_proof_worker_pool.py": "b427bacf8a2638ee8b8c31791f3b0ff98b720021a6f7ce5101e406023ecd25a8",
+  "autoresearch/benchmarks/recursion/tree_replay.py": "138b61e45a3c853c5867123c80437bc261acb28f1cf573e22543b6591f0fe0b0",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_worker.zig": "3fc7d9766f33f45b0301142b776de66cd3e670005cdc7d0d23e58b24ae82b467",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig": "cb4504e87c2827ef8fa39bc45595f877c76ef5a5f48e63e564ea48cec4873484",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_workspace.zig": "04c53e9570ecc19e9dd1052fbdf6a8061da2850a1c983ba7b7d0c2c464125f96",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_batch.zig": "3e1739913dfa183d5a84cf44d582f9c0cf62929bf869ff4e02a01794232a72b9",
+  "src/integrations/riscv_metal/recursive_segment_v2_detached_parent_producer_runner.zig": "791cf32cb07a4d9214b03d200f9bdcb51f1266e1f3cdaba30e94fea817b5f792"
+}

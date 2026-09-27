@@ -1,0 +1,7 @@
+[ethereum-segment-proof-sizing] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-segment-proof-sizing] acquired after 155s
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-block-delivery/run_segment_proof_sizing.py", line 53, in <module>
+    if qualified is None: raise RuntimeError('No larger size qualified; inspect failures before full run')
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: No larger size qualified; inspect failures before full run

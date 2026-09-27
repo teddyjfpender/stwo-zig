@@ -1,0 +1,8 @@
+1/7 block_v5_public_supply_identity_v2_test_root.test.streaming public supply root...OK
+2/7 recursion.block_v5_public_supply_identity_v2_test.test.streaming public supply: canonical one-shot bytes match across buffer and chunk boundaries...OK
+3/7 recursion.block_v5_public_supply_identity_v2_test.test.streaming public supply: caps ordering duplicate and field guards precede policy access...OK
+4/7 recursion.block_v5_public_supply_identity_v2_test.test.streaming public supply: partial failed excessive and finalized builders cannot mint identity...OK
+5/7 recursion.block_v5_public_supply_identity_v2_test.test.streaming public supply: every schedule field values count and stream domains bind identity...OK
+6/7 recursion.block_v5_public_supply_identity_v2_test.test.streaming public supply: one entry and exit admission with bounded exact coordinate lookups...OK
+7/7 recursion.block_v5_public_supply_identity_v2_test.test.streaming public supply: changed borrowed values or schedule poison immutable session...OK
+All 7 tests passed.

@@ -72,6 +72,7 @@ pub const SparseEvaluation = struct {
         n_folds: u32,
     ) ![]QM31 {
         const out = try allocator.alloc(QM31, self.subset_evals.len);
+        errdefer allocator.free(out);
         if (self.subset_evals.len == 0) return out;
         var workspace = try FoldLineWorkspace.init(allocator, self.subset_evals[0].len / 2);
         defer workspace.deinit(allocator);
@@ -102,6 +103,7 @@ pub const SparseEvaluation = struct {
         fold_step: u32,
     ) ![]QM31 {
         const out = try allocator.alloc(QM31, self.subset_evals.len);
+        errdefer allocator.free(out);
         if (self.subset_evals.len == 0) return out;
         if (fold_step == 0 or self.subset_evals[0].len != (@as(usize, 1) << @intCast(fold_step)))
             return error.ShapeMismatch;
@@ -199,6 +201,11 @@ pub fn computeDecommitmentPositionsAndRebuildEvals(
             try decommitment_positions.append(allocator, pos);
         }
 
+        // Reserve both descriptor slots before the subset acquires an owner.
+        // Publishing one slot before a fallible second append would leave
+        // both the local errdefer and the outer list owning the same subset.
+        try subset_evals.ensureUnusedCapacity(allocator, 1);
+        try subset_domain_initial_indexes.ensureUnusedCapacity(allocator, 1);
         const subset = try allocator.alloc(QM31, subset_size);
         errdefer allocator.free(subset);
 
@@ -216,20 +223,26 @@ pub fn computeDecommitmentPositionsAndRebuildEvals(
             }
         }
 
-        try subset_evals.append(allocator, subset);
-        try subset_domain_initial_indexes.append(
-            allocator,
+        subset_evals.appendAssumeCapacity(subset);
+        subset_domain_initial_indexes.appendAssumeCapacity(
             core_utils.bitReverseIndex(subset_start, queries.log_domain_size),
         );
         query_idx = subset_end_idx;
     }
 
+    const owned_positions = try decommitment_positions.toOwnedSlice(allocator);
+    errdefer allocator.free(owned_positions);
+    const owned_subsets = try subset_evals.toOwnedSlice(allocator);
+    errdefer {
+        for (owned_subsets) |subset| allocator.free(subset);
+        allocator.free(owned_subsets);
+    }
+    const owned_initials = try subset_domain_initial_indexes.toOwnedSlice(allocator);
+    errdefer allocator.free(owned_initials);
+    const sparse = try SparseEvaluation.initOwned(owned_subsets, owned_initials);
     return .{
-        .decommitment_positions = try decommitment_positions.toOwnedSlice(allocator),
-        .sparse_evaluation = try SparseEvaluation.initOwned(
-            try subset_evals.toOwnedSlice(allocator),
-            try subset_domain_initial_indexes.toOwnedSlice(allocator),
-        ),
+        .decommitment_positions = owned_positions,
+        .sparse_evaluation = sparse,
         .consumed_witness = witness_idx,
     };
 }
@@ -244,9 +257,12 @@ pub const FoldLineWorkspace = struct {
     inv_x_values: []M31,
 
     pub fn init(allocator: std.mem.Allocator, capacity: usize) !FoldLineWorkspace {
+        const x_values = try allocator.alloc(M31, capacity);
+        errdefer allocator.free(x_values);
+        const inv_x_values = try allocator.alloc(M31, capacity);
         return .{
-            .x_values = try allocator.alloc(M31, capacity),
-            .inv_x_values = try allocator.alloc(M31, capacity),
+            .x_values = x_values,
+            .inv_x_values = inv_x_values,
         };
     }
 
@@ -278,9 +294,12 @@ pub const FoldCircleWorkspace = struct {
     inv_py_values: []M31,
 
     pub fn init(allocator: std.mem.Allocator, capacity: usize) !FoldCircleWorkspace {
+        const py_values = try allocator.alloc(M31, capacity);
+        errdefer allocator.free(py_values);
+        const inv_py_values = try allocator.alloc(M31, capacity);
         return .{
-            .py_values = try allocator.alloc(M31, capacity),
-            .inv_py_values = try allocator.alloc(M31, capacity),
+            .py_values = py_values,
+            .inv_py_values = inv_py_values,
         };
     }
 
@@ -359,6 +378,7 @@ pub fn foldLineSingleStep(
     if (eval.len < 2 or (eval.len & 1) != 0) return error.InvalidEvaluationLength;
 
     const folded_values = try allocator.alloc(QM31, eval.len / 2);
+    errdefer allocator.free(folded_values);
     try workspace.ensureCapacity(allocator, folded_values.len);
     const x_values = workspace.x_values[0..folded_values.len];
     const inv_x_values = workspace.inv_x_values[0..folded_values.len];
@@ -396,6 +416,7 @@ pub fn foldLineNWithWorkspace(
     // First fold: allocate from the source (which is const).
     var current_alpha = alpha;
     var result = try foldLineSingleStep(allocator, eval, domain, current_alpha, workspace);
+    errdefer allocator.free(result.values);
 
     // Subsequent folds: fold from the previous result, freeing intermediates.
     var step: u32 = 1;

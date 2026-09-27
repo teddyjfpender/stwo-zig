@@ -1,0 +1,61 @@
+--- control/blake3_hash_witness.zig
++++ candidate/blake3_hash_witness.zig
+@@ -123,10 +123,17 @@
+             if (self.first > size or count > size - self.first) return error.InvalidBlake3WitnessDestination;
+             for (self.columns) |column| if (column.len != size) return error.InvalidBlake3WitnessDestination;
+         }
+-        fn write(self: @This(), index: usize, row: Air.Row) void {
+-            const target = @import("framework_interaction.zig").committedRow(self.first + index, self.log_size);
+-            for (self.columns, row[0..Air.PHYSICAL_MAIN_COLUMN_COUNT]) |column, value| column[target] = value;
+-            self.metadata[index] = row[Air.PHYSICAL_MAIN_COLUMN_COUNT..].*;
++        fn writeBatch(self: @This(), first: usize, comptime count: usize, rows: *const [count]Air.Row) void {
++            var targets: [count]usize = undefined;
++            for (&targets, rows, 0..) |*target, row, offset| {
++                target.* = @import("framework_interaction.zig").committedRow(self.first + first + offset, self.log_size);
++                self.metadata[first + offset] = row[Air.PHYSICAL_MAIN_COLUMN_COUNT..].*;
++            }
++            // Keep one destination column hot across a compression call instead
++            // of switching between every large column for each generated row.
++            for (self.columns, 0..) |column, field| {
++                for (targets, rows) |target, row| column[target] = row[field];
++            }
+         }
+     };
+ }
+@@ -134,11 +141,24 @@
+     g_rows: MainColumnBuffer(g),
+     xor_rows: MainColumnBuffer(xor),
+     boundary_rows: []boundary.Row,
++};
++/// Bounded stack staging: exactly one compression call, never a full witness.
++/// emitPlan emits complete groups of 56 G and 16 XOR rows per call.
++const MainColumnSink = struct {
++    destination: MainColumnDestination,
++    g_batch: [56]g.Row = undefined,
++    xor_batch: [16]xor.Row = undefined,
+     fn write(self: *@This(), comptime kind: usize, index: usize, row: anytype) void {
+         switch (kind) {
+-            0 => self.g_rows.write(index, row),
+-            1 => self.xor_rows.write(index, row),
+-            2 => self.boundary_rows[index] = row,
++            0 => {
++                self.g_batch[index % 56] = row;
++                if (index % 56 == 55) self.destination.g_rows.writeBatch(index - 55, 56, &self.g_batch);
++            },
++            1 => {
++                self.xor_batch[index % 16] = row;
++                if (index % 16 == 15) self.destination.xor_rows.writeBatch(index - 15, 16, &self.xor_batch);
++            },
++            2 => self.destination.boundary_rows[index] = row,
+             else => unreachable,
+         }
+     }
+@@ -156,7 +176,7 @@
+     try destination.g_rows.validate(plan.g.len);
+     try destination.xor_rows.validate(plan.xor.len);
+     if (destination.boundary_rows.len != plan.sources.len + 8) return error.InvalidBlake3WitnessDestination;
+-    var sink = destination;
++    var sink = MainColumnSink{ .destination = destination };
+     return emitPlan(a, circuit, input, claim, plan, &sink);
+ }
+ fn writePlan(a: std.mem.Allocator, circuit: u32, input: []const u8, claimed_digest: [32]u8, plan: *const graph.Plan, rows: Destination) ![32]u8 {

@@ -1,0 +1,2620 @@
+[
+  {
+    "case": "cpu-sha256-128",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-128.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-128.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.863756,
+    "execution_witness_prove_seconds": 1.434584958,
+    "proof_sha256": "4ba8474296b1c59bac9d1386398c8488585c49d2cc398c70193fa42bb823f6a1",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 2264792,
+      "witness_ns": 399135083,
+      "admission_ns": 177580417,
+      "proving_ns": 1033185083,
+      "artifact_encoding_ns": 30130792,
+      "fresh_verification_ns": 221459833,
+      "total_ns": 1863756000
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1704248,
+        "energy_nj": 2882172,
+        "instructions": 34250263,
+        "cycles": 23877868
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 2593589936,
+        "energy_nj": 53121669225,
+        "instructions": 184691973739,
+        "cycles": 57505769808
+      },
+      "interval_delta": {
+        "energy_nj": 53118787053,
+        "instructions": 184657723476,
+        "cycles": 57481891940
+      }
+    }
+  },
+  {
+    "case": "cpu-sha256-256",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_256.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-256.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-256.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.052948333,
+    "execution_witness_prove_seconds": 1.607890875,
+    "proof_sha256": "d0905a1921df205ad8c9a0079db250f2069114d7b8b53a6df32e521610bf495d",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 1666791,
+      "witness_ns": 381077042,
+      "admission_ns": 186705125,
+      "proving_ns": 1225147042,
+      "artifact_encoding_ns": 30897791,
+      "fresh_verification_ns": 227454542,
+      "total_ns": 2052948333
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1704248,
+        "energy_nj": 807182,
+        "instructions": 32752000,
+        "cycles": 20112976
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 2608728704,
+        "energy_nj": 61468245925,
+        "instructions": 209070678886,
+        "cycles": 69834992240
+      },
+      "interval_delta": {
+        "energy_nj": 61467438743,
+        "instructions": 209037926886,
+        "cycles": 69814879264
+      }
+    }
+  },
+  {
+    "case": "cpu-sha256-512",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_512.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-512.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-512.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.156262084,
+    "execution_witness_prove_seconds": 1.699605541,
+    "proof_sha256": "56c07691f45f70e06ace9d2afeaf34899ad0da42f4abe292918521d532b8a8aa",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 2421084,
+      "witness_ns": 396121666,
+      "admission_ns": 193537584,
+      "proving_ns": 1301062791,
+      "artifact_encoding_ns": 31165709,
+      "fresh_verification_ns": 231953250,
+      "total_ns": 2156262084
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1687840,
+        "energy_nj": 4785073,
+        "instructions": 32767293,
+        "cycles": 19818623
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 2716191528,
+        "energy_nj": 64710012542,
+        "instructions": 218111593017,
+        "cycles": 74034225645
+      },
+      "interval_delta": {
+        "energy_nj": 64705227469,
+        "instructions": 218078825724,
+        "cycles": 74014407022
+      }
+    }
+  },
+  {
+    "case": "cpu-sha256-1024",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_1024.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-1024.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-1024.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.007270666,
+    "execution_witness_prove_seconds": 1.540814917,
+    "proof_sha256": "65d985fc65d149fbff7f6f9993fc4eda7c1477f885c1e18f7b05cd06dc1915f8",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 4151708,
+      "witness_ns": 427144625,
+      "admission_ns": 194894458,
+      "proving_ns": 1109518584,
+      "artifact_encoding_ns": 31556291,
+      "fresh_verification_ns": 240005000,
+      "total_ns": 2007270666
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1704248,
+        "energy_nj": 477256,
+        "instructions": 32730108,
+        "cycles": 19896582
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 2789788624,
+        "energy_nj": 55288480102,
+        "instructions": 188208649878,
+        "cycles": 59194206954
+      },
+      "interval_delta": {
+        "energy_nj": 55288002846,
+        "instructions": 188175919770,
+        "cycles": 59174310372
+      }
+    }
+  },
+  {
+    "case": "cpu-sha256-2048",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_2048.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-2048.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-sha256-2048.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 3.129200291,
+    "execution_witness_prove_seconds": 2.545874084,
+    "proof_sha256": "43d6e2099f197a2aa8b632a4fd4c667789907aa8b5b45131026683e70837e26a",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 7614000,
+      "witness_ns": 470140000,
+      "admission_ns": 252615541,
+      "proving_ns": 2068120084,
+      "artifact_encoding_ns": 32742208,
+      "fresh_verification_ns": 297968458,
+      "total_ns": 3129200291
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1704248,
+        "energy_nj": 520166,
+        "instructions": 32830483,
+        "cycles": 19996273
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4733243760,
+        "energy_nj": 100902427210,
+        "instructions": 347718667306,
+        "cycles": 104444466504
+      },
+      "interval_delta": {
+        "energy_nj": 100901907044,
+        "instructions": 347685836823,
+        "cycles": 104424470231
+      }
+    }
+  },
+  {
+    "case": "cpu-keccak-128",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-128.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-128.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.910074959,
+    "execution_witness_prove_seconds": 2.3583325,
+    "proof_sha256": "b174bb330eeb3a7560680256fb4d1736f81d222f25a386afad299a5056febb79",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 1533584,
+      "witness_ns": 477286458,
+      "admission_ns": 240471125,
+      "proving_ns": 1879512458,
+      "artifact_encoding_ns": 23438209,
+      "fresh_verification_ns": 287833125,
+      "total_ns": 2910074959
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1687840,
+        "energy_nj": 408425,
+        "instructions": 32778597,
+        "cycles": 19485276
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4866740520,
+        "energy_nj": 95956424108,
+        "instructions": 326538227145,
+        "cycles": 98474900551
+      },
+      "interval_delta": {
+        "energy_nj": 95956015683,
+        "instructions": 326505448548,
+        "cycles": 98455415275
+      }
+    }
+  },
+  {
+    "case": "cpu-keccak-256",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_256.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-256.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-256.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 3.060456208,
+    "execution_witness_prove_seconds": 2.491982542,
+    "proof_sha256": "276a4eb6106388d0f1976f10bf11afa8597fea7a0b0e3b4c3e32d1ffb478ed37",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 2668792,
+      "witness_ns": 497919083,
+      "admission_ns": 249702583,
+      "proving_ns": 1991394667,
+      "artifact_encoding_ns": 23982125,
+      "fresh_verification_ns": 294788958,
+      "total_ns": 3060456208
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1704248,
+        "energy_nj": 438144,
+        "instructions": 32825045,
+        "cycles": 21339758
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4894232872,
+        "energy_nj": 101032790407,
+        "instructions": 340682881040,
+        "cycles": 106191982848
+      },
+      "interval_delta": {
+        "energy_nj": 101032352263,
+        "instructions": 340650055995,
+        "cycles": 106170643090
+      }
+    }
+  },
+  {
+    "case": "cpu-keccak-512",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_512.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-512.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-512.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 3.10037375,
+    "execution_witness_prove_seconds": 2.528864333,
+    "proof_sha256": "1b679b4a2ab81d61375421b083adbf50d018df43c3ad534cc1dbf6254f1c8350",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 4285833,
+      "witness_ns": 517915792,
+      "admission_ns": 251855000,
+      "proving_ns": 2006662708,
+      "artifact_encoding_ns": 23867125,
+      "fresh_verification_ns": 295787292,
+      "total_ns": 3100373750
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1687840,
+        "energy_nj": 435958,
+        "instructions": 32838101,
+        "cycles": 19812116
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 5051224528,
+        "energy_nj": 100349350721,
+        "instructions": 339132982337,
+        "cycles": 104914451911
+      },
+      "interval_delta": {
+        "energy_nj": 100348914763,
+        "instructions": 339100144236,
+        "cycles": 104894639795
+      }
+    }
+  },
+  {
+    "case": "cpu-keccak-1024",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_1024.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-1024.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-1024.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 3.499611042,
+    "execution_witness_prove_seconds": 2.921105876,
+    "proof_sha256": "137d69a5cb4effaab827dfabeddcaaa114a316a15665697e04873da53be3f02b",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 8529334,
+      "witness_ns": 542722833,
+      "admission_ns": 254572083,
+      "proving_ns": 2369853709,
+      "artifact_encoding_ns": 24135000,
+      "fresh_verification_ns": 299798083,
+      "total_ns": 3499611042
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1687840,
+        "energy_nj": 426567,
+        "instructions": 32791380,
+        "cycles": 19779472
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4729672048,
+        "energy_nj": 114804267434,
+        "instructions": 384056225918,
+        "cycles": 124545018356
+      },
+      "interval_delta": {
+        "energy_nj": 114803840867,
+        "instructions": 384023434538,
+        "cycles": 124525238884
+      }
+    }
+  },
+  {
+    "case": "cpu-keccak-2048",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_2048.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-2048.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-keccak-2048.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 3.534499708,
+    "execution_witness_prove_seconds": 2.917652541,
+    "proof_sha256": "78c24ab0ff0e1dcae16c764e8cb3137185aea9d7f6bf365fb855f295434f1c44",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 15839041,
+      "witness_ns": 573872250,
+      "admission_ns": 265348709,
+      "proving_ns": 2327941250,
+      "artifact_encoding_ns": 25421041,
+      "fresh_verification_ns": 326077417,
+      "total_ns": 3534499708
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1704248,
+        "energy_nj": 431115,
+        "instructions": 32787717,
+        "cycles": 19620329
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4963963440,
+        "energy_nj": 106085481985,
+        "instructions": 357765681015,
+        "cycles": 112599359133
+      },
+      "interval_delta": {
+        "energy_nj": 106085050870,
+        "instructions": 357732893298,
+        "cycles": 112579738804
+      }
+    }
+  },
+  {
+    "case": "cpu-poseidon2_m31-2",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_2.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-2.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-2.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 0.816368584,
+    "execution_witness_prove_seconds": 0.660669291,
+    "proof_sha256": "df68e5557545b0473404d91898b7d2c0baf64fa6774db25f8630ca3927f8337d",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 4063209,
+      "witness_ns": 81606041,
+      "admission_ns": 60090334,
+      "proving_ns": 575000041,
+      "artifact_encoding_ns": 14622834,
+      "fresh_verification_ns": 80986125,
+      "total_ns": 816368584
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1605920,
+        "energy_nj": 408077,
+        "instructions": 32558297,
+        "cycles": 19861489
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 702366944,
+        "energy_nj": 14611131959,
+        "instructions": 51114964260,
+        "cycles": 15952327936
+      },
+      "interval_delta": {
+        "energy_nj": 14610723882,
+        "instructions": 51082405963,
+        "cycles": 15932466447
+      }
+    }
+  },
+  {
+    "case": "cpu-poseidon2_m31-4",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_4.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-4.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-4.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.083842917,
+    "execution_witness_prove_seconds": 0.926434834,
+    "proof_sha256": "1433c56fd1a175819cb2b8469c2e4da8339104a74111aadff5b0404ce1b50486",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 8377542,
+      "witness_ns": 85495375,
+      "admission_ns": 60812583,
+      "proving_ns": 832561917,
+      "artifact_encoding_ns": 15049708,
+      "fresh_verification_ns": 81545792,
+      "total_ns": 1083842917
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1638736,
+        "energy_nj": 427231,
+        "instructions": 32603130,
+        "cycles": 20374790
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 825066816,
+        "energy_nj": 25868710627,
+        "instructions": 85256093362,
+        "cycles": 31626259531
+      },
+      "interval_delta": {
+        "energy_nj": 25868283396,
+        "instructions": 85223490232,
+        "cycles": 31605884741
+      }
+    }
+  },
+  {
+    "case": "cpu-poseidon2_m31-8",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_8.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-8.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-8.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.087193708,
+    "execution_witness_prove_seconds": 0.928582416,
+    "proof_sha256": "cdcf9d5697ef8916a7aa5bcd97f3c34396079d3f6dc78f4a99d1e4029c1e7416",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 15869250,
+      "witness_ns": 89767291,
+      "admission_ns": 60680917,
+      "proving_ns": 822945875,
+      "artifact_encoding_ns": 15599417,
+      "fresh_verification_ns": 82330958,
+      "total_ns": 1087193708
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1605920,
+        "energy_nj": 415538,
+        "instructions": 32545883,
+        "cycles": 20585354
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 1140590152,
+        "energy_nj": 20828688217,
+        "instructions": 67961616317,
+        "cycles": 23452645984
+      },
+      "interval_delta": {
+        "energy_nj": 20828272679,
+        "instructions": 67929070434,
+        "cycles": 23432060630
+      }
+    }
+  },
+  {
+    "case": "cpu-poseidon2_m31-12",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_12.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-12.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-12.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.3441255,
+    "execution_witness_prove_seconds": 1.1861355,
+    "proof_sha256": "8a85c106c45176011bf8c41353e2a122f842163f306bb5c47cb9f0e5b269fe45",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 23322708,
+      "witness_ns": 94753583,
+      "admission_ns": 60232875,
+      "proving_ns": 1068059209,
+      "artifact_encoding_ns": 15838375,
+      "fresh_verification_ns": 81918750,
+      "total_ns": 1344125500
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1622328,
+        "energy_nj": 441395,
+        "instructions": 32555278,
+        "cycles": 20242922
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 1289471704,
+        "energy_nj": 30056340130,
+        "instructions": 95429282891,
+        "cycles": 36141031543
+      },
+      "interval_delta": {
+        "energy_nj": 30055898735,
+        "instructions": 95396727613,
+        "cycles": 36120788621
+      }
+    }
+  },
+  {
+    "case": "cpu-poseidon2_m31-16",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_16.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-16.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-poseidon2_m31-16.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.313646958,
+    "execution_witness_prove_seconds": 1.146035667,
+    "proof_sha256": "3ba56ce4848dc2a45f9f1394604090c33ee0003b1ef8b6da0a5dbd2941830f21",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 29136333,
+      "witness_ns": 104493584,
+      "admission_ns": 64132125,
+      "proving_ns": 1012405750,
+      "artifact_encoding_ns": 16277333,
+      "fresh_verification_ns": 87201833,
+      "total_ns": 1313646958
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1605920,
+        "energy_nj": 1003383,
+        "instructions": 33450202,
+        "cycles": 20025513
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 1543423920,
+        "energy_nj": 25310639512,
+        "instructions": 81610369140,
+        "cycles": 28325095565
+      },
+      "interval_delta": {
+        "energy_nj": 25309636129,
+        "instructions": 81576918938,
+        "cycles": 28305070052
+      }
+    }
+  },
+  {
+    "case": "cpu-ecdsa_secp256k1-32",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "ecdsa-csp-bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_odd.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-ecdsa_secp256k1-32.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-ecdsa_secp256k1-32.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--workers",
+      "16",
+      "--host-byte-budget",
+      "38654705664"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 0.860641417,
+    "execution_witness_prove_seconds": 0.71577375,
+    "proof_sha256": "1b53e8e4737c7c1d4e15b47a958a4fa265526e92503c3b1503e4a1a04a569e9b",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 508500,
+      "witness_ns": 59996917,
+      "admission_ns": 48439167,
+      "proving_ns": 655268333,
+      "artifact_encoding_ns": 15280625,
+      "fresh_verification_ns": 81147875,
+      "total_ns": 860641417
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 2081248,
+        "energy_nj": 486649,
+        "instructions": 39768426,
+        "cycles": 21366982
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 626230568,
+        "energy_nj": 19230730036,
+        "instructions": 66565421952,
+        "cycles": 22858315621
+      },
+      "interval_delta": {
+        "energy_nj": 19230243387,
+        "instructions": 66525653526,
+        "cycles": 22836948639
+      }
+    }
+  },
+  {
+    "case": "cpu-ecdsa_secp256k1_bad_signature",
+    "negative": true,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-cpu",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1_bad_signature.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-ecdsa_secp256k1_bad_signature.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-cpu/cpu-ecdsa_secp256k1_bad_signature.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "cpu",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "bf855639ae34c59b4594ab3eb2de96d9a3f3aa482c265afd90ee4e99165254a5",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 12.445523083,
+    "execution_witness_prove_seconds": 10.85215325,
+    "proof_sha256": "59a15d76e5193b8b2aa42ec1ede5b5f1b594c3ff6f5d2faa3e94684e97a0e8ad",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 279679833,
+      "witness_ns": 1444610875,
+      "admission_ns": 659793542,
+      "proving_ns": 9127862542,
+      "artifact_encoding_ns": 111419416,
+      "fresh_verification_ns": 822156875,
+      "total_ns": 12445523083
+    },
+    "device": {
+      "dispatches": 0,
+      "cpu_fallbacks": 0
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 1687840,
+        "energy_nj": 474875,
+        "instructions": 32857687,
+        "cycles": 20236918
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 14099297096,
+        "energy_nj": 336199551863,
+        "instructions": 1037009466408,
+        "cycles": 380985944631
+      },
+      "interval_delta": {
+        "energy_nj": 336199076988,
+        "instructions": 1036976608721,
+        "cycles": 380965707713
+      }
+    }
+  },
+  {
+    "case": "metal-sha256-128",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-128.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-128.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.402213083,
+    "execution_witness_prove_seconds": 0.949232875,
+    "proof_sha256": "4ba8474296b1c59bac9d1386398c8488585c49d2cc398c70193fa42bb823f6a1",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 1585917,
+      "witness_ns": 400503500,
+      "admission_ns": 185100708,
+      "proving_ns": 547143458,
+      "artifact_encoding_ns": 31233209,
+      "fresh_verification_ns": 236646291,
+      "total_ns": 1402213083
+    },
+    "device": {
+      "dispatches": 322,
+      "cpu_fallbacks": 11
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23495208,
+        "energy_nj": 65655914,
+        "instructions": 320593997,
+        "cycles": 145228269
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 3994454704,
+        "energy_nj": 13632861908,
+        "instructions": 41423206070,
+        "cycles": 17516556299
+      },
+      "interval_delta": {
+        "energy_nj": 13567205994,
+        "instructions": 41102612073,
+        "cycles": 17371328030
+      }
+    }
+  },
+  {
+    "case": "metal-sha256-256",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_256.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-256.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-256.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.440661375,
+    "execution_witness_prove_seconds": 0.986743124,
+    "proof_sha256": "d0905a1921df205ad8c9a0079db250f2069114d7b8b53a6df32e521610bf495d",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 1745167,
+      "witness_ns": 400170041,
+      "admission_ns": 183197334,
+      "proving_ns": 584827916,
+      "artifact_encoding_ns": 31327625,
+      "fresh_verification_ns": 239393292,
+      "total_ns": 1440661375
+    },
+    "device": {
+      "dispatches": 426,
+      "cpu_fallbacks": 10
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 97184815,
+        "instructions": 310877325,
+        "cycles": 133764990
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4016933600,
+        "energy_nj": 14136524199,
+        "instructions": 42216082640,
+        "cycles": 17881582101
+      },
+      "interval_delta": {
+        "energy_nj": 14039339384,
+        "instructions": 41905205315,
+        "cycles": 17747817111
+      }
+    }
+  },
+  {
+    "case": "metal-sha256-512",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_512.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-512.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-512.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.487084084,
+    "execution_witness_prove_seconds": 1.027793917,
+    "proof_sha256": "56c07691f45f70e06ace9d2afeaf34899ad0da42f4abe292918521d532b8a8aa",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 2540375,
+      "witness_ns": 420745125,
+      "admission_ns": 187439375,
+      "proving_ns": 604508417,
+      "artifact_encoding_ns": 31312625,
+      "fresh_verification_ns": 240538167,
+      "total_ns": 1487084084
+    },
+    "device": {
+      "dispatches": 447,
+      "cpu_fallbacks": 10
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 99190449,
+        "instructions": 311139014,
+        "cycles": 134689082
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4154362664,
+        "energy_nj": 14656814817,
+        "instructions": 44056283667,
+        "cycles": 18015157728
+      },
+      "interval_delta": {
+        "energy_nj": 14557624368,
+        "instructions": 43745144653,
+        "cycles": 17880468646
+      }
+    }
+  },
+  {
+    "case": "metal-sha256-1024",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_1024.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-1024.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-1024.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.537355417,
+    "execution_witness_prove_seconds": 1.064011959,
+    "proof_sha256": "65d985fc65d149fbff7f6f9993fc4eda7c1477f885c1e18f7b05cd06dc1915f8",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 4478167,
+      "witness_ns": 448606292,
+      "admission_ns": 193151958,
+      "proving_ns": 610927500,
+      "artifact_encoding_ns": 31661042,
+      "fresh_verification_ns": 248530458,
+      "total_ns": 1537355417
+    },
+    "device": {
+      "dispatches": 307,
+      "cpu_fallbacks": 10
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 97977698,
+        "instructions": 311148238,
+        "cycles": 133497014
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 4244769720,
+        "energy_nj": 15662674444,
+        "instructions": 46699547565,
+        "cycles": 18758391763
+      },
+      "interval_delta": {
+        "energy_nj": 15564696746,
+        "instructions": 46388399327,
+        "cycles": 18624894749
+      }
+    }
+  },
+  {
+    "case": "metal-sha256-2048",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/sha256.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_2048.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-2048.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-sha256-2048.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.160417334,
+    "execution_witness_prove_seconds": 1.587822792,
+    "proof_sha256": "43d6e2099f197a2aa8b632a4fd4c667789907aa8b5b45131026683e70837e26a",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 8178709,
+      "witness_ns": 493876291,
+      "admission_ns": 235198375,
+      "proving_ns": 1085767792,
+      "artifact_encoding_ns": 32968542,
+      "fresh_verification_ns": 304427625,
+      "total_ns": 2160417334
+    },
+    "device": {
+      "dispatches": 435,
+      "cpu_fallbacks": 10
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 98288145,
+        "instructions": 311776945,
+        "cycles": 134813729
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 7188025640,
+        "energy_nj": 23800585974,
+        "instructions": 76094844639,
+        "cycles": 28758459416
+      },
+      "interval_delta": {
+        "energy_nj": 23702297829,
+        "instructions": 75783067694,
+        "cycles": 28623645687
+      }
+    }
+  },
+  {
+    "case": "metal-keccak-128",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_128.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-128.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-128.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.023495458,
+    "execution_witness_prove_seconds": 1.474445792,
+    "proof_sha256": "b174bb330eeb3a7560680256fb4d1736f81d222f25a386afad299a5056febb79",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 1607000,
+      "witness_ns": 502369667,
+      "admission_ns": 231977125,
+      "proving_ns": 970469125,
+      "artifact_encoding_ns": 23048666,
+      "fresh_verification_ns": 294023875,
+      "total_ns": 2023495458
+    },
+    "device": {
+      "dispatches": 436,
+      "cpu_fallbacks": 11
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23429672,
+        "energy_nj": 95701298,
+        "instructions": 311896746,
+        "cycles": 134467130
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 6921261184,
+        "energy_nj": 21730282407,
+        "instructions": 67920899566,
+        "cycles": 29148776985
+      },
+      "interval_delta": {
+        "energy_nj": 21634581109,
+        "instructions": 67609002820,
+        "cycles": 29014309855
+      }
+    }
+  },
+  {
+    "case": "metal-keccak-256",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_256.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-256.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-256.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.064038458,
+    "execution_witness_prove_seconds": 1.524814582,
+    "proof_sha256": "276a4eb6106388d0f1976f10bf11afa8597fea7a0b0e3b4c3e32d1ffb478ed37",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 2548791,
+      "witness_ns": 517011375,
+      "admission_ns": 230632084,
+      "proving_ns": 1005254416,
+      "artifact_encoding_ns": 23576875,
+      "fresh_verification_ns": 285014917,
+      "total_ns": 2064038458
+    },
+    "device": {
+      "dispatches": 493,
+      "cpu_fallbacks": 11
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 96960704,
+        "instructions": 310858068,
+        "cycles": 133819745
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 6956814488,
+        "energy_nj": 22112114713,
+        "instructions": 69125732016,
+        "cycles": 29864833425
+      },
+      "interval_delta": {
+        "energy_nj": 22015154009,
+        "instructions": 68814873948,
+        "cycles": 29731013680
+      }
+    }
+  },
+  {
+    "case": "metal-keccak-512",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_512.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-512.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-512.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.103475833,
+    "execution_witness_prove_seconds": 1.559536167,
+    "proof_sha256": "1b679b4a2ab81d61375421b083adbf50d018df43c3ad534cc1dbf6254f1c8350",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 4339625,
+      "witness_ns": 532763167,
+      "admission_ns": 227622916,
+      "proving_ns": 1022433375,
+      "artifact_encoding_ns": 23001959,
+      "fresh_verification_ns": 293314791,
+      "total_ns": 2103475833
+    },
+    "device": {
+      "dispatches": 466,
+      "cpu_fallbacks": 11
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 96916391,
+        "instructions": 310994459,
+        "cycles": 133814703
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 7095898288,
+        "energy_nj": 22900433871,
+        "instructions": 71357479995,
+        "cycles": 29633633491
+      },
+      "interval_delta": {
+        "energy_nj": 22803517480,
+        "instructions": 71046485536,
+        "cycles": 29499818788
+      }
+    }
+  },
+  {
+    "case": "metal-keccak-1024",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_1024.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-1024.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-1024.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.239998042,
+    "execution_witness_prove_seconds": 1.686180875,
+    "proof_sha256": "137d69a5cb4effaab827dfabeddcaaa114a316a15665697e04873da53be3f02b",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 8668667,
+      "witness_ns": 554027625,
+      "admission_ns": 238193250,
+      "proving_ns": 1123484583,
+      "artifact_encoding_ns": 23299042,
+      "fresh_verification_ns": 292324875,
+      "total_ns": 2239998042
+    },
+    "device": {
+      "dispatches": 595,
+      "cpu_fallbacks": 11
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 110275835,
+        "instructions": 311022497,
+        "cycles": 134118494
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 7185928464,
+        "energy_nj": 24075266000,
+        "instructions": 75183843117,
+        "cycles": 29874607300
+      },
+      "interval_delta": {
+        "energy_nj": 23964990165,
+        "instructions": 74872820620,
+        "cycles": 29740488806
+      }
+    }
+  },
+  {
+    "case": "metal-keccak-2048",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/keccak.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/msg_2048.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-2048.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-keccak-2048.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 2.401642333,
+    "execution_witness_prove_seconds": 1.820709792,
+    "proof_sha256": "78c24ab0ff0e1dcae16c764e8cb3137185aea9d7f6bf365fb855f295434f1c44",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 15740833,
+      "witness_ns": 603668709,
+      "admission_ns": 244557583,
+      "proving_ns": 1201300250,
+      "artifact_encoding_ns": 24135958,
+      "fresh_verification_ns": 312239000,
+      "total_ns": 2401642333
+    },
+    "device": {
+      "dispatches": 489,
+      "cpu_fallbacks": 10
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 96018711,
+        "instructions": 310799993,
+        "cycles": 134349363
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 7504253488,
+        "energy_nj": 27002895801,
+        "instructions": 83768012191,
+        "cycles": 30965226184
+      },
+      "interval_delta": {
+        "energy_nj": 26906877090,
+        "instructions": 83457212198,
+        "cycles": 30830876821
+      }
+    }
+  },
+  {
+    "case": "metal-poseidon2_m31-2",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_2.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-2.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-2.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 0.548717417,
+    "execution_witness_prove_seconds": 0.394153875,
+    "proof_sha256": "df68e5557545b0473404d91898b7d2c0baf64fa6774db25f8630ca3927f8337d",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 4114833,
+      "witness_ns": 78791209,
+      "admission_ns": 58916708,
+      "proving_ns": 311247833,
+      "artifact_encoding_ns": 14397584,
+      "fresh_verification_ns": 81249250,
+      "total_ns": 548717417
+    },
+    "device": {
+      "dispatches": 162,
+      "cpu_fallbacks": 3
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 93915514,
+        "instructions": 310569216,
+        "cycles": 134281919
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 1644283464,
+        "energy_nj": 5974621023,
+        "instructions": 20438843922,
+        "cycles": 5634262893
+      },
+      "interval_delta": {
+        "energy_nj": 5880705509,
+        "instructions": 20128274706,
+        "cycles": 5499980974
+      }
+    }
+  },
+  {
+    "case": "metal-poseidon2_m31-4",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_4.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-4.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-4.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 0.661219833,
+    "execution_witness_prove_seconds": 0.504163374,
+    "proof_sha256": "1433c56fd1a175819cb2b8469c2e4da8339104a74111aadff5b0404ce1b50486",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 8332125,
+      "witness_ns": 81363833,
+      "admission_ns": 61427292,
+      "proving_ns": 414467416,
+      "artifact_encoding_ns": 14694167,
+      "fresh_verification_ns": 80935000,
+      "total_ns": 661219833
+    },
+    "device": {
+      "dispatches": 290,
+      "cpu_fallbacks": 3
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 94817542,
+        "instructions": 310830434,
+        "cycles": 134195871
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 1802536640,
+        "energy_nj": 7284832276,
+        "instructions": 24315443004,
+        "cycles": 6778256112
+      },
+      "interval_delta": {
+        "energy_nj": 7190014734,
+        "instructions": 24004612570,
+        "cycles": 6644060241
+      }
+    }
+  },
+  {
+    "case": "metal-poseidon2_m31-8",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_8.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-8.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-8.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 0.774051417,
+    "execution_witness_prove_seconds": 0.617455917,
+    "proof_sha256": "cdcf9d5697ef8916a7aa5bcd97f3c34396079d3f6dc78f4a99d1e4029c1e7416",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 15902333,
+      "witness_ns": 89738334,
+      "admission_ns": 60365125,
+      "proving_ns": 511815250,
+      "artifact_encoding_ns": 15059708,
+      "fresh_verification_ns": 81170667,
+      "total_ns": 774051417
+    },
+    "device": {
+      "dispatches": 198,
+      "cpu_fallbacks": 3
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 99545080,
+        "instructions": 310672634,
+        "cycles": 133739187
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 2184153032,
+        "energy_nj": 10291069776,
+        "instructions": 32591808988,
+        "cycles": 9239076815
+      },
+      "interval_delta": {
+        "energy_nj": 10191524696,
+        "instructions": 32281136354,
+        "cycles": 9105337628
+      }
+    }
+  },
+  {
+    "case": "metal-poseidon2_m31-12",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_12.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-12.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-12.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 0.884671417,
+    "execution_witness_prove_seconds": 0.727846709,
+    "proof_sha256": "8a85c106c45176011bf8c41353e2a122f842163f306bb5c47cb9f0e5b269fe45",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 23548917,
+      "witness_ns": 93703000,
+      "admission_ns": 58057916,
+      "proving_ns": 610594792,
+      "artifact_encoding_ns": 15443000,
+      "fresh_verification_ns": 83323792,
+      "total_ns": 884671417
+    },
+    "device": {
+      "dispatches": 308,
+      "cpu_fallbacks": 3
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 97426386,
+        "instructions": 310629214,
+        "cycles": 134720439
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 2355431512,
+        "energy_nj": 11603190094,
+        "instructions": 36890575186,
+        "cycles": 10658391248
+      },
+      "interval_delta": {
+        "energy_nj": 11505763708,
+        "instructions": 36579945972,
+        "cycles": 10523670809
+      }
+    }
+  },
+  {
+    "case": "metal-poseidon2_m31-16",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/poseidon2_m31.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/field_m31_16.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-16.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-poseidon2_m31-16.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 1.00073275,
+    "execution_witness_prove_seconds": 0.838370208,
+    "proof_sha256": "3ba56ce4848dc2a45f9f1394604090c33ee0003b1ef8b6da0a5dbd2941830f21",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 29476500,
+      "witness_ns": 104647333,
+      "admission_ns": 61528958,
+      "proving_ns": 704246375,
+      "artifact_encoding_ns": 16013250,
+      "fresh_verification_ns": 84820334,
+      "total_ns": 1000732750
+    },
+    "device": {
+      "dispatches": 216,
+      "cpu_fallbacks": 3
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23446056,
+        "energy_nj": 96458588,
+        "instructions": 311200985,
+        "cycles": 134445858
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 2669693232,
+        "energy_nj": 13878843343,
+        "instructions": 44886559001,
+        "cycles": 13262079065
+      },
+      "interval_delta": {
+        "energy_nj": 13782384755,
+        "instructions": 44575358016,
+        "cycles": 13127633207
+      }
+    }
+  },
+  {
+    "case": "metal-ecdsa_secp256k1-32",
+    "negative": false,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "ecdsa-csp-bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1_precompile_odd.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-ecdsa_secp256k1-32.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-ecdsa_secp256k1-32.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--workers",
+      "16",
+      "--host-byte-budget",
+      "38654705664"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 0.646243042,
+    "execution_witness_prove_seconds": 0.495650917,
+    "proof_sha256": "1b53e8e4737c7c1d4e15b47a958a4fa265526e92503c3b1503e4a1a04a569e9b",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 478167,
+      "witness_ns": 62308333,
+      "admission_ns": 51776750,
+      "proving_ns": 432864417,
+      "artifact_encoding_ns": 16109375,
+      "fresh_verification_ns": 82706000,
+      "total_ns": 646243042
+    },
+    "device": {
+      "dispatches": 829,
+      "cpu_fallbacks": 34
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23429672,
+        "energy_nj": 98131358,
+        "instructions": 317554953,
+        "cycles": 137790251
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 1584367128,
+        "energy_nj": 5472490309,
+        "instructions": 18670939763,
+        "cycles": 5710589537
+      },
+      "interval_delta": {
+        "energy_nj": 5374358951,
+        "instructions": 18353384810,
+        "cycles": 5572799286
+      }
+    }
+  },
+  {
+    "case": "metal-ecdsa_secp256k1_bad_signature",
+    "negative": true,
+    "command": [
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/products/bin/stwo-zig-riscv-metal",
+      "--proof-suite",
+      "blake3",
+      "bench",
+      "--elf",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/guests/ecdsa_secp256k1.elf",
+      "--input",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/riscv_csp/inputs/ecdsa_secp256k1_bad_signature.bin",
+      "--proof-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-ecdsa_secp256k1_bad_signature.b3proof",
+      "--report-out",
+      "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-blake3-rotate7-limbs/suite-metal/metal-ecdsa_secp256k1_bad_signature.json",
+      "--warmups",
+      "0",
+      "--samples",
+      "1",
+      "--backend",
+      "metal",
+      "--protocol",
+      "secure"
+    ],
+    "binary_sha256": "a0e78500db93d0546539a873869c0d43e0ef44b6609f7b36bf729ef281c63fcb",
+    "implementation_dirty": true,
+    "local_qualification_only": true,
+    "independent_verified": true,
+    "complete_seconds": 9.798150958,
+    "execution_witness_prove_seconds": 8.248588875,
+    "proof_sha256": "59a15d76e5193b8b2aa42ec1ede5b5f1b594c3ff6f5d2faa3e94684e97a0e8ad",
+    "parameters": {
+      "pow_bits": 26,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      }
+    },
+    "timing": {
+      "execution_ns": 288830958,
+      "witness_ns": 1504138042,
+      "admission_ns": 576181250,
+      "proving_ns": 6455619875,
+      "artifact_encoding_ns": 111598500,
+      "fresh_verification_ns": 861782333,
+      "total_ns": 9798150958
+    },
+    "device": {
+      "dispatches": 3247,
+      "cpu_fallbacks": 3
+    },
+    "resources": {
+      "availability": "available",
+      "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6",
+      "scope": "self_process_lifetime",
+      "before_warmups": {
+        "lifetime_max_phys_footprint_bytes": 23462440,
+        "energy_nj": 98873792,
+        "instructions": 311551192,
+        "cycles": 136977153
+      },
+      "after_verified_samples": {
+        "lifetime_max_phys_footprint_bytes": 22757521184,
+        "energy_nj": 126175889674,
+        "instructions": 395448619014,
+        "cycles": 137159293574
+      },
+      "interval_delta": {
+        "energy_nj": 126077015882,
+        "instructions": 395137067822,
+        "cycles": 137022316421
+      }
+    }
+  }
+]

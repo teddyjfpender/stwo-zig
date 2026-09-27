@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 6/6 tests passed
+test-shader-authority success
++- run test 6 passed 487ms MaxRSS:3M
+   +- compile test ReleaseFast native success 3s MaxRSS:331M
+

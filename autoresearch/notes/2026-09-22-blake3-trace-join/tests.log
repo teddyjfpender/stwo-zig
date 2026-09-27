@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-scalar-wire-source success
++- Scalar wire source guard success
+   +- run test 1 passed 772ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 4s MaxRSS:469M
+test-blake3-combined-fri success
++- BLAKE3 combined FRI guard success
+   +- run test 1 passed 7s MaxRSS:1G
+      +- compile test ReleaseSafe native success 31s MaxRSS:2G
+

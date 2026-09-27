@@ -1,0 +1,45 @@
+{
+  "root_ns": 11870873042,
+  "child_phases_ns": [
+    {
+      "composition": 2731167,
+      "deep": 27835208,
+      "fri": 31637584,
+      "transcript_plan": 8025416,
+      "payloads": 6185334,
+      "challenges": 9723750,
+      "terminal": 5719041,
+      "queries": 9784459,
+      "roots": 2465166,
+      "hash_columns": 77323084,
+      "transcript": 52130541,
+      "paths": 3307710792,
+      "path_reads": 4155208,
+      "openings": 8461250,
+      "assemble": 222300875,
+      "teardown": 8617917,
+      "validate": 575208
+    },
+    {
+      "composition": 2886250,
+      "deep": 27873167,
+      "fri": 31562500,
+      "transcript_plan": 8063666,
+      "payloads": 6251084,
+      "challenges": 9741875,
+      "terminal": 5799958,
+      "queries": 9781792,
+      "roots": 2390583,
+      "hash_columns": 74099583,
+      "transcript": 48496334,
+      "paths": 2817313833,
+      "path_reads": 4333000,
+      "openings": 8447667,
+      "assemble": 220344667,
+      "teardown": 7589542,
+      "validate": 603500
+    }
+  ],
+  "child_total_ns": 7070961001,
+  "aggregation_and_cleanup_residual_ns": 4799912041
+}

@@ -1,0 +1,15 @@
+{
+  "README.md": "5e504aaa0ce033b93054a3e6f98b499d40981397197289e3528106742d35ff84",
+  "source-conformance.log": "d5bf6bd4f6ec33b7d7425010c16a8d822b19b39895fdfd6055ec3809fcc06640",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "c333908cd8e189a6623ef5ca59416d4cc878c9de98a41f84847e5f77c98f093c",
+  "sources/src/frontends/riscv/blake3_wiring_test_root.zig": "bd01984263bf5030169e784510873f418754bdf6a1db4697bcef4ca2c72fcc8b",
+  "sources/src/frontends/riscv/recursion/air/blake3_compression_plan.zig": "1128c84585974ab54a35e7becc929fb7a5be76f5b2ed93aab0b1f282e6e11246",
+  "sources/src/frontends/riscv/recursion/air/blake3_compression_witness.zig": "14791739d3f85ee3fab1a2de801217032393c8577761eae989bdaccafdd5ae28",
+  "sources/src/frontends/riscv/recursion/air/blake3_g_call.zig": "d4e50d1aec9e385bea1c7b99e67677c62770375e8c8d3a730f101e65b83f3eae",
+  "sources/src/frontends/riscv/recursion/air/blake3_g_packed.zig": "7d4a6d9b4665a3aba6101d19e8f7c08466806b22246da2def2f877af62549620",
+  "sources/src/frontends/riscv/recursion/air/blake3_wiring_test.zig": "c72c2bffb712dc3ab217cc4bb0375688393e0c33f8cb6f4c176cd08ede132f6f",
+  "sources/src/frontends/riscv/recursion/air/blake3_xor_call.zig": "8d79e8ce622fee30c1e60b2e094e5c833bbf3afa65bdc1905f205b4356cbbe05",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "8812e5f86829badac1a10ae1996fca69d631b083d27c72be7b0af48fb660b056",
+  "sources/src/integrations/riscv_cpu/build_segment_steps.zig": "9483bdbe297826478fd5bdcf880dc71e84462b20c4088f7b07eca876484bcd6f",
+  "tests.log": "c1ae2875647ac01e37c572ab7bce6b1e1e1547a2e543ac4a3220d4223be5254c"
+}

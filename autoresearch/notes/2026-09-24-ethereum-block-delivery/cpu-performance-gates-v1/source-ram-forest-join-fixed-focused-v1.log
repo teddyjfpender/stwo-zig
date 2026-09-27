@@ -1,0 +1,4 @@
+src/frontends/riscv/recipe_test_runner.zig:1:1: error: unable to load 'recipe_test_runner.zig': FileNotFound
+/opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/std/std.zig:112:22: note: file imported here
+const root = @import("root");
+                     ^~~~~~

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "input-tail-provider-focused-v1-source.json",
+  "exit_code": 1,
+  "elapsed_seconds": 15.840896916983183,
+  "changed_source_pins": [],
+  "qualified": false,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 13,
+  "test_summary": [
+    "11 passed; 0 skipped; 2 failed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/input-tail-provider-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-input-tail-provider-focused-v1",
+    "bytes": 29647144,
+    "sha256": "269d94cd6c754759438891becf4563c0f5a44a724fa99427259af23af2f57b14"
+  }
+}

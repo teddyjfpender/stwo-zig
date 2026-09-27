@@ -1,0 +1,10 @@
+{
+  "host_framing_tests_passed": true,
+  "native_rv32_abi_compiled": true,
+  "instruction": "0xc62800b",
+  "static_instruction_sites": 8,
+  "assembly_sha256": "9b2a9806b0454e76e27c07fb3094a3e3da4df2b3014a2d3b11466f310827c5f5",
+  "assembly": "autoresearch/benchmarks/guest_runtime/sha256_precompile_tests/target/riscv32i-stwo/release/build/stwo-sha256-precompile-guest-tests/88f666ed6a5f7024/out/stwo_sha256_precompile_guest_tests-88f666ed6a5f7024.s",
+  "production_profile_active": false,
+  "guest_execution_or_proof_qualified": false
+}

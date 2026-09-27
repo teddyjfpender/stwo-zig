@@ -170,96 +170,11 @@ test "metal: typed Poseidon2 artifacts prove and verify without fallback" {
 
 test "metal: AOT source matches every production RISC-V polynomial DAG" {
     const codegen = riscv_metal.riscv_polynomial_codegen;
-    const runtime_program = riscv.air.extract.runtime_program;
-    const semantic_eval = riscv.air.semantic_eval;
-    const trace = riscv.runner.trace;
-
-    var base_entries = std.ArrayList(codegen.base.Entry).empty;
-    defer {
-        for (base_entries.items) |*item| item.program.deinit();
-        base_entries.deinit(std.testing.allocator);
-    }
-    var lookup_entries = std.ArrayList(codegen.lookup.Entry).empty;
-    defer {
-        for (lookup_entries.items) |*item| item.program.deinit();
-        lookup_entries.deinit(std.testing.allocator);
-    }
-    var lookup_v2_entries = std.ArrayList(codegen.lookup_v2.Entry).empty;
-    defer {
-        for (lookup_v2_entries.items) |*item| item.program.deinit();
-        lookup_v2_entries.deinit(std.testing.allocator);
-    }
-    for (0..trace.N_FAMILIES) |family_index| {
-        const family: trace.OpcodeFamily = @enumFromInt(family_index);
-        if (!semantic_eval.isTraceCompatible(family)) continue;
-        try base_entries.append(std.testing.allocator, .{
-            .program_id = (@as(u64, 1) << 32) | @as(u64, @intCast(family_index)),
-            .program = try runtime_program.build(std.testing.allocator, family),
-        });
-        try lookup_entries.append(std.testing.allocator, .{
-            .program_id = (@as(u64, 2) << 32) | @as(u64, @intCast(family_index)),
-            .program = try runtime_program.buildLookups(std.testing.allocator, family),
-        });
-        var plan = try riscv.air.lookup_batch_execution.FamilyPlan.initNativeV1(
-            std.testing.allocator,
-            family,
-        );
-        defer plan.deinit();
-        var selected = try riscv.air.lookup_polynomial_program_v2.lowerSelected(
-            std.testing.allocator,
-            &plan,
-        );
-        errdefer selected.deinit();
-        try lookup_v2_entries.append(std.testing.allocator, .{
-            .authority = try selected.authority(),
-            .program = selected,
-        });
-    }
-    const hash_program = riscv.air.memory_commitment.hash_runtime_program;
-    for (0..hash_program.DIRECT_PARTITION_COUNT) |partition| {
-        try base_entries.append(std.testing.allocator, .{
-            .program_id = (@as(u64, 3) << 32) |
-                @as(u64, @intCast(partition)),
-            .program = try hash_program.buildPoseidonDirectRange(
-                std.testing.allocator,
-                .narrow_memory,
-                hash_program.directPartitionRange(.narrow_memory, partition),
-            ),
-        });
-    }
-    try lookup_entries.append(std.testing.allocator, .{
-        .program_id = (@as(u64, 4) << 32) | 1,
-        .program = try hash_program.buildPoseidonLookups(std.testing.allocator),
-    });
-    // Candidate degree-five provider proofs use a distinct 239-column AIR.
-    // Keep its four direct partitions and complete LogUp program in the
-    // authenticated AOT inventory even while production activation remains
-    // fail-closed; a retained candidate benchmark may not source-JIT them.
-    const degree5_candidate_mod = riscv.air.typed_poseidon2_degree_bounded_candidate;
-    const degree5_backend = riscv.air.typed_poseidon2_degree5_backend;
-    var degree5_candidate = try degree5_candidate_mod.Candidate.init(
-        std.testing.allocator,
-        .degree5,
-    );
-    defer degree5_candidate.deinit();
-    for (0..degree5_backend.DIRECT_PARTITION_COUNT) |partition| {
-        try base_entries.append(std.testing.allocator, .{
-            .program_id = (@as(u64, 5) << 32) |
-                @as(u64, @intCast(partition)),
-            .program = try degree5_backend.exportDirectProgram(
-                std.testing.allocator,
-                &degree5_candidate,
-                degree5_backend.directPartitionRange(partition),
-            ),
-        });
-    }
-    try lookup_entries.append(std.testing.allocator, .{
-        .program_id = (@as(u64, 6) << 32) | 1,
-        .program = try degree5_backend.exportLookupProgram(
-            std.testing.allocator,
-            &degree5_candidate,
-        ),
-    });
+    var inventory = try riscv.air.native_polynomial_inventory_v1.Inventory(codegen).init(std.testing.allocator);
+    defer inventory.deinit();
+    const base_entries = inventory.base;
+    const lookup_entries = inventory.lookup;
+    const lookup_v2_entries = inventory.lookup_v2;
     const source = try codegen.aot.generateLibrary(
         std.testing.allocator,
         base_entries.items,
@@ -320,11 +235,12 @@ test "metal: AOT source matches every production RISC-V polynomial DAG" {
     const manifest_testing = shader_manifest.testing;
     try std.testing.expectEqualStrings(embedded_source, source);
 
-    const runtime_kernel_count =
-        base_entries.items.len + lookup_entries.items.len + lookup_v2_entries.items.len;
+    const runtime_kernel_count = std.mem.count(u8, source, "kernel void ");
     var manifest_kernel_count: usize = 0;
     for (shader_manifest.exports) |entry| {
-        if (entry.owner != .riscv_polynomials) continue;
+        if (entry.owner != .riscv_polynomials or
+            (!std.mem.startsWith(u8, entry.name, "stwo_zig_base_poly_") and
+                !std.mem.startsWith(u8, entry.name, "stwo_zig_lookup_poly_"))) continue;
         manifest_kernel_count += 1;
         try std.testing.expectEqual(
             @as(usize, 1),

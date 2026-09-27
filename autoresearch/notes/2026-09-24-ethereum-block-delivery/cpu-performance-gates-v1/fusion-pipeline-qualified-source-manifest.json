@@ -1,0 +1,51 @@
+{
+  "format_version": 1,
+  "scope": "Nonproving CPU equation/custody/queue/API qualification; Driver and CLI bodies generated but never called; no execution segment, STARK, FRI, recursive proof or block benchmark run.",
+  "sources_sha256": {
+    "src/frontends/riscv/prover/block_v5_cpu_family_queue_v1.zig": "ed625f9729050aea5ede43ce9d160eba0bfb94bebd0d1510378e575523b64f4d",
+    "src/frontends/riscv/prover/block_v5_cpu_family_queue_test.zig": "4020dc0feb6874579da769f2b69d259f907c0e6c8ad22feb1a213f8103a457c8",
+    "src/frontends/riscv/prover/block_v5_proof_boundary_v1.zig": "8ca9700af30b03f9bfa976cfd92b9492c3aef0affa254cb420fe74e278cdccbb",
+    "src/frontends/riscv/prover/block_v5_cpu_driver_v1.zig": "b07d8a1f2afd6448bf1dfbdfdd69065bd9f311067339dd4f9097d2c3e42105bf",
+    "src/frontends/riscv/prover/block_v5_block_producer_v1.zig": "08814150a09db52e6a681647e81045dccb41cd5acb0a2e2c4664cf578747972a",
+    "src/frontends/riscv/prover/block_v5_open_forest_stage_v1.zig": "931a43c137799a8478c7e47c4d84380e8ed8aafc369be48f9bb3f47075a31af1",
+    "src/frontends/riscv/prover/block_v5_native_recursive_setup_cache_v1.zig": "b7c2bf05e47950c9ff0d2a518e376b864650982de5cceefb32c362731e245dcc",
+    "src/frontends/riscv/prover/block_v5_word_memory_artifact_v1.zig": "900de4a7cbba40189eec3230a0ebec2d20f878e01faec793c8ebfd721538fecb",
+    "src/frontends/riscv/prover/block_v5_native_lookup_batch_v1.zig": "9d4c676291d0bb88b79d4dfda8e19de7a74b816311a1628a5a6798dfda78839a",
+    "src/frontends/riscv/prover/block_v5_cpu_lookup_groups_v1.zig": "0da638a8632a4c7ef306a9cb1b637fe844ce19fe8fd6d6c5d32fd67ef30f54c5",
+    "src/frontends/riscv/prover/block_v5_native_projection_fused_component_v2.zig": "12da0872b982c700488cb6757bede7b3c175fef8c68c86c84309608ff4667d6d",
+    "src/frontends/riscv/prover/block_v5_native_projection_fused_proof_v2.zig": "959bb024d22509138e7f8c8e534e3a2277b158547933f55d8829785680bec337",
+    "src/frontends/riscv/prover/block_v5_native_projection_fused_receiver_v2.zig": "303a3d4f6797ad1b5dccea46b1ae35a2747ca068badbf6381751f67a770d1ffc",
+    "src/frontends/riscv/prover/block_v5_native_projection_fused_stage_v2.zig": "a2fd9397d72a6d93d92e6ff07cedb158040a2661664c6381b2ba3a017d7d4b35",
+    "src/frontends/riscv/prover/block_v5_native_projection_fused_v2_unit_test.zig": "338cd3d6e2f5d1bb1a1275435b4934bc15c19ee410d1fe2cd6beb963db6c55ef",
+    "src/frontends/riscv/prover/block_v5_program_fused_first_round_v1.zig": "46a68e0555a81697dfa5cf5d6fa42184bdeb7a9528d9c2466009cbf953ede837",
+    "src/frontends/riscv/prover/block_v5_program_first_round_v1.zig": "0aad056ff6d176383b272df7004b37ea36409689b83f8c0b65bc024ccaebb112",
+    "src/frontends/riscv/prover/block_v5_cpu_assembly_v1.zig": "e1835e1067a9777880673650c490bab83dfc168397b940ddda5e278f6979424d",
+    "src/frontends/riscv/prover/block_v5_cpu_bundle_policy_v1.zig": "7c5f86a926489b4bb9d6594be4241d6a38aa081681cc21017103df01e9de0e61",
+    "src/frontends/riscv/prover/block_v5_cpu_bundle_store_v1.zig": "6b4663dd04bf400375154001c39e5d7812588164ccd3991d7cadefb901f6ded8",
+    "src/frontends/riscv/prover/block_v5_cpu_bundle_store_test.zig": "1d2b566208a9e4c092c1d3945a1595cdfa38b5db074499c988e82e8c6fa7b791",
+    "src/frontends/riscv/prover/block_v5_cpu_stark_codec_v1.zig": "718d5ada9fb03b754efb791758ff9b72bc54d12754bbaf59cd3aba2ede25e53d",
+    "src/frontends/riscv/prover/block_v5_program_native_batch_common_v1.zig": "5b083e18f7ed6556e5384172ff47e3c3d1a74d471db4508dd06dee74866dfd9d",
+    "src/frontends/riscv/prover/block_v5_word_memory_join_v1.zig": "b1fb0110f932d8b5eee9d76c8fe7d8637a15b8ee57a03b21acfe385e3448261c",
+    "src/frontends/riscv/prover/block_v5_native_table_join_v1.zig": "9f1c7fc91d972a94f1b6fed85d4b2faf6e66b2d439317526d6c7bd1d656a0226",
+    "src/frontends/riscv/prover/block_v5_global_receiver_v1.zig": "2aa15324542556c7e57742249169e3f998d37c55b3b2557fd5060cd0f60ee082",
+    "src/frontends/riscv/block_v5_cpu_family_queue_test_root.zig": "8bc9dde37dc822aa0b6795d3173c2f2282e01967aee806e186a826e666daf36e",
+    "src/frontends/riscv/ethereum_block_v5_cpu_produce.zig": "f13682782524195db889256f21633944f7f63f620607da67bc79e6d917a5b17d",
+    "src/prover/work_pool.zig": "45ee7bdca682f5cb952174b5b6001febd893d49e2b9ad2d0b5fc86e72697967e",
+    "src/frontends/riscv/recursion/blake3_native_parent_worker.zig": "90a4a0e9cf02e1ab9d0a43bbf1aa481dfb55df609582d97d3c0fd95771b07870"
+  },
+  "gates": {
+    "independent-family-driver-codegen.log": {
+      "passed_tests": 19,
+      "sha256": "466e16b63b2031d0e121ac52a04b8a7342e1682d26f404ff77ecde1f33f0ab41"
+    },
+    "full-native-memory-fusion-equations-codegen.log": {
+      "passed_tests": 11,
+      "sha256": "418e9d379e2c5d5bf108e2b6bfc81a9e186b3f4b088baea2806acbf8d65176da"
+    },
+    "full-fusion-bundle-custody.log": {
+      "passed_tests": 15,
+      "sha256": "1cdb5ff0d97e2d6c30d9a22486c47a50bcdc0e758c550b861edaf4547c05941e"
+    }
+  },
+  "scope_note": "Driver gate preceded secondary-count early-rejection codec edit; final codec is separately instantiated and tested by bundle custody gate. Driver/queue/pool/fusion source signatures unchanged between those gates."
+}

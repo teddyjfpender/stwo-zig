@@ -1,0 +1,21 @@
+1/18 block_v5_recursive_fused_capture_test_root.test.fused capture bodies: actual native owned borrowed admission capture validation and teardown retained only...OK
+2/18 prover.block_v5_caller_capture_unit_test.test.caller capture: four claim arrays copy independently and release every allocation failure...OK
+3/18 prover.block_v5_caller_capture_unit_test.test.caller capture: arithmetic borrowed early rejection preserves source and owned rejection consumes it...FAIL (CallCountMismatch)
+4/18 prover.block_v5_caller_capture_unit_test.test.caller capture: shared composite root rejection preserves borrowed arrays and frees owned vectors...OK
+5/18 prover.block_v5_caller_capture_unit_test.test.caller capture: combined independent census rejection never retains either input proof...FAIL (CallCountMismatch)
+6/18 prover.block_v5_caller_capture_unit_test.test.caller capture: original caller arithmetic and fused channels retain separate exact reset geometry...FAIL (CallCountMismatch)
+7/18 prover.block_v5_caller_capture_unit_test.test.caller capture: actual owned borrowed and combined verifier bodies retained without invocation...OK
+8/18 prover.block_v5_native_capacity_fused_capture_test_v1.test.capacity fused capture: every owned claim inventory allocation failure releases unpublished custody...OK
+9/18 prover.block_v5_native_capacity_fused_capture_test_v1.test.capacity fused capture: metadata owns claims counts and four geometry lists after source destruction...OK
+10/18 prover.block_v5_native_capacity_fused_capture_test_v1.test.capacity fused capture: copied policy rejects changed mode native instance frame roots logs and selector origin...OK
+11/18 prover.block_v5_native_capacity_fused_capture_test_v1.test.capacity fused capture: metadata byte cap rejects before copy and retains source...OK
+12/18 prover.block_v5_native_capacity_fused_capture_test_v1.test.capacity fused capture: borrowed rejected source remains byte identical and owned rejection consumes all arrays...OK
+13/18 air.semantic_eval.test_0...OK
+14/18 prover.block_execution_external_trace_v2.test_0...OK
+15/18 air.lookups.tables.mod.test_0...OK
+16/18 prover.block_execution_external_access_bridge_v2.test_0...OK
+17/18 air.memory_commitment.poseidon2_air.test_0...OK
+18/18 air.lookups.tables.source_ingest.test_0...OK
+15 passed; 0 skipped; 3 failed.
+error: the following test command failed with exit code 1:
+/tmp/block-v5-fused-capture-qualified-tests-v2 --seed=0x8868d5b

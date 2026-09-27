@@ -320,6 +320,15 @@ pub fn Operations(comptime H: type) type {
             const per_worker_batch = @min(@min(batch_size, total_leaves), @as(usize, 1024));
             const four_way_hashing = comptime @hasDecl(H, "leafSeed") and
                 @hasDecl(H, "hashPackedLeavesWithSeed4");
+            const direct_four_way = blk: {
+                if (comptime four_way_hashing and @hasDecl(H, "hashDirectM31LeavesWithSeed4")) {
+                    for (sorted_columns) |column| {
+                        if (column.log_size != max_log_size) break :blk false;
+                    }
+                    break :blk true;
+                }
+                break :blk false;
+            };
             const hashers_per_worker = if (four_way_hashing) 0 else per_worker_batch;
             const hashers = try allocator.alloc(H, worker_count * hashers_per_worker);
             defer allocator.free(hashers);
@@ -327,7 +336,9 @@ pub fn Operations(comptime H: type) type {
                 try std.math.mul(usize, 4, sorted_columns.len)
             else
                 max_leaf_scratch_bytes / @sizeOf(M31);
-            const scratch_words: ?[]M31 = if (comptime four_way_hashing or @hasDecl(H, "updateLeafPackedBytes"))
+            const scratch_words: ?[]M31 = if (direct_four_way)
+                null
+            else if (comptime four_way_hashing or @hasDecl(H, "updateLeafPackedBytes"))
                 allocator.alloc(M31, worker_count * scratch_words_per_worker) catch |err| if (four_way_hashing) return err else null
             else
                 null;

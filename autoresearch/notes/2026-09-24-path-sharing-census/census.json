@@ -1,0 +1,1352 @@
+[
+  {
+    "upper_hashes": 17290,
+    "unique_upper_hashes": 9291,
+    "node_g_rows": 112,
+    "gross_candidate_g_rows": 895888,
+    "path_g_rows": 2367680,
+    "implemented": "false",
+    "trees": [
+      {
+        "kind": "trace",
+        "tree": 0,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "trace",
+        "tree": 1,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "trace",
+        "tree": 2,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "trace",
+        "tree": 3,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "fri",
+        "tree": 0,
+        "depth": 18,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1260,
+        "unique_upper_hashes": 841
+      },
+      {
+        "kind": "fri",
+        "tree": 1,
+        "depth": 17,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1190,
+        "unique_upper_hashes": 771
+      },
+      {
+        "kind": "fri",
+        "tree": 2,
+        "depth": 16,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1120,
+        "unique_upper_hashes": 701
+      },
+      {
+        "kind": "fri",
+        "tree": 3,
+        "depth": 15,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1050,
+        "unique_upper_hashes": 631
+      },
+      {
+        "kind": "fri",
+        "tree": 4,
+        "depth": 14,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 980,
+        "unique_upper_hashes": 561
+      },
+      {
+        "kind": "fri",
+        "tree": 5,
+        "depth": 13,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 910,
+        "unique_upper_hashes": 491
+      },
+      {
+        "kind": "fri",
+        "tree": 6,
+        "depth": 12,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 840,
+        "unique_upper_hashes": 421
+      },
+      {
+        "kind": "fri",
+        "tree": 7,
+        "depth": 11,
+        "openings": 70,
+        "unique_groups": 69,
+        "upper_hashes": 770,
+        "unique_upper_hashes": 352
+      },
+      {
+        "kind": "fri",
+        "tree": 8,
+        "depth": 10,
+        "openings": 70,
+        "unique_groups": 69,
+        "upper_hashes": 700,
+        "unique_upper_hashes": 283
+      },
+      {
+        "kind": "fri",
+        "tree": 9,
+        "depth": 9,
+        "openings": 70,
+        "unique_groups": 65,
+        "upper_hashes": 630,
+        "unique_upper_hashes": 218
+      },
+      {
+        "kind": "fri",
+        "tree": 10,
+        "depth": 8,
+        "openings": 70,
+        "unique_groups": 61,
+        "upper_hashes": 560,
+        "unique_upper_hashes": 157
+      },
+      {
+        "kind": "fri",
+        "tree": 11,
+        "depth": 7,
+        "openings": 70,
+        "unique_groups": 54,
+        "upper_hashes": 490,
+        "unique_upper_hashes": 103
+      },
+      {
+        "kind": "fri",
+        "tree": 12,
+        "depth": 6,
+        "openings": 70,
+        "unique_groups": 43,
+        "upper_hashes": 420,
+        "unique_upper_hashes": 60
+      },
+      {
+        "kind": "fri",
+        "tree": 13,
+        "depth": 5,
+        "openings": 70,
+        "unique_groups": 29,
+        "upper_hashes": 350,
+        "unique_upper_hashes": 31
+      },
+      {
+        "kind": "fri",
+        "tree": 14,
+        "depth": 4,
+        "openings": 70,
+        "unique_groups": 16,
+        "upper_hashes": 280,
+        "unique_upper_hashes": 15
+      },
+      {
+        "kind": "fri",
+        "tree": 15,
+        "depth": 3,
+        "openings": 70,
+        "unique_groups": 8,
+        "upper_hashes": 210,
+        "unique_upper_hashes": 7
+      },
+      {
+        "kind": "fri",
+        "tree": 16,
+        "depth": 2,
+        "openings": 70,
+        "unique_groups": 4,
+        "upper_hashes": 140,
+        "unique_upper_hashes": 3
+      },
+      {
+        "kind": "fri",
+        "tree": 17,
+        "depth": 1,
+        "openings": 70,
+        "unique_groups": 2,
+        "upper_hashes": 70,
+        "unique_upper_hashes": 1
+      }
+    ],
+    "gross_path_fraction": 0.3783822138126774,
+    "root_only_gross_g_rows": 170016
+  },
+  {
+    "upper_hashes": 17290,
+    "unique_upper_hashes": 9418,
+    "node_g_rows": 112,
+    "gross_candidate_g_rows": 881664,
+    "path_g_rows": 2367680,
+    "implemented": "false",
+    "trees": [
+      {
+        "kind": "trace",
+        "tree": 0,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 921
+      },
+      {
+        "kind": "trace",
+        "tree": 1,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 921
+      },
+      {
+        "kind": "trace",
+        "tree": 2,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 921
+      },
+      {
+        "kind": "trace",
+        "tree": 3,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 921
+      },
+      {
+        "kind": "fri",
+        "tree": 0,
+        "depth": 18,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1260,
+        "unique_upper_hashes": 851
+      },
+      {
+        "kind": "fri",
+        "tree": 1,
+        "depth": 17,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1190,
+        "unique_upper_hashes": 781
+      },
+      {
+        "kind": "fri",
+        "tree": 2,
+        "depth": 16,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1120,
+        "unique_upper_hashes": 711
+      },
+      {
+        "kind": "fri",
+        "tree": 3,
+        "depth": 15,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1050,
+        "unique_upper_hashes": 641
+      },
+      {
+        "kind": "fri",
+        "tree": 4,
+        "depth": 14,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 980,
+        "unique_upper_hashes": 571
+      },
+      {
+        "kind": "fri",
+        "tree": 5,
+        "depth": 13,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 910,
+        "unique_upper_hashes": 501
+      },
+      {
+        "kind": "fri",
+        "tree": 6,
+        "depth": 12,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 840,
+        "unique_upper_hashes": 431
+      },
+      {
+        "kind": "fri",
+        "tree": 7,
+        "depth": 11,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 770,
+        "unique_upper_hashes": 361
+      },
+      {
+        "kind": "fri",
+        "tree": 8,
+        "depth": 10,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 700,
+        "unique_upper_hashes": 291
+      },
+      {
+        "kind": "fri",
+        "tree": 9,
+        "depth": 9,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 630,
+        "unique_upper_hashes": 221
+      },
+      {
+        "kind": "fri",
+        "tree": 10,
+        "depth": 8,
+        "openings": 70,
+        "unique_groups": 64,
+        "upper_hashes": 560,
+        "unique_upper_hashes": 157
+      },
+      {
+        "kind": "fri",
+        "tree": 11,
+        "depth": 7,
+        "openings": 70,
+        "unique_groups": 56,
+        "upper_hashes": 490,
+        "unique_upper_hashes": 101
+      },
+      {
+        "kind": "fri",
+        "tree": 12,
+        "depth": 6,
+        "openings": 70,
+        "unique_groups": 42,
+        "upper_hashes": 420,
+        "unique_upper_hashes": 59
+      },
+      {
+        "kind": "fri",
+        "tree": 13,
+        "depth": 5,
+        "openings": 70,
+        "unique_groups": 28,
+        "upper_hashes": 350,
+        "unique_upper_hashes": 31
+      },
+      {
+        "kind": "fri",
+        "tree": 14,
+        "depth": 4,
+        "openings": 70,
+        "unique_groups": 16,
+        "upper_hashes": 280,
+        "unique_upper_hashes": 15
+      },
+      {
+        "kind": "fri",
+        "tree": 15,
+        "depth": 3,
+        "openings": 70,
+        "unique_groups": 8,
+        "upper_hashes": 210,
+        "unique_upper_hashes": 7
+      },
+      {
+        "kind": "fri",
+        "tree": 16,
+        "depth": 2,
+        "openings": 70,
+        "unique_groups": 4,
+        "upper_hashes": 140,
+        "unique_upper_hashes": 3
+      },
+      {
+        "kind": "fri",
+        "tree": 17,
+        "depth": 1,
+        "openings": 70,
+        "unique_groups": 2,
+        "upper_hashes": 70,
+        "unique_upper_hashes": 1
+      }
+    ],
+    "gross_path_fraction": 0.3723746452223273,
+    "root_only_gross_g_rows": 170016
+  },
+  {
+    "upper_hashes": 17290,
+    "unique_upper_hashes": 9311,
+    "node_g_rows": 112,
+    "gross_candidate_g_rows": 893648,
+    "path_g_rows": 2359840,
+    "implemented": "false",
+    "trees": [
+      {
+        "kind": "trace",
+        "tree": 0,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "trace",
+        "tree": 1,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "trace",
+        "tree": 2,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "trace",
+        "tree": 3,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 911
+      },
+      {
+        "kind": "fri",
+        "tree": 0,
+        "depth": 18,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1260,
+        "unique_upper_hashes": 841
+      },
+      {
+        "kind": "fri",
+        "tree": 1,
+        "depth": 17,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1190,
+        "unique_upper_hashes": 771
+      },
+      {
+        "kind": "fri",
+        "tree": 2,
+        "depth": 16,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1120,
+        "unique_upper_hashes": 701
+      },
+      {
+        "kind": "fri",
+        "tree": 3,
+        "depth": 15,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1050,
+        "unique_upper_hashes": 631
+      },
+      {
+        "kind": "fri",
+        "tree": 4,
+        "depth": 14,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 980,
+        "unique_upper_hashes": 561
+      },
+      {
+        "kind": "fri",
+        "tree": 5,
+        "depth": 13,
+        "openings": 70,
+        "unique_groups": 69,
+        "upper_hashes": 910,
+        "unique_upper_hashes": 492
+      },
+      {
+        "kind": "fri",
+        "tree": 6,
+        "depth": 12,
+        "openings": 70,
+        "unique_groups": 69,
+        "upper_hashes": 840,
+        "unique_upper_hashes": 423
+      },
+      {
+        "kind": "fri",
+        "tree": 7,
+        "depth": 11,
+        "openings": 70,
+        "unique_groups": 68,
+        "upper_hashes": 770,
+        "unique_upper_hashes": 355
+      },
+      {
+        "kind": "fri",
+        "tree": 8,
+        "depth": 10,
+        "openings": 70,
+        "unique_groups": 67,
+        "upper_hashes": 700,
+        "unique_upper_hashes": 288
+      },
+      {
+        "kind": "fri",
+        "tree": 9,
+        "depth": 9,
+        "openings": 70,
+        "unique_groups": 67,
+        "upper_hashes": 630,
+        "unique_upper_hashes": 221
+      },
+      {
+        "kind": "fri",
+        "tree": 10,
+        "depth": 8,
+        "openings": 70,
+        "unique_groups": 61,
+        "upper_hashes": 560,
+        "unique_upper_hashes": 160
+      },
+      {
+        "kind": "fri",
+        "tree": 11,
+        "depth": 7,
+        "openings": 70,
+        "unique_groups": 55,
+        "upper_hashes": 490,
+        "unique_upper_hashes": 105
+      },
+      {
+        "kind": "fri",
+        "tree": 12,
+        "depth": 6,
+        "openings": 70,
+        "unique_groups": 44,
+        "upper_hashes": 420,
+        "unique_upper_hashes": 61
+      },
+      {
+        "kind": "fri",
+        "tree": 13,
+        "depth": 5,
+        "openings": 70,
+        "unique_groups": 30,
+        "upper_hashes": 350,
+        "unique_upper_hashes": 31
+      },
+      {
+        "kind": "fri",
+        "tree": 14,
+        "depth": 4,
+        "openings": 70,
+        "unique_groups": 16,
+        "upper_hashes": 280,
+        "unique_upper_hashes": 15
+      },
+      {
+        "kind": "fri",
+        "tree": 15,
+        "depth": 3,
+        "openings": 70,
+        "unique_groups": 8,
+        "upper_hashes": 210,
+        "unique_upper_hashes": 7
+      },
+      {
+        "kind": "fri",
+        "tree": 16,
+        "depth": 2,
+        "openings": 70,
+        "unique_groups": 4,
+        "upper_hashes": 140,
+        "unique_upper_hashes": 3
+      },
+      {
+        "kind": "fri",
+        "tree": 17,
+        "depth": 1,
+        "openings": 70,
+        "unique_groups": 2,
+        "upper_hashes": 70,
+        "unique_upper_hashes": 1
+      }
+    ],
+    "gross_path_fraction": 0.3786900806834362,
+    "root_only_gross_g_rows": 170016
+  },
+  {
+    "upper_hashes": 17290,
+    "unique_upper_hashes": 9471,
+    "node_g_rows": 112,
+    "gross_candidate_g_rows": 875728,
+    "path_g_rows": 2399040,
+    "implemented": "false",
+    "trees": [
+      {
+        "kind": "trace",
+        "tree": 0,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 924
+      },
+      {
+        "kind": "trace",
+        "tree": 1,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 924
+      },
+      {
+        "kind": "trace",
+        "tree": 2,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 924
+      },
+      {
+        "kind": "trace",
+        "tree": 3,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 924
+      },
+      {
+        "kind": "fri",
+        "tree": 0,
+        "depth": 18,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1260,
+        "unique_upper_hashes": 854
+      },
+      {
+        "kind": "fri",
+        "tree": 1,
+        "depth": 17,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1190,
+        "unique_upper_hashes": 784
+      },
+      {
+        "kind": "fri",
+        "tree": 2,
+        "depth": 16,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1120,
+        "unique_upper_hashes": 714
+      },
+      {
+        "kind": "fri",
+        "tree": 3,
+        "depth": 15,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1050,
+        "unique_upper_hashes": 644
+      },
+      {
+        "kind": "fri",
+        "tree": 4,
+        "depth": 14,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 980,
+        "unique_upper_hashes": 574
+      },
+      {
+        "kind": "fri",
+        "tree": 5,
+        "depth": 13,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 910,
+        "unique_upper_hashes": 504
+      },
+      {
+        "kind": "fri",
+        "tree": 6,
+        "depth": 12,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 840,
+        "unique_upper_hashes": 434
+      },
+      {
+        "kind": "fri",
+        "tree": 7,
+        "depth": 11,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 770,
+        "unique_upper_hashes": 364
+      },
+      {
+        "kind": "fri",
+        "tree": 8,
+        "depth": 10,
+        "openings": 70,
+        "unique_groups": 69,
+        "upper_hashes": 700,
+        "unique_upper_hashes": 295
+      },
+      {
+        "kind": "fri",
+        "tree": 9,
+        "depth": 9,
+        "openings": 70,
+        "unique_groups": 68,
+        "upper_hashes": 630,
+        "unique_upper_hashes": 227
+      },
+      {
+        "kind": "fri",
+        "tree": 10,
+        "depth": 8,
+        "openings": 70,
+        "unique_groups": 66,
+        "upper_hashes": 560,
+        "unique_upper_hashes": 161
+      },
+      {
+        "kind": "fri",
+        "tree": 11,
+        "depth": 7,
+        "openings": 70,
+        "unique_groups": 58,
+        "upper_hashes": 490,
+        "unique_upper_hashes": 103
+      },
+      {
+        "kind": "fri",
+        "tree": 12,
+        "depth": 6,
+        "openings": 70,
+        "unique_groups": 43,
+        "upper_hashes": 420,
+        "unique_upper_hashes": 60
+      },
+      {
+        "kind": "fri",
+        "tree": 13,
+        "depth": 5,
+        "openings": 70,
+        "unique_groups": 29,
+        "upper_hashes": 350,
+        "unique_upper_hashes": 31
+      },
+      {
+        "kind": "fri",
+        "tree": 14,
+        "depth": 4,
+        "openings": 70,
+        "unique_groups": 16,
+        "upper_hashes": 280,
+        "unique_upper_hashes": 15
+      },
+      {
+        "kind": "fri",
+        "tree": 15,
+        "depth": 3,
+        "openings": 70,
+        "unique_groups": 8,
+        "upper_hashes": 210,
+        "unique_upper_hashes": 7
+      },
+      {
+        "kind": "fri",
+        "tree": 16,
+        "depth": 2,
+        "openings": 70,
+        "unique_groups": 4,
+        "upper_hashes": 140,
+        "unique_upper_hashes": 3
+      },
+      {
+        "kind": "fri",
+        "tree": 17,
+        "depth": 1,
+        "openings": 70,
+        "unique_groups": 2,
+        "upper_hashes": 70,
+        "unique_upper_hashes": 1
+      }
+    ],
+    "gross_path_fraction": 0.36503267973856207,
+    "root_only_gross_g_rows": 170016
+  },
+  {
+    "upper_hashes": 26040,
+    "unique_upper_hashes": 16398,
+    "node_g_rows": 112,
+    "gross_candidate_g_rows": 1079904,
+    "path_g_rows": 3594640,
+    "implemented": "false",
+    "trees": [
+      {
+        "kind": "trace",
+        "tree": 0,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1284
+      },
+      {
+        "kind": "trace",
+        "tree": 1,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1284
+      },
+      {
+        "kind": "trace",
+        "tree": 2,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1284
+      },
+      {
+        "kind": "trace",
+        "tree": 3,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1284
+      },
+      {
+        "kind": "fri",
+        "tree": 0,
+        "depth": 23,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1610,
+        "unique_upper_hashes": 1214
+      },
+      {
+        "kind": "fri",
+        "tree": 1,
+        "depth": 22,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1540,
+        "unique_upper_hashes": 1144
+      },
+      {
+        "kind": "fri",
+        "tree": 2,
+        "depth": 21,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1470,
+        "unique_upper_hashes": 1074
+      },
+      {
+        "kind": "fri",
+        "tree": 3,
+        "depth": 20,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1400,
+        "unique_upper_hashes": 1004
+      },
+      {
+        "kind": "fri",
+        "tree": 4,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 934
+      },
+      {
+        "kind": "fri",
+        "tree": 5,
+        "depth": 18,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1260,
+        "unique_upper_hashes": 864
+      },
+      {
+        "kind": "fri",
+        "tree": 6,
+        "depth": 17,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1190,
+        "unique_upper_hashes": 794
+      },
+      {
+        "kind": "fri",
+        "tree": 7,
+        "depth": 16,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1120,
+        "unique_upper_hashes": 724
+      },
+      {
+        "kind": "fri",
+        "tree": 8,
+        "depth": 15,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1050,
+        "unique_upper_hashes": 654
+      },
+      {
+        "kind": "fri",
+        "tree": 9,
+        "depth": 14,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 980,
+        "unique_upper_hashes": 584
+      },
+      {
+        "kind": "fri",
+        "tree": 10,
+        "depth": 13,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 910,
+        "unique_upper_hashes": 514
+      },
+      {
+        "kind": "fri",
+        "tree": 11,
+        "depth": 12,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 840,
+        "unique_upper_hashes": 444
+      },
+      {
+        "kind": "fri",
+        "tree": 12,
+        "depth": 11,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 770,
+        "unique_upper_hashes": 374
+      },
+      {
+        "kind": "fri",
+        "tree": 13,
+        "depth": 10,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 700,
+        "unique_upper_hashes": 304
+      },
+      {
+        "kind": "fri",
+        "tree": 14,
+        "depth": 9,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 630,
+        "unique_upper_hashes": 234
+      },
+      {
+        "kind": "fri",
+        "tree": 15,
+        "depth": 8,
+        "openings": 70,
+        "unique_groups": 63,
+        "upper_hashes": 560,
+        "unique_upper_hashes": 171
+      },
+      {
+        "kind": "fri",
+        "tree": 16,
+        "depth": 7,
+        "openings": 70,
+        "unique_groups": 60,
+        "upper_hashes": 490,
+        "unique_upper_hashes": 111
+      },
+      {
+        "kind": "fri",
+        "tree": 17,
+        "depth": 6,
+        "openings": 70,
+        "unique_groups": 48,
+        "upper_hashes": 420,
+        "unique_upper_hashes": 63
+      },
+      {
+        "kind": "fri",
+        "tree": 18,
+        "depth": 5,
+        "openings": 70,
+        "unique_groups": 32,
+        "upper_hashes": 350,
+        "unique_upper_hashes": 31
+      },
+      {
+        "kind": "fri",
+        "tree": 19,
+        "depth": 4,
+        "openings": 70,
+        "unique_groups": 16,
+        "upper_hashes": 280,
+        "unique_upper_hashes": 15
+      },
+      {
+        "kind": "fri",
+        "tree": 20,
+        "depth": 3,
+        "openings": 70,
+        "unique_groups": 8,
+        "upper_hashes": 210,
+        "unique_upper_hashes": 7
+      },
+      {
+        "kind": "fri",
+        "tree": 21,
+        "depth": 2,
+        "openings": 70,
+        "unique_groups": 4,
+        "upper_hashes": 140,
+        "unique_upper_hashes": 3
+      },
+      {
+        "kind": "fri",
+        "tree": 22,
+        "depth": 1,
+        "openings": 70,
+        "unique_groups": 2,
+        "upper_hashes": 70,
+        "unique_upper_hashes": 1
+      }
+    ],
+    "gross_path_fraction": 0.3004206262657735,
+    "root_only_gross_g_rows": 208656
+  },
+  {
+    "upper_hashes": 26040,
+    "unique_upper_hashes": 16166,
+    "node_g_rows": 112,
+    "gross_candidate_g_rows": 1105888,
+    "path_g_rows": 3594640,
+    "implemented": "false",
+    "trees": [
+      {
+        "kind": "trace",
+        "tree": 0,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1273
+      },
+      {
+        "kind": "trace",
+        "tree": 1,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1273
+      },
+      {
+        "kind": "trace",
+        "tree": 2,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1273
+      },
+      {
+        "kind": "trace",
+        "tree": 3,
+        "depth": 24,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1680,
+        "unique_upper_hashes": 1273
+      },
+      {
+        "kind": "fri",
+        "tree": 0,
+        "depth": 23,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1610,
+        "unique_upper_hashes": 1203
+      },
+      {
+        "kind": "fri",
+        "tree": 1,
+        "depth": 22,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1540,
+        "unique_upper_hashes": 1133
+      },
+      {
+        "kind": "fri",
+        "tree": 2,
+        "depth": 21,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1470,
+        "unique_upper_hashes": 1063
+      },
+      {
+        "kind": "fri",
+        "tree": 3,
+        "depth": 20,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1400,
+        "unique_upper_hashes": 993
+      },
+      {
+        "kind": "fri",
+        "tree": 4,
+        "depth": 19,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1330,
+        "unique_upper_hashes": 923
+      },
+      {
+        "kind": "fri",
+        "tree": 5,
+        "depth": 18,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1260,
+        "unique_upper_hashes": 853
+      },
+      {
+        "kind": "fri",
+        "tree": 6,
+        "depth": 17,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1190,
+        "unique_upper_hashes": 783
+      },
+      {
+        "kind": "fri",
+        "tree": 7,
+        "depth": 16,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1120,
+        "unique_upper_hashes": 713
+      },
+      {
+        "kind": "fri",
+        "tree": 8,
+        "depth": 15,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 1050,
+        "unique_upper_hashes": 643
+      },
+      {
+        "kind": "fri",
+        "tree": 9,
+        "depth": 14,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 980,
+        "unique_upper_hashes": 573
+      },
+      {
+        "kind": "fri",
+        "tree": 10,
+        "depth": 13,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 910,
+        "unique_upper_hashes": 503
+      },
+      {
+        "kind": "fri",
+        "tree": 11,
+        "depth": 12,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 840,
+        "unique_upper_hashes": 433
+      },
+      {
+        "kind": "fri",
+        "tree": 12,
+        "depth": 11,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 770,
+        "unique_upper_hashes": 363
+      },
+      {
+        "kind": "fri",
+        "tree": 13,
+        "depth": 10,
+        "openings": 70,
+        "unique_groups": 70,
+        "upper_hashes": 700,
+        "unique_upper_hashes": 293
+      },
+      {
+        "kind": "fri",
+        "tree": 14,
+        "depth": 9,
+        "openings": 70,
+        "unique_groups": 69,
+        "upper_hashes": 630,
+        "unique_upper_hashes": 224
+      },
+      {
+        "kind": "fri",
+        "tree": 15,
+        "depth": 8,
+        "openings": 70,
+        "unique_groups": 65,
+        "upper_hashes": 560,
+        "unique_upper_hashes": 159
+      },
+      {
+        "kind": "fri",
+        "tree": 16,
+        "depth": 7,
+        "openings": 70,
+        "unique_groups": 56,
+        "upper_hashes": 490,
+        "unique_upper_hashes": 103
+      },
+      {
+        "kind": "fri",
+        "tree": 17,
+        "depth": 6,
+        "openings": 70,
+        "unique_groups": 44,
+        "upper_hashes": 420,
+        "unique_upper_hashes": 59
+      },
+      {
+        "kind": "fri",
+        "tree": 18,
+        "depth": 5,
+        "openings": 70,
+        "unique_groups": 28,
+        "upper_hashes": 350,
+        "unique_upper_hashes": 31
+      },
+      {
+        "kind": "fri",
+        "tree": 19,
+        "depth": 4,
+        "openings": 70,
+        "unique_groups": 16,
+        "upper_hashes": 280,
+        "unique_upper_hashes": 15
+      },
+      {
+        "kind": "fri",
+        "tree": 20,
+        "depth": 3,
+        "openings": 70,
+        "unique_groups": 8,
+        "upper_hashes": 210,
+        "unique_upper_hashes": 7
+      },
+      {
+        "kind": "fri",
+        "tree": 21,
+        "depth": 2,
+        "openings": 70,
+        "unique_groups": 4,
+        "upper_hashes": 140,
+        "unique_upper_hashes": 3
+      },
+      {
+        "kind": "fri",
+        "tree": 22,
+        "depth": 1,
+        "openings": 70,
+        "unique_groups": 2,
+        "upper_hashes": 70,
+        "unique_upper_hashes": 1
+      }
+    ],
+    "gross_path_fraction": 0.30764916653684377,
+    "root_only_gross_g_rows": 208656
+  }
+]

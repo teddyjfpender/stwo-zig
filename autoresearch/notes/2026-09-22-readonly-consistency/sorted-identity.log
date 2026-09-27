@@ -1,0 +1,28 @@
+test-readonly-consistency
++- Read-only consistency guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.readonly_consistency_test.test.Read-only consistency pins sorted sparse table semantics and full u32 indices' failed: readonly identity: 78428ee7716d1956a5725eb6383fbff7ed833250401a83a48b9c4f66372e4c7f
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+78 42 8E E7 71 6D 19 56  A5 72 5E B6 38 3F BF F7  xB..qm.V.r^.8?..
+ED 83 32 50 40 1A 83 A4  8B 9C 4F 66 37 2E 4C 7F  ..2P@.....Of7.L.
+
+================================================
+error: while executing test 'recursion.air.readonly_consistency_test.test.Read-only consistency pins sorted sparse table semantics and full u32 indices', the following test command failed:
+./.zig-cache/o/b9c855ed653579a5ebd7f661074dd90d/test --cache-dir=./.zig-cache --seed=0x57bbbc5 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-readonly-consistency transitive failure
++- Read-only consistency guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:632M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/c267230f15dbe4c006978f66011a3b07/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x57bbbc5 -Z4faa4dc33c497088 --maxrss 25769803776 -j1 test-readonly-consistency -Doptimize=ReleaseSafe --summary all

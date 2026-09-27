@@ -1,0 +1,4 @@
+1/3 air.guest_precompile.sha256_memory_proof_test.test.SHA provider combined session interleaves SHA and Keccak under one retirement authority...OK
+2/3 air.guest_precompile.sha256_memory_proof_test.test.SHA provider combined session releases every failed allocation...OK
+3/3 runner.decode.test_0...OK
+All 3 tests passed.

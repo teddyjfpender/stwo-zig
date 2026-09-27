@@ -1,0 +1,10 @@
+{
+  "candidate": {
+    "source": "/Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/acc1731cdb2b166b0d50036cf77f5999/test",
+    "sha256": "405f5d2c86d6e85bd706f62bb58cfe00ce29dbcec6ae6264a28bbda9b4e03310"
+  },
+  "control": {
+    "source": "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-root-phase-profile/candidate-tree-test",
+    "sha256": "45fcccd56c0b79a44c677122284fb2374ed048ed0bcef2bc061ad1aad2eadb6d"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "source_candidate": "recursive-leaf-store-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 54.05033749999711,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 20,
+  "test_summary": [
+    "All 20 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/recursive-leaf-store-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-recursive-leaf-store-focused-v1",
+    "bytes": 6513608,
+    "sha256": "14bd710e28f1e4602280c7969b47ddebfd9a701c92dbf578d420180b879c47e3"
+  }
+}

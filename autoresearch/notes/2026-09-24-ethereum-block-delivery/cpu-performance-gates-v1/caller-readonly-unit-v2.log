@@ -1,0 +1,12 @@
+1/11 block_v5_caller_readonly_unit_test_root.test_0...OK
+2/11 prover.block_v5_caller_readonly_unit_test.test.block-v5 caller readonly authentic SHA cells reuse global clock and reject selected writes...OK
+3/11 prover.block_v5_caller_readonly_unit_test.test.block-v5 caller readonly empty subset mutable fallback and independent authority mutations...OK
+4/11 prover.block_v5_caller_readonly_unit_test.test.block-v5 caller readonly versioned source identity and five-array caps reject legacy relabel...OK
+5/11 prover.block_v5_caller_readonly_unit_test.test.block-v5 caller readonly actual producer fresh receiver and warm ownership bodies retained...OK
+6/11 prover.block_v5_caller_readonly_unit_test.test.block-v5 caller readonly all authentic slots exact masks OODS and selected domain parity...OK
+7/11 prover.block_v5_caller_readonly_unit_test.test.block-v5 caller readonly metadata and interaction all allocation failures clean...OK
+8/11 prover.block_v5_caller_readonly_unit_test.test.block-v5 caller readonly physical selection stage and zero RW typed absence...OK
+9/11 prover.block_execution_external_trace_v2.test_0...OK
+10/11 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/11 prover.block_v5_committed_trace_column_v1.test_0...OK
+All 11 tests passed.

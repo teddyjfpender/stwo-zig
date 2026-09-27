@@ -1,0 +1,12 @@
+test-riscv-blake3-canonical-chain
++- riscv test suite guard
+   +- run test stderr
+BLAKE3_NATIVE_QUERY_FUSION groups=10990 removed_scalars=43960
+BLAKE3_NATIVE_FUSION dot4=22691 fma=70792 arithmetic_rows=199990
+BLAKE3_CANONICAL_CHAIN_PREPARED leaf_queries=70 leaf_pow_bits=26 inputs=81132 retained_bytes=4214454616
+BLAKE3_CANONICAL_CHAIN verified=true leaf_queries=70 leaf_pow_bits=26 parent_queries=70 parent_pow_bits=26 artifact_bytes=860503 prepared_bytes=4214454616 worker_peak_bytes=23106927066 worker_limit_bytes=25769803776 plans_and_witnesses_released=true
+
+Build Summary: 2/2 steps succeeded
+test-riscv-blake3-canonical-chain success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 4m MaxRSS:25G
+

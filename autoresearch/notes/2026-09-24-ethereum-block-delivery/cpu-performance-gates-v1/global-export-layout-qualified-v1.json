@@ -1,0 +1,56 @@
+{
+  "status": "qualified_nonproving_source",
+  "evidence": {
+    "global-export-layout-semantic-v1": {
+      "source_candidate": "global-export-layout-semantic-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 5.632899542048108,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": true,
+      "tests_run": false,
+      "discovered_tests": 0,
+      "test_summary": [],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-export-layout-semantic-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": null
+    },
+    "global-export-layout-focused-v1": {
+      "source_candidate": "global-export-layout-focused-v1-source.json",
+      "exit_code": 0,
+      "elapsed_seconds": 81.21338212495903,
+      "changed_source_pins": [],
+      "qualified": true,
+      "semantic_only": false,
+      "tests_run": true,
+      "discovered_tests": 24,
+      "test_summary": [
+        "All 24 tests passed."
+      ],
+      "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/global-export-layout-focused-v1.log",
+      "segments_run": false,
+      "stark_proving_run": false,
+      "device_run": false,
+      "binary": {
+        "path": "/tmp/block-v5-global-export-layout-focused-v1",
+        "bytes": 9400504,
+        "sha256": "4024aca5aea24f6c12d826eedc2e22a96c86816e7a4bc8e8af96cb95a3b6362d"
+      }
+    }
+  },
+  "tests_passed": 24,
+  "new_named_layout_checks": 2,
+  "scope": [
+    "One original public prefix walk per export layout; checked direct coordinates for each window",
+    "Independent sequential-counter parity through 4096 windows; empty, bounds, overflow and error ordering",
+    "Original owned public receiver and normalizer regression fixtures and actual retained production bodies"
+  ],
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "canonical_driver_enabled": false,
+  "complete_block_authority": false,
+  "speed_or_peak_rss_claim": false
+}

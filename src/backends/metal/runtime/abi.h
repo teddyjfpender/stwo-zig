@@ -9,11 +9,13 @@
 typedef NS_ENUM(uint32_t, StwoZigCommitmentHashFamilyV1) {
     StwoZigCommitmentHashFamilyBlake2sV1 = 1u,
     StwoZigCommitmentHashFamilyPoseidon2M31V1 = 2u,
+    StwoZigCommitmentHashFamilyBlake3V1 = 3u,
 };
 
 typedef NS_ENUM(uint32_t, StwoZigResidentMerkleLeafEncodingV1) {
     StwoZigResidentMerkleLeafEncodingWideV1 = 0u,
     StwoZigResidentMerkleLeafEncodingStagedPoseidonV1 = 1u,
+    StwoZigResidentMerkleLeafEncodingStagedBlake3V1 = 2u,
 };
 
 static inline bool stwo_zig_valid_commitment_hash_family_v1(uint32_t family) {
@@ -85,6 +87,9 @@ typedef struct {
     uint64_t max_rebased_offset;
 } StwoZigQuotientParityEventV1;
 
+// Synchronous allocation admission; context remains borrowed until dispatch returns.
+typedef bool (*StwoZigExternalBudgetAdmitV1)(void *context, size_t bytes);
+
 typedef bool (*StwoZigQuotientParityObserverV1)(
     void *context,
     const StwoZigQuotientParityEventV1 *event,
@@ -153,6 +158,26 @@ _Static_assert(sizeof(StwoZigSampledBarycentricReceiptV1) == 88,
     "sampled barycentric receipt ABI size drift");
 
 bool stwo_zig_metal_eval_barycentric_resident_v1(
+    void *runtime,
+    void *const *resident_trees,
+    uint32_t tree_count,
+    const uint32_t *const *columns,
+    const size_t *column_lengths,
+    const uint32_t *output_indices,
+    uint32_t column_count,
+    const StwoZigSampledBarycentricPointPlanV1 *point_plans,
+    uint32_t point_plan_count,
+    const StwoZigSampledBarycentricColumnGroupV1 *groups,
+    uint32_t group_count,
+    uint32_t output_count,
+    uint32_t *output,
+    StwoZigSampledBarycentricReceiptV1 *receipt,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len
+);
+// Explicit host columns; resident handles are ignored, staging is bounded.
+bool stwo_zig_metal_eval_barycentric_host_v1(
     void *runtime,
     void *const *resident_trees,
     uint32_t tree_count,
@@ -287,6 +312,7 @@ bool stwo_zig_metal_validate_raw_quotient_source_views_v2(
     uint32_t row_count,
     uint32_t batch_count
 );
+bool stwo_zig_metal_prefer_segmented_quotient_v2(uint64_t raw_words, size_t source_runs);
 bool stwo_zig_metal_local_raw_quotient_view_v2(
     const StwoZigRawQuotientSourceViewV2 *source,
     uint64_t local_offset,

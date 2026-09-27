@@ -1,0 +1,8 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 13s
+1/5 air.guest_precompile.relation_test.test_0...OK
+2/5 prover.blake3_commitment_witness_test.test.BLAKE3 Span ordinary commitment assembly preserves decoded fields and memory custody...OK
+3/5 prover.blake3_commitment_witness_test.test.BLAKE3 execution commitment integration binds native and hash components...OK
+4/5 air.memory_commitment.poseidon2_air.test_0...OK
+5/5 air.semantic_eval.test_0...OK
+All 5 tests passed.

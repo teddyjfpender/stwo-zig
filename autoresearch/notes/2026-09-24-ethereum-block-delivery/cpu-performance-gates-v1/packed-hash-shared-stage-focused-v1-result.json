@@ -1,0 +1,20 @@
+{
+  "source_candidate": "packed-hash-shared-stage-focused-v1-source.json",
+  "exit_code": 1,
+  "elapsed_seconds": 48.56947470799787,
+  "changed_source_pins": [],
+  "qualified": false,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 11,
+  "test_summary": [],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/packed-hash-shared-stage-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-packed-hash-shared-stage-focused-v1",
+    "bytes": 3407216,
+    "sha256": "c2838b89c41c991a35895b338ccb4382ea588fe4d50da39492cb0168724fc164"
+  }
+}

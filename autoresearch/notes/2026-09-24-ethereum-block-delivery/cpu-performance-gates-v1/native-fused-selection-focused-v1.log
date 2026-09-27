@@ -1,0 +1,16 @@
+1/15 block_v5_native_fused_selection_test_root.test_0...OK
+2/15 prover.block_v5_native_fused_recursive_selection_test_v1.test.native fused selection: genuine empty first execution selects only required companion and preserves dense defaults...OK
+3/15 prover.block_v5_native_fused_recursive_selection_test_v1.test.native fused selection: retained omissions relabels reordered native owners and changed original geometry fail closed...OK
+4/15 prover.block_v5_native_fused_recursive_selection_test_v1.test.native fused selection: actual all-empty native roster needs no fused files and grants no leaf authority...OK
+5/15 prover.block_v5_native_fused_recursive_selection_test_v1.test.native fused selection: limits reject before allocation and every partial selection unwinds...OK
+6/15 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: exact sparse source roster and publication preserve original execution index...OK
+7/15 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: independent sparse pins reject duplication reorder overflow omissions and family limits...OK
+8/15 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: reader and writer admission allocations unwind without changing exact roster...OK
+9/15 prover.block_v5_recursive_execution_leaf_store_test_v1.test.execution leaf store: split input fits exact payload budget detaches proof and unwinds every I/O allocation...OK
+10/15 air.semantic_eval.test_0...OK
+11/15 prover.block_execution_external_trace_v2.test_0...OK
+12/15 air.lookups.tables.mod.test_0...OK
+13/15 air.memory_commitment.poseidon2_air.test_0...OK
+14/15 prover.block_execution_external_access_bridge_v2.test_0...OK
+15/15 air.lookups.tables.source_ingest.test_0...OK
+All 15 tests passed.

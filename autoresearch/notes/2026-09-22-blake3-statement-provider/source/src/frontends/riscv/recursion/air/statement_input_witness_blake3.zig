@@ -1,0 +1,29 @@
+//! Format-specific statement provider over the shared typed AIR.
+const profile = @import("statement_input_witness_profile.zig").Profile(true);
+
+pub const MIN_LOG_SIZE = profile.MIN_LOG_SIZE;
+pub const MAX_LOG_SIZE = profile.MAX_LOG_SIZE;
+pub const SEGMENT_VERIFIER_ID = profile.SEGMENT_VERIFIER_ID;
+pub const LEFT_RECURSION_VERIFIER_ID = profile.LEFT_RECURSION_VERIFIER_ID;
+pub const RIGHT_RECURSION_VERIFIER_ID = profile.RIGHT_RECURSION_VERIFIER_ID;
+pub const DERIVED_PARENT_SOURCE_ID = profile.DERIVED_PARENT_SOURCE_ID;
+pub const MAIN_COLUMN_COUNT = profile.MAIN_COLUMN_COUNT;
+pub const PREPROCESSED_COLUMN_COUNT = profile.PREPROCESSED_COLUMN_COUNT;
+pub const StatementWords = profile.StatementWords;
+pub const ProofKind = profile.ProofKind;
+pub const BINDING_FORMAT_VERSION = profile.BINDING_FORMAT_VERSION;
+pub const BINDING_DOMAIN = profile.BINDING_DOMAIN;
+pub const BINDING_DIGEST_HEX = profile.BINDING_DIGEST_HEX;
+pub const BINDING_DIGEST = profile.BINDING_DIGEST;
+pub const Error = profile.Error;
+pub const MainSource = profile.MainSource;
+pub const PreprocessedSource = profile.PreprocessedSource;
+pub const Slot = profile.Slot;
+pub const Binding = profile.Binding;
+pub const Executor = profile.Executor;
+pub const Row = profile.Row;
+pub const StatementWitness = profile.StatementWitness;
+pub const Preprocessed = profile.Preprocessed;
+pub const mainRow = profile.mainRow;
+pub const logicalRow = profile.logicalRow;
+pub const parameters = profile.parameters;

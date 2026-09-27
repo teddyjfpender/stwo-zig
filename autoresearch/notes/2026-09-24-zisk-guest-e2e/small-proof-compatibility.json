@@ -1,0 +1,6 @@
+{
+  "statement_blake3": true,
+  "transcript_digest_blake3": true,
+  "proof_sha256": true,
+  "output_sha256": true
+}

@@ -1,0 +1,29 @@
+{
+  "scope": "CPU transaction-auth guest with precompiles; one leaf and one native recursive parent; q70/26; coefficient storage opt-in; assembly peak not yet fixed",
+  "results": [
+    {
+      "transactions": 16,
+      "verified": true,
+      "worker_peak_bytes": 9965452848,
+      "total_ns": 43534349209,
+      "parent_proving_ns": 17172199375,
+      "proof_sha256": "b50fcc72e9b1a2948738305faf10efc5b8cf5216071d017b58cbcdcc3dd5560d"
+    },
+    {
+      "transactions": 32,
+      "verified": true,
+      "worker_peak_bytes": 10290216976,
+      "total_ns": 48021392166,
+      "parent_proving_ns": 18350856125,
+      "proof_sha256": "a63a40b760f6c7bc0246960461e73d9d23fbf381355279de4ef35cf7e8edd2e6"
+    },
+    {
+      "transactions": 64,
+      "verified": true,
+      "worker_peak_bytes": 10290216976,
+      "total_ns": 54043192416,
+      "parent_proving_ns": 18948746083,
+      "proof_sha256": "6dd0479d95488cf6339a997d9a2554cf0c3c702a7e01c4a675af4dbf087ab10b"
+    }
+  ]
+}

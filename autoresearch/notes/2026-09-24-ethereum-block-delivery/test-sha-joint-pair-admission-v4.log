@@ -1,0 +1,14 @@
+1/7 prover.blake3_ethereum_segment_test.test.SHA canonical adjacent segments share manifest and prove aggregate root...BLAKE3_NATIVE_QUERY_FUSION groups=38220 removed_scalars=152880
+BLAKE3_NATIVE_FUSION dot4=813733 fma=140405 arithmetic_rows=1401082
+BLAKE3_NATIVE_QUERY_FUSION groups=37310 removed_scalars=149240
+BLAKE3_NATIVE_FUSION dot4=810198 fma=139484 arithmetic_rows=1394745
+BLAKE3_SHA_SEGMENTS_PREPARED segments=2 cycles=6 retained_bytes=9102515088
+BLAKE3_SHA_SEGMENTS verified=true joint_manifest=true segments=2 signer=0 keccak=1 sha=2 full_memory_custody=true queries=70 pow_bits=26 artifact_bytes=1019289 worker_peak_bytes=19183383520 worker_limit_bytes=51539607552 elapsed_ns=120358650583 witnesses_and_worker_released=true
+OK
+2/7 runner.mod.test_0...OK
+3/7 runner.decode.test_0...OK
+4/7 air.memory_commitment.poseidon2_air.test_0...OK
+5/7 air.semantic_eval.test_0...OK
+6/7 air.lookups.tables.source_ingest.test_0...OK
+7/7 diagnostics.mod.test_0...OK
+All 7 tests passed.

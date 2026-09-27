@@ -1,0 +1,41 @@
+{
+  "scope": "fresh-process receiver on a canonical authentication fixture; not a mainnet block proof",
+  "checks": [
+    {
+      "case": "valid-canonical-root",
+      "exit_code": 0,
+      "expected_success": true
+    },
+    {
+      "case": "wrong-key-before-proof-open",
+      "exit_code": 1,
+      "expected_success": false
+    },
+    {
+      "case": "malformed-key-before-proof-open",
+      "exit_code": 1,
+      "expected_success": false
+    },
+    {
+      "case": "changed-security",
+      "exit_code": 1,
+      "expected_success": false
+    },
+    {
+      "case": "truncated-proof",
+      "exit_code": 1,
+      "expected_success": false
+    },
+    {
+      "case": "corrupted-proof",
+      "exit_code": 1,
+      "expected_success": false
+    }
+  ],
+  "sha256": {
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/block-receiver-qualification-v1/block-verify": "e7ec842c5952e21403217d73d3f6a1f2f47678b45ce907988467f7bf544067a4",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/measurements-auth1-canonical-stages/root.proof": "253d363f62e11bbfefad57844873050b085950014e873405dc4d2b9a739673e4",
+    "autoresearch/notes/2026-09-24-ethereum-block-delivery/measurements-auth1-canonical-stages/proof-report.json": "2853ea8990eb887723e2d0cc8a12588ec6b72cbb2c681cd80972e1a9827e9324",
+    "src/frontends/riscv/ethereum_block_verify.zig": "28c3eaee3aee1f127ce64aeb3f4e9ee76ed2eecc97ea9edba5710fb408d1f955"
+  }
+}

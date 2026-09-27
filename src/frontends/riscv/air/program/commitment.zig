@@ -288,7 +288,7 @@ pub fn buildDeclaredForProfileWithWorkReceipt(
     );
 }
 
-const DeclaredDecodeAuthority = union(enum) {
+pub const DeclaredDecodeAuthority = union(enum) {
     base,
     profile: decode.ExecutionProfile,
 
@@ -332,6 +332,20 @@ fn buildDeclaredFromSources(
     extra_fetch: ?table.Fetch,
     authority: ?*const poseidon_work.Authority,
 ) !BuildResult(capture_work) {
+    var pending = std.ArrayList(Row).fromOwnedSlice(try declaredRows(allocator, decoder, execution_sources, program_words, extra_fetch));
+    defer pending.deinit(allocator);
+    return finishCommitment(capture_work, allocator, &pending, authority);
+}
+
+/// Canonical decoded program/fetch projection shared by commitment suites.
+/// Root fields are unset; no hash work is performed by this admission step.
+pub fn declaredRows(
+    allocator: std.mem.Allocator,
+    decoder: anytype,
+    execution_sources: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+) ![]Row {
     if (program_words.len == 0) return error.EmptyProgramCommitment;
     var index = try DeclaredWordIndex.init(allocator, program_words);
     defer index.deinit(allocator);
@@ -346,7 +360,7 @@ fn buildDeclaredFromSources(
                 program_words,
                 &index,
                 multiplicities,
-                .{ .pc = row.pc, .word = row.inst_word },
+                if (@hasDecl(@TypeOf(row), "programFetch")) row.programFetch() else .{ .pc = row.pc, .word = row.inst_word },
             );
         }
     }
@@ -355,7 +369,7 @@ fn buildDeclaredFromSources(
     }
 
     var pending: std.ArrayList(Row) = .{};
-    defer pending.deinit(allocator);
+    errdefer pending.deinit(allocator);
     try pending.ensureTotalCapacity(allocator, program_words.len);
     for (program_words, multiplicities) |word, multiplicity| {
         // Pinned Stark-V omits declared zero words. An attempted fetch of one
@@ -369,7 +383,8 @@ fn buildDeclaredFromSources(
         });
     }
     if (pending.items.len == 0) return error.EmptyProgramCommitment;
-    return finishCommitment(capture_work, allocator, &pending, authority);
+    std.mem.sort(Row, pending.items, {}, lessRow);
+    return pending.toOwnedSlice(allocator);
 }
 
 const MAX_DENSE_PROGRAM_WORD_SLOTS: usize = 1 << 22;

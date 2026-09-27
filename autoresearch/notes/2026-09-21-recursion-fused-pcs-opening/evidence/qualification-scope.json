@@ -1,0 +1,12 @@
+{
+  "fixture": "/tmp/pr198-typed-closure-ladder-20260921-v1/8-metal/parent-3-0",
+  "fixture_sha256": {
+    "key.json": "2b3646387ad9a0d86a32e6181c75aef094beaaf481b0580bd006fc49ce086e0c",
+    "claims.json": "31b296d4d18d94eedb5d2842ef46d3e1e58649f8253bf577cd6c25228e354eb3",
+    "proof.bin": "922d9854244b1807f97628c10f0e8fa94efbdd5835ab9ff8d16aed1b81b9bcbb"
+  },
+  "typed_test_target": "test-recursive-fused-pcs-opening",
+  "capture_test_target": "test-recursive-segment-v2-detached-parent-capture",
+  "optimize": "ReleaseSafe",
+  "fresh_production_proofs_with_new_air": 0
+}

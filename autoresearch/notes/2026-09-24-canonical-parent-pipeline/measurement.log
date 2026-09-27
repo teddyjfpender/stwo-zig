@@ -1,0 +1,5 @@
+0 serial fixture 32.751 pipeline 19.789 overlap 0.0
+1 overlapped fixture 35.533 pipeline 21.71 overlap 8.242
+2 overlapped fixture 34.466 pipeline 21.318 overlap 7.918
+3 serial fixture 38.135 pipeline 24.993 overlap 0.0
+{"serial": {"samples": 2, "wall_median_seconds": 35.44342087500263, "pipeline_median_seconds": 22.391014479, "overlap_median_seconds": 0.0, "peak_rss_bytes": 24313151488, "peak_physical_footprint_bytes": 30134729680}, "overlapped": {"samples": 2, "wall_median_seconds": 34.99962818749191, "pipeline_median_seconds": 21.514219375, "overlap_median_seconds": 8.0795453335, "peak_rss_bytes": 25802571776, "peak_physical_footprint_bytes": 33114195440}}

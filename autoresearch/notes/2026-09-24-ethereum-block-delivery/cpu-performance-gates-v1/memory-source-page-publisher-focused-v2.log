@@ -1,0 +1,13 @@
+1/12 block_v5_memory_source_page_publisher_test_root.test.source PAGE publisher root...OK
+2/12 block_v5_memory_source_page_publisher_test_root.test.source PAGE publisher bodies: actual Job and opted-in Controller publication...OK
+3/12 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE publisher: exact roster resource guard cannot replay or publish a proposal...OK
+4/12 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE publisher: partial and failed jobs cannot resume through exact-roster publication...OK
+5/12 prover.block_v5_memory_source_page_job_test_v1.test.source PAGE publisher: stale complete context poisons job before any replay or callback...OK
+6/12 prover.block_v5_memory_source_unified_page_codec_test_v1.test.source PAGE publisher codec: proposal decode preserves cheap framing and limits under deny-all allocator...OK
+7/12 air.semantic_eval.test_0...OK
+8/12 prover.block_execution_external_trace_v2.test_0...OK
+9/12 air.memory_commitment.poseidon2_air.test_0...OK
+10/12 prover.block_execution_external_access_bridge_v2.test_0...OK
+11/12 air.lookups.tables.mod.test_0...OK
+12/12 air.lookups.tables.source_ingest.test_0...OK
+All 12 tests passed.

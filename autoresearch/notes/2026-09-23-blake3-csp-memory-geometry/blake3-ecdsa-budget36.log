@@ -1,0 +1,4 @@
+full-width witness: steps=1828 hash_counts={ 9660448, 2760128, 2570652, 2290680, 678720, 2828, 303, 404, 404, 404 } hash_logs={ 24, 22, 22, 22, 20, 12, 9, 9, 9, 9 } live=10971429417 peak=10979973896
+full-width admission: live=10972067819 peak=19771255944
+full-width host budget: peak=38645770980 limit=38654705664 exceeded=true error=OutOfMemory
+error: HostMemoryBudgetExceeded

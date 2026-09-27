@@ -1,0 +1,22 @@
+{
+  "source_candidate": "native-bottom-recursive-fixed-focused-v2-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 29.09374675003346,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-bottom-recursive-fixed-focused-v2.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-native-bottom-recursive-fixed-focused-v2",
+    "bytes": 45351568,
+    "sha256": "609f71c8f3183ed194ebf86672f1acdb3c2f2b345ba1ab26db15b70318da249f"
+  }
+}

@@ -1,0 +1,214 @@
+[zisk-guest-peer-cpu-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zisk-guest-peer-cpu-build] acquired after 105s
+    Updating crates.io index
+     Locking 615 packages to latest compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding proc-macro-error-attr3 v3.0.1 (available: v3.1.1)
+      Adding proc-macro-error3 v3.0.1 (available: v3.1.1)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+      Adding time v0.3.47 (available: v0.3.55)
+      Adding time-core v0.1.8 (available: v0.1.9)
+      Adding time-macros v0.2.27 (available: v0.2.32)
+ Downloading crates ...
+  Downloaded pest v2.9.2
+  Downloaded thiserror-impl v2.0.21
+  Downloaded thiserror v2.0.21
+  Downloaded pest_meta v2.9.2
+  Downloaded pest_generator v2.9.2
+  Downloaded pest_derive v2.9.2
+  Downloaded rand v0.10.3
+   Compiling find-msvc-tools v0.1.13
+   Compiling zerocopy v0.8.58
+   Compiling itertools v0.13.0
+   Compiling thiserror v2.0.21
+   Compiling cc v1.4.7
+   Compiling bindgen v0.72.1
+   Compiling blake3 v1.8.7
+   Compiling thiserror-impl v2.0.21
+   Compiling libffi-sys v4.2.2
+   Compiling proofman-fields v1.3.0-alpha
+   Compiling mpi-sys v0.2.4
+   Compiling ppv-lite86 v0.2.21
+   Compiling ahash v0.8.12
+   Compiling rand_chacha v0.3.1
+   Compiling cmake v0.1.58
+   Compiling rand v0.8.8
+   Compiling ark-std v0.5.0
+   Compiling ark-serialize v0.5.0
+   Compiling ark-ff v0.5.0
+   Compiling aws-lc-sys v0.45.0
+   Compiling mpi v0.8.2
+   Compiling proofman-verifier v1.3.0-alpha
+   Compiling ring v0.17.14
+   Compiling ark-poly v0.5.0
+   Compiling ark-ec v0.5.0
+   Compiling zisk-zkvm-interface v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/zkvm-interface)
+   Compiling secp256k1-sys v0.11.0
+   Compiling blst v0.3.17
+   Compiling ark-bn254 v0.5.0
+   Compiling ark-secp256k1 v0.5.0
+   Compiling ark-secp256r1 v0.5.0
+   Compiling ark-bls12-381 v0.5.0
+   Compiling zisk-verifier v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/verifier)
+   Compiling zisk-precomp-helpers v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/helpers)
+   Compiling ziskos v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/ziskos/entrypoint)
+   Compiling libffi v5.2.0
+   Compiling proofman-common v1.3.0-alpha
+   Compiling secp256k1 v0.31.1
+   Compiling zisk-core v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/core)
+   Compiling rand v0.10.3
+   Compiling proofman-hints v1.3.0-alpha
+   Compiling proofman-witness v1.3.0-alpha
+   Compiling tikv-jemalloc-sys v0.6.1+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7
+   Compiling pil2-std-lib v1.3.0-alpha
+   Compiling proofman-curves v1.3.0-alpha
+   Compiling proofman v1.3.0-alpha
+   Compiling rcgen v0.14.10
+   Compiling zisk-pil v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/pil)
+   Compiling libz-sys v1.1.29
+   Compiling itertools v0.14.0
+   Compiling libgit2-sys v0.18.8+1.9.7
+   Compiling prost-derive v0.13.5
+   Compiling getrandom v0.4.3
+   Compiling pest v2.9.2
+   Compiling prost v0.13.5
+   Compiling tempfile v3.27.0
+   Compiling zisk-riscv v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/transpilers/riscv)
+   Compiling zisk-transpiler-common v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/transpilers/common)
+   Compiling prost-types v0.13.5
+   Compiling pest_meta v2.9.2
+warning: zisk-sm-mem-planner@1.3.0-alpha: [BUILD INFO] mem-planner-cpp compiled with CPU-only support (feature enabled)
+   Compiling prost-build v0.13.5
+   Compiling pest_generator v2.9.2
+   Compiling zisk-transpiler-riscv v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/transpilers/riscv2zisk)
+   Compiling zisk-sm-frequent-ops v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/frequent-ops)
+   Compiling symbolic-demangle v12.18.3
+   Compiling rustfmt-wrapper v0.2.1
+   Compiling pest_derive v2.9.2
+   Compiling pil2-pilout v1.3.0-alpha
+   Compiling tera v1.20.1
+   Compiling aws-lc-rs v1.18.1
+   Compiling rustls-webpki v0.103.15
+   Compiling rustls v0.23.45
+   Compiling rustls-platform-verifier v0.7.0
+   Compiling quinn-proto v0.11.18
+   Compiling git2 v0.20.4
+   Compiling quinn v0.11.12
+   Compiling zisk-stream v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/stream)
+   Compiling vergen-git2 v9.1.0
+   Compiling ziskemu v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/emulator)
+   Compiling tracing-appender v0.2.5
+   Compiling pil2-stark-recurser v1.3.0-alpha
+   Compiling ziskos-hints v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/ziskos-hints)
+   Compiling pil2-stark-setup v1.3.0-alpha
+   Compiling zisk-recurser v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/recurser)
+   Compiling zisk-program-macros v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/prover-backend/macros)
+   Compiling tikv-jemallocator v0.6.1
+   Compiling zisk-common v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/common)
+   Compiling zisk-sm-mem-common v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem-common)
+   Compiling zisk-sm-binary v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/binary)
+   Compiling zisk-cluster-common v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/distributed/crates/cluster-common)
+   Compiling zisk-sm-mem v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem)
+   Compiling zisk-precomp-common v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/common)
+   Compiling zisk-sm-mem-planner v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem-cpp)
+   Compiling zisk-asm-runner v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/emulator-asm/asm-runner)
+   Compiling zisk-precomp-arith-eq v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/arith_eq)
+   Compiling zisk-sm-arith v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/arith)
+   Compiling zisk-sm-rom v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/rom)
+   Compiling zisk-precomp-babyjubjub v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/babyjubjub)
+   Compiling zisk-precomp-arith-eq-384 v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/arith_eq_384)
+   Compiling zisk-sm-main v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/main)
+   Compiling zisk-precomp-dma v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/dma)
+   Compiling zisk-precomp-blake2 v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/blake2)
+   Compiling zisk-precomp-evm v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/evm)
+   Compiling zisk-precomp-poseidon v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/poseidon)
+   Compiling zisk-precomp-blake3 v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/blake3)
+   Compiling zisk-precomp-sha256f v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/sha256f)
+   Compiling zisk-precomp-big-int v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/big_int)
+   Compiling zisk-precomp-keccakf v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/keccakf)
+   Compiling zisk-precomp-hints v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/precompiles/hints)
+   Compiling zisk-executor v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/executor)
+   Compiling zisk-rom-setup v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/rom-setup)
+   Compiling zisk-prover-backend v1.3.0-alpha (/tmp/stwo-recursion-peer-research-20260921/zisk/prover-backend)
+   Compiling zisk-eth-auth-benchmark v0.1.0 (/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/peer-host)
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+  --> src/main.rs:14:10
+   |
+14 |   client.setup(&guest,false)?;
+   |          ^^^^^        ----- unexpected argument #2 of type `bool`
+   |
+note: method defined here
+  --> /tmp/stwo-recursion-peer-research-20260921/zisk/prover-backend/src/prover/emu_exec.rs:42:12
+   |
+42 |     pub fn setup(&self, program: &GuestProgram) -> Result<()> {
+   |            ^^^^^
+help: remove the extra argument
+   |
+14 -   client.setup(&guest,false)?;
+14 +   client.setup(&guest)?;
+   |
+
+error[E0061]: this method takes 1 argument but 3 arguments were supplied
+  --> src/main.rs:15:21
+   |
+15 |   let result=client.execute(&guest,input,None)?;
+   |                     ^^^^^^^ ------       ---- unexpected argument #3 of type `Option<_>`
+   |                             |
+   |                             unexpected argument #1 of type `&GuestProgram`
+   |
+note: method defined here
+  --> /tmp/stwo-recursion-peer-research-20260921/zisk/prover-backend/src/prover/emu_exec.rs:56:12
+   |
+56 |     pub fn execute(&self, stdin: ZiskStdin) -> Result<ExecuteOutput> {
+   |            ^^^^^^^
+help: remove the extra arguments
+   |
+15 -   let result=client.execute(&guest,input,None)?;
+15 +   let result=client.execute(input)?;
+   |
+
+error[E0277]: the trait bound `PlanSummaryEntry: serde::Serialize` is not satisfied
+   --> src/main.rs:18:14
+    |
+ 18 | ...rt=serde_json::json!({"steps":result.get_execution_steps(),"execution_ms":result.get_execution_time(),"plan":result.get_plan(),"output_bytes":actual.as_slice(),"execution_only":true});
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |       |
+    |       the trait `serde_core::ser::Serialize` is not implemented for `PlanSummaryEntry`
+    |       required by a bound introduced by this call
+    |
+    = note: for local types consider adding `#[derive(serde::Serialize)]` to your `PlanSummaryEntry` type
+    = note: for types from other crates check whether the crate offers a `serde` feature flag
+    = help: the following other types implement trait `serde_core::ser::Serialize`:
+              &'a T
+              &'a mut T
+              ()
+              (T,)
+              (T0, T1)
+              (T0, T1, T2)
+              (T0, T1, T2, T3)
+              (T0, T1, T2, T3, T4)
+            and 243 others
+    = note: required for `[PlanSummaryEntry]` to implement `serde_core::ser::Serialize`
+    = note: 3 redundant requirements hidden
+    = note: required for `&Option<&[PlanSummaryEntry]>` to implement `serde_core::ser::Serialize`
+note: required by a bound in `to_value`
+   --> /Users/theodorepender/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/value/mod.rs:997:8
+    |
+995 | pub fn to_value<T>(value: T) -> Result<Value, Error>
+    |        -------- required by a bound in this function
+996 | where
+997 |     T: Serialize,
+    |        ^^^^^^^^^ required by this bound in `to_value`
+    = note: this error originates in the macro `$crate::json_internal` which comes from the expansion of the macro `serde_json::json` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+Some errors have detailed explanations: E0061, E0277.
+For more information about an error, try `rustc --explain E0061`.
+error: could not compile `zisk-eth-auth-benchmark` (bin "zisk-eth-auth-benchmark") due to 3 previous errors
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/autoresearch/notes/2026-09-24-ethereum-recursive-comparison/build_peer_host.py", line 7, in <module>
+    subprocess.run(['cargo','build','--release','-j','4'],cwd=H/'peer-host',env=env,check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['cargo', 'build', '--release', '-j', '4']' returned non-zero exit status 101.

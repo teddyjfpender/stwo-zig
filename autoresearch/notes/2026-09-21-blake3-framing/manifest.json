@@ -1,0 +1,14 @@
+{
+  "README.md": "50b94bfdfdcce949e0710ecf467065d1e996075d1b5caa1581bf5576151b46e9",
+  "proof-tests.log": "72b070156fcbb0426890e8cb84f24e10189d5f2099cacf9c52b4ae5bf195b19c",
+  "protocol-tests.log": "57418bf613ac8b29aff558625c6796d1915179870da805efc139cdef11402f37",
+  "source-conformance.log": "10a74e2eec1b02fa7c309f6314c67e3af0234703f764cb699bea25fbc3ca494d",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "e09915121db5d363a14b31dfa54773a29c6155b89ec573e4e85dc0f8aa4d19c1",
+  "sources/src/core/channel/blake3.zig": "406b5c247df19c69d3625e77d5ad629437b0c81e6955f1c2f84c0b9ada9def21",
+  "sources/src/core/channel/blake3_frame.zig": "2326dd3e193689126f7a71e89491053c8f8b013f3ee1d7d1c5c3d03d34cfed06",
+  "sources/src/core/vcs_lifted/blake3_merkle.zig": "8cda13f9a7e39eccf22e24ed14b1abcccb7f693ab98fad5068fdb7e5fc2b8101",
+  "sources/src/frontends/riscv/blake3_hash_test_root.zig": "0bd73f62b2c52eb7dae57cfa1872cfc9dfc86202403b98dde8857ddb77626a77",
+  "sources/src/frontends/riscv/recursion/air/blake3_committed_test.zig": "f27f716861729d323c94250f23efc8f4b689c54bae624dba93b5427673affc62",
+  "sources/src/frontends/riscv/recursion/air/blake3_frame_test.zig": "4ad57e6790ce820f76879207bb2b088c962c4d841e875d989efd07bb886c1096",
+  "sources/src/integrations/riscv_cpu/build_blake3_steps.zig": "7debcc6696fac348c111b9de2c7fc7a87525e698b30c07d0e5900425bb185249"
+}

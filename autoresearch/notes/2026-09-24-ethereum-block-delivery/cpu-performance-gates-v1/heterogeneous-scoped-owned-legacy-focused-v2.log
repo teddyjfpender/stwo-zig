@@ -1,0 +1,17 @@
+1/16 block_v5_heterogeneous_scoped_owned_test_root.test_0...OK
+2/16 block_v5_heterogeneous_scoped_owned_test_root.test.scoped setup owner: actual admitted setup original child and compact parent publication durable bytes fresh CPU receiver bodies retained...OK
+3/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: independent job source recipe coverage and node IDs remain separate from artifact re-seals...OK
+4/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: local selectors signs scope roles ordering and public outputs reject against original immutable fingerprint...OK
+5/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: bounded process-local borrows prevent premature teardown and release all leases...OK
+6/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: proposal slices own session-independent bytes while immutable setup borrows and every allocation failure remain explicit...OK
+7/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: durable header rejects resealed job keys publics sources index truncation and proof resource proposals before allocation...OK
+8/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: true full-u64 cycle adjacency matches symbolic equations across every limb carry and high clocks...OK
+9/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: cycle overflow malformed carry and modularly aliased clock proposals reject with complete fault cleanup...OK
+10/16 prover.block_v5_heterogeneous_scoped_owned_test_v1.test.scoped setup owner: admitted typed and generic lowering preserve every row wire identity and source mutation rejection...OK
+11/16 prover.block_execution_external_trace_v2.test_0...OK
+12/16 air.lookups.tables.mod.test_0...OK
+13/16 air.semantic_eval.test_0...OK
+14/16 prover.block_execution_external_access_bridge_v2.test_0...OK
+15/16 air.memory_commitment.poseidon2_air.test_0...OK
+16/16 air.lookups.tables.source_ingest.test_0...OK
+All 16 tests passed.

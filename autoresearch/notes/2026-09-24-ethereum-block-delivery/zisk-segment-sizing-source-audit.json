@@ -1,0 +1,11 @@
+{
+  "scope": "local pinned source inspection, no performance equivalence claim",
+  "sha256": {
+    "/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/main/src/main_planner.rs": "6f5cc9bab4b990bf4b5ded2c73ccd97b55d9aaa84c10baff193a56399c3a462d",
+    "/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem/pil/mem.pil": "4b11034c6e7f39545447a336e0bb6f28203a1c1f92e3394f020812170e555a5f",
+    "/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/mem/src/mem_module_planner.rs": "c53d1f2f142ba3f1e5116d4ba94ca6280b5dced0cd33bca0633a890c6d0c17f7",
+    "/tmp/stwo-recursion-peer-research-20260921/zisk/common/src/component/air_selection.rs": "e06505164cf1fbe80e4eae4a6cdbac6d26325a96406feafcddfa53a30249b050",
+    "/tmp/stwo-recursion-peer-research-20260921/zisk/state-machines/binary/src/binary_planner.rs": "d54b086d40ef5de274333c22d6ed26df5d262cf22fa57a5e3c8f100717fe3b00",
+    "/tmp/stwo-recursion-peer-research-20260921/pil2-proofman/proofman/src/scheduler.rs": "74cb0066ffdf026fea33278cc7c0162fd3bcbb3ebe4e7dbe7bde0fca6d8c37b6"
+  }
+}

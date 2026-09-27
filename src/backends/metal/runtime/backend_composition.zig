@@ -8,6 +8,7 @@ const prover = @import("stwo_prover_engine");
 const work_profile = @import("stwo_prover_api").work_profile;
 const base_polynomial = @import("base_polynomial_composition.zig");
 const secure_composition = @import("secure_composition.zig");
+const typed_secure = @import("secure_polynomial_composition_v1.zig");
 const composition_work = prover.air.composition_work;
 const composition_execution = prover.air.composition_execution;
 
@@ -42,6 +43,10 @@ pub fn computeCompositionEvaluationWithWorkCapture(
     composition_twiddles: ?prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31),
     work_capture: ?*composition_work.Capture,
 ) !?prover.secure_column.SecureColumnByCoords {
+    if (work_capture != null) for (components) |component| {
+        if (component.secure_polynomial_capability_v1 != null) return error.SecureCompositionProfilingUnsupported;
+    };
+    if (try typed_secure.evaluate(allocator, components, random_coeff, trace, residency_handles, composition_twiddles)) |evaluation| return evaluation;
     if (try base_polynomial.evaluateWithWorkCaptureAndTwiddles(
         allocator,
         components,
@@ -76,6 +81,10 @@ pub fn computeCompositionEvaluationWithExecution(
     composition_twiddles: ?prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31),
     execution: composition_execution.Execution,
 ) !?prover.secure_column.SecureColumnByCoords {
+    if (execution.task_recorder != null or execution.composition_work_capture != null) for (components) |component| {
+        if (component.secure_polynomial_capability_v1 != null) return error.SecureCompositionProfilingUnsupported;
+    };
+    if (try typed_secure.evaluate(allocator, components, random_coeff, trace, residency_handles, composition_twiddles)) |evaluation| return evaluation;
     if (try base_polynomial.evaluateWithExecutionAndTwiddles(
         allocator,
         components,

@@ -1,0 +1,13 @@
+1/12 block_v5_memory_source_auth_test_root.test.source auth root...OK
+2/12 prover.block_v5_memory_source_auth_test_v1.test.source auth crypto: full SHA padding and BLAKE3 tree frames match independent kernels...OK
+3/12 prover.block_v5_memory_source_auth_test_v1.test.source auth stream: complete image retains untouched word and authenticates full u64 endpoint...OK
+4/12 prover.block_v5_memory_source_auth_test_v1.test.source auth metadata: canonical census identity caps and RAM-only classification fail closed...OK
+5/12 prover.block_v5_memory_source_auth_test_v1.test.source auth symbolic: endpoint byte clock bit claims and chunk admission are constrained...OK
+6/12 prover.block_v5_memory_source_auth_test_v1.test.source auth symbolic SHA: full pinned digest and canonical raw tail use actual compression equations...OK
+7/12 prover.block_v5_memory_source_auth_test_v1.test.source auth fault: every record graph allocation failure releases partial owner...OK
+8/12 prover.block_v5_memory_source_auth_test_v1.test.source auth zero: empty files still hash and both image roots close without fake tree chunks...OK
+9/12 prover.block_v5_memory_source_auth_test_v1.test.source auth mutations: pinned SHA and strict predecessor are equation authority...OK
+10/12 prover.block_v5_memory_source_auth_test_v1.test.source auth crypto operations: carry rotate arbitrary SHA chaining and compression match exact kernel...OK
+11/12 prover.block_v5_memory_source_auth_test_v1.test.source auth crypto frames: independent full-width tree leaf and node digests...OK
+12/12 block_v5_memory_source_auth_codegen.test.source auth bodies: actual sealed admission and challenge circuit construction retained...OK
+All 12 tests passed.

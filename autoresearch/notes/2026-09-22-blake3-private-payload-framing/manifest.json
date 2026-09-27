@@ -1,0 +1,12 @@
+{
+  "README.md": "a29e4c1e40ffa3d305f0eef671289a4ce46215d83f0e07ec8d692fcd3e83f568",
+  "protocol-and-proof.log": "632075000db5758a61dd935dfa49d3d96b2627e163dc173d3add2a9e2da421f5",
+  "sources/autoresearch/notes/20260922-blake3-private-payload-framing-problem-match.md": "aac3331e5a3a7f59a7561a3893d1f7db9bdd065eab20fbb8f1119f2e7152ebcf",
+  "sources/design/riscv-proving-stack/blake3-migration.md": "b2b07788a0642b5f41194e2faabb9c6ea133c76bb18a55687524b3c9370e07c3",
+  "sources/src/core/channel/blake3_frame.zig": "ca91d0a5b20cd2a815de8af25f44d19030750c9e82fa1abc39d8216b656112a6",
+  "sources/src/frontends/riscv/recursion/air/blake3_field_bytes_proof_test.zig": "7ad5d92a766cd4c34895a91d87cebe2e78707137712283eca1392c21c2582779",
+  "sources/src/frontends/riscv/recursion/air/blake3_frame_route.zig": "ad26ee3a6963bb54c297ee6cca16025a57d13e660cc597da36d409477d0af6c9",
+  "sources/src/frontends/riscv/recursion/air/blake3_frame_witness.zig": "4a17a073708a3cdb0cb7af12e0a6c56270b7a72e23bb5c55b920985dcb772a63",
+  "sources/src/frontends/riscv/recursion/air/blake3_frame_witness_test.zig": "d3f213cc6205a95036e5bec63a18d063551c2e958b8a4ac226cd7500bc2df735",
+  "witness.log": "8106fa0df90fe3c1c03e4e743c310a1c1e397f1bb9708717c05b2ea01ae553da"
+}

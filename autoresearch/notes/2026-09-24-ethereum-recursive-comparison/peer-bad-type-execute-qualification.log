@@ -1,0 +1,34 @@
+2026-09-24T18:22:45.406171Z INFO: Setting up EmuExecClient for ELF 'eth-auth-zisk'
+2026-09-24T18:22:45.410000Z INFO: EmuExecClient ready
+2026-09-24T18:22:45.410013Z INFO: Running Emu execute
+2026-09-24T18:22:45.410025Z INFO: >>> COMPUTE_MINIMAL_TRACE
+2026-09-24T18:22:45.410741Z INFO: >>> COUNT
+2026-09-24T18:22:45.411049Z INFO: <<< COUNT (0ms)
+2026-09-24T18:22:45.411060Z INFO: <<< COMPUTE_MINIMAL_TRACE (1ms)
+2026-09-24T18:22:45.411068Z INFO: >>> PLAN_MAIN
+2026-09-24T18:22:45.411073Z INFO: <<< PLAN_MAIN (0ms)
+2026-09-24T18:22:45.411079Z INFO: >>> PLAN_SECONDARY
+2026-09-24T18:22:45.412253Z INFO: <<< PLAN_SECONDARY (1ms)
+2026-09-24T18:22:45.412258Z INFO: >>> WAIT_PLAN_MEM_CPP
+2026-09-24T18:22:45.412261Z INFO: <<< WAIT_PLAN_MEM_CPP (0ms)
+2026-09-24T18:22:45.412264Z INFO: >>> WAIT_ASM_RH
+2026-09-24T18:22:45.412267Z INFO: <<< WAIT_ASM_RH (0ms)
+{"steps":894,"execution_ms":2,"plan":[{"airgroup_id":0,"air_id":0,"name":"Main","count":1},{"airgroup_id":0,"air_id":1,"name":"Rom","count":1},{"airgroup_id":0,"air_id":2,"name":"Mem","count":1},{"airgroup_id":0,"air_id":3,"name":"InputData","count":1},{"airgroup_id":0,"air_id":4,"name":"RomData","count":1},{"airgroup_id":0,"air_id":5,"name":"MemAlign","count":1},{"airgroup_id":0,"air_id":13,"name":"Binary","count":1},{"airgroup_id":0,"air_id":22,"name":"BinaryExtension","count":1},{"airgroup_id":0,"air_id":36,"name":"Keccakf","count":1},{"airgroup_id":0,"air_id":42,"name":"Dma","count":1},{"airgroup_id":0,"air_id":46,"name":"Dma64AlignedMem","count":1},{"airgroup_id":0,"air_id":49,"name":"DmaUnaligned","count":1},{"airgroup_id":0,"air_id":50,"name":"DmaPrePost","count":1}],"output_bytes":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"execution_only":true}
+        0.04 real         0.03 user         0.02 sys
+            38191104  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                2900  page reclaims
+                   2  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                 846  involuntary context switches
+           815517688  instructions retired
+           250684615  cycles elapsed
+            29573672  peak memory footprint

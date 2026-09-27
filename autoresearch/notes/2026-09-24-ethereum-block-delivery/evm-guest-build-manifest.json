@@ -1,0 +1,10 @@
+{
+  "autoresearch/benchmarks/guest_runtime/ethereum/src/evm_recovery.rs": "47a30d2079d410354d064202a471a317f81c9d657c56d237be4d2a50c61faf68",
+  "autoresearch/benchmarks/guest_runtime/ethereum/src/single_thread_atomics.rs": "1ef87c01450e94fbb9ab15925dec24c93430aff1f09b754b141908945d11f58e",
+  "autoresearch/benchmarks/guest_runtime/ethereum/src/evm_hints.rs": "386fc0833c9cb570823735a113986963a6848f610a28b546597d90ea5dd1354d",
+  "autoresearch/benchmarks/guest_runtime/ethereum/src/main.rs": "1187dbb639b323e4bc9485301450c4884b5416dc345b3c59bb37c75baeb48ac0",
+  "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.toml": "bf1c623d1dc3e4d541ce03c1a0e0c583156fe18a1818841f674ab5ecc536f2fb",
+  "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.lock": "e784acad28e4dd4892bf20df9078d6b28c29b7174c72afdf7fdc7135a0f91f0c",
+  "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-evm-collector.elf": "d7f7f12b0e5e71b7c150cd940e9024921dd664b4c8f5e9f4a0a1a5e0ebd0e1de",
+  "autoresearch/notes/2026-09-24-ethereum-block-delivery/ethereum-block-evm-native.elf": "f08e4b00a647e461a804aea612997c7091852bb3b138f7263622aa083eeb6254"
+}

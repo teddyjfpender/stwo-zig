@@ -1,0 +1,88 @@
+{
+  "schema": "readonly-input-two-pass-proposal-qualified-v1",
+  "status": "focused_source_and_tiny_cpu_commitments_qualified",
+  "tests_passed": 20,
+  "named_tests": 13,
+  "new_named_tests": 6,
+  "root": "src/frontends/riscv/block_v5_readonly_input_proposal_test_root.zig",
+  "filter": "block-v5 readonly",
+  "sources": [
+    {
+      "path": "src/frontends/riscv/block_v5_readonly_input_proposal_test_root.zig",
+      "sha256": "8bdbbef9d7ac0feba6ebc1508fab80eb4baaa9a86abf1a92529635b2fad13f2d",
+      "bytes": 221
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_selection_v1.zig",
+      "sha256": "2b7c5159cdd2e10b3877aed6018b214bf25b9303532fed2718d9cf5a8df21fcb",
+      "bytes": 4727
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_proposal_v1.zig",
+      "sha256": "ad4c25259de9056f700f3c4fb8c19b5639e76e05ff8dcb7b616e7b24a9508f87",
+      "bytes": 13242
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_proposal_test.zig",
+      "sha256": "09e55516ce874bf3b9993ece99502d5033024e1b731db4cf26edf5535f36f33e",
+      "bytes": 15740
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_initial_sources_v1.zig",
+      "sha256": "009840797a275e5bda57fdde35a8fccdedb92975c24e5a348f8453734a755a7e",
+      "bytes": 8978
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_plan_v1.zig",
+      "sha256": "77067ad531cf44424a42c14c365e39b1498ef8b38b6982435a4321b275e08e5c",
+      "bytes": 4988
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_proof_v1.zig",
+      "sha256": "e31c9606d257d90dd15d5539d6bd8d73faf64bb7b99f10219146f214aee90597",
+      "bytes": 15789
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_unit_test.zig",
+      "sha256": "660ace92a2e236d1715c3514d36a32b0cc424beeb34eb7c0bb9c589bf0ba1d4e",
+      "bytes": 18885
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_component_v1.zig",
+      "sha256": "17938fe3ad786b70d2065fa24df5f497e6c06465dad057e27bbdc7a5d63cf407",
+      "bytes": 8607
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_protocol_v1.zig",
+      "sha256": "1d844057c27d6c41c7df7fbf7648fc70bd258253a7cf92b17c244e86116cb925",
+      "bytes": 2423
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_readonly_input_receiver_v1.zig",
+      "sha256": "7b62195e107f2994829aea009ea9b11cfacfd1c617ad7051b33698da63ff63e6",
+      "bytes": 6616
+    },
+    {
+      "path": "src/frontends/riscv/prover/block_v5_source_seal_v1.zig",
+      "sha256": "e2c7e8988247edf7f907c7b964410fc9d18f58bf7a10f033ce75798848e1736a",
+      "bytes": 19174
+    }
+  ],
+  "evidence": [
+    {
+      "path": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/readonly-input-two-pass-proposal-v1.log",
+      "sha256": "445f83a03cd55eae1569b1afcbc4b42beba2c23173c31f9789455bb6db9c2916",
+      "bytes": 2292
+    }
+  ],
+  "scope": "Actual immutable selection and late source binding; tiny borrowed CPU PCS/classifier commitment replay; independent layout/input/subset/caps/source/roots/census rejection; allocation failures; actual collection/post-seal and isolated fresh receiver bodies compiled without invocation.",
+  "stark_proved": false,
+  "segments_executed": false,
+  "device_executed": false,
+  "performance_measured": false,
+  "canonical_ram_filtering": false,
+  "remaining": [
+    "Canonical caller/native classifier fusion and strict versioned transport",
+    "Complete independently verified bundle and mutable RAM reduction qualification"
+  ]
+}

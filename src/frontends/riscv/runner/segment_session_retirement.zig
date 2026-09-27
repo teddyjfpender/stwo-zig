@@ -82,6 +82,8 @@ pub fn For(
                             &extension.calls,
                             &extension.rows,
                         );
+                    } else if (comptime profile == .rv32im_zkvm_ethereum_sha_v1) {
+                        try @import("guest_precompile/ethereum_sha.zig").executeWithRecordedClock(inst_word, execution_clock, &self.cpu, &self.memory, self.elf_info.memory_layout, chain_tracker, exec_trace, extension);
                     } else {
                         try guest_precompile.ethereum_v1.executeWithRecordedClock(
                             profile,

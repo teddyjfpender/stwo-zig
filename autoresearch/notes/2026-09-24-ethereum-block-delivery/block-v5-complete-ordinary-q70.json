@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-26",
+  "kind": "focused_architecture_qualification",
+  "command": "zig build test-block-v5-canonical -Doptimize=ReleaseFast --summary all",
+  "exit_code": 0,
+  "security": {
+    "fri_queries": 70,
+    "pow_bits": 26
+  },
+  "backend": "CPU",
+  "scope": {
+    "guest": "one real ADDI execution",
+    "native_protocol": "v3",
+    "executions": 1,
+    "packed_memory_events": 2,
+    "byte_requests": 28,
+    "lookup_groups": 1,
+    "recursion": "genuine native recursive leaf and exact one-child outer",
+    "transport": "complete detached bundle"
+  },
+  "verified": [
+    "fresh native, declared ROM and six-table proofs",
+    "packed sorted memory, range and complete initial/final RW/register endpoints",
+    "PC/clock and final global accounting closure",
+    "fresh exact recursive outer under independently reconstructed native policies",
+    "leaf and outer durable files plus manifest and independent outer file pins",
+    "early wrong recursive security, child-verifier security and key rejection"
+  ],
+  "not_qualified": [
+    "complete caller bundle",
+    "Ethereum block",
+    "block driver integration",
+    "isolated proving time or whole-process peak memory"
+  ],
+  "log": "/tmp/v5-canonical-ordinary-gate.log",
+  "build_observation": {
+    "elapsed": "4m",
+    "max_rss": "6G",
+    "includes_compilation": true,
+    "performance_comparison": false
+  }
+}

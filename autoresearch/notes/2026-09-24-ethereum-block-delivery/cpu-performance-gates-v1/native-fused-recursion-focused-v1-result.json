@@ -1,0 +1,20 @@
+{
+  "exit_code": 1,
+  "elapsed_seconds": 81.47416737495223,
+  "source_candidate": "native-fused-recursion-focused-v1-source.json",
+  "changed_source_pins": [],
+  "qualified": false,
+  "tests_run": true,
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/native-fused-recursion-focused-v1.log",
+  "test_summary": [
+    "13 passed; 0 skipped; 6 failed."
+  ],
+  "binary": {
+    "path": "/tmp/block-v5-native-fused-recursion-focused-v1",
+    "bytes": 9266312,
+    "sha256": "6a9151e10bab0c33b93aa1c0c6b463c0b0a114df2097c2be23773423b702d1cf"
+  }
+}

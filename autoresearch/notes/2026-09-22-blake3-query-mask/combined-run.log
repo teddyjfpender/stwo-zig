@@ -1,0 +1,19 @@
+test-blake3-query-mask
++- BLAKE3 query mask guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursion.air.blake3_query_mask_test.test.BLAKE3 raw query masking pins semantics and preserves native u32 boundaries' failed: expected error.InvalidTuple, found error.ValueOutOfRange
+error: while executing test 'recursion.air.blake3_query_mask_test.test.BLAKE3 raw query masking pins semantics and preserves native u32 boundaries', the following test command failed:
+./.zig-cache/o/627a11dcb398283f19ca53e9cf76b656/test --cache-dir=./.zig-cache --seed=0xe386b5c --listen=-
+
+Build Summary: 5/8 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-blake3-query-mask transitive failure
++- BLAKE3 query mask guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:634M
+test-blake3-query-proof success
++- BLAKE3 raw query proof guard success
+   +- run test 1 passed 2s MaxRSS:347M
+      +- compile test ReleaseSafe native success 20s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ff3875fc4609f98358686ea4b35d367e/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xe386b5c -Z93f144933c7ff006 --maxrss 25769803776 -j1 test-blake3-query-mask test-blake3-query-proof -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,11 @@
+const Manifest = @import("blake3_extension_manifest.zig").ForProfile(@import("blake3_ethereum_profile.zig"));
+pub const MAGIC = Manifest.MAGIC;
+pub const PREFIX_BYTES = Manifest.PREFIX_BYTES;
+pub const HEADER_BYTES = Manifest.HEADER_BYTES;
+pub const Limits = Manifest.Limits;
+pub const Source = Manifest.Source;
+pub const identity = Manifest.identity;
+pub const Owned = Manifest.Owned;
+pub const encode = Manifest.encode;
+pub const encodeCompact = Manifest.encodeCompact;
+pub const decode = Manifest.decode;

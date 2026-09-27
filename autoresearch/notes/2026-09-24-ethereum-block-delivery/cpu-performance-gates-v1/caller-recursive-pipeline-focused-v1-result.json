@@ -1,0 +1,22 @@
+{
+  "source_candidate": "caller-recursive-pipeline-focused-v1-source.json",
+  "exit_code": 0,
+  "elapsed_seconds": 331.5867631669971,
+  "changed_source_pins": [],
+  "qualified": true,
+  "semantic_only": false,
+  "tests_run": true,
+  "discovered_tests": 15,
+  "test_summary": [
+    "All 15 tests passed."
+  ],
+  "log": "autoresearch/notes/2026-09-24-ethereum-block-delivery/cpu-performance-gates-v1/caller-recursive-pipeline-focused-v1.log",
+  "segments_run": false,
+  "stark_proving_run": false,
+  "device_run": false,
+  "binary": {
+    "path": "/tmp/block-v5-caller-recursive-pipeline-focused-v1",
+    "bytes": 12621216,
+    "sha256": "2f6ab2cbc0baee12671dbf20d67fd1ab08d25a6d1d2e9ccaf5b8bc3f12c1b736"
+  }
+}

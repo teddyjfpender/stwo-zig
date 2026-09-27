@@ -1,0 +1,46 @@
+[ethereum-auth-build] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-auth-build] acquired after 14s
+1/8 prover.blake3_segment_tree_test.test.BLAKE3 adjacent segments form a four-leaf tree...BLAKE3_NATIVE_QUERY_FUSION groups=720 removed_scalars=2880
+BLAKE3_NATIVE_FUSION dot4=1933 fma=8801 arithmetic_rows=28411
+BLAKE3_NATIVE_QUERY_FUSION groups=720 removed_scalars=2880
+BLAKE3_NATIVE_FUSION dot4=1933 fma=8803 arithmetic_rows=28407
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=140389 queries=8 pow_bits=0
+BLAKE3_NATIVE_QUERY_FUSION groups=688 removed_scalars=2752
+BLAKE3_NATIVE_FUSION dot4=1780 fma=8631 arithmetic_rows=27439
+BLAKE3_NATIVE_QUERY_FUSION groups=832 removed_scalars=3328
+BLAKE3_NATIVE_FUSION dot4=2345 fma=9386 arithmetic_rows=31255
+BLAKE3_TREE_NODE verified=true height=1 artifact_bytes=142120 queries=8 pow_bits=0
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+BLAKE3_NATIVE_FUSION dot4=5046 fma=11895 arithmetic_rows=46252
+BLAKE3_TREE_PIPELINE verified=true jobs=2 preparation_workers=2 cpu_tokens=4 reserved_bytes=25811766512 overlap_ns=1268089167 worker_peak_bytes=2381177724 worker_limit_bytes=8589934592 root_artifact_bytes=138921 plan_reused=true outputs_outlive_worker=true
+BLAKE3_TREE_PARAMETERS leaf_queries=8 leaf_pow_bits=0 parent_queries=8 parent_pow_bits=0 canonical=false
+BLAKE3_TREE verified=true leaves=4 aggregate_levels=2 cycles=6 retained_root_rows=493612720
+OK
+2/8 prover.blake3_segment_aggregation_test.test.BLAKE3 adjacent segments aggregate and recursively verify [compact providers]...BLAKE3_NATIVE_QUERY_FUSION groups=792 removed_scalars=3168
+BLAKE3_NATIVE_FUSION dot4=2105 fma=7797 arithmetic_rows=26805
+BLAKE3_NATIVE_QUERY_FUSION groups=864 removed_scalars=3456
+BLAKE3_NATIVE_FUSION dot4=2345 fma=8265 arithmetic_rows=28876
+BLAKE3_AGGREGATE distinct_children=true segments=2 cycles=6 inputs=19924 retained_bytes=456405008
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=139274 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+BLAKE3_NATIVE_QUERY_FUSION groups=3112 removed_scalars=12448
+BLAKE3_NATIVE_FUSION dot4=5036 fma=11965 arithmetic_rows=46429
+EXECUTION_PARENT_PROOF verified=true artifact_bytes=136122 queries=8 pow_bits=0 child_key_bound=true proving_plan_released=true
+EXECUTION_PARENT_OF_PARENT verified=true distinct_keys=true levels=2 inputs=24432 retained_bytes=246835812
+OK
+3/8 runner.mod.test_0...OK
+4/8 runner.decode.test_0...OK
+5/8 air.memory_commitment.poseidon2_air.test_0...OK
+6/8 air.semantic_eval.test_0...OK
+7/8 air.lookups.tables.source_ingest.test_0...OK
+8/8 diagnostics.mod.test_0...OK
+All 8 tests passed.
