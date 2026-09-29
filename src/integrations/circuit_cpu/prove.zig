@@ -119,11 +119,13 @@ pub fn Prover(comptime MC: type) type {
         };
 
         /// `prove_circuit_assignment_with_channel`. `values` is the finalized
-        /// context's value table, `circuit` its preprocessed circuit and
+        /// context's value table, `pp` its preprocessed circuit and
         /// `air_template` the parsed circuit AIR bundle (`air.parse`).
-        /// `observer` is `void` or a pointer to a type with any of
+        /// `observer` is `{}` or a pointer to a type with any of
         /// `onStep(Step, digest: [32]u8)`, `onLookupElements(z, alpha)` and
-        /// `onTraces(preprocessed, base, interaction: []const ColumnEvaluation)`.
+        /// `onTraces(preprocessed, base, interaction: []const ColumnEvaluation)`;
+        /// `onTraces` sees the committed (blown-up) evaluations, which compact
+        /// storage has already dropped.
         pub fn prove(
             allocator: std.mem.Allocator,
             values: []const QM31,
