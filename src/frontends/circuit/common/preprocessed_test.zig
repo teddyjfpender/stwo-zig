@@ -80,10 +80,10 @@ test "preprocessed: test_preprocess_circuit column lengths" {
     defer circuit.deinit(std.testing.allocator);
 
     const expected = [_]usize{
-        2,      2,      8,      8,      8,      8,      8,      8,      8,      8,
-        16,     16,     16,     16,     16,     16,     16,     16,     16,     16,
-        16,     16,     16,     16,     16,     16,     16,     16,     16,     256,
-        256,    256,    16384,  16384,  16384,  65536,  65536,  65536,  65536,  262144,
+        2,      2,      8,       8,       8,       8,     8,     8,     8,     8,
+        16,     16,     16,      16,      16,      16,    16,    16,    16,    16,
+        16,     16,     16,      16,      16,      16,    16,    16,    16,    256,
+        256,    256,    16384,   16384,   16384,   65536, 65536, 65536, 65536, 262144,
         262144, 262144, 1048576, 1048576, 1048576,
     };
     try std.testing.expectEqual(expected.len, circuit.columns.len);
@@ -203,5 +203,40 @@ test "preprocessed: preprocessed_root matches upstream at blowup 1 and 3" {
         var expected: [32]u8 = undefined;
         _ = try std.fmt.hexToBytes(&expected, case.root);
         try std.testing.expectEqualSlices(u8, &expected, &root);
+    }
+}
+
+test "preprocessed: malformed circuit views fail closed" {
+    const allocator = std.testing.allocator;
+    var sample = SampleCircuit.init();
+    const n_vars = sample.view().n_vars;
+
+    // A gate output past `n_vars`.
+    const bad_add = [_]BinaryGate{.{ .in0 = 0, .in1 = 1, .out = @intCast(n_vars) }};
+    var view = sample.view();
+    view.add = &bad_add;
+    try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, view));
+
+    // A blake_g output other than `out_a` past `n_vars`.
+    sample.blake_g_gate[3].out_d = @intCast(n_vars);
+    try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, sample.view()));
+    sample = SampleCircuit.init();
+
+    // Permutation CSR layouts: decreasing offsets, a short final offset,
+    // unpaired outputs, and an out-of-range output.
+    const decreasing = [_]u32{ 0, 2, 1, 2 };
+    const short = [_]u32{ 0, 1 };
+    const unpaired = [_]u32{30};
+    const out_of_range = [_]u32{ 30, @intCast(n_vars) };
+    inline for (.{
+        .{ &decreasing, &permutation_outputs },
+        .{ &short, &permutation_outputs },
+        .{ &permutation_offsets, &unpaired },
+        .{ &permutation_offsets, &out_of_range },
+    }) |case| {
+        var malformed = permutationView(&sample);
+        malformed.permutation_offsets = case[0];
+        malformed.permutation_outputs = case[1];
+        try std.testing.expectError(error.VariableOutOfRange, preprocessed.PreprocessedCircuit.fromCircuit(allocator, malformed));
     }
 }

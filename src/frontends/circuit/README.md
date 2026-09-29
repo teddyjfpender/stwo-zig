@@ -28,7 +28,7 @@ not emit gates:
   `ComponentSizes` and the padded-size rules, the circuit hash
   (`configWords`, `hostCircuitHash`), and preprocessing (`ColumnLayout`,
   `PreprocessedCircuit` built from a `CircuitView`, and `preprocessedRoot`
-  over the prover's interpolation and lifted Merkle commitment).
+  through the prover's PCS commit path).
 - `stark_verifier`: `ProofConfig`, `ProofInfo` (the proof size model),
   `N_COMPOSITION_COLUMNS` and `pack_into_qm31s`.
 - `statements`: `circuit_verifier_proof_config`, `CircuitConfig`,
@@ -45,7 +45,7 @@ flowchart TD
     statements --> common
     stark_verifier --> common
     common --> core[stwo_core: fields, FRI schedule, config_v2, hashes, preprocessed_tables]
-    common --> prover[stwo_prover_engine: interpolation, lifted Merkle commit]
+    common --> prover[stwo_prover_engine: PCS column preparation, CommitmentTreeProver]
 ```
 
 ## Public API
@@ -66,8 +66,8 @@ const hash = try circuit.common.circuit_hash.hostCircuitHash(log_sizes, log_blow
 
 - `stwo_core`: fields, `fri.allFoldSteps`, `pcs.config_v2`, the Blake2s
   hashers and channel profiles, `preprocessed_tables`.
-- `stwo_prover_engine`: circle interpolation and evaluation and
-  `MerkleProverLifted.commitLifted` for the preprocessed root.
+- `stwo_prover_engine`: `pcs.column_preparation`, `TwiddleSource` and
+  `pcs.CommitmentTreeProver` for the preprocessed root.
 
 There is no dependency on `stwo_cairo_frontend` or on
 `src/frontends/riscv/recursion`; the RISC-V recursion builder hash-conses and
@@ -93,8 +93,13 @@ vectors, the static component facts against the R3 fixture, and
   `PerComponent` and `ComponentList` are the only component order.
 - `ComponentSizes` is the only size struct; registry log sizes map into it
   by field name.
-- `preprocessedRoot` reuses the prover's transforms and lifted Merkle
-  commitment; it does not carry its own LDE or Merkle code.
+- `preprocessedRoot` commits through the prover's own path (the PCS column
+  preparation shared by every commit, the owned `TwiddleSource`, and
+  `CommitmentTreeProver`), like upstream's `CommitmentTreeProver::new`; it
+  composes no interpolation, extension, twiddle or Merkle steps itself.
+- `CircuitView.validate` checks every index `fromCircuit` dereferences;
+  malformed views fail with `VariableOutOfRange` where upstream panics, and
+  addresses `>= P` fail with `AddressOutOfField` where upstream reduces.
 - Sorting is stable (`std.sort.insertion`), and no hash-map iteration
   order reaches an output.
 
