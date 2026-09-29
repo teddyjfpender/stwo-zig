@@ -11,7 +11,9 @@
 //! `all_node_values[j - pack_shift][pos ^ 1]`, FRI witnesses the full fold
 //! coset of `all_values[0]`, and the nonces and salt become
 //! `QM31(lo, hi, 0, 0)`. The result is the CircuitSerialize `Proof` of the
-//! circuit-recursion wire package; `serialize` writes its bytes.
+//! circuit-recursion wire package; `serialize` writes its bytes, and
+//! `circuitVerifierValues` gives the in-circuit verifier's proof values
+//! (what a fold node guesses).
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -21,6 +23,11 @@ const wire = @import("stwo_circuit_recursion_wire").circuit_serialize;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const component_list = circuit.common.component_list;
+const builder = circuit.builder;
+const stark_proof = circuit.stark_verifier.proof;
+const HashValue = builder.blake.HashValue;
+const M31Wrapper = builder.wrappers.M31Wrapper;
+const InteractionAtOods = circuit.stark_verifier.constraint_eval.InteractionAtOods;
 const LOG_PACKED_LEAF_SIZE = core.fri.LOG_PACKED_LEAF_SIZE;
 
 pub const Error = error{
@@ -213,6 +220,66 @@ fn singleRow(a: std.mem.Allocator, samples: []const []const QM31) ![]QM31 {
         value.* = column[0];
     }
     return row;
+}
+
+/// The in-circuit verifier's proof values (`Proof<QM31>` of
+/// `crates/stark_verifier`) of a CircuitSerialize proof: the same fields in
+/// the same flat layout, with every Merkle hash as eight packed `u32` words
+/// and every sample as an M31. The values borrow nothing from `proof`; they
+/// live in `allocator` (an arena).
+pub fn circuitVerifierValues(
+    allocator: std.mem.Allocator,
+    proof: *const wire.Proof,
+    config: wire.ProofConfig,
+) (Error || std.mem.Allocator.Error)!stark_proof.Proof(QM31) {
+    proof.validateShape(config) catch return error.InvalidCircuitProof;
+    const interaction = try allocator.alloc(InteractionAtOods(QM31), proof.interaction_at_oods.len);
+    for (interaction, proof.interaction_at_oods) |*out, column| out.* = .{ .at_oods = column.at_oods, .at_prev = column.at_prev };
+
+    var samples: [wire.n_traces][]M31Wrapper(QM31) = undefined;
+    const eval_trees = try allocator.alloc([]HashValue(QM31), wire.n_traces);
+    for (&samples, eval_trees, proof.eval_domain_samples, proof.eval_domain_auth_paths) |*tree_samples, *tree_paths, values, nodes| {
+        tree_samples.* = try allocator.alloc(M31Wrapper(QM31), values.len);
+        for (tree_samples.*, values) |*out, value| out.* = builder.wrappers.m31Value(QM31, value);
+        tree_paths.* = try hashValues(allocator, nodes);
+    }
+    const fri_trees = try allocator.alloc([]HashValue(QM31), proof.fri.auth_paths.len);
+    for (fri_trees, proof.fri.auth_paths) |*out, nodes| out.* = try hashValues(allocator, nodes);
+    const witness = try allocator.alloc([]QM31, proof.fri.witness.len);
+    for (witness, proof.fri.witness) |*out, values| out.* = try allocator.dupe(QM31, values);
+
+    return .{
+        .channel_salt = proof.channel_salt,
+        .trace_root = hashValue(proof.trace_root),
+        .interaction_root = hashValue(proof.interaction_root),
+        .composition_polynomial_root = hashValue(proof.composition_polynomial_root),
+        .claimed_sums = try allocator.dupe(QM31, proof.claimed_sums),
+        .preprocessed_columns_at_oods = try allocator.dupe(QM31, proof.preprocessed_columns_at_oods),
+        .trace_at_oods = try allocator.dupe(QM31, proof.trace_at_oods),
+        .interaction_at_oods = interaction,
+        .composition_eval_at_oods = proof.composition_eval_at_oods,
+        .eval_domain_samples = .{ .n_queries = config.nQueries(), .data = samples },
+        .eval_domain_auth_paths = .{ .n_queries = config.nQueries(), .trees = eval_trees },
+        .pow_nonce = proof.pow_nonce,
+        .interaction_pow_nonce = proof.interaction_pow_nonce,
+        .fri = .{
+            .layer_commitments = try hashValues(allocator, proof.fri.layer_commitments),
+            .last_layer_coefs = try allocator.dupe(QM31, proof.fri.last_layer_coefs),
+            .auth_paths = .{ .n_queries = config.nQueries(), .trees = fri_trees },
+            .witness = witness,
+        },
+    };
+}
+
+/// `HashValue::from(Blake2sHash)`.
+fn hashValue(hash: wire.Hash) HashValue(QM31) {
+    return builder.blake.hashValueFromDigest(QM31, hash);
+}
+
+fn hashValues(allocator: std.mem.Allocator, hashes: []const wire.Hash) std.mem.Allocator.Error![]HashValue(QM31) {
+    const out = try allocator.alloc(HashValue(QM31), hashes.len);
+    for (out, hashes) |*value, hash| value.* = hashValue(hash);
+    return out;
 }
 
 fn nonceQm31(nonce: u64) QM31 {

@@ -16,7 +16,9 @@
     "stwo_prover_api": "../../prover_api",
     "stwo_prover_engine": "../../prover"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "circuit_testing"
+  ],
   "api_surface": [
     "Internal",
     "Root",

@@ -75,7 +75,7 @@ const bytes = try verifier_proof.serialize(allocator);
 | `prove` | `Prover(MC)`, `Options`, `Step`, `defaultPcsConfig` and the transcript |
 | `Internal` | The prover on the internal (M31 channel) profile |
 | `Root` | The prover on the root (plain Blake2s channel) profile |
-| `verifier_proof` | `prepare_circuit_proof_for_circuit_verifier` and CircuitSerialize bytes |
+| `verifier_proof` | `prepare_circuit_proof_for_circuit_verifier`, CircuitSerialize bytes, and `circuitVerifierValues` (a decoded proof as the in-circuit verifier's `Proof(QM31)`) |
 
 `prove` takes an optional observer (`onStep`, `onLookupElements`,
 `onTraces`) for conformance tests and an `Options` value whose fields change
@@ -100,6 +100,7 @@ constraints from coefficients.
 ```sh
 zig build test --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 zig build circuit-parity-r7 --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
+zig build circuit-parity-r4-values --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseSafe -j2
 STWO_CIRCUIT_MULTIVERIFIER_INPUTS=<path> \
   zig build circuit-parity-r7-multiverifier --build-file src/integrations/circuit_cpu/build.zig -Doptimize=ReleaseFast -j2
 ```
@@ -111,6 +112,16 @@ element, claimed sum, commitment, FRI root, last layer and per-column trace
 digest with the oracle (`vectors/circuit/r7/prove_small.json`,
 `prove_profiles.json`), plus the CircuitSerialize bytes and upstream
 `verify_circuit`'s verdicts on them (`vectors/circuit/r7/verify/`).
+
+`circuit-parity-r4-values` is the value half of the frontend's R4 rung: it
+decodes `test_data/circuit_multiverifier/{proof,proof_cairo}.bin`, builds
+the multiverifier over them with the frontend's in-circuit verifier and
+compares every stage's gate summary, the value digest and the output digest
+with `vectors/circuit/r4/verifier_stages.json`, and requires the circuit to
+be satisfied. It also builds the multiverifier of two copies of the Cairo
+verifier proof, the circuit `proof.bin` proves, and matches its gate and
+value digests with `vectors/circuit/r7/multiverifier_inputs.json`. The R7
+circuits come from the frontend's shared `circuit_testing.contexts`.
 
 `circuit-parity-r7-multiverifier` reproduces
 `test_data/circuit_multiverifier/proof.bin` byte for byte. Its input, the
