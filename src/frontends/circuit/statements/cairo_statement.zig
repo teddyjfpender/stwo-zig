@@ -4,10 +4,10 @@
 //!
 //! Every function keeps the Rust order of builder calls, because that order
 //! numbers the variables and interns the constants of the leaf circuit
-//! (design §3.3). The builder itself (M2) is not in this tree yet, so the
-//! statement is generic over a builder facade `B`; the leaf lane supplies the
-//! M2 builder through it, and tests supply a recording facade. `B` must
-//! provide, with Rust semantics:
+//! (design §3.3). The statement is generic over a builder facade `B`:
+//! `cairo_statement_builder.BuilderFacade(V)` is the M2 builder, and the
+//! structural tests supply a recording facade. `B` must provide, with Rust
+//! semantics:
 //!
 //! | `B` member | Rust |
 //! |---|---|
