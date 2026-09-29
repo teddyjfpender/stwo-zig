@@ -797,9 +797,12 @@ generic over `Value` and transliterates `air_code_gen/src/circuit/component.rs`
 Its walk, in order:
 
 1. unpack the inputs: limbs, enabler, states;
-2. read the preprocessed/ExternalState columns, sorted by id. A `Seq` read
-   calls `seq_of_component_size` on every read and re-emits its unpack gates,
-   with no caching;
+2. read the preprocessed/ExternalState columns, sorted by id. A function
+   body that reads `Seq` calls `seq_of_component_size` once, at its top, and
+   binds the result (`air_code_gen/src/circuit/component.rs:160-170`); every
+   StaticCall subroutine body that reads `Seq` repeats the call, re-emitting
+   its gates, with no caching across bodies (corrected in M4: an earlier draft
+   said "on every read");
 3. read the PublicParams, sorted;
 4. walk the steps (Intermediate, Constraint, LookupTerm) with the eval! order
    of §3.3. StaticCall subroutines return a fixed-size slice from a bump
