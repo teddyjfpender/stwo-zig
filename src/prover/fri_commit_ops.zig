@@ -529,7 +529,7 @@ pub fn CommitOps(
 
                 const current_log_size = std.math.log2_int(usize, layer_evaluation.len());
                 const remaining_folds = current_log_size - last_layer_log_size;
-                const this_fold_step: u32 = @intCast(@min(config.fold_step, remaining_folds));
+                const this_fold_step: u32 = core_fri.foldStepAt(config.fold_step, @intCast(remaining_folds));
                 const used_pending_fused_tree = pending_tree != null;
 
                 var committed = if (pending_tree) |tree|

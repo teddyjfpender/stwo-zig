@@ -1,5 +1,7 @@
 //! FRI protocol configuration and degree-bound transitions.
 
+const std = @import("std");
+
 /// FRI proof configuration.
 pub const FriConfig = struct {
     log_blowup_factor: u32,
@@ -55,6 +57,52 @@ pub const FriConfig = struct {
 /// Upstream Stwo folds one level per FRI layer. Alternative schedules must be
 /// selected explicitly through `FriConfig.fold_step` and remain protocol-bound.
 pub const FOLD_STEP: u32 = 1;
+
+/// Folds performed by the next FRI layer when `remaining` line folds are
+/// left before the last layer: `fold_step`, clamped so the schedule never
+/// overshoots. Every FRI fold schedule (core verifier, prover commit, and the
+/// circuit verifier's `compute_all_fold_steps`) derives its steps from this
+/// one rule.
+pub inline fn foldStepAt(fold_step: u32, remaining: u32) u32 {
+    return @min(fold_step, remaining);
+}
+
+/// Number of FRI inner layers that fold `degree_log_ratio` levels with steps
+/// of at most `fold_step`: `ceil(degree_log_ratio / fold_step)`.
+pub fn nFoldSteps(degree_log_ratio: u32, fold_step: u32) usize {
+    std.debug.assert(fold_step != 0);
+    return std.math.divCeil(u32, degree_log_ratio, fold_step) catch unreachable;
+}
+
+/// `compute_all_fold_steps(degree_log_ratio, fold_step)` of
+/// `crates/stark_verifier/src/fri_proof.rs` (starkware-libs/proving at
+/// 5a7c5ede4299c91a61df19a07cba4f7502c14230): `nFoldSteps` steps of
+/// `fold_step`, the last one being `degree_log_ratio % fold_step` when that is
+/// nonzero. This is `foldStepAt` applied layer by layer. Writes into `out`,
+/// which must hold `nFoldSteps(...)` entries, and returns the written prefix.
+pub fn allFoldSteps(degree_log_ratio: u32, fold_step: u32, out: []u32) []u32 {
+    const n = nFoldSteps(degree_log_ratio, fold_step);
+    std.debug.assert(out.len >= n);
+    var remaining = degree_log_ratio;
+    for (out[0..n]) |*step| {
+        step.* = foldStepAt(fold_step, remaining);
+        remaining -= step.*;
+    }
+    std.debug.assert(remaining == 0);
+    return out[0..n];
+}
+
+test "fri fold steps: match compute_all_fold_steps around the step boundary" {
+    var buf: [16]u32 = undefined;
+    // r = s - 1, s, s + 1 and 4k + 2 for s = 4, plus the fold_step = 1 schedule.
+    try std.testing.expectEqualSlices(u32, &.{3}, allFoldSteps(3, 4, &buf));
+    try std.testing.expectEqualSlices(u32, &.{4}, allFoldSteps(4, 4, &buf));
+    try std.testing.expectEqualSlices(u32, &.{ 4, 1 }, allFoldSteps(5, 4, &buf));
+    try std.testing.expectEqualSlices(u32, &.{ 4, 4, 4, 2 }, allFoldSteps(14, 4, &buf));
+    try std.testing.expectEqualSlices(u32, &.{ 1, 1, 1 }, allFoldSteps(3, 1, &buf));
+    try std.testing.expectEqual(@as(usize, 0), allFoldSteps(0, 4, &buf).len);
+    try std.testing.expectEqual(@as(usize, 4), nFoldSteps(14, 4));
+}
 
 /// Number of folds when reducing circle to line polynomial.
 pub const CIRCLE_TO_LINE_FOLD_STEP: u32 = 1;

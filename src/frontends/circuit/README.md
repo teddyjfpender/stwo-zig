@@ -1,11 +1,12 @@
 # `stwo_circuit_frontend`
 
-`stwo_circuit_frontend` is the Zig port of StarkWare's circuit recursion stage
-(`https://github.com/starkware-libs/proving` at
-`5a7c5ede4299c91a61df19a07cba4f7502c14230`). This revision holds the in-circuit
-constraint evaluators (design milestone M4): a reader of the compiled-AIR
-projection, an interpreter that replays each projected function through the
-circuit builder, the six hand-written evaluators, and the evaluator slot tables.
+The circuit recursion frontend: a call-order-exact Zig port of StarkWare's
+circuit recursion stage (the `circuits`, `circuit_common`, `stark_verifier`,
+`circuit_verifier`, `circuit_multiverifier` and `cairo_verifier` crates of
+[starkware-libs/proving](https://github.com/starkware-libs/proving) at
+commit `5a7c5ede4299c91a61df19a07cba4f7502c14230`). Byte parity with Rust is
+the contract: the same inputs must give the same preprocessed roots, circuit
+hashes and proofs.
 
 | Property | Value |
 | :--- | :--- |
@@ -19,26 +20,53 @@ circuit builder, the six hand-written evaluators, and the evaluator slot tables.
 The [package contract](package.contract.json) and [public facade](mod.zig) are
 the authoritative API records. The design is
 [`02-design.md`](../../../design/starknet-proving-pipeline/recursion/02-design.md)
-§2.2 and §5.4.
+§2.2, §5 and §8.
 
-## Purpose and boundaries
+## Purpose and architecture
+
+One Zig file per Rust file, with the Rust function order kept inside each
+file. The package is filled milestone by milestone:
+
+- `air_eval` (M4): a reader of the compiled-AIR projection, an interpreter
+  that replays each projected function through the circuit builder, the six
+  hand-written evaluators, and the 83 Cairo and 11 circuit slot tables.
+- `common` (M5): the shared component list, `ComponentSizes` and padded
+  sizes, the circuit hash, and preprocessing (`ColumnLayout`,
+  `PreprocessedCircuit`, `preprocessedRoot` over the prover's interpolation
+  and lifted Merkle commitment); `component_utils` (M4).
+- `stark_verifier` (M4, M5): the composition accumulator and logup terms,
+  `ProofConfig`, `ProofInfo` (the proof size model) and `pack_into_qm31s`.
+- `statements` (M5, M6): the circuit-verifier and multiverifier
+  configuration, and `cairo_statement`, the port of `CairoStatement` (see
+  below).
+
+The builder (`builder/`, M2) and the gate-emitting verifier gadgets
+(channel, Merkle, FRI, OODS, the statements' `guess` traversals and
+`build_*_circuit`) come next and sit on top of these modules.
 
 ```mermaid
-flowchart LR
-    Bin[compiled_air_constraints_v1.bin] --> Reader[`air_eval.projection`]
-    Reader --> Tables[83 Cairo + 11 circuit slot tables]
-    Tables --> Interp[`air_eval.interpreter`]
-    Manual[6 hand-written evaluators] --> Acc
-    Interp --> Acc[`stark_verifier.constraint_eval` accumulator]
-    Acc --> Builder[circuit builder Context]
+flowchart TD
+    Bin[compiled_air_constraints_v1.bin] --> air_eval
+    air_eval --> stark_verifier
+    statements --> stark_verifier
+    statements --> common
+    stark_verifier --> common
+    common --> core[stwo_core: fields, FRI schedule, config_v2, hashes, preprocessed_tables, cairo_air_layout]
+    common --> prover[stwo_prover_engine: interpolation, lifted Merkle commit]
 ```
 
-The package owns the in-circuit side of the recursion verifier. It does not
-generate Rust-shaped Zig: upstream's ~56k lines of generated evaluators are
-interpreted from a pinned, SHA-256-authenticated projection produced by
-`tools/stwo-circuit-oracle-rs`. The circuit builder (`builder/`), the rest of
-`stark_verifier/`, the statements and the prover-side circuit AIR are later
-milestones.
+### The Cairo statement (M6)
+
+`statements/cairo_statement.zig` ports `crates/cairo_verifier/src/statement.rs`
+in upstream call order: `CairoStatement::new`, `AuxData::parse_from_vars`,
+`output_limbs_from_hash`, `verify_builtins`, `verify_claim`,
+`claims_to_mix`, `public_params`, `public_logup_sum` and its helpers. Until
+the M2 builder lands, it is generic over a builder facade `B` whose members
+map one-to-one to the Rust builder calls (the table is in the file header).
+Cairo layout facts (variants, ordered preprocessed ids, builtin cells, leaf
+components) come from `stwo_core.cairo_air_layout`; relation ids and verifier
+constants come from the caller, which reads them from the projection or from
+`vectors/circuit/r6/cairo_statement.json`.
 
 ## Public API
 
@@ -49,68 +77,78 @@ var projection = try circuit.air_eval.projection.parse(allocator, bytes);
 defer projection.deinit();
 var cairo = try circuit.air_eval.cairo_components.build(allocator, &projection);
 defer cairo.deinit();
-// Emit slot `i` into a builder context and composition accumulator.
 try cairo.evaluate(i, Ctx, &ctx, &component_data, &accumulator, scratch);
-```
 
-The facade exports three namespaces: `air_eval`, `stark_verifier` and
-`common`.
+const layout = try circuit.common.preprocessed.ColumnLayout.fromComponentSizes(sizes);
+const log_sizes = try circuit.statements.circuit_statement.circuitComponentLogSizes(&layout);
+const hash = try circuit.common.circuit_hash.hostCircuitHash(log_sizes, log_blowup, root);
+
+const Statement = circuit.statements.cairo_statement.CairoStatement(Builder);
+const statement = try Statement.init(arena, &ctx, inputs);
+```
 
 | Area | Exports |
 | :--- | :--- |
 | Projection | `air_eval.projection` (`parse`, `Projection`, `Source`, `Function`, `Expr`, `Step`) |
 | Interpreter | `air_eval.interpreter.Interpreter(Ctx, Data)` |
 | Slot tables | `air_eval.cairo_components` (83 slots), `air_eval.circuit_components` (11), `air_eval.component_table` |
-| Composition | `stark_verifier.constraint_eval` (`CompositionConstraintAccumulator`, `InteractionAtOods`, `RelationUse`), `stark_verifier.logup` |
-| Harness data | `stark_verifier.test_utils.TestComponentData` |
-| Utilities | `common.component_utils.seqOfComponentSize` |
-
-Every evaluator is generic over a builder context type `Ctx` exposing `Var`,
-`zero`, `one`, `constant`, `add`, `sub`, `mul`, `eq`, `inv` and `newVar` with
-the semantics of `crates/circuits/src/{context,ops}.rs`.
+| Composition | `stark_verifier.constraint_eval`, `stark_verifier.logup` |
+| Proof model | `stark_verifier.proof`, `stark_verifier.proof_from_stark_proof`, `stark_verifier.verify` |
+| Circuit common | `common.component_list`, `common.finalize`, `common.circuit_hash`, `common.preprocessed`, `common.component_utils` |
+| Statements | `statements.circuit_statement`, `statements.multiverifier`, `statements.cairo_statement` |
 
 ## Dependencies
 
-- `stwo_core` (`../../core`): M31/QM31 arithmetic.
+- `stwo_core`: fields, `fri.allFoldSteps`, `pcs.config_v2`, the Blake2s
+  hashers and channel profiles, `preprocessed_tables`, `cairo_air_layout`.
+- `stwo_prover_engine`: circle interpolation and evaluation and
+  `MerkleProverLifted.commitLifted` for the preprocessed root.
 
-The package must not depend on `stwo_cairo_frontend`. The Cairo slot order and
-the Cairo constants come from the projection header; the test-only root
-`conformance/circuit_cairo_slot_order_test_root.zig` asserts the slot order
-equals `official_claim_registry.enable_slots`.
+There is no dependency on `stwo_cairo_frontend` or on
+`src/frontends/riscv/recursion`; the RISC-V recursion builder hash-conses and
+folds constants, which would renumber circuit variables. The test-only root
+`conformance/circuit_slot_order/circuit_cairo_slot_order_test_root.zig`
+asserts the projection's Cairo slot order equals
+`official_claim_registry.enable_slots`.
 
 ## Build, test, and run
 
-```bash
+```sh
 zig build test --build-file src/frontends/circuit/build.zig -Doptimize=ReleaseFast -j2
 zig build test-r3 --build-file src/frontends/circuit/build.zig -j2
+zig build circuit-parity-r6-fold --build-file src/frontends/circuit/build.zig
 zig build circuit-air-projection-check --build-file src/frontends/circuit/build.zig -j2
 ```
 
-`test-r3` runs all 94 evaluators in value and topology mode against
-`vectors/circuit/r3/components.json` and the two upstream
-`sample_evaluations.json` files.
+Tests that read `vectors/circuit` run from the repository root. `test-r3`
+runs all 94 evaluators in value and topology mode against
+`vectors/circuit/r3/components.json` and the upstream sample evaluations.
+The fold topology rung checks the 45-column layout, every committed
+registry's circuit hash, the R0 circuit-hash vectors and `ProofInfo`
+against the 182,884-byte multiverifier `proof.bin`. The Cairo leaf host
+inputs and R10b roots are gated from the Cairo side
+(`zig build test-cairo-frontend`, `zig build test-circuit-leaf-cairo-roots`).
 
 ## Contract and invariants
 
-- Byte parity with Rust is the contract: every evaluator emits the builder ops
-  of the generated (or hand-written) Rust code in the same order. The
-  interpreter never folds, interns or caches values; the builder's index-only
-  peepholes decide which ops become gates.
-- The reader authenticates each function record by SHA-256 and rejects unknown
-  tags, invalid flags, out-of-range string indices, trailing bytes and
-  truncation. It asserts, and never recomputes, the generator rules the oracle
-  applied (trimmed lookup tuples, sorted used atoms, manual exclusion).
-- A function body that reads `Seq` calls `seq_of_component_size` once, at its
-  top, as the generated code does; subroutine bodies repeat it.
+- Every evaluator and statement emits the builder ops of the Rust code in
+  the same order; the builder's index-only peepholes decide which ops become
+  gates, and nothing here folds, interns or caches values.
+- The projection reader authenticates each function record by SHA-256 and
+  rejects unknown tags, invalid flags, out-of-range string indices, trailing
+  bytes and truncation.
+- Every circuit has 45 preprocessed columns, stable-sorted by length.
+  `configWords` is the only definition of the 12-byte config layout;
+  `PerComponent` and `ComponentList` are the only component order.
+- Sorting is stable, and no hash-map iteration order reaches an output.
 
 ## Change checklist
 
-- Regenerate the projection only with
-  `python3 scripts/generate_circuit_oracle_vectors.py`.
-- Keep R3 green: `zig build test-r3` compares n_vars, per-kind gate hashes,
-  gate-list, debug-text and value hashes, and results for all 94 evaluators.
-- A new hand-written upstream evaluator needs a `manual/` port and an entry in
-  `cairo_components.zig` or `circuit_components.zig`.
+- Cite the upstream Rust file and keep its function order.
+- Add or update a parity test against upstream output or a committed fixture.
+- Regenerate fixtures only with `python3 scripts/generate_circuit_oracle_vectors.py`.
+- Keep new shared rules in one place and import them.
+- Run the focused CI commands above.
 
 ## Related documentation
 

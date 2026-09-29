@@ -5,5 +5,6 @@
     .paths = .{"."},
     .dependencies = .{
         .stwo_core = .{ .path = "../../core" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
     },
 }

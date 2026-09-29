@@ -1,21 +1,51 @@
-//! `stwo_circuit_frontend`: Zig port of StarkWare's circuit recursion stage
-//! (https://github.com/starkware-libs/proving at
-//! 5a7c5ede4299c91a61df19a07cba4f7502c14230). See
+//! `stwo_circuit_frontend`: the call-order-exact Zig port of StarkWare's
+//! circuit recursion stage (https://github.com/starkware-libs/proving at
+//! 5a7c5ede4299c91a61df19a07cba4f7502c14230). See README.md for the map and
 //! `design/starknet-proving-pipeline/recursion/02-design.md` §2.2.
 //!
 //! This package must not depend on `stwo_cairo_frontend`; Cairo facts come
-//! from the committed compiled-AIR projection.
+//! from the committed compiled-AIR projection and `stwo_core.cairo_air_layout`.
 
 const std = @import("std");
 
+/// The in-circuit AIR evaluators interpreted from the committed projection.
 pub const air_eval = @import("air_eval/mod.zig");
-pub const stark_verifier = @import("stark_verifier/mod.zig");
+/// `crates/circuit_common`: finalization sizing, preprocessing, circuit hash
+/// and the shared component list.
 pub const common = @import("common/mod.zig");
+/// `crates/stark_verifier`: the in-circuit STARK verifier.
+pub const stark_verifier = @import("stark_verifier/mod.zig");
+/// `crates/circuit_verifier`, `crates/circuit_multiverifier` and
+/// `crates/cairo_verifier` statements.
+pub const statements = @import("statements/mod.zig");
 
 test {
     _ = air_eval;
     _ = stark_verifier;
     _ = common;
+    std.testing.refAllDeclsRecursive(common);
+    std.testing.refAllDeclsRecursive(statements);
+}
+
+test "api signature: circuit facade exposes the ported crates" {
+    try std.testing.expect(@hasDecl(common, "preprocessed"));
+    try std.testing.expect(@hasDecl(common, "circuit_hash"));
+    try std.testing.expect(@hasDecl(stark_verifier, "proof"));
+    try std.testing.expect(@hasDecl(statements, "multiverifier"));
+    const layout_fn: fn (common.finalize.ComponentSizes) common.preprocessed.Error!common.preprocessed.ColumnLayout =
+        common.preprocessed.ColumnLayout.fromComponentSizes;
+    _ = layout_fn;
+}
+
+test "invariant: every preprocessed layout has the 45 circuit columns" {
+    const layout = try common.preprocessed.ColumnLayout.fromComponentSizes(.{
+        .eq = 16,
+        .qm31_ops = 16,
+        .m31_to_u32 = 16,
+        .triple_xor = 16,
+        .blake_g_gate = 16,
+    });
+    try std.testing.expectEqual(@as(usize, 45), layout.entries.len);
 }
 
 test "api signature: evaluator tables are built from a parsed projection" {

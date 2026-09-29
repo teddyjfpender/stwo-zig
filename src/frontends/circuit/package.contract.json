@@ -8,19 +8,25 @@
     "stwo_circuit_frontend": "mod.zig"
   },
   "dependencies": {
-    "stwo_core": "../../core"
+    "stwo_core": "../../core",
+    "stwo_prover_engine": "../../prover"
   },
-  "injected_modules": [],
+  "injected_modules": [
+    "circuit_frontend"
+  ],
   "api_surface": [
     "air_eval",
     "common",
-    "stark_verifier"
+    "stark_verifier",
+    "statements"
   ],
   "api_contract": {
     "signature_tests": [
+      "mod.zig::api signature: circuit facade exposes the ported crates",
       "mod.zig::api signature: evaluator tables are built from a parsed projection"
     ],
     "invariant_tests": [
+      "mod.zig::invariant: every preprocessed layout has the 45 circuit columns",
       "mod.zig::projection reader rejects bad magic and truncation"
     ]
   },

@@ -213,14 +213,6 @@ pub fn addProducts(context: Context) void {
         "Commit the canonical_small preprocessed trace to the leaf circuit's Cairo roots (R10b)",
     ).dependOn(&context.b.addRunArtifact(context.b.addTest(.{ .root_module = leaf_roots_root })).step);
 
-    // The circuit recursion package (M2) does not exist yet; its Cairo
-    // statement port compiles and tests against stwo_core alone.
-    const cairo_statement_root = consumer(context, protocol, "src/frontends/circuit/statements/cairo_statement.zig");
-    context.b.step(
-        "test-circuit-cairo-statement",
-        "Test the in-circuit Cairo statement port through a recording builder facade",
-    ).dependOn(&context.b.addRunArtifact(context.b.addTest(.{ .root_module = cairo_statement_root })).step);
-
     const cairo_cpu_air_test_root = consumer(
         context,
         protocol,
