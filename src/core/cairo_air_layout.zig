@@ -17,7 +17,8 @@
 //!   canonical_without_pedersen}`, the stable sort by log size);
 //! - `crates/common/src/builtins.rs` (memory-cell sizes);
 //! - `crates/cairo_verifier/src/statement.rs` (`verify_builtins` order and its
-//!   Pedersen component choice);
+//!   Pedersen component choice, the auxiliary-data layout constants and the
+//!   `claims_to_mix` program hash);
 //! - `crates/leaf_prover/src/consts.rs` and `prove_leaf.rs`
 //!   (`DISABLED_COMPONENTS_*`, `disabled_components`, `leaf_verifier_components`).
 //!
@@ -25,6 +26,9 @@
 //! frontend's `tests/circuit_leaf_statement.zig` compares against it.
 
 const std = @import("std");
+const M31 = @import("fields/m31.zig").M31;
+const Blake2sHasher = @import("vcs/blake2_hash.zig").Blake2sHasher;
+const blake2_hash = @import("vcs/blake2_hash.zig");
 
 /// `PreProcessedTraceVariant`, with the same tags as the Cairo lane's
 /// historical `preprocessed.trace.Variant` and `claim_generator.PreprocessedVariant`.
@@ -67,6 +71,50 @@ pub const Variant = enum {
 /// `INTERACTION_POW_BITS` of `crates/cairo_verifier/src/verify.rs`: the
 /// interaction grind of a Cairo proof, which the leaf verifier re-checks.
 pub const interaction_pow_bits: u32 = 24;
+
+// ---------------------------------------------------------------------------
+// Statement layout (`statement.rs`)
+
+/// `N_SEGMENTS`: the public memory segments of a Cairo claim.
+pub const n_segments = 11;
+/// `N_SAFE_CALL_IDS`.
+pub const n_safe_call_ids = 2;
+/// `MEMORY_VALUES_LIMBS`: a memory value is 28 nine-bit limbs.
+pub const memory_values_limbs = 28;
+/// `N_OUTPUTS`: the program's output is one Blake2s digest over two cells.
+pub const n_outputs = 2;
+/// `N_WORDS_PER_OUTPUT_CELL`: the digest words held by each 128-bit cell.
+pub const n_words_per_output_cell = 4;
+/// `PUB_MEMORY_VALUE_M31_LEN`: a public-memory entry is (id, value).
+pub const pub_memory_value_m31_len = 2;
+/// `STATE_LEN`: pc, ap, fp.
+pub const state_len = 3;
+/// `AUX_DATA_FIXED_LEN`: initial and final state, the start and end entry
+/// of each segment, the safe-call ids and the output ids.
+pub const aux_data_fixed_len = 2 * state_len + 2 * pub_memory_value_m31_len * n_segments + n_safe_call_ids + n_outputs;
+
+comptime {
+    std.debug.assert(aux_data_fixed_len == 54);
+    std.debug.assert(n_outputs * n_words_per_output_cell == 8);
+    // Each felt packs into whole QM31s, so `pack_into_qm31s` never pads.
+    std.debug.assert(memory_values_limbs % 4 == 0);
+}
+
+/// One program felt as `Felt252::get_limbs` produces it.
+pub const ProgramFelt = [memory_values_limbs]M31;
+
+/// `claims_to_mix`'s program hash, `IValue::blake2s(pack_into_qm31s(flat
+/// limbs), len * 16)`: plain Blake2s over the flat limbs as LE `u32` words
+/// (`Blake2sHasher.hashU32s`), streamed per felt, as eight LE words.
+pub fn programHash(program: []const ProgramFelt) [8]u32 {
+    var hasher = Blake2sHasher.init();
+    for (program) |felt| {
+        var words: [memory_values_limbs]u32 = undefined;
+        for (felt, &words) |limb, *word| word.* = limb.v;
+        hasher.updateU32sLe(&words);
+    }
+    return blake2_hash.digestToU32s(hasher.finalize());
+}
 
 pub const Error = error{
     /// `disabled_components` panics for `CanonicalWithoutPedersen`.
@@ -334,6 +382,18 @@ test "preprocessed column ids match each variant's column count and are sorted b
         try std.testing.expectEqual(variant.traceCellCount(), cells);
         try std.testing.expectEqual(variant.maxLogSize(), columns[columns.len - 1].log_size);
     }
+}
+
+test "program hash streams the flat limbs through hashU32s" {
+    var program: [2]ProgramFelt = undefined;
+    var flat: [2 * memory_values_limbs]u32 = undefined;
+    for (&program, 0..) |*felt, f| for (felt, 0..) |*limb, l| {
+        const word: u32 = @intCast(f * 1000 + l * 7 + 1);
+        limb.* = M31.fromCanonical(word);
+        flat[f * memory_values_limbs + l] = word;
+    };
+    try std.testing.expectEqual(blake2_hash.digestToU32s(Blake2sHasher.hashU32s(&flat)), programHash(&program));
+    try std.testing.expectEqual(blake2_hash.digestToU32s(Blake2sHasher.hashU32s(&.{})), programHash(&.{}));
 }
 
 test "verify_builtins picks the Pedersen component by variant" {

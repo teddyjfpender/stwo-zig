@@ -26,7 +26,7 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `official/circuit_air.air_programs_v1.bin` | R7 | the circuit AIR's 11 `FrameworkEval`s recorded into the `STWZEVA/1` evaluation-program bundle |
 | `official/compiled_{casm,circuit}_air.sample_evaluations.json` | R3 | upstream `outputs/*/sample_evaluations.json`: the evaluator assignments |
 | `official/registries/*.json` | R0, R6 | the two checked-in canonical_small circuit registries |
-| `r6/cairo_statement.json` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, `get_preprocessed_root` 21/22/23, program limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests, the leaf `ProofConfig` and proof size |
+| `r6/cairo_statement.json` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, program limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests, the leaf `ProofConfig` and proof size |
 | `official/programs/use_all_opcodes_and_builtins_compiled.json` | R6, R8 | upstream `crates/leaf_prover/tests/data/`: the leaf test program |
 
 ## Encodings
@@ -168,7 +168,8 @@ the leaf circuit: `cairo_preprocessed_roots` commits the canonical_small Cairo
 preprocessed trace at trace log size 20 and log blowups 1, 2 and 3 (lifting log
 sizes 21, 22, 23) under `Blake2sM31MerkleChannel`, each asserted against
 `cairo_verifier::verify::get_preprocessed_root`. The registries' leaves use log
-blowup 1.
+blowup 1. Rung R10b (`zig build test-circuit-leaf-cairo-roots`) commits the same
+trace through the Cairo lane and compares against these roots.
 
 ## Circuit AIR programs
 
@@ -210,8 +211,6 @@ or data only:
   parsed from `crates/leaf_prover/src/consts.rs` (`null` where
   `disabled_components` panics), the induced `enabled_bits` and the ordered
   `to_preprocessed_trace().ids()`;
-- `preprocessed_roots`: `get_preprocessed_root(21 | 22 | 23)` of
-  `crates/cairo_verifier/src/verify.rs` as eight `u32` words;
 - `program`: `load_program` of the leaf test program, summarized by the SHA-256
   of its flattened limbs as LE `u32`, its first and last felt's 28 limbs, and
   the `claims_to_mix` program hash (Blake2s over the QM31-packed limbs);

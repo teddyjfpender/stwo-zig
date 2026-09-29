@@ -122,10 +122,10 @@ test "R6 leaf: statement constants" {
     var checkpoint = try Checkpoint.load(std.testing.allocator, checkpoint_path);
     defer checkpoint.deinit();
     const constants = checkpoint.body.get("constants").?.object;
-    try std.testing.expectEqual(int(constants.get("aux_data_fixed_len").?), leaf.aux_data_fixed_len);
-    try std.testing.expectEqual(int(constants.get("n_outputs").?), leaf.n_outputs);
-    try std.testing.expectEqual(int(constants.get("n_words_per_output_cell").?), leaf.n_words_per_output_cell);
-    try std.testing.expectEqual(int(constants.get("memory_values_limbs").?), leaf.memory_values_limbs);
+    try std.testing.expectEqual(int(constants.get("aux_data_fixed_len").?), layout.aux_data_fixed_len);
+    try std.testing.expectEqual(int(constants.get("n_outputs").?), layout.n_outputs);
+    try std.testing.expectEqual(int(constants.get("n_words_per_output_cell").?), layout.n_words_per_output_cell);
+    try std.testing.expectEqual(int(constants.get("memory_values_limbs").?), layout.memory_values_limbs);
     try std.testing.expectEqual(int(constants.get("memory_address_to_id_split").?), cairo.claim_generator.memory_address_to_id_split);
     try std.testing.expectEqual(int(constants.get("max_sequence_log_size").?), cairo.claim_generator.max_sequence_log_size);
     try std.testing.expectEqual(int(constants.get("max_sequence_log_size").?), layout.Variant.canonical.maxSequenceLogSize());
@@ -162,15 +162,15 @@ test "R6 leaf: program limbs and program hash of the leaf test program" {
     };
     const digest = std.fmt.bytesToHex(sha.finalResult(), .lower);
     try std.testing.expectEqualStrings(record.get("limbs_sha256").?.string, &digest);
-    var first: [leaf.memory_values_limbs]u32 = undefined;
-    var last: [leaf.memory_values_limbs]u32 = undefined;
+    var first: [layout.memory_values_limbs]u32 = undefined;
+    var last: [layout.memory_values_limbs]u32 = undefined;
     for (program[0], program[program.len - 1], &first, &last) |a, b, *x, *y| {
         x.* = a.v;
         y.* = b.v;
     }
     try expectWords(record.get("first_felt_limbs").?, &first);
     try expectWords(record.get("last_felt_limbs").?, &last);
-    const hash = leaf.programHash(program);
+    const hash = layout.programHash(program);
     try expectWords(record.get("program_hash").?, &hash);
 }
 
@@ -186,15 +186,12 @@ fn paddedCopy(allocator: std.mem.Allocator, words: []const u32) ![]u32 {
 fn claimRoot(words: []const u32) [8]u32 {
     var hasher = blake2_merkle.Blake2sPlainMerkleHasher.defaultWithInitialState();
     var offset: usize = 0;
-    while (offset < words.len) : (offset += leaf.memory_values_limbs) {
-        var limbs: [leaf.memory_values_limbs]M31 = undefined;
-        for (&limbs, words[offset..][0..leaf.memory_values_limbs]) |*limb, word| limb.* = M31.fromCanonical(word);
+    while (offset < words.len) : (offset += layout.memory_values_limbs) {
+        var limbs: [layout.memory_values_limbs]M31 = undefined;
+        for (&limbs, words[offset..][0..layout.memory_values_limbs]) |*limb, word| limb.* = M31.fromCanonical(word);
         hasher.updateLeaf(&limbs);
     }
-    const digest = hasher.finalize();
-    var root: [8]u32 = undefined;
-    for (&root, 0..) |*word, index| word.* = std.mem.readInt(u32, digest[index * 4 ..][0..4], .little);
-    return root;
+    return core.vcs.blake2_hash.digestToU32s(hasher.finalize());
 }
 
 test "R6 leaf: synthetic claim aux data and FlatClaim mix on both Blake2s channels" {
@@ -210,7 +207,7 @@ test "R6 leaf: synthetic claim aux data and FlatClaim mix on both Blake2s channe
     const aux = try leaf.serializeAuxDataFromPublicClaim(
         std.testing.allocator,
         public_claim,
-        [_]bool{true} ** leaf.n_segments,
+        [_]bool{true} ** layout.n_segments,
         output_len,
         program_len,
         log_sizes,
@@ -251,12 +248,12 @@ test "R6 leaf: output hash packs the synthetic output cells" {
     var checkpoint = try Checkpoint.load(std.testing.allocator, checkpoint_path);
     defer checkpoint.deinit();
     const output = checkpoint.body.get("synthetic_claim").?.object.get("output").?.array.items;
-    var cells: [leaf.n_outputs][8]u32 = undefined;
+    var cells: [layout.n_outputs][8]u32 = undefined;
     for (output, &cells) |cell, *words| {
         for (cell.object.get("value").?.array.items, words) |word, *slot| slot.* = int(word);
     }
     const digest = try leaf.outputHashFromOutputCells(&cells);
-    for (0..leaf.n_outputs) |index|
+    for (0..layout.n_outputs) |index|
         try std.testing.expectEqualSlices(u32, cells[index][0..4], digest[index * 4 ..][0..4]);
 }
 
@@ -267,12 +264,12 @@ test "R6 leaf: serializeAuxData on an official execution follows the output-coun
     const public = try cairo.statement.public_data.derive(allocator, &input);
     defer allocator.free(public.public_claim);
     const log_sizes = [_]u32{7} ** 79;
-    if (public.output_len != leaf.n_outputs) {
+    if (public.output_len != layout.n_outputs) {
         try std.testing.expectError(error.OutputCellCount, leaf.serializeAuxData(allocator, &input, &log_sizes));
         return;
     }
     const aux = try leaf.serializeAuxData(allocator, &input, &log_sizes);
     defer allocator.free(aux);
-    try std.testing.expectEqual(leaf.aux_data_fixed_len + public.program_len + log_sizes.len, aux.len);
+    try std.testing.expectEqual(layout.aux_data_fixed_len + public.program_len + log_sizes.len, aux.len);
     try std.testing.expectEqualSlices(u32, public.public_claim[0..public.public_claim_word_count], aux[0..public.public_claim_word_count]);
 }

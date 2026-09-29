@@ -62,9 +62,7 @@ pub fn hashValue(comptime V: type, words: [digest_n_words]u32) HashValue(V) {
 
 /// `HashValue::from(Blake2sHash)`: the digest bytes as eight little-endian words.
 pub fn hashValueFromDigest(comptime V: type, digest: [32]u8) HashValue(V) {
-    var words: [digest_n_words]u32 = undefined;
-    for (&words, 0..) |*w, i| w.* = std.mem.readInt(u32, digest[4 * i ..][0..4], .little);
-    return hashValue(V, words);
+    return hashValue(V, stwo_core.vcs.blake2_hash.digestToU32s(digest));
 }
 
 /// `Guess for HashValue`: each word through `guessU32`, in order.

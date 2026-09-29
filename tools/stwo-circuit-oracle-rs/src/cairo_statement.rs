@@ -7,7 +7,6 @@
 //! - the leaf disabled-component lists, parsed from `crates/leaf_prover/src/consts.rs`, and the
 //!   `enabled_bits` they induce over `all_components()`;
 //! - the ordered preprocessed column ids of every `PreProcessedTraceVariant`;
-//! - `get_preprocessed_root(21 | 22 | 23)` of `crates/cairo_verifier/src/verify.rs`;
 //! - the program limbs and program hash of the leaf test program
 //!   (`crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json`), through
 //!   `cairo_verifier::utils::load_program` and `claims_to_mix`'s hash;
@@ -18,6 +17,9 @@
 //!   components, the variant's column count, the registry's `cairo_prover_params` FRI config
 //!   lifted to `trace_log_size + log_blowup`, `INTERACTION_POW_BITS`) and its
 //!   `ProofInfo::total_bytes`.
+//!
+//! `get_preprocessed_root(21 | 22 | 23)` is not repeated here: `topology` records it as
+//! `cairo_preprocessed_roots`, after recomputing each root from the canonical_small trace.
 
 use std::path::Path;
 
@@ -35,9 +37,7 @@ use circuit_cairo_verifier::statement::{
     AUX_DATA_FIXED_LEN, MEMORY_VALUES_LIMBS, N_OUTPUTS, N_WORDS_PER_OUTPUT_CELL, serialize_aux_data,
 };
 use circuit_cairo_verifier::utils::load_program;
-use circuit_cairo_verifier::verify::{
-    INTERACTION_POW_BITS, enabled_components, get_preprocessed_root,
-};
+use circuit_cairo_verifier::verify::{INTERACTION_POW_BITS, enabled_components};
 use circuits::blake::HashValue;
 use circuits::ivalue::{IValue, NoValue};
 use circuits_stark_verifier::proof::{ProofConfig, ProofInfo};
@@ -74,7 +74,6 @@ const CONSTS_PATH: &str = "crates/leaf_prover/src/consts.rs";
 const REGISTRY_PATH: &str = "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json";
 const PROGRAM_PATH: &str =
     "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json";
-const LIFTING_LOG_SIZES: [u32; 3] = [21, 22, 23];
 
 #[derive(Serialize)]
 struct Constants {
@@ -116,6 +115,9 @@ struct ProgramRecord {
     last_felt_limbs: Vec<u32>,
     /// `claims_to_mix`: Blake2s over `pack_into_qm31s(limbs)` as LE u32 words.
     program_hash: [u32; 8],
+    /// The same hash of the two-felt program `[first felt, last felt]`, which a consumer can
+    /// rebuild from this record alone.
+    edge_felts_program_hash: [u32; 8],
 }
 
 #[derive(Serialize)]
@@ -175,8 +177,6 @@ pub struct Body {
     constants: Constants,
     all_components: Vec<&'static str>,
     variants: Vec<VariantRecord>,
-    /// `get_preprocessed_root(lifting_log_size)` as eight u32 words.
-    preprocessed_roots: Vec<(u32, [u32; 8])>,
     program: ProgramRecord,
     synthetic_claim: SyntheticClaim,
     leaf_configs: Vec<LeafConfigRecord>,
@@ -219,11 +219,6 @@ pub fn run(proving_root: &Path) -> Result<Envelope<Body>> {
         )?,
     ];
 
-    let preprocessed_roots = LIFTING_LOG_SIZES
-        .iter()
-        .map(|&log| (log, hash_words(&get_preprocessed_root(log))))
-        .collect();
-
     let program = program_record(&proving_root.join(PROGRAM_PATH))?;
     let small_bits = variants[2]
         .enabled_bits
@@ -241,7 +236,6 @@ pub fn run(proving_root: &Path) -> Result<Envelope<Body>> {
             constants: constants(),
             all_components: names,
             variants,
-            preprocessed_roots,
             program,
             synthetic_claim,
             leaf_configs,
@@ -367,16 +361,22 @@ fn program_record(path: &Path) -> Result<ProgramRecord> {
     for limb in &flat {
         hasher.update(limb.0.to_le_bytes());
     }
-    let packed = pack_into_qm31s(flat.iter().copied());
-    let program_hash = <QM31 as IValue>::blake2s(&packed, packed.len() * 16);
+    let edge_felts = [program[0], program[program.len() - 1]];
     Ok(ProgramRecord {
         path: PROGRAM_PATH,
         n_felts: program.len(),
         limbs_sha256: hex::encode(hasher.finalize()),
         first_felt_limbs: program[0].iter().map(|m| m.0).collect(),
         last_felt_limbs: program[program.len() - 1].iter().map(|m| m.0).collect(),
-        program_hash: hash_words(&program_hash),
+        program_hash: claims_program_hash(&program),
+        edge_felts_program_hash: claims_program_hash(&edge_felts),
     })
+}
+
+/// `claims_to_mix`'s program hash: `IValue::blake2s(pack_into_qm31s(flat limbs), len * 16)`.
+fn claims_program_hash(program: &[[M31; MEMORY_VALUES_LIMBS]]) -> [u32; 8] {
+    let packed = pack_into_qm31s(program.iter().flatten().copied());
+    hash_words(&<QM31 as IValue>::blake2s(&packed, packed.len() * 16))
 }
 
 fn felt_words(seed: u32) -> [u32; 8] {

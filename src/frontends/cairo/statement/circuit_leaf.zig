@@ -15,30 +15,26 @@
 //! (`output_hash_from_output_cells`), `crates/cairo_verifier/src/utils.rs`
 //! (`load_program`) and `crates/leaf_prover/src/prove_leaf.rs`
 //! (`leaf_verifier_components`). `vectors/circuit/r6/cairo_statement.json`
-//! pins every function here.
+//! pins every function here. The statement layout constants, `ProgramFelt`
+//! and the `claims_to_mix` program hash are `stwo_core.cairo_air_layout`'s,
+//! shared with the in-circuit statement.
 
 const std = @import("std");
-const core = @import("stwo_core");
 const layout = @import("stwo_core").cairo_air_layout;
 const adapter = @import("../adapter/mod.zig");
 const claim_registry = @import("../air/official_claim_registry.zig");
 const Felt252 = @import("../common/felt252.zig").Felt252;
 const public_data = @import("public_data.zig");
 
-const M31 = core.fields.m31.M31;
-const Blake2sHasher = core.vcs.blake2_hash.Blake2sHasher;
-
-pub const n_segments = adapter.N_PUBLIC_SEGMENTS;
-pub const n_outputs = 2;
-pub const n_words_per_output_cell = 4;
-pub const memory_values_limbs = 28;
-/// `2 * STATE_LEN + 2 * PUB_MEMORY_VALUE_M31_LEN * N_SEGMENTS + N_SAFE_CALL_IDS + N_OUTPUTS`.
-pub const aux_data_fixed_len = 2 * 3 + 2 * 2 * n_segments + 2 + n_outputs;
-pub const ProgramFelt = [memory_values_limbs]M31;
+const n_segments = layout.n_segments;
+const n_outputs = layout.n_outputs;
+const n_words_per_output_cell = layout.n_words_per_output_cell;
+const aux_data_fixed_len = layout.aux_data_fixed_len;
+const ProgramFelt = layout.ProgramFelt;
 
 comptime {
-    std.debug.assert(aux_data_fixed_len == 54);
-    std.debug.assert(n_outputs * n_words_per_output_cell == 8);
+    // The lane's public-segment table is the statement's segment list.
+    std.debug.assert(adapter.N_PUBLIC_SEGMENTS == n_segments);
 }
 
 pub const Error = error{
@@ -160,27 +156,6 @@ pub fn programFeltsFromCompiledJson(
         felt.* = Felt252.fromU32x8(try parseFeltHex(item.string)).limbs9();
     }
     return felts;
-}
-
-/// `claims_to_mix`'s program hash: Blake2s over `pack_into_qm31s` of the flat
-/// limbs as LE u32 words. Every felt has 28 limbs, so the packing never pads.
-pub fn programHash(program: []const ProgramFelt) [8]u32 {
-    comptime std.debug.assert(memory_values_limbs % 4 == 0);
-    // One Blake2s over LE(words), streamed per felt: `Blake2sHasher.hashU32s`
-    // of the flat limbs without materializing them.
-    var hasher = Blake2sHasher.init();
-    for (program) |felt| {
-        var bytes: [memory_values_limbs * 4]u8 = undefined;
-        for (felt, 0..) |limb, index| std.mem.writeInt(u32, bytes[index * 4 ..][0..4], limb.v, .little);
-        hasher.update(&bytes);
-    }
-    return digestWords(hasher.finalize());
-}
-
-fn digestWords(digest: [32]u8) [8]u32 {
-    var words: [8]u32 = undefined;
-    for (&words, 0..) |*word, index| word.* = std.mem.readInt(u32, digest[index * 4 ..][0..4], .little);
-    return words;
 }
 
 // ---------------------------------------------------------------------------

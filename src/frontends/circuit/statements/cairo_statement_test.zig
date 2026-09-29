@@ -2,18 +2,24 @@
 //! facade. They pin what the port controls without the M2 builder: guess
 //! order and counts, the `set_outputs` wires, the aux-data parse, the
 //! `claims_to_mix` groups, the `verify_builtins` component choice and the
-//! public parameters. Gate-level parity (R3 statement trace, R6 leaf circuit
-//! hash) needs the M2 builder behind the same facade.
+//! public parameters. The last tests run the same port over the M2 builder
+//! (`cairo_statement_builder.BuilderFacade`): `claims_to_mix` on the R6
+//! synthetic claim must mix to upstream's `FlatClaim::mix_into` digest, and
+//! the value and topology builds must emit the same gates. Gate-level parity
+//! with upstream's leaf circuit (R6 circuit hash) needs the whole leaf build.
 
 const std = @import("std");
 const core = @import("stwo_core");
 const statement = @import("cairo_statement.zig");
+const BuilderFacade = @import("cairo_statement_builder.zig").BuilderFacade;
+const builder = @import("../builder/mod.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const layout = core.cairo_air_layout;
 
 const checkpoint_path = "vectors/circuit/r6/cairo_statement.json";
+const topology_path = "vectors/circuit/r6/topology.json";
 
 /// Records every facade call; vars are numbered in call order after the
 /// reserved zero and one, and constants are interned in first-use order.
@@ -47,6 +53,8 @@ const Recorder = struct {
         guessed_m31: std.ArrayList(M31) = .empty,
         outputs: []const u32 = &.{},
         eq_with_zero: usize = 0,
+        /// The words of every `constHash`, in call order.
+        const_hashes: std.ArrayList([8]u32) = .empty,
 
         fn init() Context {
             return .{ .arena = std.heap.ArenaAllocator.init(std.testing.allocator) };
@@ -91,6 +99,7 @@ const Recorder = struct {
         return constant(ctx, QM31.fromU32Unchecked(value & 0xffff, value >> 16, 0, 0));
     }
     pub fn constHash(ctx: *Context, words: [8]u32) ![8]u32 {
+        try ctx.const_hashes.append(ctx.allocator(), words);
         var vars: [8]u32 = undefined;
         for (&vars, words) |*v, word| v.* = try constU32(ctx, word);
         return vars;
@@ -197,10 +206,17 @@ const Fixture = struct {
                 return @intCast(object.get(key).?.integer);
             }
         }.u;
-        var root: [8]u32 = undefined;
-        for (body.get("preprocessed_roots").?.array.items) |entry| {
-            if (entry.array.items[0].integer != 21) continue;
-            for (&root, entry.array.items[1].array.items) |*word, value| word.* = @intCast(value.integer);
+        // The leaf's Cairo root: canonical_small at log blowup 1.
+        const topology_bytes = try std.fs.cwd().readFileAlloc(allocator, topology_path, 4 * 1024 * 1024);
+        defer allocator.free(topology_bytes);
+        const topology = try std.json.parseFromSlice(std.json.Value, allocator, topology_bytes, .{});
+        defer topology.deinit();
+        var root: ?[8]u32 = null;
+        for (topology.value.object.get("body").?.object.get("cairo_preprocessed_roots").?.array.items) |entry| {
+            if (entry.object.get("log_blowup_factor").?.integer != 1) continue;
+            var words: [8]u32 = undefined;
+            for (&words, entry.object.get("preprocessed_root").?.array.items) |*word, value| word.* = @intCast(value.integer);
+            root = words;
         }
         return .{
             .parsed = parsed,
@@ -217,7 +233,7 @@ const Fixture = struct {
                 },
             },
             .relation_uses_num_rows_shift = get(c, "relation_uses_num_rows_shift"),
-            .root = root,
+            .root = root orelse return error.MissingCairoRoot,
         };
     }
 
@@ -230,8 +246,8 @@ const Fixture = struct {
     }
 };
 
-fn syntheticProgram(allocator: std.mem.Allocator, len: usize) ![]statement.ProgramFelt {
-    const program = try allocator.alloc(statement.ProgramFelt, len);
+fn syntheticProgram(allocator: std.mem.Allocator, len: usize) ![]layout.ProgramFelt {
+    const program = try allocator.alloc(layout.ProgramFelt, len);
     for (program, 0..) |*felt, i| {
         for (felt, 0..) |*limb, j| limb.* = M31.fromCanonical(@intCast((i * 31 + j * 7) % 512));
     }
@@ -241,7 +257,7 @@ fn syntheticProgram(allocator: std.mem.Allocator, len: usize) ![]statement.Progr
 test "cairo statement: constants and layout agree with the R6 checkpoint" {
     var fixture = try Fixture.load(std.testing.allocator);
     defer fixture.deinit();
-    try std.testing.expectEqual(fixture.fixedLen(), statement.aux_data_fixed_len);
+    try std.testing.expectEqual(fixture.fixedLen(), layout.aux_data_fixed_len);
     try fixture.constants.validate();
     const verify = @import("../stark_verifier/verify.zig");
     try std.testing.expectEqual(fixture.relation_uses_num_rows_shift, verify.RELATION_USES_NUM_ROWS_SHIFT);
@@ -258,7 +274,7 @@ test "cairo statement: new guesses the output digest, then every aux word, in or
     defer ctx.deinit();
     const allocator = ctx.allocator();
     const program = try syntheticProgram(allocator, 5);
-    const aux_len = statement.aux_data_fixed_len + program.len + 79;
+    const aux_len = layout.aux_data_fixed_len + program.len + 79;
     const aux = try allocator.alloc(M31, aux_len);
     for (aux, 0..) |*word, i| word.* = M31.fromCanonical(@intCast(i + 100));
 
@@ -309,7 +325,7 @@ test "cairo statement: claims_to_mix groups, public params and builtin checks" {
     defer ctx.deinit();
     const allocator = ctx.allocator();
     const program = try syntheticProgram(allocator, 5);
-    const aux = try allocator.alloc(M31, statement.aux_data_fixed_len + program.len + 79);
+    const aux = try allocator.alloc(M31, layout.aux_data_fixed_len + program.len + 79);
     @memset(aux, M31.zero());
     const s = try Statement.init(allocator, &ctx, .{
         .constants = fixture.constants,
@@ -323,7 +339,7 @@ test "cairo statement: claims_to_mix groups, public params and builtin checks" {
     });
 
     const groups = try s.claimsToMix(&ctx);
-    const expected_lengths = [_]usize{ 4, 84, 80, 4, std.mem.alignForward(usize, statement.aux_data_fixed_len + program.len, 4), 8, 8 };
+    const expected_lengths = [_]usize{ 4, 84, 80, 4, std.mem.alignForward(usize, layout.aux_data_fixed_len + program.len, 4), 8, 8 };
     for (groups, expected_lengths) |group, len| try std.testing.expectEqual(len, group.len);
 
     const params = s.publicParams();
@@ -382,4 +398,154 @@ test "cairo statement: enabled bits over the projection's slot order match the R
     var table = try cairo_components.build(allocator, &projection);
     defer table.deinit();
     try std.testing.expectEqual(fixture.constants.memory, table.constants);
+}
+
+test "cairo statement: claims_to_mix interns the oracle's program hash" {
+    var fixture = try Fixture.load(std.testing.allocator);
+    defer fixture.deinit();
+    const record = fixture.parsed.value.object.get("body").?.object.get("program").?.object;
+    // The two-felt program [first felt, last felt] of the leaf test program.
+    var program: [2]layout.ProgramFelt = undefined;
+    for (&program, [_][]const u8{ "first_felt_limbs", "last_felt_limbs" }) |*felt, key| {
+        for (felt, record.get(key).?.array.items) |*limb, value| limb.* = M31.fromCanonical(@intCast(value.integer));
+    }
+    var expected: [8]u32 = undefined;
+    for (&expected, record.get("edge_felts_program_hash").?.array.items) |*word, value| word.* = @intCast(value.integer);
+
+    var ctx = Recorder.Context.init();
+    defer ctx.deinit();
+    const allocator = ctx.allocator();
+    const aux = try allocator.alloc(M31, layout.aux_data_fixed_len + program.len + 79);
+    @memset(aux, M31.zero());
+    const s = try Statement.init(allocator, &ctx, .{
+        .constants = fixture.constants,
+        .serialized_aux_data = aux,
+        .output_hash = null,
+        .program = &program,
+        .slot_names = fixture.slot_names,
+        .enabled_bits = fixture.enabled_bits,
+        .preprocessed_root = fixture.root,
+        .variant = .canonical_small,
+    });
+    const hashes_before = ctx.const_hashes.items.len;
+    _ = try s.claimsToMix(&ctx);
+    // `claims_to_mix` interns exactly one hash constant: the program hash.
+    try std.testing.expectEqual(hashes_before + 1, ctx.const_hashes.items.len);
+    try std.testing.expectEqual(expected, ctx.const_hashes.items[hashes_before]);
+}
+
+/// The R6 synthetic claim as `CairoStatement::new` inputs.
+const SyntheticInputs = struct {
+    aux: []M31,
+    program: []layout.ProgramFelt,
+    output_hash: [8]u32,
+    log_sizes: []u32,
+    mix_digest_m31: []const u8,
+
+    fn load(allocator: std.mem.Allocator, fixture: *const Fixture) !SyntheticInputs {
+        const claim = fixture.parsed.value.object.get("body").?.object.get("synthetic_claim").?.object;
+        const words = struct {
+            fn of(a: std.mem.Allocator, value: std.json.Value) ![]u32 {
+                const out = try a.alloc(u32, value.array.items.len);
+                for (out, value.array.items) |*w, v| w.* = @intCast(v.integer);
+                return out;
+            }
+        }.of;
+        const serialized = try words(allocator, claim.get("serialized_aux_data").?);
+        const aux = try allocator.alloc(M31, serialized.len);
+        for (aux, serialized) |*m, w| m.* = M31.fromCanonical(w);
+        const limbs = try words(allocator, claim.get("program_claim").?);
+        const program = try allocator.alloc(layout.ProgramFelt, limbs.len / layout.memory_values_limbs);
+        for (program, 0..) |*felt, f| {
+            for (felt, limbs[f * layout.memory_values_limbs ..][0..layout.memory_values_limbs]) |*limb, w| limb.* = M31.fromCanonical(w);
+        }
+        // `output_hash_from_output_cells`: the low four words of each cell.
+        var output_hash: [8]u32 = undefined;
+        for (claim.get("output").?.array.items, 0..) |cell, index| {
+            for (output_hash[index * 4 ..][0..4], cell.object.get("value").?.array.items[0..4]) |*w, v| w.* = @intCast(v.integer);
+        }
+        return .{
+            .aux = aux,
+            .program = program,
+            .output_hash = output_hash,
+            .log_sizes = try words(allocator, claim.get("component_log_sizes").?),
+            .mix_digest_m31 = claim.get("mix_digest_blake2s_m31").?.string,
+        };
+    }
+};
+
+/// Builds `CairoStatement::new`, `claims_to_mix`, `verify_claim` and
+/// `public_logup_sum` over the M2 builder; returns the context.
+fn buildOverBuilder(comptime V: type, gpa: std.mem.Allocator, fixture: *const Fixture, inputs: SyntheticInputs, groups_out: ?*[7][]const builder.Var) !builder.Context(V) {
+    const B = BuilderFacade(V);
+    var ctx = try B.Context.init(gpa, 8);
+    errdefer ctx.deinit();
+    const allocator = ctx.scratch();
+    const aux = if (V == QM31) inputs.aux else blk: {
+        const zeros = try allocator.alloc(M31, inputs.aux.len);
+        @memset(zeros, M31.zero());
+        break :blk zeros;
+    };
+    const s = try statement.CairoStatement(B).init(allocator, &ctx, .{
+        .constants = fixture.constants,
+        .serialized_aux_data = aux,
+        .output_hash = if (V == QM31) inputs.output_hash else null,
+        .program = inputs.program,
+        .slot_names = fixture.slot_names,
+        .enabled_bits = fixture.enabled_bits,
+        .preprocessed_root = fixture.root,
+        .variant = .canonical_small,
+    });
+    const groups = try s.claimsToMix(&ctx);
+    if (groups_out) |out| out.* = groups;
+    const sizes = try allocator.alloc(builder.Var, s.components.len);
+    for (sizes, inputs.log_sizes) |*v, log_size| v.* = try B.constU32(&ctx, @as(u32, 1) << @intCast(log_size));
+    try s.verifyClaim(&ctx, sizes, try B.constU32(&ctx, 1));
+    const z = try ctx.guess(builder.ivalue.fromQm31(V, QM31.fromU32Unchecked(3, 5, 7, 11)));
+    const alpha = try ctx.guess(builder.ivalue.fromQm31(V, QM31.fromU32Unchecked(13, 17, 19, 23)));
+    _ = try s.publicLogupSum(&ctx, .{ z, alpha });
+    return ctx;
+}
+
+test "cairo statement over the builder: claims_to_mix mixes to FlatClaim::mix_into" {
+    const gpa = std.testing.allocator;
+    var fixture = try Fixture.load(gpa);
+    defer fixture.deinit();
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+    const inputs = try SyntheticInputs.load(arena.allocator(), &fixture);
+
+    var groups: [7][]const builder.Var = undefined;
+    var ctx = try buildOverBuilder(QM31, gpa, &fixture, inputs, &groups);
+    defer ctx.deinit();
+    // The verifier mixes each group with `channel.mix_u32s`; the host
+    // Blake2sM31 channel over the same words must reach upstream's digest.
+    var channel = core.channel.blake2s.Blake2sM31Channel{};
+    for (groups) |group| {
+        const words = try arena.allocator().alloc(u32, group.len);
+        for (words, group) |*w, v| w.* = builder.ivalue.unpackU32(QM31, ctx.get(v));
+        channel.mixU32s(words);
+    }
+    const hex = std.fmt.bytesToHex(channel.digestBytes(), .lower);
+    try std.testing.expectEqualStrings(inputs.mix_digest_m31, &hex);
+}
+
+test "cairo statement over the builder: value and topology builds emit the same gates" {
+    const gpa = std.testing.allocator;
+    var fixture = try Fixture.load(gpa);
+    defer fixture.deinit();
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+    const inputs = try SyntheticInputs.load(arena.allocator(), &fixture);
+
+    var values = try buildOverBuilder(QM31, gpa, &fixture, inputs, null);
+    defer values.deinit();
+    var topology = try buildOverBuilder(builder.NoValue, gpa, &fixture, inputs, null);
+    defer topology.deinit();
+    const a = try builder.debug_format.circuitText(gpa, &values.circuit);
+    defer gpa.free(a);
+    const b = try builder.debug_format.circuitText(gpa, &topology.circuit);
+    defer gpa.free(b);
+    try std.testing.expectEqualStrings(a, b);
+    try std.testing.expect(values.circuit.n_vars > 10_000);
 }

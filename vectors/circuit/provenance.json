@@ -9,7 +9,7 @@
     "toolchain": "nightly-2026-01-15",
     "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
     "lock_sha256": "549a2cee45a1e64ad223855894a426d5ee6cf4a331298bcb65bcaed4155faac5",
-    "source_sha256": "e0285506004c2a9a60bfbe9e9dc6269b52f2fffce7248efb71e29db386ca60f4"
+    "source_sha256": "8c11ae115730f1773e8516b7b4a8feec997244033748389f460d55b9689087c1"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-29",
@@ -152,6 +152,20 @@
       ],
       "bytes": 152402,
       "sha256": "50ec9754d633de82740819de990924c352e4224e88372ef784d1c09dd4acdd44"
+    },
+    {
+      "path": "vectors/circuit/r6/cairo_statement.json",
+      "rung": "r6",
+      "command": [
+        "stwo-circuit-oracle",
+        "cairo-statement",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r6/cairo_statement.json"
+      ],
+      "bytes": 39151,
+      "sha256": "18f99d475360f95f4abb7cfa4bac508ea5afc86205309027f79d33c513b99c26"
     },
     {
       "path": "vectors/circuit/r6/topology.json",

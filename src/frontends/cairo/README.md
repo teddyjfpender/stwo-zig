@@ -80,13 +80,16 @@ the more explicit transaction modules in `stwo_cairo_cpu_integration` or
 The frontend has no CPU, Metal, or CUDA backend dependency.
 
 The preprocessed-trace variants and their ordered column ids, the builtin
-memory-cell sizes and the leaf verifier's disabled components live in
+memory-cell sizes, the leaf verifier's disabled components, the leaf
+statement's aux-data layout and its `claims_to_mix` program hash live in
 `stwo_core.cairo_air_layout`, shared with circuit recursion; this package
 re-exports them as `air_layout`, `preprocessed.trace.Variant` and
 `claim_generator.PreprocessedVariant`. `statement.circuit_leaf` derives the
-circuit-recursion leaf's host inputs (serialized aux data, program limbs and
-hash, output digest, `enabled_bits`) from the lane's existing statement code;
-`vectors/circuit/r6/cairo_statement.json` pins them.
+circuit-recursion leaf's host inputs (serialized aux data, program limbs,
+output digest, `enabled_bits`) from the lane's existing statement code;
+`vectors/circuit/r6/cairo_statement.json` pins them, and R10b
+(`zig build test-circuit-leaf-cairo-roots`) commits the canonical_small trace
+to the roots of `vectors/circuit/r6/topology.json`.
 
 ## Build, test, and run
 

@@ -33,7 +33,8 @@
 //!
 //! Fallible members return `anyerror!T`; slices they return are owned by the
 //! context's arena. Cairo AIR facts (variants, ordered preprocessed ids,
-//! builtin cells, leaf components) come from `stwo_core.cairo_air_layout`;
+//! builtin cells, leaf components, the aux-data layout, `ProgramFelt` and the
+//! `claims_to_mix` program hash) come from `stwo_core.cairo_air_layout`;
 //! the memory constants come from the projection header (the M4 table's
 //! `constants`), `RELATION_USES_NUM_ROWS_SHIFT` from M5's `verify`, and the
 //! three relation ids from the caller, so no third copy of them exists here.
@@ -46,30 +47,20 @@ const verify = @import("../stark_verifier/verify.zig");
 const layout = core.cairo_air_layout;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const Blake2sHasher = core.vcs.blake2_hash.Blake2sHasher;
 
-pub const n_segments = 11;
-pub const n_safe_call_ids = 2;
-/// A memory value is stored as 28 nine-bit limbs.
-pub const memory_values_limbs = 28;
-/// The program's output is one Blake2s digest split over two 128-bit cells.
-pub const n_outputs = 2;
-const pub_memory_value_m31_len = 2;
-const state_len = 3;
-pub const aux_data_fixed_len = 2 * state_len + 2 * pub_memory_value_m31_len * n_segments + n_safe_call_ids + n_outputs;
+// The aux-data layout, the program felt and the program hash are shared with
+// the Cairo lane's host inputs through `stwo_core.cairo_air_layout`.
+const n_segments = layout.n_segments;
+const n_safe_call_ids = layout.n_safe_call_ids;
+const memory_values_limbs = layout.memory_values_limbs;
+const n_outputs = layout.n_outputs;
+const aux_data_fixed_len = layout.aux_data_fixed_len;
+const n_words_per_output_cell = layout.n_words_per_output_cell;
+const ProgramFelt = layout.ProgramFelt;
 const limb_bits = 9;
-pub const n_words_per_output_cell = 4;
-const blake2s_digest_n_words = 8;
 const memory_address_bits: u32 = 29;
 const builtin_usage_bits: u32 = 27;
 const m31_modulus: u64 = core.fields.m31.Modulus;
-
-comptime {
-    std.debug.assert(aux_data_fixed_len == 54);
-    std.debug.assert(n_outputs * n_words_per_output_cell == blake2s_digest_n_words);
-}
-
-pub const ProgramFelt = [memory_values_limbs]M31;
 
 const relation_uses_num_rows_shift: u32 = verify.RELATION_USES_NUM_ROWS_SHIFT;
 
@@ -308,7 +299,7 @@ pub fn CairoStatement(comptime B: type) type {
             const output_limb_words = try self.toPaddedU32Words(ctx, output_limb_vars);
             const output_hash = try B.blake2sU32s(ctx, output_limb_words, n_output_bytes);
 
-            const program_hash = try B.constHash(ctx, try self.programHash());
+            const program_hash = try B.constHash(ctx, layout.programHash(self.program));
             return .{
                 enable_count_words,
                 enable_bits_words,
@@ -318,20 +309,6 @@ pub fn CairoStatement(comptime B: type) type {
                 try self.allocator.dupe(Var, &output_hash),
                 try self.allocator.dupe(Var, &program_hash),
             };
-        }
-
-        /// `IValue::blake2s(pack_into_qm31s(flat limbs), len * 16)`: plain
-        /// Blake2s over the LE limb words (28 limbs per felt, so no padding).
-        pub fn programHash(self: *const Self) std.mem.Allocator.Error![8]u32 {
-            const flat = try self.allocator.alloc(u32, self.program.len * memory_values_limbs);
-            defer self.allocator.free(flat);
-            for (self.program, 0..) |felt, index| {
-                for (felt, flat[index * memory_values_limbs ..][0..memory_values_limbs]) |limb, *word| word.* = limb.v;
-            }
-            const digest = Blake2sHasher.hashU32s(flat);
-            var words: [8]u32 = undefined;
-            for (&words, 0..) |*word, index| word.* = std.mem.readInt(u32, digest[index * 4 ..][0..4], .little);
-            return words;
         }
 
         /// `public_logup_sum`: the program limbs as constants, then the sum.
