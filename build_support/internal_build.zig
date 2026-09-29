@@ -400,6 +400,8 @@ fn addPolicyGates(b: *std.Build) void {
         .{ "package-workspace", "Audit package ownership, API, and dependency boundaries", &.{ "python3", "scripts/check_package_workspace.py" } },
         .{ "registry-parity", "Compare focused and aggregate compiled capability registries", &.{ "python3", "scripts/check_registry_parity.py" } },
         .{ "upstream-surface", "Validate API parity rust_path entries against pinned upstream commit", &.{ "python3", "scripts/check_upstream_surface.py" } },
+        .{ "circuit-air-projection-check", "Authenticate and decode the committed compiled-AIR projection", &.{ "zig", "build", "circuit-air-projection-check", "--build-file", "src/frontends/circuit/build.zig", "-j2" } },
+        .{ "circuit-slot-order", "Assert the circuit projection's Cairo slot order equals the Cairo claim registry", &.{ "zig", "build", "test", "--build-file", "conformance/circuit_slot_order/build.zig", "-j2" } },
     }) |gate| {
         const command = b.addSystemCommand(gate[2]);
         b.step(gate[0], gate[1]).dependOn(&command.step);
