@@ -1,6 +1,7 @@
 //! Validated fixed-step FRI round geometry.
 
 const std = @import("std");
+const foldStepAt = @import("config.zig").foldStepAt;
 
 pub const Error = error{BindingSizeMismatch};
 
@@ -50,7 +51,7 @@ pub const FriGeometry = struct {
         const last_cumulative = @as(u32, @intCast(config.round_count - 1)) * config.fold_step;
         if (last_cumulative >= folds or start_log - last_cumulative < config.packed_log)
             return Error.BindingSizeMismatch;
-        const last_fold = @min(config.fold_step, start_log - last_cumulative - config.final_log);
+        const last_fold = foldStepAt(config.fold_step, start_log - last_cumulative - config.final_log);
         if (start_log - last_cumulative - last_fold != config.final_log)
             return Error.BindingSizeMismatch;
 
@@ -95,7 +96,7 @@ pub const FriGeometry = struct {
 
     pub fn roundFold(self: FriGeometry, round: usize) Error!u32 {
         const evaluation_log = try self.evaluationLog(round);
-        return @min(self.runtime_fold_step, evaluation_log - self.runtime_final_log);
+        return foldStepAt(self.runtime_fold_step, evaluation_log - self.runtime_final_log);
     }
 
     pub fn terminalLog(self: FriGeometry) u32 {
