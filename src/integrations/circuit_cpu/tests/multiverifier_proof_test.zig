@@ -20,6 +20,7 @@ const prover = @import("stwo_prover_engine");
 const circuit = @import("stwo_circuit_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 const circuit_inputs = @import("circuit_inputs.zig");
+const rust_verifier = @import("rust_verifier.zig");
 
 const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
 const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
@@ -142,11 +143,15 @@ test "R7: the multiverifier proof.bin is reproduced byte for byte" {
     );
     if (std.process.hasEnvVarConstant("STWO_CIRCUIT_STAGE_PROFILE")) try printStages(&recorder);
 
+    try rust_verifier.emit(allocator, "multiverifier", encoded, &proof, &pp);
     try std.testing.expectEqual(expected.len, encoded.len);
     if (std.mem.indexOfDiff(u8, expected, encoded)) |offset| {
         std.debug.print("proof.bin differs from byte {d}\n", .{offset});
         return error.TestExpectedEqual;
     }
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
+    try rust_verifier.expectAccepted(allocator, "multiverifier", &digest);
 }
 
 /// `STWO_CIRCUIT_COMPACT_MIN_LOG`: compact storage threshold (default 18);

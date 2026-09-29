@@ -17,6 +17,7 @@ const prover = @import("stwo_prover_engine");
 const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
+const rust_verifier = @import("rust_verifier.zig");
 
 const QM31 = core.fields.qm31.QM31;
 const builder = circuit.builder;
@@ -27,10 +28,12 @@ const Var = builder.Var;
 const component_list = circuit.common.component_list;
 const preprocessed = circuit.common.preprocessed;
 const checkpoint = cairo.conformance.checkpoint;
-const Prover = circuit_cpu.Internal;
+const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
+const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
 const Step = circuit_cpu.prove.Step;
 
 const fixture_path = "vectors/circuit/r7/prove_small.json";
+const profiles_path = "vectors/circuit/r7/prove_profiles.json";
 const N_RESERVED = component_list.N_RESERVED;
 
 const preprocessed_domains = checkpoint.Domains{
@@ -299,15 +302,38 @@ fn loadBundle(allocator: std.mem.Allocator) !circuit_cpu.air.Bundle {
     return circuit_cpu.air.parse(allocator, bytes);
 }
 
-fn proveAndCompare(which: TestContext) !void {
+/// The fixture a proof is compared with: `prove-small` (the upstream
+/// tests' default config, internal profile) or `prove-profiles` (the circuit
+/// FRI config with 26 PoW bits, on each channel profile).
+const Lane = enum { small, internal, root };
+
+fn laneProver(comptime lane: Lane) type {
+    return switch (lane) {
+        .small, .internal => circuit_cpu.Internal,
+        .root => circuit_cpu.Root,
+    };
+}
+
+fn expectedProof(lane: Lane, which: TestContext, parsed: Json) !Json {
+    const proofs = switch (lane) {
+        .small => field(field(parsed, "body"), "proofs"),
+        .internal, .root => for (field(field(parsed, "body"), "profiles").array.items) |profile| {
+            if (std.mem.eql(u8, field(profile, "profile").string, @tagName(lane))) break field(profile, "proofs");
+        } else return error.MissingFixture,
+    };
+    for (proofs.array.items) |proof| {
+        if (std.mem.eql(u8, field(proof, "name").string, @tagName(which))) return proof;
+    }
+    return error.MissingFixture;
+}
+
+fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
     const allocator = std.testing.allocator;
-    const bytes = try std.fs.cwd().readFileAlloc(allocator, fixture_path, 16 << 20);
+    const bytes = try std.fs.cwd().readFileAlloc(allocator, if (lane == .small) fixture_path else profiles_path, 16 << 20);
     defer allocator.free(bytes);
     var parsed = try std.json.parseFromSlice(Json, allocator, bytes, .{});
     defer parsed.deinit();
-    const expected = for (field(field(parsed.value, "body"), "proofs").array.items) |proof| {
-        if (std.mem.eql(u8, field(proof, "name").string, @tagName(which))) break proof;
-    } else return error.MissingFixture;
+    const expected = try expectedProof(lane, which, parsed.value);
 
     var ctx = try buildContext(allocator, which);
     defer ctx.deinit();
@@ -318,17 +344,22 @@ fn proveAndCompare(which: TestContext) !void {
     try std.testing.expectEqualStrings(field(expected, "values_sha256").string, &valuesSha256(ctx.values()));
     try std.testing.expectEqual(@as(u32, @intCast(field(expected, "trace_log_size").integer)), pp.traceLogSize());
 
-    const fri = field(field(expected, "pcs_config"), "fri_config");
-    const pcs_config = circuit_cpu.prove.defaultPcsConfig(pp.traceLogSize());
-    try std.testing.expectEqual(@as(u32, @intCast(field(fri, "pow_bits").integer)), pcs_config.fri_config.pow_bits);
-    try std.testing.expectEqual(@as(u32, @intCast(field(fri, "n_queries").integer)), pcs_config.fri_config.n_queries);
-    try std.testing.expectEqual(@as(u32, @intCast(field(fri, "fold_step").integer)), pcs_config.fri_config.fold_step);
+    const pcs_config = switch (lane) {
+        .small => circuit_cpu.prove.defaultPcsConfig(pp.traceLogSize()),
+        .internal, .root => PcsConfigV2.fromFriAndTraceSize(try FriConfigV2.init(26, 0, 1, 70, 4), pp.traceLogSize()),
+    };
+    const pcs_json = field(expected, "pcs_config");
+    const fri = field(pcs_json, "fri_config");
+    inline for (.{ "pow_bits", "log_blowup_factor", "log_last_layer_degree_bound", "n_queries", "fold_step" }) |name|
+        try std.testing.expectEqual(@as(u32, @intCast(field(fri, name).integer)), @field(pcs_config.fri_config, name));
+    try std.testing.expectEqual(@as(u32, @intCast(field(pcs_json, "trace_lifting_log_size").integer)), pcs_config.trace_lifting_log_size);
+    try std.testing.expectEqual(@as(u32, @intCast(field(pcs_json, "preprocessed_lifting_log_size").integer)), pcs_config.preprocessed_lifting_log_size);
 
     var bundle = try loadBundle(allocator);
     defer bundle.deinit();
     var observer = Observer{ .allocator = allocator };
     defer observer.deinit();
-    var proof = try Prover.prove(allocator, ctx.values(), &pp, &bundle, pcs_config, .{}, &observer);
+    var proof = try laneProver(lane).prove(allocator, ctx.values(), &pp, &bundle, pcs_config, .{}, &observer);
     defer proof.deinit();
 
     // Component log sizes.
@@ -385,29 +416,50 @@ fn proveAndCompare(which: TestContext) !void {
         var digest: [32]u8 = undefined;
         std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
         try expectHex(field(serialized, "sha256"), &digest);
+        const label = @tagName(lane) ++ "-" ++ @tagName(which);
+        try rust_verifier.emit(allocator, label, encoded, &proof, &pp);
+        // Upstream's `verify_circuit` is the circuit verifier, on the M31
+        // channel; root-profile proofs are checked by their bytes above.
+        if (lane != .root) try rust_verifier.expectAccepted(allocator, label, &digest);
     } else try std.testing.expect(proof.output_values.len != N_RESERVED);
 }
 
 test "R7: fibonacci proof matches prove_circuit_assignment" {
-    try proveAndCompare(.fibonacci);
+    try proveAndCompare(.small, .fibonacci);
 }
 
 test "R7: permutation proof matches prove_circuit_assignment" {
-    try proveAndCompare(.permutation);
+    try proveAndCompare(.small, .permutation);
 }
 
 test "R7: blake proof matches prove_circuit_assignment" {
-    try proveAndCompare(.blake);
+    try proveAndCompare(.small, .blake);
 }
 
 test "R7: triple_xor proof matches prove_circuit_assignment" {
-    try proveAndCompare(.triple_xor);
+    try proveAndCompare(.small, .triple_xor);
 }
 
 test "R7: m31_to_u32 proof matches prove_circuit_assignment" {
-    try proveAndCompare(.m31_to_u32);
+    try proveAndCompare(.small, .m31_to_u32);
 }
 
 test "R7: blake_g_gate proof matches prove_circuit_assignment" {
-    try proveAndCompare(.blake_g_gate);
+    try proveAndCompare(.small, .blake_g_gate);
+}
+
+test "R7 profiles: internal fibonacci under the 26-bit circuit FRI config" {
+    try proveAndCompare(.internal, .fibonacci);
+}
+
+test "R7 profiles: internal blake_g_gate under the 26-bit circuit FRI config" {
+    try proveAndCompare(.internal, .blake_g_gate);
+}
+
+test "R7 profiles: root fibonacci under the 26-bit circuit FRI config" {
+    try proveAndCompare(.root, .fibonacci);
+}
+
+test "R7 profiles: root blake_g_gate under the 26-bit circuit FRI config" {
+    try proveAndCompare(.root, .blake_g_gate);
 }

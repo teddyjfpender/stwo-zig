@@ -160,10 +160,19 @@ pub fn run(proving_root: &Path, inputs_output: &Path) -> Result<Envelope<Multive
         preprocessed_root: goldens::PRIVACY_CAIRO_VERIFIER_PREPROCESSED_ROOT.into(),
         output_digest: goldens::PRIVACY_CAIRO_VERIFIER_OUTPUT_DIGEST.into(),
     };
+    // Wall times go to stderr only (design §9.1 builder share); the checkpoint stays deterministic.
+    let build_start = std::time::Instant::now();
     let mut context = build_multiverifier_circuit::<QM31>(vec![input(), input()], &shared_config);
     pad_to_targets(&mut context, &target);
+    let build_seconds = build_start.elapsed().as_secs_f64();
     context.validate_circuit();
+    let preprocess_start = std::time::Instant::now();
     let preprocessed = PreprocessedCircuit::preprocess_circuit(&mut context);
+    eprintln!(
+        "multiverifier: build_multiverifier_circuit + pad_to_targets {build_seconds:.3} s, \
+         preprocess_circuit {:.3} s",
+        preprocess_start.elapsed().as_secs_f64()
+    );
     let preprocessed_root: [u32; 8] =
         le_u32s_from_bytes(preprocessed.preprocessed_root(pcs_config.fri_config.log_blowup_factor).0);
     ensure!(
