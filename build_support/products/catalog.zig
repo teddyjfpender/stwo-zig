@@ -270,6 +270,7 @@ pub const steps = [_]Step{
     .{ .name = "upstream-surface", .description = "Validate upstream API surface", .scope = .policy },
     .{ .name = "build-configure-closure", .description = "Verify focused configure closure", .scope = .policy },
     .{ .name = "registry-parity", .description = "Compare focused and aggregate registries", .scope = .policy },
+    .{ .name = "circuit-lint", .description = "Reject order-unstable constructs in the circuit frontend", .scope = .policy },
     .{ .name = "release-gate", .description = "Run the standard release gate", .scope = .release },
     .{ .name = "release-gate-strict", .description = "Run the strict release gate", .scope = .release },
 };

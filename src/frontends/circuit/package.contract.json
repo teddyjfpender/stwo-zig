@@ -1,0 +1,39 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_circuit_frontend",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "circuit-frontend",
+  "public_modules": {
+    "stwo_circuit_frontend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core"
+  },
+  "injected_modules": [],
+  "api_surface": [
+    "builder",
+    "common"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: the builder is generic over QM31 and NoValue"
+    ],
+    "invariant_tests": [
+      "mod.zig::invariant: vars 0, 1, 2 are zero, one and u, and u is an output"
+    ]
+  },
+  "ci": {
+    "lane": "circuit_frontend",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/circuit/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

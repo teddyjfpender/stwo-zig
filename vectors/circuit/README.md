@@ -18,7 +18,10 @@ rejects any drift. Regenerate only with
 | `r3/components.json` | R3 | all 94 in-circuit evaluators in a fresh `Context` |
 | `official/compiled_air_constraints_v1.bin` | R3 | constraints-only projection of the compiled AIR |
 | `official/compiled_{casm,circuit}_air.sample_evaluations.json` | R3 | upstream `outputs/*/sample_evaluations.json`: the evaluator assignments |
-| `official/registries/*.json` | R0, R6 | the two checked-in canonical_small circuit registries |
+| `official/registries/*.json` | R0, R6 | the checked-in circuit registries: the two canonical_small test registries and the privacy `large_proofs` registry |
+| `official/circuit_multiverifier/*.bin` | R4, R7 | upstream `test_data/circuit_multiverifier`: `CircuitSerialize` multiverifier and Cairo-verifier proofs (`LOG_BLOWUP_FACTOR` 3) |
+| `official/leaf_prover/expected_output.json` | R8 | the leaf prover's `SerializedLeafProof` golden for `use_all_opcodes_and_builtins` |
+| `official/recursive_tree/four_leaves/*` | R9 | the recursive tree's four-leaf goldens: `leaf.json` (`LeafInput`), `root.proof`, `root_outputs.json`, `root_packed.json` |
 | `r10/use_all_opcodes_and_builtins.prover_input.json` | R10c | the leaf prover's test program (`crates/leaf_prover/tests/data`) run and adapted by upstream `prove_leaf.rs` steps 1-2 |
 | `r10/all_opcodes.fixed_22.prove_cairo.json` | R10c | `all_opcodes` under `LiftingSizePolicy::Fixed(22)`: every tree, the preprocessed one included, lifted one level above its columns |
 | `r10/prove_lifted_example.json` | R10 lift | upstream's wide-Fibonacci prover test with the trace tree lifted 0, 1 and 3 levels: `bincode(StarkProof)` digests |
@@ -112,6 +115,17 @@ the hand-written functions it omits, and the upstream constants
 `LARGE_MEMORY_VALUE_ID_BASE`, `MAX_SEQUENCE_LOG_SIZE`, and
 `MEMORY_ADDRESS_TO_ID_SPLIT`. The pin checker decodes it with an independent
 reader and verifies every record digest.
+
+## Wire-format goldens
+
+The `circuit_multiverifier`, `leaf_prover`, `recursive_tree` and
+`privacy_large_proofs` files are upstream outputs copied verbatim (3.2 MB in
+all). The `stwo_circuit_recursion_wire` package
+(`src/interop/circuit_recursion`) round-trips every one of them
+byte-identically; they stay in the tree because they are the only Rust-made
+instances of these formats, and producing them again needs a full leaf and
+fold proving run on a large host. Keep them until the ladder's R7-R9 rungs
+reproduce them from Zig.
 
 ## Leaf-lane Cairo proofs (R10c)
 

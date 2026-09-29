@@ -22,9 +22,17 @@
       "status": "published",
       "reason": "The backend-neutral Cairo frontend is a supported Zig source package."
     },
+    "stwo_circuit_frontend": {
+      "status": "internal",
+      "reason": "The circuit recursion frontend is under construction (recursion design milestones M2 onward) and is not a supported Zig source package yet."
+    },
     "stwo_cairo_metal_integration": {
       "status": "published",
       "reason": "The authenticated Metal composition is distributed as a macOS Zig source package."
+    },
+    "stwo_circuit_recursion_wire": {
+      "status": "internal",
+      "reason": "The circuit recursion wire formats serve the in-progress circuit recursion port; they join the SDK with the recursion products."
     },
     "stwo_core": {
       "status": "published",

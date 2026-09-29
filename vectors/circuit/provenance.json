@@ -14,6 +14,24 @@
   "host": "Darwin arm64",
   "artifacts": [
     {
+      "path": "vectors/circuit/official/circuit_multiverifier/backward_compatibility_cairo_proof.bin",
+      "upstream_path": "test_data/circuit_multiverifier/backward_compatibility_cairo_proof.bin",
+      "bytes": 182884,
+      "sha256": "4fd195c8bc96f3d2ff5d26f98ca2c0d67827529a3a9e7ec0e2a81ce306e9feac"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_multiverifier/proof.bin",
+      "upstream_path": "test_data/circuit_multiverifier/proof.bin",
+      "bytes": 182884,
+      "sha256": "458eaa893dee79b8e5bb572d20e445a6d2164cb2d464e5967f1fa9e4156b38df"
+    },
+    {
+      "path": "vectors/circuit/official/circuit_multiverifier/proof_cairo.bin",
+      "upstream_path": "test_data/circuit_multiverifier/proof_cairo.bin",
+      "bytes": 182884,
+      "sha256": "536c8bd7a231a4d7e66763866066f6d72097d902b7c5f839515d65c8c0fbf5b6"
+    },
+    {
       "path": "vectors/circuit/official/compiled_air_constraints_v1.bin",
       "rung": "r3",
       "command": [
@@ -40,10 +58,46 @@
       "sha256": "3a6ccb1f9ebc4fb0e3bf95c8e67b38c1ced5e84981bdbc9f3204eda21b9c7844"
     },
     {
+      "path": "vectors/circuit/official/leaf_prover/expected_output.json",
+      "upstream_path": "crates/leaf_prover/tests/data/expected_output.json",
+      "bytes": 368522,
+      "sha256": "18c3e1dd245e93f0e08831291b4e5cc3374d47d10517a216def6b25683376d29"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/leaf.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf.json",
+      "bytes": 728371,
+      "sha256": "199e8414eb27a71e119494afe63d447eedd4fd5fb7ee874b12a0c43cc6258f40"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/root.proof",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/root.proof",
+      "bytes": 1504230,
+      "sha256": "51073022d8e9b5df905be950c8c359ca836ea4c24a59c4079b0b839139a58571"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/root_outputs.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/root_outputs.json",
+      "bytes": 87,
+      "sha256": "2b037e5ca376a6c04eb2ea3ed9bac74153b1826810919fbf5c2ac7fc09e97d82"
+    },
+    {
+      "path": "vectors/circuit/official/recursive_tree/four_leaves/root_packed.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/root_packed.json",
+      "bytes": 1426,
+      "sha256": "30d31062de48795a127128e421a02ae24c69b7b5d96b9e078d0dc86411f44495"
+    },
+    {
       "path": "vectors/circuit/official/registries/leaf_prover_canonical_small.json",
       "upstream_path": "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
       "bytes": 1970,
       "sha256": "85126ed2333fb9a3c25585b518d547b7b80902355c0afd028be1be7b111df87d"
+    },
+    {
+      "path": "vectors/circuit/official/registries/privacy_large_proofs.json",
+      "upstream_path": "crates/privacy_circuit_verify/large_proofs_circuit_registry.json",
+      "bytes": 4023,
+      "sha256": "7e0a8a8bfa636d5e15bd7df2d0b29ee03f3e8a4dab09d39d7a180a8ad1e614b2"
     },
     {
       "path": "vectors/circuit/official/registries/recursive_tree_test.json",
