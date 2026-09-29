@@ -9,7 +9,7 @@
     "toolchain": "nightly-2026-01-15",
     "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
     "lock_sha256": "c275004ff32d5f5a8460c2359f6a23876c06087af458c135578bc0bd1b5bfadf",
-    "source_sha256": "a9105ce1c0830a98d713bdd9f7e67f61a2296f4c34a974774a51a144a920bfee"
+    "source_sha256": "21fcf102636664a6dfb2cc46bd48e0968a229f3a10289f131a3905b613c07035"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-30",
@@ -362,8 +362,8 @@
         "--output",
         "vectors/circuit/r7/prove_profiles.json"
       ],
-      "bytes": 330600,
-      "sha256": "ab647ddc260fea9ecb370950b78145a6860560fd1b76222303012112b8c579f6"
+      "bytes": 330748,
+      "sha256": "d6e5b992ea04878ec56837cc81999f4df8fe7a6b70efb4af0fd7d7ddcf1fe881"
     },
     {
       "path": "vectors/circuit/r7/prove_small.json",

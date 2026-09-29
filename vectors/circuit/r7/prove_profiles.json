@@ -2093,7 +2093,8 @@
             "circuit_serialize": {
               "bytes": 474184,
               "sha256": "3321ee9222a294f77305dd295bd2d5c1cef49878b2f6964d28d23a9b28d41a55"
-            }
+            },
+            "native_verified": true
           },
           {
             "name": "blake_g_gate",
@@ -4175,7 +4176,8 @@
             "circuit_serialize": {
               "bytes": 474184,
               "sha256": "b5f3f88e8784978a3699ab528b9a07ae34a4c5f257aad99d18b5cdbde5dbb222"
-            }
+            },
+            "native_verified": true
           }
         ]
       },
@@ -6263,7 +6265,8 @@
             "circuit_serialize": {
               "bytes": 474184,
               "sha256": "875b48eb210f9b3833b65bc2af7e3dc5c77436b9e3c91c705214f2748f561aa8"
-            }
+            },
+            "native_verified": true
           },
           {
             "name": "blake_g_gate",
@@ -8345,7 +8348,8 @@
             "circuit_serialize": {
               "bytes": 474184,
               "sha256": "fc4bd58fa88606312b45e18645e8ba78f5fcd6269da3610783bf962c555a1884"
-            }
+            },
+            "native_verified": true
           }
         ]
       }

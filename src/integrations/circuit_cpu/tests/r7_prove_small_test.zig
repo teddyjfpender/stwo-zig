@@ -419,8 +419,10 @@ fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
         const label = @tagName(lane) ++ "-" ++ @tagName(which);
         try rust_verifier.emit(allocator, label, encoded, &proof, &pp);
         // Upstream's `verify_circuit` is the circuit verifier, on the M31
-        // channel; root-profile proofs are checked by their bytes above.
+        // channel. A root-profile proof is byte-identical to upstream's own
+        // (checked above), which upstream's native stwo verifier accepted.
         if (lane != .root) try rust_verifier.expectAccepted(allocator, label, &digest);
+        if (lane != .small) try std.testing.expect(field(expected, "native_verified").bool);
     } else try std.testing.expect(proof.output_values.len != N_RESERVED);
 }
 
