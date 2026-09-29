@@ -79,6 +79,29 @@ pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) 
     return grindOnHost(Backend, channel, pow_bits);
 }
 
+/// Grinds in the search order the Merkle channel `MC` fixes, when it fixes
+/// one; otherwise defers to `grindForBackend`.
+///
+/// A channel profile (`stwo_core.vcs_lifted.channel_profile`) declares
+/// `grind_order`, because a lane that reproduces an upstream prover must also
+/// reproduce which of the many valid nonces it finds. The lowest-nonce pool,
+/// channel and device searches above are therefore never used for such a
+/// channel: under the SIMD hi-major order they would return a different,
+/// still valid, nonce whenever chunk 0 has no solution. The search runs on
+/// the host through `MC.grind`, which is deterministic on any worker count; a
+/// backend that forbids host proof of work fails closed instead of falling
+/// back to another order. Merkle channels without `grind_order` (every Native
+/// and Cairo lane) take exactly the `grindForBackend` path.
+pub fn grindForMerkleChannel(comptime Backend: type, comptime MC: type, channel: anytype, pow_bits: u32) !u64 {
+    if (comptime !@hasDecl(MC, "grind_order")) return grindForBackend(Backend, channel, pow_bits);
+    comptime std.debug.assert(@TypeOf(channel.*) == MC.Channel);
+    if (comptime Backend != void and @hasDecl(Backend, "admitHostProving"))
+        try Backend.admitHostProving(.proof_of_work);
+    const nonce = try MC.grind(channel.*, pow_bits);
+    if (!channel.verifyPowNonce(pow_bits, nonce)) return error.InvalidBackendProofOfWorkNonce;
+    return nonce;
+}
+
 fn grindOnHost(comptime Backend: type, channel: anytype, pow_bits: u32) !u64 {
     if (comptime Backend != void and @hasDecl(Backend, "admitHostProving"))
         try Backend.admitHostProving(.proof_of_work);

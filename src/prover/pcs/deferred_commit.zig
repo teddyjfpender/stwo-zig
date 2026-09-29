@@ -47,6 +47,9 @@ pub fn Pending(comptime Tree: type) type {
 
 pub fn canDeferFirstTree(scheme: anytype, owned_columns: []const ColumnEvaluation) bool {
     if (comptime builtin.single_threaded) return false;
+    // Explicit heights lift at the append choke point, which the observer
+    // path (`resolveObserved`) bypasses.
+    if (comptime @hasDecl(@TypeOf(scheme.*), "explicit_tree_heights") and @TypeOf(scheme.*).explicit_tree_heights) return false;
     if (scheme.pending_commit != null) return false;
     if (scheme.trees.items.len != 0) return false;
     if (owned_columns.len == 0) return false;

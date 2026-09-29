@@ -84,6 +84,14 @@ pub fn appendCommittedTree(
     // Admit capacity first. Compaction is fail-atomic, so an error leaves
     // the caller's complete tree ownership intact.
     try scheme.trees.ensureUnusedCapacity(allocator, 1);
+    // `proving_5a7c5ed`: commit at the configured height. Lifting replaces
+    // the commitment only on success and happens before compaction, which it
+    // excludes, so a failure still leaves the caller's tree intact.
+    if (comptime @hasDecl(@TypeOf(scheme.*), "explicit_tree_heights") and @TypeOf(scheme.*).explicit_tree_heights) {
+        if (scheme.compact_polynomial_storage) return error.UnsupportedLiftedCommitment;
+        const height = (try scheme.explicitTreeHeight(allocator, scheme.trees.items.len, retained.columns)).?;
+        try retained.liftToHeight(allocator, height);
+    }
     if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
         if (scheme.compact_polynomial_storage)
             try retained.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);

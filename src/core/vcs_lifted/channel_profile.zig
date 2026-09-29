@@ -15,11 +15,15 @@ const blake2_hash = @import("../vcs/blake2_hash.zig");
 const blake2_merkle = @import("blake2_merkle.zig");
 const channel_blake2s = @import("../channel/blake2s.zig");
 const blake2s_grind = @import("../channel/blake2s_grind.zig");
+const revision_mod = @import("../protocol_revision.zig");
 
 pub const Spec = struct {
     /// Fiat-Shamir channel output reduced modulo P (`Blake2sM31Channel`).
     m31_channel: bool,
     grind_order: blake2s_grind.GrindOrder,
+    /// PCS laws a prover committing under this profile follows
+    /// (`protocol_revision.Revision.of`).
+    revision: revision_mod.Revision,
 };
 
 pub fn Blake2sMerkleChannelProfile(comptime spec: Spec) type {
@@ -32,6 +36,7 @@ pub fn Blake2sMerkleChannelProfile(comptime spec: Spec) type {
         /// circuit hash.
         pub const Hasher = blake2_hash.Blake2sHasher;
         pub const grind_order = spec.grind_order;
+        pub const protocol_revision = spec.revision;
 
         /// `mix_hash`: `digest = H_channel(digest || hash)`, with the channel's
         /// own (possibly M31-reduced) Blake2s.
@@ -54,11 +59,13 @@ pub const proving_5a7c5ed = struct {
     pub const Blake2sMerkleChannel = Blake2sMerkleChannelProfile(.{
         .m31_channel = false,
         .grind_order = .rust_simd_hi_major,
+        .revision = .proving_5a7c5ed,
     });
     /// `Blake2sM31MerkleChannel`: Cairo leaf proofs, leaf wraps and internal folds.
     pub const Blake2sM31MerkleChannel = Blake2sMerkleChannelProfile(.{
         .m31_channel = true,
         .grind_order = .rust_simd_hi_major,
+        .revision = .proving_5a7c5ed,
     });
 };
 
@@ -107,12 +114,12 @@ test "channel profile: grinding follows the profile's search order" {
 
 test "channel profile: profiles are the Merkle channel of the PCS verifier" {
     const pcs_verifier = @import("../pcs/verifier.zig");
-    const PcsConfig = @import("../pcs/mod.zig").PcsConfig;
+    const config_v2 = @import("../pcs/config_v2.zig");
     const alloc = std.testing.allocator;
     const root = [_]u8{7} ** 32;
     inline for (.{ proving_5a7c5ed.Blake2sMerkleChannel, proving_5a7c5ed.Blake2sM31MerkleChannel }) |Profile| {
         const Scheme = pcs_verifier.CommitmentSchemeVerifier(Profile.MerkleHasher, Profile);
-        var scheme = try Scheme.init(alloc, PcsConfig.default());
+        var scheme = try Scheme.init(alloc, config_v2.PcsConfigV2.fromFriAndTraceSize(try config_v2.FriConfigV2.init(10, 0, 1, 3, 1), 4));
         defer scheme.deinit(alloc);
         var channel = Profile.Channel{};
         try scheme.commit(alloc, root, &.{ 3, 4 }, &channel);

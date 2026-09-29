@@ -32,6 +32,12 @@ pub const ProvingError = error{
     MissingPreprocessedTree,
     InvalidStructure,
     ConstraintsNotSatisfied,
+    /// `proving_5a7c5ed`: the proof domain (the composition tree's height) is
+    /// below the preprocessed tree's with `include_all_preprocessed_columns`
+    /// (upstream `InvalidLiftingLogSizeError`), or above the composition
+    /// polynomial's own domain, whose mask geometry this prover does not
+    /// implement.
+    InvalidLiftingLogSize,
 };
 
 /// Proving entrypoint matching upstream component-driven flow.
@@ -590,6 +596,9 @@ fn proveExComponentsWithRecorder(
         }
     }
 
+    if (comptime @TypeOf(scheme).explicit_tree_heights)
+        try checkExplicitLiftingLogSize(scheme, include_all_preprocessed_columns, max_log_degree_bound);
+
     diagnostic_phase.* = .openings;
     @import("host_budget_allocator.zig").SharedHostBudget.reportStage(allocator, "core.openings");
     diagnostic_subphase.* = null;
@@ -705,6 +714,25 @@ fn proveExComponentsWithRecorder(
 
     return ext_proof;
 }
+/// Upstream `prove_ex` (proving@5a7c5ed) takes the proof domain from the
+/// composition tree's Merkle height and derives
+/// `max_log_degree_bound = lifting_log_size - log_blowup_factor` from it.
+/// This prover derives the bound from the composition polynomial; the two
+/// agree exactly when the composition tree is not lifted above its columns,
+/// which holds for every configuration whose trace lifting height is the
+/// largest trace log size plus the blowup. Anything else is refused rather
+/// than proven with a different mask geometry.
+fn checkExplicitLiftingLogSize(scheme: anytype, include_all_preprocessed_columns: bool, max_log_degree_bound: u32) !void {
+    const trees = scheme.trees.items;
+    const lifting_log_size = trees[trees.len - 1].merkle_log_height orelse return ProvingError.InvalidStructure;
+    if (include_all_preprocessed_columns) {
+        const preprocessed_log_size = trees[PREPROCESSED_TRACE_IDX].merkle_log_height orelse return ProvingError.InvalidStructure;
+        if (lifting_log_size < preprocessed_log_size) return ProvingError.InvalidLiftingLogSize;
+    }
+    if (lifting_log_size != max_log_degree_bound + scheme.config.fri_config.log_blowup_factor)
+        return ProvingError.InvalidLiftingLogSize;
+}
+
 fn proveComponents(
     comptime B: type,
     comptime H: type,
