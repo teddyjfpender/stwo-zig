@@ -48,6 +48,14 @@ being filled milestone by milestone. Today it holds:
   the 83 Cairo / 11 circuit slot tables. Upstream's ~56k lines of generated
   evaluators are interpreted from a pinned, SHA-256-authenticated projection
   produced by `tools/stwo-circuit-oracle-rs`, not transcribed.
+- `witness` (M7, design §4.3): the circuit prover's base and interaction
+  traces (`crates/circuit_prover/src/witness`). One row definition per
+  component writes its base columns and derives its LogUp lookups, so the
+  table-multiplicity pass and the interaction pass share it; table
+  multiplicities are direct-indexed `u32` histograms, and the interaction
+  columns are built by the prover engine's `air.logup_columns`. The proving
+  transcript and the constraint evaluation live in
+  [`stwo_circuit_cpu_integration`](../../integrations/circuit_cpu/README.md).
 - `stark_verifier`: `ProofConfig`, `ProofInfo` (the proof size model),
   `N_COMPOSITION_COLUMNS`, `pack_into_qm31s`, the composition accumulator
   (`constraint_eval`), `logup` and the `test_utils` harness data.

@@ -175,7 +175,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
         # Submission metadata is externally validated; only the prover edits
         # should expand this diff beyond the always-on lane. The circuit
         # frontend commits preprocessed roots through the prover's PCS path,
-        # so prover edits reach its lane too.
+        # and the circuit CPU integration proves through it, so prover edits
+        # reach both lanes too.
         changed = [
             "autoresearch/submissions/2026-07-20-x/delta.json",
             "autoresearch/submissions/2026-07-20-x/note.md",
@@ -194,7 +195,8 @@ class IntegrationPackageCiContractTests(unittest.TestCase):
                 "aggregate_cpu", "aggregate_metal", "cairo_cpu",
                 "cairo_cpu_integration", "cairo_cuda_integration",
                 "cairo_frontend", "cairo_metal",
-                "cairo_metal_integration", "circuit_frontend", "cpu_backend",
+                "cairo_metal_integration", "circuit_cpu_integration",
+                "circuit_frontend", "cpu_backend",
                 "metal_backend", "native_cpu",
                 "native_cuda_device", "native_cuda_integration", "native_cuda_static",
                 "native_examples", "native_metal",

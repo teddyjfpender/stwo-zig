@@ -212,6 +212,21 @@
         ]
       ]
     },
+    "circuit_cpu_integration": {
+      "host": "linux",
+      "description": "Circuit prover on the CPU backend (recursion R7: prove-small, both channel profiles, Rust verifier verdicts)",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/circuit_cpu/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
+      ]
+    },
     "cairo_frontend": {
       "host": "linux",
       "description": "Independent official Cairo frontend package",
@@ -1099,7 +1114,8 @@
         "vectors/circuit"
       ],
       "lanes": [
-        "circuit_frontend"
+        "circuit_frontend",
+        "circuit_cpu_integration"
       ]
     },
     {
