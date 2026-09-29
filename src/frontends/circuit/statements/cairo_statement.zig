@@ -34,12 +34,14 @@
 //! Fallible members return `anyerror!T`; slices they return are owned by the
 //! context's arena. Cairo AIR facts (variants, ordered preprocessed ids,
 //! builtin cells, leaf components) come from `stwo_core.cairo_air_layout`;
-//! the relation ids and verifier constants come from the caller (the M4
-//! projection header, or `vectors/circuit/r6/cairo_statement.json`), so no
-//! third copy of them exists here.
+//! the memory constants come from the projection header (the M4 table's
+//! `constants`), `RELATION_USES_NUM_ROWS_SHIFT` from M5's `verify`, and the
+//! three relation ids from the caller, so no third copy of them exists here.
 
 const std = @import("std");
 const core = @import("stwo_core");
+const manual_cairo = @import("../air_eval/manual/cairo.zig");
+const verify = @import("../stark_verifier/verify.zig");
 
 const layout = core.cairo_air_layout;
 const M31 = core.fields.m31.M31;
@@ -69,26 +71,28 @@ comptime {
 
 pub const ProgramFelt = [memory_values_limbs]M31;
 
+const relation_uses_num_rows_shift: u32 = verify.RELATION_USES_NUM_ROWS_SHIFT;
+
 /// Constants the statement reads from outside `statement.rs`.
 pub const Constants = struct {
     opcodes_relation_id: u32,
     memory_address_to_id_relation_id: u32,
     memory_id_to_big_relation_id: u32,
-    /// `stark_verifier::verify::RELATION_USES_NUM_ROWS_SHIFT`.
-    relation_uses_num_rows_shift: u32,
-    memory_address_to_id_split: u32,
-    max_sequence_log_size: u32,
-    large_memory_value_id_base: u32,
+    /// The projection header's memory constants (`component_table.Table.constants`).
+    memory: manual_cairo.Constants,
 
     /// The `const` sanity checks of `verify_claim`.
     pub fn validate(self: Constants) error{InvalidStatementConstants}!void {
-        const max_sequence = @as(u64, 1) << @intCast(self.max_sequence_log_size);
-        if (@as(u64, self.memory_address_to_id_split) * max_sequence > @as(u64, 1) << memory_address_bits or
-            max_sequence > self.large_memory_value_id_base or
-            self.relation_uses_num_rows_shift >= memory_address_bits)
+        const max_sequence = @as(u64, 1) << @intCast(self.memory.max_sequence_log_size);
+        if (@as(u64, self.memory.memory_address_to_id_split) * max_sequence > @as(u64, 1) << memory_address_bits or
+            max_sequence > self.memory.large_memory_value_id_base)
             return error.InvalidStatementConstants;
     }
 };
+
+comptime {
+    std.debug.assert(relation_uses_num_rows_shift < memory_address_bits);
+}
 
 pub fn CasmState(comptime Var: type) type {
     return struct { pc: Var, ap: Var, fp: Var };
@@ -444,7 +448,7 @@ pub fn CairoStatement(comptime B: type) type {
             _ = try B.extractBits(ctx, rc, memory_address_bits);
 
             const opcode_uses = try B.simdFromPacked(ctx, &.{shifted_opcode_relation_uses}, 1);
-            _ = try B.extractBits(ctx, opcode_uses, memory_address_bits - self.constants.relation_uses_num_rows_shift);
+            _ = try B.extractBits(ctx, opcode_uses, memory_address_bits - relation_uses_num_rows_shift);
         }
 
         // -------------------------------------------------------------------

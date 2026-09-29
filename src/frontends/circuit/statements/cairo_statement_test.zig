@@ -171,6 +171,7 @@ const Fixture = struct {
     slot_names: [][]const u8,
     enabled_bits: []bool,
     constants: statement.Constants,
+    relation_uses_num_rows_shift: u32,
     root: [8]u32,
 
     fn load(allocator: std.mem.Allocator) !Fixture {
@@ -209,11 +210,13 @@ const Fixture = struct {
                 .opcodes_relation_id = get(c, "opcodes_relation_id"),
                 .memory_address_to_id_relation_id = get(c, "memory_address_to_id_relation_id"),
                 .memory_id_to_big_relation_id = get(c, "memory_id_to_big_relation_id"),
-                .relation_uses_num_rows_shift = get(c, "relation_uses_num_rows_shift"),
-                .memory_address_to_id_split = get(c, "memory_address_to_id_split"),
-                .max_sequence_log_size = get(c, "max_sequence_log_size"),
-                .large_memory_value_id_base = get(c, "large_memory_value_id_base"),
+                .memory = .{
+                    .memory_address_to_id_split = get(c, "memory_address_to_id_split"),
+                    .max_sequence_log_size = get(c, "max_sequence_log_size"),
+                    .large_memory_value_id_base = get(c, "large_memory_value_id_base"),
+                },
             },
+            .relation_uses_num_rows_shift = get(c, "relation_uses_num_rows_shift"),
             .root = root,
         };
     }
@@ -240,6 +243,8 @@ test "cairo statement: constants and layout agree with the R6 checkpoint" {
     defer fixture.deinit();
     try std.testing.expectEqual(fixture.fixedLen(), statement.aux_data_fixed_len);
     try fixture.constants.validate();
+    const verify = @import("../stark_verifier/verify.zig");
+    try std.testing.expectEqual(fixture.relation_uses_num_rows_shift, verify.RELATION_USES_NUM_ROWS_SHIFT);
     try std.testing.expectEqual(@as(usize, 83), fixture.slot_names.len);
     var bits: [83]bool = undefined;
     try std.testing.expectEqual(@as(usize, 79), try layout.leafEnabledBits(.canonical_small, fixture.slot_names, &bits));
@@ -371,8 +376,10 @@ test "cairo statement: enabled bits over the projection's slot order match the R
     try std.testing.expectEqual(@as(usize, 79), try layout.leafEnabledBits(.canonical_small, names, &bits));
     try std.testing.expectEqualSlices(bool, fixture.enabled_bits, &bits);
 
-    // The projection header and the statement checkpoint agree on the shared constants.
-    try std.testing.expectEqual(fixture.constants.large_memory_value_id_base, projection.constant("LARGE_MEMORY_VALUE_ID_BASE").?);
-    try std.testing.expectEqual(fixture.constants.max_sequence_log_size, projection.constant("MAX_SEQUENCE_LOG_SIZE").?);
-    try std.testing.expectEqual(fixture.constants.memory_address_to_id_split, projection.constant("MEMORY_ADDRESS_TO_ID_SPLIT").?);
+    // The projection header (through M4's table) and the statement checkpoint
+    // agree on the memory constants the statement uses.
+    const cairo_components = @import("../air_eval/cairo_components.zig");
+    var table = try cairo_components.build(allocator, &projection);
+    defer table.deinit();
+    try std.testing.expectEqual(fixture.constants.memory, table.constants);
 }
