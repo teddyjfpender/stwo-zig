@@ -1,33 +1,17 @@
-//! Per-column and chained per-component trace digests.
+//! Per-column and chained per-component trace digests for the circuit lane.
 //!
-//! The record layout is the one of `tools/stwo-cairo-trace-oracle/src/checkpoint.rs`
-//! (`column_digest`, `accumulator_digest`), mirrored in Zig by
-//! `src/frontends/cairo/conformance/checkpoint.zig`; only the domain strings differ, so a single
-//! Zig comparator parameterised by domain serves both lanes. That crate pins a different upstream
-//! (`stwo-cairo@82f2125`), so the two functions are restated here rather than shared.
-//!
-//! ```text
-//! column      := SHA-256(column_domain || component_ordinal u32 || u32:len(label) label
-//!                        || column_ordinal u32 || row_count u64 || value u32 ...)
-//! accumulator := SHA-256(accumulator_domain || previous[32] || component_ordinal u32
-//!                        || u32:len(label) label || n_columns u32
-//!                        || (column_ordinal u32 || row_count u64 || column[32])*)
-//! ```
-//!
-//! All integers are little-endian; values are canonical M31 in the stored (bit-reversed) order.
-//! The accumulator starts from 32 zero bytes and is chained across components in order.
+//! The record layout and the digest functions are the shared `tools/stwo-trace-digest` source
+//! (compiled in as `crate::trace_digest`), also used by `tools/stwo-cairo-trace-oracle` and
+//! mirrored in Zig by `src/frontends/cairo/conformance/checkpoint.zig`; only the domain strings
+//! differ, so a single Zig comparator parameterised by domain serves both lanes. This module
+//! defines the circuit domains and a digester that chains components from 32 zero bytes.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 use stwo::core::fields::m31::BaseField;
 
-/// A pair of column and accumulator domains.
-#[derive(Clone, Copy)]
-pub struct Domains {
-    pub column: &'static [u8],
-    pub accumulator: &'static [u8],
-}
+pub use crate::trace_digest::Domains;
+use crate::trace_digest::{accumulator_digest, column_digest};
 
 pub const PREPROCESSED: Domains = Domains {
     column: b"STWO_CIRCUIT_PREPROCESSED_COLUMN_V1\0",
@@ -41,53 +25,6 @@ pub const INTERACTION: Domains = Domains {
     column: b"STWO_CIRCUIT_INTERACTION_COLUMN_V1\0",
     accumulator: b"STWO_CIRCUIT_INTERACTION_ACCUMULATOR_V1\0",
 };
-
-fn update_label(hasher: &mut Sha256, label: &str) -> Result<()> {
-    let length = u32::try_from(label.len()).context("component label exceeds u32")?;
-    hasher.update(length.to_le_bytes());
-    hasher.update(label.as_bytes());
-    Ok(())
-}
-
-pub fn column_digest(
-    domains: Domains,
-    component_ordinal: u32,
-    label: &str,
-    column_ordinal: u32,
-    values: &[BaseField],
-) -> Result<[u8; 32]> {
-    let mut hasher = Sha256::new();
-    hasher.update(domains.column);
-    hasher.update(component_ordinal.to_le_bytes());
-    update_label(&mut hasher, label)?;
-    hasher.update(column_ordinal.to_le_bytes());
-    hasher.update(u64::try_from(values.len())?.to_le_bytes());
-    for value in values {
-        hasher.update(value.0.to_le_bytes());
-    }
-    Ok(hasher.finalize().into())
-}
-
-pub fn accumulator_digest(
-    domains: Domains,
-    previous: [u8; 32],
-    component_ordinal: u32,
-    label: &str,
-    columns: &[(u64, [u8; 32])],
-) -> Result<[u8; 32]> {
-    let mut hasher = Sha256::new();
-    hasher.update(domains.accumulator);
-    hasher.update(previous);
-    hasher.update(component_ordinal.to_le_bytes());
-    update_label(&mut hasher, label)?;
-    hasher.update(u32::try_from(columns.len())?.to_le_bytes());
-    for (ordinal, (row_count, digest)) in columns.iter().enumerate() {
-        hasher.update(u32::try_from(ordinal)?.to_le_bytes());
-        hasher.update(row_count.to_le_bytes());
-        hasher.update(digest);
-    }
-    Ok(hasher.finalize().into())
-}
 
 #[derive(Serialize)]
 pub struct ColumnRecord {
@@ -167,18 +104,35 @@ impl ColumnDigester {
 mod tests {
     use super::*;
 
-    /// Digests are separated by domain and chained across components.
+    /// The digester chains the shared digests from 32 zero bytes, one component at a time.
     #[test]
-    fn digest_contract_is_domain_separated_and_chained() {
-        let values = [BaseField::from(1), BaseField::from(2)];
-        let column = column_digest(BASE, 3, "eq", 0, &values).unwrap();
-        let first = accumulator_digest(BASE, [0; 32], 3, "eq", &[(2, column)]).unwrap();
-        let second = accumulator_digest(BASE, first, 4, "qm31_ops", &[]).unwrap();
-        assert_ne!(column, first);
-        assert_ne!(first, second);
-        assert_ne!(
-            column,
-            column_digest(INTERACTION, 3, "eq", 0, &values).unwrap()
-        );
+    fn digester_chains_the_shared_digests() {
+        let values = vec![BaseField::from(1), BaseField::from(2)];
+        let mut digester = ColumnDigester::new(BASE);
+        digester.component("eq", [(None, values.clone())]).unwrap();
+        digester
+            .component("qm31_ops", Vec::<(Option<String>, Vec<BaseField>)>::new())
+            .unwrap();
+        let (components, last) = digester.finish();
+
+        let column = column_digest(BASE, 0, "eq", 0, &values).unwrap();
+        let first = accumulator_digest(BASE, [0; 32], 0, "eq", &[(2, column)]).unwrap();
+        let second = accumulator_digest(BASE, first, 1, "qm31_ops", &[]).unwrap();
+        assert_eq!(components[0].columns[0].sha256, hex::encode(column));
+        assert_eq!(components[0].accumulator_sha256, hex::encode(first));
+        assert_eq!(last, hex::encode(second));
+    }
+
+    /// The three circuit domain pairs are pairwise distinct.
+    #[test]
+    fn circuit_domains_are_distinct() {
+        let all = [PREPROCESSED, BASE, INTERACTION];
+        for (i, a) in all.iter().enumerate() {
+            assert_ne!(a.column, a.accumulator);
+            for b in &all[i + 1..] {
+                assert_ne!(a.column, b.column);
+                assert_ne!(a.accumulator, b.accumulator);
+            }
+        }
     }
 }

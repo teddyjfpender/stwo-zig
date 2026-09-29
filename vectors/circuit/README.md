@@ -8,7 +8,7 @@ ladder: each fixture is either output of `tools/stwo-circuit-oracle-rs`, which
 runs the pinned upstream Rust, or an upstream file copied verbatim.
 `provenance.json` binds every file to its bytes, SHA-256, generating command,
 the oracle's `Cargo.lock` digest, and the digest of the oracle source (including
-the shared `tools/stwo-eval-program-abi` sources); it records nothing
+the shared `tools/stwo-eval-program-abi` and `tools/stwo-trace-digest` sources); it records nothing
 host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regenerate only with
 `python3 scripts/generate_circuit_oracle_vectors.py`.
 
@@ -85,7 +85,9 @@ diagnostics.
   `fold_circle_into_line(alpha_0)` then three `fold_line`s with `alpha_0^2`,
   `alpha_0^4`, `alpha_0^8`; layer 1 is four `fold_line`s with `alpha_1`,
   `alpha_1^2`, `alpha_1^4`, `alpha_1^8`. Each fold records `values_sha256` and
-  its leading values. `src/core/fri/tests.zig` inlines this vector.
+  its leading values. `src/core/fri/tests.zig` inlines this vector, and
+  `scripts/check_upstream_pins.py` requires its inlined digests, alphas, log size
+  and last layer to equal this fixture.
 
 ## R3 harness
 
@@ -148,7 +150,8 @@ column      = SHA-256(domain || component:u32 || u32:len(label) label || column:
 accumulator = SHA-256(acc_domain || previous[32] || component:u32 || u32:len(label) label || n:u32 || (column:u32 || rows:u64 || column_digest[32])*)
 ```
 
-the record layout of `tools/stwo-cairo-trace-oracle`, under the domains
+the record layout shared with `tools/stwo-cairo-trace-oracle` through
+`tools/stwo-trace-digest`, under the domains
 `STWO_CIRCUIT_{PREPROCESSED,BASE,INTERACTION}_COLUMN_V1\0` and
 `STWO_CIRCUIT_{PREPROCESSED,BASE,INTERACTION}_ACCUMULATOR_V1\0`, with components
 in `ComponentList` order (the preprocessed tree is one component labelled

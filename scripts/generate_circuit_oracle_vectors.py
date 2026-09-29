@@ -7,7 +7,7 @@ copies the upstream goldens the rungs consume, and writes the provenance record
 that `scripts/check_upstream_pins.py` authenticates. Every subcommand builds
 circuits, hashes data or, for `prove-small`, proves the small `prover_test.rs`
 circuits under the oracle's default memory budget; the heaviest (`topology`)
-peaks below 7 GB. On a shared host run it under the heavy-command wrapper.
+peaks at about 7.1 GB resident. On a shared host run it under the heavy-command wrapper.
 
 The provenance names only host-independent inputs: the toolchain, the oracle's
 `Cargo.lock` digest and the digest of every oracle source.

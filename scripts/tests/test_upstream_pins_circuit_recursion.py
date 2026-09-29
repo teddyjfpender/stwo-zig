@@ -36,6 +36,9 @@ class CircuitRecursionLaneTests(unittest.TestCase):
             ignore=shutil.ignore_patterns("target"),
         )
         shutil.copytree(ROOT / lane.EVAL_PROGRAM_ABI, self.root / lane.EVAL_PROGRAM_ABI)
+        shutil.copytree(ROOT / lane.TRACE_DIGEST, self.root / lane.TRACE_DIGEST)
+        (self.root / lane.R0_FRI_ZIG_TEST).parent.mkdir(parents=True)
+        shutil.copyfile(ROOT / lane.R0_FRI_ZIG_TEST, self.root / lane.R0_FRI_ZIG_TEST)
         shutil.copytree(ROOT / lane.VECTORS, self.root / lane.VECTORS)
 
     def tearDown(self) -> None:
@@ -82,6 +85,25 @@ class CircuitRecursionLaneTests(unittest.TestCase):
         source = self.root / lane.EVAL_PROGRAM_ABI / "src/encoding.rs"
         source.write_text(source.read_text(encoding="utf-8") + "\n", encoding="utf-8")
         self.assertIn("oracle source digest drifted", "\n".join(_check(self.root)))
+
+    def test_shared_trace_digest_edit_requires_regeneration(self) -> None:
+        source = self.root / lane.TRACE_DIGEST / "src/lib.rs"
+        source.write_text(source.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+        self.assertIn("oracle source digest drifted", "\n".join(_check(self.root)))
+
+    def test_inlined_r0_fri_vector_must_match_the_fixture(self) -> None:
+        test = self.root / lane.R0_FRI_ZIG_TEST
+        source = test.read_text(encoding="utf-8")
+        digest = "d5c4299b10a98d577d3b24240c7d7854732120dbafa02f844dee8566a6ed02e4"
+        self.assertIn(digest, source)
+        test.write_text(source.replace(digest, "0" * 64), encoding="utf-8")
+        self.assertIn("inlined R0 fri digests differ", "\n".join(_check(self.root)))
+        test.write_text(
+            source.replace("1266552422, 1856893702", "1266552423, 1856893702"), encoding="utf-8"
+        )
+        self.assertIn("alphas or last layer differ", "\n".join(_check(self.root)))
+        test.write_text(source.replace(lane.R0_FRI_ZIG_TEST_NAME, "renamed"), encoding="utf-8")
+        self.assertIn("missing test", "\n".join(_check(self.root)))
 
     def test_provenance_is_host_independent(self) -> None:
         provenance = json.loads((ROOT / lane.PROVENANCE).read_text(encoding="utf-8"))

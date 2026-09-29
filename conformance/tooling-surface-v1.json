@@ -107,6 +107,17 @@
       "pr_lanes": ["static", "script_contracts", "native_oracle"],
       "extraction": "consume a permanent content-addressed oracle binary from a companion authority repository"
     },
+    "stwo-trace-digest": {
+      "owner": "cairo-frontend",
+      "role": "fixture-generator",
+      "required_for": "The domain-separated trace column and accumulator digests shared by the Cairo trace oracle and the circuit recursion oracle",
+      "live_callers": [
+        "tools/stwo-cairo-trace-oracle/src/main.rs",
+        "scripts/upstream_pins_lib/circuit_recursion.py"
+      ],
+      "pr_lanes": ["static", "script_contracts", "cairo_frontend"],
+      "extraction": "externalize together with its last consumer, tools/stwo-cairo-trace-oracle or tools/stwo-circuit-oracle-rs"
+    },
     "stwo-vector-gen": {
       "owner": "native-parity",
       "role": "independent-vector-generator",

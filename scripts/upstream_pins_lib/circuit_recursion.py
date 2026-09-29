@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import struct
 import tomllib
 from pathlib import Path
@@ -30,6 +31,8 @@ MANIFEST = f"{ORACLE}/Cargo.toml"
 LOCK = f"{ORACLE}/Cargo.lock"
 TOOLCHAIN = f"{ORACLE}/rust-toolchain.toml"
 AUTHORITY_SOURCE = f"{ORACLE}/src/checkpoint.rs"
+# The trace digest source shared with `tools/stwo-cairo-trace-oracle`, compiled in with `#[path]`.
+TRACE_DIGEST = "tools/stwo-trace-digest"
 VECTORS = "vectors/circuit"
 README = f"{VECTORS}/README.md"
 PROVENANCE = f"{VECTORS}/provenance.json"
@@ -52,6 +55,10 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/official/circuit_air.air_programs_v1.bin", "r7", "air-programs", False),
 )
 PROJECTION = f"{VECTORS}/official/compiled_air_constraints_v1.bin"
+PRIMITIVES = f"{VECTORS}/r0/primitives.json"
+# The Zig test that inlines the R0 `fri` vector of `PRIMITIVES`.
+R0_FRI_ZIG_TEST = "src/core/fri/tests.zig"
+R0_FRI_ZIG_TEST_NAME = "fri: circuit recursion R0 fold_step 4 vector"
 COMPONENTS = f"{VECTORS}/r3/components.json"
 TOPOLOGY = f"{VECTORS}/r6/topology.json"
 AIR_PROGRAMS = f"{VECTORS}/official/circuit_air.air_programs_v1.bin"
@@ -97,12 +104,14 @@ def oracle_sources(root: Path) -> list[str]:
     """The files that determine the oracle binary, as sorted repository paths.
 
     Besides the oracle crate, the oracle compiles the shared evaluation-program ABI sources
-    (`tools/stwo-eval-program-abi`) in with `#[path]`.
+    (`tools/stwo-eval-program-abi`) and trace digest source (`tools/stwo-trace-digest`) in with
+    `#[path]`.
     """
     oracle = root / ORACLE
     files = [oracle / "Cargo.toml", oracle / "Cargo.lock", oracle / "rust-toolchain.toml"]
     files.extend(sorted((oracle / "src").rglob("*.rs")))
     files.extend(sorted((root / EVAL_PROGRAM_ABI / "src").rglob("*.rs")))
+    files.extend(sorted((root / TRACE_DIGEST / "src").rglob("*.rs")))
     return sorted(path.relative_to(root).as_posix() for path in files)
 
 
@@ -546,6 +555,54 @@ def _check_topology(root: Path) -> list[str]:
     return errors
 
 
+def _zig_test_body(source: str, name: str) -> str | None:
+    """The body of the Zig `test "<name>" { ... }` block (top-level, closed by `\n}`)."""
+    start = source.find(f'test "{name}" {{')
+    if start < 0:
+        return None
+    end = source.find("\n}", start)
+    return None if end < 0 else source[start:end]
+
+
+def _check_r0_fri_inline(root: Path) -> list[str]:
+    """The Zig test's inlined R0 `fri` constants equal the committed `primitives.json` vector.
+
+    The test pins, in order, the input digest and every per-fold output digest, the per-layer
+    alphas and the last-layer value; regenerating the fixture with different FRI output without
+    updating the test is rejected here rather than passing against stale constants.
+    """
+    try:
+        fri = json.loads((root / PRIMITIVES).read_text(encoding="utf-8"))["body"]["fri"]
+        source = (root / R0_FRI_ZIG_TEST).read_text(encoding="utf-8")
+    except (OSError, json.JSONDecodeError, KeyError) as error:
+        return [f"{R0_FRI_ZIG_TEST}: unable to compare with {PRIMITIVES}: {error}"]
+    body = _zig_test_body(source, R0_FRI_ZIG_TEST_NAME)
+    if body is None:
+        return [f"{R0_FRI_ZIG_TEST}: missing test {R0_FRI_ZIG_TEST_NAME!r}"]
+    errors = []
+    expected_digests = [fri["input_sha256"]] + [
+        fold["values_sha256"] for layer in fri["layers"] for fold in layer["folds"]
+    ]
+    if re.findall(r'"([0-9a-f]{64})"', body) != expected_digests:
+        errors.append(f"{R0_FRI_ZIG_TEST}: inlined R0 fri digests differ from {PRIMITIVES}")
+    quadruples = [
+        [int(limb) for limb in match]
+        for match in re.findall(
+            r"QM31\.fromU32Unchecked\((\d+), (\d+), (\d+), (\d+)\)", body
+        )
+    ]
+    expected_quadruples = [layer["layer_alpha"] for layer in fri["layers"]] + [fri["last_layer"]]
+    if quadruples != expected_quadruples:
+        errors.append(
+            f"{R0_FRI_ZIG_TEST}: inlined R0 fri alphas or last layer differ from {PRIMITIVES}"
+        )
+    for key, pattern in (("log_size", r"const log_size: u32 = (\d+);"),):
+        match = re.search(pattern, body)
+        if match is None or int(match.group(1)) != fri[key]:
+            errors.append(f"{R0_FRI_ZIG_TEST}: inlined R0 fri {key} differs from {PRIMITIVES}")
+    return errors
+
+
 def check(root: Path, *, repository: str, revision: str, toolchain: str) -> list[str]:
     errors = _check_manifest(root, repository, revision, toolchain)
     errors.extend(_check_lock_and_toolchain(root, repository, revision, toolchain))
@@ -554,4 +611,5 @@ def check(root: Path, *, repository: str, revision: str, toolchain: str) -> list
     errors.extend(_check_upstream_copies(root))
     errors.extend(_check_air_programs(root))
     errors.extend(_check_topology(root))
+    errors.extend(_check_r0_fri_inline(root))
     return errors

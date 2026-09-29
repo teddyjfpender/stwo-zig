@@ -19,6 +19,8 @@ mod primitives;
 mod project_air;
 mod prove_small;
 mod topology;
+#[path = "../../stwo-trace-digest/src/lib.rs"]
+mod trace_digest;
 mod upstream;
 mod verifier_stages;
 

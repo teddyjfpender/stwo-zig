@@ -10,9 +10,10 @@ products never build, invoke, or distribute it.
 Every subcommand runs in seconds. Most only build circuits or hash data;
 `prove-small` proves six small circuits, and `topology` and `verifier-stages`
 build multi-million-gate circuits and commit preprocessed traces. Measured peak
-resident memory on the 36 GB development host: `topology` 6.7 GB,
+resident memory on the 36 GB development host: `topology` 7.1 GB,
 `verifier-stages` 3.9 GB, `prove-small` 2.9 GB, the rest under 100 MB. Run the
-heavy three under the host's heavy-command wrapper.
+heavy three under the host's heavy-command wrapper; `topology` is close to an
+8 GB per-process budget, so do not run it beside another multi-GB process.
 
 | Subcommand | Rung | Content |
 |---|---|---|
@@ -49,7 +50,10 @@ The oracle compiles in `../stwo-eval-program-abi/src/lib.rs` with `#[path]`: the
 evaluation-program recorder and bundle encoder it shares with
 `tools/stwo-cairo-air-compiler`. At the start of `air-programs` (and of every
 compiler run) both tools encode the same fixture program and require the bytes
-committed in `abi_fixture.rs`, across their two Stwo pins. Outputs are written atomically and never replace
+committed in `abi_fixture.rs`, across their two Stwo pins. It likewise compiles in
+`../stwo-trace-digest/src/lib.rs`, the per-column and chained per-component
+trace digests it shares with `tools/stwo-cairo-trace-oracle` (`src/columns.rs`
+only adds the circuit domains). Outputs are written atomically and never replace
 an existing file. The committed fixtures are regenerated only through
 `python3 scripts/generate_circuit_oracle_vectors.py`, which locates the checkout
 Cargo resolved and records provenance; `vectors/circuit/README.md` describes the
