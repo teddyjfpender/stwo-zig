@@ -15,21 +15,33 @@ hashes, gate lists and proofs.
 | Owner | `circuit-frontend` |
 | Public Zig module | `stwo_circuit_frontend` |
 | Focused CI host | Linux |
+| Upstream | `proving@5a7c5ed` |
+
+The [package contract](package.contract.json) and [public facade](mod.zig) are
+the authoritative API records. The design is
+[02-design.md](../../../design/starknet-proving-pipeline/recursion/02-design.md)
+§2.2, §3, §5 and §8; the Rust-to-Zig map is
+[01-rust-map.md](../../../design/starknet-proving-pipeline/recursion/01-rust-map.md).
 
 ## Purpose and architecture
 
-The package follows the layout of design §2.2
-([02-design.md](../../../design/starknet-proving-pipeline/recursion/02-design.md)):
-one Zig file per Rust file, Rust function order kept inside each file. It is
+The package follows the layout of design §2.2: one Zig file per Rust file, Rust function order kept inside each file. It is
 being filled milestone by milestone. Today it holds:
 
+- `builder` (`crates/circuits`): `Context(QM31)` builds a circuit with values
+  (the production value path), `Context(NoValue)` the same topology without
+  values. It owns variables, interned constants, guesses, reserved output
+  wires, the primitive gates, `finalize_constants` and `finalize`, plus the
+  gadgets: wrappers (M31, U16, U32), `Simd` lanes, `extract_bits`, the
+  Blake2s gates and hash gadgets, and `select_by_index`.
 - `common`: the shared component list (`ComponentList`, `PerComponent`,
   relation ids, `RelationUse`, `INTERACTION_POW_BITS`, static component
   facts), `ComponentSizes` and the padded-size rules, the circuit hash
   (`configWords`, `hostCircuitHash`), preprocessing (`ColumnLayout`,
   `PreprocessedCircuit` built from a `CircuitView`, and `preprocessedRoot`
   through the prover's PCS commit path) and `component_utils`
-  (`seq_of_component_size`).
+  (`seq_of_component_size`); the gate-emitting `pad_to_targets`/`pad_context`
+  and `add_zk_blinding` (M2), which run on a finalized builder context.
 - `air_eval` (M4, design §5.4): the in-circuit constraint evaluators. A reader
   of the compiled-AIR projection, an interpreter that replays each projected
   function through the circuit builder, the six hand-written evaluators and
@@ -45,11 +57,11 @@ being filled milestone by milestone. Today it holds:
   `cairo_leaf_config` (`leaf_verifier_config`: enabled components and the
   leaf `ProofConfig` over the projection's Cairo slot table).
 
-The builder (`builder/`, M2) and the gate-emitting verifier gadgets (channel,
-Merkle, FRI, OODS, composition, the statements' `guess` traversals and
-`build_*_circuit`) come next and sit on top of these modules. Until M2 lands,
-the R3 tests drive the evaluators through the test-only
-`air_eval/testing/builder_stand_in.zig`, which is deleted on the M2 merge.
+The gate-emitting verifier gadgets (channel, Merkle, FRI, OODS, composition,
+the statements' `guess` traversals and `build_*_circuit`) come next and sit on
+top of these modules. The R3 tests still drive the evaluators through the
+test-only `air_eval/testing/builder_stand_in.zig`; moving them onto `builder`
+is open.
 
 ```mermaid
 flowchart TD
@@ -63,7 +75,39 @@ flowchart TD
     stark_verifier --> common
     common --> core[stwo_core: fields, FRI schedule, config_v2, hashes, preprocessed_tables, cairo_air_layout]
     common --> prover[stwo_prover_engine: PCS column preparation, CommitmentTreeProver]
+    Interp --> builder[builder: Context, gadgets, finalize_constants]
+    statements --> builder
+    common --> builder
 ```
+
+Representation differs from Rust only where no order is observable:
+variables and gate fields are `u32` (a circuit holds fewer than 2^31 variables
+so addresses fit M31 columns), a `BlakeGGate` stores its four consecutive
+outputs as `out_base` (asserted when the gate is added), permutations share
+flat CSR lists, and gadget temporaries live in a per-context scratch arena.
+
+### Status against design §3
+
+Implemented as specified: `u32` vars and gates, the `out_base` BlakeGGate,
+CSR permutations, `Context(QM31 | NoValue)`, first-use constant interning,
+index-only peepholes, `finalize_constants` with `swapRemove`/ordered `retain`,
+guess finalization, padding and ZK blinding through the real builder API, and
+the order lint. Where this port and the design text differ:
+
+- Padding appends real rows. The run-length pad descriptors of §3.1 are a
+  memory optimization scheduled with the other builder wins (§9.2, M11); they
+  must reproduce these rows exactly.
+- The gate vectors are not pre-reserved from registry targets yet, and
+  `Stats` and the unused-variable sets are always on rather than audit-only.
+  Neither affects numbering.
+- The lint allows `std.mem.sort`: in Zig 0.15 it is the stable block sort,
+  which matches Rust's stable sorts. It bans the unstable `sortUnstable`,
+  `std.sort.pdq` and `std.sort.heap`, and it runs as `zig build circuit-lint`.
+- Upstream's `debug_info` map (diagnostics for `circuit_analysis`) is not
+  ported; it never affects numbering.
+- The `circuit_hash` R2 case replays `compute_circuit_hash` of
+  `crates/circuit_verifier` in the test harness. The production gadget
+  belongs to the circuit-verifier statement (M5).
 
 ### The Cairo statement (M6)
 
@@ -93,11 +137,26 @@ var cairo = try circuit.air_eval.cairo_components.build(allocator, &projection);
 defer cairo.deinit();
 try cairo.evaluate(i, Ctx, &ctx, &component_data, &accumulator, scratch);
 
+const builder = circuit.builder;
+
+var ctx = try builder.Context(QM31).init(allocator, 8); // 8 reserved output wires
+defer ctx.deinit();
+const a = try ctx.guess(value);
+const b = try ctx.constant(QM31.one());
+const sum = try ctx.add(a, b);
+const digest = try builder.blake.blake2sU32s(QM31, &ctx, words, n_bytes);
+try ctx.setOutputs(&output_vars);
+try ctx.finalize(false);
+try circuit.common.finalize.padToTargets(QM31, &ctx, targets);
+
 const Statement = circuit.statements.cairo_statement.CairoStatement(Builder);
 const statement = try Statement.init(arena, &ctx, inputs);
+```
 
 | Area | Exports |
 | :--- | :--- |
+| Builder namespace | `builder` (`Context`, `Var`, `Circuit`, `NoValue`, and the modules `circuit`, `context`, `ivalue`, `ops`, `wrappers`, `simd`, `extract_bits`, `blake`, `select`, `finalize_constants`, `debug_format`) |
+| Post-finalize passes | `common.finalize` (`ComponentSizes`, `padToTargets`, `padContext`), `common.zk_blinding` (`addZkBlinding`) |
 | Component list | `common.component_list` (`ComponentList`, `PerComponent`, relation ids, `RelationUse`, `component_facts`) |
 | Projection | `air_eval.projection` (`parse`, `Projection`, `Source`, `Function`, `Expr`, `Step`) |
 | Interpreter | `air_eval.interpreter.Interpreter(Ctx, Data)` |
@@ -111,9 +170,17 @@ Every evaluator is generic over a builder context type `Ctx` exposing `Var`,
 `zero`, `one`, `constant`, `add`, `sub`, `mul`, `eq`, `inv` and `newVar` with
 the semantics of `crates/circuits/src/{context,ops}.rs`.
 
+Gadgets are free functions `f(comptime V, ctx: *Context(V), ...)`; the
+primitive gates (`add`, `sub`, `mul`, `pointwiseMul`, `eq`, `div`, `inv`,
+`guess*`, `permute`, `output`, and the `*Into` forms) are `Context` methods.
+Every operation returns `error.OutOfMemory` or `error.TooManyVars`; after an
+error the context may only be deinitialized. `Simd` data and returned slices
+are owned by `ctx.scratch()` and live until `deinit`.
+
 ## Dependencies
 
-- `stwo_core`: fields, `fri.allFoldSteps`, `pcs.config_v2`, the Blake2s
+- `stwo_core`: fields (M31/QM31 and the pointwise helpers), `ChaCha20Rng`,
+  `BLAKE_SIGMA`, `fri.allFoldSteps`, `pcs.config_v2`, the Blake2s
   hashers and channel profiles, `preprocessed_tables`, `cairo_air_layout`.
 - `stwo_prover_engine`: `pcs.column_preparation`, `TwiddleSource` and
   `pcs.CommitmentTreeProver` for the preprocessed root.
@@ -132,11 +199,17 @@ zig build test --build-file src/frontends/circuit/build.zig -Doptimize=ReleaseFa
 zig build test-r3 --build-file src/frontends/circuit/build.zig -j2
 zig build circuit-parity-r6-fold --build-file src/frontends/circuit/build.zig
 zig build circuit-air-projection-check --build-file src/frontends/circuit/build.zig -j2
-zig build circuit-parity-r6-fold --build-file src/frontends/circuit/build.zig
+zig build circuit-parity-r1 --build-file src/frontends/circuit/build.zig
+zig build circuit-parity-r2 --build-file src/frontends/circuit/build.zig
+python3 scripts/lint_circuit_frontend.py
 ```
 
 Tests that read `vectors/circuit` run from the repository root.
 
+- The unit tests hold the upstream `expect!` snapshots of `crates/circuits`,
+  kept verbatim; the fixture test rebuilds all 20 cases of
+  `vectors/circuit/r2/gadgets.json` in value and topology mode and compares
+  gate-list, value and `Debug`-text digests, output wires and values.
 - `test-r3` runs all 94 evaluators in value and topology mode against
   `vectors/circuit/r3/components.json`, the two upstream
   `sample_evaluations.json` files and the per-stage statement trace
@@ -151,6 +224,18 @@ Tests that read `vectors/circuit` run from the repository root.
 
 ## Contract and invariants
 
+- Variables 0, 1 and 2 are zero, one and `u`; `u` is an output from the
+  constructor; `init(gpa, n)` reserves variables `3..3+n`.
+- Variables are numbered in call order. Constants are interned in first-use
+  order and keep interning after `finalize`.
+- `add` elides a gate only when an operand is variable 0, `mul` only when an
+  operand is variable 0 or 1. Nothing folds values or hash-conses gates.
+- `finalize` is `finalize_constants` (verbatim, including `IndexMap`
+  `swap_remove` and `retain` order), the optional use check, then one
+  yield gate per guess in guess order.
+- `Context(QM31)` and `Context(NoValue)` build identical gate lists.
+- Value-mode `div`/`inv` of zero and malformed `u32` witnesses panic, as the
+  Rust builder does.
 - Every evaluator emits the builder ops of the generated (or hand-written)
   Rust code in the same order. The interpreter never folds, interns or caches
   values; the builder's index-only peepholes decide which ops become gates.
@@ -188,7 +273,10 @@ Tests that read `vectors/circuit` run from the repository root.
   `python3 scripts/generate_circuit_oracle_vectors.py`.
 - A new hand-written upstream evaluator needs a `manual/` port and an entry in
   `cairo_components.zig` or `circuit_components.zig`.
-- Run the focused CI command above and `test-r3`.
+- Keep each file's builder calls in upstream order; `eval!` expressions expand
+  left subtree, right subtree, operation.
+- Run the focused CI commands above, `test-r3` and
+  `python3 scripts/lint_circuit_frontend.py`.
 
 ## Related documentation
 

@@ -368,7 +368,7 @@ test "R3: all 94 in-circuit evaluators match the oracle gate lists, values and r
     // evaluators the oracle synthesizes inputs for.
     const synthesized = [_][]const u8{ "memory_address_to_id", "verify_bitwise_xor_12" };
     for ([_]Value{ samples.casm.root(), samples.circuit.root() }) |document| {
-        var keys = document.object.iterator();
+        var keys = document.object.iterator(); // circuit-lint: ordered-iteration (std.json.ObjectMap is an array hash map)
         while (keys.next()) |entry| {
             const used = used_samples.contains(entry.key_ptr.*);
             const skipped = for (synthesized) |name| {

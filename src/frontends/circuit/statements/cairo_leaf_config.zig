@@ -61,7 +61,7 @@ pub fn leafVerifierConfig(
     var n_shapes: usize = 0;
     for (cairo_table.entries, result.enabled_bits) |entry, enabled| {
         if (!enabled) continue;
-        shapes[n_shapes] = .{ .trace_columns = entry.trace_columns, .interaction_columns = entry.interaction_columns };
+        shapes[n_shapes] = .{ .trace_columns = entry.shape.trace_columns, .interaction_columns = entry.shape.interaction_columns };
         n_shapes += 1;
     }
     result.proof_config = try proof.ProofConfig.init(

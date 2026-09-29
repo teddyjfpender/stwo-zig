@@ -75,4 +75,12 @@ pub fn build(b: *std.Build) void {
         "Authenticate and decode vectors/circuit/official/compiled_air_constraints_v1.bin",
     );
     check_step.dependOn(&check.step);
+
+    // R1: the upstream `expect!` snapshots (unit tests) and the R1 builder
+    // cases of `vectors/circuit/r2/gadgets.json`; R2: its gadget cases.
+    const r1_step = b.step("circuit-parity-r1", "Rung R1: builder snapshots and builder cases against the oracle");
+    r1_step.dependOn(&unit_tests.step);
+    r1_step.dependOn(&fixture_tests.step);
+    const r2_step = b.step("circuit-parity-r2", "Rung R2: gadget gate lists, values and outputs against the oracle");
+    r2_step.dependOn(&fixture_tests.step);
 }

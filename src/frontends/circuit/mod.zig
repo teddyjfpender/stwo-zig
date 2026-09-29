@@ -8,8 +8,10 @@
 
 const std = @import("std");
 
-/// `crates/circuit_common`: finalization sizing, preprocessing, circuit hash
-/// and the shared component list.
+/// `crates/circuits`: the circuit builder.
+pub const builder = @import("builder/mod.zig");
+/// `crates/circuit_common`: finalization sizing and padding, ZK blinding,
+/// preprocessing, circuit hash and the shared component list.
 pub const common = @import("common/mod.zig");
 /// `crates/stark_verifier`: the in-circuit STARK verifier.
 pub const stark_verifier = @import("stark_verifier/mod.zig");
@@ -19,6 +21,27 @@ pub const statements = @import("statements/mod.zig");
 /// The in-circuit constraint evaluators, interpreted from the compiled-AIR
 /// projection (design §5.4).
 pub const air_eval = @import("air_eval/mod.zig");
+
+test "api signature: the builder is generic over QM31 and NoValue" {
+    const QM31 = @import("stwo_core").fields.qm31.QM31;
+    const init_values: fn (std.mem.Allocator, usize) builder.context.Error!builder.Context(QM31) = builder.Context(QM31).init;
+    const init_topology: fn (std.mem.Allocator, usize) builder.context.Error!builder.Context(builder.NoValue) = builder.Context(builder.NoValue).init;
+    const finalize: fn (*builder.Context(QM31), bool) builder.context.FinalizeError!void = builder.Context(QM31).finalize;
+    const pad: fn (*builder.Context(QM31), common.finalize.ComponentSizes) common.finalize.PadError!void = struct {
+        fn pad(ctx: *builder.Context(QM31), targets: common.finalize.ComponentSizes) common.finalize.PadError!void {
+            return common.finalize.padToTargets(QM31, ctx, targets);
+        }
+    }.pad;
+    _ = .{ init_values, init_topology, finalize, pad };
+}
+
+test "invariant: vars 0, 1, 2 are zero, one and u, and u is an output" {
+    var ctx = try builder.Context(builder.NoValue).init(std.testing.allocator, 0);
+    defer ctx.deinit();
+    try std.testing.expectEqual(@as(u32, 3), ctx.circuit.n_vars);
+    try std.testing.expectEqualSlices(u32, &.{2}, ctx.circuit.output.items);
+    try std.testing.expectEqualSlices(builder.Var, &.{ .{ .idx = 0 }, .{ .idx = 1 }, .{ .idx = 2 } }, ctx.constantVars());
+}
 
 test "api signature: circuit facade exposes the ported crates" {
     try std.testing.expect(@hasDecl(common, "preprocessed"));

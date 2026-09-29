@@ -16,6 +16,7 @@
   ],
   "api_surface": [
     "air_eval",
+    "builder",
     "common",
     "stark_verifier",
     "statements"
@@ -23,11 +24,13 @@
   "api_contract": {
     "signature_tests": [
       "mod.zig::api signature: circuit facade exposes the ported crates",
-      "mod.zig::api signature: evaluator tables are built from a parsed projection"
+      "mod.zig::api signature: evaluator tables are built from a parsed projection",
+      "mod.zig::api signature: the builder is generic over QM31 and NoValue"
     ],
     "invariant_tests": [
       "mod.zig::invariant: every preprocessed layout has the 45 circuit columns",
-      "mod.zig::invariant: projection reader rejects bad magic, other versions and truncation"
+      "mod.zig::invariant: projection reader rejects bad magic, other versions and truncation",
+      "mod.zig::invariant: vars 0, 1, 2 are zero, one and u, and u is an output"
     ]
   },
   "ci": {

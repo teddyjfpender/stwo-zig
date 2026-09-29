@@ -24,7 +24,7 @@
     },
     "stwo_circuit_frontend": {
       "status": "internal",
-      "reason": "The circuit recursion frontend is under construction (milestone M4 of the recursion design) and is not a supported Zig source package yet."
+      "reason": "The circuit recursion frontend is under construction (recursion design milestones M2 onward) and is not a supported Zig source package yet."
     },
     "stwo_cairo_metal_integration": {
       "status": "published",

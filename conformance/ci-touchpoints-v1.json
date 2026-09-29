@@ -229,7 +229,7 @@
     },
     "circuit_frontend": {
       "host": "linux",
-      "description": "Independent circuit recursion frontend package (in-circuit evaluators, R3)",
+      "description": "Independent circuit recursion frontend package (builder R1/R2, in-circuit evaluators R3, statements)",
       "commands": [
         [
           "zig",

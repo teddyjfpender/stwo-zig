@@ -272,6 +272,7 @@ pub const steps = [_]Step{
     .{ .name = "registry-parity", .description = "Compare focused and aggregate registries", .scope = .policy },
     .{ .name = "circuit-air-projection-check", .description = "Authenticate and decode the compiled-AIR projection", .scope = .policy },
     .{ .name = "circuit-slot-order", .description = "Assert the circuit projection's Cairo slot order", .scope = .policy },
+    .{ .name = "circuit-lint", .description = "Reject order-unstable constructs in the circuit frontend", .scope = .policy },
     .{ .name = "release-gate", .description = "Run the standard release gate", .scope = .release },
     .{ .name = "release-gate-strict", .description = "Run the strict release gate", .scope = .release },
 };
