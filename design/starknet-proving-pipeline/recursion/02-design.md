@@ -66,6 +66,11 @@ before editing):
    - Any AIR proved on this revision must take its OODS vanishing domain
      from `max_log_degree_bound` (upstream `FrameworkComponent`), which
      lifting raises above the component's rows.
+8. **M10 exit is split (R10d rescoped).** R10d proves SN_PIE_2 (7,706,864
+   steps) and then wraps that proof, so it needs the M8 leaf wrap and a big
+   host (§8.3). M10 closes locally on R10a–R10c with Cairo-lane vectors
+   unchanged except the intended PoW-order change (§4.7). R10d moves to a
+   big-host gate that runs after M8, listed in the M8 row of §10.
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
@@ -1305,9 +1310,9 @@ work can be started earlier against committed fixtures.
 | **M5** | In-circuit verifier and fold topology | `stark_verifier/*`, `statements/{circuit_statement,multiverifier}.zig`, `common/*` | R4 and R5 green; R6 fold registry root and hash plus 45-column layout | M2, M3, M4 | 4 wk |
 | **M6** | Cairo statement and leaf topology | `statements/cairo_statement.zig`, `cairo_public_data.zig`, variants, enabled_bits | R6 leaf, from committed Cairo-root fixtures (M0): canonical_small trace_log 20, `get_preprocessed_root` 21/22/23; production and privacy registries against big-host fixtures; all 83 slots confirmed | M0 (Cairo-root fixtures), M4, M5 | 3 wk |
 | **M7** | Circuit prover (scalar and SIMD CPU) | `air/*`, `witness/*`, `proving/*`, generalised composition AOT step, `src/integrations/circuit_cpu` | R7 green, including interaction-column hashes; both grinds (20-bit interaction, 26-bit FRI) per §4.7 on the `.internal` (M31) and `.root` (plain) profiles; multiverifier `proof.bin` reproduced exactly; Rust verifier accepts Zig proofs; builder-share and grind-time measurements recorded | M0 (bundle), M1, M3, M5 | 4–5 wk |
-| **M8** | Leaf wrap (Stage A) | `recursion/leaf_wrap.zig`, `topology_key.zig`, `topology_cache.zig`, product `leaf-wrap` | R8 both gates (expected_output.json; mainnet 1,580,295-step bucket-25 leaf) | M6, M7 | 1.5 wk |
+| **M8** | Leaf wrap (Stage A) | `recursion/leaf_wrap.zig`, `topology_key.zig`, `topology_cache.zig`, product `leaf-wrap` | R8 both gates (expected_output.json; mainnet 1,580,295-step bucket-25 leaf); then, on the big host, R10d (Zig Cairo proof of SN_PIE_2 wrapped by Zig == release `leaf-prover`, errata 8) | M6, M7 (R10d also M10) | 1.5 wk |
 | **M9** | Fold tree and root | `recursion/{fold,tree,canonical}.zig`, product `fold-tree`, `circuit-params` | R9 raw bytes on four_leaves and N = 1, 2, 3, 5; R11 green. Parity-complete for Stage A. | M7, M8 | 2 wk |
-| **M10** | Zig Cairo leaf lane (Stage B) | `src/frontends/cairo` channel/revision parameterisation, include-all, AtLeastPreprocessed, public-data mix, params loader, CPU M31 grind | R10a–R10d; Cairo-lane vectors unchanged | M1 (parallel to M2–M9) | 4–6 wk |
+| **M10** | Zig Cairo leaf lane (Stage B) | `src/frontends/cairo` channel/revision parameterisation, include-all, AtLeastPreprocessed, public-data mix, params loader, CPU M31 grind | R10a–R10c; Cairo-lane vectors unchanged except the §4.7 PoW order (R10d is a big-host gate after M8, errata 8) | M1 (parallel to M2–M9) | 4–6 wk |
 | **M11** | CPU performance | caches, streaming commit, low-memory policy, scheduler, static budget | ladder still green after every change; the §9.4 CPU targets measured, pass or fail reported honestly | M9 | 3–4 wk |
 | **M12** | Metal, then CUDA | `src/integrations/circuit_{metal,cuda}`, §4.7 grind kernels (M31 and plain Blake2s; 20 and 26 bits, plus 24 for Stage B), gather and blake_g kernels | R7–R9 on device byte-equal to CPU scalar; fail-closed capability checks | M11 | 4–6 wk |
 | **M13** | (optional) topology tape | record the NoValue build per key as an op stream; fill values from the shared `guess` traversal | only if builder share > 10%. Merge gates: two different proofs per key give identical tape digests; tape values equal value-mode Context values on every R8/R9 fixture; `-Dcircuit-audit` re-runs value mode | M9, M11 | 2 wk |
