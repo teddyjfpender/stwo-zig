@@ -28,6 +28,11 @@ pub fn CommitmentTreeProver(comptime H: type) type {
     return scheme.CommitmentTreeProver(H);
 }
 pub const CommitmentTreeProverForBackend = @import("commitment_tree.zig").CommitmentTreeProverForBackend;
+/// Host backend of `CommitmentTreeProver(H)`, for one-off commitments that
+/// build a tree outside a `CommitmentSchemeProver`.
+pub const HostMerkleBackend = @import("commitment_tree.zig").HostMerkleBackend;
+/// Interpolate-and-extend preparation shared by every PCS commit path.
+pub const column_preparation = @import("columns/preparation.zig");
 
 pub fn TreeDecommitmentResult(comptime H: type) type {
     return scheme.TreeDecommitmentResult(H);
