@@ -14,7 +14,8 @@
     "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [
-    "cairo_frontend"
+    "cairo_frontend",
+    "interop_felt_json"
   ],
   "api_surface": [
     "CasmState",

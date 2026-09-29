@@ -109,12 +109,18 @@ pub const PcsConfigV2 = struct {
     }
 
     /// Merkle height of the `tree_index`-th tree given its extended column
-    /// log sizes: the configured lifting height, which must dominate every
-    /// column, and 0 for a tree without columns (upstream asserts both in
-    /// `MerkleVerifierLifted::new` and `MerkleProverLifted::commit`).
+    /// log sizes: always the configured lifting height. Upstream commits and
+    /// verifies every tree at `lifting_log_size(tree_index)`
+    /// (`CommitmentSchemeProver::commit` and `CommitmentSchemeVerifier::commit`
+    /// in `crates/stwo/src/{prover,core}/pcs`), and `MerkleProverLifted::commit`
+    /// and `MerkleVerifierLifted::new` assert that the height dominates every
+    /// column and is 0 when there are none. An empty tree is therefore valid
+    /// only under a zero lifting height, as in the upstream examples that set
+    /// `preprocessed_lifting_log_size: 0` without preprocessed columns; any
+    /// other height is `error.InvalidTreeHeight`, never a silent 0.
     pub fn treeHeight(self: PcsConfigV2, tree_index: usize, extended_log_sizes: []const u32) Error!u32 {
-        if (extended_log_sizes.len == 0) return 0;
         const height = self.liftingLogSize(tree_index);
+        if (extended_log_sizes.len == 0 and height != 0) return error.InvalidTreeHeight;
         for (extended_log_sizes) |log_size| {
             if (log_size > height) return error.InvalidTreeHeight;
         }
@@ -180,6 +186,20 @@ test "pcs config v2: constructor validates like FriConfig::new" {
     try std.testing.expectEqual(@as(u32, 10 * 70 + 42), (try FriConfigV2.init(42, 10, 10, 70, 1)).securityBits());
 }
 
+test "pcs config v2: an empty tree needs a zero lifting height" {
+    // `MerkleProverLifted::commit` and `MerkleVerifierLifted::new` assert
+    // `lifting_log_size == 0` when no columns are committed; the PCS passes
+    // `lifting_log_size(tree_index)` unchanged, so an empty tree under a
+    // nonzero configured height is rejected upstream, not given height 0.
+    const fri = try FriConfigV2.init(26, 0, 1, 70, 4);
+    const no_preprocessed = PcsConfigV2{ .fri_config = fri, .trace_lifting_log_size = 24, .preprocessed_lifting_log_size = 0 };
+    try std.testing.expectEqual(@as(u32, 0), try no_preprocessed.treeHeight(0, &.{}));
+    try std.testing.expectError(error.InvalidTreeHeight, no_preprocessed.treeHeight(0, &.{1}));
+    try std.testing.expectError(error.InvalidTreeHeight, no_preprocessed.treeHeight(2, &.{}));
+    const uniform = PcsConfigV2.fromFriAndTraceSize(fri, 20);
+    try std.testing.expectError(error.InvalidTreeHeight, uniform.treeHeight(0, &.{}));
+}
+
 test "pcs config v2: per-tree heights and the final lifting rule" {
     const fri = try FriConfigV2.init(26, 0, 1, 70, 4);
     const uniform = PcsConfigV2.fromFriAndTraceSize(fri, 20);
@@ -189,7 +209,6 @@ test "pcs config v2: per-tree heights and the final lifting rule" {
     const split = PcsConfigV2{ .fri_config = fri, .trace_lifting_log_size = 24, .preprocessed_lifting_log_size = 21 };
     try std.testing.expectEqual(@as(u32, 21), try split.treeHeight(0, &.{ 5, 21 }));
     try std.testing.expectEqual(@as(u32, 24), try split.treeHeight(1, &.{ 5, 9 }));
-    try std.testing.expectEqual(@as(u32, 0), try split.treeHeight(2, &.{}));
     try std.testing.expectError(error.InvalidTreeHeight, split.treeHeight(0, &.{22}));
 
     try std.testing.expectEqual(@as(u32, 24), try split.finalLiftingLogSize(21, true, 23));

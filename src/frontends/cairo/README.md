@@ -74,6 +74,8 @@ the more explicit transaction modules in `stwo_cairo_cpu_integration` or
 - `stwo_backend_contracts`
 - `stwo_prover_api`
 - `stwo_prover_engine`
+- `interop_felt_json` (injected, `src/interop/felt_json.zig`): the streaming
+  felt JSON writer behind `proof.cairo_serde`, shared with circuit recursion
 
 The frontend has no CPU, Metal, or CUDA backend dependency.
 

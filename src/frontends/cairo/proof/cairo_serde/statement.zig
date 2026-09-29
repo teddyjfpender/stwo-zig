@@ -6,7 +6,7 @@ const registry = @import("../../air/official_claim_registry.zig");
 const composition = @import("../../witness/composition_bundle.zig");
 const public_data = @import("../../statement/public_data.zig");
 const layout = @import("../layout.zig");
-const felt_json = @import("felt_json.zig");
+const felt_json = @import("interop_felt_json");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 pub fn validateInput(input: *const adapter.ProverInput) !void {

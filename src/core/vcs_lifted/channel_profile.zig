@@ -86,12 +86,14 @@ test "channel profile: mixRoot matches proving@5a7c5ed mix_hash" {
 
 test "channel profile: both profiles commit with the plain Blake2s hasher" {
     // Oracle: the empty-tree root `MerkleProverLifted::<CpuBackend,
-    // Blake2sMerkleHasher>::commit(vec![], 0, 0)` is Blake2s of no data, the
-    // hasher both upstream Merkle channels name.
-    const empty_root = @import("lifted_height_vectors.zig").empty_root;
+    // Blake2sMerkleHasher>::commit(vec![], 0, 0)` is Blake2s of no data
+    // (`empty_root` in `testdata/lifted_height_vectors.zig`), the hasher both
+    // upstream Merkle channels name; compare with the standard BLAKE2s-256.
+    var empty_root: [32]u8 = undefined;
+    std.crypto.hash.blake2.Blake2s256.hash("", &empty_root, .{});
     inline for (.{ proving_5a7c5ed.Blake2sMerkleChannel, proving_5a7c5ed.Blake2sM31MerkleChannel }) |Profile| {
         var leaf = Profile.MerkleHasher.defaultWithInitialState();
-        try expectDigestHex(empty_root, leaf.finalize());
+        try std.testing.expectEqualSlices(u8, &empty_root, &leaf.finalize());
         try std.testing.expectEqual(@as(u32, 0), Profile.MerkleHasher.domainPrefixBytes());
     }
 }

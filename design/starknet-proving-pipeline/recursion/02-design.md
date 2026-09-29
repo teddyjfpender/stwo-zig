@@ -173,7 +173,9 @@ prover → core) and §Module and directory design: `mod.zig` is a map, files ar
     `[(pow, blowup, nq, last), (fold_step, 0, 0, 0)]`;
   - `treeHeight(rev, tree, cfg, max_col)`: under 5a7c5ed tree 0 uses the
     preprocessed lifting height and every other tree uses the trace lifting
-    height, with `height ≥ max_col` asserted and 0 for an empty tree;
+    height, with `height ≥ max_col` asserted; an empty tree is valid only
+    when its configured height is already 0 (upstream asserts
+    `lifting_log_size == 0`, it does not substitute 0), else an error;
   - `finalLiftingCheck`.
 - `src/core/pcs/config_v2.zig` (new) with `PcsConfigV2 { fri: FriConfigV2
   {pow_bits, log_blowup, log_last_layer, n_queries, fold_step},
@@ -190,11 +192,14 @@ prover → core) and §Module and directory design: `mod.zig` is a map, files ar
   `pointwiseInvOrZero`, `pointwiseLsb`, and a fully reducing u32→M31.
 - Shared primitives move down one layer. This is a preparatory milestone (M1)
   that resolves the frontend-to-frontend dependency:
-  - `BLAKE_SIGMA` moves to `src/core/crypto/`. It is currently copied in
-    `src/frontends/cairo/preprocessed/columns.zig`.
+  - `BLAKE_SIGMA` moves to `src/core/crypto/blake_sigma.zig` (done in M1b).
+    It was copied in the Cairo Blake deductions
+    (`src/frontends/cairo/witness/deductions/blake.zig`, read by
+    `preprocessed/columns.zig`) and in `core/crypto/blake2s_terminal_parallel.zig`;
+    both now use the core table.
   - The pure `seq` and `bitwise_xor_{n}_{k}` column formulas move to
-    `src/core/preprocessed_tables.zig`. The Cairo frontend re-exports them, so
-    its bytes are unchanged.
+    `src/core/preprocessed_tables.zig` (done in M1b). The Cairo frontend's
+    `preprocessed/columns.zig` delegates to them, so its bytes are unchanged.
 
 ### 2.2 Frontend `src/frontends/circuit/` (package `stwo_circuit_frontend`)
 
@@ -278,9 +283,14 @@ src/frontends/circuit/
   `sort_and_transpose_queried_values` (`cairo-air/src/utils.rs:220`). Trees 1
   and 2 are stable-sorted by log size and then transposed; trees 0 and 3 are
   only transposed.
-- `felt_json.zig`: streaming pretty `0x…` felt JSON. The existing
-  `src/frontends/cairo/proof/cairo_serde/felt_json.zig` moves here, and Cairo
-  re-exports it. The move is byte-neutral and happens in M1.
+- `felt_json.zig`: streaming pretty `0x…` felt JSON. The former
+  `src/frontends/cairo/proof/cairo_serde/felt_json.zig` moved in M1b to
+  `src/interop/felt_json.zig`, one level above this directory: Zig rejects a
+  file that belongs to two modules, so the writer is its own single-file
+  module (`interop_felt_json`, injected into the Cairo frontend like the RISC-V
+  frontend's `interop_postcard`) that this package imports rather than owns.
+  Cairo re-exports it as `proof.cairo_serde.felt_json`; the move is
+  byte-neutral.
 - `registry.zig`: `CircuitRegistry` and `LogSizes`, parsed with field order
   kept and written as pretty output + `\n`.
 - `leaf_proof_json.zig` (`SerializedLeafProof`, `DigestHex` `{:#010x}`, std

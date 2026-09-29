@@ -39,8 +39,9 @@ pub const Revision = enum {
     }
 
     /// Merkle height of the `tree_index`-th committed tree, given its
-    /// blowup-extended column log sizes. An empty tree has height 0 in both
-    /// revisions.
+    /// blowup-extended column log sizes. An empty tree has height 0 under
+    /// `stwo_7b211ed`; under `proving_5a7c5ed` it is valid only when its
+    /// configured lifting height is 0 (`PcsConfigV2.treeHeight`).
     pub fn treeHeight(
         comptime self: Revision,
         config: self.PcsConfig(),

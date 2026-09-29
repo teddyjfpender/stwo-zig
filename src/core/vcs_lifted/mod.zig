@@ -8,7 +8,6 @@ const QM31 = qm31_mod.QM31;
 pub const blake2_merkle = @import("blake2_merkle.zig");
 pub const blake3_merkle = @import("blake3_merkle.zig");
 pub const channel_profile = @import("channel_profile.zig");
-pub const lifted_height_vectors = @import("lifted_height_vectors.zig");
 pub const merkle_hasher = @import("merkle_hasher.zig");
 pub const test_utils = @import("test_utils.zig");
 pub const verifier = @import("verifier.zig");

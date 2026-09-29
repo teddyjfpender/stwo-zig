@@ -57,7 +57,7 @@ The contractually reviewed surface is grouped below.
 | Area | Exports |
 | :--- | :--- |
 | Fields and domains | `fields`, `circle`, `fft`, `poly`, `fraction` |
-| AIR and algebra | `air`, `constraint_framework`, `constraints`, `queries` |
+| AIR and algebra | `air`, `constraint_framework`, `constraints`, `preprocessed_tables`, `queries` |
 | Commitments and transcript | `channel`, `crypto`, `proof_of_work`, `vcs`, `vcs_lifted` |
 | Proof system | `pcs`, `fri`, `proof`, `proof_json`, `verifier`, `verifier_types` |
 | Protocol revisions | `protocol_revision` |
@@ -72,6 +72,14 @@ explicit per-tree lifting heights). Its channels, hashers and proof-of-work
 search order are fixed together by `vcs_lifted.channel_profile`; lanes name a
 profile rather than pairing a channel with a hasher themselves. The
 revision-specific tests run as `test-revision` in the owner-local build.
+
+Primitives that more than one frontend needs live here rather than in either
+frontend: `crypto.blake_sigma.BLAKE_SIGMA` (the BLAKE2s message schedule, also
+used by the native BLAKE2s hashers) and `preprocessed_tables` (the row
+formulas of the `seq_*` and `bitwise_xor_*` preprocessed columns). The Cairo
+frontend consumes both, so its bytes do not depend on where they are defined.
+Oracle data used only by tests lives under `vcs_lifted/testdata/` and is not
+exported; the prover package receives it as an injected test module.
 
 `ColumnVec(T)` and `ComponentVec(T)` construct typed `std.ArrayList` wrappers.
 Proof objects own nested allocations according to the deinitialization

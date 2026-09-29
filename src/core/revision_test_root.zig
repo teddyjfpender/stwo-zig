@@ -10,4 +10,5 @@ test {
     _ = @import("vcs_lifted/blake2_merkle.zig");
     _ = @import("crypto/chacha20_rng.zig");
     _ = @import("fields/qm31_pointwise.zig");
+    _ = @import("preprocessed_tables.zig");
 }
