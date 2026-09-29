@@ -3,6 +3,7 @@ const builtin = @import("builtin");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const blake2_hash = @import("../vcs/blake2_hash.zig");
+const blake2s_grind = @import("blake2s_grind.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -139,7 +140,7 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
 
         /// Compute the constant prefix hash: H(POW_PREFIX, [0u8;12], digest, n_bits).
         /// This is invariant across nonces and can be cached for the grinding loop.
-        fn computePowPrefix(self: Self, n_bits: u32) Digest32 {
+        pub fn computePowPrefix(self: Self, n_bits: u32) Digest32 {
             var prefixed_hasher = Hasher.init();
             const prefix_bytes = u32ToBytesLe(POW_PREFIX);
             const bits_bytes = u32ToBytesLe(n_bits);
@@ -185,18 +186,26 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
         /// shared upper bound, making the result independent of thread scheduling.
         pub fn grind(self: Self, n_bits: u32) u64 {
             if (n_bits == 0) return 0;
+            return self.grindWithWorkerCount(n_bits, powWorkerCount());
+        }
 
-            // Determine thread count from env or CPU count.
-            const n_threads: usize = blk: {
-                if (comptime builtin.is_test) break :blk 1;
-                const env_val = std.process.getEnvVarOwned(
-                    std.heap.page_allocator,
-                    "STWO_ZIG_POW_WORKERS",
-                ) catch break :blk std.Thread.getCpuCount() catch 1;
-                defer std.heap.page_allocator.free(env_val);
-                break :blk std.fmt.parseInt(usize, env_val, 10) catch 1;
+        /// Grind in an explicit search order (`blake2s_grind.GrindOrder`). A lane
+        /// reproducing another prover's bytes names that prover's order;
+        /// `.lowest_nonce` is exactly `grind`.
+        pub fn grindInOrder(
+            self: Self,
+            order: blake2s_grind.GrindOrder,
+            n_bits: u32,
+        ) blake2s_grind.Error!u64 {
+            return switch (order) {
+                .lowest_nonce => self.grind(n_bits),
+                .rust_simd_hi_major => blake2s_grind.grindHiMajor(
+                    is_m31_output,
+                    self.computePowPrefix(n_bits),
+                    n_bits,
+                    powWorkerCount(),
+                ),
             };
-            return self.grindWithWorkerCount(n_bits, n_threads);
         }
 
         fn grindWithWorkerCount(self: Self, n_bits: u32, n_workers: usize) u64 {
@@ -315,6 +324,17 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             return hasher.finalize();
         }
     };
+}
+
+/// PoW worker count: `STWO_ZIG_POW_WORKERS`, else the CPU count; one in tests.
+fn powWorkerCount() usize {
+    if (comptime builtin.is_test) return 1;
+    const env_val = std.process.getEnvVarOwned(
+        std.heap.page_allocator,
+        "STWO_ZIG_POW_WORKERS",
+    ) catch return std.Thread.getCpuCount() catch 1;
+    defer std.heap.page_allocator.free(env_val);
+    return std.fmt.parseInt(usize, env_val, 10) catch 1;
 }
 
 fn trailingZeroBits(bytes: []const u8) u32 {

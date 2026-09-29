@@ -94,6 +94,35 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
             return hasher.finalize();
         }
 
+        /// `Hasher::hash_u32s` (proving@5a7c5ed `core/vcs_lifted/blake2_merkle.rs`):
+        /// one Blake2s over the words' little-endian bytes, as `mix_u32s` encodes them.
+        pub fn hashU32s(words: []const u32) Blake2sHash {
+            var hasher = Self.init();
+            hasher.updateU32sLe(words);
+            return hasher.finalize();
+        }
+
+        /// `Hasher::hash_u32s_followed_by_digest`: `H(LE(words) || digest)` in
+        /// one pass. It is not `H(H(words), digest)`.
+        pub fn hashU32sFollowedByDigest(words: []const u32, digest: Blake2sHash) Blake2sHash {
+            var hasher = Self.init();
+            hasher.updateU32sLe(words);
+            hasher.update(&digest);
+            return hasher.finalize();
+        }
+
+        fn updateU32sLe(self: *Self, words: []const u32) void {
+            if (comptime builtin.cpu.arch.endian() == .little) {
+                self.update(std.mem.sliceAsBytes(words));
+                return;
+            }
+            for (words) |word| {
+                var bytes: [4]u8 = undefined;
+                std.mem.writeInt(u32, &bytes, word, .little);
+                self.update(&bytes);
+            }
+        }
+
         pub fn hashWithMode(mode: BackendMode, data: []const u8) Blake2sHash {
             var hasher = Self.initWithMode(mode);
             hasher.update(data);

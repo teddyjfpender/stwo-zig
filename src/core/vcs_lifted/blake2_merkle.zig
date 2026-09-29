@@ -90,7 +90,6 @@ fn Blake2sMerkleHasherProtocolGeneric(
         pub fn domainPrefixBytes() u32 {
             return @intFromEnum(hash_protocol);
         }
-
         /// Pre-hashed node-domain separator state used to avoid reprocessing
         /// `NODE_PREFIX` for every parent hash on one Merkle layer.
         pub fn nodeSeed() NodeSeed {
@@ -361,6 +360,78 @@ test "vcs_lifted blake2: pinned Cairo Rust oracle uses plain leaf and parent has
         "280569932378c99f448df37e893f062fab951bea53515634b7875ae51e1954e7",
         &parent_hex,
     );
+}
+
+/// Inputs of proving@5a7c5ed `crates/stwo/src/core/vcs_lifted/hasher_test.rs`.
+const hasher_test_words = [_]u32{ 0, 1, 2, 3, 0x1234_5678, std.math.maxInt(u32), 7, 8, 9 };
+const hasher_test_digest_hex = "efee1538e0216d3a09ce742ce768c44a7db004d801c40f66040994353f55fe85";
+
+fn hexDigest(comptime hex: *const [64]u8) blake2_hash.Blake2sHash {
+    var digest: blake2_hash.Blake2sHash = undefined;
+    _ = std.fmt.hexToBytes(&digest, hex) catch unreachable;
+    return digest;
+}
+
+test "vcs_lifted blake2: hashU32s matches proving@5a7c5ed hasher_test vectors" {
+    // `blake2s_hash_u32s` and `blake2s_hash_u32s_followed_by_digest`.
+    try std.testing.expectEqualSlices(
+        u8,
+        &hexDigest(hasher_test_digest_hex),
+        &blake2_hash.Blake2sHasher.hashU32s(&hasher_test_words),
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &hexDigest("18a60268d189dccf5065ddd361d280474fbc2b08d75a7e4e1c20e57a67f2f7fa"),
+        &blake2_hash.Blake2sHasher.hashU32sFollowedByDigest(
+            &hasher_test_words,
+            hexDigest(hasher_test_digest_hex),
+        ),
+    );
+}
+
+test "vcs_lifted blake2: hashU32sFollowedByDigest absorbs the digest words once" {
+    // `hash_u32s_followed_by_digest_absorbs_the_digest_words` and
+    // `hash_u32s_distinguishes_lengths`.
+    const digest = hexDigest(hasher_test_digest_hex);
+    var concatenated: [hasher_test_words.len + 8]u32 = undefined;
+    @memcpy(concatenated[0..hasher_test_words.len], &hasher_test_words);
+    for (concatenated[hasher_test_words.len..], 0..) |*word, i| {
+        word.* = std.mem.readInt(u32, digest[i * 4 ..][0..4], .little);
+    }
+    try std.testing.expectEqualSlices(
+        u8,
+        &blake2_hash.Blake2sHasher.hashU32s(&concatenated),
+        &blake2_hash.Blake2sHasher.hashU32sFollowedByDigest(&hasher_test_words, digest),
+    );
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &blake2_hash.Blake2sHasher.hashU32s(&.{1}),
+        &blake2_hash.Blake2sHasher.hashU32s(&.{ 1, 0 }),
+    ));
+}
+
+test "vcs_lifted blake2: hashU32s encodes words exactly like mixU32s" {
+    // `blake2s_hash_u32s_matches_mix_u32s` and its M31 counterpart: the M31
+    // hash is a different function over the same digest type.
+    inline for (.{
+        .{ channel_blake2s.Blake2sChannel, blake2_hash.Blake2sHasher },
+        .{ channel_blake2s.Blake2sM31Channel, blake2_hash.Blake2sM31Hasher },
+    }) |pair| {
+        var channel = pair[0]{};
+        channel.mixU64(1);
+        var words: [8 + hasher_test_words.len]u32 = undefined;
+        for (words[0..8], 0..) |*word, i| {
+            word.* = std.mem.readInt(u32, channel.digestBytes()[i * 4 ..][0..4], .little);
+        }
+        @memcpy(words[8..], &hasher_test_words);
+        channel.mixU32s(&hasher_test_words);
+        try std.testing.expectEqualSlices(u8, &channel.digestBytes(), &pair[1].hashU32s(&words));
+    }
+    try std.testing.expect(!std.mem.eql(
+        u8,
+        &blake2_hash.Blake2sM31Hasher.hashU32s(&hasher_test_words),
+        &blake2_hash.Blake2sHasher.hashU32s(&hasher_test_words),
+    ));
 }
 
 test "vcs_lifted blake2: pinned raw Stwo oracle uses domain-prefixed hashes" {

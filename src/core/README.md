@@ -60,7 +60,18 @@ The contractually reviewed surface is grouped below.
 | AIR and algebra | `air`, `constraint_framework`, `constraints`, `queries` |
 | Commitments and transcript | `channel`, `crypto`, `proof_of_work`, `vcs`, `vcs_lifted` |
 | Proof system | `pcs`, `fri`, `proof`, `proof_json`, `verifier`, `verifier_types` |
+| Protocol revisions | `protocol_revision` |
 | Shared helpers | `ColumnVec`, `ComponentVec`, `utils`, `test_utils` |
+
+`protocol_revision.Revision` names the PCS transcript and Merkle-height laws a
+lane follows. `stwo_7b211ed` is the existing Native and Cairo rule set
+(`pcs.PcsConfig`, trees as tall as their largest column).
+`proving_5a7c5ed` is the circuit-recursion revision of
+`starkware-libs/proving@5a7c5ed` (`pcs.config_v2`, a two-felt FRI config mix,
+explicit per-tree lifting heights). Its channels, hashers and proof-of-work
+search order are fixed together by `vcs_lifted.channel_profile`; lanes name a
+profile rather than pairing a channel with a hasher themselves. The
+revision-specific tests run as `test-revision` in the owner-local build.
 
 `ColumnVec(T)` and `ComponentVec(T)` construct typed `std.ArrayList` wrappers.
 Proof objects own nested allocations according to the deinitialization

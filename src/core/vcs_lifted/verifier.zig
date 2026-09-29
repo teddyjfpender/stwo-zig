@@ -90,15 +90,21 @@ pub fn MerklePathCapture(comptime H: type) type {
     };
 }
 
+pub const TreeHeightError = error{InvalidTreeHeight};
+
 pub fn MerkleVerifierLifted(comptime H: type) type {
     comptime lifted_merkle_hasher.assertMerkleHasherLifted(H);
     return struct {
         root: H.Hash,
         column_log_sizes: []u32,
+        /// Number of Merkle layers above the leaves. Every column is lifted to
+        /// `2^height` leaves; 0 exactly when no column was committed.
+        height: u32,
 
         const Self = @This();
         const Decommitment = MerkleDecommitmentLifted(H);
 
+        /// A tree as tall as its largest column (the Native and Cairo lanes).
         pub fn init(
             allocator: std.mem.Allocator,
             root: H.Hash,
@@ -107,6 +113,26 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             return .{
                 .root = root,
                 .column_log_sizes = try allocator.dupe(u32, column_log_sizes),
+                .height = maxLogSize(column_log_sizes),
+            };
+        }
+
+        /// A tree committed at an explicit lifting height (`MerkleVerifierLifted::new`
+        /// of proving@5a7c5ed): `height` must dominate every column and must be
+        /// 0 for an empty tree. The height comes from the proof configuration,
+        /// so a violation is an error, not an assertion.
+        pub fn initWithHeight(
+            allocator: std.mem.Allocator,
+            root: H.Hash,
+            column_log_sizes: []const u32,
+            height: u32,
+        ) (std.mem.Allocator.Error || TreeHeightError)!Self {
+            if (column_log_sizes.len == 0 and height != 0) return error.InvalidTreeHeight;
+            if (maxLogSize(column_log_sizes) > height) return error.InvalidTreeHeight;
+            return .{
+                .root = root,
+                .column_log_sizes = try allocator.dupe(u32, column_log_sizes),
+                .height = height,
             };
         }
 
@@ -258,8 +284,7 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             }
 
             var witness_idx: usize = 0;
-            const max_log_size = maxLogSize(self.column_log_sizes);
-            const path_depth: usize = @intCast(max_log_size);
+            const path_depth: usize = @intCast(self.height);
             const unique_path_siblings = if (capture_out != null)
                 try allocator.alloc(H.Hash, unique_positions.items.len * path_depth)
             else
@@ -272,7 +297,7 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             defer if (layer_siblings) |siblings| allocator.free(siblings);
 
             var layer: u32 = 0;
-            while (layer < max_log_size) : (layer += 1) {
+            while (layer < self.height) : (layer += 1) {
                 var curr = std.ArrayList(Pair).empty;
                 defer curr.deinit(allocator);
 
@@ -348,7 +373,7 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             if (capture_out) |destination| {
                 var capture = MerklePathCapture(H){
                     .positions = try allocator.dupe(usize, query_positions),
-                    .path_depth = max_log_size,
+                    .path_depth = self.height,
                     .siblings = undefined,
                 };
                 errdefer allocator.free(capture.positions);

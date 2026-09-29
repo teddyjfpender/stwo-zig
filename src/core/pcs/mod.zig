@@ -4,6 +4,7 @@ const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const vcs_verifier = @import("../vcs_lifted/verifier.zig");
 pub const utils = @import("utils.zig");
+pub const config_v2 = @import("config_v2.zig");
 pub const quotients = @import("quotients.zig");
 pub const verifier = @import("verifier.zig");
 
