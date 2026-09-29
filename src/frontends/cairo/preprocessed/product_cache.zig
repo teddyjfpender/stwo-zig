@@ -331,15 +331,14 @@ pub fn specDigest(spec: trace.Spec) [32]u8 {
 
 /// Digest of the PCS parameters the preprocessed commitment is made under.
 pub fn pcsDigest(pcs: anytype) [32]u8 {
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    hasher.update("cairo-pcs-config/v1");
-    updateU32(&hasher, pcs.pow_bits);
-    updateU32(&hasher, pcs.fri_config.log_blowup_factor);
-    updateU32(&hasher, pcs.fri_config.log_last_layer_degree_bound);
-    updateU32(&hasher, @intCast(pcs.fri_config.n_queries));
-    updateU32(&hasher, pcs.fri_config.fold_step);
-    updateU32(&hasher, pcs.lifting_log_size orelse 0xffff_ffff);
-    return hasher.finalResult();
+    return configDigest("cairo-pcs-config/v1", &.{
+        pcs.pow_bits,
+        pcs.fri_config.log_blowup_factor,
+        pcs.fri_config.log_last_layer_degree_bound,
+        @intCast(pcs.fri_config.n_queries),
+        pcs.fri_config.fold_step,
+        pcs.lifting_log_size orelse 0xffff_ffff,
+    });
 }
 
 /// `pcsDigest` for the `proving_5a7c5ed` leaf lane. The cached artifacts are
@@ -348,13 +347,20 @@ pub fn pcsDigest(pcs: anytype) [32]u8 {
 /// so only the FRI parameters are bound; the domain keeps them apart from the
 /// official lane's entries.
 pub fn pcsDigestRevision(fri_config: anytype) [32]u8 {
+    return configDigest("cairo-pcs-config/proving-5a7c5ed/v1", &.{
+        fri_config.pow_bits,
+        fri_config.log_blowup_factor,
+        fri_config.log_last_layer_degree_bound,
+        fri_config.n_queries,
+        fri_config.fold_step,
+    });
+}
+
+/// SHA-256 of `domain` followed by `words` as little-endian `u32`s.
+fn configDigest(domain: []const u8, words: []const u32) [32]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    hasher.update("cairo-pcs-config/proving-5a7c5ed/v1");
-    updateU32(&hasher, fri_config.pow_bits);
-    updateU32(&hasher, fri_config.log_blowup_factor);
-    updateU32(&hasher, fri_config.log_last_layer_degree_bound);
-    updateU32(&hasher, fri_config.n_queries);
-    updateU32(&hasher, fri_config.fold_step);
+    hasher.update(domain);
+    for (words) |word| updateU32(&hasher, word);
     return hasher.finalResult();
 }
 
