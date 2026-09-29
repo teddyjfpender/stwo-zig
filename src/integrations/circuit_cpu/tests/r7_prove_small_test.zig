@@ -181,6 +181,9 @@ const Observer = struct {
     alpha: QM31 = undefined,
     trees: [3]std.ArrayListUnmanaged(checkpoint.Component) = .{ .empty, .empty, .empty },
     accumulators: [3]checkpoint.Digest = undefined,
+    timer: ?*std.time.Timer = null,
+    last_step_ns: u64 = 0,
+    interaction_grind_ns: u64 = 0,
 
     fn deinit(self: *Observer) void {
         self.steps.deinit(self.allocator);
@@ -192,6 +195,11 @@ const Observer = struct {
 
     pub fn onStep(self: *Observer, which: Step, digest: [32]u8) void {
         self.steps.append(self.allocator, .{ which, digest }) catch @panic("out of memory");
+        if (self.timer) |timer| {
+            const now = timer.read();
+            if (which == .mix_interaction_pow_nonce) self.interaction_grind_ns = now - self.last_step_ns;
+            self.last_step_ns = now;
+        }
     }
 
     pub fn onLookupElements(self: *Observer, z: QM31, alpha: QM31) void {
@@ -359,8 +367,33 @@ fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
     defer bundle.deinit();
     var observer = Observer{ .allocator = allocator };
     defer observer.deinit();
-    var proof = try laneProver(lane).prove(allocator, ctx.values(), &pp, &bundle, pcs_config, .{}, &observer);
+    // `STWO_CIRCUIT_STAGE_PROFILE=1` reports the interaction grind (the
+    // step before the lookup draw) and the FRI grind (`proof_of_work`).
+    const profile = std.process.hasEnvVarConstant("STWO_CIRCUIT_STAGE_PROFILE");
+    var recorder = prover.stage_profile.Recorder.init(allocator, "cpu", @tagName(which));
+    defer recorder.deinit();
+    var timer = try std.time.Timer.start();
+    observer.timer = &timer;
+    var proof = try laneProver(lane).prove(allocator, ctx.values(), &pp, &bundle, pcs_config, .{
+        .recorder = if (profile) &recorder else null,
+    }, &observer);
     defer proof.deinit();
+    if (profile) {
+        var snapshot = try recorder.snapshot(allocator);
+        defer snapshot.deinit(allocator);
+        const fri_grind = for (snapshot.stages) |stage| {
+            if (std.mem.eql(u8, stage.id, "proof_of_work")) break stage.seconds;
+        } else 0;
+        std.debug.print("{s}/{s}: interaction grind {d:.3} s (nonce 0x{x}), FRI grind {d:.3} s at {d} bits (nonce 0x{x})\n", .{
+            @tagName(lane),
+            @tagName(which),
+            @as(f64, @floatFromInt(observer.interaction_grind_ns)) / std.time.ns_per_s,
+            proof.interaction_pow_nonce,
+            fri_grind,
+            pcs_config.fri_config.pow_bits,
+            proof.stark_proof.proof.commitment_scheme_proof.proof_of_work,
+        });
+    }
 
     // Component log sizes.
     for (field(expected, "component_log_sizes").array.items, proof.component_log_sizes.toArray()) |pair, log_size| {

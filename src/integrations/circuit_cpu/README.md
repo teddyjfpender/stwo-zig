@@ -137,10 +137,20 @@ the topology tape (M13). The Zig builder cannot build this circuit yet (the
 in-circuit verifier gadgets are later milestones), so the builder number is
 upstream's; the Zig builder is a call-order port of it.
 
-Grinds (same run): the 20-bit interaction grind took 3 ms (nonce
-`0x171a4`, `hi = 0`); the 27-bit FRI grind took 11.3 s (nonce
-`0x11400054201`, `hi = 276`, about 2.9e8 hashes), 28% of the proof. The
-26-bit FRI grinds of `prove_profiles.json` land at `hi` 0, 35, 35 and 95.
+Grinds, measured separately (`STWO_CIRCUIT_STAGE_PROFILE=1`; the CPU search
+runs about 26-30 million Blake2s hashes per second on this host, and the
+time is set by the Rust-order position `hi * 2^20 + lo` of the nonce):
+
+| Proof | Interaction grind (20 bits) | FRI grind |
+| :--- | ---: | ---: |
+| multiverifier, internal profile | 3 ms (`hi = 0`) | 11.3 s at 27 bits (`hi = 276`), 28% of the proof |
+| `blake_g_gate`, internal profile | 51 ms (`hi = 1`) | 1.23 s at 26 bits (`hi = 35`) |
+| `fibonacci`, root profile | 45 ms (`hi = 1`) | 1.28 s at 26 bits (`hi = 35`) |
+| `blake_g_gate`, root profile | 17 ms (`hi = 0`) | 3.34 s at 26 bits (`hi = 95`) |
+| `fibonacci`, internal profile | 3 ms (`hi = 0`) | 14 ms at 26 bits (`hi = 0`) |
+
+The expected cost of a 26-bit grind is about 2^26 hashes (2.2 s here); of a
+20-bit grind, about 2^20 (35 ms).
 
 ## Contract and invariants
 
