@@ -4,11 +4,13 @@
 //! - `grind`: minimum-nonce proof-of-work vectors at 16, 20, 24 and 26 bits;
 //! - `fields`: M31 reduction and QM31 (including pointwise) operations;
 //! - `hashing`: `Hasher` vectors, `reduce_to_m31`, host and in-circuit circuit hashes;
-//! - `formats`: ChaCha20Rng KAT, felt252 word encoding, leaf wire JSON.
+//! - `fri`: FRI folding with `fold_step = 4` down to a last layer of degree bound 0;
+//! - `formats`: ChaCha20Rng KAT, felt252 word encoding, leaf wire JSON, base64.
 
 mod channel;
 mod fields;
 mod formats;
+mod fri;
 mod grind;
 mod hashing;
 
@@ -34,6 +36,7 @@ pub struct PrimitivesBody {
     pub fields: fields::FieldsSection,
     pub hashing: hashing::HashingSection,
     pub formats: formats::FormatsSection,
+    pub fri: fri::FriFoldSection,
 }
 
 pub fn run() -> Result<Envelope<PrimitivesBody>> {
@@ -45,6 +48,7 @@ pub fn run() -> Result<Envelope<PrimitivesBody>> {
         fields: fields::fields_section(),
         hashing,
         formats: formats::formats_section()?,
+        fri: fri::fri_fold_section()?,
         upstream_expectations,
     };
     Ok(Envelope::new("r0", "primitives", Vec::new(), body))

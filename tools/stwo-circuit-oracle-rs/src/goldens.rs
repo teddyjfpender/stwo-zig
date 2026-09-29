@@ -172,3 +172,90 @@ pub const REGISTRY_ENTRIES: [RegistryEntry; 4] = [
         ],
     },
 ];
+
+/// `crates/circuit_multiverifier/src/test_utils.rs` (a `#[cfg(test)]` module upstream).
+pub const MULTIVERIFIER_TEST_UTILS: &str = "crates/circuit_multiverifier/src/test_utils.rs";
+
+/// `TARGET_PADDING_SIZES` of [`MULTIVERIFIER_TEST_UTILS`], as log sizes
+/// `[eq, qm31_ops, triple_xor, m31_to_u32, blake_g_gate]`.
+pub const PRIVACY_TARGET_LOG_SIZES: [u32; 5] = [17, 21, 17, 18, 20];
+
+/// `CIRCUIT_N_PREPROCESSED_COLUMNS` of [`MULTIVERIFIER_TEST_UTILS`].
+pub const CIRCUIT_N_PREPROCESSED_COLUMNS: usize = 45;
+
+/// `multiverifier_preprocessed_column_log_sizes()` of [`MULTIVERIFIER_TEST_UTILS`]: the
+/// preprocessed layout of a circuit padded to [`PRIVACY_TARGET_LOG_SIZES`], in commitment order.
+pub const MULTIVERIFIER_PRIVACY_LAYOUT: [(&str, u32); CIRCUIT_N_PREPROCESSED_COLUMNS] = [
+    ("bitwise_xor_4_0", 8),
+    ("bitwise_xor_4_1", 8),
+    ("bitwise_xor_4_2", 8),
+    ("bitwise_xor_7_0", 14),
+    ("bitwise_xor_7_1", 14),
+    ("bitwise_xor_7_2", 14),
+    ("seq_16", 16),
+    ("bitwise_xor_8_0", 16),
+    ("bitwise_xor_8_1", 16),
+    ("bitwise_xor_8_2", 16),
+    ("eq_in0_address", 17),
+    ("eq_in1_address", 17),
+    ("triple_xor_input_addr_0", 17),
+    ("triple_xor_input_addr_1", 17),
+    ("triple_xor_input_addr_2", 17),
+    ("triple_xor_output_addr", 17),
+    ("triple_xor_multiplicity", 17),
+    ("m31_to_u32_input_addr", 18),
+    ("m31_to_u32_output_addr", 18),
+    ("m31_to_u32_multiplicity", 18),
+    ("bitwise_xor_9_0", 18),
+    ("bitwise_xor_9_1", 18),
+    ("bitwise_xor_9_2", 18),
+    ("blake_g_gate_input_addr_a", 20),
+    ("blake_g_gate_input_addr_b", 20),
+    ("blake_g_gate_input_addr_c", 20),
+    ("blake_g_gate_input_addr_d", 20),
+    ("blake_g_gate_input_addr_f0", 20),
+    ("blake_g_gate_input_addr_f1", 20),
+    ("blake_g_gate_output_addr_a", 20),
+    ("blake_g_gate_output_addr_b", 20),
+    ("blake_g_gate_output_addr_c", 20),
+    ("blake_g_gate_output_addr_d", 20),
+    ("blake_g_gate_multiplicity", 20),
+    ("bitwise_xor_10_0", 20),
+    ("bitwise_xor_10_1", 20),
+    ("bitwise_xor_10_2", 20),
+    ("qm31_ops_add_flag", 21),
+    ("qm31_ops_sub_flag", 21),
+    ("qm31_ops_mul_flag", 21),
+    ("qm31_ops_pointwise_mul_flag", 21),
+    ("qm31_ops_in0_address", 21),
+    ("qm31_ops_in1_address", 21),
+    ("qm31_ops_out_address", 21),
+    ("qm31_ops_mults", 21),
+];
+
+/// `get_preprocessed_root` of `crates/cairo_verifier/src/verify.rs`: the canonical_small Cairo
+/// preprocessed roots of a trace of log size 20, committed with `Blake2sM31MerkleChannel` at log
+/// blowups 1, 2 and 3 (lifting log sizes `20 + log_blowup_factor`).
+pub const CAIRO_PREPROCESSED_ROOT_SOURCE: &str = "crates/cairo_verifier/src/verify.rs";
+pub const CAIRO_PREPROCESSED_ROOT_TRACE_LOG_SIZE: u32 = 20;
+pub const CAIRO_PREPROCESSED_ROOT_LOG_BLOWUPS: [u32; 3] = [1, 2, 3];
+
+/// `PRIVACY_CAIRO_VERIFIER_TRACE_LOG_SIZE` and `LOG_BLOWUP_FACTOR` of
+/// [`MULTIVERIFIER_TEST_UTILS`]: `PCS_CONFIG = get_pcs_config(21, 3)`.
+pub const PRIVACY_CAIRO_VERIFIER_TRACE_LOG_SIZE: u32 = 21;
+pub const MULTIVERIFIER_LOG_BLOWUP_FACTOR: u32 = 3;
+
+/// `PRIVACY_CAIRO_VERIFIER_OUTPUT_DIGEST` of [`MULTIVERIFIER_TEST_UTILS`].
+pub const PRIVACY_CAIRO_VERIFIER_OUTPUT_DIGEST: [u32; 8] = [
+    2238863647, 930608170, 3577551515, 250236175, 3905226011, 365840198, 2418738012, 3030158971,
+];
+
+/// `PRIVACY_CAIRO_VERIFIER_PREPROCESSED_ROOT` of [`MULTIVERIFIER_TEST_UTILS`].
+pub const PRIVACY_CAIRO_VERIFIER_PREPROCESSED_ROOT: [u32; 8] = [
+    2148584466, 2382698151, 457595934, 1170971019, 2577130673, 1560042363, 4279004765, 3806063892,
+];
+
+/// `MULTIVERIFIER_PREPROCESSED_ROOT` of [`MULTIVERIFIER_TEST_UTILS`].
+pub const MULTIVERIFIER_PREPROCESSED_ROOT: [u32; 8] = [
+    1268883877, 213256978, 3644000279, 2357144324, 734149438, 3113839470, 1874459862, 3738996173,
+];
