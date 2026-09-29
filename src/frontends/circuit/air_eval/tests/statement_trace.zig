@@ -18,11 +18,17 @@
 //! most 128 gates of one kind in one harness stage, which the whole-circuit
 //! gate-list hash of `components.json` cannot.
 //!
-//! The context type provides `n_vars`, `gateCounts() [n_kinds]usize` and
-//! `visitGates(start, visitor)` (the oracle's `gate_counts` and `visit_gates`).
+//! Gates are counted and visited with the whole-circuit summary's
+//! `gateCounts` and `visitGates` (the oracle's `gate_counts` and `visit_gates`).
 
 const std = @import("std");
+const circuit_frontend = @import("stwo_circuit_frontend");
 const fixture = @import("../../testing/fixture_json.zig");
+const circuit_summary = @import("../../testing/circuit_summary.zig");
+
+const Circuit = circuit_frontend.builder.Circuit;
+const kind_names = circuit_summary.kind_names;
+const n_kinds = kind_names.len;
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 const Value = std.json.Value;
@@ -31,13 +37,11 @@ const domain = "STWO_CIRCUIT_STATEMENT_TRACE_V1\x00";
 pub const window = 128;
 pub const stage_names = [_][]const u8{ "inputs", "evaluate", "finalize_logup_in_pairs" };
 
-pub fn Mark(comptime n_kinds: usize) type {
-    return struct { counts: [n_kinds]usize, n_vars: u32 };
-}
+/// The circuit's per-kind gate counts and `n_vars` after a stage.
+pub const Mark = struct { counts: [n_kinds]usize, n_vars: u32 };
 
-/// `mark` of the context after a stage.
-pub fn mark(ctx: anytype) Mark(@typeInfo(@TypeOf(ctx.gateCounts())).array.len) {
-    return .{ .counts = ctx.gateCounts(), .n_vars = ctx.n_vars };
+pub fn mark(circuit: *const Circuit) Mark {
+    return .{ .counts = circuit_summary.gateCounts(circuit), .n_vars = circuit.n_vars };
 }
 
 pub const KindTrace = struct {
@@ -81,7 +85,7 @@ const KindDigest = struct {
         }
     }
 
-    fn gate(self: *KindDigest, arena: std.mem.Allocator, fields: []const u32, base: u32) !void {
+    fn gate(self: *KindDigest, arena: std.mem.Allocator, g: circuit_summary.Gate, base: u32) !void {
         if (self.count % window == 0) {
             try self.closeWindow(arena);
             var opened = header(self.kind);
@@ -89,11 +93,25 @@ const KindDigest = struct {
             self.window = opened;
         }
         self.count += 1;
-        for (fields) |field| {
-            const relative: i32 = @intCast(@as(i64, field) - @as(i64, base));
-            const bytes = std.mem.toBytes(std.mem.nativeToLittle(i32, relative));
-            self.records.update(&bytes);
-            self.window.?.update(&bytes);
+        switch (g) {
+            .fields => |fields| self.updateRelative(fields, base),
+            .lists => |lists| for ([_][]const u32{ lists.inputs, lists.outputs }) |list| {
+                self.update(&std.mem.toBytes(std.mem.nativeToLittle(u32, @as(u32, @intCast(list.len)))));
+                self.updateRelative(list, base);
+            },
+        }
+    }
+
+    fn update(self: *KindDigest, bytes: []const u8) void {
+        self.records.update(bytes);
+        self.window.?.update(bytes);
+    }
+
+    /// Each variable as `var - base`, a little-endian two's complement `i32`.
+    fn updateRelative(self: *KindDigest, vars: []const u32, base: u32) void {
+        for (vars) |v| {
+            const relative: i32 = @intCast(@as(i64, v) - @as(i64, base));
+            self.update(&std.mem.toBytes(std.mem.nativeToLittle(i32, relative)));
         }
     }
 
@@ -108,22 +126,16 @@ const KindDigest = struct {
 };
 
 /// The trace of the stages between consecutive `marks` (one per
-/// `stage_names` entry) of the circuit in `ctx`. Allocates from `arena`.
-pub fn trace(
-    arena: std.mem.Allocator,
-    ctx: anytype,
-    kind_names: []const []const u8,
-    marks: []const Mark(@typeInfo(@TypeOf(ctx.gateCounts())).array.len),
-) !Trace {
-    const n_kinds = @typeInfo(@TypeOf(ctx.gateCounts())).array.len;
-    std.debug.assert(kind_names.len == n_kinds and marks.len == stage_names.len);
+/// `stage_names` entry) of `circuit`. Allocates from `arena`.
+pub fn trace(arena: std.mem.Allocator, circuit: *const Circuit, marks: []const Mark) !Trace {
+    std.debug.assert(marks.len == stage_names.len);
     const base = marks[0].n_vars;
     const stages = try arena.alloc(StageTrace, marks.len - 1);
     for (stages, marks[0 .. marks.len - 1], marks[1..], stage_names[1..]) |*stage, start, end, name| {
         var digests: [n_kinds]KindDigest = undefined;
         for (&digests, kind_names) |*digest, kind| digest.* = .{ .kind = kind };
-        var visitor: Visitor(n_kinds) = .{ .arena = arena, .digests = &digests, .start = start.counts, .end = end.counts, .base = base };
-        ctx.visitGates(start.counts, &visitor);
+        var visitor: Visitor = .{ .arena = arena, .digests = &digests, .start = start.counts, .end = end.counts, .base = base };
+        circuit_summary.visitGates(circuit, start.counts, &visitor);
         if (visitor.failure) |err| return err;
         var kinds: std.ArrayList(KindTrace) = .empty;
         for (&digests) |*digest| if (try digest.finish(arena)) |kind| try kinds.append(arena, kind);
@@ -132,25 +144,23 @@ pub fn trace(
     return .{ .base = base, .stages = stages };
 }
 
-fn Visitor(comptime n_kinds: usize) type {
-    return struct {
-        arena: std.mem.Allocator,
-        digests: *[n_kinds]KindDigest,
-        start: [n_kinds]usize,
-        end: [n_kinds]usize,
-        base: u32,
-        seen: [n_kinds]usize = [_]usize{0} ** n_kinds,
-        failure: ?anyerror = null,
+const Visitor = struct {
+    arena: std.mem.Allocator,
+    digests: *[n_kinds]KindDigest,
+    start: [n_kinds]usize,
+    end: [n_kinds]usize,
+    base: u32,
+    seen: [n_kinds]usize = @splat(0),
+    failure: ?anyerror = null,
 
-        pub fn gate(self: *@This(), kind: usize, fields: []const u32) void {
-            if (self.start[kind] + self.seen[kind] >= self.end[kind]) return;
-            self.seen[kind] += 1;
-            self.digests[kind].gate(self.arena, fields, self.base) catch |err| {
-                self.failure = self.failure orelse err;
-            };
-        }
-    };
-}
+    pub fn gate(self: *Visitor, kind: usize, g: circuit_summary.Gate) void {
+        if (self.start[kind] + self.seen[kind] >= self.end[kind]) return;
+        self.seen[kind] += 1;
+        self.digests[kind].gate(self.arena, g, self.base) catch |err| {
+            self.failure = self.failure orelse err;
+        };
+    }
+};
 
 /// Asserts `actual` equals the `statement_trace.json` record `expected`,
 /// kind digests first, then (on a mismatch) the first differing window.

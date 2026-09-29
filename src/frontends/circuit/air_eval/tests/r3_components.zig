@@ -10,20 +10,22 @@
 //! recorded orders; the accumulator; `evaluate`; `new_var(claimed_sum)`;
 //! `finalize_logup_in_pairs`. There is no `Context::finalize`.
 //!
-//! Each evaluator runs in value mode (with `assert_eq_on_eval`) and in
-//! topology mode; both must build the recorded gate lists and the recorded
-//! statement trace (the oracle traces topology mode).
+//! Each evaluator runs on the circuit builder (`builder.Context`) in value
+//! mode (with `assert_eq_on_eval`) and in topology mode; both must build the
+//! recorded gate lists and the recorded statement trace (the oracle traces
+//! topology mode).
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
-const stand_in = @import("../testing/builder_stand_in.zig");
+const circuit_summary = @import("../../testing/circuit_summary.zig");
 const fixture = @import("../../testing/fixture_json.zig");
 const statement_trace = @import("statement_trace.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const M31 = stwo_core.fields.m31.M31;
 const air_eval = circuit.air_eval;
+const builder = circuit.builder;
 const constraint_eval = circuit.stark_verifier.constraint_eval;
 const TestComponentData = circuit.stark_verifier.test_utils.TestComponentData;
 const Table = air_eval.component_table.Table;
@@ -53,7 +55,7 @@ const Inputs = struct {
 
 fn Outcome(comptime V: type) type {
     return struct {
-        summary: stand_in.Summary,
+        summary: circuit_summary.Summary,
         result: V,
         values_sha256: ?[32]u8,
         trace: statement_trace.Trace,
@@ -70,8 +72,8 @@ fn runHarness(
     slot: usize,
     inputs: Inputs,
 ) !Outcome(V) {
-    const Ctx = stand_in.Context(V);
-    var ctx = try Ctx.init(allocator);
+    const Ctx = builder.Context(V);
+    var ctx = try Ctx.init(allocator, 0);
     defer ctx.deinit();
     ctx.assert_eq_on_eval = V == QM31;
 
@@ -84,8 +86,8 @@ fn runHarness(
         @as(u32, 1) << @intCast(inputs.log_height),
     );
     defer data.deinit(allocator);
-    const random_coeff = try ctx.newVar(Ctx.lift(inputs.random_coeff));
-    const interaction_elements = [2]Ctx.Var{ try ctx.newVar(Ctx.lift(inputs.z)), try ctx.newVar(Ctx.lift(inputs.alpha)) };
+    const random_coeff = try ctx.newVar(builder.ivalue.fromQm31(V, inputs.random_coeff));
+    const interaction_elements = [2]Ctx.Var{ try ctx.newVar(builder.ivalue.fromQm31(V, inputs.z)), try ctx.newVar(builder.ivalue.fromQm31(V, inputs.alpha)) };
 
     var preprocessed: constraint_eval.ColumnMap(Ctx.Var) = .empty;
     defer preprocessed.deinit(allocator);
@@ -103,21 +105,19 @@ fn runHarness(
         interaction_elements,
     );
     defer acc.deinit();
-    var marks: [statement_trace.stage_names.len]statement_trace.Mark(stand_in.kind_names.len) = undefined;
-    marks[0] = statement_trace.mark(&ctx);
-    var scratch = std.heap.ArenaAllocator.init(allocator);
-    defer scratch.deinit();
-    try table.evaluate(slot, Ctx, &ctx, &data, &acc, scratch.allocator());
-    marks[1] = statement_trace.mark(&ctx);
-    const claimed_sum = try ctx.newVar(Ctx.lift(inputs.claimed_sum));
+    var marks: [statement_trace.stage_names.len]statement_trace.Mark = undefined;
+    marks[0] = statement_trace.mark(&ctx.circuit);
+    try table.evaluate(slot, Ctx, &ctx, &data, &acc, ctx.scratch());
+    marks[1] = statement_trace.mark(&ctx.circuit);
+    const claimed_sum = try ctx.newVar(builder.ivalue.fromQm31(V, inputs.claimed_sum));
     try acc.finalizeLogupInPairs(&ctx, data.interactionColumns(), &data, claimed_sum);
-    marks[2] = statement_trace.mark(&ctx);
+    marks[2] = statement_trace.mark(&ctx.circuit);
     const result = acc.finalize();
     return .{
-        .summary = ctx.summary(),
+        .summary = try circuit_summary.summarize(allocator, &ctx.circuit),
         .result = ctx.get(result),
-        .values_sha256 = if (V == QM31) ctx.valuesSha256() else null,
-        .trace = try statement_trace.trace(arena, &ctx, &stand_in.kind_names, &marks),
+        .values_sha256 = if (V == QM31) circuit_summary.valuesSha256(ctx.values()) else null,
+        .trace = try statement_trace.trace(arena, &ctx.circuit, &marks),
     };
 }
 
@@ -225,11 +225,11 @@ fn expectQm31(expected: Value, actual: QM31) !void {
     try std.testing.expect((try fixture.qm31(expected)).eql(actual));
 }
 
-fn expectSummary(expected: Value, actual: stand_in.Summary) !void {
-    try std.testing.expectEqual(try fixture.unsigned(u32, try fixture.field(expected, "n_vars")), actual.n_vars);
+fn expectSummary(expected: Value, actual: circuit_summary.Summary) !void {
+    try std.testing.expectEqual(try fixture.unsigned(u64, try fixture.field(expected, "n_vars")), actual.n_vars);
     const kinds = try fixture.array(try fixture.field(expected, "kinds"));
-    try std.testing.expectEqual(stand_in.kind_names.len, kinds.len);
-    for (kinds, actual.kinds, stand_in.kind_names) |kind, summary, name| {
+    try std.testing.expectEqual(circuit_summary.kind_names.len, kinds.len);
+    for (kinds, actual.kinds, circuit_summary.kind_names) |kind, summary, name| {
         try std.testing.expectEqualStrings(name, try fixture.string(try fixture.field(kind, "kind")));
         try std.testing.expectEqual(try fixture.unsigned(u64, try fixture.field(kind, "count")), summary.count);
         try std.testing.expectEqual(try fixture.digest(try fixture.field(kind, "sha256")), summary.sha256);
@@ -337,7 +337,7 @@ test "R3: all 94 in-circuit evaluators match the oracle gate lists, values and r
         };
 
         const value_mode = try runHarness(QM31, gpa, arena, table, slot, inputs);
-        const topology_mode = try runHarness(stand_in.NoValue, gpa, arena, table, slot, inputs);
+        const topology_mode = try runHarness(builder.NoValue, gpa, arena, table, slot, inputs);
         try std.testing.expectEqualDeep(value_mode.summary, topology_mode.summary);
         try std.testing.expectEqualDeep(value_mode.trace, topology_mode.trace);
 

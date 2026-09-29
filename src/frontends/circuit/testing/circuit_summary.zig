@@ -60,22 +60,60 @@ const KindHasher = struct {
     }
 };
 
+/// One gate's variable indices, as the oracle's `checkpoint::Gate`: struct
+/// fields in declaration order, or a permutation's input and output lists.
+pub const Gate = union(enum) {
+    fields: []const u32,
+    lists: struct { inputs: []const u32, outputs: []const u32 },
+};
+
+/// The per-kind gate counts of `circuit`, in `kind_names` order (the oracle's `gate_counts`).
+pub fn gateCounts(circuit: *const builder.Circuit) [kind_names.len]usize {
+    return .{
+        circuit.add.items.len,
+        circuit.sub.items.len,
+        circuit.mul.items.len,
+        circuit.pointwise_mul.items.len,
+        circuit.eq.items.len,
+        circuit.triple_xor.items.len,
+        circuit.m31_to_u32.items.len,
+        circuit.blake_g_gate.items.len,
+        circuit.permutation.len(),
+        circuit.output.items.len,
+    };
+}
+
+/// The oracle's `visit_gates`: every gate of kind `k` from index `start[k]`
+/// on, kind by kind in `kind_names` order, as `visitor.gate(k, gate)`.
+pub fn visitGates(circuit: *const builder.Circuit, start: [kind_names.len]usize, visitor: anytype) void {
+    for ([_][]const builder.circuit.BinaryGate{ circuit.add.items, circuit.sub.items, circuit.mul.items, circuit.pointwise_mul.items }, 0..) |gates, k| {
+        for (gates[start[k]..]) |g| visitor.gate(k, .{ .fields = &.{ g.in0, g.in1, g.out } });
+    }
+    for (circuit.eq.items[start[4]..]) |g| visitor.gate(4, .{ .fields = &.{ g.in0, g.in1 } });
+    for (circuit.triple_xor.items[start[5]..]) |g| visitor.gate(5, .{ .fields = &.{ g.input_a, g.input_b, g.input_c, g.out } });
+    for (circuit.m31_to_u32.items[start[6]..]) |g| visitor.gate(6, .{ .fields = &.{ g.input, g.out } });
+    for (circuit.blake_g_gate.items[start[7]..]) |g| visitor.gate(7, .{ .fields = &(g.inputs() ++ g.outputs()) });
+    for (start[8]..circuit.permutation.len()) |p| {
+        const gate = circuit.permutation.get(p);
+        visitor.gate(8, .{ .lists = .{ .inputs = gate.inputs, .outputs = gate.outputs } });
+    }
+    for (circuit.output.items[start[9]..]) |in0| visitor.gate(9, .{ .fields = &.{in0} });
+}
+
 /// Summarizes `circuit` under the contract above.
 pub fn summarize(gpa: std.mem.Allocator, circuit: *const builder.Circuit) !Summary {
     var hashers: [kind_names.len]KindHasher = undefined;
     for (&hashers, kind_names) |*h, name| h.* = .{ .kind = name };
-    for ([_][]const builder.circuit.BinaryGate{ circuit.add.items, circuit.sub.items, circuit.mul.items, circuit.pointwise_mul.items }, 0..) |gates, k| {
-        for (gates) |g| hashers[k].record(&.{ g.in0, g.in1, g.out });
-    }
-    for (circuit.eq.items) |g| hashers[4].record(&.{ g.in0, g.in1 });
-    for (circuit.triple_xor.items) |g| hashers[5].record(&.{ g.input_a, g.input_b, g.input_c, g.out });
-    for (circuit.m31_to_u32.items) |g| hashers[6].record(&.{ g.input, g.out });
-    for (circuit.blake_g_gate.items) |g| hashers[7].record(&(g.inputs() ++ g.outputs()));
-    for (0..circuit.permutation.len()) |p| {
-        const gate = circuit.permutation.get(p);
-        hashers[8].recordList(gate.inputs, gate.outputs);
-    }
-    for (circuit.output.items) |in0| hashers[9].record(&.{in0});
+    const Recorder = struct {
+        hashers: *[kind_names.len]KindHasher,
+        pub fn gate(self: @This(), kind: usize, g: Gate) void {
+            switch (g) {
+                .fields => |fields| self.hashers[kind].record(fields),
+                .lists => |lists| self.hashers[kind].recordList(lists.inputs, lists.outputs),
+            }
+        }
+    };
+    visitGates(circuit, @splat(0), Recorder{ .hashers = &hashers });
 
     var summary: Summary = undefined;
     summary.n_vars = circuit.n_vars;
