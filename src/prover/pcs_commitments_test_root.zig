@@ -17,5 +17,6 @@ test {
     _ = @import("pcs/sampled_value_transcript.zig");
     _ = @import("pcs/sampled_values.zig");
     _ = @import("pcs/scheme_views.zig");
+    _ = @import("pcs/revision_lifting.zig");
     _ = @import("pcs/shell_work_profile.zig");
 }

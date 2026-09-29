@@ -15,6 +15,7 @@
   },
   "injected_modules": [
     "cairo_frontend",
+    "interop_cairo_prover_parameters",
     "interop_felt_json"
   ],
   "api_surface": [

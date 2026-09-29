@@ -164,7 +164,7 @@ fn Digest() type {
 fn proveScenario(comptime Profile: type, preprocessed_lifting_log_size: u32, expected: Expected) !void {
     const allocator = std.testing.allocator;
     const Scheme = scheme_mod.CommitmentSchemeProver(HostBackend, Profile.MerkleHasher, Profile);
-    comptime std.debug.assert(Scheme.explicit_tree_heights);
+    comptime std.debug.assert(Scheme.revision == .proving_5a7c5ed);
     const fri = try config_v2.FriConfigV2.init(20, 0, 1, 3, 4);
     const config = config_v2.PcsConfigV2{
         .fri_config = fri,
@@ -175,15 +175,15 @@ fn proveScenario(comptime Profile: type, preprocessed_lifting_log_size: u32, exp
     var channel = Profile.Channel{};
     channel.mixU64(0);
     fri.mixInto(&channel);
-    var scheme = try Scheme.init(allocator, config);
+    var scheme = try Scheme.initRevision(allocator, config);
     scheme.setStorePolynomialsCoefficients();
     {
         errdefer scheme.deinit(allocator);
         try commitTree(&scheme, allocator, &.{ .{ 3, 1 }, .{ 4, 2 } }, &channel);
         try commitTree(&scheme, allocator, &.{ .{ 5, 3 }, .{ 4, 4 }, .{ 5, 5 } }, &channel);
         try commitTree(&scheme, allocator, &.{ .{ 5, 6 }, .{ 5, 7 } }, &channel);
-        try std.testing.expectEqual(@as(?u32, preprocessed_lifting_log_size), scheme.trees.items[0].merkle_log_height);
-        try std.testing.expectEqual(@as(?u32, 6), scheme.trees.items[1].merkle_log_height);
+        try std.testing.expectEqual(preprocessed_lifting_log_size, scheme.trees.items[0].commitment.maxLogSize());
+        try std.testing.expectEqual(@as(u32, 6), scheme.trees.items[1].commitment.maxLogSize());
     }
     var ext = try scheme.proveValues(allocator, try samplePoints(allocator), &channel);
     defer ext.aux.deinit(allocator);
@@ -264,7 +264,7 @@ test "PCS revision: a nonempty tree above its configured height is refused" {
         .trace_lifting_log_size = 6,
         .preprocessed_lifting_log_size = 4,
     };
-    var scheme = try Scheme.init(allocator, config);
+    var scheme = try Scheme.initRevision(allocator, config);
     defer scheme.deinit(allocator);
     var channel = Profile.Channel{};
     const before = channel.digestBytes();

@@ -44,6 +44,7 @@ PROVING_ROOT_PLACEHOLDER = "<proving checkout at the pinned revision>"
 # (fixture, rung, oracle subcommand, reads upstream data)
 ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r0/primitives.json", "r0", "primitives", False),
+    (f"{VECTORS}/r10/prove_lifted_example.json", "r10-lift", "prove-lifted-example", False),
     (f"{VECTORS}/r2/gadgets.json", "r1-r2", "gadgets", False),
     (f"{VECTORS}/r3/components.json", "r3", "components", True),
     (f"{VECTORS}/r3/statement_trace.json", "r3", "statement-trace", True),
@@ -54,6 +55,46 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r7/prove_small.json", "r7", "prove-small", False),
     (f"{VECTORS}/official/circuit_air.air_programs_v1.bin", "r7", "air-programs", False),
     (f"{VECTORS}/r6/cairo_statement.json", "r6", "cairo-statement", True),
+)
+# (fixture, rung, adapted ProverInput under the repository root, registry in the proving
+# checkout) for `prove-cairo`, the leaf-lane Cairo proofs (R10c). The inputs are the
+# stwo-cairo 82f2125 fixtures authenticated by vectors/cairo/official provenance.
+# (fixture, rung, compiled program in the proving checkout) for `adapt-program`: the
+# leaf prover's own VM run and adapter (prove_leaf.rs steps 1-2), emitted as ProverInput JSON.
+ADAPTED_PROGRAMS = (
+    (
+        f"{VECTORS}/r10/use_all_opcodes_and_builtins.prover_input.json",
+        "r10c",
+        "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
+    ),
+)
+CAIRO_PROOF_REGISTRY = "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json"
+# The last field overrides the registry's lifting policy (None keeps it): small programs
+# never lift under AtLeastPreprocessed, so `fixed:22` covers the lifted Cairo trees.
+CAIRO_PROOF_ARTIFACTS = tuple(
+    (
+        f"{VECTORS}/r10/{name}.prove_cairo.json",
+        "r10c",
+        f"vectors/cairo/official/{name}.prover_input.json",
+        CAIRO_PROOF_REGISTRY,
+        None,
+    )
+    for name in ("all_opcodes", "all_builtins")
+) + (
+    (
+        f"{VECTORS}/r10/use_all_opcodes_and_builtins.prove_cairo.json",
+        "r10c",
+        ADAPTED_PROGRAMS[0][0],
+        CAIRO_PROOF_REGISTRY,
+        None,
+    ),
+    (
+        f"{VECTORS}/r10/all_opcodes.fixed_22.prove_cairo.json",
+        "r10c",
+        "vectors/cairo/official/all_opcodes.prover_input.json",
+        CAIRO_PROOF_REGISTRY,
+        "fixed:22",
+    ),
 )
 PROJECTION = f"{VECTORS}/official/compiled_air_constraints_v1.bin"
 PRIMITIVES = f"{VECTORS}/r0/primitives.json"
@@ -125,9 +166,47 @@ UPSTREAM_COPIES = (
         "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/root_packed.json",
     ),
 )
-MANAGED = tuple(path for path, *_ in ORACLE_ARTIFACTS) + tuple(
-    path for path, _ in UPSTREAM_COPIES
+MANAGED = (
+    tuple(path for path, *_ in ORACLE_ARTIFACTS)
+    + tuple(path for path, *_ in ADAPTED_PROGRAMS)
+    + tuple(path for path, *_ in CAIRO_PROOF_ARTIFACTS)
+    + tuple(path for path, _ in UPSTREAM_COPIES)
 )
+
+
+def adapt_program_command(path: str, program: str) -> list[str]:
+    """The recorded `adapt-program` invocation of an adapted ProverInput fixture."""
+    return [
+        "stwo-circuit-oracle",
+        "adapt-program",
+        "--proving-root",
+        PROVING_ROOT_PLACEHOLDER,
+        "--program",
+        program,
+        "--output",
+        path,
+    ]
+
+
+def cairo_proof_command(
+    path: str, prover_input: str, registry: str, policy: str | None, proving_root: str = PROVING_ROOT_PLACEHOLDER
+) -> list[str]:
+    """The `prove-cairo` invocation of a leaf-lane Cairo proof fixture (recorded with the
+    placeholder checkout; the generator passes the real one)."""
+    override = ["--lifting-size-policy", policy] if policy else []
+    return [
+        "stwo-circuit-oracle",
+        "prove-cairo",
+        "--prover-input",
+        prover_input,
+        "--params",
+        registry,
+        "--proving-root",
+        proving_root,
+        *override,
+        "--output",
+        path,
+    ]
 
 PROJECTION_MAGIC = b"STWOCAIR"
 PROJECTION_VERSION = 2
@@ -498,6 +577,15 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
             errors.append(f"{path}: provenance command is not {command}")
         if path.endswith(".json"):
             errors.extend(_check_checkpoint(root, path, rung, subcommand, revision))
+    for path, _rung, program in ADAPTED_PROGRAMS:
+        command = adapt_program_command(path, program)
+        if by_path.get(path, {}).get("command") != command:
+            errors.append(f"{path}: provenance command is not {command}")
+    for path, rung, prover_input, registry, policy in CAIRO_PROOF_ARTIFACTS:
+        command = cairo_proof_command(path, prover_input, registry, policy)
+        if by_path.get(path, {}).get("command") != command:
+            errors.append(f"{path}: provenance command is not {command}")
+        errors.extend(_check_checkpoint(root, path, rung, "prove-cairo", revision))
     for path, upstream_path in UPSTREAM_COPIES:
         if by_path.get(path, {}).get("upstream_path") != upstream_path:
             errors.append(f"{path}: provenance upstream path is not {upstream_path}")
@@ -531,6 +619,15 @@ def _check_upstream_copies(root: Path) -> list[str]:
             errors.append(f"{path}: unable to parse: {error}")
             continue
         for record in checkpoint.get("inputs", []):
+            if recorded.setdefault(record["path"], record["sha256"]) != record["sha256"]:
+                errors.append(f"{path}: records {record['path']} with a different digest")
+    for path, *_ in CAIRO_PROOF_ARTIFACTS:
+        try:
+            proof = json.loads((root / path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            errors.append(f"{path}: unable to parse: {error}")
+            continue
+        for record in proof.get("inputs", []):
             if recorded.setdefault(record["path"], record["sha256"]) != record["sha256"]:
                 errors.append(f"{path}: records {record['path']} with a different digest")
     for path, upstream_path in UPSTREAM_COPIES:

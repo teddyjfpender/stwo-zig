@@ -236,7 +236,8 @@ fn authenticatedPath(
     const expected = try parseSha256(asset.sha256);
     const path = try std.fs.path.resolve(allocator, &.{ directory, asset.path });
     errdefer allocator.free(path);
-    const file = try std.fs.openFileAbsolute(path, .{});
+    // `path` is relative when the manifest path is; `cwd().openFile` takes both.
+    const file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
     const stat = try file.stat();
     if (stat.kind != .file or stat.size != asset.bytes)

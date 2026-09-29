@@ -32,6 +32,7 @@ const backed_columns = @import("backed_columns.zig");
 const scheme_decommit = @import("scheme_decommit.zig");
 const scheme_views = @import("scheme_views.zig");
 const shell_work_profile = @import("shell_work_profile.zig");
+pub const revision_lifting = @import("revision_lifting.zig");
 
 pub const quotient_ops = @import("quotient_ops.zig");
 
@@ -78,34 +79,27 @@ pub fn TreeDecommitmentResult(comptime H: type) type {
     };
 }
 
-/// The PCS prover. `MC` selects the protocol revision (`Revision.of`):
+/// The PCS prover. `MC` fixes the protocol revision (`Revision.of`):
 ///
-/// - `stwo_7b211ed` (every Native and Cairo lane): `init` takes the legacy
-///   `PcsConfig`, each tree is as tall as its largest column, and the FRI
-///   proof of work uses `grindForBackend`. Nothing below changes for it.
-/// - `proving_5a7c5ed` (channel profiles): `init` takes a `PcsConfigV2`. Each
-///   tree is committed at `PcsConfigV2.treeHeight` (the preprocessed or the
-///   trace lifting height), the proof domain is the last tree's height,
-///   preprocessed queries follow `prepare_preprocessed_query_positions`, and
-///   the FRI grind runs at `fri_config.pow_bits` in the profile's order.
-///   `config` then holds `Revision.legacyView` of that configuration, which
-///   is what the shared code (blowup, folding, PoW bits) and the proof's
-///   `config` field read.
+/// - `stwo_7b211ed` (every Native and Cairo lane): each tree is as tall as its
+///   largest column and `config` defines the whole protocol. Nothing below
+///   changes for it.
+/// - `proving_5a7c5ed` (channel profiles, `vcs_lifted.channel_profile`): the
+///   scheme needs its `PcsConfigV2` (`initRevision`, or `setRevisionConfig`
+///   before the first commitment when the heights follow a claim). Tree `i`
+///   is committed at `PcsConfigV2.treeHeight(i)` (`revision_lifting`), the
+///   proof domain is the last tree's height, and the FRI grind runs at
+///   `fri_config.pow_bits` in the profile's order. `config` then holds
+///   `Revision.legacyView` of that configuration, which is what the shared
+///   code (blowup, folding, PoW bits) reads.
 pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: type) type {
     comptime backend_merkle.assertMerkleOps(B, H);
     const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
-    const scheme_revision = Revision.of(MC);
     return struct {
         pub const CommittedTree = BackendCommitmentTree;
-        pub const revision = scheme_revision;
-        /// The configuration `init` takes: `revision.PcsConfig()`.
-        pub const Config = scheme_revision.PcsConfig();
-        /// Trees are committed at configured, not largest-column, heights.
-        pub const explicit_tree_heights = scheme_revision == .proving_5a7c5ed;
+        pub const revision = Revision.of(MC);
         trees: std.ArrayListUnmanaged(BackendCommitmentTree),
         config: PcsConfig,
-        /// The full `proving_5a7c5ed` configuration (lifting heights).
-        revision_config: if (explicit_tree_heights) Config else void,
         coefficient_retention_policy: CoefficientRetentionPolicy,
         /// CPU coefficient-backed residency; commitment/proof geometry is unchanged.
         compact_polynomial_storage: bool = false,
@@ -125,20 +119,30 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         twiddle_source: TwiddleSource,
         pending_commit: ?deferred_commit.Pending(BackendCommitmentTree),
         shell_preopening_audit: shell_work_profile.PreOpeningAudit,
+        /// `proving_5a7c5ed` commitment heights (`revision_lifting`). Null
+        /// commits every tree at its largest column, the Native and Cairo
+        /// lanes' rule; `config` then defines the whole protocol.
+        revision_config: ?revision_lifting.PcsConfigV2 = null,
 
         const Self = @This();
 
-        pub fn init(allocator: std.mem.Allocator, config: Config) !Self {
+        pub fn init(allocator: std.mem.Allocator, config: PcsConfig) !Self {
             return initWithTwiddleSource(config, TwiddleSource.initOwned(allocator));
         }
-        pub fn initWithTwiddleTower(config: Config, tower: *const M31TwiddleTower) Self {
+        /// A `proving_5a7c5ed` scheme whose heights are known up front.
+        pub fn initRevision(allocator: std.mem.Allocator, config: revision_lifting.PcsConfigV2) !Self {
+            var scheme = try init(allocator, Revision.proving_5a7c5ed.legacyView(config));
+            errdefer scheme.deinit(allocator);
+            try scheme.setRevisionConfig(config);
+            return scheme;
+        }
+        pub fn initWithTwiddleTower(config: PcsConfig, tower: *const M31TwiddleTower) Self {
             return initWithTwiddleSource(config, TwiddleSource.initBorrowed(tower));
         }
-        fn initWithTwiddleSource(config: Config, twiddle_source: TwiddleSource) Self {
+        fn initWithTwiddleSource(config: PcsConfig, twiddle_source: TwiddleSource) Self {
             return .{
                 .trees = .{},
-                .config = scheme_revision.legacyView(config),
-                .revision_config = if (explicit_tree_heights) config else {},
+                .config = config,
                 .coefficient_retention_policy = .always,
                 .twiddle_source = twiddle_source,
                 .pending_commit = null,
@@ -168,6 +172,45 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             self.trees.deinit(allocator);
             self.twiddle_source.deinit(allocator);
             self.* = undefined;
+        }
+
+        /// Sets the `proving_5a7c5ed` configuration: FRI and PoW run from
+        /// `config.fri_config` and tree `i` is committed at
+        /// `config.liftingLogSize(i)`. Must precede the first commitment, as
+        /// the heights shape every root; the caller mixes the configuration
+        /// (`Revision.proving_5a7c5ed.mixConfig`). Only a Merkle channel of
+        /// that revision (a channel profile) takes one.
+        pub fn setRevisionConfig(
+            self: *Self,
+            config: revision_lifting.PcsConfigV2,
+        ) error{ RevisionAfterCommit, RevisionRequiresChannelProfile }!void {
+            if (comptime revision != .proving_5a7c5ed) return error.RevisionRequiresChannelProfile;
+            if (self.trees.items.len != 0 or self.pending_commit != null) return error.RevisionAfterCommit;
+            self.config = Revision.proving_5a7c5ed.legacyView(config);
+            self.revision_config = config;
+        }
+
+        /// The height choke point every commit path appends through. A
+        /// `proving_5a7c5ed` scheme without its configuration fails closed
+        /// instead of committing at the largest column.
+        pub fn liftCommittedTree(self: *Self, allocator: std.mem.Allocator, tree: *BackendCommitmentTree) !void {
+            if (comptime revision != .proving_5a7c5ed) return;
+            const config = self.revision_config orelse return error.MissingRevisionConfig;
+            try revision_lifting.liftCommittedTree(B, H, config, allocator, tree, self.trees.items.len);
+        }
+
+        /// `max_log_degree_bound` of upstream `prove_ex` for a revision
+        /// scheme; null for the existing lanes, whose bound follows the
+        /// composition split.
+        pub fn revisionMaskLogSize(self: Self, include_all_preprocessed_columns: bool) !?u32 {
+            const config = self.revision_config orelse return null;
+            if (self.trees.items.len <= PREPROCESSED_TRACE_IDX) return CommitmentSchemeError.InvalidPreprocessedTree;
+            return try revision_lifting.maskLogSize(
+                config,
+                try self.proofLiftingLogSize(),
+                self.trees.items[PREPROCESSED_TRACE_IDX].commitment.maxLogSize(),
+                include_all_preprocessed_columns,
+            );
         }
 
         pub fn setCompactPolynomialStorage(self: *Self, minimum_log_size: u32) void {
@@ -656,6 +699,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     .queried_values = trace_decommit.queried_values,
                     .proof_of_work = proof_of_work,
                     .fri_proof = fri_decommit.fri_proof.proof,
+                    .revision_config = scheme.revision_config,
                 },
                 .aux = .{
                     .unsorted_query_locations = fri_decommit.unsorted_query_locations,
@@ -689,21 +733,6 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             return result;
         }
 
-        /// The Merkle height the next tree (`tree_index`) must be committed
-        /// at, or null when trees keep their largest-column height.
-        pub fn explicitTreeHeight(
-            self: Self,
-            allocator: std.mem.Allocator,
-            tree_index: usize,
-            columns: []const ColumnEvaluation,
-        ) !?u32 {
-            if (comptime !explicit_tree_heights) return null;
-            const log_sizes = try allocator.alloc(u32, columns.len);
-            defer allocator.free(log_sizes);
-            for (columns, log_sizes) |column, *log_size| log_size.* = column.log_size;
-            return try scheme_revision.treeHeight(self.revision_config, tree_index, log_sizes);
-        }
-
         pub fn appendCommittedTree(
             self: *Self,
             allocator: std.mem.Allocator,
@@ -720,15 +749,14 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         }
 
         /// The final composition tree sets the proof domain. Earlier trees may
-        /// contain larger columns when those columns are left unsampled. Under
-        /// explicit heights it is the final tree's Merkle height
-        /// (`trees.last().commitment.layers.len() - 1` upstream).
-        fn proofLiftingLogSize(self: Self) !u32 {
+        /// contain larger columns when those columns are left unsampled. A
+        /// revision scheme proves at the final tree's committed height
+        /// (upstream `prove_values`), which lifting may place above its columns.
+        pub fn proofLiftingLogSize(self: Self) !u32 {
             if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
             const final_tree = self.trees.items[self.trees.items.len - 1];
             if (final_tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
-            if (comptime explicit_tree_heights)
-                return final_tree.merkle_log_height orelse CommitmentSchemeError.ShapeMismatch;
+            if (self.revision_config != null) return final_tree.commitment.maxLogSize();
             return maxLogSize(final_tree.columns);
         }
 

@@ -47,10 +47,17 @@ pub const Revision = enum {
     pub fn legacyView(comptime self: Revision, config: self.PcsConfig()) pcs.PcsConfig {
         return switch (self) {
             .stwo_7b211ed => config,
-            .proving_5a7c5ed => .{
-                .pow_bits = config.fri_config.pow_bits,
-                .fri_config = config.fri_config.folding(),
-            },
+            .proving_5a7c5ed => friLegacyView(config.fri_config),
+        };
+    }
+
+    /// `legacyView` of a `proving_5a7c5ed` configuration from its FRI config
+    /// alone, for a prover that learns the lifting heights later (they do
+    /// not enter this view).
+    pub fn friLegacyView(fri: config_v2.FriConfigV2) pcs.PcsConfig {
+        return .{
+            .pow_bits = fri.pow_bits,
+            .fri_config = fri.folding(),
         };
     }
 

@@ -1,0 +1,113 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r10c",
+  "subcommand": "prove-cairo",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [
+    {
+      "path": "vectors/cairo/official/all_builtins.prover_input.json",
+      "bytes": 921299,
+      "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+    },
+    {
+      "path": "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+      "bytes": 1970,
+      "sha256": "85126ed2333fb9a3c25585b518d547b7b80902355c0afd028be1be7b111df87d"
+    }
+  ],
+  "body": {
+    "params": {
+      "channel_hash": "blake2s",
+      "channel_salt": 0,
+      "fri_config": {
+        "pow_bits": 16,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+      },
+      "preprocessed_trace": "canonical_small",
+      "store_polynomials_coefficients": false,
+      "include_all_preprocessed_columns": true,
+      "opt_n_id_to_big_components": 16,
+      "lifting_size_policy": "at_least_preprocessed"
+    },
+    "binary": {
+      "bytes": 2451222,
+      "sha256": "e8614127ec02d5bde6ce9812ce46eecae2e37a2e76e917551de7600f6edf6566"
+    },
+    "extended_binary": {
+      "bytes": 3509998,
+      "sha256": "4ca48c8b35fb2fff7c754dadf0a1f13460445c211eac7d636eb19aac04ebb8b1"
+    },
+    "stages": {
+      "config": {
+        "pow_bits": 16,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1,
+        "trace_lifting_log_size": 21,
+        "preprocessed_lifting_log_size": 21
+      },
+      "claim_sha256": "a7d98b3913c8e9d8b3a12152db5c9e1c5ce088a42975dadef5b87537ce4f065a",
+      "interaction_pow": {
+        "value": "201864260601",
+        "hi": 47,
+        "lo": 797689
+      },
+      "interaction_claim_sha256": "2a93645c24f9467a5e682b11ff7c5fe14a9773ce0de68289ab5dcd0eeda14aa6",
+      "commitments": [
+        "068d1166c9f9f0ec247641ca391ee8396170e69343dfcacc632f9638670d2bec",
+        "896c117256dc487f0bad7766452fc2c8e49d8918adcf157fec1f168d48128f16",
+        "d800eff2048312b4fb9c271a15ec51b1b496548284fc190f4e0bddf30f3b17ab",
+        "9ae2a27def64c935c5ec62535cdfbb609198e551eb28caa9355bd4de65c740e0"
+      ],
+      "sampled_values_sha256": "8fb4b38321830d15a2b15c4ba8af4fe15570ffc7545b595afa71dfea41dbf4e9",
+      "decommitments_sha256": "76d02c5040aef01b4b16b226d3e0e843bbfecb8fdca90f39209618751458d2ef",
+      "queried_values_sha256": "964f86520aacf32c2e416c0b5b9ac411a5468dd3e1fbb89dea9013fe53659b2d",
+      "proof_of_work": {
+        "value": "59777",
+        "hi": 0,
+        "lo": 59777
+      },
+      "fri_proof_sha256": "148092964dd4a4efabf18dc8ac5bf53b6d7cc09a183f7882b66d9b9ba42757b8",
+      "fri_inner_layer_roots": [
+        "f64156e14ed78baeefbbf5f0c714bedd81f11ea405d2b8c8efc86dd0dd11ca95",
+        "2c7fe07088ae2fff2e27ea2f4ed3a8d95b4a04ed379cad4c53f7830bc69c5ab1",
+        "ba6dc8565692ef8b3abd7d74406aad78d4d5959415e49b5e14123149b246aad9",
+        "ebefd195137b4a85ad60ad7c2e3cd9737af278c53e78af8cae7e5ca38a6bb5d9",
+        "f18c595fce84ebe504740df266052083bc6f6b41e3ac4d5139ae2c0dfcd94987",
+        "08efd854cfcde00a54c30a9096518c9083643f7733a2f3ad1ccfe9ec25339e8f",
+        "578fa837c19a76b9845d55a5ba1cb31aa4c3502c2b9d2f924e04579f7312a921",
+        "acb431a87be209fa876057298f9576f3987c441e2802817d400f8bd2001fb318",
+        "f1961472fc55e36756f3dc5489a6cea488e56e7dd7551bbbd05001cbb552fe1f",
+        "83ee5dad55db0dc1fa65976fd91410e688652765aff8bb6b3b1c1c20390627d8",
+        "29f9fc3cf9e7e5d32ce3a710700fd0480e6c1bc361d4dc63c5f8c87e9b80e0a3",
+        "fb5b7b3dbbc3567db5905e9c277d047b64ce7cf670af58b264ca3444bf3d824e",
+        "cc5bf023e0b4e1abda55cad847947179aa295a0ff2a301978046295dbc45a434",
+        "d35248780186e5073139fb6d5255db10554f82f89dd76d977a5d1afec5931620",
+        "d50f3c96e363f959f84ea6b11fd794fd2952cab77c6155aea098e466d0e856a4",
+        "546aa0332692465bf19aa05593a65ff4369fd9f1860f106fc613433bee736856",
+        "ea05a48f23dba88ed41bb614bdc4a6d798cea4d4253f84907321e092630914c3",
+        "62743b3514aa173d25dfd41c25d3444f858f58c5d32d63be17c2b753b12144c6",
+        "c9c92135a2185f0f2075e960cc2a11eddc8a2a5d0b72da789fb8922cb913f51f"
+      ],
+      "fri_last_layer_poly": [
+        [
+          899110387,
+          1492971550,
+          1105425126,
+          674578847
+        ]
+      ],
+      "unsorted_query_locations_sha256": "745e728bcff3901864e4f9434ac0a278731578c3e4029aa0a45a631bfa2a43ca",
+      "trace_aux_sha256": "f2455dec834a24c0d0d1f0d8f13f438a4118b6be35a2e204259f62631f1699b6",
+      "fri_aux_sha256": "0bcff4db88eef50adf03bc77e8662ad1b6191fc03a5627e1f0fc40db69d2b8a2",
+      "channel_salt": 0
+    }
+  }
+}

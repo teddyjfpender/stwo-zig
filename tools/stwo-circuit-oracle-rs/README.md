@@ -8,11 +8,13 @@ port's parity ladder compares against (design:
 products never build, invoke, or distribute it.
 
 Every subcommand runs in seconds. Most only build circuits or hash data;
-`prove-small` proves six small circuits, and `topology` and `verifier-stages`
+`prove-small` proves six small circuits, `prove-cairo` proves a small Cairo
+program (about 2 GB for the committed all_opcodes and all_builtins fixtures;
+larger programs belong on a big host), and `topology` and `verifier-stages`
 build multi-million-gate circuits and commit preprocessed traces. Measured peak
 resident memory on the 36 GB development host: `topology` 7.1 GB,
 `verifier-stages` 3.9 GB, `prove-small` 2.9 GB, the rest under 100 MB. Run the
-heavy three under the host's heavy-command wrapper; `topology` is close to an
+heavy ones under the host's heavy-command wrapper; `topology` is close to an
 8 GB per-process budget, so do not run it beside another multi-GB process.
 
 | Subcommand | Rung | Content |
@@ -28,6 +30,9 @@ heavy three under the host's heavy-command wrapper; `topology` is close to an
 | `prove-small` | R7 | Proofs of the `prover_test.rs` circuits, mirrored step by step: transcript digests, per-column digests, claimed sums, roots, FRI layer roots, nonces |
 | `cairo-statement` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, the leaf test program's limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests on both channels, and the leaf `ProofConfig` and proof size |
 | `air-programs` | R7 | The circuit AIR's 11 `FrameworkEval`s recorded into the `STWZEVA/1` bundle with the shared recorder of `tools/stwo-eval-program-abi` |
+| `prove-lifted-example` | R10 lift | Upstream's wide-Fibonacci prover test (`crates/examples`) with the trace tree committed 0, 1 and 3 levels above its columns, verified; `bincode(StarkProof)` digests and per-stage values |
+| `adapt-program` | R10c | The leaf prover's Cairo VM run and adapter (`prove_leaf.rs` steps 1-2) on a compiled program from the `proving` checkout, emitted as `ProverInput` JSON |
+| `prove-cairo` | R10c | `prove_cairo::<Blake2sM31MerkleChannel>` of an adapted `ProverInput` under a registry's `cairo_prover_params` (the leaf prover's Cairo proof; `--lifting-size-policy` overrides the policy), verified with `verify_cairo_ex`; proof byte digests and per-stage values, and optionally the canonical `ExtendedBinary` payload (`--proof-output`) |
 
 ```sh
 cd tools/stwo-circuit-oracle-rs

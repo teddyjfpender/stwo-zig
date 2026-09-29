@@ -5,9 +5,11 @@ Builds `tools/stwo-circuit-oracle-rs` from its lockfile, locates the `proving`
 checkout Cargo resolved for the pinned revision, runs every oracle subcommand,
 copies the upstream goldens the rungs consume, and writes the provenance record
 that `scripts/check_upstream_pins.py` authenticates. Every subcommand builds
-circuits, hashes data or, for `prove-small`, proves the small `prover_test.rs`
-circuits under the oracle's default memory budget; the heaviest (`topology`)
-peaks at about 7.1 GB resident. On a shared host run it under the heavy-command wrapper.
+circuits, hashes data or proves small instances: `prove-small` proves the small
+`prover_test.rs` circuits under the oracle's default memory budget, and
+`adapt-program` and `prove-cairo` run and prove small Cairo programs (seconds
+and 2-4 GB each). The heaviest (`topology`) peaks at about 7.1 GB resident. On
+a shared host run it under the heavy-command wrapper.
 
 The provenance names only host-independent inputs: the toolchain, the oracle's
 `Cargo.lock` digest and the digest of every oracle source.
@@ -91,6 +93,35 @@ def generate(staging: Path, oracle: Path, proving: Path) -> list[dict]:
         if path == lane.AIR_PROGRAMS:
             fields.update(bundle_summary((staging / path).read_bytes()))
         artifacts.append(artifact_record(staging, path, **fields))
+    for path, rung, program in lane.ADAPTED_PROGRAMS:
+        (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [str(oracle), "adapt-program", "--proving-root", str(proving), "--program", program,
+             "--output", str(staging / path)],
+            check=True,
+        )
+        artifacts.append(
+            artifact_record(staging, path, rung=rung, command=lane.adapt_program_command(path, program))
+        )
+    adapted = {path for path, *_ in lane.ADAPTED_PROGRAMS}
+    for path, rung, prover_input, registry, policy in lane.CAIRO_PROOF_ARTIFACTS:
+        # Leaf-lane Cairo proofs of small programs: seconds and 2-4 GB each. An input
+        # adapted above is read from the staging tree, under the same relative path.
+        (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        command = lane.cairo_proof_command(
+            str(staging / path), prover_input, registry, policy, proving_root=str(proving)
+        )
+        subprocess.run(
+            [str(oracle), *command[1:]],
+            check=True,
+            cwd=staging if prover_input in adapted else ROOT,
+        )
+        artifacts.append(
+            artifact_record(
+                staging, path, rung=rung,
+                command=lane.cairo_proof_command(path, prover_input, registry, policy),
+            )
+        )
     for path, upstream_path in lane.UPSTREAM_COPIES:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(proving / upstream_path, staging / path)

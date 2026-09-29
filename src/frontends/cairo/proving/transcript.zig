@@ -6,8 +6,6 @@ const statement_bootstrap = @import("../statement_bootstrap.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-const Blake2sMerkleChannel =
-    core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleChannel;
 
 pub const interaction_pow_bits: u32 = core.cairo_air_layout.interaction_pow_bits;
 
@@ -16,36 +14,34 @@ const lookup_transcript = core.channel.lookup_transcript;
 pub const LookupElements = lookup_transcript.LookupElements;
 pub const mixChannelSalt = lookup_transcript.mixChannelSalt;
 
-/// `FlatClaim::mix_into` for the Cairo lane's `Blake2sMerkleChannel`.
-pub fn mixClaim(
-    allocator: std.mem.Allocator,
-    channel: anytype,
-    statement: *const statement_bootstrap.OwnedStatementBootstrap,
-) !void {
-    return mixClaimWith(Blake2sMerkleChannel, allocator, channel, statement);
-}
-
 /// `FlatClaim::mix_into::<MC>` over statement ordinals 10 through 16: the
 /// enable-bit count, the enable bits, the component log sizes, the program
 /// length and the public claim as packed QM31s, then `MC::mix_hash` of the
-/// output and program roots. The roots are committed with the plain Blake2s
-/// Merkle hasher on both lanes (`Blake2sM31MerkleChannel::H` is
-/// `Blake2sMerkleHasher`); only `mix_hash` differs, so the leaf lane
-/// instantiates `Blake2sM31MerkleChannel` here without re-deriving the claim.
-pub fn mixClaimWith(
-    comptime MerkleChannel: type,
+/// output and program roots. The roots themselves are `MC::H` digests, the
+/// plain Blake2s hasher for every Blake2s Merkle channel
+/// (`Blake2sM31MerkleChannel::H` is `Blake2sMerkleHasher`); only `mix_hash`
+/// differs between the official lane and the leaf lane.
+pub fn mixClaim(
+    comptime MC: type,
     allocator: std.mem.Allocator,
     channel: anytype,
     statement: *const statement_bootstrap.OwnedStatementBootstrap,
 ) !void {
     for ([_]u32{ 10, 11, 12, 13, 14 }) |ordinal|
         try mixPackedWords(allocator, channel, statement.words(ordinal).?);
-    MerkleChannel.mixRoot(channel, rootBytes(statement.words(15).?));
-    MerkleChannel.mixRoot(channel, rootBytes(statement.words(16).?));
+    MC.mixRoot(channel, rootBytes(statement.words(15).?));
+    MC.mixRoot(channel, rootBytes(statement.words(16).?));
 }
 
-pub fn grindInteraction(channel: anytype) u64 {
-    const nonce = channel.grind(interaction_pow_bits);
+/// The 24-bit interaction grind, then its mix. A Merkle channel profile names
+/// the search order of the prover it reproduces (upstream's
+/// `SimdBackend::grind`); the existing lane keeps the channel's lowest-nonce
+/// search.
+pub fn grindInteraction(comptime MC: type, channel: anytype) !u64 {
+    const nonce = if (comptime @hasDecl(MC, "grind_order"))
+        try MC.grind(channel.*, interaction_pow_bits)
+    else
+        channel.grind(interaction_pow_bits);
     channel.mixU64(nonce);
     return nonce;
 }
@@ -80,4 +76,18 @@ fn rootBytes(words: []const u32) [32]u8 {
     for (words, 0..) |word, index|
         std.mem.writeInt(u32, bytes[index * 4 ..][0..4], word, .little);
     return bytes;
+}
+
+test "Cairo transcript: the channel salt is reduced modulo P" {
+    const Channel = core.channel.blake2s.Blake2sM31Channel;
+    var reduced = Channel{};
+    mixChannelSalt(&reduced, 0x7fff_ffff);
+    var zero = Channel{};
+    mixChannelSalt(&zero, 0);
+    try std.testing.expectEqualSlices(u8, &zero.digestBytes(), &reduced.digestBytes());
+    var wrapped = Channel{};
+    mixChannelSalt(&wrapped, 0xffff_ffff);
+    var one = Channel{};
+    mixChannelSalt(&one, 1);
+    try std.testing.expectEqualSlices(u8, &one.digestBytes(), &wrapped.digestBytes());
 }

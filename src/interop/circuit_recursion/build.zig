@@ -14,6 +14,14 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    // `ProverParameters` is shared with the Cairo frontend's leaf lane the
+    // same way.
+    const prover_parameters = b.createModule(.{
+        .root_source_file = b.path("../cairo_prover_parameters.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    prover_parameters.addImport("stwo_core", core);
     const wire = b.addModule("stwo_circuit_recursion_wire", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -21,6 +29,7 @@ pub fn build(b: *std.Build) void {
     });
     wire.addImport("stwo_core", core);
     wire.addImport("interop_felt_json", felt_json);
+    wire.addImport("interop_cairo_prover_parameters", prover_parameters);
 
     const unit_tests = b.addRunArtifact(b.addTest(.{ .root_module = wire, .filters = filters }));
 

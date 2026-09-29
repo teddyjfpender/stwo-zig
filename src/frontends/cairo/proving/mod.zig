@@ -7,6 +7,8 @@ pub const air = @import("air/mod.zig");
 pub const trace_arena = @import("trace_arena.zig");
 pub const transaction = @import("transaction.zig");
 pub const transcript = @import("transcript.zig");
+pub const leaf_lane = @import("leaf_lane.zig");
+pub const preprocessed_commit = @import("preprocessed_commit.zig");
 
 test {
     _ = air;
@@ -16,6 +18,7 @@ test {
     _ = trace_arena;
     _ = transaction;
     _ = transcript;
+    _ = leaf_lane;
 }
 
 pub const trace_commit = @import("trace_commit.zig");

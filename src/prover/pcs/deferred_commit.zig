@@ -47,9 +47,6 @@ pub fn Pending(comptime Tree: type) type {
 
 pub fn canDeferFirstTree(scheme: anytype, owned_columns: []const ColumnEvaluation) bool {
     if (comptime builtin.single_threaded) return false;
-    // Explicit heights lift at the append choke point, which the observer
-    // path (`resolveObserved`) bypasses.
-    if (comptime @hasDecl(@TypeOf(scheme.*), "explicit_tree_heights") and @TypeOf(scheme.*).explicit_tree_heights) return false;
     if (scheme.pending_commit != null) return false;
     if (scheme.trees.items.len != 0) return false;
     if (owned_columns.len == 0) return false;
@@ -206,6 +203,8 @@ pub fn resolveObserved(scheme: anytype, allocator: std.mem.Allocator) anyerror!v
         tree.deinit(allocator);
         allocator.destroy(slot);
     }
+    if (comptime @hasDecl(@TypeOf(scheme.*), "liftCommittedTree"))
+        try scheme.liftCommittedTree(allocator, &tree);
     if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
         if (scheme.compact_polynomial_storage)
             try tree.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);

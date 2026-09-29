@@ -65,14 +65,18 @@ comptime prover.engine.assertProverEngine(Engine);
 
 `pcs.CommitmentSchemeProver(B, H, MC)` follows the protocol revision of its
 Merkle channel (`stwo_core.protocol_revision.Revision.of(MC)`). Existing
-lanes are `stwo_7b211ed` and are unchanged. Under a `proving_5a7c5ed`
-channel profile, `init` takes a `PcsConfigV2`, every tree is committed at its
-configured lifting height (`commitment_tree.liftToHeight`, host Merkle trees
-only), the proof domain is the last tree's height, and the FRI proof of work
-is ground at `fri_config.pow_bits` in the profile's search order
+lanes are `stwo_7b211ed` and are unchanged. A `proving_5a7c5ed` channel
+profile's scheme takes its `PcsConfigV2` through `initRevision`, or
+`setRevisionConfig` before the first commitment when the heights follow a
+claim (the Cairo leaf lane), and refuses to commit without one. Every commit
+path builds its tree at the natural height and `pcs.revision_lifting` lifts it
+to the configured height once, before its root is mixed; the proof domain is
+the last tree's height, and the FRI proof of work is ground at
+`fri_config.pow_bits` in the profile's search order
 (`pcs.proof_of_work.grindForMerkleChannel`). `test-pcs-revision` compares a
 lifted-tree PCS proof on both upstream Merkle channels with Rust bytes and
-verifies it natively.
+verifies it natively; `test-cairo-leaf-proof` does the same for whole leaf
+Cairo proofs.
 
 The low-level `prove.prove`, `prove.proveEx`, and
 `prove.proveExWithRecorder` functions consume a commitment scheme. The typed

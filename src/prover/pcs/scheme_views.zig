@@ -91,17 +91,14 @@ pub fn buildQueryPositionsTree(
     var initialized: usize = 0;
     errdefer for (out[0..initialized]) |positions| allocator.free(positions);
 
+    // A revision scheme may commit a tree above its largest column; queries
+    // then address its committed height (`revision_lifting`).
+    const committed_heights = comptime @hasField(@TypeOf(scheme), "revision_config");
     for (scheme.trees.items, 0..) |tree, tree_index| {
-        // An explicit height (`proving_5a7c5ed`) addresses the lifted leaves;
-        // a zero height is an empty preprocessed tree with no queries
-        // (`prepare_preprocessed_query_positions`).
-        const explicit_height: ?u32 = if (comptime @hasField(@TypeOf(tree), "merkle_log_height"))
-            tree.merkle_log_height
-        else
-            null;
-        const tree_log_size: ?u32 = if (explicit_height) |height|
-            (if (height == 0) null else height)
-        else if (tree.columns.len == 0) null else blk: {
+        const tree_log_size: ?u32 = if (tree.columns.len == 0) null else blk: {
+            if (committed_heights) {
+                if (scheme.revision_config != null) break :blk tree.commitment.maxLogSize();
+            }
             var max_log_size: u32 = 0;
             for (tree.columns) |column| {
                 max_log_size = @max(max_log_size, column.log_size);

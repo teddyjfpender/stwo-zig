@@ -234,12 +234,12 @@ test "R6 leaf: synthetic claim aux data and FlatClaim mix on both Blake2s channe
     const transcript = cairo.proving.transcript;
 
     var m31_channel = core.channel.blake2s.Blake2sM31Channel{};
-    try transcript.mixClaimWith(blake2_merkle.Blake2sM31MerkleChannel, std.testing.allocator, &m31_channel, &statement);
+    try transcript.mixClaim(blake2_merkle.Blake2sM31MerkleChannel, std.testing.allocator, &m31_channel, &statement);
     const m31_hex = std.fmt.bytesToHex(m31_channel.digestBytes(), .lower);
     try std.testing.expectEqualStrings(claim.get("mix_digest_blake2s_m31").?.string, &m31_hex);
 
     var plain_channel = core.channel.blake2s.Blake2sChannel{};
-    try transcript.mixClaim(std.testing.allocator, &plain_channel, &statement);
+    try transcript.mixClaim(blake2_merkle.Blake2sPlainMerkleChannel, std.testing.allocator, &plain_channel, &statement);
     const plain_hex = std.fmt.bytesToHex(plain_channel.digestBytes(), .lower);
     try std.testing.expectEqualStrings(claim.get("mix_digest_blake2s").?.string, &plain_hex);
 }

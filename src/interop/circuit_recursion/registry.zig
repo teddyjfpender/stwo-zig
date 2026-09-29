@@ -24,29 +24,17 @@ const json_text = @import("json_text.zig");
 const leaf_proof_json = @import("leaf_proof_json.zig");
 
 pub const DigestHex = leaf_proof_json.DigestHex;
-pub const FriConfig = @import("stwo_core").pcs.config_v2.FriConfigV2;
+/// The `ProverParameters` types are the single definition in
+/// `src/interop/cairo_prover_parameters.zig`, injected as a module and shared
+/// with the Cairo frontend's leaf lane; this file owns their serde JSON.
+const prover_parameters = @import("interop_cairo_prover_parameters");
 
-pub const ChannelHash = enum { blake2s, blake2s_m31, poseidon252 };
-
-pub const PreprocessedTraceVariant = enum { canonical, canonical_without_pedersen, canonical_small };
-
-pub const LiftingSizePolicy = union(enum) {
-    auto,
-    fixed: u32,
-    at_least_preprocessed,
-};
-
+pub const FriConfig = prover_parameters.FriConfig;
+pub const ChannelHash = prover_parameters.ChannelHash;
+pub const PreprocessedTraceVariant = prover_parameters.PreprocessedTraceVariant;
+pub const LiftingSizePolicy = prover_parameters.LiftingSizePolicy;
 /// `stwo_cairo_common::prover_params::ProverParameters`.
-pub const ProverParameters = struct {
-    channel_hash: ChannelHash,
-    channel_salt: u32,
-    fri_config: FriConfig,
-    preprocessed_trace: PreprocessedTraceVariant,
-    store_polynomials_coefficients: bool,
-    include_all_preprocessed_columns: bool,
-    opt_n_id_to_big_components: ?u64,
-    lifting_size_policy: LiftingSizePolicy,
-};
+pub const ProverParameters = prover_parameters.ProverParameters;
 
 /// Padded log sizes of the components circuits share a target on.
 pub const LogSizes = struct {

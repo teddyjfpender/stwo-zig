@@ -151,17 +151,20 @@ pub fn populateTopology(
 
 /// Production population path. Memory table dimensions come from the admitted
 /// input; no Rust receipt participates in routing or sizing.
+/// `big_component_count` is the claim's `memory_id_to_big` instance count,
+/// which `opt_n_id_to_big_components` may raise above the natural count.
 pub fn populateLiveTopology(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     topology: feed_topology.Loaded,
     producers: []const producer_output.ProducerOutput,
     fixed: *const fixed_table_bundle.Bundle,
+    big_component_count: usize,
 ) !Tables {
     var tables = try Tables.init(allocator, fixed);
     errdefer tables.deinit();
     try tables.route(topology, producers);
-    try addMemoryRangeChecksLive(input, &tables);
+    try addMemoryRangeChecksForComponents(input, big_component_count, &tables);
     return tables;
 }
 
@@ -447,9 +450,19 @@ pub fn addMemoryRangeChecksLive(
     input: *const adapter.ProverInput,
     tables: *Tables,
 ) !void {
-    const component_count = try memory_tables.bigComponentCount(input);
+    try addMemoryRangeChecksForComponents(input, try memory_tables.bigComponentCount(input), tables);
+}
+
+/// As `addMemoryRangeChecksLive` for `component_count` big-value components;
+/// padding components (`memory_tables.paddedBigRowCount`) add their zero limbs.
+pub fn addMemoryRangeChecksForComponents(
+    input: *const adapter.ProverInput,
+    component_count: usize,
+    tables: *Tables,
+) !void {
+    if (component_count < try memory_tables.bigComponentCount(input)) return Error.FixedGeometryMismatch;
     for (0..component_count) |component_index| {
-        const row_count = try memory_tables.bigRowCount(input, component_index);
+        const row_count = try memory_tables.paddedBigRowCount(input, component_index, component_count);
         const first = try tables.allocator.alloc(u32, row_count);
         defer tables.allocator.free(first);
         const second = try tables.allocator.alloc(u32, row_count);

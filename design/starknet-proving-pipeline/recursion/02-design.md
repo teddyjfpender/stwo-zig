@@ -45,6 +45,27 @@ before editing):
    See §6.5, §9.1 and §11.3.
 6. The scratch-checkout path for `proving/` is replaced by the upstream URL
    and commit.
+7. **R10 findings (M10, verified by running the oracle).**
+   - `get_preprocessed_root(21 | 22 | 23)` is the canonical_small
+     preprocessed trace at **log blowup 1, 2 and 3** (heights
+     `20 + log_blowup_factor`, `export_circuit_cairo_verifier_preprocessed_roots`),
+     not one blowup-1 tree lifted to three heights. R10b tests it that way.
+   - Upstream `ExtendedBinary` bytes are **not reproducible**: the aux
+     `hashbrown::HashMap`s serialize in per-process random order. R10c
+     compares `bincode(CairoProofForRustVerifier)` exactly and
+     `bincode(CairoProof)` with every aux map in ascending key order (the
+     M3 reader must accept any order; its writer should emit this one).
+   - The 5a7c5ed adapter's `public_memory_addresses` order also varies run
+     to run; the proof does not depend on it.
+   - Small programs **never lift** under `AtLeastPreprocessed` on
+     canonical_small: the fixed 2^20-row tables fill the preprocessed domain,
+     so every tree sits at 21. Lifting is covered by
+     `LiftingSizePolicy::Fixed(22)` on all_opcodes and by the lifted
+     wide-Fibonacci prover test (`vectors/circuit/r10`). Production leaves
+     (canonical, preprocessed domain 26) lift every trace tree.
+   - Any AIR proved on this revision must take its OODS vanishing domain
+     from `max_log_degree_bound` (upstream `FrameworkComponent`), which
+     lifting raises above the component's rows.
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
@@ -1072,7 +1093,7 @@ Each rung is a `zig build circuit-parity-rN` step. The aggregate step is
 | **R7 circuit proofs** | `circuit_prover/src/prover_test.rs` contexts (fibonacci, permutation, blake, …): transcript digest after each of the 8 steps, per-component base and interaction column sha256, claimed sums, all roots, FRI layer roots, CircuitSerialize bytes, `ProofInfo::total_bytes()` == length; three `.bin` round trips; ABI byte-compare (§4.2) | bytes | `prove-small`, `air-programs` |
 | **R8 leaf wrap** | Stage A: oracle-dumped Cairo proof of `use_all_opcodes_and_builtins` → `expected_output.json` bytes. Then a production-bucket leaf, mainnet `15627902-15627907` (1,580,295 steps, trace_log 25), against release `leaf-prover` | raw bytes | `dump-leaf-cairo-proof` (big host) |
 | **R9 fold tree** | `four_leaves` goldens as raw bytes; N = 1, 2, 3, 5 shapes from the release fold binary; per-internal-node CircuitSerialize sha256 | raw bytes | release binary (big host) |
-| **R10 Zig Cairo leaf** | R10a M31 channel/grind vectors; R10b canonical_small preprocessed roots 21/22/23; R10c `use_all_opcodes_and_builtins` ExtendedBinary bytes; R10d SN_PIE_2 (7,706,864 steps) → Zig Cairo proof → Zig wrap == release `leaf-prover` | raw bytes | `dump-leaf-cairo-proof` (big host) |
+| **R10 Zig Cairo leaf** | R10a M31 channel/grind vectors; R10b canonical_small preprocessed roots at log blowup 1/2/3 (heights 21/22/23, errata 7); R10c `use_all_opcodes_and_builtins`, `all_opcodes`, `all_builtins` Binary bytes and canonical ExtendedBinary bytes (errata 7); R10d SN_PIE_2 (7,706,864 steps) → Zig Cairo proof → Zig wrap == release `leaf-prover` | raw bytes | `dump-leaf-cairo-proof` (big host) |
 | **R11 acceptance, tamper** | Rust `circuit_verifier` accepts Zig leaf/fold proofs; Zig `verify_native` accepts Rust proofs; root felt stream accepted by Cairo `stwo_circuit_verifier`; flip each of output digest, preprocessed root, circuit hash, claimed sum, nonce, salt, one FRI witness → both verifiers reject for the intended reason | accept/reject | `verify` |
 
 The judges asked that R1 and R6 not wait on the oracle. **Only R1 meets
