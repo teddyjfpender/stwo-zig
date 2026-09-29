@@ -5,7 +5,8 @@
 //!
 //! The same generic transaction and CPU backend as `transaction.zig`; only the
 //! engine's Merkle channel differs, which is the channel profile that fixes the
-//! M31-reduced Fiat-Shamir channel, `mix_hash` and the Rust grind order.
+//! M31-reduced Fiat-Shamir channel, `mix_hash` and the `proving_5a7c5ed`
+//! PCS laws.
 
 const std = @import("std");
 const core = @import("stwo_core");

@@ -15,8 +15,9 @@
 //! - the channel salt (`transcript.mixChannelSalt`).
 //!
 //! The Merkle channel is the engine's comptime parameter; the leaf lane
-//! requires a channel profile (`core.vcs_lifted.channel_profile`), whose
-//! grind order reproduces upstream's `SimdBackend::grind`.
+//! requires a channel profile (`core.vcs_lifted.channel_profile`) of revision
+//! `proving_5a7c5ed`. Its grinds reproduce upstream's `SimdBackend::grind`, as
+//! every Blake2s grind does (`core.channel.blake2s.pow_order`).
 //!
 //! The leaf prover's policy, `AtLeastPreprocessed`, and `Fixed` (every tree at
 //! one height, which small programs need to exercise lifted trees) are

@@ -675,9 +675,10 @@ pub const TranscriptRecipe = struct {
         return nonce;
     }
 
-    /// Uses and validates the Rust reference nonce for transcript parity. Rust
-    /// and Zig search valid nonces in different orders, so local grinding is
-    /// not expected to reproduce the same transcript suffix.
+    /// Uses and validates the Rust reference nonce for transcript parity. Local
+    /// grinding follows the same Stwo SimdBackend nonce order
+    /// (`stwo_core.channel.blake2s.pow_order`), so it selects this nonce too;
+    /// taking the reference value keeps the recipe independent of grind cost.
     pub fn interactionPowAndLookupNonce(self: *TranscriptRecipe, nonce: u64) !void {
         try self.validateAndMixNonce(21, 24, nonce, &self.interaction_pow);
         try self.drawSecure(1, 2);

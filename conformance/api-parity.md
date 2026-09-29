@@ -125,12 +125,6 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/core/channel/mod.zig"
     },
-    "stwo.core.channel.blake2s_grind": {
-      "kind": "const",
-      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; Blake2s PoW search orders, including the SimdBackend hi-major order of prover/backend/simd/grind.rs there.",
-      "rust_path": null,
-      "source": "src/core/channel/mod.zig"
-    },
     "stwo.core.channel.lookup_transcript": {
       "kind": "const",
       "rationale": "Shared LogUp transcript steps (channel salt, CommonLookupElements draw, claimed-sum mix) used by the Cairo prover and by the circuit prover of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230 (crates/circuit_prover/src/prover.rs); not a Native a8fcf4b export.",
@@ -553,7 +547,7 @@ This ledger maps every public export in the Zig root/module API surface to the p
     },
     "stwo.core.vcs_lifted.channel_profile": {
       "kind": "const",
-      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; pairs each upstream MerkleChannel with its channel, plain Merkle hasher, mix_hash and grind order.",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; pairs each upstream MerkleChannel with its channel, plain Merkle hasher, mix_hash and protocol revision.",
       "rust_path": null,
       "source": "src/core/vcs_lifted/mod.zig"
     },

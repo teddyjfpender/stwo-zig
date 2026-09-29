@@ -89,7 +89,7 @@ pub fn TreeDecommitmentResult(comptime H: type) type {
 ///   before the first commitment when the heights follow a claim). Tree `i`
 ///   is committed at `PcsConfigV2.treeHeight(i)` (`revision_lifting`), the
 ///   proof domain is the last tree's height, and the FRI grind runs at
-///   `fri_config.pow_bits` in the profile's order. `config` then holds
+///   `fri_config.pow_bits`. `config` then holds
 ///   `Revision.legacyView` of that configuration, which is what the shared
 ///   code (blowup, folding, PoW bits) reads.
 pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: type) type {
@@ -611,9 +611,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     "Proof of work",
                 );
                 defer proof_of_work_stage.end();
-                const nonce = try pow_search.grindForMerkleChannel(
+                const nonce = try pow_search.grindForBackend(
                     B,
-                    MC,
                     channel,
                     scheme.config.pow_bits,
                 );

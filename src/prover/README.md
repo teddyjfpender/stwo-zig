@@ -72,8 +72,9 @@ claim (the Cairo leaf lane), and refuses to commit without one. Every commit
 path builds its tree at the natural height and `pcs.revision_lifting` lifts it
 to the configured height once, before its root is mixed; the proof domain is
 the last tree's height, and the FRI proof of work is ground at
-`fri_config.pow_bits` in the profile's search order
-(`pcs.proof_of_work.grindForMerkleChannel`). `test-pcs-revision` compares a
+`fri_config.pow_bits`. Every Blake2s grinder (host, pool, Metal, CUDA)
+returns Rust `SimdBackend`'s nonce (`stwo_core.channel.blake2s.pow_order`), so
+no lane needs its own search order. `test-pcs-revision` compares a
 lifted-tree PCS proof on both upstream Merkle channels with Rust bytes and
 verifies it natively; `test-cairo-leaf-proof` does the same for whole leaf
 Cairo proofs.

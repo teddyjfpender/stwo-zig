@@ -55,12 +55,14 @@ pub const Result = struct {
     dispatch_count: u32,
 };
 
+/// Canonical Stwo BLAKE2s nonce (`SimdBackend` lattice order, see
+/// `core/channel/blake2s_pow_order.zig`). Stwo defines it only up to 32 bits.
 pub fn grindBlake2sProofOfWork(
     self: *Runtime,
     prefix_words: *const [8]u32,
     pow_bits: u32,
 ) MetalError!Result {
-    if (pow_bits == 0 or pow_bits > 256) return MetalError.ProofOfWorkFailed;
+    if (pow_bits == 0 or pow_bits > 32) return MetalError.ProofOfWorkFailed;
     const round_zero_columns = roundZeroColumnState(prefix_words);
     var result: Result = .{
         .nonce = 0,

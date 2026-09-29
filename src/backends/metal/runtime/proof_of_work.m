@@ -6,7 +6,7 @@ bool stwo_zig_metal_blake2s_pow_search(
 ) {
     if (runtime_ptr == NULL || prefix_words == NULL || round_zero_columns == NULL || nonce == NULL ||
         gpu_milliseconds == NULL || dispatch_count == NULL ||
-        pow_bits == 0u || pow_bits > 256u) {
+        pow_bits == 0u || pow_bits > 32u) {
         write_error(error_message, error_message_len, @"Invalid Metal proof-of-work arguments");
         return false;
     }
@@ -20,19 +20,22 @@ bool stwo_zig_metal_blake2s_pow_search(
             return false;
         }
 
+        // Walk the canonical Stwo search index space (hi < 2^31 - 1, lo < 2^20;
+        // the kernel maps index -> (hi << 32) | lo) in ordered windows.
         // Keep each command comfortably below watchdog-scale work while
         // amortizing command-buffer submission and synchronous wait overhead.
         // On the target Apple GPU a 2^22 slice spends more time crossing the
         // host/device boundary than hashing; 2^24 remains a short dispatch.
+        const uint64_t index_limit = (uint64_t)0x7fffffffu << 20u;
         const uint32_t interval_capacity = UINT32_C(1) << 24u;
         uint64_t interval_base = 0u;
         *gpu_milliseconds = 0.0;
         *dispatch_count = 0u;
 
-        while (true) {
-            uint64_t remaining = UINT64_MAX - interval_base;
-            uint32_t interval_count = remaining < (uint64_t)interval_capacity - 1u
-                ? (uint32_t)(remaining + 1u) : interval_capacity;
+        while (interval_base < index_limit) {
+            uint64_t remaining = index_limit - interval_base;
+            uint32_t interval_count = remaining < (uint64_t)interval_capacity
+                ? (uint32_t)remaining : interval_capacity;
             *(uint32_t *)result.contents = UINT32_MAX;
 
             id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
@@ -65,16 +68,14 @@ bool stwo_zig_metal_blake2s_pow_search(
 
             uint32_t local_match = *(const uint32_t *)result.contents;
             if (local_match != UINT32_MAX) {
-                *nonce = interval_base + local_match;
+                uint64_t index = interval_base + local_match;
+                *nonce = ((index >> 20u) << 32u) | (index & UINT64_C(0xfffff));
                 return true;
-            }
-            if (interval_count != interval_capacity ||
-                UINT64_MAX - interval_base < interval_count) {
-                write_error(error_message, error_message_len, @"Metal proof-of-work nonce space exhausted");
-                return false;
             }
             interval_base += interval_count;
         }
+        write_error(error_message, error_message_len, @"Metal proof-of-work nonce space exhausted");
+        return false;
     }
 }
 

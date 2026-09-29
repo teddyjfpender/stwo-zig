@@ -68,8 +68,8 @@ lane follows. `stwo_7b211ed` is the existing Native and Cairo rule set
 (`pcs.PcsConfig`, trees as tall as their largest column).
 `proving_5a7c5ed` is the circuit-recursion revision of
 `starkware-libs/proving@5a7c5ed` (`pcs.config_v2`, a two-felt FRI config mix,
-explicit per-tree lifting heights). Its channels, hashers and proof-of-work
-search order are fixed together by `vcs_lifted.channel_profile`; lanes name a
+explicit per-tree lifting heights). Its channels and hashers are fixed
+together by `vcs_lifted.channel_profile`; lanes name a
 profile rather than pairing a channel with a hasher themselves. A profile
 also declares its revision, and `Revision.of(MC)` reads it back, so the PCS
 prover and `pcs.verifier.CommitmentSchemeVerifier` select their laws from the

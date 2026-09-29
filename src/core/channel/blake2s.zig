@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const m31 = @import("../fields/m31.zig");
 const qm31 = @import("../fields/qm31.zig");
 const blake2_hash = @import("../vcs/blake2_hash.zig");
-const blake2s_grind = @import("blake2s_grind.zig");
+pub const pow_order = @import("blake2s_pow_order.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -163,52 +163,51 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             return trailingZeroBits(out[0..16]) >= n_bits;
         }
 
-        fn firstValidNonceWithPrefix8(
+        /// PoW predicate for eight candidates against a cached prefix hash.
+        const NonceChecker = struct {
             prefix: Digest32,
-            nonces: [8]u64,
             n_bits: u32,
-        ) ?u64 {
-            var inputs: [8][40]u8 = undefined;
-            for (&inputs, nonces) |*input, nonce| {
-                @memcpy(input[0..32], prefix[0..]);
-                const nonce_bytes = u64ToBytesLe(nonce);
-                @memcpy(input[32..40], nonce_bytes[0..]);
-            }
-            const outputs = Hasher.hashFixedSingleBlock8(40, &inputs);
-            for (outputs, nonces) |output, nonce| {
-                if (trailingZeroBits(output[0..16]) >= n_bits) return nonce;
-            }
-            return null;
-        }
 
-        /// Grind for the lowest valid PoW nonce with prefix caching and parallel search.
-        /// Each worker searches one strided residue class and atomically lowers the
-        /// shared upper bound, making the result independent of thread scheduling.
+            pub fn validMask8(self: NonceChecker, nonces: [pow_order.BATCH]u64) u8 {
+                var inputs: [pow_order.BATCH][40]u8 = undefined;
+                for (&inputs, nonces) |*input, nonce| {
+                    @memcpy(input[0..32], self.prefix[0..]);
+                    const nonce_bytes = u64ToBytesLe(nonce);
+                    @memcpy(input[32..40], nonce_bytes[0..]);
+                }
+                const outputs = Hasher.hashFixedSingleBlock8(40, &inputs);
+                var mask: u8 = 0;
+                for (outputs, 0..) |output, lane| {
+                    if (trailingZeroBits(output[0..16]) >= self.n_bits)
+                        mask |= @as(u8, 1) << @intCast(lane);
+                }
+                return mask;
+            }
+
+            fn searchClass(
+                self: NonceChecker,
+                start: u64,
+                stride: u64,
+                best_index: *std.atomic.Value(u64),
+            ) void {
+                pow_order.searchResidueClass(self, start, stride, best_index);
+            }
+        };
+
+        /// Grind for the canonical Stwo PoW nonce: the smallest valid
+        /// `(hi << 32) | lo` with `lo < 2^20`, hi-major, exactly what Rust
+        /// Stwo's `SimdBackend::grind` returns for this channel. See
+        /// `blake2s_pow_order.zig` for why this is not the smallest natural
+        /// nonce. Each worker scans one residue class of the search index
+        /// space and atomically lowers a shared best index, so the result is
+        /// independent of worker count and scheduling. Panics above 32 bits,
+        /// as Rust does.
         pub fn grind(self: Self, n_bits: u32) u64 {
             if (n_bits == 0) return 0;
             return self.grindWithWorkerCount(n_bits, powWorkerCount());
         }
 
-        /// Grind in an explicit search order (`blake2s_grind.GrindOrder`). A lane
-        /// reproducing another prover's bytes names that prover's order;
-        /// `.lowest_nonce` is exactly `grind`.
-        pub fn grindInOrder(
-            self: Self,
-            order: blake2s_grind.GrindOrder,
-            n_bits: u32,
-        ) blake2s_grind.Error!u64 {
-            return switch (order) {
-                .lowest_nonce => self.grind(n_bits),
-                .rust_simd_hi_major => blake2s_grind.grindHiMajor(
-                    is_m31_output,
-                    self.computePowPrefix(n_bits),
-                    n_bits,
-                    powWorkerCount(),
-                ),
-            };
-        }
-
-        fn grindWithWorkerCount(self: Self, n_bits: u32, n_workers: usize) u64 {
+        pub fn grindWithWorkerCount(self: Self, n_bits: u32, n_workers: usize) u64 {
             return self.grindWithWorkerCountAndSpawnLimit(
                 n_bits,
                 n_workers,
@@ -223,18 +222,16 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             spawn_limit: usize,
         ) u64 {
             if (n_bits == 0) return 0;
-            const prefix = self.computePowPrefix(n_bits);
+            pow_order.requireSupportedBits(n_bits);
+            const checker = NonceChecker{ .prefix = self.computePowPrefix(n_bits), .n_bits = n_bits };
+            var best_index = std.atomic.Value(u64).init(std.math.maxInt(u64));
 
             if (n_workers <= 1) {
-                // Single-threaded path.
-                var nonce: u64 = 0;
-                while (true) : (nonce += 1) {
-                    if (verifyNonceWithPrefix(prefix, nonce, n_bits)) return nonce;
-                }
+                pow_order.searchResidueClass(checker, 0, 1, &best_index);
+                return pow_order.finish(best_index.load(.acquire));
             }
 
-            // Multi-threaded grinding: each thread searches nonce ≡ thread_id (mod n_threads).
-            var found = std.atomic.Value(u64).init(std.math.maxInt(u64));
+            // Worker `tid` searches indices congruent to `tid` modulo the worker count.
             var threads: [64]std.Thread = undefined;
             var failed_starts: [64]u64 = undefined;
             var spawned_count: usize = 0;
@@ -247,8 +244,8 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
                     failed_count += 1;
                     continue;
                 }
-                const thread = std.Thread.spawn(.{}, grindWorker, .{
-                    prefix, n_bits, @as(u64, tid), @as(u64, actual_threads), &found,
+                const thread = std.Thread.spawn(.{}, NonceChecker.searchClass, .{
+                    checker, @as(u64, tid), @as(u64, actual_threads), &best_index,
                 }) catch {
                     failed_starts[failed_count] = @intCast(tid);
                     failed_count += 1;
@@ -262,39 +259,9 @@ pub fn Blake2sChannelGeneric(comptime is_m31_output: bool) type {
             // A failed spawn leaves a residue class unsearched. Complete those
             // classes synchronously under the best bound found by other workers.
             for (failed_starts[0..failed_count]) |start| {
-                grindWorker(prefix, n_bits, start, @intCast(actual_threads), &found);
+                pow_order.searchResidueClass(checker, start, @intCast(actual_threads), &best_index);
             }
-            return found.load(.acquire);
-        }
-
-        fn grindWorker(
-            prefix: Digest32,
-            n_bits: u32,
-            start: u64,
-            stride: u64,
-            found: *std.atomic.Value(u64),
-        ) void {
-            var nonce = start;
-            while (nonce < found.load(.monotonic)) {
-                var nonces: [8]u64 = undefined;
-                nonces[0] = nonce;
-                for (1..nonces.len) |index| {
-                    nonces[index] = std.math.add(
-                        u64,
-                        nonces[index - 1],
-                        stride,
-                    ) catch std.math.maxInt(u64);
-                }
-                if (firstValidNonceWithPrefix8(prefix, nonces, n_bits)) |valid| {
-                    _ = found.fetchMin(valid, .release);
-                    return;
-                }
-                nonce = std.math.add(
-                    u64,
-                    nonces[nonces.len - 1],
-                    stride,
-                ) catch return;
-            }
+            return pow_order.finish(best_index.load(.acquire));
         }
 
         fn drawBaseFelts(self: *Self) [FELTS_PER_HASH]M31 {
@@ -498,12 +465,14 @@ test "blake2s channel: mix_u32s upstream digest bytes" {
     try std.testing.expect(std.mem.eql(u8, channel.digestBytes()[0..], expected[0..]));
 }
 
-test "blake2s channel: parallel grinding returns the lowest valid nonce" {
+test "blake2s channel: parallel grinding returns the canonical lattice nonce" {
     const channel = Blake2sChannel{};
     const n_bits = 10;
     const expected = channel.grindWithWorkerCount(n_bits, 1);
 
+    // Below 2^20 the Stwo lattice coincides with natural order.
     try std.testing.expect(channel.verifyPowNonce(n_bits, expected));
+    try std.testing.expect(expected <= pow_order.LOW_MASK);
     for (0..expected) |nonce| {
         try std.testing.expect(!channel.verifyPowNonce(n_bits, @intCast(nonce)));
     }
@@ -516,6 +485,82 @@ test "blake2s channel: parallel grinding returns the lowest valid nonce" {
             );
         }
     }
+}
+
+/// Known answers from Rust Stwo 7b211ed `SimdBackend::grind` (features
+/// `prover,parallel`) on `Channel::default().mix_u64(seed)`.
+const RustSimdGrindVector = struct { seed: u64, bits: u32, nonce: u64 };
+
+fn expectRustSimdGrindVectors(
+    comptime Channel: type,
+    vectors: []const RustSimdGrindVector,
+) !void {
+    for (vectors) |vector| {
+        var channel = Channel{};
+        channel.mixU64(vector.seed);
+        try std.testing.expect(vector.nonce >> 32 > 0);
+        try std.testing.expect(channel.verifyPowNonce(vector.bits, vector.nonce));
+        for ([_]usize{ 3, 8 }) |workers| {
+            try std.testing.expectEqual(
+                vector.nonce,
+                channel.grindWithWorkerCount(vector.bits, workers),
+            );
+        }
+    }
+}
+
+test "blake2s channel: grind matches Rust Stwo SimdBackend known answers" {
+    try expectRustSimdGrindVectors(Blake2sChannel, &.{
+        // Natural-order grinding returns 2279942 here.
+        .{ .seed = 1, .bits = 20, .nonce = 12885063745 }, // hi 3, lo 161857
+        // Natural-order grinding returns 3005205 here.
+        .{ .seed = 0, .bits = 24, .nonce = 77309505868 }, // hi 18, lo 94540
+        // Natural-order grinding returns 25492719 here.
+        .{ .seed = 0, .bits = 26, .nonce = 34360584583 }, // hi 8, lo 846215
+    });
+}
+
+test "blake2s m31 channel: grind matches Rust Stwo SimdBackend known answers" {
+    try expectRustSimdGrindVectors(Blake2sM31Channel, &.{
+        // Natural-order grinding returns 4950042 here.
+        .{ .seed = 1, .bits = 20, .nonce = 12885632339 }, // hi 3, lo 730451
+        .{ .seed = 1, .bits = 24, .nonce = 4295766292 }, // hi 1, lo 798996
+        // Natural-order grinding returns 79253736 here.
+        .{ .seed = 0x1111_2222_3333_4344, .bits = 26, .nonce = 150324282603 }, // hi 35, lo 427243
+    });
+}
+
+test "blake2s channels: grind matches proving@5a7c5ed SimdBackend known answers" {
+    // `<SimdBackend as GrindOps<C>>::grind(&c, bits)` of
+    // https://github.com/starkware-libs/proving at
+    // 5a7c5ede4299c91a61df19a07cba4f7502c14230 after
+    // `c.mix_u64(0x1111222233334344)` (upstream
+    // `test_parallel_grind_with_high_pow_bits`): the recursion lanes' order is
+    // the default order.
+    const vectors = [_]struct { bits: u32, blake2s: u64, blake2s_m31: u64 }{
+        .{ .bits = 1, .blake2s = 0, .blake2s_m31 = 0 },
+        .{ .bits = 10, .blake2s = 0x413, .blake2s_m31 = 0x415 },
+        .{ .bits = 20, .blake2s = 0xede9, .blake2s_m31 = 0x1_0005_a700 },
+        .{ .bits = 24, .blake2s = 0x9_000e_1aa1, .blake2s_m31 = 0xf_0001_6fbd },
+    };
+    var plain = Blake2sChannel{};
+    plain.mixU64(0x1111_2222_3333_4344);
+    var reduced = Blake2sM31Channel{};
+    reduced.mixU64(0x1111_2222_3333_4344);
+    for (vectors) |vector| {
+        try std.testing.expectEqual(vector.blake2s, plain.grind(vector.bits));
+        try std.testing.expectEqual(vector.blake2s_m31, reduced.grind(vector.bits));
+    }
+}
+
+test "blake2s channel: grind agrees with Rust below the lattice boundary" {
+    // Rust SimdBackend and CpuBackend agree when a valid nonce exists below 2^20.
+    var channel = Blake2sChannel{};
+    channel.mixU64(0);
+    try std.testing.expectEqual(@as(u64, 674794), channel.grindWithWorkerCount(20, 8));
+    var m31_channel = Blake2sM31Channel{};
+    m31_channel.mixU64(0);
+    try std.testing.expectEqual(@as(u64, 340382), m31_channel.grindWithWorkerCount(20, 8));
 }
 
 test "blake2s channel: zero-bit grinding is independent of worker count" {

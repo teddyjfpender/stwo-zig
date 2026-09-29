@@ -33,15 +33,11 @@ pub fn mixClaim(
     MC.mixRoot(channel, rootBytes(statement.words(16).?));
 }
 
-/// The 24-bit interaction grind, then its mix. A Merkle channel profile names
-/// the search order of the prover it reproduces (upstream's
-/// `SimdBackend::grind`); the existing lane keeps the channel's lowest-nonce
-/// search.
-pub fn grindInteraction(comptime MC: type, channel: anytype) !u64 {
-    const nonce = if (comptime @hasDecl(MC, "grind_order"))
-        try MC.grind(channel.*, interaction_pow_bits)
-    else
-        channel.grind(interaction_pow_bits);
+/// The 24-bit interaction grind, then its mix. Blake2s channels grind in Rust
+/// `SimdBackend` order (`core.channel.blake2s.pow_order`), which both the
+/// official lane and the leaf lane reproduce.
+pub fn grindInteraction(channel: anytype) u64 {
+    const nonce = channel.grind(interaction_pow_bits);
     channel.mixU64(nonce);
     return nonce;
 }

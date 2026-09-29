@@ -121,7 +121,8 @@ pub fn proveFixtureForLane(
 ) !Result(Engine) {
     comptime @import("stwo_prover_api").assertProverEngine(Engine);
     if (lane) |leaf| {
-        if (comptime !@hasDecl(Engine.MerkleChannel, "grind_order")) return error.LeafLaneRequiresChannelProfile;
+        if (comptime core.protocol_revision.Revision.of(Engine.MerkleChannel) != .proving_5a7c5ed)
+            return error.LeafLaneRequiresChannelProfile;
         if (leaf.variant != variant) return error.PreprocessedVariantMismatch;
         // Compact storage prunes or drops what the post-commit lift reads.
         switch (fixture.sampled_evaluation) {
@@ -497,7 +498,7 @@ pub fn proveFixtureForLane(
 
     prover.measurement.process_usage.reportStage("cairo.main_commit_complete");
     const interaction_pow =
-        try transcript.grindInteraction(Engine.MerkleChannel, &channel);
+        transcript.grindInteraction(&channel);
     const lookup = try transcript.drawLookupElements(
         allocator,
         &channel,

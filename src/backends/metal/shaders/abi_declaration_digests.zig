@@ -20,7 +20,7 @@ pub const entries = [234]Entry{
     .{ .name = "stwo_zig_transcript_draw_queries_resident", .declaration_sha256 = "8c20d72bdcb073c4fb30037419506f615f8c50a08979798407ecd3ccc83ad726".* },
     .{ .name = "stwo_zig_blake2s_leaves", .declaration_sha256 = "b342a6b6912f06de3babd17beeb130ef7728b63f69f8b8197085fb1230b45ee2".* },
     .{ .name = "stwo_zig_blake2s_leaves_wide", .declaration_sha256 = "a7bcc88ff173dbf7b4b9c45794bca5d4cc131e3c5a44f1395195726b4232b873".* },
-    .{ .name = "stwo_zig_blake2s_pow_search", .declaration_sha256 = "d03d5b8438008ce62a930e67df05ea7383910939459636c3b5150c7114858ecb".* },
+    .{ .name = "stwo_zig_blake2s_pow_search", .declaration_sha256 = "8aa59310edbd4e9b1b4b0fbe8f90bfe8b0cccd1b1bedd26390854a462d25506a".* },
     .{ .name = "stwo_zig_blake3_pow_search", .declaration_sha256 = "98d273306ff71f6c35df18cc953579313cb0782a285da4f972c3fd86254e3ace".* },
     .{ .name = "stwo_zig_blake3_parent_tail_sparse", .declaration_sha256 = "0738eb352d8796fb3700becaa2feb22de8dcdcff5400d5e0b2abbd4f5a4ae1d3".* },
     .{ .name = "stwo_zig_blake3_parents_sparse", .declaration_sha256 = "3d8210e2e9d8d2c444cfa51fc22844232f81e227655e71c26b71b16f493317cc".* },

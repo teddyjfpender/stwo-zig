@@ -3,7 +3,7 @@
 //! A profile fixes together everything a prover must agree on to reproduce an
 //! upstream transcript: the Fiat-Shamir channel, the lifted Merkle hasher that
 //! commits trees, the hash `mixRoot` absorbs (upstream `mix_hash`), and the
-//! proof-of-work search order. Choosing them separately is how a lane ends up
+//! protocol revision whose PCS laws apply. Choosing them separately is how a lane ends up
 //! with a verifying proof and different bytes, so recursion code names a
 //! profile instead of its parts.
 //!
@@ -14,13 +14,11 @@ const std = @import("std");
 const blake2_hash = @import("../vcs/blake2_hash.zig");
 const blake2_merkle = @import("blake2_merkle.zig");
 const channel_blake2s = @import("../channel/blake2s.zig");
-const blake2s_grind = @import("../channel/blake2s_grind.zig");
 const revision_mod = @import("../protocol_revision.zig");
 
 pub const Spec = struct {
     /// Fiat-Shamir channel output reduced modulo P (`Blake2sM31Channel`).
     m31_channel: bool,
-    grind_order: blake2s_grind.GrindOrder,
     /// PCS laws a prover committing under this profile follows
     /// (`protocol_revision.Revision.of`).
     revision: revision_mod.Revision,
@@ -35,7 +33,6 @@ pub fn Blake2sMerkleChannelProfile(comptime spec: Spec) type {
         /// `MerkleHasher`'s word hash (`Hasher::hash_u32s*`), e.g. for the
         /// circuit hash.
         pub const Hasher = blake2_hash.Blake2sHasher;
-        pub const grind_order = spec.grind_order;
         pub const protocol_revision = spec.revision;
 
         /// `mix_hash`: `digest = H_channel(digest || hash)`, with the channel's
@@ -43,28 +40,23 @@ pub fn Blake2sMerkleChannelProfile(comptime spec: Spec) type {
         pub fn mixRoot(channel: *Channel, hash: MerkleHasher.Hash) void {
             blake2_merkle.Blake2sMerkleChannelGeneric(spec.m31_channel).mixRoot(channel, hash);
         }
-
-        pub fn grind(channel: Channel, pow_bits: u32) blake2s_grind.Error!u64 {
-            return channel.grindInOrder(grind_order, pow_bits);
-        }
     };
 }
 
 /// The two Merkle channels of https://github.com/starkware-libs/proving at
 /// 5a7c5ede4299c91a61df19a07cba4f7502c14230
-/// (`crates/stwo/src/core/vcs_lifted/blake2_merkle.rs`), with the SIMD
-/// backend's grind order (`prover/backend/simd/grind.rs`).
+/// (`crates/stwo/src/core/vcs_lifted/blake2_merkle.rs`). Their channels grind
+/// in the SIMD backend's order (`prover/backend/simd/grind.rs`), which is the
+/// order of every stwo-zig Blake2s grinder (`channel.blake2s_pow_order`).
 pub const proving_5a7c5ed = struct {
     /// `Blake2sMerkleChannel`: the recursion root fold.
     pub const Blake2sMerkleChannel = Blake2sMerkleChannelProfile(.{
         .m31_channel = false,
-        .grind_order = .rust_simd_hi_major,
         .revision = .proving_5a7c5ed,
     });
     /// `Blake2sM31MerkleChannel`: Cairo leaf proofs, leaf wraps and internal folds.
     pub const Blake2sM31MerkleChannel = Blake2sMerkleChannelProfile(.{
         .m31_channel = true,
-        .grind_order = .rust_simd_hi_major,
         .revision = .proving_5a7c5ed,
     });
 };
@@ -105,11 +97,12 @@ test "channel profile: both profiles commit with the plain Blake2s hasher" {
     }
 }
 
-test "channel profile: grinding follows the profile's search order" {
-    // Oracle nonce: `blake2s_grind` tests, M31 channel at 20 bits.
+test "channel profile: the profile channel grinds in the proving@5a7c5ed SIMD order" {
+    // `<SimdBackend as GrindOps<Blake2sM31Channel>>::grind(&c, 20)` after
+    // `c.mix_u64(0x1111222233334344)`; chunk 0 has no solution.
     var channel = proving_5a7c5ed.Blake2sM31MerkleChannel.Channel{};
     channel.mixU64(0x1111_2222_3333_4344);
-    try std.testing.expectEqual(@as(u64, 0x1_0005_a700), try proving_5a7c5ed.Blake2sM31MerkleChannel.grind(channel, 20));
+    try std.testing.expectEqual(@as(u64, 0x1_0005_a700), channel.grind(20));
 }
 
 test "channel profile: profiles are the Merkle channel of the PCS verifier" {
