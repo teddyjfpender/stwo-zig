@@ -242,3 +242,201 @@ test "prover vcs_lifted: packed leaf hashing matches legacy per-value path" {
         }
     }
 }
+
+/// Test-only reader that serves the same host layers through the batched
+/// `readHashesBatch` interface used by device-resident trees, so the batched
+/// traversal in `decommit.zig` is exercised on the host.
+fn BatchedHostReader(comptime H: type, comptime Prover: type) type {
+    const decommit_mod = @import("stwo_prover_engine").vcs_lifted.decommit;
+    return struct {
+        prover: Prover,
+
+        pub fn maxLogSize(self: @This()) u32 {
+            return self.prover.maxLogSize();
+        }
+
+        pub fn readHashesBatch(
+            self: @This(),
+            allocator: std.mem.Allocator,
+            requests: []const decommit_mod.HashReadRequest,
+        ) !decommit_mod.HashReadBatch(H) {
+            const layers = try allocator.alloc([]H.Hash, requests.len);
+            var initialized: usize = 0;
+            errdefer {
+                for (layers[0..initialized]) |layer| allocator.free(layer);
+                allocator.free(layers);
+            }
+            for (requests, layers) |request, *layer| {
+                layer.* = try self.prover.readHashes(allocator, request.layer_log_size, request.indices);
+                initialized += 1;
+            }
+            return .{ .layers = layers };
+        }
+    };
+}
+
+const UnsortedKat = struct {
+    query_positions: []const usize,
+    /// Per column, in the caller's query order.
+    queried_values: []const []const u32,
+    hash_witness: []const []const u8,
+};
+
+/// Columns of log sizes 3, 2, 3 holding 1..=20, committed at height 3.
+const unsorted_kat_columns = [_][]const M31{
+    &m31Range(1, 8),
+    &m31Range(9, 4),
+    &m31Range(13, 8),
+};
+
+fn m31Range(comptime start: u32, comptime len: usize) [len]M31 {
+    var out: [len]M31 = undefined;
+    for (&out, 0..) |*value, i| value.* = M31.fromCanonical(start + @as(u32, @intCast(i)));
+    return out;
+}
+
+/// Expected outputs of upstream stwo 7b211edde786775016ef3eecb837a6240d8fe792
+/// `MerkleProverLifted::<CpuBackend, Blake2sMerkleHasher>::commit(cols, 3, 0)`
+/// followed by `decommit(positions, cols)`. The upstream decommit sorts and
+/// deduplicates positions before the traversal; queried values keep input
+/// order. `plain` is upstream's Blake2s hasher verbatim; `prefixed` is the same
+/// traversal with the 64-byte "leaf"/"node" domain prefixes of stwo-zig's
+/// default `Blake2sMerkleHasher` (upstream a8fcf4bd hashing).
+const unsorted_kats = struct {
+    const values_7313 = [_][]const u32{ &.{ 8, 4, 2, 4 }, &.{ 12, 10, 10, 10 }, &.{ 20, 16, 14, 16 } };
+    const values_5440 = [_][]const u32{ &.{ 6, 5, 5, 1 }, &.{ 12, 11, 11, 9 }, &.{ 18, 17, 17, 13 } };
+
+    const prefixed_root = "23e8e1251be2b7faa0bc329cea1a7026faeb91ea46a8158429495df0d7a154d0";
+    const prefixed = [_]UnsortedKat{
+        .{ .query_positions = &.{ 7, 3, 1, 3 }, .queried_values = &values_7313, .hash_witness = &.{
+            "9a74a6189d1d635aecd0f09d4e0e5ef655148253af0475f124f52395bddd7605",
+            "58be7e6ffc16f134c5e420bd8274e7caa16a7c32c85e6b1bf7ae2a25517778e7",
+            "8c1f48b30cab0847f8080392d907a00f433c6990493ac6a96e61a658ac40048c",
+            "3c619547c1cabb5c232c93dc109e67f48943b26f6f0a3aac2d0c9432084fdee7",
+        } },
+        .{ .query_positions = &.{ 5, 4, 4, 0 }, .queried_values = &values_5440, .hash_witness = &.{
+            "19e768e45a0ffd2caebf42d8c3df2d7fc0d983c61e80e59597240134a836b500",
+            "cb878ff600a754d8b54fa3c78160538823eb8e087405562d0ee821a577a2d404",
+            "23f013c249bc85a160f93d0dddad48a23aee04dfa49a01d3a7431dfd25fe1b5e",
+        } },
+    };
+
+    const plain_root = "dabac027c5e3d519dbf5f15699bb5570a979a1df8cabc5a5ef63290fea8f4a10";
+    const plain = [_]UnsortedKat{
+        .{ .query_positions = &.{ 7, 3, 1, 3 }, .queried_values = &values_7313, .hash_witness = &.{
+            "f5b8a824976b5af195575308a71c7a5602cf741ae441aa009190add42b5b5dde",
+            "4b8f9bdd33d25c331ac439720a068a3a448d272741eaa7b4302a77f7fdd7f8db",
+            "29037e3db9bd07acfcae4d4b17289da26f2a82787d0ee2a984f5577ed8e9b64c",
+            "39ee80d18c1d5ed82f3078181d176f3a0f4dfcd718f3de44240d6d364a538565",
+        } },
+        .{ .query_positions = &.{ 5, 4, 4, 0 }, .queried_values = &values_5440, .hash_witness = &.{
+            "4eb9df0cd876218fc62f253f5a38a8301d7145b357241335ca76566c953176b7",
+            "1d27512d8460d15bbf4422fab0ddf2aea7474ddfeb6693940b9624dfd97905be",
+            "bc6b4715456aa54f5569b1b7da64ef01ec8dbfabbe686446b816af4ee26d7c1c",
+        } },
+    };
+};
+
+fn hashFromHex(comptime H: type, hex: []const u8) !H.Hash {
+    var hash: H.Hash = undefined;
+    _ = try std.fmt.hexToBytes(std.mem.asBytes(&hash), hex);
+    return hash;
+}
+
+fn expectUnsortedKats(comptime H: type, root_hex: []const u8, kats: []const UnsortedKat) !void {
+    const Prover = MerkleProverLifted(H);
+    const Verifier = vcs_lifted_verifier.MerkleVerifierLifted(H);
+    const decommit_mod = @import("stwo_prover_engine").vcs_lifted.decommit;
+    const alloc = std.testing.allocator;
+
+    var prover = try Prover.commit(alloc, unsorted_kat_columns[0..]);
+    defer prover.deinit(alloc);
+    try std.testing.expectEqual(try hashFromHex(H, root_hex), prover.root());
+
+    for (kats) |kat| {
+        // Sequential (`readHashes`) host path and the batched
+        // (`readHashesBatch`) path used by resident device trees.
+        var sequential = try prover.decommit(alloc, kat.query_positions, unsorted_kat_columns[0..]);
+        defer sequential.deinit(alloc);
+        var batched = try decommit_mod.decommit(
+            H,
+            BatchedHostReader(H, Prover){ .prover = prover },
+            alloc,
+            kat.query_positions,
+            unsorted_kat_columns[0..],
+        );
+        defer batched.deinit(alloc);
+
+        for ([_]*const decommit_mod.DecommitmentResult(H){ &sequential, &batched }) |result| {
+            const witness = result.decommitment.decommitment.hash_witness;
+            try std.testing.expectEqual(kat.hash_witness.len, witness.len);
+            for (kat.hash_witness, witness) |expected_hex, actual| {
+                try std.testing.expectEqual(try hashFromHex(H, expected_hex), actual);
+            }
+            try std.testing.expectEqual(kat.queried_values.len, result.queried_values.len);
+            for (kat.queried_values, result.queried_values) |expected_column, actual_column| {
+                try std.testing.expectEqual(expected_column.len, actual_column.len);
+                for (expected_column, actual_column) |expected, actual| {
+                    try std.testing.expect(M31.fromCanonical(expected).eql(actual));
+                }
+            }
+
+            const queried_values = try alloc.alloc([]const M31, result.queried_values.len);
+            defer alloc.free(queried_values);
+            for (result.queried_values, queried_values) |column, *view| view.* = column;
+            var verifier = try Verifier.init(alloc, prover.root(), &[_]u32{ 3, 2, 3 });
+            defer verifier.deinit(alloc);
+            try verifier.verify(alloc, kat.query_positions, queried_values, result.decommitment.decommitment);
+        }
+    }
+}
+
+test "prover vcs_lifted: unsorted and duplicate positions match upstream 7b211ed (domain-prefixed)" {
+    try expectUnsortedKats(
+        @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher,
+        unsorted_kats.prefixed_root,
+        &unsorted_kats.prefixed,
+    );
+}
+
+test "prover vcs_lifted: unsorted and duplicate positions match upstream 7b211ed (plain Blake2s)" {
+    try expectUnsortedKats(
+        @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher,
+        unsorted_kats.plain_root,
+        &unsorted_kats.plain,
+    );
+}
+
+test "prover vcs_lifted: decommit witness is independent of query order and multiplicity" {
+    const Hasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const Prover = MerkleProverLifted(Hasher);
+    const alloc = std.testing.allocator;
+
+    var prover = try Prover.commit(alloc, unsorted_kat_columns[0..]);
+    defer prover.deinit(alloc);
+
+    var canonical = try prover.decommit(alloc, &.{ 0, 2, 5, 6 }, unsorted_kat_columns[0..]);
+    defer canonical.deinit(alloc);
+    const permutations = [_][]const usize{
+        &.{ 6, 5, 2, 0 },
+        &.{ 2, 6, 0, 5, 5, 2 },
+        &.{ 5, 5, 5, 0, 6, 2, 0 },
+    };
+    for (permutations) |positions| {
+        var result = try prover.decommit(alloc, positions, unsorted_kat_columns[0..]);
+        defer result.deinit(alloc);
+        try std.testing.expectEqualSlices(
+            Hasher.Hash,
+            canonical.decommitment.decommitment.hash_witness,
+            result.decommitment.decommitment.hash_witness,
+        );
+        try std.testing.expectEqual(
+            canonical.decommitment.aux.all_node_values.len,
+            result.decommitment.aux.all_node_values.len,
+        );
+        for (canonical.decommitment.aux.all_node_values, result.decommitment.aux.all_node_values) |expected, actual| {
+            try std.testing.expectEqualDeep(expected, actual);
+        }
+        try std.testing.expectEqual(positions.len, result.queried_values[0].len);
+    }
+}

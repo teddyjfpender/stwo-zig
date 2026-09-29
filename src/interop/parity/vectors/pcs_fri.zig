@@ -293,6 +293,10 @@ test "field vectors: fri layer decommit parity" {
     defer parsed.deinit();
 
     try std.testing.expect(parsed.value.fri_layer_decommit.len > 0);
+    // Error cases carry the commitment of their preceding "valid" case
+    // (`base_commitment` in the generator), so they commit with its fold step.
+    var base_fold_step: ?u32 = null;
+    var packed_cases: usize = 0;
     for (parsed.value.fri_layer_decommit) |v| {
         const column = try alloc.alloc(QM31, v.column.len);
         defer alloc.free(column);
@@ -301,19 +305,36 @@ test "field vectors: fri layer decommit parity" {
         var secure_column = try prover_secure_column_mod.SecureColumnByCoords.fromSecureSlice(alloc, column);
         defer secure_column.deinit(alloc);
 
-        const coord_columns = [_][]const M31{
-            secure_column.columns[0],
-            secure_column.columns[1],
-            secure_column.columns[2],
-            secure_column.columns[3],
+        const is_ok = std.mem.eql(u8, v.expected, "ok");
+        if (is_ok) base_fold_step = v.fold_step;
+        const commit_fold_step = base_fold_step orelse return error.MissingBaseCase;
+
+        // Commit exactly as the FRI layer provers do (upstream
+        // FriFirstLayerProver/FriInnerLayerProver `pack_leaves`, stwo-zig
+        // fri_commit_ops.commitSecureColumnForFold): packed leaves whenever
+        // `shouldPack`, otherwise the four coordinate columns.
+        var packed_columns: ?prover_fri_mod.PackedSecureColumns = null;
+        defer if (packed_columns) |*columns| columns.deinit(alloc);
+        var merkle = if (prover_fri_mod.shouldPack(column.len, commit_fold_step)) blk: {
+            packed_columns = try prover_fri_mod.PackedSecureColumns.init(alloc, secure_column);
+            if (is_ok) packed_cases += 1;
+            const refs = packed_columns.?.refs();
+            break :blk try Prover.commit(alloc, refs[0..]);
+        } else blk: {
+            const coord_columns = [_][]const M31{
+                secure_column.columns[0],
+                secure_column.columns[1],
+                secure_column.columns[2],
+                secure_column.columns[3],
+            };
+            break :blk try Prover.commit(alloc, coord_columns[0..]);
         };
-        var merkle = try Prover.commit(alloc, coord_columns[0..]);
         defer merkle.deinit(alloc);
 
         const root = merkle.root();
         try std.testing.expect(std.mem.eql(u8, std.mem.asBytes(&v.commitment), std.mem.asBytes(&root)));
 
-        if (std.mem.eql(u8, v.expected, "ok")) {
+        if (is_ok) {
             var result = try prover_fri_mod.decommitLayer(
                 Hasher,
                 alloc,
@@ -413,4 +434,6 @@ test "field vectors: fri layer decommit parity" {
             );
         }
     }
+    // The vectors must exercise upstream leaf packing (fold_step > 1).
+    try std.testing.expect(packed_cases > 0);
 }

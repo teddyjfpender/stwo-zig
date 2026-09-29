@@ -3,10 +3,15 @@
 //! A tree reader owns storage and must expose only its maximum log size and
 //! selective hash reads. Host layers and device-resident trees therefore share
 //! one proof-construction algorithm without erased handles or callbacks here.
+//!
+//! Like upstream `MerkleProverLifted::decommit`, query positions may be
+//! unsorted and contain duplicates: queried values follow the caller's order,
+//! while the authentication traversal runs over the sorted, deduplicated set.
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const vcs_lifted_verifier = @import("stwo_core").vcs_lifted.verifier;
+const queries = @import("stwo_core").queries;
 
 const M31 = m31.M31;
 
@@ -86,6 +91,11 @@ pub fn decommit(
     );
     errdefer freeQueriedValues(allocator, queried_values);
 
+    // Upstream: `query_positions.iter().copied().sorted().dedup()`. Normalised
+    // once here so both traversal paths below consume the same position set.
+    const merkle_positions = try queries.sortedUniquePositions(allocator, query_positions);
+    defer allocator.free(merkle_positions);
+
     var hash_witness = std.ArrayList(H.Hash).empty;
     defer hash_witness.deinit(allocator);
 
@@ -96,7 +106,7 @@ pub fn decommit(
     }
 
     if (comptime @hasDecl(@TypeOf(reader), "readHashesBatch")) {
-        const layer_plans = try prepareLayerReads(allocator, max_log_size, query_positions);
+        const layer_plans = try prepareLayerReads(allocator, max_log_size, merkle_positions);
         defer {
             for (layer_plans) |*plan| plan.deinit(allocator);
             allocator.free(layer_plans);
@@ -126,7 +136,7 @@ pub fn decommit(
         reader,
         allocator,
         max_log_size,
-        query_positions,
+        merkle_positions,
         &hash_witness,
         &all_node_values,
     );
@@ -190,18 +200,15 @@ fn appendSequentialReads(
     reader: anytype,
     allocator: std.mem.Allocator,
     max_log_size: u32,
-    query_positions: []const usize,
+    /// Strictly increasing (see `queries.sortedUniquePositions`).
+    merkle_positions: []const usize,
     hash_witness: *std.ArrayList(H.Hash),
     all_node_values: *std.ArrayList([]vcs_lifted_verifier.MerkleDecommitmentLiftedAux(H).NodeValue),
 ) !void {
     const NodeValue = vcs_lifted_verifier.MerkleDecommitmentLiftedAux(H).NodeValue;
     var previous_queries = std.ArrayList(usize).empty;
     defer previous_queries.deinit(allocator);
-    for (query_positions, 0..) |position, index| {
-        if (index == 0 or query_positions[index - 1] != position) {
-            try previous_queries.append(allocator, position);
-        }
-    }
+    try previous_queries.appendSlice(allocator, merkle_positions);
 
     var layer_log_size: i64 = @intCast(max_log_size);
     layer_log_size -= 1;
@@ -270,7 +277,8 @@ fn appendSequentialReads(
 fn prepareLayerReads(
     allocator: std.mem.Allocator,
     max_log_size: u32,
-    query_positions: []const usize,
+    /// Strictly increasing (see `queries.sortedUniquePositions`).
+    merkle_positions: []const usize,
 ) ![]LayerReadPlan {
     var plans = std.ArrayList(LayerReadPlan).empty;
     defer plans.deinit(allocator);
@@ -278,11 +286,7 @@ fn prepareLayerReads(
 
     var previous_queries = std.ArrayList(usize).empty;
     defer previous_queries.deinit(allocator);
-    for (query_positions, 0..) |position, index| {
-        if (index == 0 or query_positions[index - 1] != position) {
-            try previous_queries.append(allocator, position);
-        }
-    }
+    try previous_queries.appendSlice(allocator, merkle_positions);
 
     var layer_log_size = max_log_size;
     while (layer_log_size > 0) : (layer_log_size -= 1) {

@@ -27,6 +27,39 @@ pub fn drawQueries(
     return out;
 }
 
+/// Returns an owned copy of `positions` sorted ascending with duplicates
+/// removed, matching upstream `positions.iter().sorted().dedup()`.
+///
+/// Strictly increasing input is copied without sorting; production query sets
+/// (`Queries`, folded FRI positions) are already in that form, so the common
+/// path is a single linear scan.
+pub fn sortedUniquePositions(
+    allocator: std.mem.Allocator,
+    positions: []const usize,
+) std.mem.Allocator.Error![]usize {
+    const out = try allocator.dupe(usize, positions);
+    if (isStrictlyIncreasing(out)) return out;
+    errdefer allocator.free(out);
+
+    std.sort.heap(usize, out, {}, lessThanUsize);
+    var unique_len: usize = 0;
+    for (out) |position| {
+        if (unique_len == 0 or out[unique_len - 1] != position) {
+            out[unique_len] = position;
+            unique_len += 1;
+        }
+    }
+    return allocator.realloc(out, unique_len);
+}
+
+pub fn isStrictlyIncreasing(positions: []const usize) bool {
+    if (positions.len < 2) return true;
+    for (positions[0 .. positions.len - 1], positions[1..]) |previous, next| {
+        if (previous >= next) return false;
+    }
+    return true;
+}
+
 /// An ordered set of query positions.
 pub const Queries = struct {
     positions: []usize,
@@ -37,24 +70,8 @@ pub const Queries = struct {
         raw_positions: []const usize,
         log_domain_size: u32,
     ) !Queries {
-        var tmp = try allocator.alloc(usize, raw_positions.len);
-        defer allocator.free(tmp);
-        @memcpy(tmp, raw_positions);
-        std.sort.heap(usize, tmp, {}, lessThanUsize);
-
-        // In-place dedup on sorted positions.
-        var unique_len: usize = 0;
-        for (tmp) |p| {
-            if (unique_len == 0 or tmp[unique_len - 1] != p) {
-                tmp[unique_len] = p;
-                unique_len += 1;
-            }
-        }
-
-        const positions = try allocator.alloc(usize, unique_len);
-        @memcpy(positions, tmp[0..unique_len]);
         return .{
-            .positions = positions,
+            .positions = try sortedUniquePositions(allocator, raw_positions),
             .log_domain_size = log_domain_size,
         };
     }
@@ -112,6 +129,27 @@ test "queries: draw and normalize" {
     try std.testing.expect(queries.positions.len == 100);
     try std.testing.expect(std.sort.isSorted(usize, queries.positions, {}, lessThanUsize));
     try std.testing.expect(queries.positions[queries.positions.len - 1] < (@as(usize, 1) << 31));
+}
+
+test "queries: sortedUniquePositions matches sorted().dedup()" {
+    const alloc = std.testing.allocator;
+    const cases = [_]struct { input: []const usize, expected: []const usize }{
+        .{ .input = &.{}, .expected = &.{} },
+        .{ .input = &.{5}, .expected = &.{5} },
+        .{ .input = &.{ 1, 3, 7 }, .expected = &.{ 1, 3, 7 } },
+        .{ .input = &.{ 7, 3, 1, 3 }, .expected = &.{ 1, 3, 7 } },
+        .{ .input = &.{ 3, 3 }, .expected = &.{3} },
+        .{ .input = &.{ 5, 4, 4, 0 }, .expected = &.{ 0, 4, 5 } },
+        .{ .input = &.{ 7, 6, 5, 4, 3, 2, 1, 0, 7 }, .expected = &.{ 0, 1, 2, 3, 4, 5, 6, 7 } },
+    };
+    for (cases) |case| {
+        const actual = try sortedUniquePositions(alloc, case.input);
+        defer alloc.free(actual);
+        try std.testing.expectEqualSlices(usize, case.expected, actual);
+    }
+    try std.testing.expect(isStrictlyIncreasing(&.{ 0, 2, 9 }));
+    try std.testing.expect(!isStrictlyIncreasing(&.{ 0, 2, 2 }));
+    try std.testing.expect(!isStrictlyIncreasing(&.{ 3, 1 }));
 }
 
 test "queries: fold dedups sorted positions" {
