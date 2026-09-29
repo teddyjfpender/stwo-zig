@@ -57,8 +57,8 @@ ORACLE_ARTIFACTS = (
 PROJECTION = f"{VECTORS}/official/compiled_air_constraints_v1.bin"
 PRIMITIVES = f"{VECTORS}/r0/primitives.json"
 # The Zig test that inlines the R0 `fri` vector of `PRIMITIVES`.
-R0_FRI_ZIG_TEST = "src/core/fri/tests.zig"
-R0_FRI_ZIG_TEST_NAME = "fri: circuit recursion R0 fold_step 4 vector"
+R0_FRI_ZIG_TEST = "src/frontends/circuit/builder/tests/r0_fri_test.zig"
+R0_FRI_ZIG_TEST_NAME = "R0: FRI fold_step 4 folds match the oracle digests"
 COMPONENTS = f"{VECTORS}/r3/components.json"
 TOPOLOGY = f"{VECTORS}/r6/topology.json"
 AIR_PROGRAMS = f"{VECTORS}/official/circuit_air.air_programs_v1.bin"

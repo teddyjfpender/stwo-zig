@@ -88,7 +88,7 @@ diagnostics.
   `fold_circle_into_line(alpha_0)` then three `fold_line`s with `alpha_0^2`,
   `alpha_0^4`, `alpha_0^8`; layer 1 is four `fold_line`s with `alpha_1`,
   `alpha_1^2`, `alpha_1^4`, `alpha_1^8`. Each fold records `values_sha256` and
-  its leading values. `src/core/fri/tests.zig` inlines this vector, and
+  its leading values. `src/frontends/circuit/builder/tests/r0_fri_test.zig` inlines this vector, and
   `scripts/check_upstream_pins.py` requires its inlined digests, alphas, log size
   and last layer to equal this fixture.
 
