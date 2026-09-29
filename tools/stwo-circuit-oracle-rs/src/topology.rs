@@ -32,7 +32,9 @@ use anyhow::{Context, Result, ensure};
 use circuit_cairo_verifier::verify::get_preprocessed_root;
 use circuit_common::finalize::{ComponentSizes, compute_padded_sizes, pad_to_targets};
 use circuit_common::preprocessed::{PreprocessedCircuit, layout_from_component_sizes};
-use circuit_multiverifier::verify::{build_multiverifier_context_from_shared_config, shared_config};
+use circuit_multiverifier::verify::{
+    build_multiverifier_context_from_shared_config, shared_config,
+};
 use circuit_prover::circuit_hash::circuit_hash_and_preprocessed_root;
 use circuit_verifier::statement::{all_circuit_components, circuit_component_log_sizes};
 use circuits::blake::HashValue;
@@ -168,7 +170,9 @@ fn hex_words(value: &serde_json::Value, what: &str) -> Result<[u32; 8]> {
         .with_context(|| format!("{what} is not an array"))?
         .iter()
         .map(|word| {
-            let text = word.as_str().with_context(|| format!("{what}: not a string"))?;
+            let text = word
+                .as_str()
+                .with_context(|| format!("{what}: not a string"))?;
             let digits = text
                 .strip_prefix("0x")
                 .with_context(|| format!("{what}: {text} is not 0x-prefixed"))?;
@@ -187,7 +191,11 @@ fn golden(name: &str) -> Result<&'static RegistryEntry> {
         .with_context(|| format!("no golden registry entry {name}"))
 }
 
-fn fold_record(root: &mut ProvingRoot, registry: &'static str, name: &'static str) -> Result<FoldRecord> {
+fn fold_record(
+    root: &mut ProvingRoot,
+    registry: &'static str,
+    name: &'static str,
+) -> Result<FoldRecord> {
     let json: serde_json::Value = serde_json::from_slice(&root.read(registry)?)?;
     let config = &json["circuit_proof_configs"]["default"];
     let fri_config: FriConfig = serde_json::from_value(config["fri_config"].clone())
@@ -195,11 +203,9 @@ fn fold_record(root: &mut ProvingRoot, registry: &'static str, name: &'static st
     let target_log_sizes: TargetLogSizes = {
         let sizes = &config["component_log_sizes"];
         let log = |key: &str| -> Result<u32> {
-            Ok(u32::try_from(
-                sizes[key]
-                    .as_u64()
-                    .with_context(|| format!("{registry}: component_log_sizes.{key}"))?,
-            )?)
+            Ok(u32::try_from(sizes[key].as_u64().with_context(|| {
+                format!("{registry}: component_log_sizes.{key}")
+            })?)?)
         };
         TargetLogSizes {
             eq: log("eq")?,
@@ -324,7 +330,10 @@ fn privacy_layout() -> Result<Vec<LayoutEntry>> {
         }
         .sizes(),
     );
-    let entries: Vec<(String, u32)> = layout.iter().map(|(id, log)| (id.id.clone(), *log)).collect();
+    let entries: Vec<(String, u32)> = layout
+        .iter()
+        .map(|(id, log)| (id.id.clone(), *log))
+        .collect();
     let expected: Vec<(String, u32)> = goldens::MULTIVERIFIER_PRIVACY_LAYOUT
         .iter()
         .map(|(id, log)| ((*id).to_owned(), *log))
@@ -370,10 +379,11 @@ pub fn run(proving_root: &Path) -> Result<Envelope<TopologyBody>> {
         .collect::<Result<Vec<_>>>()?;
     let inputs = root.finish(PINNED_REGISTRIES_SHA256)?;
 
-    let cairo_preprocessed_roots: Vec<CairoRootRecord> = goldens::CAIRO_PREPROCESSED_ROOT_LOG_BLOWUPS
-        .into_iter()
-        .map(cairo_root)
-        .collect::<Result<_>>()?;
+    let cairo_preprocessed_roots: Vec<CairoRootRecord> =
+        goldens::CAIRO_PREPROCESSED_ROOT_LOG_BLOWUPS
+            .into_iter()
+            .map(cairo_root)
+            .collect::<Result<_>>()?;
     for fold in &folds {
         ensure!(
             cairo_preprocessed_roots

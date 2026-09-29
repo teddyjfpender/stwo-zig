@@ -197,7 +197,12 @@ fn blake<V: IValue>(context: &mut Context<V>) {
         .map(|i| {
             guess(
                 context,
-                V::from_qm31(qm31_from_u32s(4 * i + 82, 4 * i + 83, 4 * i + 84, 4 * i + 85)),
+                V::from_qm31(qm31_from_u32s(
+                    4 * i + 82,
+                    4 * i + 83,
+                    4 * i + 84,
+                    4 * i + 85,
+                )),
             )
         })
         .collect();

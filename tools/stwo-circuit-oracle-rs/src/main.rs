@@ -3,18 +3,21 @@
 //! Each subcommand runs pinned upstream Rust code and emits one checkpoint that a rung of the Zig
 //! parity ladder compares against. See `README.md` for the rung mapping and the digest contracts.
 
+mod air_programs;
 mod checkpoint;
 mod columns;
 mod compiled_air;
 mod components;
 mod contexts;
+#[path = "../../stwo-eval-program-abi/src/lib.rs"]
+mod eval_program_abi;
 mod finalize;
 mod gadgets;
 mod goldens;
 mod output;
 mod primitives;
-mod prove_small;
 mod project_air;
+mod prove_small;
 mod topology;
 mod upstream;
 mod verifier_stages;
@@ -30,6 +33,7 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle project-air --proving-root DIR [--output PATH]
        stwo-circuit-oracle finalize [--output PATH]
        stwo-circuit-oracle prove-small [--memory-budget BYTES] [--output PATH]
+       stwo-circuit-oracle air-programs [--output PATH]
        stwo-circuit-oracle topology --proving-root DIR [--output PATH]
        stwo-circuit-oracle verifier-stages --proving-root DIR [--output PATH]";
 
@@ -68,7 +72,9 @@ fn main() -> Result<()> {
         bail!("--memory-budget applies only to prove-small");
     }
     let bytes = match subcommand.as_str() {
-        "primitives" | "gadgets" | "finalize" | "prove-small" if proving_root.is_some() => {
+        "primitives" | "gadgets" | "finalize" | "prove-small" | "air-programs"
+            if proving_root.is_some() =>
+        {
             bail!("{subcommand} does not read upstream data; drop --proving-root")
         }
         "primitives" => output::json(&primitives::run()?)?,
@@ -80,6 +86,7 @@ fn main() -> Result<()> {
         "components" => output::json(&components::run(root()?)?)?,
         "statement-trace" => output::json(&components::statement_trace::run(root()?)?)?,
         "project-air" => project_air::run(root()?)?,
+        "air-programs" => air_programs::run()?,
         "topology" => output::json(&topology::run(root()?)?)?,
         "verifier-stages" => output::json(&verifier_stages::run(root()?)?)?,
         other => bail!("unknown subcommand {other:?}\n{USAGE}"),

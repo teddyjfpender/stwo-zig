@@ -24,7 +24,9 @@ use circuit_cairo_verifier::privacy::get_pcs_config;
 use circuit_common::N_RESERVED;
 use circuit_common::finalize::{ComponentSizes, pad_to_targets};
 use circuit_common::preprocessed::{PreprocessedCircuit, layout_from_component_sizes};
-use circuit_multiverifier::verify::{MultiverifierInput, SharedConfig, build_multiverifier_circuit};
+use circuit_multiverifier::verify::{
+    MultiverifierInput, SharedConfig, build_multiverifier_circuit,
+};
 use circuit_prover::circuit_hash::compute_circuit_hash;
 use circuit_serialize::deserialize::deserialize_proof_with_config;
 use circuit_verifier::statement::{
@@ -105,8 +107,10 @@ struct Stages {
 
 impl Stages {
     fn mark<V: IValue>(&mut self, context: &Context<V>, stage: &str) {
-        self.records
-            .push((format!("{}{stage}", self.prefix), gate_summary(&context.circuit)));
+        self.records.push((
+            format!("{}{stage}", self.prefix),
+            gate_summary(&context.circuit),
+        ));
     }
 }
 
@@ -135,8 +139,11 @@ fn verify_staged<Value: IValue>(
         &component_log_sizes,
         config.log_trace_size(),
     );
-    let component_sizes_bits =
-        extract_bits(context, &component_sizes, config.log_trace_size() as u32 + 1);
+    let component_sizes_bits = extract_bits(
+        context,
+        &component_sizes,
+        config.log_trace_size() as u32 + 1,
+    );
     stages.mark(context, "component_sizes");
 
     for claim_to_mix in statement.claims_to_mix(context) {
@@ -145,27 +152,33 @@ fn verify_staged<Value: IValue>(
     stages.mark(context, "claims_mixed");
 
     channel.mix_commitment(context, &proof.trace_root);
-    channel.pow(context, config.n_interaction_pow_bits, proof.interaction_pow_nonce);
+    channel.pow(
+        context,
+        config.n_interaction_pow_bits,
+        proof.interaction_pow_nonce,
+    );
     stages.mark(context, "trace_root_and_interaction_pow");
 
     let [interaction_z, interaction_alpha] = channel.draw_two_qm31s(context);
-    context.debug_info.insert("interaction_z".into(), interaction_z);
+    context
+        .debug_info
+        .insert("interaction_z".into(), interaction_z);
     context
         .debug_info
         .insert("interaction_alpha".into(), interaction_alpha);
     stages.mark(context, "interaction_elements");
 
-    let public_logup_sum =
-        statement.public_logup_sum(context, [interaction_z, interaction_alpha]);
+    let public_logup_sum = statement.public_logup_sum(context, [interaction_z, interaction_alpha]);
     validate_logup_sum(context, public_logup_sum, &proof.claimed_sums);
     stages.mark(context, "logup_sum");
 
     channel.mix_qm31s(context, proof.claimed_sums.iter().cloned());
     channel.mix_commitment(context, &proof.interaction_root);
     let composition_polynomial_coeff = channel.draw_qm31(context);
-    context
-        .debug_info
-        .insert("composition_polynomial_coeff".into(), composition_polynomial_coeff);
+    context.debug_info.insert(
+        "composition_polynomial_coeff".into(),
+        composition_polynomial_coeff,
+    );
     channel.mix_commitment(context, &proof.composition_polynomial_root);
     let oods_point = channel.draw_point(context);
     stages.mark(context, "composition_coeff_and_oods_point");
@@ -238,8 +251,11 @@ fn verify_staged<Value: IValue>(
 
     let query_selection_input =
         get_query_selection_input_from_channel(context, &mut channel, config.n_queries());
-    let queries =
-        select_queries(context, &query_selection_input, config.log_evaluation_domain_size());
+    let queries = select_queries(
+        context,
+        &query_selection_input,
+        config.log_evaluation_domain_size(),
+    );
     stages.mark(context, "select_queries");
 
     let bits = queries
@@ -383,7 +399,10 @@ fn get_opt_column_log_sizes_by_trace(
         column_log_sizes[1].extend(vec![log_size; component_shape.interaction_columns]);
     }
     let [trace, interaction] = column_log_sizes;
-    HashMap::from([(ORIGINAL_TRACE_IDX, trace), (INTERACTION_TRACE_IDX, interaction)])
+    HashMap::from([
+        (ORIGINAL_TRACE_IDX, trace),
+        (INTERACTION_TRACE_IDX, interaction),
+    ])
 }
 
 /// `validate_and_compute_component_sizes` of `crates/stark_verifier/src/verify.rs`.
@@ -394,8 +413,11 @@ fn validate_and_compute_component_sizes(
 ) -> Simd {
     const _: () = assert!(LOG_SIZE_BITS == 5);
     let component_log_size_bits = extract_bits(context, component_log_sizes, LOG_SIZE_BITS);
-    let log_trace_size =
-        Simd::repeat(context, M31::from(log_trace_size), component_log_sizes.len());
+    let log_trace_size = Simd::repeat(
+        context,
+        M31::from(log_trace_size),
+        component_log_sizes.len(),
+    );
     let diff = eval!(context, (log_trace_size) - (*component_log_sizes));
     extract_bits(context, &diff, LOG_SIZE_BITS);
     Simd::pow2(context, &component_log_size_bits)
@@ -427,8 +449,12 @@ fn build_staged<Value: IValue>(
         let output_digest = output_digest.guess(&mut context);
         let preprocessed_root = preprocessed_root.guess(&mut context);
         stages.mark(&context, "guess_output_digest_and_root");
-        let statement =
-            CircuitStatement::new(&mut context, &circuit_config, preprocessed_root, output_digest);
+        let statement = CircuitStatement::new(
+            &mut context,
+            &circuit_config,
+            preprocessed_root,
+            output_digest,
+        );
         stages.mark(&context, "statement");
         let proof_vars = proof.guess(&mut context);
         stages.mark(&context, "guess_proof");
@@ -449,15 +475,13 @@ fn build_staged<Value: IValue>(
     context.set_outputs(&output_hash.iter().map(|word| *word.get()).collect_vec());
     stages.mark(&context, "set_outputs");
     let mut context = context.finalize(false);
-    stages.records.push((
-        "finalize".into(),
-        gate_summary(context.circuit()),
-    ));
+    stages
+        .records
+        .push(("finalize".into(), gate_summary(context.circuit())));
     pad_to_targets(&mut context, target);
-    stages.records.push((
-        "pad_to_targets".into(),
-        gate_summary(context.circuit()),
-    ));
+    stages
+        .records
+        .push(("pad_to_targets".into(), gate_summary(context.circuit())));
     (context, stages.records)
 }
 
@@ -540,9 +564,11 @@ pub fn run(proving_root: &Path) -> Result<Envelope<VerifierStagesBody>> {
         proof_config: circuit_verifier_proof_config(&layout, &pcs_config),
         preprocessed_column_log_sizes: layout,
     };
-    let multiverifier_proof =
-        deserialize_proof_with_config(&mut multiverifier_bytes.as_slice(), &shared_config.proof_config)
-            .map_err(|error| anyhow::anyhow!("{MULTIVERIFIER_PROOF}: {error:?}"))?;
+    let multiverifier_proof = deserialize_proof_with_config(
+        &mut multiverifier_bytes.as_slice(),
+        &shared_config.proof_config,
+    )
+    .map_err(|error| anyhow::anyhow!("{MULTIVERIFIER_PROOF}: {error:?}"))?;
     let cairo_proof =
         deserialize_proof_with_config(&mut cairo_bytes.as_slice(), &shared_config.proof_config)
             .map_err(|error| anyhow::anyhow!("{CAIRO_VERIFIER_PROOF}: {error:?}"))?;
@@ -578,8 +604,11 @@ pub fn run(proving_root: &Path) -> Result<Envelope<VerifierStagesBody>> {
     let output_digest = native_blake_u32s(&preimage_words);
 
     let proofs = [multiverifier_proof, cairo_proof];
-    let (mut context, stages) =
-        build_staged::<QM31>(inputs(proofs.clone(), roots, digests), &shared_config, &target);
+    let (mut context, stages) = build_staged::<QM31>(
+        inputs(proofs.clone(), roots, digests),
+        &shared_config,
+        &target,
+    );
     ensure!(
         QM31::is_circuit_valid(&context),
         "the mirrored multiverifier circuit is not satisfied"
@@ -596,7 +625,8 @@ pub fn run(proving_root: &Path) -> Result<Envelope<VerifierStagesBody>> {
         "multiverifier outputs {outputs:?} differ from the host preimage digest"
     );
 
-    let mut upstream = build_multiverifier_circuit::<QM31>(inputs(proofs, roots, digests), &shared_config);
+    let mut upstream =
+        build_multiverifier_circuit::<QM31>(inputs(proofs, roots, digests), &shared_config);
     pad_to_targets(&mut upstream, &target);
     ensure!(
         gate_summary(upstream.circuit()) == gate_summary(context.circuit())

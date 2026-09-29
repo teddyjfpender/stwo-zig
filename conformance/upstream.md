@@ -226,11 +226,16 @@ this lane pins it independently.
 
 `tools/stwo-circuit-oracle-rs` depends on the pinned commit by git URL. Its
 `Cargo.lock` binds every upstream crate to that exact revision, and its
-registry packages were seeded from the upstream workspace lock. The oracle's
-checkpoints and the constraints-only AIR projection live under
-`vectors/circuit/`, authenticated by `vectors/circuit/provenance.json` (fixture
-bytes, SHA-256, generating command, and the digest of the oracle source) and
-regenerated only by `scripts/generate_circuit_oracle_vectors.py`. These
+registry packages were seeded from the upstream workspace lock. The oracle also
+compiles in the evaluation-program ABI sources of `tools/stwo-eval-program-abi`
+(shared with the Cairo lane's `tools/stwo-cairo-air-compiler`, which records the
+Cairo AIR against its own Stwo pin); that directory has no manifest of its own.
+The oracle's checkpoints (R0-R7), the constraints-only AIR projection and the
+circuit AIR's evaluation-program bundle live under `vectors/circuit/`,
+authenticated by `vectors/circuit/provenance.json` (fixture bytes, SHA-256,
+generating command, the oracle's `Cargo.lock` digest, and the digest of every
+oracle and shared ABI source; nothing host-specific) and regenerated only by
+`scripts/generate_circuit_oracle_vectors.py`. These
 checkpoints are parity oracles for the Zig port, not proof acceptance; the Rust
 `circuit_verifier` and the Cairo `stwo_circuit_verifier` remain the acceptance
 authorities once circuit proofs exist.

@@ -70,10 +70,9 @@ fn rfc4648_standard_padded(bytes: &[u8]) -> String {
     const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::new();
     for chunk in bytes.chunks(3) {
-        let word = chunk
-            .iter()
-            .enumerate()
-            .fold(0u32, |acc, (i, byte)| acc | (u32::from(*byte) << (16 - 8 * i)));
+        let word = chunk.iter().enumerate().fold(0u32, |acc, (i, byte)| {
+            acc | (u32::from(*byte) << (16 - 8 * i))
+        });
         for i in 0..4 {
             if i <= chunk.len() {
                 out.push(ALPHABET[((word >> (18 - 6 * i)) & 63) as usize] as char);
@@ -103,12 +102,22 @@ fn base64_vector(bytes: Vec<u8>) -> Result<Base64Vector> {
 fn base64_section() -> Result<Vec<Base64Vector>> {
     let mut inputs: Vec<Vec<u8>> = [0usize, 1, 2, 3, 4, 5, 32, 64]
         .into_iter()
-        .map(|len| (0..len).map(|i| (i as u8).wrapping_mul(73) ^ 0xa5).collect())
+        .map(|len| {
+            (0..len)
+                .map(|i| (i as u8).wrapping_mul(73) ^ 0xa5)
+                .collect()
+        })
         .collect();
     inputs.push(vec![0xfb, 0xff]);
     inputs.push(vec![0xf8, 0x3e, 0x3f]);
-    let vectors = inputs.into_iter().map(base64_vector).collect::<Result<Vec<_>>>()?;
-    let all = vectors.iter().map(|v| v.base64.as_str()).collect::<String>();
+    let vectors = inputs
+        .into_iter()
+        .map(base64_vector)
+        .collect::<Result<Vec<_>>>()?;
+    let all = vectors
+        .iter()
+        .map(|v| v.base64.as_str())
+        .collect::<String>();
     ensure!(
         all.contains('+') && all.contains('/') && all.contains('='),
         "base64 vectors must exercise '+', '/' and '=' padding"

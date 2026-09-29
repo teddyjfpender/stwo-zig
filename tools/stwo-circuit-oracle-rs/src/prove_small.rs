@@ -58,7 +58,9 @@ use stwo::core::vcs_lifted::blake2_merkle::{Blake2sM31MerkleChannel, Blake2sMerk
 use stwo::prover::backend::Column;
 use stwo::prover::poly::circle::PolyOps;
 use stwo::prover::{CommitmentSchemeProver, CommitmentTreeProver, prove_ex};
-use stwo_constraint_framework::{INTERACTION_TRACE_IDX, ORIGINAL_TRACE_IDX, PREPROCESSED_TRACE_IDX};
+use stwo_constraint_framework::{
+    INTERACTION_TRACE_IDX, ORIGINAL_TRACE_IDX, PREPROCESSED_TRACE_IDX,
+};
 
 use crate::checkpoint::{Envelope, U64Record, hex32, qm31, sha256_hex, values_sha256};
 use crate::columns::{self, ColumnDigester, ComponentColumns};
@@ -192,7 +194,8 @@ fn memory_estimate(preprocessed: &PreprocessedCircuit, config: &PcsConfig) -> u6
         .sum();
     let trace_log_size = preprocessed.trace_log_size();
     let composition_bytes = 8 * column_bytes(trace_log_size);
-    let merkle_bytes = 4 * 2 * 32 * (1u64 << (trace_log_size + config.fri_config.log_blowup_factor));
+    let merkle_bytes =
+        4 * 2 * 32 * (1u64 << (trace_log_size + config.fri_config.log_blowup_factor));
     2 * (preprocessed_bytes + trace_bytes + composition_bytes + merkle_bytes)
 }
 
@@ -231,7 +234,11 @@ fn digest_tree<'a>(
 }
 
 /// `prove_circuit_assignment_with_channel` + `prove_circuit_with_precompute`, with step marks.
-fn prove_mirrored(values: &[QM31], circuit: &PreprocessedCircuit, config: PcsConfig) -> Result<Mirrored> {
+fn prove_mirrored(
+    values: &[QM31],
+    circuit: &PreprocessedCircuit,
+    config: PcsConfig,
+) -> Result<Mirrored> {
     let pool = BaseColumnPool::<SimdBackend>::new();
     let twiddles = SimdBackend::precompute_twiddles(
         CanonicCoset::new(
@@ -354,8 +361,12 @@ fn prove_mirrored(values: &[QM31], circuit: &PreprocessedCircuit, config: PcsCon
     };
     let base = digest_tree(
         columns::BASE,
-        evaluations[ORIGINAL_TRACE_IDX].iter().map(|eval| eval.values.to_cpu()),
-        components.iter().map(|(name, c)| (*name, c.trace_columns())),
+        evaluations[ORIGINAL_TRACE_IDX]
+            .iter()
+            .map(|eval| eval.values.to_cpu()),
+        components
+            .iter()
+            .map(|(name, c)| (*name, c.trace_columns())),
     )?;
     let interaction = digest_tree(
         columns::INTERACTION,
@@ -404,7 +415,10 @@ fn proof_differences(
 ) -> Result<Vec<&'static str>> {
     let json = |value: &dyn erased::Json| value.bytes();
     let checks = [
-        ("stark_proof.proof", json(&a.stark_proof.proof) == json(&b.stark_proof.proof)),
+        (
+            "stark_proof.proof",
+            json(&a.stark_proof.proof) == json(&b.stark_proof.proof),
+        ),
         // The aux Merkle data holds `HashMap`s: compare as JSON values, whose maps are
         // order-insensitive.
         (
@@ -412,8 +426,14 @@ fn proof_differences(
             serde_json::to_value(&a.stark_proof.aux)? == serde_json::to_value(&b.stark_proof.aux)?,
         ),
         ("claim", a.claim == b.claim),
-        ("interaction_claim", a.interaction_claim == b.interaction_claim),
-        ("interaction_pow_nonce", a.interaction_pow_nonce == b.interaction_pow_nonce),
+        (
+            "interaction_claim",
+            a.interaction_claim == b.interaction_claim,
+        ),
+        (
+            "interaction_pow_nonce",
+            a.interaction_pow_nonce == b.interaction_pow_nonce,
+        ),
         ("channel_salt", a.channel_salt == b.channel_salt),
         ("circuit_hash", a.circuit_hash == b.circuit_hash),
         ("pcs_config", json(&a.pcs_config) == json(&b.pcs_config)),

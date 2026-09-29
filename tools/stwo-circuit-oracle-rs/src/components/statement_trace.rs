@@ -150,9 +150,15 @@ fn trace(component: &dyn CircuitEval<NoValue>, inputs: &HarnessInputs) -> (u64, 
     let mut context = Context::<NoValue>::default();
     let data = TopologyComponentData::new(&mut context, inputs);
     let mut marks = Vec::new();
-    harness::evaluate_marked(&mut context, component, &data, inputs, &mut |context, stage| {
-        marks.push((stage, gate_counts(&context.circuit), context.circuit.n_vars));
-    });
+    harness::evaluate_marked(
+        &mut context,
+        component,
+        &data,
+        inputs,
+        &mut |context, stage| {
+            marks.push((stage, gate_counts(&context.circuit), context.circuit.n_vars));
+        },
+    );
     let circuit = &context.circuit;
     let (_, _, base) = marks[0];
     let stages = marks
