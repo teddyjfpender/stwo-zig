@@ -328,7 +328,7 @@ fn proveAndCompare(which: TestContext) !void {
     defer bundle.deinit();
     var observer = Observer{ .allocator = allocator };
     defer observer.deinit();
-    var proof = try Prover.prove(allocator, ctx.values(), &pp, &bundle, pcs_config, &observer);
+    var proof = try Prover.prove(allocator, ctx.values(), &pp, &bundle, pcs_config, .{}, &observer);
     defer proof.deinit();
 
     // Component log sizes.
@@ -373,6 +373,19 @@ fn proveAndCompare(which: TestContext) !void {
     try expectTree(field(expected, "preprocessed_columns"), field(expected, "preprocessed_accumulator_sha256"), observer.trees[0].items, observer.accumulators[0]);
     try expectTree(field(expected, "base_columns"), field(expected, "base_accumulator_sha256"), observer.trees[1].items, observer.accumulators[1]);
     try expectTree(field(expected, "interaction_columns"), field(expected, "interaction_accumulator_sha256"), observer.trees[2].items, observer.accumulators[2]);
+
+    // CircuitSerialize bytes, for circuits whose outputs are a digest.
+    if (expected.object.get("circuit_serialize")) |serialized| {
+        try std.testing.expectEqual(N_RESERVED, proof.output_values.len);
+        var verifier_proof = try circuit_cpu.verifier_proof.prepare(allocator, &proof);
+        defer verifier_proof.deinit();
+        const encoded = try verifier_proof.serialize(allocator);
+        defer allocator.free(encoded);
+        try std.testing.expectEqual(@as(usize, @intCast(field(serialized, "bytes").integer)), encoded.len);
+        var digest: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(encoded, &digest, .{});
+        try expectHex(field(serialized, "sha256"), &digest);
+    } else try std.testing.expect(proof.output_values.len != N_RESERVED);
 }
 
 test "R7: fibonacci proof matches prove_circuit_assignment" {

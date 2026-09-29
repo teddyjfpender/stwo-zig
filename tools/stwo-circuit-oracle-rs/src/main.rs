@@ -16,6 +16,7 @@ mod eval_program_abi;
 mod finalize;
 mod gadgets;
 mod goldens;
+mod multiverifier_inputs;
 mod output;
 mod primitives;
 mod project_air;
@@ -27,6 +28,7 @@ mod topology;
 mod trace_digest;
 mod upstream;
 mod verifier_stages;
+mod verify_circuit;
 
 use std::path::PathBuf;
 
@@ -39,6 +41,9 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle project-air --proving-root DIR [--output PATH]
        stwo-circuit-oracle finalize [--output PATH]
        stwo-circuit-oracle prove-small [--memory-budget BYTES] [--output PATH]
+       stwo-circuit-oracle prove-profiles [--memory-budget BYTES] [--output PATH]
+       stwo-circuit-oracle multiverifier-inputs --proving-root DIR --inputs-output PATH [--output PATH]
+       stwo-circuit-oracle verify-circuit --proof PATH --request PATH [--output PATH]
        stwo-circuit-oracle air-programs [--output PATH]
        stwo-circuit-oracle topology --proving-root DIR [--output PATH]
        stwo-circuit-oracle verifier-stages --proving-root DIR [--output PATH]
@@ -54,6 +59,7 @@ fn main() -> Result<()> {
     let (mut output, mut proving_root, mut memory_budget) = (None, None, None);
     let (mut prover_input, mut params, mut proof_output, mut program) = (None, None, None, None);
     let mut lifting_size_policy = None;
+    let (mut inputs_output, mut proof, mut request) = (None, None, None);
     while let Some(flag) = values.next() {
         let value = values
             .next()
@@ -75,6 +81,9 @@ fn main() -> Result<()> {
             "--proof-output" => &mut proof_output,
             "--program" => &mut program,
             "--lifting-size-policy" => &mut lifting_size_policy,
+            "--inputs-output" => &mut inputs_output,
+            "--proof" => &mut proof,
+            "--request" => &mut request,
             _ => bail!("unexpected argument {flag:?}\n{USAGE}"),
         };
         if slot.replace(PathBuf::from(value)).is_some() {
@@ -86,11 +95,12 @@ fn main() -> Result<()> {
             .as_deref()
             .with_context(|| format!("{subcommand} requires --proving-root"))
     };
-    if memory_budget.is_some() && subcommand != "prove-small" {
-        bail!("--memory-budget applies only to prove-small");
+    if memory_budget.is_some() && subcommand != "prove-small" && subcommand != "prove-profiles" {
+        bail!("--memory-budget applies only to prove-small and prove-profiles");
     }
     let bytes = match subcommand.as_str() {
-        "primitives" | "gadgets" | "finalize" | "prove-small" | "air-programs"
+        "primitives" | "gadgets" | "finalize" | "prove-small" | "prove-profiles"
+        | "air-programs" | "verify-circuit"
             if proving_root.is_some() =>
         {
             bail!("{subcommand} does not read upstream data; drop --proving-root")
@@ -100,6 +110,19 @@ fn main() -> Result<()> {
         "finalize" => output::json(&finalize::run()?)?,
         "prove-small" => output::json(&prove_small::run(
             memory_budget.unwrap_or(prove_small::DEFAULT_MEMORY_BUDGET),
+        )?)?,
+        "prove-profiles" => output::json(&prove_small::run_profiles(
+            memory_budget.unwrap_or(prove_small::DEFAULT_MEMORY_BUDGET),
+        )?)?,
+        "multiverifier-inputs" => output::json(&multiverifier_inputs::run(
+            root()?,
+            inputs_output
+                .as_deref()
+                .context("multiverifier-inputs requires --inputs-output")?,
+        )?)?,
+        "verify-circuit" => output::json(&verify_circuit::run(
+            proof.as_deref().context("verify-circuit requires --proof")?,
+            request.as_deref().context("verify-circuit requires --request")?,
         )?)?,
         "components" => output::json(&components::run(root()?)?)?,
         "statement-trace" => output::json(&components::statement_trace::run(root()?)?)?,

@@ -10,5 +10,6 @@
         .stwo_cpu_backend = .{ .path = "../../backends/cpu_scalar" },
         .stwo_circuit_frontend = .{ .path = "../../frontends/circuit" },
         .stwo_cairo_frontend = .{ .path = "../../frontends/cairo" },
+        .stwo_circuit_recursion_wire = .{ .path = "../../interop/circuit_recursion" },
     },
 }

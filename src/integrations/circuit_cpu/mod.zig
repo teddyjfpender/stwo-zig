@@ -6,6 +6,7 @@
 
 pub const air = @import("air.zig");
 pub const prove = @import("prove.zig");
+pub const verifier_proof = @import("verifier_proof.zig");
 
 pub const Internal = prove.Internal;
 pub const Root = prove.Root;
@@ -24,4 +25,5 @@ test "invariant: both profiles commit with the plain Blake2s Merkle hasher" {
 test {
     _ = air;
     _ = prove;
+    _ = verifier_proof;
 }

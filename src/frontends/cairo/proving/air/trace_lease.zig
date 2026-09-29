@@ -1,6 +1,14 @@
-//! Per-component expansion of coefficient-backed Cairo trace columns.
+//! Per-component expansion of coefficient-backed trace columns.
 //! The source trace remains immutable. Duplicate mask reads share one buffer;
 //! the caller retains this lease until all native, SIMD or device work joins.
+//!
+//! A captured component reads each column on the canonic coset of log size
+//! `t + (evaluation_log_size - trace_log_size)`, `t` being the column's own
+//! trace log size (smaller columns are then lifted by the mask resolver).
+//! Under blowup 1 that coset is the committed evaluation itself. A column
+//! with no retained evaluation (compact storage) or committed on a larger
+//! coset (blowup above the constraint degree, as the circuit lane's blowup-3
+//! proofs are) is evaluated from its coefficients on that coset instead.
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
@@ -58,6 +66,25 @@ const BufferOwner = union(enum) {
     }
 };
 
+/// The log size of the coset `captured` reads `column` on: the column's
+/// trace log size (its coefficient count, or its committed log size under
+/// blowup 1 when no coefficients are retained) plus the component's
+/// evaluation blowup.
+fn evaluationLogSize(column: Poly, captured: *const composition.Component) !u32 {
+    const blowup = std.math.sub(u32, captured.evaluation_log_size, captured.trace_log_size) catch
+        return error.InvalidTraceShape;
+    const target = if (column.coefficients) |coefficients| blk: {
+        const count = coefficients.coefficients().len;
+        if (count == 0 or !std.math.isPowerOfTwo(count)) return error.InvalidTraceShape;
+        break :blk @as(u32, @intCast(std.math.log2_int(usize, count))) + blowup;
+    } else column.log_size;
+    if (target > captured.evaluation_log_size) return error.InvalidTraceShape;
+    if (column.values.len == 0 and column.coefficients == null) return error.InvalidTraceShape;
+    if (column.log_size < target) return error.InvalidTraceShape;
+    if (column.log_size != target and column.coefficients == null) return error.InvalidTraceShape;
+    return target;
+}
+
 pub const Lease = struct {
     allocator: std.mem.Allocator,
     source: *const Trace,
@@ -93,8 +120,8 @@ pub const Lease = struct {
             const key = try address(source, captured, instruction.interaction, instruction.a);
             const column = source.polys.items[key.tree][key.column];
             try column.validate();
-            if (column.log_size > captured.evaluation_log_size) return error.InvalidTraceShape;
-            if (column.values.len != 0) continue;
+            const target_log = try evaluationLogSize(column, captured);
+            if (column.values.len != 0 and column.log_size == target_log) continue;
             var exists = false;
             for (keys.items) |prior| if (prior.tree == key.tree and prior.column == key.column) {
                 exists = true;
@@ -102,7 +129,7 @@ pub const Lease = struct {
             };
             if (exists) continue;
             try keys.append(a, key);
-            max_log = @max(max_log, column.log_size);
+            max_log = @max(max_log, target_log);
         };
         // Ordinary evaluation-backed proofs incur no allocation or FFT.
         if (keys.items.len == 0) return result;
@@ -125,7 +152,10 @@ pub const Lease = struct {
             const Sort = struct {
                 trace: *const Trace,
                 fn less(self: @This(), left: Address, right: Address) bool {
-                    return self.trace.polys.items[left.tree][left.column].log_size < self.trace.polys.items[right.tree][right.column].log_size;
+                    return self.log(left) < self.log(right);
+                }
+                fn log(self: @This(), key: Address) u32 {
+                    return @intCast(std.math.log2_int(usize, self.trace.polys.items[key.tree][key.column].coefficients.?.coefficients().len));
                 }
             };
             std.sort.heap(Address, keys.items, Sort{ .trace = source }, Sort.less);
@@ -150,9 +180,9 @@ pub const Lease = struct {
         var next: usize = 0;
         while (next < keys.items.len) {
             const first = keys.items[next];
-            const log = source.polys.items[first.tree][first.column].log_size;
+            const log = try evaluationLogSize(source.polys.items[first.tree][first.column], captured);
             var end = next + 1;
-            if (executor != null) while (end < keys.items.len and source.polys.items[keys.items[end].tree][keys.items[end].column].log_size == log) : (end += 1) {};
+            if (executor != null) while (end < keys.items.len and try evaluationLogSize(source.polys.items[keys.items[end].tree][keys.items[end].column], captured) == log) : (end += 1) {};
             const rows = @as(usize, 1) << @intCast(log);
             const cells = try std.math.mul(usize, rows, end - next);
             const owned: BufferOwner = if (executor != null)
@@ -165,7 +195,8 @@ pub const Lease = struct {
                 const column = source.polys.items[key.tree][key.column];
                 const values = owner[i * rows ..][0..rows];
                 @constCast(trees[key.tree])[key.column].values = values;
-                job.* = .{ .coefficients = column.coefficients.?.coefficients(), .values = values, .log_size = column.log_size, .transform = if (transform) |t| .{ .root_coset = t.root_coset, .twiddles = t.twiddles, .itwiddles = t.itwiddles } else null };
+                @constCast(trees[key.tree])[key.column].log_size = log;
+                job.* = .{ .coefficients = column.coefficients.?.coefficients(), .values = values, .log_size = log, .transform = if (transform) |t| .{ .root_coset = t.root_coset, .twiddles = t.twiddles, .itwiddles = t.itwiddles } else null };
             }
             next = end;
         }

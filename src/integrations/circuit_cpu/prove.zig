@@ -62,6 +62,16 @@ pub const Step = enum {
     prove_ex,
 };
 
+/// Execution choices that never change proof bytes.
+pub const Options = struct {
+    /// Stage timings (`proof_of_work` is the FRI grind).
+    recorder: ?*prover.stage_profile.Recorder = null,
+    /// Drop each tree's blown-up evaluations after hashing, keeping the
+    /// polynomial coefficients, for columns of at least this log size
+    /// (`CommitmentSchemeProver.setCompactPolynomialStorage`).
+    compact_polynomial_min_log: ?u32 = null,
+};
+
 /// `COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND`.
 pub const composition_log_degree_bound: u32 = 1;
 
@@ -120,6 +130,7 @@ pub fn Prover(comptime MC: type) type {
             pp: *const preprocessed.PreprocessedCircuit,
             air_template: *const air.Bundle,
             pcs_config: PcsConfigV2,
+            options: Options,
             observer: anytype,
         ) !CircuitProof {
             const channel_salt: u32 = 0;
@@ -133,6 +144,7 @@ pub fn Prover(comptime MC: type) type {
             var scheme_owned = true;
             errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
             scheme.setStorePolynomialsCoefficients();
+            if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
 
             // Preprocessed tree.
             try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
@@ -213,6 +225,7 @@ pub fn Prover(comptime MC: type) type {
             scheme_owned = false;
             var stark_proof = try Engine.prove(allocator, &components, &channel, scheme, .{
                 .include_all_preprocessed_columns = true,
+                .recorder = options.recorder,
             });
             errdefer stark_proof.deinit(allocator);
             step(observer, .prove_ex, &channel);
