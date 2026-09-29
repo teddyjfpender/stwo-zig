@@ -25,8 +25,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # The workspace validator's edge count. A change here means a real dependency
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
-EXPECTED_PACKAGES = 23
-EXPECTED_EDGES = 76
+EXPECTED_PACKAGES = 24
+EXPECTED_EDGES = 77
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
