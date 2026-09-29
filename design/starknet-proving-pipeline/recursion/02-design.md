@@ -57,10 +57,15 @@ before editing):
      M3 reader must accept any order; its writer should emit this one).
    - The 5a7c5ed adapter's `public_memory_addresses` order also varies run
      to run; the proof does not depend on it.
-   - The leaf lane lifts **trace** trees even for small programs: all three
-     R10c programs have heights 21/21 against natural trace heights of at
-     most 18 or so. The preprocessed tree is lifted only when the trace
-     domain exceeds the preprocessed one.
+   - Small programs **never lift** under `AtLeastPreprocessed` on
+     canonical_small: the fixed 2^20-row tables fill the preprocessed domain,
+     so every tree sits at 21. Lifting is covered by
+     `LiftingSizePolicy::Fixed(22)` on all_opcodes and by the lifted
+     wide-Fibonacci prover test (`vectors/circuit/r10`). Production leaves
+     (canonical, preprocessed domain 26) lift every trace tree.
+   - Any AIR proved on this revision must take its OODS vanishing domain
+     from `max_log_degree_bound` (upstream `FrameworkComponent`), which
+     lifting raises above the component's rows.
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
