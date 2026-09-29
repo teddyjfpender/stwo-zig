@@ -499,7 +499,10 @@ where
     let [trace_log_sizes, interaction_log_sizes] = column_log_sizes_per_tree(&log_sizes);
     commitment_scheme.commit(
         proof.proof.commitments[0],
-        &preprocessed_column_log_sizes.values().copied().collect::<Vec<_>>(),
+        &preprocessed_column_log_sizes
+            .values()
+            .copied()
+            .collect::<Vec<_>>(),
         channel,
     );
     let circuit_hash = compute_circuit_hash::<MC::H>(

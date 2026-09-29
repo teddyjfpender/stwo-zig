@@ -121,8 +121,12 @@ fn main() -> Result<()> {
                 .context("multiverifier-inputs requires --inputs-output")?,
         )?)?,
         "verify-circuit" => output::json(&verify_circuit::run(
-            proof.as_deref().context("verify-circuit requires --proof")?,
-            request.as_deref().context("verify-circuit requires --request")?,
+            proof
+                .as_deref()
+                .context("verify-circuit requires --proof")?,
+            request
+                .as_deref()
+                .context("verify-circuit requires --request")?,
         )?)?,
         "components" => output::json(&components::run(root()?)?)?,
         "statement-trace" => output::json(&components::statement_trace::run(root()?)?)?,

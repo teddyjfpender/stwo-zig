@@ -92,4 +92,3 @@ pub fn emit(
     defer allocator.free(request_name);
     try dir.writeFile(.{ .sub_path = request_name, .data = json });
 }
-

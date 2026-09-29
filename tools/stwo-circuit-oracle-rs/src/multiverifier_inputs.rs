@@ -26,7 +26,9 @@ use anyhow::{Context as _, Result, ensure};
 use circuit_cairo_verifier::privacy::get_pcs_config;
 use circuit_common::finalize::{ComponentSizes, pad_to_targets};
 use circuit_common::preprocessed::{PreprocessedCircuit, layout_from_component_sizes};
-use circuit_multiverifier::verify::{MultiverifierInput, SharedConfig, build_multiverifier_circuit};
+use circuit_multiverifier::verify::{
+    MultiverifierInput, SharedConfig, build_multiverifier_circuit,
+};
 use circuit_serialize::deserialize::deserialize_proof_with_config;
 use circuit_verifier::statement::circuit_verifier_proof_config;
 use circuits::circuit::Circuit;
@@ -75,7 +77,11 @@ pub struct MultiverifierInputsBody {
 }
 
 fn put(bytes: &mut Vec<u8>, value: usize) -> Result<()> {
-    bytes.extend_from_slice(&u32::try_from(value).context("value exceeds u32")?.to_le_bytes());
+    bytes.extend_from_slice(
+        &u32::try_from(value)
+            .context("value exceeds u32")?
+            .to_le_bytes(),
+    );
     Ok(())
 }
 
@@ -173,8 +179,11 @@ pub fn run(proving_root: &Path, inputs_output: &Path) -> Result<Envelope<Multive
          preprocess_circuit {:.3} s",
         preprocess_start.elapsed().as_secs_f64()
     );
-    let preprocessed_root: [u32; 8] =
-        le_u32s_from_bytes(preprocessed.preprocessed_root(pcs_config.fri_config.log_blowup_factor).0);
+    let preprocessed_root: [u32; 8] = le_u32s_from_bytes(
+        preprocessed
+            .preprocessed_root(pcs_config.fri_config.log_blowup_factor)
+            .0,
+    );
     ensure!(
         preprocessed_root == goldens::MULTIVERIFIER_PREPROCESSED_ROOT,
         "the multiverifier's preprocessed root differs from MULTIVERIFIER_PREPROCESSED_ROOT"
