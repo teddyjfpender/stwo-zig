@@ -3,6 +3,7 @@
 const std = @import("std");
 const adapter = @import("../adapter/mod.zig");
 const memory_mod = @import("../common/memory.zig");
+const Felt252 = @import("../common/felt252.zig").Felt252;
 const M31 = @import("stwo_core").fields.m31.M31;
 const M31_MODULUS = @import("stwo_core").fields.m31.Modulus;
 const Blake2sMerkleHasher = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
@@ -254,20 +255,8 @@ fn hashMemoryValue(
     digest: *std.crypto.hash.sha2.Sha256,
     value: memory_mod.MemoryValue,
 ) void {
-    const dense = memoryValueWords(value);
-    var split: [28]M31 = undefined;
-    for (&split, 0..) |*word, index| {
-        const bit_offset = index * 9;
-        const limb = bit_offset / 32;
-        const shift: u5 = @intCast(bit_offset % 32);
-        var raw = dense[limb] >> shift;
-        if (shift > 23 and limb + 1 < dense.len) {
-            raw |= dense[limb + 1] << @intCast(32 - @as(u6, shift));
-        }
-        const canonical = raw & 0x1ff;
-        word.* = M31.fromCanonical(canonical);
-        updateDigestWord(digest, canonical);
-    }
+    const split = Felt252.fromU32x8(memoryValueWords(value)).limbs9();
+    for (split) |word| updateDigestWord(digest, word.v);
     hasher.updateLeaf(&split);
 }
 

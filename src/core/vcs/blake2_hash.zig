@@ -111,7 +111,9 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
             return hasher.finalize();
         }
 
-        fn updateU32sLe(self: *Self, words: []const u32) void {
+        /// Streams the words' little-endian bytes: a sequence of calls hashes
+        /// like one `hashU32s` over their concatenation.
+        pub fn updateU32sLe(self: *Self, words: []const u32) void {
             if (comptime builtin.cpu.arch.endian() == .little) {
                 self.update(std.mem.sliceAsBytes(words));
                 return;
@@ -335,6 +337,21 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
     };
 }
 
+/// The digest as eight little-endian `u32` words, the `[u32; 8]` form upstream
+/// uses for Blake2s digests (for example `HashValue<QM31>` word values).
+pub fn digestToU32s(digest: Blake2sHash) [8]u32 {
+    var words: [8]u32 = undefined;
+    for (&words, 0..) |*word, index| word.* = std.mem.readInt(u32, digest[index * 4 ..][0..4], .little);
+    return words;
+}
+
+/// Inverse of `digestToU32s`.
+pub fn digestFromU32s(words: [8]u32) Blake2sHash {
+    var digest: Blake2sHash = undefined;
+    for (words, 0..) |word, index| std.mem.writeInt(u32, digest[index * 4 ..][0..4], word, .little);
+    return digest;
+}
+
 /// Reduces each little-endian u32 limb modulo M31.
 pub fn reduceToM31(value: Blake2sHash) Blake2sHash {
     if (comptime builtin.cpu.arch.endian() == .little) {
@@ -391,6 +408,19 @@ test "blake2 hash: incremental equals one-shot" {
     const hash_ab = state.finalize();
     const one_shot = Blake2sHasher.hash("ab");
     try std.testing.expect(std.mem.eql(u8, hash_ab[0..], one_shot[0..]));
+}
+
+test "blake2 hash: streamed u32 words and digest word conversion" {
+    const words = [_]u32{ 0x0302_0100, 0x0706_0504, 0xdead_beef, 7, 0 };
+    var streamed = Blake2sHasher.init();
+    streamed.updateU32sLe(words[0..2]);
+    streamed.updateU32sLe(words[2..]);
+    const digest = Blake2sHasher.hashU32s(&words);
+    try std.testing.expectEqual(digest, streamed.finalize());
+
+    const as_words = digestToU32s(digest);
+    try std.testing.expectEqual(readU32Le(digest[4..8]), as_words[1]);
+    try std.testing.expectEqual(digest, digestFromU32s(as_words));
 }
 
 test "blake2 hash: m31 output limbs are canonical" {

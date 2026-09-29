@@ -82,6 +82,12 @@
       "sha256": "18c3e1dd245e93f0e08831291b4e5cc3374d47d10517a216def6b25683376d29"
     },
     {
+      "path": "vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json",
+      "upstream_path": "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
+      "bytes": 585859,
+      "sha256": "00561f8214e85ae213095327015f269cd7d4a9e53b5ae26954e1a76eb8c56f41"
+    },
+    {
       "path": "vectors/circuit/official/recursive_tree/four_leaves/leaf.json",
       "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf.json",
       "bytes": 728371,
@@ -200,6 +206,20 @@
       ],
       "bytes": 152402,
       "sha256": "50ec9754d633de82740819de990924c352e4224e88372ef784d1c09dd4acdd44"
+    },
+    {
+      "path": "vectors/circuit/r6/cairo_statement.json",
+      "rung": "r6",
+      "command": [
+        "stwo-circuit-oracle",
+        "cairo-statement",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r6/cairo_statement.json"
+      ],
+      "bytes": 39151,
+      "sha256": "18f99d475360f95f4abb7cfa4bac508ea5afc86205309027f79d33c513b99c26"
     },
     {
       "path": "vectors/circuit/r6/topology.json",

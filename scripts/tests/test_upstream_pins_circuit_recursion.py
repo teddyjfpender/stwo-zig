@@ -127,6 +127,7 @@ class CircuitRecursionLaneTests(unittest.TestCase):
                 "topology",
                 "prove-small",
                 "air-programs",
+                "cairo-statement",
             },
             subcommands,
         )

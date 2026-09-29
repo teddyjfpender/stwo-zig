@@ -15,6 +15,7 @@ pub const poly = @import("poly/mod.zig");
 pub const constraints = @import("constraints.zig");
 pub const constraint_framework = @import("constraint_framework/mod.zig");
 pub const air = @import("air/mod.zig");
+pub const cairo_air_layout = @import("cairo_air_layout.zig");
 pub const fri = @import("fri.zig");
 pub const pcs = @import("pcs/mod.zig");
 pub const preprocessed_tables = @import("preprocessed_tables.zig");

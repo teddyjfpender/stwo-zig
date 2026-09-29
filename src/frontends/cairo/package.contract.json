@@ -23,6 +23,7 @@
     "ProverInput",
     "adapter",
     "air",
+    "air_layout",
     "arena_lifetime",
     "claim_generator",
     "claim_registry",

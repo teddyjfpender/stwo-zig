@@ -57,7 +57,7 @@ The contractually reviewed surface is grouped below.
 | Area | Exports |
 | :--- | :--- |
 | Fields and domains | `fields`, `circle`, `fft`, `poly`, `fraction` |
-| AIR and algebra | `air`, `constraint_framework`, `constraints`, `preprocessed_tables`, `queries` |
+| AIR and algebra | `air`, `cairo_air_layout`, `constraint_framework`, `constraints`, `preprocessed_tables`, `queries` |
 | Commitments and transcript | `channel`, `crypto`, `proof_of_work`, `vcs`, `vcs_lifted` |
 | Proof system | `pcs`, `fri`, `proof`, `proof_json`, `verifier`, `verifier_types` |
 | Protocol revisions | `protocol_revision` |
@@ -76,8 +76,12 @@ revision-specific tests run as `test-revision` in the owner-local build.
 Primitives that more than one frontend needs live here rather than in either
 frontend: `crypto.blake_sigma.BLAKE_SIGMA` (the BLAKE2s message schedule, also
 used by the native BLAKE2s hashers) and `preprocessed_tables` (the row
-formulas of the `seq_*` and `bitwise_xor_*` preprocessed columns). The Cairo
-frontend consumes both, so its bytes do not depend on where they are defined.
+formulas of the `seq_*` and `bitwise_xor_*` preprocessed columns), and
+`cairo_air_layout` (the preprocessed-trace variants and their ordered column
+ids, the builtin memory-cell sizes, and the components a leaf verifier
+circuit disables per variant). The Cairo frontend consumes all three, so its
+bytes do not depend on where they are defined, and the circuit recursion
+frontend reads the same facts without importing the Cairo frontend.
 Oracle data used only by tests lives under `vcs_lifted/testdata/` and is not
 exported; the prover package receives it as an injected test module.
 

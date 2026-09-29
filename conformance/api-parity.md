@@ -107,6 +107,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/air-utils/src/lib.rs",
       "source": "src/core/air/mod.zig"
     },
+    "stwo.core.cairo_air_layout": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; Cairo AIR layout facts shared by the Cairo frontend and the in-circuit Cairo verifier: PreProcessedTraceVariant and its ordered preprocessed column ids (crates/common/src/preprocessed_columns/preprocessed_trace.rs), builtin memory cells (crates/common/src/builtins.rs), verify_builtins order (crates/cairo_verifier/src/statement.rs) and the leaf disabled components (crates/leaf_prover/src/consts.rs there).",
+      "rust_path": null,
+      "source": "src/core/mod.zig"
+    },
     "stwo.core.channel": {
       "kind": "const",
       "rationale": null,

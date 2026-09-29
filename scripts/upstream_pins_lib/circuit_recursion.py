@@ -53,6 +53,7 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r6/topology.json", "r6", "topology", True),
     (f"{VECTORS}/r7/prove_small.json", "r7", "prove-small", False),
     (f"{VECTORS}/official/circuit_air.air_programs_v1.bin", "r7", "air-programs", False),
+    (f"{VECTORS}/r6/cairo_statement.json", "r6", "cairo-statement", True),
 )
 PROJECTION = f"{VECTORS}/official/compiled_air_constraints_v1.bin"
 PRIMITIVES = f"{VECTORS}/r0/primitives.json"
@@ -77,6 +78,10 @@ UPSTREAM_COPIES = (
     (
         f"{VECTORS}/official/registries/leaf_prover_canonical_small.json",
         "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+    ),
+    (
+        f"{VECTORS}/official/programs/use_all_opcodes_and_builtins_compiled.json",
+        "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
     ),
     (
         f"{VECTORS}/official/registries/recursive_tree_test.json",

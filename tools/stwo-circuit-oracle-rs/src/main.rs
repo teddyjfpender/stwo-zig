@@ -4,6 +4,7 @@
 //! parity ladder compares against. See `README.md` for the rung mapping and the digest contracts.
 
 mod air_programs;
+mod cairo_statement;
 mod checkpoint;
 mod columns;
 mod compiled_air;
@@ -37,7 +38,8 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle prove-small [--memory-budget BYTES] [--output PATH]
        stwo-circuit-oracle air-programs [--output PATH]
        stwo-circuit-oracle topology --proving-root DIR [--output PATH]
-       stwo-circuit-oracle verifier-stages --proving-root DIR [--output PATH]";
+       stwo-circuit-oracle verifier-stages --proving-root DIR [--output PATH]
+       stwo-circuit-oracle cairo-statement --proving-root DIR [--output PATH]";
 
 fn main() -> Result<()> {
     let mut values = std::env::args().skip(1);
@@ -91,6 +93,7 @@ fn main() -> Result<()> {
         "air-programs" => air_programs::run()?,
         "topology" => output::json(&topology::run(root()?)?)?,
         "verifier-stages" => output::json(&verifier_stages::run(root()?)?)?,
+        "cairo-statement" => output::json(&cairo_statement::run(root()?)?)?,
         other => bail!("unknown subcommand {other:?}\n{USAGE}"),
     };
     output::emit(output.as_deref(), &bytes)

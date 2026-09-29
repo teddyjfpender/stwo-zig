@@ -102,6 +102,14 @@ pub const Felt252 = struct {
         return M31.fromCanonical(@intCast(word & WORD_MASK));
     }
 
+    /// All 28 9-bit words, little-endian: upstream `split_f252` /
+    /// `Felt252::get_limbs`. The value is not reduced modulo P.
+    pub fn limbs9(self: Felt252) [N_WORDS]M31 {
+        var words: [N_WORDS]M31 = undefined;
+        for (&words, 0..) |*word, index| word.* = self.getM31(index);
+        return words;
+    }
+
     /// Reconstruct from 28 x 9-bit M31 words.
     pub fn fromM31Words(words: [N_WORDS]M31) Felt252 {
         var result = Felt252.ZERO;

@@ -29,6 +29,8 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `official/circuit_multiverifier/*.bin` | R4, R7 | upstream `test_data/circuit_multiverifier`: `CircuitSerialize` multiverifier and Cairo-verifier proofs (`LOG_BLOWUP_FACTOR` 3) |
 | `official/leaf_prover/expected_output.json` | R8 | the leaf prover's `SerializedLeafProof` golden for `use_all_opcodes_and_builtins` |
 | `official/recursive_tree/four_leaves/*` | R9 | the recursive tree's four-leaf goldens: `leaf.json` (`LeafInput`), `root.proof`, `root_outputs.json`, `root_packed.json` |
+| `r6/cairo_statement.json` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, program limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests, the leaf `ProofConfig` and proof size |
+| `official/programs/use_all_opcodes_and_builtins_compiled.json` | R6, R8 | upstream `crates/leaf_prover/tests/data/`: the leaf test program |
 
 ## Encodings
 
@@ -172,7 +174,8 @@ the leaf circuit: `cairo_preprocessed_roots` commits the canonical_small Cairo
 preprocessed trace at trace log size 20 and log blowups 1, 2 and 3 (lifting log
 sizes 21, 22, 23) under `Blake2sM31MerkleChannel`, each asserted against
 `cairo_verifier::verify::get_preprocessed_root`. The registries' leaves use log
-blowup 1.
+blowup 1. Rung R10b (`zig build test-circuit-leaf-cairo-roots`) commits the same
+trace through the Cairo lane and compares against these roots.
 
 ## Circuit AIR programs
 
@@ -199,6 +202,33 @@ the hand-written functions it omits, and the upstream constants
 `LARGE_MEMORY_VALUE_ID_BASE`, `MAX_SEQUENCE_LOG_SIZE`, and
 `MEMORY_ADDRESS_TO_ID_SPLIT`. The pin checker decodes it with an independent
 reader and verifies every record digest.
+
+## R6 leaf statement
+
+`r6/cairo_statement.json` (`cairo-statement`) records, from pinned upstream code
+or data only:
+
+- `constants`: `AUX_DATA_FIXED_LEN`, `N_OUTPUTS`, the three relation ids the
+  statement uses, the memory constants, and the ten builtin memory-cell sizes
+  in `CairoStatement::verify_builtins` order (the first entry is the Pedersen
+  segment, whose component name depends on the variant);
+- `all_components`: the 83 slot names of `all_components()`;
+- `variants`: per `PreProcessedTraceVariant`, the leaf disabled-component list
+  parsed from `crates/leaf_prover/src/consts.rs` (`null` where
+  `disabled_components` panics), the induced `enabled_bits` and the ordered
+  `to_preprocessed_trace().ids()`;
+- `program`: `load_program` of the leaf test program, summarized by the SHA-256
+  of its flattened limbs as LE `u32`, its first and last felt's 28 limbs, and
+  the `claims_to_mix` program hash (Blake2s over the QM31-packed limbs);
+- `synthetic_claim`: a `FlatClaim` with all eleven segments present and the
+  canonical_small enabled bits, with its `serialize_aux_data`, the three
+  `PublicData::pack_into_u32s` vectors, and the channel digest after
+  `FlatClaim::mix_into` from a default channel under `Blake2sM31MerkleChannel`
+  and `Blake2sMerkleChannel`;
+- `leaf_configs`: for each leaf entry of the checked-in canonical_small
+  registry, the `ProofConfig` that `leaf_verifier_config` builds (component
+  shapes, columns per tree, log trace size, interaction PoW bits) and its
+  `ProofInfo::total_bytes`.
 
 ## Wire-format goldens
 

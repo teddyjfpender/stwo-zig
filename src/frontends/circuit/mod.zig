@@ -4,7 +4,7 @@
 //! `design/starknet-proving-pipeline/recursion/02-design.md` §2.2.
 //!
 //! This package must not depend on `stwo_cairo_frontend`; Cairo facts come
-//! from the committed compiled-AIR projection.
+//! from the committed compiled-AIR projection and `stwo_core.cairo_air_layout`.
 
 const std = @import("std");
 
@@ -15,7 +15,8 @@ pub const builder = @import("builder/mod.zig");
 pub const common = @import("common/mod.zig");
 /// `crates/stark_verifier`: the in-circuit STARK verifier.
 pub const stark_verifier = @import("stark_verifier/mod.zig");
-/// `crates/circuit_verifier` and `crates/circuit_multiverifier` statements.
+/// `crates/circuit_verifier`, `crates/circuit_multiverifier` and
+/// `crates/cairo_verifier` statements.
 pub const statements = @import("statements/mod.zig");
 /// The in-circuit constraint evaluators, interpreted from the compiled-AIR
 /// projection (design §5.4).

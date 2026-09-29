@@ -2,7 +2,7 @@
 
 The circuit recursion frontend: a call-order-exact Zig port of StarkWare's
 circuit recursion stage (the `circuits`, `circuit_common`, `stark_verifier`,
-`circuit_verifier` and `circuit_multiverifier` crates of
+`circuit_verifier`, `circuit_multiverifier` and `cairo_verifier` crates of
 [starkware-libs/proving](https://github.com/starkware-libs/proving) at
 commit `5a7c5ede4299c91a61df19a07cba4f7502c14230`). Byte parity with Rust is
 the contract: the same inputs must give the same preprocessed roots, circuit
@@ -52,7 +52,10 @@ being filled milestone by milestone. Today it holds:
   `N_COMPOSITION_COLUMNS`, `pack_into_qm31s`, the composition accumulator
   (`constraint_eval`), `logup` and the `test_utils` harness data.
 - `statements`: `circuit_verifier_proof_config`, `CircuitConfig`,
-  `SharedConfig` and the fold shared config of `CanonicalCircuit::build`.
+  `SharedConfig` and the fold shared config of `CanonicalCircuit::build`;
+  `cairo_statement` (M6, the port of `CairoStatement`, see below) and
+  `cairo_leaf_config` (`leaf_verifier_config`: enabled components and the
+  leaf `ProofConfig` over the projection's Cairo slot table).
 
 The gate-emitting verifier gadgets (channel, Merkle, FRI, OODS, composition,
 the statements' `guess` traversals and `build_*_circuit`) come next and sit on
@@ -70,7 +73,7 @@ flowchart TD
     statements --> stark_verifier
     statements --> common
     stark_verifier --> common
-    common --> core[stwo_core: fields, FRI schedule, config_v2, hashes, preprocessed_tables]
+    common --> core[stwo_core: fields, FRI schedule, config_v2, hashes, preprocessed_tables, cairo_air_layout]
     common --> prover[stwo_prover_engine: PCS column preparation, CommitmentTreeProver]
     Interp --> builder[builder: Context, gadgets, finalize_constants]
     statements --> builder
@@ -106,6 +109,19 @@ the order lint. Where this port and the design text differ:
   `crates/circuit_verifier` in the test harness. The production gadget
   belongs to the circuit-verifier statement (M5).
 
+### The Cairo statement (M6)
+
+`statements/cairo_statement.zig` ports `crates/cairo_verifier/src/statement.rs`
+in upstream call order: `CairoStatement::new`, `AuxData::parse_from_vars`,
+`output_limbs_from_hash`, `verify_builtins`, `verify_claim`,
+`claims_to_mix`, `public_params`, `public_logup_sum` and its helpers. It is
+generic over a builder facade `B` whose members map one-to-one to the Rust
+builder calls (the table is in the file header). Cairo layout facts
+(variants, ordered preprocessed ids, builtin cells, the aux-data layout,
+`programHash`, leaf components) come from `stwo_core.cairo_air_layout`;
+relation ids and verifier constants come from the caller, which reads them
+from the projection or from `vectors/circuit/r6/cairo_statement.json`.
+
 ## Public API
 
 ```zig
@@ -132,6 +148,9 @@ const digest = try builder.blake.blake2sU32s(QM31, &ctx, words, n_bytes);
 try ctx.setOutputs(&output_vars);
 try ctx.finalize(false);
 try circuit.common.finalize.padToTargets(QM31, &ctx, targets);
+
+const Statement = circuit.statements.cairo_statement.CairoStatement(Builder);
+const statement = try Statement.init(arena, &ctx, inputs);
 ```
 
 | Area | Exports |
@@ -145,7 +164,7 @@ try circuit.common.finalize.padToTargets(QM31, &ctx, targets);
 | Composition | `stark_verifier.constraint_eval` (`CompositionConstraintAccumulator`, `InteractionAtOods`), `stark_verifier.logup` |
 | Harness data | `stark_verifier.test_utils.TestComponentData` |
 | Utilities | `common.component_utils.seqOfComponentSize` |
-| Statements | `statements.circuit_statement`, `statements.multiverifier` |
+| Statements | `statements.circuit_statement`, `statements.multiverifier`, `statements.cairo_statement`, `statements.cairo_leaf_config` |
 
 Every evaluator is generic over a builder context type `Ctx` exposing `Var`,
 `zero`, `one`, `constant`, `add`, `sub`, `mul`, `eq`, `inv` and `newVar` with
@@ -162,7 +181,7 @@ are owned by `ctx.scratch()` and live until `deinit`.
 
 - `stwo_core`: fields (M31/QM31 and the pointwise helpers), `ChaCha20Rng`,
   `BLAKE_SIGMA`, `fri.allFoldSteps`, `pcs.config_v2`, the Blake2s
-  hashers and channel profiles, `preprocessed_tables`.
+  hashers and channel profiles, `preprocessed_tables`, `cairo_air_layout`.
 - `stwo_prover_engine`: `pcs.column_preparation`, `TwiddleSource` and
   `pcs.CommitmentTreeProver` for the preprocessed root.
 
@@ -200,6 +219,8 @@ Tests that read `vectors/circuit` run from the repository root.
   circuit-hash vectors, the static component facts against the R3 fixture,
   and `ProofInfo.totalBytes` against the 182,884-byte multiverifier
   `proof.bin`.
+- The Cairo leaf host inputs and R10b roots are gated from the Cairo side
+  (`zig build test-cairo-frontend`, `zig build test-circuit-leaf-cairo-roots`).
 
 ## Contract and invariants
 

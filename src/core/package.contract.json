@@ -13,6 +13,7 @@
     "ColumnVec",
     "ComponentVec",
     "air",
+    "cairo_air_layout",
     "channel",
     "circle",
     "constraint_framework",
