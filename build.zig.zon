@@ -25,6 +25,7 @@
         .stwo_artifact_store = .{ .path = "src/artifact_store" },
         .stwo_metal_session = .{ .path = "src/tools/metal_session" },
         .stwo_proof_wire = .{ .path = "src/interop/proof_wire" },
+        .stwo_circuit_recursion_wire = .{ .path = "src/interop/circuit_recursion" },
         .stwo_native_examples = .{ .path = "src/examples" },
         .stwo_native_cuda_integration = .{ .path = "src/integrations/native_cuda" },
         .stwo_cairo_cuda_integration = .{ .path = "src/integrations/cairo_cuda" },

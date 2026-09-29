@@ -30,6 +30,10 @@
       "status": "published",
       "reason": "The authenticated Metal composition is distributed as a macOS Zig source package."
     },
+    "stwo_circuit_recursion_wire": {
+      "status": "internal",
+      "reason": "The circuit recursion wire formats serve the in-progress circuit recursion port; they join the SDK with the recursion products."
+    },
     "stwo_core": {
       "status": "published",
       "reason": "Core fields, protocol types, transcript, and verifier form the smallest supported package."

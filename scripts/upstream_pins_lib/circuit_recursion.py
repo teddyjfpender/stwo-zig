@@ -57,6 +57,43 @@ UPSTREAM_COPIES = (
         f"{VECTORS}/official/registries/recursive_tree_test.json",
         "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
     ),
+    # Wire-format goldens (M3): circuit proofs, leaf and tree outputs.
+    (
+        f"{VECTORS}/official/registries/privacy_large_proofs.json",
+        "crates/privacy_circuit_verify/large_proofs_circuit_registry.json",
+    ),
+    (
+        f"{VECTORS}/official/circuit_multiverifier/proof.bin",
+        "test_data/circuit_multiverifier/proof.bin",
+    ),
+    (
+        f"{VECTORS}/official/circuit_multiverifier/proof_cairo.bin",
+        "test_data/circuit_multiverifier/proof_cairo.bin",
+    ),
+    (
+        f"{VECTORS}/official/circuit_multiverifier/backward_compatibility_cairo_proof.bin",
+        "test_data/circuit_multiverifier/backward_compatibility_cairo_proof.bin",
+    ),
+    (
+        f"{VECTORS}/official/leaf_prover/expected_output.json",
+        "crates/leaf_prover/tests/data/expected_output.json",
+    ),
+    (
+        f"{VECTORS}/official/recursive_tree/four_leaves/leaf.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/leaf.json",
+    ),
+    (
+        f"{VECTORS}/official/recursive_tree/four_leaves/root.proof",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/root.proof",
+    ),
+    (
+        f"{VECTORS}/official/recursive_tree/four_leaves/root_outputs.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/root_outputs.json",
+    ),
+    (
+        f"{VECTORS}/official/recursive_tree/four_leaves/root_packed.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/goldens/four_leaves/root_packed.json",
+    ),
 )
 MANAGED = tuple(path for path, *_ in ORACLE_ARTIFACTS) + tuple(
     path for path, _ in UPSTREAM_COPIES

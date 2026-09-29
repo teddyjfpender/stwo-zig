@@ -386,6 +386,21 @@
         ]
       ]
     },
+    "circuit_recursion_wire": {
+      "host": "linux",
+      "description": "Circuit recursion wire-format package",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/interop/circuit_recursion/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
     "native_examples": {
       "host": "linux",
       "description": "Independent Native example AIR and reusable-session package",
@@ -776,6 +791,7 @@
         "artifact_store",
         "metal_session",
         "proof_wire",
+        "circuit_recursion_wire",
         "native_examples",
         "native_cuda_integration",
         "cairo_cuda_integration",
@@ -959,7 +975,17 @@
         "vectors/circuit"
       ],
       "lanes": [
-        "script_contracts"
+        "script_contracts",
+        "circuit_recursion_wire"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/interop/felt_json.zig"
+      ],
+      "lanes": [
+        "cairo_frontend",
+        "circuit_recursion_wire"
       ]
     },
     {
