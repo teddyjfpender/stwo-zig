@@ -83,6 +83,15 @@ pub const OwnedClaimGeometry = struct {
         self.* = undefined;
     }
 
+    /// Enabled `memory_id_to_big` instances, padding included.
+    pub fn memoryIdToBigCount(self: *const OwnedClaimGeometry) usize {
+        var count: usize = 0;
+        for (self.components) |component| {
+            if (std.mem.eql(u8, component.name, "memory_id_to_big")) count += 1;
+        }
+        return count;
+    }
+
     pub fn deferredCount(self: *const OwnedClaimGeometry) usize {
         var count: usize = 0;
         for (self.components) |component| if (component.log_size == .deferred) {

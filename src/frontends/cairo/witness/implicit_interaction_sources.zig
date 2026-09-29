@@ -343,7 +343,11 @@ fn testFinalTables(allocator: std.mem.Allocator) !void {
     var malformed = natural;
     malformed[0] = malformed[0][0..31];
     try std.testing.expectError(error.InvalidBaseTraceGeometry, memoryBigInto(&input, &counts, 0, &malformed));
-    try std.testing.expectError(error.InvalidComponent, memoryBigInto(&input, &counts, 1, &natural));
+    // Component 1 is `opt_n_id_to_big_components` padding, one 16-row zero
+    // block, which these 32-row columns do not fit; past the enable slots
+    // there is no component at all.
+    try std.testing.expectError(error.InvalidBaseTraceGeometry, memoryBigInto(&input, &counts, 1, &natural));
+    try std.testing.expectError(error.InvalidComponent, memoryBigInto(&input, &counts, memory_tables.max_big_components, &natural));
     small[0] = @as(u128, 1) << 72;
     try std.testing.expectError(error.InvalidEncoding, memorySmallInto(&input, &counts, natural[0..memory_tables.small_column_count]));
 }

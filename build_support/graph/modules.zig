@@ -194,6 +194,14 @@ pub fn createCairoFrontend(
         .target = target,
         .optimize = optimize,
     }));
+    // The injected `ProverParameters` (serde JSON of the circuit registry's
+    // `cairo_prover_params`) behind `proving.leaf_lane`.
+    frontend.addImport("interop_cairo_prover_parameters", create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/cairo_prover_parameters.zig",
+        .target = target,
+        .optimize = optimize,
+    }));
     return frontend;
 }
 

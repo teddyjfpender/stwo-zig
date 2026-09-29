@@ -15,7 +15,8 @@
   },
   "injected_modules": [
     "cairo_frontend",
-    "interop_felt_json"
+    "interop_felt_json",
+    "interop_cairo_prover_parameters"
   ],
   "api_surface": [
     "CasmState",

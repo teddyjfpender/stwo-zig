@@ -342,6 +342,22 @@ pub fn pcsDigest(pcs: anytype) [32]u8 {
     return hasher.finalResult();
 }
 
+/// `pcsDigest` for the `proving_5a7c5ed` leaf lane. The cached artifacts are
+/// the preprocessed tree at its own height, independent of the lifting
+/// heights (the scheme lifts after the cache, `prover.pcs.revision_lifting`),
+/// so only the FRI parameters are bound; the domain keeps them apart from the
+/// official lane's entries.
+pub fn pcsDigestRevision(fri_config: anytype) [32]u8 {
+    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    hasher.update("cairo-pcs-config/proving-5a7c5ed/v1");
+    updateU32(&hasher, fri_config.pow_bits);
+    updateU32(&hasher, fri_config.log_blowup_factor);
+    updateU32(&hasher, fri_config.log_last_layer_degree_bound);
+    updateU32(&hasher, fri_config.n_queries);
+    updateU32(&hasher, fri_config.fold_step);
+    return hasher.finalResult();
+}
+
 fn updateU32(hasher: *std.crypto.hash.sha2.Sha256, value: u32) void {
     var buffer: [4]u8 = undefined;
     std.mem.writeInt(u32, &buffer, value, .little);

@@ -49,10 +49,18 @@ pub fn bigComponentCount(input: *const adapter.ProverInput) Error!usize {
     return @max(natural, 1);
 }
 
+/// Upper bound of the `memory_id_to_big` instances a claim can enable
+/// (`opt_n_id_to_big_components` may request up to this many).
+pub const max_big_components: usize = @import("../air/official_claim_registry.zig").memory_id_to_big_enable_slot_count;
+
+/// Components beyond `bigComponentCount` are the zero padding that
+/// `opt_n_id_to_big_components` requests upstream (`gen_big_memory_traces`):
+/// `lane_count` rows of zero values and zero multiplicities, whose zero limbs
+/// still feed `range_check_9_9`. Their row count and value columns follow from
+/// the same formulas, since every value index lies past the live values.
 pub fn bigRowCount(input: *const adapter.ProverInput, component: usize) Error!usize {
     const packed_rows = try packedCount(input.memory.f252_values.len);
-    const component_count = try bigComponentCount(input);
-    if (component >= component_count) return Error.InvalidComponent;
+    if (component >= max_big_components) return Error.InvalidComponent;
     const start = std.math.mul(usize, component, max_big_rows) catch
         return Error.AllocationSizeOverflow;
     return @max(
@@ -157,8 +165,21 @@ test "Cairo memory tables: Rust row geometry pads packed values before powers of
     try std.testing.expectEqual(@as(usize, 64), try smallRowCount(&input));
 }
 
+test "Cairo memory tables: requested padding components are one zero SIMD block" {
+    var big = [_]memory.F252{.{ 0x0003_fe00, 0, 0, 0, 0, 0, 0, 0 }};
+    var small = [_]u128{0};
+    var input = testInput(&big, &small);
+    try std.testing.expectEqual(@as(usize, 1), try bigComponentCount(&input));
+    try std.testing.expectEqual(lane_count, try bigRowCount(&input, max_big_components - 1));
+    try std.testing.expectError(Error.InvalidComponent, bigRowCount(&input, max_big_components));
+    var column: [lane_count]u32 = undefined;
+    try writeBigValueColumn(&input, 3, 1, &column);
+    try std.testing.expectEqualSlices(u32, &([_]u32{0} ** lane_count), &column);
+}
+
 test "Cairo memory tables: empty big values use one SIMD padding component" {
-    var input = testInput(&.{}, &.{0});
+    var small = [_]u128{0};
+    var input = testInput(&.{}, &small);
     try std.testing.expectEqual(@as(usize, 1), try bigComponentCount(&input));
     try std.testing.expectEqual(lane_count, try bigRowCount(&input, 0));
     var column: [lane_count]u32 = undefined;

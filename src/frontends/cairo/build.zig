@@ -27,6 +27,12 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    // `ProverParameters`, shared with the circuit-recursion registry reader.
+    const prover_parameters = b.createModule(.{
+        .root_source_file = b.path("../../interop/cairo_prover_parameters.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
     const frontend = b.addModule("stwo_cairo_frontend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -37,6 +43,7 @@ pub fn build(b: *std.Build) void {
     frontend.addImport("stwo_prover_api", prover_api);
     frontend.addImport("stwo_prover_engine", prover);
     frontend.addImport("interop_felt_json", felt_json);
+    frontend.addImport("interop_cairo_prover_parameters", prover_parameters);
 
     const repository_root: std.Build.LazyPath = .{
         .cwd_relative = b.pathFromRoot("../../.."),
@@ -57,6 +64,7 @@ pub fn build(b: *std.Build) void {
     deep_root.addImport("stwo_prover_api", prover_api);
     deep_root.addImport("stwo_prover_engine", prover);
     deep_root.addImport("interop_felt_json", felt_json);
+    deep_root.addImport("interop_cairo_prover_parameters", prover_parameters);
     const deep_tests = b.addRunArtifact(b.addTest(.{ .root_module = deep_root, .filters = filters }));
     deep_tests.setCwd(repository_root);
 
@@ -67,4 +75,5 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&tests.step);
     test_step.dependOn(&deep_tests.step);
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = felt_json, .filters = filters })).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = prover_parameters, .filters = filters })).step);
 }
