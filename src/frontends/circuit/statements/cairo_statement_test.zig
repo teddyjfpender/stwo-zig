@@ -349,3 +349,30 @@ test "cairo statement: claims_to_mix groups, public params and builtin checks" {
     // States (2), safe-call cells (2 x 2), segments (11 x 2 x 2), outputs (2 x 2), program (5 x 2).
     try std.testing.expectEqual(@as(usize, 2 + 4 + 44 + 4 + 10), ctx.count(.logup));
 }
+
+test "cairo statement: enabled bits over the projection's slot order match the R6 checkpoint" {
+    const projection_mod = @import("../air_eval/projection.zig");
+    const allocator = std.testing.allocator;
+    var fixture = try Fixture.load(allocator);
+    defer fixture.deinit();
+    const bytes = try std.fs.cwd().readFileAlloc(allocator, "vectors/circuit/official/compiled_air_constraints_v1.bin", 64 * 1024 * 1024);
+    defer allocator.free(bytes);
+    var projection = try projection_mod.parse(allocator, bytes);
+    defer projection.deinit();
+    const source = projection.source("cairo").?;
+    const slot_ids = projection.nameList(source.slots);
+    const names = try allocator.alloc([]const u8, slot_ids.len);
+    defer allocator.free(names);
+    for (slot_ids, names) |id, *name| name.* = projection.str(id);
+    try std.testing.expectEqual(fixture.slot_names.len, names.len);
+    for (fixture.slot_names, names) |want, got| try std.testing.expectEqualStrings(want, got);
+
+    var bits: [83]bool = undefined;
+    try std.testing.expectEqual(@as(usize, 79), try layout.leafEnabledBits(.canonical_small, names, &bits));
+    try std.testing.expectEqualSlices(bool, fixture.enabled_bits, &bits);
+
+    // The projection header and the statement checkpoint agree on the shared constants.
+    try std.testing.expectEqual(fixture.constants.large_memory_value_id_base, projection.constant("LARGE_MEMORY_VALUE_ID_BASE").?);
+    try std.testing.expectEqual(fixture.constants.max_sequence_log_size, projection.constant("MAX_SEQUENCE_LOG_SIZE").?);
+    try std.testing.expectEqual(fixture.constants.memory_address_to_id_split, projection.constant("MEMORY_ADDRESS_TO_ID_SPLIT").?);
+}
