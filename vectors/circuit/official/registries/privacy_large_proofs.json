@@ -1,0 +1,192 @@
+{
+  "cairo_prover_params": {
+    "channel_hash": "blake2s",
+    "channel_salt": 0,
+    "fri_config": {
+      "pow_bits": 26,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "preprocessed_trace": "canonical",
+    "store_polynomials_coefficients": false,
+    "include_all_preprocessed_columns": true,
+    "opt_n_id_to_big_components": 16,
+    "lifting_size_policy": "at_least_preprocessed"
+  },
+  "circuit_proof_configs": {
+    "default": {
+      "fri_config": {
+        "pow_bits": 26,
+        "log_blowup_factor": 2,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 35,
+        "fold_step": 4
+      },
+      "component_log_sizes": {
+        "eq": 20,
+        "qm31_ops": 23,
+        "m31_to_u32": 21,
+        "triple_xor": 20,
+        "blake_g_gate": 23
+      }
+    }
+  },
+  "leaf_verifiers": [
+    {
+      "config": "default",
+      "trace_log_size": 25,
+      "preprocessed_root": [
+        "0xd03bafda",
+        "0x6909f1d2",
+        "0x78198198",
+        "0xcb858fdb",
+        "0x177e82a2",
+        "0xa4d576c4",
+        "0x691ec2b1",
+        "0x76f5c284"
+      ],
+      "circuit_hash": [
+        "0x01cfb241",
+        "0x344172db",
+        "0x87054c60",
+        "0x2df9ac29",
+        "0xf7eecbaf",
+        "0xc1b067e5",
+        "0x9c75540b",
+        "0xf35e161e"
+      ],
+      "zk_blinding": true
+    },
+    {
+      "config": "default",
+      "trace_log_size": 26,
+      "preprocessed_root": [
+        "0xc26dea6d",
+        "0x84974a4d",
+        "0xbf1af367",
+        "0x90c2441e",
+        "0x49a58c3b",
+        "0x068f054a",
+        "0x64311b4d",
+        "0xcb7b1f8f"
+      ],
+      "circuit_hash": [
+        "0x0233bcc2",
+        "0x7e3782d3",
+        "0xd85b2d1f",
+        "0xc0a25675",
+        "0x4dfa988b",
+        "0x4c2c886d",
+        "0xd145ebe7",
+        "0x00a16d9e"
+      ],
+      "zk_blinding": true
+    },
+    {
+      "config": "default",
+      "trace_log_size": 27,
+      "preprocessed_root": [
+        "0x10b8addc",
+        "0x281487c1",
+        "0x912daa02",
+        "0x9a37b395",
+        "0xce3229e7",
+        "0x415fcdbf",
+        "0x66d32c1f",
+        "0x7f164ff2"
+      ],
+      "circuit_hash": [
+        "0xf1722e64",
+        "0x00be3d03",
+        "0x1b638c4b",
+        "0x8c9341a3",
+        "0xa95ecf6c",
+        "0x64814f01",
+        "0x92d4ae4d",
+        "0x2bbd4068"
+      ],
+      "zk_blinding": true
+    },
+    {
+      "config": "default",
+      "trace_log_size": 28,
+      "preprocessed_root": [
+        "0x2438b7e0",
+        "0x22f1de23",
+        "0x2c2b8440",
+        "0xefd4fd05",
+        "0x65057ba4",
+        "0x119327ca",
+        "0x893adb7c",
+        "0x391883a5"
+      ],
+      "circuit_hash": [
+        "0xa7f48c9b",
+        "0x3d7b51b9",
+        "0x839767e4",
+        "0x9b771cda",
+        "0x923ac7bb",
+        "0x2e30c97c",
+        "0xe7942567",
+        "0x0f3ef544"
+      ],
+      "zk_blinding": true
+    },
+    {
+      "config": "default",
+      "trace_log_size": 29,
+      "preprocessed_root": [
+        "0x5858d4e7",
+        "0xcc520cc9",
+        "0x828fe859",
+        "0x4b3542d3",
+        "0xa523e36b",
+        "0xa62f24a4",
+        "0xca9cbe48",
+        "0x52f0a62b"
+      ],
+      "circuit_hash": [
+        "0xdf99443a",
+        "0x53828267",
+        "0xc16ffd59",
+        "0xd6ab2d79",
+        "0xe8c45804",
+        "0x2fb536f1",
+        "0xb46852c8",
+        "0x0ac76a74"
+      ],
+      "zk_blinding": true
+    }
+  ],
+  "multiverifiers": [
+    {
+      "config": "default",
+      "input_configs": [
+        "default",
+        "default"
+      ],
+      "preprocessed_root": [
+        "0x2df46158",
+        "0x27bc9f40",
+        "0x5833223f",
+        "0x002e0a3b",
+        "0xfee15e96",
+        "0x4e9ae9aa",
+        "0xa89a48cc",
+        "0x650ab1ce"
+      ],
+      "circuit_hash": [
+        "0x15d0de53",
+        "0xa54884a7",
+        "0xa18a8d12",
+        "0x1ad2b2a2",
+        "0xca99299c",
+        "0xac7f76ba",
+        "0xdabf1afc",
+        "0x141583db"
+      ]
+    }
+  ]
+}
