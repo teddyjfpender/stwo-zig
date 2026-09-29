@@ -11,21 +11,10 @@ const Blake2sMerkleChannel =
 
 pub const interaction_pow_bits: u32 = 24;
 
-pub const LookupElements = struct {
-    z: QM31,
-    alpha: QM31,
-};
+const lookup_transcript = core.channel.lookup_transcript;
 
-pub fn mixChannelSalt(channel: anytype, channel_salt: u32) void {
-    channel.mixFelts(&[_]QM31{
-        QM31.fromM31(
-            M31.fromCanonical(channel_salt),
-            M31.zero(),
-            M31.zero(),
-            M31.zero(),
-        ),
-    });
-}
+pub const LookupElements = lookup_transcript.LookupElements;
+pub const mixChannelSalt = lookup_transcript.mixChannelSalt;
 
 pub fn mixClaim(
     allocator: std.mem.Allocator,
@@ -44,24 +33,8 @@ pub fn grindInteraction(channel: anytype) u64 {
     return nonce;
 }
 
-pub fn drawLookupElements(
-    allocator: std.mem.Allocator,
-    channel: anytype,
-) !LookupElements {
-    const values = try channel.drawSecureFelts(allocator, 2);
-    defer allocator.free(values);
-    return .{
-        .z = values[0],
-        .alpha = values[1],
-    };
-}
-
-pub fn mixInteractionClaim(
-    channel: anytype,
-    claimed_sums: []const QM31,
-) void {
-    channel.mixFelts(claimed_sums);
-}
+pub const drawLookupElements = lookup_transcript.drawLookupElements;
+pub const mixInteractionClaim = lookup_transcript.mixInteractionClaim;
 
 fn mixPackedWords(
     allocator: std.mem.Allocator,

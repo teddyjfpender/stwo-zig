@@ -5,6 +5,7 @@ test {
     _ = @import("protocol_revision.zig");
     _ = @import("pcs/config_v2.zig");
     _ = @import("channel/blake2s_grind.zig");
+    _ = @import("channel/lookup_transcript.zig");
     _ = @import("vcs_lifted/channel_profile.zig");
     _ = @import("vcs_lifted/verifier_height_test.zig");
     _ = @import("vcs_lifted/blake2_merkle.zig");
