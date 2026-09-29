@@ -19,6 +19,7 @@ rejects any drift. Regenerate only with
 | `official/compiled_air_constraints_v1.bin` | R3 | constraints-only projection of the compiled AIR |
 | `official/compiled_{casm,circuit}_air.sample_evaluations.json` | R3 | upstream `outputs/*/sample_evaluations.json`: the evaluator assignments |
 | `official/registries/*.json` | R0, R6 | the two checked-in canonical_small circuit registries |
+| `r10/{all_opcodes,all_builtins}.prove_cairo.json` | R10c | leaf-lane Cairo proofs (`prove_cairo::<Blake2sM31MerkleChannel>` under the canonical_small leaf registry's `cairo_prover_params`) of the stwo-cairo 82f2125 `vectors/cairo/official` inputs: proof byte digests and per-stage transcript values |
 
 ## Encodings
 
@@ -108,3 +109,18 @@ the hand-written functions it omits, and the upstream constants
 `LARGE_MEMORY_VALUE_ID_BASE`, `MAX_SEQUENCE_LOG_SIZE`, and
 `MEMORY_ADDRESS_TO_ID_SPLIT`. The pin checker decodes it with an independent
 reader and verifies every record digest.
+
+## Leaf-lane Cairo proofs (R10c)
+
+`prove-cairo` verifies each proof with upstream `verify_cairo_ex` before
+emitting it. `binary` is the SHA-256 and length of
+`bincode(CairoProofForRustVerifier)` (the `Binary` proof format without its
+bzip2 wrapper), fixed byte for byte by the protocol. `extended_binary` is
+`bincode(CairoProof)` (`ExtendedBinary` without bzip2) with every auxiliary
+map written in ascending key order: upstream serializes `hashbrown::HashMap`s,
+whose iteration order depends on a per-process random seed, so its own
+`ExtendedBinary` bytes are not reproducible; lengths and entries are
+upstream's. `stages` holds the configuration, the four commitment roots, both
+PoW nonces and digests of every proof field, to localise a divergence. The
+Zig gate is `zig build test-cairo-leaf-proof`, which also checks the R10b
+`get_preprocessed_root` constants of `crates/cairo_verifier/src/verify.rs`.

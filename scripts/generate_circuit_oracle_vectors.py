@@ -4,8 +4,9 @@
 Builds `tools/stwo-circuit-oracle-rs` from its lockfile, locates the `proving`
 checkout Cargo resolved for the pinned revision, runs every oracle subcommand,
 copies the upstream goldens the rungs consume, and writes the provenance record
-that `scripts/check_upstream_pins.py` authenticates. Every command here only
-builds circuits or hashes data; nothing is proven, so it runs on a laptop.
+that `scripts/check_upstream_pins.py` authenticates. Every command but
+`prove-cairo` only builds circuits or hashes data; `prove-cairo` proves two small
+Cairo programs (all_opcodes, all_builtins), so everything runs on a laptop.
 """
 
 from __future__ import annotations
@@ -83,6 +84,20 @@ def generate(staging: Path, oracle: Path, proving: Path) -> list[dict]:
             recorded += ["--proving-root", lane.PROVING_ROOT_PLACEHOLDER]
         artifacts.append(
             artifact_record(staging, path, rung=rung, command=recorded + ["--output", path])
+        )
+    for path, rung, prover_input, registry in lane.CAIRO_PROOF_ARTIFACTS:
+        # Leaf-lane Cairo proofs of small programs: seconds and about 2 GB each.
+        (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [str(oracle), "prove-cairo", "--prover-input", prover_input, "--params", registry,
+             "--proving-root", str(proving), "--output", str(staging / path)],
+            check=True,
+            cwd=ROOT,
+        )
+        artifacts.append(
+            artifact_record(
+                staging, path, rung=rung, command=lane.cairo_proof_command(path, prover_input, registry)
+            )
         )
     for path, upstream_path in lane.UPSTREAM_COPIES:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)

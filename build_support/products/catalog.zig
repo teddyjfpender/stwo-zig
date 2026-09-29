@@ -126,6 +126,7 @@ pub const steps = [_]Step{
     .{ .name = "test-cairo-frontend", .description = "Run focused backend-neutral Cairo conformance tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-air", .description = "Run Cairo CPU AIR integration tests", .scope = .compatibility_tools },
     .{ .name = "test-cairo-cpu-proof", .description = "Run the complete official Cairo CPU proof gate", .scope = .compatibility_tools },
+    .{ .name = "test-cairo-leaf-proof", .description = "R10c: the Cairo leaf lane against the proving@5a7c5ed prove_cairo checkpoint", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest", .description = "Dump the Sail-authoritative opcode and proof-family policy as JSON", .scope = .compatibility_tools },
     .{ .name = "riscv-opcode-manifest-check", .description = "Validate stable RV32IM protocol IDs and proof classifications", .scope = .compatibility_tools },
     .{ .name = "test-riscv", .description = "Run RISC-V runner tests (trace_dump)", .scope = .riscv_cpu_compat },
@@ -357,6 +358,7 @@ pub const configure = [_]Configure{
         .allowed_module_files = &.{
             "tests/cuda/cumetal/native_frontend_execution.zig",
             "src/interop/felt_json.zig",
+            "src/interop/cairo_prover_parameters.zig",
             "src/interop/postcard.zig",
             "src/products/native_cuda/blake_route.zig",
             "src/stwo.zig",

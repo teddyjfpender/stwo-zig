@@ -7,8 +7,10 @@ port's parity ladder compares against (design:
 `design/starknet-proving-pipeline/recursion/02-design.md` §8). Released Zig
 products never build, invoke, or distribute it.
 
-Every subcommand only builds circuits or hashes data; none proves anything, so
-all of them run on a laptop in seconds with a few tens of megabytes of memory.
+Every subcommand but `prove-cairo` only builds circuits or hashes data and runs
+on a laptop in seconds with a few tens of megabytes of memory. `prove-cairo`
+proves a small Cairo program (a few seconds and about 2 GB for the committed
+all_opcodes and all_builtins fixtures); larger programs belong on a big host.
 
 | Subcommand | Rung | Content |
 |---|---|---|
@@ -16,6 +18,7 @@ all of them run on a laptop in seconds with a few tens of megabytes of memory.
 | `gadgets` | R1, R2 | Builder circuits (context, peepholes, constants, wrappers) and gadgets (Blake2s at 0/4/44/64/65/128 bytes, `extract_bits`, Simd, mux, `sort_by_u` permutation, `reduce_hash_value`, circuit hash) before and after `finalize` |
 | `components` | R3 | All 83 Cairo slots and 11 circuit components, each built in a fresh `Context` through the upstream test harness |
 | `project-air` | R3 | The constraints-only projection of the compiled AIR read by the Zig interpreter |
+| `prove-cairo` | R10c | `prove_cairo::<Blake2sM31MerkleChannel>` of an adapted `ProverInput` under a registry's `cairo_prover_params` (the leaf prover's Cairo proof), verified with `verify_cairo_ex`; proof byte digests and per-stage values, and optionally the canonical `ExtendedBinary` payload (`--proof-output`) |
 
 ```sh
 cd tools/stwo-circuit-oracle-rs

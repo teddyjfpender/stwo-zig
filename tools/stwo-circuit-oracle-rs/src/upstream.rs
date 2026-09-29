@@ -76,6 +76,14 @@ impl ProvingRoot {
         Ok(files)
     }
 
+    /// Returns the sorted input records without an aggregate pin. For data files that
+    /// `scripts/check_upstream_pins.py` authenticates against their checked-in copies (the
+    /// circuit registries), whose recorded digests it compares.
+    pub fn into_records(mut self) -> Vec<InputRecord> {
+        self.records.sort_by(|a, b| a.path.cmp(&b.path));
+        self.records
+    }
+
     /// Returns the sorted input records after checking their aggregate against `pinned`:
     /// `SHA-256(INPUTS_DOMAIN || for each record: path || 0x00 || bytes (u64 LE) || sha256)`.
     pub fn finish(mut self, pinned: &str) -> Result<Vec<InputRecord>> {

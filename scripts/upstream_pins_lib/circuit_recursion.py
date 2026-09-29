@@ -37,6 +37,19 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r3/components.json", "r3", "components", True),
     (f"{VECTORS}/official/compiled_air_constraints_v1.bin", "r3", "project-air", True),
 )
+# (fixture, rung, adapted ProverInput under the repository root, registry in the proving
+# checkout) for `prove-cairo`, the leaf-lane Cairo proofs (R10c). The inputs are the
+# stwo-cairo 82f2125 fixtures authenticated by vectors/cairo/official provenance.
+CAIRO_PROOF_REGISTRY = "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json"
+CAIRO_PROOF_ARTIFACTS = tuple(
+    (
+        f"{VECTORS}/r10/{name}.prove_cairo.json",
+        "r10c",
+        f"vectors/cairo/official/{name}.prover_input.json",
+        CAIRO_PROOF_REGISTRY,
+    )
+    for name in ("all_opcodes", "all_builtins")
+)
 PROJECTION = ORACLE_ARTIFACTS[3][0]
 COMPONENTS = ORACLE_ARTIFACTS[2][0]
 # (fixture, path in the proving checkout) for files copied verbatim.
@@ -58,9 +71,27 @@ UPSTREAM_COPIES = (
         "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
     ),
 )
-MANAGED = tuple(path for path, *_ in ORACLE_ARTIFACTS) + tuple(
-    path for path, _ in UPSTREAM_COPIES
+MANAGED = (
+    tuple(path for path, *_ in ORACLE_ARTIFACTS)
+    + tuple(path for path, *_ in CAIRO_PROOF_ARTIFACTS)
+    + tuple(path for path, _ in UPSTREAM_COPIES)
 )
+
+
+def cairo_proof_command(path: str, prover_input: str, registry: str) -> list[str]:
+    """The recorded `prove-cairo` invocation of a leaf-lane Cairo proof fixture."""
+    return [
+        "stwo-circuit-oracle",
+        "prove-cairo",
+        "--prover-input",
+        prover_input,
+        "--params",
+        registry,
+        "--proving-root",
+        PROVING_ROOT_PLACEHOLDER,
+        "--output",
+        path,
+    ]
 
 PROJECTION_MAGIC = b"STWOCAIR"
 PROJECTION_VERSION = 1
@@ -397,6 +428,11 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
             errors.append(f"{path}: provenance command is not {command}")
         if path.endswith(".json"):
             errors.extend(_check_checkpoint(root, path, rung, subcommand, revision))
+    for path, rung, prover_input, registry in CAIRO_PROOF_ARTIFACTS:
+        command = cairo_proof_command(path, prover_input, registry)
+        if by_path.get(path, {}).get("command") != command:
+            errors.append(f"{path}: provenance command is not {command}")
+        errors.extend(_check_checkpoint(root, path, rung, "prove-cairo", revision))
     for path, upstream_path in UPSTREAM_COPIES:
         if by_path.get(path, {}).get("upstream_path") != upstream_path:
             errors.append(f"{path}: provenance upstream path is not {upstream_path}")
@@ -418,6 +454,16 @@ def _check_upstream_copies(root: Path) -> list[str]:
         return [f"{COMPONENTS}: unable to parse: {error}"]
     recorded = {record["path"]: record["sha256"] for record in components.get("inputs", [])}
     errors = []
+    for path, *_ in CAIRO_PROOF_ARTIFACTS:
+        try:
+            proof = json.loads((root / path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            errors.append(f"{path}: unable to parse: {error}")
+            continue
+        for record in proof.get("inputs", []):
+            recorded.setdefault(record["path"], record["sha256"])
+            if recorded[record["path"]] != record["sha256"]:
+                errors.append(f"{path}: read a different {record['path']} than {COMPONENTS}")
     for path, upstream_path in UPSTREAM_COPIES:
         if upstream_path in recorded and (root / path).is_file():
             if sha256_file(root / path) != recorded[upstream_path]:

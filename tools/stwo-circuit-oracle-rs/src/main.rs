@@ -11,6 +11,7 @@ mod goldens;
 mod output;
 mod primitives;
 mod project_air;
+mod prove_cairo;
 mod upstream;
 
 use std::path::PathBuf;
@@ -20,12 +21,15 @@ use anyhow::{Context, Result, bail};
 const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle gadgets [--output PATH]
        stwo-circuit-oracle components --proving-root DIR [--output PATH]
-       stwo-circuit-oracle project-air --proving-root DIR [--output PATH]";
+       stwo-circuit-oracle project-air --proving-root DIR [--output PATH]
+       stwo-circuit-oracle prove-cairo --prover-input PATH --params PATH [--proving-root DIR]
+                                   [--proof-output PATH] [--output PATH]";
 
 fn main() -> Result<()> {
     let mut values = std::env::args().skip(1);
     let subcommand = values.next().with_context(|| USAGE)?;
     let (mut output, mut proving_root) = (None, None);
+    let (mut prover_input, mut params, mut proof_output) = (None, None, None);
     while let Some(flag) = values.next() {
         let value = values
             .next()
@@ -33,6 +37,9 @@ fn main() -> Result<()> {
         let slot = match flag.as_str() {
             "--output" => &mut output,
             "--proving-root" => &mut proving_root,
+            "--prover-input" => &mut prover_input,
+            "--params" => &mut params,
+            "--proof-output" => &mut proof_output,
             _ => bail!("unexpected argument {flag:?}\n{USAGE}"),
         };
         if slot.replace(PathBuf::from(value)).is_some() {
@@ -52,6 +59,17 @@ fn main() -> Result<()> {
         "gadgets" => output::json(&gadgets::run()?)?,
         "components" => output::json(&components::run(root()?)?)?,
         "project-air" => project_air::run(root()?)?,
+        "prove-cairo" => {
+            let proved = prove_cairo::run(
+                prover_input.as_deref().context("prove-cairo requires --prover-input")?,
+                params.as_deref().context("prove-cairo requires --params")?,
+                proving_root.as_deref(),
+            )?;
+            if let Some(path) = proof_output.as_deref() {
+                output::emit(Some(path), &proved.extended_binary)?;
+            }
+            proved.checkpoint
+        }
         other => bail!("unknown subcommand {other:?}\n{USAGE}"),
     };
     output::emit(output.as_deref(), &bytes)

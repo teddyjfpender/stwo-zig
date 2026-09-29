@@ -7,7 +7,7 @@
   "oracle": {
     "manifest": "tools/stwo-circuit-oracle-rs/Cargo.toml",
     "toolchain": "nightly-2026-01-15",
-    "source_sha256": "c7113f90ac4b2c6606a96a6c014a23f5d16a104eb80b79273c363346dc723355"
+    "source_sha256": "adf486aca8f7d78dacf86628511fda732400876df97906f7dd9114c879507826"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-29",
@@ -62,6 +62,42 @@
       ],
       "bytes": 126786,
       "sha256": "12a2e4bd78b8b44f09b9405c99fb628c49745f720e96125ee2925a0ae46c0a5a"
+    },
+    {
+      "path": "vectors/circuit/r10/all_builtins.prove_cairo.json",
+      "rung": "r10c",
+      "command": [
+        "stwo-circuit-oracle",
+        "prove-cairo",
+        "--prover-input",
+        "vectors/cairo/official/all_builtins.prover_input.json",
+        "--params",
+        "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r10/all_builtins.prove_cairo.json"
+      ],
+      "bytes": 4783,
+      "sha256": "3bc500067bcc4464439f2d1dcbbe3388f25ca2db06bedfb5e2bf91dfc8d52741"
+    },
+    {
+      "path": "vectors/circuit/r10/all_opcodes.prove_cairo.json",
+      "rung": "r10c",
+      "command": [
+        "stwo-circuit-oracle",
+        "prove-cairo",
+        "--prover-input",
+        "vectors/cairo/official/all_opcodes.prover_input.json",
+        "--params",
+        "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r10/all_opcodes.prove_cairo.json"
+      ],
+      "bytes": 4782,
+      "sha256": "90c8ebeb6c73a3d608c7c4bbb9652ee5b224ec37961794fa19a8d1aa8ff6b118"
     },
     {
       "path": "vectors/circuit/r2/gadgets.json",
