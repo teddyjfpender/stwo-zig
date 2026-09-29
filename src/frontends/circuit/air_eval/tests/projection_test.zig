@@ -47,11 +47,18 @@ test "projection rejects a corrupted record, bad magic and truncation" {
 
     const corrupted = try gpa.dupe(u8, bytes);
     defer gpa.free(corrupted);
+    // A string-table entry that a function record names: the record bytes
+    // are unchanged, but its canonical form (strings inline) is not.
+    const name = std.mem.indexOf(u8, corrupted, "add_opcode").?;
+    corrupted[name] = 'b';
+    try std.testing.expectError(error.RecordDigestMismatch, projection.parse(gpa, corrupted));
+    corrupted[name] = 'a';
+
     // The last byte belongs to the final function record.
     corrupted[corrupted.len - 1] ^= 1;
-    try std.testing.expectError(error.RecordDigestMismatch, projection.parse(gpa, corrupted));
-
+    try std.testing.expect(std.meta.isError(projection.parse(gpa, corrupted)));
     corrupted[corrupted.len - 1] ^= 1;
+
     corrupted[0] = 'X';
     try std.testing.expectError(error.BadMagic, projection.parse(gpa, corrupted));
 

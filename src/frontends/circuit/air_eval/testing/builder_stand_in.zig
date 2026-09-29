@@ -162,6 +162,28 @@ pub fn Context(comptime V: type) type {
             return b_inv;
         }
 
+        /// Per-kind gate counts in `kind_names` order (the oracle's `gate_counts`).
+        pub fn gateCounts(self: *const Self) [kind_names.len]usize {
+            var counts = [_]usize{0} ** kind_names.len;
+            counts[0] = self.add_gates.items.len;
+            counts[1] = self.sub_gates.items.len;
+            counts[2] = self.mul_gates.items.len;
+            counts[4] = self.eq_gates.items.len;
+            counts[9] = self.output_gates.items.len;
+            return counts;
+        }
+
+        /// The oracle's `visit_gates`: every gate of kind `k` from index
+        /// `start[k]` on, kind by kind in `kind_names` order, as
+        /// `visitor.gate(k, fields)` with the struct fields in declaration order.
+        pub fn visitGates(self: *const Self, start: [kind_names.len]usize, visitor: anytype) void {
+            for (self.add_gates.items[start[0]..]) |g| visitor.gate(0, &.{ g.in0, g.in1, g.out });
+            for (self.sub_gates.items[start[1]..]) |g| visitor.gate(1, &.{ g.in0, g.in1, g.out });
+            for (self.mul_gates.items[start[2]..]) |g| visitor.gate(2, &.{ g.in0, g.in1, g.out });
+            for (self.eq_gates.items[start[4]..]) |g| visitor.gate(4, &.{ g.in0, g.in1 });
+            for (self.output_gates.items[start[9]..]) |in0| visitor.gate(9, &.{in0});
+        }
+
         pub fn summary(self: *const Self) Summary {
             var kinds: [kind_names.len]KindSummary = undefined;
             kinds[0] = binaryKind("add", self.add_gates.items);

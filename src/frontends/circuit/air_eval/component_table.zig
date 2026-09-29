@@ -6,18 +6,21 @@
 //! that order in this package. A slot is either a generated evaluator (a
 //! projected function of the same name) or a hand-written one; the per-source
 //! modules `cairo_components.zig` and `circuit_components.zig` name the
-//! hand-written slots and their shapes.
+//! hand-written slots and their shapes. The circuit shapes come from
+//! `common/component_list.zig`, the one definition of the circuit components'
+//! static facts.
 
 const std = @import("std");
 const projection_mod = @import("projection.zig");
 const constraint_eval = @import("../stark_verifier/constraint_eval.zig");
+const component_list = @import("../common/component_list.zig");
 const interpreter = @import("interpreter.zig");
 const manual_cairo = @import("manual/cairo.zig");
 const manual_circuit = @import("manual/circuit.zig");
 
 const Projection = projection_mod.Projection;
 const Source = projection_mod.Source;
-const RelationUse = constraint_eval.RelationUse;
+const RelationUse = component_list.RelationUse;
 
 pub const Manual = union(enum) {
     cairo_memory_address_to_id,
@@ -44,14 +47,46 @@ pub const LogSize = union(enum) {
     preprocessed_column: []const u8,
 };
 
-pub const Entry = struct {
-    /// Slot name (`CircuitEval::name`).
-    name: []const u8,
-    evaluator: Evaluator,
+/// The `CircuitEval` constants of a component.
+pub const Shape = struct {
     trace_columns: usize,
     interaction_columns: usize,
     relation_uses_per_row: []const RelationUse,
     log_size: LogSize,
+
+    /// The shape of a circuit-AIR component, from its static facts.
+    pub fn fromFacts(facts: component_list.ComponentFacts) Shape {
+        return .{
+            .trace_columns = facts.trace_columns,
+            .interaction_columns = facts.interaction_columns,
+            .relation_uses_per_row = facts.relation_uses_per_row,
+            .log_size = switch (facts.log_size) {
+                .fixed => |value| .{ .fixed = value },
+                .preprocessed_column => |column| .{ .preprocessed_column = column },
+            },
+        };
+    }
+
+    pub fn eql(a: Shape, b: Shape) bool {
+        if (a.trace_columns != b.trace_columns or a.interaction_columns != b.interaction_columns) return false;
+        if (a.relation_uses_per_row.len != b.relation_uses_per_row.len) return false;
+        for (a.relation_uses_per_row, b.relation_uses_per_row) |x, y| {
+            if (x.uses != y.uses or !std.mem.eql(u8, x.relation_id, y.relation_id)) return false;
+        }
+        return switch (a.log_size) {
+            .dynamic => b.log_size == .dynamic,
+            .fixed => |value| b.log_size == .fixed and b.log_size.fixed == value,
+            .preprocessed_column => |column| b.log_size == .preprocessed_column and
+                std.mem.eql(u8, b.log_size.preprocessed_column, column),
+        };
+    }
+};
+
+pub const Entry = struct {
+    /// Slot name (`CircuitEval::name`).
+    name: []const u8,
+    evaluator: Evaluator,
+    shape: Shape,
 };
 
 /// Classifies a hand-written slot and gives its shape; returns null for a
@@ -60,7 +95,7 @@ pub const ManualResolver = *const fn (slot: []const u8, constants: manual_cairo.
 
 pub const ManualSlot = struct {
     manual: Manual,
-    shape: manual_circuit.Shape,
+    shape: Shape,
     /// The compiled-AIR function the slot replaces (must be listed as hand-written).
     compiled_name: ?[]const u8,
 };
@@ -127,6 +162,10 @@ pub const BuildError = error{
     HandWrittenMismatch,
     SlotIsInline,
     SlotCountMismatch,
+    /// The circuit slots differ from `component_list.ComponentList` order.
+    SlotOrderMismatch,
+    /// A circuit slot's constants differ from `component_list.component_facts`.
+    ComponentFactsMismatch,
 } || std.mem.Allocator.Error;
 
 pub fn build(
@@ -152,19 +191,7 @@ pub fn build(
                 const position = handWrittenIndex(projection, source, compiled) orelse return error.HandWrittenMismatch;
                 hand_written_seen[position] = true;
             }
-            entry.* = .{
-                .name = name,
-                .evaluator = .{ .manual = manual.manual },
-                .trace_columns = manual.shape.trace_columns,
-                .interaction_columns = manual.shape.interaction_columns,
-                .relation_uses_per_row = manual.shape.relation_uses,
-                .log_size = if (manual.shape.log_size) |fixed|
-                    .{ .fixed = fixed }
-                else if (manual.shape.log_size_column) |column|
-                    .{ .preprocessed_column = column }
-                else
-                    .dynamic,
-            };
+            entry.* = .{ .name = name, .evaluator = .{ .manual = manual.manual }, .shape = manual.shape };
             continue;
         }
         const index = source.findFunction(projection, name) orelse return error.UnknownSlot;
@@ -204,10 +231,12 @@ fn generatedEntry(allocator: std.mem.Allocator, projection: *const Projection, s
     return .{
         .name = projection.str(function.name),
         .evaluator = .{ .generated = index },
-        .trace_columns = projection.nameList(function.state_names).len,
-        .interaction_columns = 4 * ((lookups.len + 1) / 2),
-        .relation_uses_per_row = try relationUses(allocator, projection, lookups),
-        .log_size = log_size,
+        .shape = .{
+            .trace_columns = projection.nameList(function.state_names).len,
+            .interaction_columns = 4 * ((lookups.len + 1) / 2),
+            .relation_uses_per_row = try relationUses(allocator, projection, lookups),
+            .log_size = log_size,
+        },
     };
 }
 

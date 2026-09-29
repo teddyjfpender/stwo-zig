@@ -1,6 +1,7 @@
 //! Rung R3: every in-circuit evaluator (83 Cairo slots, 11 circuit
 //! components) built in a fresh context, against `vectors/circuit/r3/components.json`
-//! and the upstream `sample_evaluations.json` assignments.
+//! and the upstream `sample_evaluations.json` assignments, and per harness
+//! stage against `vectors/circuit/r3/statement_trace.json`.
 //!
 //! The harness mirrors the oracle's (`tools/stwo-circuit-oracle-rs/src/components/harness.rs`),
 //! which is upstream `gen_tests_module`'s `test_evaluation_result`:
@@ -10,13 +11,15 @@
 //! `finalize_logup_in_pairs`. There is no `Context::finalize`.
 //!
 //! Each evaluator runs in value mode (with `assert_eq_on_eval`) and in
-//! topology mode; both must build the recorded gate lists.
+//! topology mode; both must build the recorded gate lists and the recorded
+//! statement trace (the oracle traces topology mode).
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const stand_in = @import("../testing/builder_stand_in.zig");
 const fixture = @import("../../testing/fixture_json.zig");
+const statement_trace = @import("statement_trace.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const M31 = stwo_core.fields.m31.M31;
@@ -28,6 +31,7 @@ const Value = std.json.Value;
 
 const projection_path = "vectors/circuit/official/compiled_air_constraints_v1.bin";
 const components_path = "vectors/circuit/r3/components.json";
+const statement_trace_path = "vectors/circuit/r3/statement_trace.json";
 const casm_samples_path = "vectors/circuit/official/compiled_casm_air.sample_evaluations.json";
 const circuit_samples_path = "vectors/circuit/official/compiled_circuit_air.sample_evaluations.json";
 
@@ -52,11 +56,20 @@ fn Outcome(comptime V: type) type {
         summary: stand_in.Summary,
         result: V,
         values_sha256: ?[32]u8,
+        trace: statement_trace.Trace,
     };
 }
 
-/// Steps 1-5 of the harness in a fresh context.
-fn runHarness(comptime V: type, allocator: std.mem.Allocator, table: *const Table, slot: usize, inputs: Inputs) !Outcome(V) {
+/// Steps 1-5 of the harness in a fresh context. The statement trace is
+/// allocated from `arena`.
+fn runHarness(
+    comptime V: type,
+    allocator: std.mem.Allocator,
+    arena: std.mem.Allocator,
+    table: *const Table,
+    slot: usize,
+    inputs: Inputs,
+) !Outcome(V) {
     const Ctx = stand_in.Context(V);
     var ctx = try Ctx.init(allocator);
     defer ctx.deinit();
@@ -90,16 +103,21 @@ fn runHarness(comptime V: type, allocator: std.mem.Allocator, table: *const Tabl
         interaction_elements,
     );
     defer acc.deinit();
+    var marks: [statement_trace.stage_names.len]statement_trace.Mark(stand_in.kind_names.len) = undefined;
+    marks[0] = statement_trace.mark(&ctx);
     var scratch = std.heap.ArenaAllocator.init(allocator);
     defer scratch.deinit();
     try table.evaluate(slot, Ctx, &ctx, &data, &acc, scratch.allocator());
+    marks[1] = statement_trace.mark(&ctx);
     const claimed_sum = try ctx.newVar(Ctx.lift(inputs.claimed_sum));
     try acc.finalizeLogupInPairs(&ctx, data.interactionColumns(), &data, claimed_sum);
+    marks[2] = statement_trace.mark(&ctx);
     const result = acc.finalize();
     return .{
         .summary = ctx.summary(),
         .result = ctx.get(result),
         .values_sha256 = if (V == QM31) ctx.valuesSha256() else null,
+        .trace = try statement_trace.trace(arena, &ctx, &stand_in.kind_names, &marks),
     };
 }
 
@@ -224,12 +242,12 @@ fn expectEntryShape(record: Value, table: *const Table, slot: usize) !void {
     const entry = table.entries[slot];
     try std.testing.expectEqualStrings(try fixture.string(try fixture.field(record, "name")), entry.name);
     try std.testing.expectEqualStrings(try fixture.string(try fixture.field(record, "evaluator_name")), entry.name);
-    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "trace_columns")), entry.trace_columns);
-    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "interaction_columns")), entry.interaction_columns);
+    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "trace_columns")), entry.shape.trace_columns);
+    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "interaction_columns")), entry.shape.interaction_columns);
     try std.testing.expectEqual(try fixture.boolean(try fixture.field(record, "hand_written")), entry.evaluator == .manual);
     const uses = try fixture.array(try fixture.field(record, "relation_uses_per_row"));
-    try std.testing.expectEqual(uses.len, entry.relation_uses_per_row.len);
-    for (uses, entry.relation_uses_per_row) |use, actual| {
+    try std.testing.expectEqual(uses.len, entry.shape.relation_uses_per_row.len);
+    for (uses, entry.shape.relation_uses_per_row) |use, actual| {
         try std.testing.expectEqualStrings(try fixture.string(try fixture.field(use, "relation_id")), actual.relation_id);
         try std.testing.expectEqual(try fixture.unsigned(u64, try fixture.field(use, "uses")), actual.uses);
     }
@@ -273,6 +291,11 @@ test "R3: all 94 in-circuit evaluators match the oracle gate lists, values and r
 
     var components = try fixture.load(gpa, components_path, 4 << 20);
     defer components.deinit();
+    var traces = try fixture.load(gpa, statement_trace_path, 4 << 20);
+    defer traces.deinit();
+    const traces_body = try fixture.checkpointBody(traces.root(), "r3", "statement-trace");
+    try std.testing.expectEqual(@as(u64, statement_trace.window), try fixture.unsigned(u64, try fixture.field(traces_body, "window")));
+    const trace_records = try fixture.array(try fixture.field(traces_body, "evaluators"));
     var samples: Samples = .{
         .casm = try fixture.load(gpa, casm_samples_path, 4 << 20),
         .circuit = try fixture.load(gpa, circuit_samples_path, 1 << 20),
@@ -288,8 +311,9 @@ test "R3: all 94 in-circuit evaluators match the oracle gate lists, values and r
     defer used_samples.deinit(gpa);
     const evaluators = try fixture.array(try fixture.field(body, "evaluators"));
     try std.testing.expectEqual(@as(usize, 94), evaluators.len);
+    try std.testing.expectEqual(evaluators.len, trace_records.len);
     var sample_results_checked: usize = 0;
-    for (evaluators) |record| {
+    for (evaluators, trace_records) |record, trace_record| {
         var arena_state = std.heap.ArenaAllocator.init(gpa);
         defer arena_state.deinit();
         const arena = arena_state.allocator();
@@ -312,9 +336,20 @@ test "R3: all 94 in-circuit evaluators match the oracle gate lists, values and r
             break :blk try sampleInputs(arena, sample, assignment);
         };
 
-        const value_mode = try runHarness(QM31, gpa, table, slot, inputs);
-        const topology_mode = try runHarness(stand_in.NoValue, gpa, table, slot, inputs);
+        const value_mode = try runHarness(QM31, gpa, arena, table, slot, inputs);
+        const topology_mode = try runHarness(stand_in.NoValue, gpa, arena, table, slot, inputs);
         try std.testing.expectEqualDeep(value_mode.summary, topology_mode.summary);
+        try std.testing.expectEqualDeep(value_mode.trace, topology_mode.trace);
+
+        // The statement trace record names the same evaluator and assignment.
+        try std.testing.expectEqualStrings(air, try fixture.string(try fixture.field(trace_record, "air")));
+        try std.testing.expectEqual(slot, try fixture.unsigned(usize, try fixture.field(trace_record, "slot")));
+        try std.testing.expectEqualStrings(table.entries[slot].name, try fixture.string(try fixture.field(trace_record, "name")));
+        try std.testing.expectEqualStrings(
+            if (std.mem.eql(u8, source, "synthesized")) "synthesized" else try fixture.string(try fixture.field(assignment, "key")),
+            try fixture.string(try fixture.field(trace_record, "assignment")),
+        );
+        try statement_trace.expectTrace(trace_record, topology_mode.trace);
         try expectSummary(try fixture.field(record, "circuit"), value_mode.summary);
         try std.testing.expectEqual(try fixture.digest(try fixture.field(record, "values_sha256")), value_mode.values_sha256.?);
         try expectQm31(try fixture.field(record, "result"), value_mode.result);

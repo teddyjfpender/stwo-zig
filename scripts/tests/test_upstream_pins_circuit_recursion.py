@@ -35,6 +35,7 @@ class CircuitRecursionLaneTests(unittest.TestCase):
             self.root / lane.ORACLE,
             ignore=shutil.ignore_patterns("target"),
         )
+        shutil.copytree(ROOT / lane.EVAL_PROGRAM_ABI, self.root / lane.EVAL_PROGRAM_ABI)
         shutil.copytree(ROOT / lane.VECTORS, self.root / lane.VECTORS)
 
     def tearDown(self) -> None:
@@ -77,6 +78,55 @@ class CircuitRecursionLaneTests(unittest.TestCase):
         source.write_text(source.read_text(encoding="utf-8") + "\n", encoding="utf-8")
         self.assertIn("oracle source digest drifted", "\n".join(_check(self.root)))
 
+    def test_shared_abi_edit_requires_regeneration(self) -> None:
+        source = self.root / lane.EVAL_PROGRAM_ABI / "src/encoding.rs"
+        source.write_text(source.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+        self.assertIn("oracle source digest drifted", "\n".join(_check(self.root)))
+
+    def test_provenance_is_host_independent(self) -> None:
+        provenance = json.loads((ROOT / lane.PROVENANCE).read_text(encoding="utf-8"))
+        self.assertNotIn("host", provenance)
+        self.assertEqual(lane.sha256_file(ROOT / lane.LOCK), provenance["oracle"]["lock_sha256"])
+        provenance["host"] = "Darwin arm64"
+        (self.root / lane.PROVENANCE).write_text(json.dumps(provenance), encoding="utf-8")
+        self.assertIn("'host' is host-dependent", "\n".join(_check(self.root)))
+
+    def test_every_subcommand_has_a_committed_checkpoint(self) -> None:
+        subcommands = {subcommand for _, _, subcommand, _ in lane.ORACLE_ARTIFACTS}
+        self.assertEqual(
+            {
+                "primitives",
+                "gadgets",
+                "components",
+                "statement-trace",
+                "project-air",
+                "verifier-stages",
+                "finalize",
+                "topology",
+                "prove-small",
+                "air-programs",
+            },
+            subcommands,
+        )
+        for path, *_ in lane.ORACLE_ARTIFACTS:
+            self.assertTrue((ROOT / path).is_file(), path)
+
+    def test_air_programs_bundle_geometry_is_checked(self) -> None:
+        bundle = self.root / lane.AIR_PROGRAMS
+        data = bytearray(bundle.read_bytes())
+        data[32] ^= 0x01
+        bundle.write_bytes(bytes(data))
+        joined = "\n".join(_check(self.root))
+        self.assertIn("AIR program geometry drifted", joined)
+        self.assertIn("AIR program plan hash drifted", joined)
+
+    def test_topology_must_match_the_registry_copies(self) -> None:
+        path = self.root / lane.TOPOLOGY
+        topology = json.loads(path.read_text(encoding="utf-8"))
+        topology["body"]["folds"][0]["circuit_hash"][0] ^= 1
+        path.write_text(json.dumps(topology), encoding="utf-8")
+        self.assertIn("multiverifier circuit_hash differs", "\n".join(_check(self.root)))
+
     def test_manifest_rejects_path_dependencies_and_patches(self) -> None:
         manifest = self.root / lane.MANIFEST
         manifest.write_text(
@@ -118,13 +168,28 @@ class CircuitRecursionLaneTests(unittest.TestCase):
         }
         self.assertLessEqual(generated, set(cairo["functions"]))
 
-    def test_projection_rejects_a_corrupted_record(self) -> None:
+    def test_projection_digest_covers_interned_strings(self) -> None:
+        # Version 2 hashes each record with its strings inline: editing a string in the shared
+        # table (here the first byte of the first string) changes every record that uses it.
         data = bytearray((ROOT / lane.PROJECTION).read_bytes())
-        data[-2] ^= 0x01
+        first_string = 8 + 4 + 4 + 4
+        data[first_string] ^= 0x20
+        with self.assertRaises(lane.ProjectionError):
+            lane.parse_projection(bytes(data))
+
+    def test_projection_rejects_a_corrupted_record(self) -> None:
+        encoded = (ROOT / lane.PROJECTION).read_bytes()
+        offset = lane.parse_projection(encoded)["sources"]["circuit"]["digest_offsets"][-1]
+        data = bytearray(encoded)
+        data[offset] ^= 0x01
         with self.assertRaisesRegex(lane.ProjectionError, "bad digest"):
             lane.parse_projection(bytes(data))
+        data = bytearray(encoded)
+        data[-2] ^= 0x01
+        with self.assertRaises(lane.ProjectionError):
+            lane.parse_projection(bytes(data))
         with self.assertRaisesRegex(lane.ProjectionError, "trailing bytes"):
-            lane.parse_projection((ROOT / lane.PROJECTION).read_bytes() + b"\0")
+            lane.parse_projection(encoded + b"\0")
 
 
 if __name__ == "__main__":

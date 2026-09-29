@@ -1,0 +1,3150 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r4",
+  "subcommand": "verifier-stages",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [
+    {
+      "path": "test_data/circuit_multiverifier/proof.bin",
+      "bytes": 182884,
+      "sha256": "458eaa893dee79b8e5bb572d20e445a6d2164cb2d464e5967f1fa9e4156b38df"
+    },
+    {
+      "path": "test_data/circuit_multiverifier/proof_cairo.bin",
+      "bytes": 182884,
+      "sha256": "536c8bd7a231a4d7e66763866066f6d72097d902b7c5f839515d65c8c0fbf5b6"
+    }
+  ],
+  "body": {
+    "pcs_config_trace_log_size": 21,
+    "log_blowup_factor": 3,
+    "preimage_words": [
+      3306572221,
+      4272031280,
+      2068980869,
+      1881191341,
+      1851008038,
+      3877336448,
+      3207238702,
+      3649458457,
+      1166008807,
+      3573246478,
+      2182916906,
+      1018559371,
+      3306128938,
+      2312145586,
+      3069965187,
+      1815686831,
+      766346898,
+      2883306853,
+      2079793576,
+      491702981,
+      3429779139,
+      4271200703,
+      2253710275,
+      4218481758,
+      2238863647,
+      930608170,
+      3577551515,
+      250236175,
+      3905226011,
+      365840198,
+      2418738012,
+      3030158971
+    ],
+    "output_digest": [
+      2134731033,
+      3619220958,
+      3469150703,
+      1121593331,
+      3698467072,
+      4104462365,
+      2383411334,
+      668239329
+    ],
+    "stages": [
+      {
+        "stage": "input_0.guess_output_digest_and_root",
+        "circuit": {
+          "n_vars": 76,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 16,
+              "sha256": "8460993691cd9346f94cca985c89efcc57b0b3da54deda52e90f249633d16c3a"
+            },
+            {
+              "kind": "sub",
+              "count": 0,
+              "sha256": "aa90ef0a87317935ee4f1b77b0a38d3c9f9f3cd0712f353cc1fa8406f2ef3fe8"
+            },
+            {
+              "kind": "mul",
+              "count": 16,
+              "sha256": "ef95c408b3ba46b998c009e319586048c8511ff6b49030ca7009a43bf74e910d"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 0,
+              "sha256": "aac64f2e052078f65b1e637879b050e20684ba19e921e1512185a7e78261b9d2"
+            },
+            {
+              "kind": "eq",
+              "count": 0,
+              "sha256": "12522bfc68aa80787c649c131dc690d9460bcdb4e457d6d935af8465fa966b5f"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 0,
+              "sha256": "c36c368b4ac990e3c8ebd207ea1d7397239e469db057e51afce87351c68539ce"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 0,
+              "sha256": "0e1854fb2bc5c398b59fc7d836eeef1080c96a14926c6082625337a5e2418218"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 0,
+              "sha256": "f7bd35ad77d5638e40f14eb2f61cd765c593b47d943bbe09a25e0524606c89bf"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "2ee3a48fe0c58c788400f92db8e2c1a8b195867817e74b8c92730a4c6a28f1d7"
+        }
+      },
+      {
+        "stage": "input_0.statement",
+        "circuit": {
+          "n_vars": 421,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 16,
+              "sha256": "8460993691cd9346f94cca985c89efcc57b0b3da54deda52e90f249633d16c3a"
+            },
+            {
+              "kind": "sub",
+              "count": 0,
+              "sha256": "aa90ef0a87317935ee4f1b77b0a38d3c9f9f3cd0712f353cc1fa8406f2ef3fe8"
+            },
+            {
+              "kind": "mul",
+              "count": 16,
+              "sha256": "ef95c408b3ba46b998c009e319586048c8511ff6b49030ca7009a43bf74e910d"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 0,
+              "sha256": "aac64f2e052078f65b1e637879b050e20684ba19e921e1512185a7e78261b9d2"
+            },
+            {
+              "kind": "eq",
+              "count": 0,
+              "sha256": "12522bfc68aa80787c649c131dc690d9460bcdb4e457d6d935af8465fa966b5f"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 8,
+              "sha256": "142db39a1f483205d66812f379c3c1ed9de1f5287dee6d098113c31be2191325"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 0,
+              "sha256": "0e1854fb2bc5c398b59fc7d836eeef1080c96a14926c6082625337a5e2418218"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 80,
+              "sha256": "c86093b490c5660ccfe8d550f63422204f176279b1b9912f2abc7fccb1ffdb4c"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "c504286329704a6ee48acc4fc73fcc71e9bf1c1f3cdb822d81bf17155debbe0f"
+        }
+      },
+      {
+        "stage": "input_0.guess_proof",
+        "circuit": {
+          "n_vars": 127334,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29344,
+              "sha256": "024713ed2a8c2177884ebf3b02fddb550b402b4573a7eed16cf17f0b84b9de46"
+            },
+            {
+              "kind": "sub",
+              "count": 0,
+              "sha256": "aa90ef0a87317935ee4f1b77b0a38d3c9f9f3cd0712f353cc1fa8406f2ef3fe8"
+            },
+            {
+              "kind": "mul",
+              "count": 29344,
+              "sha256": "faeb18c8886e0333db83203bd1475f134a03bc91e3ed00c4afc2a65a2faa823a"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 0,
+              "sha256": "aac64f2e052078f65b1e637879b050e20684ba19e921e1512185a7e78261b9d2"
+            },
+            {
+              "kind": "eq",
+              "count": 0,
+              "sha256": "12522bfc68aa80787c649c131dc690d9460bcdb4e457d6d935af8465fa966b5f"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 8,
+              "sha256": "142db39a1f483205d66812f379c3c1ed9de1f5287dee6d098113c31be2191325"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 0,
+              "sha256": "0e1854fb2bc5c398b59fc7d836eeef1080c96a14926c6082625337a5e2418218"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 80,
+              "sha256": "c86093b490c5660ccfe8d550f63422204f176279b1b9912f2abc7fccb1ffdb4c"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "62522d0b2c26772ccf50099b4bfd75b47afe94966d7e2c0648ab216593277f55"
+        }
+      },
+      {
+        "stage": "input_0.verify.channel_salt_and_fri_config",
+        "circuit": {
+          "n_vars": 128180,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29372,
+              "sha256": "9d18e78d89fa88b46e4d907ae0a3e4874ce6b2e8820b60170a62be999b8cd15c"
+            },
+            {
+              "kind": "sub",
+              "count": 0,
+              "sha256": "aa90ef0a87317935ee4f1b77b0a38d3c9f9f3cd0712f353cc1fa8406f2ef3fe8"
+            },
+            {
+              "kind": "mul",
+              "count": 29409,
+              "sha256": "b9e54edf278aeb40be381b8d80f1f464ff2515c177f79669ebfad1e3911a910d"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 60,
+              "sha256": "966a9ec1f906a6914e38891ff902547c43acb34ccae2e3f93b2970a108f4d664"
+            },
+            {
+              "kind": "eq",
+              "count": 0,
+              "sha256": "12522bfc68aa80787c649c131dc690d9460bcdb4e457d6d935af8465fa966b5f"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 24,
+              "sha256": "5bc62841647e34a7346ed390cd869a76713b01309d69248688d61653a7558845"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 28,
+              "sha256": "4fd51a4c8fc52273c5dd75026465ef6a7c80e782929332ad33f677a81b46a3dc"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 240,
+              "sha256": "6dc96048643f104ca7e597d5226142d2cb28de617e2caeb77f6fd41e60bceecc"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "a3206d8d4cd2b24dc191072139d7ce14589ef0cd8a6e617147aff3ed8c9a27e8"
+        }
+      },
+      {
+        "stage": "input_0.verify.preprocessed_root",
+        "circuit": {
+          "n_vars": 128582,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29386,
+              "sha256": "56f4f2b4e042d521e8ed200897a833d5865841d8cbd2f2f8cd71b47f4a3a0b90"
+            },
+            {
+              "kind": "sub",
+              "count": 0,
+              "sha256": "aa90ef0a87317935ee4f1b77b0a38d3c9f9f3cd0712f353cc1fa8406f2ef3fe8"
+            },
+            {
+              "kind": "mul",
+              "count": 29437,
+              "sha256": "cb034e693d504c0102eba88b2d9473800fc8b03d69a6daa8bdf0614e74b9dc51"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 84,
+              "sha256": "0fc07fab77b05445f56303435e6a0a453c3b9fb7a2f17bbce92bcc3000f48743"
+            },
+            {
+              "kind": "eq",
+              "count": 0,
+              "sha256": "12522bfc68aa80787c649c131dc690d9460bcdb4e457d6d935af8465fa966b5f"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 32,
+              "sha256": "111aa82a1f111d77daa6341e6f988d0cdffaaee4ddc00f0183fe69fc70328037"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 36,
+              "sha256": "264c8d3571c3f88d8000b9fb13f70dc65b5f9af2f6cf18a23437f5ed8e23c0bb"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 320,
+              "sha256": "300cf9c4100e47d0ee322827c92b988746e163b779a44f26f37265dc8062b9aa"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "ca94052d08a2a1090565e5d05314887e2f0b0116d6fc2b927cc16c4ba6995e2b"
+        }
+      },
+      {
+        "stage": "input_0.verify.component_sizes",
+        "circuit": {
+          "n_vars": 129075,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29401,
+              "sha256": "143922daa973b12096a8142815e10ca5dcc3df1282b4230849feec864551beb3"
+            },
+            {
+              "kind": "sub",
+              "count": 137,
+              "sha256": "653bed28c2bdb785276565d06aab86d8ea4550ddb07a4bd3c0546bd9fdb7e49d"
+            },
+            {
+              "kind": "mul",
+              "count": 29543,
+              "sha256": "3c591f2774f1ea423df2c737064bb72ef5215fe01eac1fc2977a9885cc9eda87"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 227,
+              "sha256": "de6a295e33f7050e64d05724b4d7eb77962145ef03cfb2a8ba760bebed1697b1"
+            },
+            {
+              "kind": "eq",
+              "count": 96,
+              "sha256": "4f274d8d41157ae7dcc45e75bbcc6fe75a119e427c0ce2e1333614635f4e2103"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 32,
+              "sha256": "111aa82a1f111d77daa6341e6f988d0cdffaaee4ddc00f0183fe69fc70328037"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 36,
+              "sha256": "264c8d3571c3f88d8000b9fb13f70dc65b5f9af2f6cf18a23437f5ed8e23c0bb"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 320,
+              "sha256": "300cf9c4100e47d0ee322827c92b988746e163b779a44f26f37265dc8062b9aa"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "ec38c25faa1be54f7830572bd6ddc924a1283a06c11d0aa978aa939d6b21bed0"
+        }
+      },
+      {
+        "stage": "input_0.verify.claims_mixed",
+        "circuit": {
+          "n_vars": 130625,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29429,
+              "sha256": "4302735a4f922fdea795ce2dff0f776e1c05d570c2f9f9b2ccf7b8399a3d9d24"
+            },
+            {
+              "kind": "sub",
+              "count": 137,
+              "sha256": "653bed28c2bdb785276565d06aab86d8ea4550ddb07a4bd3c0546bd9fdb7e49d"
+            },
+            {
+              "kind": "mul",
+              "count": 29623,
+              "sha256": "8f350c4cd9ce11a465edb1dc9c002a5192f5e89996930df22056278f4493289e"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 307,
+              "sha256": "b520dde92f0fc4b70417fbc76381974e0e3ef6413e93dc80327a2fe979352671"
+            },
+            {
+              "kind": "eq",
+              "count": 96,
+              "sha256": "4f274d8d41157ae7dcc45e75bbcc6fe75a119e427c0ce2e1333614635f4e2103"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 64,
+              "sha256": "745cc023dd402a45c1526e102211c46e532bffbb9c9da9046f7d46be9830910b"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 84,
+              "sha256": "9aac8326976d53815413c61628cfd9b4382533c4c153a2c328fca15d3aba5599"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 640,
+              "sha256": "c251c3568803008251ca292da54c19992496e7a368efe320fc52e712848fdf72"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "bcd365a8d1c17d0dac9132b65695e4d4431fe6bea8f485ccdae41fb9c699ae6c"
+        }
+      },
+      {
+        "stage": "input_0.verify.trace_root_and_interaction_pow",
+        "circuit": {
+          "n_vars": 132473,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29485,
+              "sha256": "d4292b35c86a963deb36fa1f867e52d0330c86a7694fcf60a006f4ade56d1944"
+            },
+            {
+              "kind": "sub",
+              "count": 200,
+              "sha256": "aeee1748e7d9d8af17597c51c8fc5ee5035909a50dfda01676865a700c0c064e"
+            },
+            {
+              "kind": "mul",
+              "count": 29777,
+              "sha256": "1603896174f7942b1adfb51fb21929a265dc39ceb3063b3d26ffd04dfbf43098"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 486,
+              "sha256": "9215ea7897f3d43b45651adcd89521bc0d2f5d00072892d10293e650654d4780"
+            },
+            {
+              "kind": "eq",
+              "count": 149,
+              "sha256": "4ad2a1f725b205eb71df58102f421a7c04f969918d8211590237bf56ff395a82"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 96,
+              "sha256": "8ef4ccea9a70398d60b2869bdde7808b429c28d46b58bc6b08b5244866d2f9d5"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 132,
+              "sha256": "944db7501cc5f7565651e81c5c822767f460985a0f4a0aa5fa17b76dad7cda1c"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 960,
+              "sha256": "c613118456fb38e07002f999781d72756ed224a54ac5edd41a8ff9f66f19b274"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "f61d1cb5ef1dc32b8adb95809e77c1fcb1a4e9b9bbdf0c36fadfe91fe2f3cc93"
+        }
+      },
+      {
+        "stage": "input_0.verify.interaction_elements",
+        "circuit": {
+          "n_vars": 132887,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29499,
+              "sha256": "8a721542fb4addd5d1a6e35ddf0b515184341465e4cea7ed172bd4c127af8a95"
+            },
+            {
+              "kind": "sub",
+              "count": 200,
+              "sha256": "aeee1748e7d9d8af17597c51c8fc5ee5035909a50dfda01676865a700c0c064e"
+            },
+            {
+              "kind": "mul",
+              "count": 29808,
+              "sha256": "2e33189fa3ae9ce3754c37a362aab7f2c92330a28d6b961e1433f38b777ac815"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 514,
+              "sha256": "13277faa064ce790024e0d0ed1f914c4a1d2b5474afb5c9145f59b33a6994b6a"
+            },
+            {
+              "kind": "eq",
+              "count": 149,
+              "sha256": "4ad2a1f725b205eb71df58102f421a7c04f969918d8211590237bf56ff395a82"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 104,
+              "sha256": "4f2af92175610e2f4a573d08d9cce88ae4d836de76b88913eb0caa65166f1dcc"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 144,
+              "sha256": "560838dc7b19c0f2df7e6bbd11a003ac63803e3133d2b8a8bd5498ae32fe26c0"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 1040,
+              "sha256": "35e0a6b11c143b711f9fb32f4d991c74992bf9282e53e83e24b2d4d84c8667cb"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "09e1cc05acaa200ca6a02b3b6a004178cf84e55652cba5350c9527743b276ee2"
+        }
+      },
+      {
+        "stage": "input_0.verify.logup_sum",
+        "circuit": {
+          "n_vars": 133094,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29563,
+              "sha256": "119ae123d9b3a03ac2e298781da53ba107bb9866a3f9e02efc4586232054ba61"
+            },
+            {
+              "kind": "sub",
+              "count": 209,
+              "sha256": "617c93a091bc3243f880b2340604117f411284f36f7efcd0311cef7d63f0e577"
+            },
+            {
+              "kind": "mul",
+              "count": 29889,
+              "sha256": "52123c3cbc55b1fb469454a083f59fc6630729dae58cabdf5a9527e925f80cef"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 550,
+              "sha256": "0fc0feec721c2bd7a2a1a1114e0d2a5b4096f50749b53391978607ee93964bbc"
+            },
+            {
+              "kind": "eq",
+              "count": 159,
+              "sha256": "6f849a68e4fd54d7957afa89300736bec128e7a7c8b473b5cd01fb436e53285a"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 104,
+              "sha256": "4f2af92175610e2f4a573d08d9cce88ae4d836de76b88913eb0caa65166f1dcc"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 144,
+              "sha256": "560838dc7b19c0f2df7e6bbd11a003ac63803e3133d2b8a8bd5498ae32fe26c0"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 1040,
+              "sha256": "35e0a6b11c143b711f9fb32f4d991c74992bf9282e53e83e24b2d4d84c8667cb"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "7bd4e061835af0092b56de5f619d142a4ba1be2056dc5e1a0d233be999401dda"
+        }
+      },
+      {
+        "stage": "input_0.verify.composition_coeff_and_oods_point",
+        "circuit": {
+          "n_vars": 136241,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29634,
+              "sha256": "8e40605bd905d5ad7b90c09f81f4eb8448d3fbae9b00d379cda33cd012161baa"
+            },
+            {
+              "kind": "sub",
+              "count": 210,
+              "sha256": "03433ab58e6b6629a5a07c69357a9662918816138fc539e3832545c248c318ad"
+            },
+            {
+              "kind": "mul",
+              "count": 30073,
+              "sha256": "d120cd5f7b4646006fe1f3e5a1273438cfca96cf8c2bd64ca667a93fd63deff6"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 722,
+              "sha256": "7f790d7b6a046025f90090b644862044408851814e6f0f78d5bf3179795e16a1"
+            },
+            {
+              "kind": "eq",
+              "count": 160,
+              "sha256": "76e491ba30cff8ab649493baccbdff732ed63f0447240b521b7707f2a8363f73"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 168,
+              "sha256": "834d0426a5d90fe5d6b1afef07555505ce46e58e21586165a2381e65bebd102d"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 236,
+              "sha256": "b2fd0603092a5ca28893eb64c242029bc502a2acc27d598f85f1eba8b094ac78"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 1680,
+              "sha256": "df0a335fa9af52c695d5d10085722c4c6608099a63a2179945e6b58379029fe8"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "ffb536fe716e49dd630c267b021fb501fb7cd240668bebdbb328f3841b15928f"
+        }
+      },
+      {
+        "stage": "input_0.verify.check_relation_uses",
+        "circuit": {
+          "n_vars": 136425,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29663,
+              "sha256": "6f11725d2b97d1f68418d46e8d77e7bc4bc9409c88ec88ed6e08847513e2cd0b"
+            },
+            {
+              "kind": "sub",
+              "count": 238,
+              "sha256": "c5aaaa878cbe264c1d85a454488eed7782d36a105f2c5d43cf2c63ce8ce0e310"
+            },
+            {
+              "kind": "mul",
+              "count": 30137,
+              "sha256": "98146b94dee4cb365e5f5e0ab41344b33cd23bc950fbfe384a8bf9a3d6dccbd5"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 757,
+              "sha256": "6c08b8d16b15679cc5f71d7dcc0e76794c1e2c224896ac415395e63d29eab473"
+            },
+            {
+              "kind": "eq",
+              "count": 190,
+              "sha256": "786e938838c2155edfbd4753ce4e7e6562ad68125166a5886be343c228a490e7"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 168,
+              "sha256": "834d0426a5d90fe5d6b1afef07555505ce46e58e21586165a2381e65bebd102d"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 236,
+              "sha256": "b2fd0603092a5ca28893eb64c242029bc502a2acc27d598f85f1eba8b094ac78"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 1680,
+              "sha256": "df0a335fa9af52c695d5d10085722c4c6608099a63a2179945e6b58379029fe8"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "717d52c48d963c7d0f7d74ae7492e2099e645699c5f6d7e2e99feecc8ac4dca1"
+        }
+      },
+      {
+        "stage": "input_0.verify.verify_claim",
+        "circuit": {
+          "n_vars": 136444,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29663,
+              "sha256": "6f11725d2b97d1f68418d46e8d77e7bc4bc9409c88ec88ed6e08847513e2cd0b"
+            },
+            {
+              "kind": "sub",
+              "count": 238,
+              "sha256": "c5aaaa878cbe264c1d85a454488eed7782d36a105f2c5d43cf2c63ce8ce0e310"
+            },
+            {
+              "kind": "mul",
+              "count": 30145,
+              "sha256": "f45a327f5e0e9b87ffdb5399b17a5c5e11934a8e29f10a6b6eef55aa2643d3de"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 768,
+              "sha256": "2eb573a56b3c7ee52807c7c1dd833d55af4a1eb51343186807f30468c06d2325"
+            },
+            {
+              "kind": "eq",
+              "count": 190,
+              "sha256": "786e938838c2155edfbd4753ce4e7e6562ad68125166a5886be343c228a490e7"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 168,
+              "sha256": "834d0426a5d90fe5d6b1afef07555505ce46e58e21586165a2381e65bebd102d"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 236,
+              "sha256": "b2fd0603092a5ca28893eb64c242029bc502a2acc27d598f85f1eba8b094ac78"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 1680,
+              "sha256": "df0a335fa9af52c695d5d10085722c4c6608099a63a2179945e6b58379029fe8"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "2e8957a0906877330cf20a521820ecbec325da6c52950d90c3287f25a1b95f68"
+        }
+      },
+      {
+        "stage": "input_0.verify.oods_values_mixed",
+        "circuit": {
+          "n_vars": 170776,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 29677,
+              "sha256": "3fa2b8fa20c384df492b94624396735271ba90f048dc9b04f3ffb04e0ae4599c"
+            },
+            {
+              "kind": "sub",
+              "count": 238,
+              "sha256": "c5aaaa878cbe264c1d85a454488eed7782d36a105f2c5d43cf2c63ce8ce0e310"
+            },
+            {
+              "kind": "mul",
+              "count": 31262,
+              "sha256": "6f43b27f02b81445d5782acb57ecc8c5c2d3c1dd68b94d4ea2ffd6e8f72a268f"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 2244,
+              "sha256": "8db9881112b37193a065455ba5bdfd3229e57e494b99fa3eefd0975d377d9a72"
+            },
+            {
+              "kind": "eq",
+              "count": 190,
+              "sha256": "786e938838c2155edfbd4753ce4e7e6562ad68125166a5886be343c228a490e7"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 904,
+              "sha256": "81810064eda17b8b28629f172b7038b4d9bcf835927e3eaec9aced080a17adf0"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 1696,
+              "sha256": "dbdba4c7ab1f63f2bfa9ef4e3e285772aa74e66bc6be94bd6f808ebb419d91b9"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 9040,
+              "sha256": "f2a574855a0d2492595729dd20c3f22ee82787986c66ba538d46ea8f377217c7"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "462b18c6138faa9b7fe2290f539a6cef97002f70c00b90cd3553e4d2355fabff"
+        }
+      },
+      {
+        "stage": "input_0.verify.composition_polynomial",
+        "circuit": {
+          "n_vars": 172308,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 30239,
+              "sha256": "612e89c0604765d0da3744de478af03eaa2e37c53ad77f6ac1a8f967821200d1"
+            },
+            {
+              "kind": "sub",
+              "count": 514,
+              "sha256": "f05249e9ee6a974e5906afd5f4b0cdcc63a50659a21aab65e9cc9d37c6ecca36"
+            },
+            {
+              "kind": "mul",
+              "count": 31922,
+              "sha256": "7902694abd2cb854d8f0c735f6325b2ee424cc9ba807a5b345f3e239f173bf59"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 2249,
+              "sha256": "683d17cfa2936253e947ab6efd5f05af3c478149983e8a0c1a03a8c1ae4fec58"
+            },
+            {
+              "kind": "eq",
+              "count": 207,
+              "sha256": "98ba176ca1bd2309286b3dbf71f0c37da0c742993e81b0dc92797e1aff7dd37e"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 904,
+              "sha256": "81810064eda17b8b28629f172b7038b4d9bcf835927e3eaec9aced080a17adf0"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 1696,
+              "sha256": "dbdba4c7ab1f63f2bfa9ef4e3e285772aa74e66bc6be94bd6f808ebb419d91b9"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 9040,
+              "sha256": "f2a574855a0d2492595729dd20c3f22ee82787986c66ba538d46ea8f377217c7"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "48b153674d87a154e86bb03ab7aa5f385e167240a488d88c586c442fbcf9dc50"
+        }
+      },
+      {
+        "stage": "input_0.verify.composition_check",
+        "circuit": {
+          "n_vars": 172382,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 30266,
+              "sha256": "5a5dd818106c74adc1bb90e5d610f68eb289c5c7632bda43f54443b8aa236d50"
+            },
+            {
+              "kind": "sub",
+              "count": 534,
+              "sha256": "97b9785abad7e21c8fa9f84fd529b7f3d6dd9e04093d8536607f7820a93700da"
+            },
+            {
+              "kind": "mul",
+              "count": 31949,
+              "sha256": "f7ab07c0723924fd6b3ce56c629dea4704319a852fa9f648ece8aa55cffe6d9e"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 2249,
+              "sha256": "683d17cfa2936253e947ab6efd5f05af3c478149983e8a0c1a03a8c1ae4fec58"
+            },
+            {
+              "kind": "eq",
+              "count": 208,
+              "sha256": "0f97809fd9aa6614561232da1997075300ee13853c2b3a6fb0ae9b55af5720b1"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 904,
+              "sha256": "81810064eda17b8b28629f172b7038b4d9bcf835927e3eaec9aced080a17adf0"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 1696,
+              "sha256": "dbdba4c7ab1f63f2bfa9ef4e3e285772aa74e66bc6be94bd6f808ebb419d91b9"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 9040,
+              "sha256": "f2a574855a0d2492595729dd20c3f22ee82787986c66ba538d46ea8f377217c7"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "45fcc68a30b5b4fef21ae424854577098e265ab9b18b60a0a7636d3619d94232"
+        }
+      },
+      {
+        "stage": "input_0.verify.fri_commit",
+        "circuit": {
+          "n_vars": 178098,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 30462,
+              "sha256": "96b9e3caf24cc7635642336572498ced61fe5ca934669f907e9823dc2f7e486c"
+            },
+            {
+              "kind": "sub",
+              "count": 534,
+              "sha256": "97b9785abad7e21c8fa9f84fd529b7f3d6dd9e04093d8536607f7820a93700da"
+            },
+            {
+              "kind": "mul",
+              "count": 32365,
+              "sha256": "ebde4a24cea0913fd06e1d01dc0a54863cfc1219076c5c8f9143978686b10ab4"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 2617,
+              "sha256": "fd4b1a780b570468c4132738f8b36306daceff7aa98a955273365e117df19624"
+            },
+            {
+              "kind": "eq",
+              "count": 208,
+              "sha256": "0f97809fd9aa6614561232da1997075300ee13853c2b3a6fb0ae9b55af5720b1"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 1016,
+              "sha256": "6f6ac3746fe41e3853a1312186148c30ddcafe0145a97a518f5201e5b6e91f81"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 1840,
+              "sha256": "0338928bda796d1bfc4d554e78b43f608028aa9c5455fc3eaa58e5e84d40bd6f"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 10160,
+              "sha256": "dd70ca92b87918937c9c3ccc6645fe0ba959d06f20a7b2bc77fb9540f7728471"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "ca474e233842a3790e2c5a931a8d9a078e30f0e90854103d2417989c8098992d"
+        }
+      },
+      {
+        "stage": "input_0.verify.fri_pow",
+        "circuit": {
+          "n_vars": 179540,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 30504,
+              "sha256": "54af9f2b0d9883119f88e1091e1a6d695a5fcba56411e18d305195762839fc49"
+            },
+            {
+              "kind": "sub",
+              "count": 597,
+              "sha256": "a5f29a8a4ce49a6776e64cd6f57b8e3e06efdba5a5333aa3e85d3cb5fa44af39"
+            },
+            {
+              "kind": "mul",
+              "count": 32491,
+              "sha256": "c09fb60f13cd0825ff5c5eb1e478edfa1fe1ec1766587c03d865e069a0a791be"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 2772,
+              "sha256": "97bd643f5fdacb153a93ce1dffe1c57635bca27f1eb0d5cbf8dbfb0cc51f0c3b"
+            },
+            {
+              "kind": "eq",
+              "count": 268,
+              "sha256": "9ac0e6258fd746afb4b2d828670507d064bac696833805ce5b0834b69b659c64"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 1040,
+              "sha256": "ca62f3bf346e47d98dbb90b214fba729bc2b52f5bbd26464bed9a392130b348c"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 1880,
+              "sha256": "bc5a94e3c659aaf2315183eae3ffbadc887437f0a343c39d6807efc709654ffa"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 10400,
+              "sha256": "eeabf31ababfdf8a4058cbb97cf13dcf8d93980cdf0951379d4979a76e85c75d"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "ec6f04c8b3578c679b2a6b61fe3a29f80e83cc7d3bf79a94061b011f8024be41"
+        }
+      },
+      {
+        "stage": "input_0.verify.select_queries",
+        "circuit": {
+          "n_vars": 183318,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 30966,
+              "sha256": "98b400e7c2d365d5a8ccf2b25ded29e3387005dd0253a542609ec0a49a2abb3a"
+            },
+            {
+              "kind": "sub",
+              "count": 1241,
+              "sha256": "ff2f1391f2dcde13f4b5da738bb071b08fa2468068bb7b1bfa746152106bbc6c"
+            },
+            {
+              "kind": "mul",
+              "count": 32764,
+              "sha256": "74ffb0497fb61c1ba78443c396da619f6fc3689131c11ed35673e68ea89b3911"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 3920,
+              "sha256": "344dbbcce5d5bf917501addcb3e82d9309aca1ac9978fe52f12f2341380de128"
+            },
+            {
+              "kind": "eq",
+              "count": 460,
+              "sha256": "0d837c0976ddd3a60104c2c29baf209cd504ce2ea25ef83343a48062fccc5738"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 1064,
+              "sha256": "6db20a144af87f11010fbd51f69ddf9225bf82d0734c6ead71368445f67e58f9"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 1916,
+              "sha256": "544a1d39ba88b24685ce74b37c7186ca748afc4f5796ea04453011f4dc100c52"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 10640,
+              "sha256": "0e8101c7b6fb19440dfbd2fb62ad48a63fda1f48551b3df564dd56c7c88432c4"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "dd69a8959ee6bf91f2803a207e9a3bbec5ac3007026108836052ae8194cab828"
+        }
+      },
+      {
+        "stage": "input_0.verify.query_bits",
+        "circuit": {
+          "n_vars": 184297,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 30966,
+              "sha256": "98b400e7c2d365d5a8ccf2b25ded29e3387005dd0253a542609ec0a49a2abb3a"
+            },
+            {
+              "kind": "sub",
+              "count": 1241,
+              "sha256": "ff2f1391f2dcde13f4b5da738bb071b08fa2468068bb7b1bfa746152106bbc6c"
+            },
+            {
+              "kind": "mul",
+              "count": 33180,
+              "sha256": "ee0f19f165bef4a99a79b149a26496ea9c947474b136c6c66efeccc250bfec3f"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 4483,
+              "sha256": "4a21749f48f66ccae6bb7fdecf6cceed9a3660bc6143125bce0f5d7cf0d8bbc3"
+            },
+            {
+              "kind": "eq",
+              "count": 460,
+              "sha256": "0d837c0976ddd3a60104c2c29baf209cd504ce2ea25ef83343a48062fccc5738"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 1064,
+              "sha256": "6db20a144af87f11010fbd51f69ddf9225bf82d0734c6ead71368445f67e58f9"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 1916,
+              "sha256": "544a1d39ba88b24685ce74b37c7186ca748afc4f5796ea04453011f4dc100c52"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 10640,
+              "sha256": "0e8101c7b6fb19440dfbd2fb62ad48a63fda1f48551b3df564dd56c7c88432c4"
+            },
+            {
+              "kind": "permutation",
+              "count": 0,
+              "sha256": "fdd24e34ebae1b2a7f65605f979727b29441aea55e634e49d28ba8a65acf52a9"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "86f9640952c5d641dabd12be739f8818eeb3b521d0f41ed59542974a26500205"
+        }
+      },
+      {
+        "stage": "input_0.verify.merkle_decommit",
+        "circuit": {
+          "n_vars": 1182030,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 55209,
+              "sha256": "9210994e2a01a7d1cae86149c8c3772d6e9fc631f5c74d9e1cd8e224a5b655ce"
+            },
+            {
+              "kind": "sub",
+              "count": 43751,
+              "sha256": "4a5080054ef01ebf373a67d79114c0990c36a506a7d159e7f0ed2fb4d956288d"
+            },
+            {
+              "kind": "mul",
+              "count": 52612,
+              "sha256": "efe78bb655444bc7ce9e9ed74adc4a347af16eb63371e998ccd793745946b604"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 11468,
+              "sha256": "81675b60a30e48750808b281af3485ee58e442ab35dced17eba416ee85924c93"
+            },
+            {
+              "kind": "eq",
+              "count": 7890,
+              "sha256": "6b8edaa77bd2a11d2c90603cbc18365c97c49c73701f7f89993569d2c832baaa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 22776,
+              "sha256": "9d48bdbb5e9041cfe8daa872db1e1b72c90553254878c1ca89e9afc79007f854"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 9253,
+              "sha256": "fa45806cba271029f0911acfceaa12d4c169dce1f011c23620f615db6fecb80f"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 227760,
+              "sha256": "291382e150a079665b7e13f44e9fe4cddf37b4a67b20388f17901ac88003505f"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "d989e9d51731d1ad8e8af44c874b6f11bb2cb830f2c4b7d4b759543cbdbc580f"
+        }
+      },
+      {
+        "stage": "input_0.verify.oods_responses",
+        "circuit": {
+          "n_vars": 1182506,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 55389,
+              "sha256": "610dde79d3576ebaa05a078139fa7d50b029baf604687f3fd874c91ebf3e9174"
+            },
+            {
+              "kind": "sub",
+              "count": 43784,
+              "sha256": "a61e2291069e1bc58b8257f42385bdaff750f8cafe745404fa36fb17067cf943"
+            },
+            {
+              "kind": "mul",
+              "count": 52850,
+              "sha256": "1d9cba000e33fb285b7480d3273dfbef2f720c542480b9f3d08b4798a3616ba5"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 11490,
+              "sha256": "a5652a16b4502f40a704febe07c713bbe622a98bb66c87cb75e3037a2469f9a0"
+            },
+            {
+              "kind": "eq",
+              "count": 7890,
+              "sha256": "6b8edaa77bd2a11d2c90603cbc18365c97c49c73701f7f89993569d2c832baaa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 22776,
+              "sha256": "9d48bdbb5e9041cfe8daa872db1e1b72c90553254878c1ca89e9afc79007f854"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 9253,
+              "sha256": "fa45806cba271029f0911acfceaa12d4c169dce1f011c23620f615db6fecb80f"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 227760,
+              "sha256": "291382e150a079665b7e13f44e9fe4cddf37b4a67b20388f17901ac88003505f"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "e07d29bedbfd00814581bedc497b72f65274b0ce7dc3f909587150e5aa834a64"
+        }
+      },
+      {
+        "stage": "input_0.verify.fri_input",
+        "circuit": {
+          "n_vars": 1206917,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 57051,
+              "sha256": "20e51593786f51561cd4c40318455b3c3869d295e089975531798846bfe772a6"
+            },
+            {
+              "kind": "sub",
+              "count": 53470,
+              "sha256": "e616f4f822ec9315ce32af2dd23efea5c856c484d8d7a22148cee08e881ae61e"
+            },
+            {
+              "kind": "mul",
+              "count": 65133,
+              "sha256": "42981c872c33179b93f0bca310cd6c38a8e4af694c18526957ed50077baa4afd"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 11969,
+              "sha256": "9c46f3b89a8243706229069948a30a13e8b28afad8dd34a8a7782f03ee0a4f2a"
+            },
+            {
+              "kind": "eq",
+              "count": 8190,
+              "sha256": "3c2d006a719cd9525270f130b4316562092b40ccfb8b020d30df42495b4c664d"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 22776,
+              "sha256": "9d48bdbb5e9041cfe8daa872db1e1b72c90553254878c1ca89e9afc79007f854"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 9253,
+              "sha256": "fa45806cba271029f0911acfceaa12d4c169dce1f011c23620f615db6fecb80f"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 227760,
+              "sha256": "291382e150a079665b7e13f44e9fe4cddf37b4a67b20388f17901ac88003505f"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "7568c0eb00cbb4b7e194f84acede856acee446a9fb831bf9913fcd203db43bc1"
+        }
+      },
+      {
+        "stage": "input_0.verify.fri_decommit",
+        "circuit": {
+          "n_vars": 2058238,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 74853,
+              "sha256": "dd424c1a0000c47bd9a9bd2f9a86c22a022a4349cf3825965177e0eb98bd625d"
+            },
+            {
+              "kind": "sub",
+              "count": 79839,
+              "sha256": "9440ec86be4674208ac0dcdc8731b8dbfd482d9ba5e904edf15abddd97556ddc"
+            },
+            {
+              "kind": "mul",
+              "count": 90682,
+              "sha256": "4f75cce4a81ddedae6c4ea4188d2117f5d0ccc84b8c732be7ec8411480b9c0c6"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23649,
+              "sha256": "7618d97f24fd244234132619d567def80d80db3e6a350674a0f8f587db87da48"
+            },
+            {
+              "kind": "eq",
+              "count": 9887,
+              "sha256": "709be0c920936e6cfcf1d4b8b3c7b34ae27312cdf7c6906c5e72154899fe5bfa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41360,
+              "sha256": "8ef1c67bdebcebd171a302b299ae85a9d7c718ede7e7d5e289dbc92f5ef816a5"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16797,
+              "sha256": "4409f97b390f0edcb935d508abe7d209a6bef5a0157fbe7f2754e9e860ae0008"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 413600,
+              "sha256": "db5ff204a374d2862afc7f20b6fc3e628b0106d8cbc49762d678bf0c74b32558"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "6cebad79321c9b976c2d7ee66706a81af7fb825c84b56290bc55fb46d9c02cab"
+        }
+      },
+      {
+        "stage": "input_1.guess_output_digest_and_root",
+        "circuit": {
+          "n_vars": 2058302,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 74869,
+              "sha256": "669786c3263a8fd27fb36ae3d7e422befec543d60cb0cd5ae4a0ca053aeef964"
+            },
+            {
+              "kind": "sub",
+              "count": 79839,
+              "sha256": "9440ec86be4674208ac0dcdc8731b8dbfd482d9ba5e904edf15abddd97556ddc"
+            },
+            {
+              "kind": "mul",
+              "count": 90698,
+              "sha256": "faa339af6750b67381c411b4803bc2031dfe6018a26a6a12a7535e5adf1317fd"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23649,
+              "sha256": "7618d97f24fd244234132619d567def80d80db3e6a350674a0f8f587db87da48"
+            },
+            {
+              "kind": "eq",
+              "count": 9887,
+              "sha256": "709be0c920936e6cfcf1d4b8b3c7b34ae27312cdf7c6906c5e72154899fe5bfa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41360,
+              "sha256": "8ef1c67bdebcebd171a302b299ae85a9d7c718ede7e7d5e289dbc92f5ef816a5"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16797,
+              "sha256": "4409f97b390f0edcb935d508abe7d209a6bef5a0157fbe7f2754e9e860ae0008"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 413600,
+              "sha256": "db5ff204a374d2862afc7f20b6fc3e628b0106d8cbc49762d678bf0c74b32558"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "4d6db10dd44b73fee04eec685b0d466062ce08e933f849446d0e47c1e65f6fe8"
+        }
+      },
+      {
+        "stage": "input_1.statement",
+        "circuit": {
+          "n_vars": 2058630,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 74869,
+              "sha256": "669786c3263a8fd27fb36ae3d7e422befec543d60cb0cd5ae4a0ca053aeef964"
+            },
+            {
+              "kind": "sub",
+              "count": 79839,
+              "sha256": "9440ec86be4674208ac0dcdc8731b8dbfd482d9ba5e904edf15abddd97556ddc"
+            },
+            {
+              "kind": "mul",
+              "count": 90698,
+              "sha256": "faa339af6750b67381c411b4803bc2031dfe6018a26a6a12a7535e5adf1317fd"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23649,
+              "sha256": "7618d97f24fd244234132619d567def80d80db3e6a350674a0f8f587db87da48"
+            },
+            {
+              "kind": "eq",
+              "count": 9887,
+              "sha256": "709be0c920936e6cfcf1d4b8b3c7b34ae27312cdf7c6906c5e72154899fe5bfa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41368,
+              "sha256": "2b696aa8b993cda3613f84c1745e0a57d19ccd9a6559e96566ef2f91924c4231"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16797,
+              "sha256": "4409f97b390f0edcb935d508abe7d209a6bef5a0157fbe7f2754e9e860ae0008"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 413680,
+              "sha256": "c8bc675912fc05d70a0a6d57457941729ff54415b9a0a4702fddc0985e9bf17c"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "fcdfa7c6100448f759dc7ec92de0ae46cad08b02449b72bb689b09ba19010804"
+        }
+      },
+      {
+        "stage": "input_1.guess_proof",
+        "circuit": {
+          "n_vars": 2185543,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104197,
+              "sha256": "b87d8dfa97fc62f73b891075b683925182cd789ae1911ac9612ddd04d3c822d3"
+            },
+            {
+              "kind": "sub",
+              "count": 79839,
+              "sha256": "9440ec86be4674208ac0dcdc8731b8dbfd482d9ba5e904edf15abddd97556ddc"
+            },
+            {
+              "kind": "mul",
+              "count": 120026,
+              "sha256": "c9ec7658f735246e27d51809704d40655cd0f09d40bbf0430751e066028aa829"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23649,
+              "sha256": "7618d97f24fd244234132619d567def80d80db3e6a350674a0f8f587db87da48"
+            },
+            {
+              "kind": "eq",
+              "count": 9887,
+              "sha256": "709be0c920936e6cfcf1d4b8b3c7b34ae27312cdf7c6906c5e72154899fe5bfa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41368,
+              "sha256": "2b696aa8b993cda3613f84c1745e0a57d19ccd9a6559e96566ef2f91924c4231"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16797,
+              "sha256": "4409f97b390f0edcb935d508abe7d209a6bef5a0157fbe7f2754e9e860ae0008"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 413680,
+              "sha256": "c8bc675912fc05d70a0a6d57457941729ff54415b9a0a4702fddc0985e9bf17c"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "34127030fe7ce315abf93e4e5f18a0780ed74dd4e1d2fa62294f5b481ad47dec"
+        }
+      },
+      {
+        "stage": "input_1.verify.channel_salt_and_fri_config",
+        "circuit": {
+          "n_vars": 2186380,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104225,
+              "sha256": "c9516a5a71dc51af9e2fa5e66cbabe6b46fc4a7c7923cab56551ce67450a6501"
+            },
+            {
+              "kind": "sub",
+              "count": 79839,
+              "sha256": "9440ec86be4674208ac0dcdc8731b8dbfd482d9ba5e904edf15abddd97556ddc"
+            },
+            {
+              "kind": "mul",
+              "count": 120091,
+              "sha256": "08980879468b4d75a5e92d7a6eafabedf94db9ec193c72edf4a6f52eb875df03"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23709,
+              "sha256": "3f247eebc7268e46f9f14f1ffe6f705cb483d7b8513fd74184a1242f64abeb0c"
+            },
+            {
+              "kind": "eq",
+              "count": 9887,
+              "sha256": "709be0c920936e6cfcf1d4b8b3c7b34ae27312cdf7c6906c5e72154899fe5bfa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41384,
+              "sha256": "1eca47d5d0ffe10eacbb1b18d0775ba68ed55360bd7e507fba6c8665edc24894"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16825,
+              "sha256": "ad8f16685e155f5b191ae73c73f3e5276aa8f5b283137e3eb31dad635a041899"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 413840,
+              "sha256": "a23ce9edeb9e8350025f1f85db28091054b84fac1ff64b1cf2740954a3ac1302"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "152f338fb967a71625d29138976faefe5bc6218142fa7f0b3e05f50ad82d1c8a"
+        }
+      },
+      {
+        "stage": "input_1.verify.preprocessed_root",
+        "circuit": {
+          "n_vars": 2186782,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104239,
+              "sha256": "cc51d2d87a1a7699941cd72554960367f8c3f4990fc0c9e74499437789d99b22"
+            },
+            {
+              "kind": "sub",
+              "count": 79839,
+              "sha256": "9440ec86be4674208ac0dcdc8731b8dbfd482d9ba5e904edf15abddd97556ddc"
+            },
+            {
+              "kind": "mul",
+              "count": 120119,
+              "sha256": "534c8f642636a429e5a66c1ad22c8930ee2a343310dcba3fda6883dbb4deedaf"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23733,
+              "sha256": "13a3bc1cbaa65ea07199b836fafb9cde2fc63e3752de6e42dc6a539f228dc4d5"
+            },
+            {
+              "kind": "eq",
+              "count": 9887,
+              "sha256": "709be0c920936e6cfcf1d4b8b3c7b34ae27312cdf7c6906c5e72154899fe5bfa"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41392,
+              "sha256": "050520069d2dbe067e4192c0cec7f2ffb6b79ad3f0e6dd6299a583012595f692"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16833,
+              "sha256": "3c84ebd0e8449ee04b350235ab0620fae38b5dfeafe4ecbe561583650ddbbfb4"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 413920,
+              "sha256": "95c09c0888b7114346928783e5a0673978c0b19b2d413595bf09cee75c6c3c4d"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "f904cfdbda0d2e6543be2219c6fa077ab0103db4f1145d6b2ac8285e0681b19c"
+        }
+      },
+      {
+        "stage": "input_1.verify.component_sizes",
+        "circuit": {
+          "n_vars": 2187270,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104254,
+              "sha256": "ea0edb8b261c027faee277af4f3bbd8b83a015b85f69668ba8797e4ab38fdd84"
+            },
+            {
+              "kind": "sub",
+              "count": 79976,
+              "sha256": "c1beacfcfb7632b9b243cce70c502d9e49ca7e15b0596918efb9a88ccebe753c"
+            },
+            {
+              "kind": "mul",
+              "count": 120225,
+              "sha256": "b6c3b95d036af47347d96bd42be21470a9769172e10aef1363a80d09021aadd4"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23876,
+              "sha256": "ba3fbd18b75a8a05b50d3978e645f0d2bd74bba90a755f2a978b61c0cb0ed764"
+            },
+            {
+              "kind": "eq",
+              "count": 9983,
+              "sha256": "499107d77b025ce5d4c959eea80c6f39237a763f42e299fcf4ecd66fd7bcc1d1"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41392,
+              "sha256": "050520069d2dbe067e4192c0cec7f2ffb6b79ad3f0e6dd6299a583012595f692"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16833,
+              "sha256": "3c84ebd0e8449ee04b350235ab0620fae38b5dfeafe4ecbe561583650ddbbfb4"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 413920,
+              "sha256": "95c09c0888b7114346928783e5a0673978c0b19b2d413595bf09cee75c6c3c4d"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "a61237340e7e175d77c1097e25033a6e3ef110c1cd311dcd05882425baa27f0f"
+        }
+      },
+      {
+        "stage": "input_1.verify.claims_mixed",
+        "circuit": {
+          "n_vars": 2188818,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104282,
+              "sha256": "bb9bce48de96d310bf1a4c58e1497ee4609797546990c5e5479a9b21924e1a13"
+            },
+            {
+              "kind": "sub",
+              "count": 79976,
+              "sha256": "c1beacfcfb7632b9b243cce70c502d9e49ca7e15b0596918efb9a88ccebe753c"
+            },
+            {
+              "kind": "mul",
+              "count": 120305,
+              "sha256": "d7d572fdf4bd2983baae21d7b2a0411a68dcf4e509e29c5d9e3ccc4d0eb9d119"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 23956,
+              "sha256": "2a6578c977ff6b84c4f6ad960bd2e259c3a81fbfb639892b56c5eda61f8da29f"
+            },
+            {
+              "kind": "eq",
+              "count": 9983,
+              "sha256": "499107d77b025ce5d4c959eea80c6f39237a763f42e299fcf4ecd66fd7bcc1d1"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41424,
+              "sha256": "1d9cf39b13aa640cf1bd3992d7d7f39f2d8de18040e09da4c079f9eb7123ef69"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16881,
+              "sha256": "fa5e4e6d180eb7388486333fb051f081fb2873f4053ed9f6cbef150d3ab42292"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 414240,
+              "sha256": "8055b75cc363f3fe70a016081377a2a77c04c5117845583efcbe9de8d1e239b5"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "45b85d9ad50d6223aefc7e27b5187939d7f07322c2238af2fdf9d71ca6745a02"
+        }
+      },
+      {
+        "stage": "input_1.verify.trace_root_and_interaction_pow",
+        "circuit": {
+          "n_vars": 2190661,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104338,
+              "sha256": "215ee9d84a857898e5c781053795958ebf2b012f1a2d787bceeac8b299f23ae0"
+            },
+            {
+              "kind": "sub",
+              "count": 80039,
+              "sha256": "6b2009b209a25f34678d5e4f549f3ddd8d15239b51c961a5a6fef3f78c11f8e8"
+            },
+            {
+              "kind": "mul",
+              "count": 120459,
+              "sha256": "c4e99b6f992f1b8889006b896453d9758d5154d01af5c40f4844d2e7a8564911"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 24135,
+              "sha256": "c40e2026dd660a2192234a64389adf7edba89891704931366658833b90bc9735"
+            },
+            {
+              "kind": "eq",
+              "count": 10036,
+              "sha256": "bb5f578d299afdfee05322d5d247b2218682c7da2bc3a5cf25f62d64420aa48c"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41456,
+              "sha256": "4a832bb2ca79fb55ef1bf9c719a634ca2eb399712586dc1a5df5b243380f45db"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16929,
+              "sha256": "f980fa53d0aa2245b8462a11cc9159b27a1e1457b56afae8a4d5f0e0a22b1746"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 414560,
+              "sha256": "a111c17de3ee15261403a56e318d392682161f50f402b4a911fb892ce92db420"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "77f4df8d409dac93c1c670e366d8813f3bbf2cadd8ebd765b7475266abd9f049"
+        }
+      },
+      {
+        "stage": "input_1.verify.interaction_elements",
+        "circuit": {
+          "n_vars": 2191074,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104352,
+              "sha256": "2d5eac33ffa8e612ff3cf047db66db98de8eaf3c8853bbf22d113d74f02b3f88"
+            },
+            {
+              "kind": "sub",
+              "count": 80039,
+              "sha256": "6b2009b209a25f34678d5e4f549f3ddd8d15239b51c961a5a6fef3f78c11f8e8"
+            },
+            {
+              "kind": "mul",
+              "count": 120490,
+              "sha256": "e61113bb959a8b89be168b190ff93e302e3f3217ac09998144d137fbfb63f61e"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 24163,
+              "sha256": "caa416ae89a31572e2ceafcd67eeafd704b9ac130187cfdb7e0ad6b72b5b1434"
+            },
+            {
+              "kind": "eq",
+              "count": 10036,
+              "sha256": "bb5f578d299afdfee05322d5d247b2218682c7da2bc3a5cf25f62d64420aa48c"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41464,
+              "sha256": "a0b83d3b97a0e383972bef3928df34f19b7e21f916100a589b77e333a8ff1be3"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16941,
+              "sha256": "b0fa360d085f3aeac0646bb13313270d62fc6d677ff1a19aa6c491382c7efde7"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 414640,
+              "sha256": "73f0b51162d98eba57411e19d25404cd385f60d335f666bdaffdd1900c3319de"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "1cd309d9385e5b972684e2c0cdc15cea9a0d336be78de269d83e0d6b9e3d08f5"
+        }
+      },
+      {
+        "stage": "input_1.verify.logup_sum",
+        "circuit": {
+          "n_vars": 2191273,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104416,
+              "sha256": "0bfa21ec510af69e39941af4b88778a94ea8b44e177ee208cf69ac8b7a3d752d"
+            },
+            {
+              "kind": "sub",
+              "count": 80048,
+              "sha256": "35b8c3f7a4879ced728927939faef5313d40df4f0c938425f300dd4a8a949a8e"
+            },
+            {
+              "kind": "mul",
+              "count": 120571,
+              "sha256": "e463a800bd63fc459ea91e7eca34a879d06b4ec6cc189cf804d27cdbab965c2f"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 24199,
+              "sha256": "88366657e7c62585eae879639a3af97d48bc078faa01020b185f8cc8dfded6d0"
+            },
+            {
+              "kind": "eq",
+              "count": 10046,
+              "sha256": "64b2802fc089ff044d9cdf9a1adae08d41119d8a5c730aae07b367ce92cb7fbd"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41464,
+              "sha256": "a0b83d3b97a0e383972bef3928df34f19b7e21f916100a589b77e333a8ff1be3"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 16941,
+              "sha256": "b0fa360d085f3aeac0646bb13313270d62fc6d677ff1a19aa6c491382c7efde7"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 414640,
+              "sha256": "73f0b51162d98eba57411e19d25404cd385f60d335f666bdaffdd1900c3319de"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "537e7671ffff4a1885e5fff79e435e09e40f14408b93f8d756813934032d460b"
+        }
+      },
+      {
+        "stage": "input_1.verify.composition_coeff_and_oods_point",
+        "circuit": {
+          "n_vars": 2194418,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104487,
+              "sha256": "b3bfffddda0b6accff465589025c8c353b5dd273646994ba2433e30e4f974723"
+            },
+            {
+              "kind": "sub",
+              "count": 80049,
+              "sha256": "1b66b329f515a828156e4b2ad7e7282ce6efcc270d456a7b708ee9353ae7fab0"
+            },
+            {
+              "kind": "mul",
+              "count": 120755,
+              "sha256": "74ad678a044b9eefcf4d97b29874101454e4f04a98f573a09d42d7c2bee2380f"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 24371,
+              "sha256": "9121efee4e2c7e84c1dc85d51526da22336a49ef3cd4d5a3f829992bc26ce548"
+            },
+            {
+              "kind": "eq",
+              "count": 10047,
+              "sha256": "26f6497c38282fd3db5f58afa3b3a184c03c495aa257dbb4e1ec92c4aae2f0cd"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41528,
+              "sha256": "20b3b4f5d3c08aa6d5fe5753da9e37fa6e21a0f2fe184517bedf5bdf567fd7fe"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 17033,
+              "sha256": "32c2df8afa13ef5ff525e399b1239bf78ab8d021d169a6d79fae282d8d2a21a2"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 415280,
+              "sha256": "462ece28ba5ba052ce6246a5a066bd70adb7b1c87174958458e9b7ac1ea721a4"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "59c7c192e0e8fb224ed14c01df81c948a683fa71245e77def36fa94306f21a5e"
+        }
+      },
+      {
+        "stage": "input_1.verify.check_relation_uses",
+        "circuit": {
+          "n_vars": 2194602,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104516,
+              "sha256": "9a81066ad0241a3354d2441c08decb32d3e5f5292d13343758303fbe7ce82f41"
+            },
+            {
+              "kind": "sub",
+              "count": 80077,
+              "sha256": "ce46dd66a0b0e37c626aa81ba0e34409f487b8742dae76f17f290beace41157b"
+            },
+            {
+              "kind": "mul",
+              "count": 120819,
+              "sha256": "8cbf5f478c5617b19910d52eb4245efc5ac05a76d122009d6c887e973efab3f8"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 24406,
+              "sha256": "86af45a929b895c049a87e3e51b9079c2c8bc1dd8343cf042aa358b5fb9c1b87"
+            },
+            {
+              "kind": "eq",
+              "count": 10077,
+              "sha256": "5f300feca5a54f3f978262ea3a4bd682315aa7c56fa85e34f555b0edaeb17bc6"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41528,
+              "sha256": "20b3b4f5d3c08aa6d5fe5753da9e37fa6e21a0f2fe184517bedf5bdf567fd7fe"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 17033,
+              "sha256": "32c2df8afa13ef5ff525e399b1239bf78ab8d021d169a6d79fae282d8d2a21a2"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 415280,
+              "sha256": "462ece28ba5ba052ce6246a5a066bd70adb7b1c87174958458e9b7ac1ea721a4"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "20f4f6a47595ad974e002b4012db5a6156532691ba37b12a022a2cae01891c47"
+        }
+      },
+      {
+        "stage": "input_1.verify.verify_claim",
+        "circuit": {
+          "n_vars": 2194621,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104516,
+              "sha256": "9a81066ad0241a3354d2441c08decb32d3e5f5292d13343758303fbe7ce82f41"
+            },
+            {
+              "kind": "sub",
+              "count": 80077,
+              "sha256": "ce46dd66a0b0e37c626aa81ba0e34409f487b8742dae76f17f290beace41157b"
+            },
+            {
+              "kind": "mul",
+              "count": 120827,
+              "sha256": "95f07b86228cd362ba6fc96ff14dd17554551c8c7068ba81d72253e45e072ab7"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 24417,
+              "sha256": "f804642312002042760bc406dbae14e20e1501cdb85cf99294aba2bf1366ec42"
+            },
+            {
+              "kind": "eq",
+              "count": 10077,
+              "sha256": "5f300feca5a54f3f978262ea3a4bd682315aa7c56fa85e34f555b0edaeb17bc6"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 41528,
+              "sha256": "20b3b4f5d3c08aa6d5fe5753da9e37fa6e21a0f2fe184517bedf5bdf567fd7fe"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 17033,
+              "sha256": "32c2df8afa13ef5ff525e399b1239bf78ab8d021d169a6d79fae282d8d2a21a2"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 415280,
+              "sha256": "462ece28ba5ba052ce6246a5a066bd70adb7b1c87174958458e9b7ac1ea721a4"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "123cc2d761fd4a5580600beb4126be33203235ffe110cb5ca9676628fd80a463"
+        }
+      },
+      {
+        "stage": "input_1.verify.oods_values_mixed",
+        "circuit": {
+          "n_vars": 2228864,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 104530,
+              "sha256": "d59e85dd50b4095ab5a9a98a44fc7c7033470a36ff605b7e3975b12145221099"
+            },
+            {
+              "kind": "sub",
+              "count": 80077,
+              "sha256": "ce46dd66a0b0e37c626aa81ba0e34409f487b8742dae76f17f290beace41157b"
+            },
+            {
+              "kind": "mul",
+              "count": 121944,
+              "sha256": "7bd3e841dcd4e6d2dc4a0dfa14557082322864045b8b93ac1e592907baa03b54"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 25893,
+              "sha256": "636ffced8e450c59a880d07ff3d7ca494f83c9f22878a92cceebd64c8627caad"
+            },
+            {
+              "kind": "eq",
+              "count": 10077,
+              "sha256": "5f300feca5a54f3f978262ea3a4bd682315aa7c56fa85e34f555b0edaeb17bc6"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 42264,
+              "sha256": "ded2dc380169cec9ba61ba579976ec58a9ffdb48c18e7cad113841867781d1d7"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 18493,
+              "sha256": "c7288cd34bcd2cdf9a27b26bd3a9166b17ccc9e3c5815c3c8a36a1c2011c70fb"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 422640,
+              "sha256": "826bd4c76412b1132fcf7fa8df0e7d2a5e92916e1e7dade53871af1f4ee8ce38"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "737249404fa8045379d7fa238ff27a57ec6449d3692bed3eb3dd064984b5c21f"
+        }
+      },
+      {
+        "stage": "input_1.verify.composition_polynomial",
+        "circuit": {
+          "n_vars": 2230379,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 105092,
+              "sha256": "feae9d18d55d6af7ea572f3ac653101717cd946115b556087b97cd02bb70ecb3"
+            },
+            {
+              "kind": "sub",
+              "count": 80353,
+              "sha256": "7038f51985310864c666b4b6cb13c5ca061c8cfe4f97b91e7236c39467265e44"
+            },
+            {
+              "kind": "mul",
+              "count": 122604,
+              "sha256": "d6301a7e8255d226518a4b772b0badd87d3d67362c3efe60dbfb237425e21810"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 25898,
+              "sha256": "26f2f763cebb8dcf0d3dd42ea984fdc61219b3509691c4f0e168ebe341ab0120"
+            },
+            {
+              "kind": "eq",
+              "count": 10094,
+              "sha256": "22a9b1c9de962382b8ca18dae5fff46155af3118567c8817d2a717a96267c295"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 42264,
+              "sha256": "ded2dc380169cec9ba61ba579976ec58a9ffdb48c18e7cad113841867781d1d7"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 18493,
+              "sha256": "c7288cd34bcd2cdf9a27b26bd3a9166b17ccc9e3c5815c3c8a36a1c2011c70fb"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 422640,
+              "sha256": "826bd4c76412b1132fcf7fa8df0e7d2a5e92916e1e7dade53871af1f4ee8ce38"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "a1bc709350f36d6f9b296f4b74c1e10c4b140cc0e367ff564647e7086c40e33c"
+        }
+      },
+      {
+        "stage": "input_1.verify.composition_check",
+        "circuit": {
+          "n_vars": 2230453,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 105119,
+              "sha256": "f82facbee57aeb3aa98f0fe74bac8067f563dfc5dc72ecae445ae613e26f597e"
+            },
+            {
+              "kind": "sub",
+              "count": 80373,
+              "sha256": "dabafb870f6b789e40a97cf0e85d434d1ce3b8d84dd004b9882de4bfb48a6cde"
+            },
+            {
+              "kind": "mul",
+              "count": 122631,
+              "sha256": "a8df229c0ae020be8ceb9f50cf064c2aa9954c9ccccb0dd04e4223ab00de2406"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 25898,
+              "sha256": "26f2f763cebb8dcf0d3dd42ea984fdc61219b3509691c4f0e168ebe341ab0120"
+            },
+            {
+              "kind": "eq",
+              "count": 10095,
+              "sha256": "19302d82197a6e1df695655b18ecc027692793c2c23eecfb24e127232521f986"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 42264,
+              "sha256": "ded2dc380169cec9ba61ba579976ec58a9ffdb48c18e7cad113841867781d1d7"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 18493,
+              "sha256": "c7288cd34bcd2cdf9a27b26bd3a9166b17ccc9e3c5815c3c8a36a1c2011c70fb"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 422640,
+              "sha256": "826bd4c76412b1132fcf7fa8df0e7d2a5e92916e1e7dade53871af1f4ee8ce38"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "f4e6363066a4c871471285b0ddb84ab7cbcdff8ae198297cf0fabdda66d01c79"
+        }
+      },
+      {
+        "stage": "input_1.verify.fri_commit",
+        "circuit": {
+          "n_vars": 2236169,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 105315,
+              "sha256": "2e95256dc91281d1632cb5cdfb063fe95124d65158f3e8406dd577ba0d3bca2b"
+            },
+            {
+              "kind": "sub",
+              "count": 80373,
+              "sha256": "dabafb870f6b789e40a97cf0e85d434d1ce3b8d84dd004b9882de4bfb48a6cde"
+            },
+            {
+              "kind": "mul",
+              "count": 123047,
+              "sha256": "a1741d7abbdc02f8107c505d14fae268545a9e952aa230c72b4148a5aad4b9e2"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 26266,
+              "sha256": "bf5519e6df0235a9a7a799cd5b68e940ee50aa07197e1d324926be4eeba7eb67"
+            },
+            {
+              "kind": "eq",
+              "count": 10095,
+              "sha256": "19302d82197a6e1df695655b18ecc027692793c2c23eecfb24e127232521f986"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 42376,
+              "sha256": "cc40bb078febed7dbec76e092708dbac2e2d18e1ce013f43412df3d7b06bb88e"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 18637,
+              "sha256": "30dbd594d2e1998d5d94e6b97e5eef3576b66505a8c2facc605388258aaa2d20"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 423760,
+              "sha256": "a58be59020134faaef62707392e0795e2a96987e0e98bf1ba42d5e2e7c839667"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "5959370a121b206c9c824ed55080e560c1a7c84b44eab1ca59b1f6b1d863a733"
+        }
+      },
+      {
+        "stage": "input_1.verify.fri_pow",
+        "circuit": {
+          "n_vars": 2237610,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 105357,
+              "sha256": "bb3584b71cc574e188cb6633ee99805e202f98875eef50e7c1e9612f5c3713f2"
+            },
+            {
+              "kind": "sub",
+              "count": 80436,
+              "sha256": "12af4195426867699488e21affca6e4ae4e254e05a7ae7ad9ae8f891c72b7373"
+            },
+            {
+              "kind": "mul",
+              "count": 123173,
+              "sha256": "ec87178c54dfc7f6217788e77ce431024a4c0961ae9761f813cb1e24cbb4f5ed"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 26421,
+              "sha256": "ffdc75bf3a1587cd3d09a1c2584adb4dc15c471d1100483963d7ad0ce6a8f9e2"
+            },
+            {
+              "kind": "eq",
+              "count": 10155,
+              "sha256": "acdb076a0a150443139c54bf418ea5c4e18e4445232a9d397e3679c20d20d3a0"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 42400,
+              "sha256": "ddd0a7372aa4c5d5f9813a04f4402adfe381cd43020aefe4e33fadfa51cb8352"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 18677,
+              "sha256": "711a451801f0a481d12f2497134e613bebf96e99719bda471693690306d09d27"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 424000,
+              "sha256": "14d2f67b3ada5d6bd3e89a2d517762a4e429951aa7520b694cd427112516ecdd"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "2ea77959e022771d88edc523b1c471bba6acd14f0108511008ba3dc3ed92e65e"
+        }
+      },
+      {
+        "stage": "input_1.verify.select_queries",
+        "circuit": {
+          "n_vars": 2241343,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 105819,
+              "sha256": "cdb542666da3ba00e3a404411a5fc7261a22789ff3a5560589b15c42fd9ab33c"
+            },
+            {
+              "kind": "sub",
+              "count": 81080,
+              "sha256": "e8478d8e17c8b40d44955c6a26cf7614de1e1af0d48af4c665def2a5e0c07831"
+            },
+            {
+              "kind": "mul",
+              "count": 123446,
+              "sha256": "8d93fedb5d3ba98ada94366cbb5bc60799df95f19a70b5cfc7a84e754a1b9da0"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 27569,
+              "sha256": "7a81cca066d247331e9c313a27bd04143beadeb31cc0366331a94f197625d572"
+            },
+            {
+              "kind": "eq",
+              "count": 10347,
+              "sha256": "745a49343348a5952bcff0da8ea09d159ae30e1a33a856b37db9d179746764a1"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 42424,
+              "sha256": "420b0ea7637c32629e1913f11b15a098cf4d658d8cfde181b4beecc443f0806a"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 18713,
+              "sha256": "09090cc299cd676c07cf86616f3ba309c3d46bba5e3367a60ed1018ec8fc6f2d"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 424240,
+              "sha256": "bb14e3b195aa3ca20b8607d826cb9babca66eaad4ec176b213cafdcfe0196830"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "9cfc2a04bf6c002cb2408180627d283176a609b17452c20a7f2ec38c48c7a72f"
+        }
+      },
+      {
+        "stage": "input_1.verify.query_bits",
+        "circuit": {
+          "n_vars": 2242322,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 105819,
+              "sha256": "cdb542666da3ba00e3a404411a5fc7261a22789ff3a5560589b15c42fd9ab33c"
+            },
+            {
+              "kind": "sub",
+              "count": 81080,
+              "sha256": "e8478d8e17c8b40d44955c6a26cf7614de1e1af0d48af4c665def2a5e0c07831"
+            },
+            {
+              "kind": "mul",
+              "count": 123862,
+              "sha256": "36ee2b10f9da36e92cddcf46a33435eedcae4293337cf115abb5a95c59451f9b"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 28132,
+              "sha256": "40ae9ba2db765a53d9afd9a9adb243872e0d776b03e1751d7b8d7aa39fd0709d"
+            },
+            {
+              "kind": "eq",
+              "count": 10347,
+              "sha256": "745a49343348a5952bcff0da8ea09d159ae30e1a33a856b37db9d179746764a1"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 42424,
+              "sha256": "420b0ea7637c32629e1913f11b15a098cf4d658d8cfde181b4beecc443f0806a"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 18713,
+              "sha256": "09090cc299cd676c07cf86616f3ba309c3d46bba5e3367a60ed1018ec8fc6f2d"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 424240,
+              "sha256": "bb14e3b195aa3ca20b8607d826cb9babca66eaad4ec176b213cafdcfe0196830"
+            },
+            {
+              "kind": "permutation",
+              "count": 46,
+              "sha256": "529d005be36469d390dbeea4994c7d83d106f88bfcef619f5b791880315dab58"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "191b05182d58fbc4b404976adee9f5e971bdf0363fc60f9d435d5d5eaf4029c9"
+        }
+      },
+      {
+        "stage": "input_1.verify.merkle_decommit",
+        "circuit": {
+          "n_vars": 3239914,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 130062,
+              "sha256": "0b8e0ae2a15340f59de4d1be68559008db039d0c548f432c91dc9f0ffa620a4f"
+            },
+            {
+              "kind": "sub",
+              "count": 123590,
+              "sha256": "398a3e3434026bde7bafda68b677315aa957662748fecfabf1a8f05b5d0cacb0"
+            },
+            {
+              "kind": "mul",
+              "count": 143294,
+              "sha256": "d48e066d6d65df9db000d9194cbf6e5b52230d43016a34d304f990db0b694233"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 35117,
+              "sha256": "9223e2eeb2cafa7541745a5281ffa78712bd90b48e7abf26f4c259cfb252a625"
+            },
+            {
+              "kind": "eq",
+              "count": 17777,
+              "sha256": "53eda62b22cdf11fea2d3fc8f983523686c3428365e43d7646130c58318b6cf6"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 64136,
+              "sha256": "00820dcdfcc53fc3cf17adc50ab1fc78b202268b9f490f6213f81374bc75b074"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 26050,
+              "sha256": "36fb995909e3f44c83717eb1971f91a7c690e486ed3adfa6a8bb3b89bf866a55"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 641360,
+              "sha256": "28de0d8f660998a21fcb88689c03e7219c9087e5152e1d26cdfbb03cb483a247"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "6486747249d73a1ea1ed58a42e7567bd712645e83e554865975cb62c1679a90a"
+        }
+      },
+      {
+        "stage": "input_1.verify.oods_responses",
+        "circuit": {
+          "n_vars": 3240387,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 130242,
+              "sha256": "f2fcb68afed29d5ce2d3f8d65dcc60e838548e543e392b5d966d11fda2c3eb32"
+            },
+            {
+              "kind": "sub",
+              "count": 123623,
+              "sha256": "21d7f053ef5383ec9c9a8b7bdc5cc1642af957ee50657a84ea2fa78f05da3505"
+            },
+            {
+              "kind": "mul",
+              "count": 143532,
+              "sha256": "1e04a3c9ec1c35fc8926a22686c9ef73b2238d85717b715e36a87447479f3c85"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 35139,
+              "sha256": "b8f4101cf152e5dc62531a702b4544e2d53a806e4d36caeaf1ae36221c4a1f31"
+            },
+            {
+              "kind": "eq",
+              "count": 17777,
+              "sha256": "53eda62b22cdf11fea2d3fc8f983523686c3428365e43d7646130c58318b6cf6"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 64136,
+              "sha256": "00820dcdfcc53fc3cf17adc50ab1fc78b202268b9f490f6213f81374bc75b074"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 26050,
+              "sha256": "36fb995909e3f44c83717eb1971f91a7c690e486ed3adfa6a8bb3b89bf866a55"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 641360,
+              "sha256": "28de0d8f660998a21fcb88689c03e7219c9087e5152e1d26cdfbb03cb483a247"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "80cfca204a1d4f30c35658e16484593c93e9c1f1cf6a67f45c8f4ab2fc2a5ed7"
+        }
+      },
+      {
+        "stage": "input_1.verify.fri_input",
+        "circuit": {
+          "n_vars": 3264797,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 131904,
+              "sha256": "376fa77545de2a21557d73d3e60a398399e242f0e7a46efa9bc4e4877ce47e0e"
+            },
+            {
+              "kind": "sub",
+              "count": 133309,
+              "sha256": "d4b02c0d177bdda9ff398662d0a65e2750e822f1b2e57660fcb95b2df58ef892"
+            },
+            {
+              "kind": "mul",
+              "count": 155815,
+              "sha256": "8a1c41fbd6d6d0064034e5f62838914ab83ec3e5f9dc0229f65fbd90ce9b6902"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 35618,
+              "sha256": "0ac114dc4f72194245f97e10ed37a46b765e824a916fb3b6e5b1adfeadb1ebad"
+            },
+            {
+              "kind": "eq",
+              "count": 18077,
+              "sha256": "eb2a38fd9a319d677ae25fa6136fc3c00beec8cb62ea469e2fe7c231d5983984"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 64136,
+              "sha256": "00820dcdfcc53fc3cf17adc50ab1fc78b202268b9f490f6213f81374bc75b074"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 26050,
+              "sha256": "36fb995909e3f44c83717eb1971f91a7c690e486ed3adfa6a8bb3b89bf866a55"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 641360,
+              "sha256": "28de0d8f660998a21fcb88689c03e7219c9087e5152e1d26cdfbb03cb483a247"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "c1a48a917667c5b88b9c2e284c3da85ed3f3ee5865e1273bfbadf07b00eb427e"
+        }
+      },
+      {
+        "stage": "input_1.verify.fri_decommit",
+        "circuit": {
+          "n_vars": 4116117,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 149706,
+              "sha256": "1decfdaa165a0de4a4e74fec06e66834301ba41bb4636e7f42af6832df665e17"
+            },
+            {
+              "kind": "sub",
+              "count": 159678,
+              "sha256": "2f91ed7767bf170b156bca150419ae9a93e9a3e961e35cb1c7c030b88a1c8432"
+            },
+            {
+              "kind": "mul",
+              "count": 181364,
+              "sha256": "3bfefed65f11f57f01cd0c7a4f358b4ac7d5242ad2c02543cf368e2e0f78fb49"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 47298,
+              "sha256": "984d4e01b727982bea14e672c1a1f9bd6ef60a0b0f85286cdd6c47a57b6ae109"
+            },
+            {
+              "kind": "eq",
+              "count": 19774,
+              "sha256": "f4ab7ad518175ab7366e3c7657fc14cb646145c5968cbc8a8ae052ed999dea64"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 82720,
+              "sha256": "bbe118bed5b8a929bb40b3129494fd47ce390a13036274b78c8943c5a4fabe99"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 33594,
+              "sha256": "d7981cf3bd79055fb07d9aee5ee4ec18fd27eb24d4d89849d5044ccb2fca82e6"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 827200,
+              "sha256": "da0c58d6e168347460ec4aecaf970e1102668a5e87a731ed4dd84a7003c72851"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "7879c66596cc09c3ed7e5c92735c5b1dca9808eb2936b373142d4ad332115011"
+        }
+      },
+      {
+        "stage": "preimage_hash",
+        "circuit": {
+          "n_vars": 4116773,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 149706,
+              "sha256": "1decfdaa165a0de4a4e74fec06e66834301ba41bb4636e7f42af6832df665e17"
+            },
+            {
+              "kind": "sub",
+              "count": 159678,
+              "sha256": "2f91ed7767bf170b156bca150419ae9a93e9a3e961e35cb1c7c030b88a1c8432"
+            },
+            {
+              "kind": "mul",
+              "count": 181364,
+              "sha256": "3bfefed65f11f57f01cd0c7a4f358b4ac7d5242ad2c02543cf368e2e0f78fb49"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 47298,
+              "sha256": "984d4e01b727982bea14e672c1a1f9bd6ef60a0b0f85286cdd6c47a57b6ae109"
+            },
+            {
+              "kind": "eq",
+              "count": 19774,
+              "sha256": "f4ab7ad518175ab7366e3c7657fc14cb646145c5968cbc8a8ae052ed999dea64"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 82736,
+              "sha256": "38281c6805aa0b025604ba34c43cee27e129408fc624f7146edef6410594605c"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 33594,
+              "sha256": "d7981cf3bd79055fb07d9aee5ee4ec18fd27eb24d4d89849d5044ccb2fca82e6"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 827360,
+              "sha256": "fbe73ddbe924d957ef5c23f937b1935279eb7a2cb3aeede68f0a57318f33d09f"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 1,
+              "sha256": "98268a6121a77ccd10b87f69fb775223b9b892814be4cd630a245d5e8473a87d"
+            }
+          ],
+          "gate_list_sha256": "01d6d67287c4b5a4dd37339b52ca8adebd8cb2cb45c5b4fc1c82c6fa90a35e76"
+        }
+      },
+      {
+        "stage": "set_outputs",
+        "circuit": {
+          "n_vars": 4116773,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 149714,
+              "sha256": "7226573db65de2113807bf9159b69d8deb75167be280ff9fc85fec809e59ffd4"
+            },
+            {
+              "kind": "sub",
+              "count": 159678,
+              "sha256": "2f91ed7767bf170b156bca150419ae9a93e9a3e961e35cb1c7c030b88a1c8432"
+            },
+            {
+              "kind": "mul",
+              "count": 181364,
+              "sha256": "3bfefed65f11f57f01cd0c7a4f358b4ac7d5242ad2c02543cf368e2e0f78fb49"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 47298,
+              "sha256": "984d4e01b727982bea14e672c1a1f9bd6ef60a0b0f85286cdd6c47a57b6ae109"
+            },
+            {
+              "kind": "eq",
+              "count": 19774,
+              "sha256": "f4ab7ad518175ab7366e3c7657fc14cb646145c5968cbc8a8ae052ed999dea64"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 82736,
+              "sha256": "38281c6805aa0b025604ba34c43cee27e129408fc624f7146edef6410594605c"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 33594,
+              "sha256": "d7981cf3bd79055fb07d9aee5ee4ec18fd27eb24d4d89849d5044ccb2fca82e6"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 827360,
+              "sha256": "fbe73ddbe924d957ef5c23f937b1935279eb7a2cb3aeede68f0a57318f33d09f"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 9,
+              "sha256": "2577bed458a8da13a5db417086f19c9d4e1d04e25efc266ece11c7a4edf4f8ee"
+            }
+          ],
+          "gate_list_sha256": "57f3eb699bf294438cc1d11cb46178f2d7754c1cae5df323681d041a5af35b15"
+        }
+      },
+      {
+        "stage": "finalize",
+        "circuit": {
+          "n_vars": 4117381,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 158712,
+              "sha256": "64aa4380674fb62f7b9ce4b0bc2e9a6bebb010661e7db861b86ac51b80821370"
+            },
+            {
+              "kind": "sub",
+              "count": 159679,
+              "sha256": "8491bd5ee1ef1c3bb8492ffcfcf92eb05ace8dcf0a9cc5b230704b212f856ae2"
+            },
+            {
+              "kind": "mul",
+              "count": 181636,
+              "sha256": "82f9a4b8c60d7f1bd5ddc264be66884607660af5a8f44a2482e5f56134b3ae20"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 61972,
+              "sha256": "e48546a93c49fa6baff922014490d5917c7f27adad2f711e9f43db2b59e8f5c0"
+            },
+            {
+              "kind": "eq",
+              "count": 19774,
+              "sha256": "f4ab7ad518175ab7366e3c7657fc14cb646145c5968cbc8a8ae052ed999dea64"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 82736,
+              "sha256": "38281c6805aa0b025604ba34c43cee27e129408fc624f7146edef6410594605c"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 150970,
+              "sha256": "10f2fbb540f1922ce93891281e0c5a7217ec0105d2d821f7ff9a0261b81e98bb"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 827360,
+              "sha256": "fbe73ddbe924d957ef5c23f937b1935279eb7a2cb3aeede68f0a57318f33d09f"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 9,
+              "sha256": "2577bed458a8da13a5db417086f19c9d4e1d04e25efc266ece11c7a4edf4f8ee"
+            }
+          ],
+          "gate_list_sha256": "5d816906f77df1f63113e88b136f6909daaeb3338f889f1464071abb67884745"
+        }
+      },
+      {
+        "stage": "pad_to_targets",
+        "circuit": {
+          "n_vars": 6672436,
+          "kinds": [
+            {
+              "kind": "add",
+              "count": 1669393,
+              "sha256": "768f458219ea4285cc770b99ab58eb34b938e262ec29d0530df6807cd8a269ff"
+            },
+            {
+              "kind": "sub",
+              "count": 159679,
+              "sha256": "8491bd5ee1ef1c3bb8492ffcfcf92eb05ace8dcf0a9cc5b230704b212f856ae2"
+            },
+            {
+              "kind": "mul",
+              "count": 181636,
+              "sha256": "82f9a4b8c60d7f1bd5ddc264be66884607660af5a8f44a2482e5f56134b3ae20"
+            },
+            {
+              "kind": "pointwise_mul",
+              "count": 61972,
+              "sha256": "e48546a93c49fa6baff922014490d5917c7f27adad2f711e9f43db2b59e8f5c0"
+            },
+            {
+              "kind": "eq",
+              "count": 131072,
+              "sha256": "170940c9204af5d0c3ce2bc0a3ee6ef9681a0ed1b139aeefafddfdb7970b3626"
+            },
+            {
+              "kind": "triple_xor",
+              "count": 131072,
+              "sha256": "ca00776dbf181c792d8ebc199172a52dc80e1869efcc174ddb3c8f45ec8f290b"
+            },
+            {
+              "kind": "m31_to_u32",
+              "count": 262144,
+              "sha256": "ac0d4d8737ee4c34ced019938123d1ab13516c2191aa83df5d6abd56b1ee362f"
+            },
+            {
+              "kind": "blake_g_gate",
+              "count": 1048576,
+              "sha256": "ba0a4c0aef44c4d90401c4339c4448c164d017cc6112414b2e477e4284fd1d51"
+            },
+            {
+              "kind": "permutation",
+              "count": 92,
+              "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+            },
+            {
+              "kind": "output",
+              "count": 9,
+              "sha256": "2577bed458a8da13a5db417086f19c9d4e1d04e25efc266ece11c7a4edf4f8ee"
+            }
+          ],
+          "gate_list_sha256": "fb183857888128f8fae463a5de2ac008d97efcc5f9d54156cc840d5050e93629"
+        }
+      }
+    ],
+    "values_sha256": "82699e66fc4334713773ddc845b49d267ad130107499e878be69f0bd98cca871",
+    "preprocessed_root": [
+      1268883877,
+      213256978,
+      3644000279,
+      2357144324,
+      734149438,
+      3113839470,
+      1874459862,
+      3738996173
+    ]
+  }
+}

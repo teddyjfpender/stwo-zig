@@ -8,8 +8,6 @@
 
 const std = @import("std");
 
-/// The in-circuit AIR evaluators interpreted from the committed projection.
-pub const air_eval = @import("air_eval/mod.zig");
 /// `crates/circuit_common`: finalization sizing, preprocessing, circuit hash
 /// and the shared component list.
 pub const common = @import("common/mod.zig");
@@ -18,14 +16,9 @@ pub const stark_verifier = @import("stark_verifier/mod.zig");
 /// `crates/circuit_verifier`, `crates/circuit_multiverifier` and
 /// `crates/cairo_verifier` statements.
 pub const statements = @import("statements/mod.zig");
-
-test {
-    _ = air_eval;
-    _ = stark_verifier;
-    _ = common;
-    std.testing.refAllDeclsRecursive(common);
-    std.testing.refAllDeclsRecursive(statements);
-}
+/// The in-circuit constraint evaluators, interpreted from the compiled-AIR
+/// projection (design §5.4).
+pub const air_eval = @import("air_eval/mod.zig");
 
 test "api signature: circuit facade exposes the ported crates" {
     try std.testing.expect(@hasDecl(common, "preprocessed"));
@@ -35,6 +28,16 @@ test "api signature: circuit facade exposes the ported crates" {
     const layout_fn: fn (common.finalize.ComponentSizes) common.preprocessed.Error!common.preprocessed.ColumnLayout =
         common.preprocessed.ColumnLayout.fromComponentSizes;
     _ = layout_fn;
+}
+
+test "api signature: evaluator tables are built from a parsed projection" {
+    const parse: fn (std.mem.Allocator, []const u8) air_eval.projection.Error!air_eval.projection.Projection =
+        air_eval.projection.parse;
+    const build_cairo: fn (std.mem.Allocator, *const air_eval.projection.Projection) air_eval.component_table.BuildError!air_eval.component_table.Table =
+        air_eval.cairo_components.build;
+    const build_circuit: fn (std.mem.Allocator, *const air_eval.projection.Projection) air_eval.component_table.BuildError!air_eval.component_table.Table =
+        air_eval.circuit_components.build;
+    _ = .{ parse, build_cairo, build_circuit };
 }
 
 test "invariant: every preprocessed layout has the 45 circuit columns" {
@@ -48,23 +51,18 @@ test "invariant: every preprocessed layout has the 45 circuit columns" {
     try std.testing.expectEqual(@as(usize, 45), layout.entries.len);
 }
 
-test "api signature: evaluator tables are built from a parsed projection" {
-    const parse: fn (std.mem.Allocator, []const u8) air_eval.projection.Error!air_eval.projection.Projection =
-        air_eval.projection.parse;
-    const build_cairo: fn (std.mem.Allocator, *const air_eval.projection.Projection) air_eval.component_table.BuildError!air_eval.component_table.Table =
-        air_eval.cairo_components.build;
-    const build_circuit: fn (std.mem.Allocator, *const air_eval.projection.Projection) air_eval.component_table.BuildError!air_eval.component_table.Table =
-        air_eval.circuit_components.build;
-    _ = .{ parse, build_cairo, build_circuit };
+test "invariant: projection reader rejects bad magic, other versions and truncation" {
+    const gpa = std.testing.allocator;
+    try std.testing.expectError(error.BadMagic, air_eval.projection.parse(gpa, "NOTMAGIC\x02\x00\x00\x00"));
+    try std.testing.expectError(error.UnsupportedVersion, air_eval.projection.parse(gpa, "STWOCAIR\x01\x00\x00\x00"));
+    try std.testing.expectError(error.UnsupportedVersion, air_eval.projection.parse(gpa, "STWOCAIR\x03\x00\x00\x00"));
+    try std.testing.expectError(error.Truncated, air_eval.projection.parse(gpa, "STWOCAIR\x02\x00"));
+    // One string whose declared length runs past the end.
+    try std.testing.expectError(error.Truncated, air_eval.projection.parse(gpa, "STWOCAIR\x02\x00\x00\x00\x01\x00\x00\x00\x09\x00\x00\x00ab"));
+    // A header naming a string index that does not exist.
+    try std.testing.expectError(error.StringIndexOutOfRange, air_eval.projection.parse(gpa, "STWOCAIR\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"));
 }
 
-test "projection reader rejects bad magic and truncation" {
-    const gpa = std.testing.allocator;
-    try std.testing.expectError(error.BadMagic, air_eval.projection.parse(gpa, "NOTMAGIC\x01\x00\x00\x00"));
-    try std.testing.expectError(error.UnsupportedVersion, air_eval.projection.parse(gpa, "STWOCAIR\x02\x00\x00\x00"));
-    try std.testing.expectError(error.Truncated, air_eval.projection.parse(gpa, "STWOCAIR\x01\x00"));
-    // One string whose declared length runs past the end.
-    try std.testing.expectError(error.Truncated, air_eval.projection.parse(gpa, "STWOCAIR\x01\x00\x00\x00\x01\x00\x00\x00\x09\x00\x00\x00ab"));
-    // A header naming a string index that does not exist.
-    try std.testing.expectError(error.StringIndexOutOfRange, air_eval.projection.parse(gpa, "STWOCAIR\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"));
+test {
+    std.testing.refAllDeclsRecursive(@This());
 }

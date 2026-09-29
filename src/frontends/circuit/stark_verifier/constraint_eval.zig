@@ -1,9 +1,10 @@
 //! In-circuit composition accumulation: the evaluator-facing part of
 //! `crates/stark_verifier/src/constraint_eval.rs`
 //! (https://github.com/starkware-libs/proving at
-//! 5a7c5ede4299c91a61df19a07cba4f7502c14230): `RelationUse`,
-//! `InteractionAtOods`, `CompositionConstraintAccumulator` and
-//! `finalize_logup_in_pairs`.
+//! 5a7c5ede4299c91a61df19a07cba4f7502c14230): `InteractionAtOods`,
+//! `CompositionConstraintAccumulator` and `finalize_logup_in_pairs`.
+//! Upstream's `RelationUse` lives with the other static component facts in
+//! `common/component_list.zig`.
 //!
 //! Ownership: written by stream M4 (the evaluators cannot run without it) in
 //! the M5 `stark_verifier/` layout of design §2.2, so M5 extends this file with
@@ -24,8 +25,6 @@ const stwo_core = @import("stwo_core");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const SECURE_EXTENSION_DEGREE = stwo_core.fields.qm31.SECURE_EXTENSION_DEGREE;
-
-pub const RelationUse = struct { relation_id: []const u8, uses: u64 };
 
 /// `proof::InteractionAtOods<Var>`: an interaction limb at the OODS point and,
 /// for the last four limbs only, at the previous row.

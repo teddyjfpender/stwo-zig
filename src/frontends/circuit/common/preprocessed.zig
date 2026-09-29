@@ -15,9 +15,9 @@
 //! - permutations lower to Add rows through fresh wires starting at `n_vars`.
 //!
 //! The fixed tables come from `stwo_core.preprocessed_tables`; the root is
-//! committed with the prover's interpolation, evaluation and
-//! `MerkleProverLifted.commitLifted` under the plain Blake2s hasher of
-//! `Blake2sM31MerkleChannel`, exactly as `CommitmentTreeProver::new` does.
+//! committed through the prover's PCS column preparation and
+//! `CommitmentTreeProver` under the plain Blake2s hasher of
+//! `Blake2sM31MerkleChannel`, as upstream's `CommitmentTreeProver::new` does.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -26,11 +26,7 @@ const finalize = @import("finalize.zig");
 
 const M31 = core.fields.m31.M31;
 const tables = core.preprocessed_tables;
-const CanonicCoset = core.poly.circle.canonic.CanonicCoset;
 const ChannelProfile = core.vcs_lifted.channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel;
-const MerkleProver = prover.vcs_lifted.prover.MerkleProverLifted(ChannelProfile.MerkleHasher);
-const prover_poly = prover.poly.circle.poly;
-const twiddles = prover.poly.twiddles;
 
 pub const Blake2sHash = ChannelProfile.MerkleHasher.Hash;
 pub const ComponentSizes = finalize.ComponentSizes;
@@ -247,6 +243,37 @@ pub const CircuitView = struct {
         return self.permutation_inputs.len + self.permutation_outputs.len;
     }
 
+    /// Checks every index `fromCircuit` dereferences: gate outputs below
+    /// `n_vars` and a CSR permutation layout (offsets start at 0, never
+    /// decrease, end at the input count, and outputs pair one-to-one with
+    /// inputs). Upstream indexes with bounds-checked `Vec`s and panics; this
+    /// port fails closed with `VariableOutOfRange` instead. Use indices are
+    /// checked by `computeUses`.
+    pub fn validate(self: CircuitView) Error!void {
+        const check = struct {
+            fn at(n_vars: usize, variable: u32) Error!void {
+                if (variable >= n_vars) return error.VariableOutOfRange;
+            }
+        }.at;
+        inline for (.{ self.add, self.sub, self.mul, self.pointwise_mul }) |gates| {
+            for (gates) |gate| try check(self.n_vars, gate.out);
+        }
+        for (self.triple_xor) |gate| try check(self.n_vars, gate.out);
+        for (self.m31_to_u32) |gate| try check(self.n_vars, gate.out);
+        for (self.blake_g_gate) |gate| {
+            inline for (.{ "out_a", "out_b", "out_c", "out_d" }) |field| try check(self.n_vars, @field(gate, field));
+        }
+        for (self.permutation_outputs) |variable| try check(self.n_vars, variable);
+        const offsets = self.permutation_offsets;
+        if (offsets.len == 0 or offsets[0] != 0) return error.VariableOutOfRange;
+        for (offsets[0 .. offsets.len - 1], offsets[1..]) |begin, end| {
+            if (end < begin) return error.VariableOutOfRange;
+        }
+        if (offsets[offsets.len - 1] != self.permutation_inputs.len or
+            self.permutation_outputs.len != self.permutation_inputs.len)
+            return error.VariableOutOfRange;
+    }
+
     /// `Circuit::compute_multiplicities().0`: uses of every variable.
     pub fn computeUses(self: CircuitView, allocator: std.mem.Allocator) (Error || std.mem.Allocator.Error)![]u32 {
         const uses = try allocator.alloc(u32, self.n_vars);
@@ -311,6 +338,7 @@ pub const PreprocessedCircuit = struct {
     /// `PreprocessedCircuit::from_finalized_circuit`.
     pub fn fromCircuit(allocator: std.mem.Allocator, circuit: CircuitView) (Error || std.mem.Allocator.Error)!PreprocessedCircuit {
         if (circuit.output.len == 0) return error.MissingOutputGate;
+        try circuit.validate();
         const multiplicities = try circuit.computeUses(allocator);
         defer allocator.free(multiplicities);
         // The permutation rows read the constant 0 once per input and output.
@@ -393,8 +421,8 @@ pub const PreprocessedCircuit = struct {
             const cols = try builder.block(&BLAKE_G_GATE_COLUMN_IDS, circuit.blake_g_gate.len);
             for (circuit.blake_g_gate, 0..) |gate, row| {
                 inline for (.{
-                    "input_a", "input_b", "input_c", "input_d", "input_f0",
-                    "input_f1", "out_a",  "out_b",  "out_c",   "out_d",
+                    "input_a",  "input_b", "input_c", "input_d", "input_f0",
+                    "input_f1", "out_a",   "out_b",   "out_c",   "out_d",
                 }, 0..) |field, col| try put(cols[col], row, @field(gate, field));
                 const mult = multiplicities[gate.out_a];
                 for ([_]u32{ gate.out_b, gate.out_c, gate.out_d }) |out| {
@@ -456,81 +484,36 @@ pub const PreprocessedCircuit = struct {
     /// preprocessed trace committed as tree 0 of a proof of this circuit, at
     /// lifting height `trace_log_size + log_blowup_factor`.
     ///
-    /// Each column is interpolated on its canonic coset, evaluated on the
-    /// blown-up canonic coset (bit-reversed, as `CommitmentTreeProver::new`
-    /// does) and committed with `commitLifted`. Peak memory is the extended
-    /// columns plus one Merkle leaf layer at the lifting height.
+    /// The columns go through the prover's own commit path, as
+    /// `CommitmentTreeProver::new` does upstream: the shared PCS column
+    /// preparation (interpolate on the canonic coset, extend to the blown-up
+    /// coset, bit-reversed) followed by the host lifted Merkle tree. The
+    /// values are borrowed; only the extended columns are allocated.
     pub fn preprocessedRoot(
         self: *const PreprocessedCircuit,
         allocator: std.mem.Allocator,
         log_blowup_factor: u32,
     ) !Blake2sHash {
-        const lifting_log_size = self.traceLogSize() + log_blowup_factor;
-        var trees = TwiddleCache{ .allocator = allocator };
-        defer trees.deinit();
-
-        const extended = try allocator.alloc([]M31, self.columns.len);
-        defer allocator.free(extended);
-        var n_extended: usize = 0;
-        defer for (extended[0..n_extended]) |values| allocator.free(values);
-
-        for (self.columns) |entry| {
-            const log_size = entry.logSize();
-            const domain = CanonicCoset.new(log_size).circleDomain();
-            const extended_domain = CanonicCoset.new(log_size + log_blowup_factor).circleDomain();
-            const coeffs_buffer = try allocator.dupe(M31, entry.values);
-            var coeffs = prover_poly.interpolateOwnedValuesWithTwiddles(
-                domain,
-                coeffs_buffer,
-                try trees.get(log_size),
-            ) catch |err| {
-                allocator.free(coeffs_buffer);
-                return err;
-            };
-            defer coeffs.deinit(allocator);
-            const evaluation = try coeffs.evaluateWithTwiddles(
-                allocator,
-                extended_domain,
-                try trees.get(log_size + log_blowup_factor),
-            );
-            extended[n_extended] = @constCast(evaluation.values);
-            n_extended += 1;
+        var evaluations: [N_PREPROCESSED_COLUMNS]prover.pcs.ColumnEvaluation = undefined;
+        for (self.columns, &evaluations) |column, *evaluation| {
+            evaluation.* = .{ .log_size = column.logSize(), .values = column.values };
         }
-
-        const views = try allocator.alloc([]const M31, n_extended);
-        defer allocator.free(views);
-        for (views, extended[0..n_extended]) |*view, values| view.* = values;
-        var merkle = try MerkleProver.commitLifted(allocator, views, lifting_log_size);
-        defer merkle.deinit(allocator);
-        return merkle.root();
-    }
-};
-
-/// Twiddle trees keyed by circle-domain log size, each rooted at that
-/// domain's own half coset. Upstream precomputes one tree at the lifting
-/// size and borrows its doublings; the values are identical, but core's
-/// `Coset.isDoublingOf` rejects a size-1 half coset reached by doubling, so
-/// each domain gets an exact root here.
-const TwiddleCache = struct {
-    allocator: std.mem.Allocator,
-    trees: [32]?twiddles.TwiddleTree([]M31) = .{null} ** 32,
-
-    fn get(self: *TwiddleCache, log_size: u32) !twiddles.TwiddleTree([]const M31) {
-        if (self.trees[log_size] == null) {
-            self.trees[log_size] = try twiddles.precomputeM31(
-                self.allocator,
-                CanonicCoset.new(log_size).circleDomain().half_coset,
-            );
-        }
-        const tree = self.trees[log_size].?;
-        return .{ .root_coset = tree.root_coset, .twiddles = tree.twiddles, .itwiddles = tree.itwiddles };
-    }
-
-    fn deinit(self: *TwiddleCache) void {
-        for (&self.trees) |*slot| {
-            if (slot.*) |*tree| twiddles.deinitM31(self.allocator, tree);
-            slot.* = null;
-        }
+        var twiddle_source = prover.poly.twiddle_source.TwiddleSource.initOwned(allocator);
+        defer twiddle_source.deinit(allocator);
+        var prepared = try prover.pcs.column_preparation.prepareColumnsForCommitBorrowedForBackend(
+            prover.pcs.HostMerkleBackend,
+            allocator,
+            &evaluations,
+            log_blowup_factor,
+            .never,
+            &twiddle_source,
+        );
+        var tree = prover.pcs.CommitmentTreeProver(ChannelProfile.MerkleHasher).initPrepared(allocator, &prepared, null) catch |err| {
+            prepared.deinit(allocator);
+            return err;
+        };
+        defer tree.deinit(allocator);
+        return tree.root();
     }
 };
 
@@ -566,6 +549,10 @@ const TraceBuilder = struct {
     }
 };
 
+/// Writes an address or multiplicity. Deliberate fail-closed deviation:
+/// upstream's `BaseField::from` reduces a value `>= P` modulo P, which would
+/// alias two addresses; here it is rejected with `AddressOutOfField`. The
+/// builder bounds `n_vars` below 2^31, so no valid circuit reaches it.
 inline fn put(column: []M31, row: usize, value: usize) Error!void {
     if (value >= core.fields.m31.Modulus) return error.AddressOutOfField;
     column[row] = M31.fromCanonical(@intCast(value));

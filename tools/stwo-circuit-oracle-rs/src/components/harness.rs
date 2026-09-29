@@ -173,6 +173,23 @@ pub fn evaluate<V: IValue>(
     data: &dyn ComponentDataTrait<V>,
     inputs: &HarnessInputs,
 ) -> Var {
+    evaluate_marked(context, component, data, inputs, &mut |_, _| {})
+}
+
+/// The harness stages [`evaluate_marked`] reports, in order.
+pub const STAGES: [&str; 3] = ["inputs", "evaluate", "finalize_logup_in_pairs"];
+
+/// [`evaluate`], calling `mark` with the context after each of [`STAGES`]: after step 3 (all
+/// harness inputs allocated), after `Component::evaluate`, and after `finalize_logup_in_pairs`
+/// (including the `claimed_sum` variable). `CompositionConstraintAccumulator::finalize` adds no
+/// gate.
+pub fn evaluate_marked<V: IValue>(
+    context: &mut Context<V>,
+    component: &dyn CircuitEval<V>,
+    data: &dyn ComponentDataTrait<V>,
+    inputs: &HarnessInputs,
+    mark: &mut dyn FnMut(&Context<V>, &'static str),
+) -> Var {
     let random_coeff = context.new_var(V::from_qm31(inputs.random_coeff));
     let interaction_elements = [
         context.new_var(V::from_qm31(inputs.z)),
@@ -200,8 +217,11 @@ pub fn evaluate<V: IValue>(
         random_coeff,
         interaction_elements,
     );
+    mark(context, STAGES[0]);
     component.evaluate(context, data, &mut accumulator);
+    mark(context, STAGES[1]);
     let claimed_sum = context.new_var(V::from_qm31(inputs.claimed_sum));
     accumulator.finalize_logup_in_pairs(context, data.interaction_columns(), data, claimed_sum);
+    mark(context, STAGES[2]);
     accumulator.finalize()
 }

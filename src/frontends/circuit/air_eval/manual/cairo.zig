@@ -7,21 +7,19 @@
 //! frontend.
 
 const std = @import("std");
-const stwo_core = @import("stwo_core");
-const constraint_eval = @import("../../stark_verifier/constraint_eval.zig");
 const component_utils = @import("../../common/component_utils.zig");
-const circuit = @import("circuit.zig");
+const component_table = @import("../component_table.zig");
+const xor_12 = @import("verify_bitwise_xor_12.zig");
+const tree = @import("eval_tree.zig");
 
-const QM31 = stwo_core.fields.qm31.QM31;
-const M31 = stwo_core.fields.m31.M31;
-const RelationUse = constraint_eval.RelationUse;
-const Shape = circuit.Shape;
+const Shape = component_table.Shape;
+const constantM31 = tree.constantM31;
 const modulus: u64 = 0x7fff_ffff;
 
-/// Relation ids hard-coded in the upstream hand-written evaluators.
+/// Relation ids hard-coded in the upstream hand-written evaluators (the
+/// `VerifyBitwiseXor_12` id is shared with the circuit AIR, `xor_12.relation_id`).
 const memory_address_to_id_relation_id: u32 = 1444891767;
 const memory_id_to_big_relation_id: u32 = 1662111297;
-const xor_12_relation_id: u32 = 648362599;
 
 /// The projection-header constants these evaluators read.
 pub const Constants = struct {
@@ -35,16 +33,15 @@ pub fn memoryAddressToIdShape(constants: Constants) Shape {
     return .{
         .trace_columns = 2 * split,
         .interaction_columns = 4 * ((split + 1) / 2),
-        .relation_uses = &.{},
-        .log_size_column = null,
-        .log_size = null,
+        .relation_uses_per_row = &.{},
+        .log_size = .dynamic,
     };
 }
 
 pub const memory_id_to_big_shape: Shape = .{
     .trace_columns = 29,
     .interaction_columns = 32,
-    .relation_uses = &.{
+    .relation_uses_per_row = &.{
         .{ .relation_id = "RangeCheck_9_9", .uses = 2 },
         .{ .relation_id = "RangeCheck_9_9_B", .uses = 2 },
         .{ .relation_id = "RangeCheck_9_9_C", .uses = 2 },
@@ -54,25 +51,15 @@ pub const memory_id_to_big_shape: Shape = .{
         .{ .relation_id = "RangeCheck_9_9_G", .uses = 1 },
         .{ .relation_id = "RangeCheck_9_9_H", .uses = 1 },
     },
-    .log_size_column = null,
-    .log_size = null,
+    .log_size = .dynamic,
 };
-
-const xor_12_expand_bits = 2;
-const xor_12_low_bits = 10;
-const xor_12_log_size = 20;
 
 pub const verify_bitwise_xor_12_shape: Shape = .{
-    .trace_columns = 1 << (2 * xor_12_expand_bits),
-    .interaction_columns = 2 << (2 * xor_12_expand_bits),
-    .relation_uses = &.{},
-    .log_size_column = null,
-    .log_size = xor_12_log_size,
+    .trace_columns = xor_12.trace_columns,
+    .interaction_columns = xor_12.interaction_columns,
+    .relation_uses_per_row = &.{},
+    .log_size = .{ .fixed = xor_12.log_size },
 };
-
-fn constantM31(ctx: anytype, value: u32) !@TypeOf(ctx.*).Var {
-    return ctx.constant(QM31.fromBase(M31.fromCanonical(value)));
-}
 
 /// `memory_address_to_id::Component::evaluate`: the addresses
 /// `seq + 1 + k * n_instances` of the `split` interleaved lanes.
@@ -132,27 +119,12 @@ pub fn evaluateMemoryIdToBig(interp: anytype, constants: Constants, index: u32) 
 /// the 10-bit table expanded by the top two bits, then the 2^20-row check.
 pub fn evaluateVerifyBitwiseXor12(interp: anytype) !void {
     const ctx = interp.ctx;
-    const a_low = try interp.acc.getPreprocessedColumn("bitwise_xor_10_0");
-    const b_low = try interp.acc.getPreprocessedColumn("bitwise_xor_10_1");
-    const c_low = try interp.acc.getPreprocessedColumn("bitwise_xor_10_2");
+    const a_low = try interp.acc.getPreprocessedColumn(xor_12.a_column);
+    const b_low = try interp.acc.getPreprocessedColumn(xor_12.b_column);
+    const c_low = try interp.acc.getPreprocessedColumn(xor_12.c_column);
     const multiplicities = interp.data.traceColumns();
-    if (multiplicities.len != verify_bitwise_xor_12_shape.trace_columns) return error.TraceColumnCountMismatch;
-    const relation = try constantM31(ctx, xor_12_relation_id);
-    var next: usize = 0;
-    for (0..1 << xor_12_expand_bits) |i| {
-        for (0..1 << xor_12_expand_bits) |j| {
-            const a = try ctx.add(a_low, try constantM31(ctx, @intCast(i << xor_12_low_bits)));
-            const b = try ctx.add(b_low, try constantM31(ctx, @intCast(j << xor_12_low_bits)));
-            const c = try ctx.add(c_low, try constantM31(ctx, @intCast((i ^ j) << xor_12_low_bits)));
-            const numerator = try ctx.sub(ctx.zero(), multiplicities[next]);
-            next += 1;
-            try interp.acc.addToRelation(ctx, numerator, &.{ relation, a, b, c });
-        }
-    }
-    const size_bit = try interp.data.getNInstancesBit(ctx, xor_12_log_size);
+    const relation = try constantM31(ctx, xor_12.relation_id);
+    try xor_12.addLookups(interp, relation, a_low, b_low, c_low, multiplicities);
+    const size_bit = try interp.data.getNInstancesBit(ctx, xor_12.log_size);
     try ctx.eq(size_bit, ctx.one());
-}
-
-comptime {
-    std.debug.assert(verify_bitwise_xor_12_shape.trace_columns == 16);
 }

@@ -50,7 +50,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&fixture_tests.step);
     test_step.dependOn(&fold_topology.step);
 
-    const r3_step = b.step("test-r3", "Rung R3: all 94 in-circuit evaluators against the oracle");
+    const r3_step = b.step("test-r3", "Rung R3: all 94 in-circuit evaluators and the statement trace against the oracle");
     r3_step.dependOn(&fixture_tests.step);
 
     const r6_step = b.step(

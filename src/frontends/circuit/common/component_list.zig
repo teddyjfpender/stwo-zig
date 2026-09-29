@@ -246,10 +246,10 @@ pub fn circuitComponentLogSizes(layout: anytype) LogSizeError!PerComponent(u32) 
 
 test "component list: order and names match COMPONENT_NAMES" {
     const expected = [_][]const u8{
-        "eq",                   "qm31_ops",              "triple_xor",
-        "m_31_to_u_32",         "blake_g_gate",          "verify_bitwise_xor_8",
+        "eq",                    "qm31_ops",             "triple_xor",
+        "m_31_to_u_32",          "blake_g_gate",         "verify_bitwise_xor_8",
         "verify_bitwise_xor_12", "verify_bitwise_xor_4", "verify_bitwise_xor_7",
-        "verify_bitwise_xor_9", "range_check_16",
+        "verify_bitwise_xor_9",  "range_check_16",
     };
     try std.testing.expectEqual(expected.len, N_COMPONENTS);
     for (expected, COMPONENT_NAMES, 0..) |want, got, index| {

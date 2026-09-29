@@ -111,6 +111,16 @@ pub struct KindSummary {
     pub sha256: String,
 }
 
+/// The gate lists of a [`Circuit`], independent of any variable values: [`CircuitSummary`]
+/// without the `Debug` text, cheap enough to take at every stage of a multi-million-gate build.
+#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+pub struct GateSummary {
+    pub n_vars: u64,
+    pub kinds: Vec<KindSummary>,
+    /// SHA-256 over `GATE_LIST_DOMAIN || n_vars (u64) || kind digests in `kinds` order`.
+    pub gate_list_sha256: String,
+}
+
 /// A structural summary of a [`Circuit`], independent of any variable values.
 #[derive(Serialize, Clone, PartialEq, Eq, Debug)]
 pub struct CircuitSummary {
@@ -182,73 +192,27 @@ impl KindHasher {
 /// `len(inputs), inputs.., len(outputs), outputs..`. The kind digest is
 /// `SHA-256(GATE_KIND_DOMAIN || kind || 0x00 || count (u64 LE) || SHA-256(records))`.
 pub fn circuit_summary(circuit: &Circuit) -> CircuitSummary {
-    let mut kinds = Vec::with_capacity(10);
+    let GateSummary {
+        n_vars,
+        kinds,
+        gate_list_sha256,
+    } = gate_summary(circuit);
+    CircuitSummary {
+        n_vars,
+        kinds,
+        gate_list_sha256,
+        debug_text_sha256: sha256_hex(debug_text(circuit)),
+    }
+}
 
-    let mut add = KindHasher::new("add");
-    circuit
-        .add
-        .iter()
-        .for_each(|g| add.record(&[g.in0, g.in1, g.out]));
-    kinds.push(add.finish());
-
-    let mut sub = KindHasher::new("sub");
-    circuit
-        .sub
-        .iter()
-        .for_each(|g| sub.record(&[g.in0, g.in1, g.out]));
-    kinds.push(sub.finish());
-
-    let mut mul = KindHasher::new("mul");
-    circuit
-        .mul
-        .iter()
-        .for_each(|g| mul.record(&[g.in0, g.in1, g.out]));
-    kinds.push(mul.finish());
-
-    let mut pointwise_mul = KindHasher::new("pointwise_mul");
-    circuit
-        .pointwise_mul
-        .iter()
-        .for_each(|g| pointwise_mul.record(&[g.in0, g.in1, g.out]));
-    kinds.push(pointwise_mul.finish());
-
-    let mut eq = KindHasher::new("eq");
-    circuit.eq.iter().for_each(|g| eq.record(&[g.in0, g.in1]));
-    kinds.push(eq.finish());
-
-    let mut triple_xor = KindHasher::new("triple_xor");
-    circuit
-        .triple_xor
-        .iter()
-        .for_each(|g| triple_xor.record(&[g.input_a, g.input_b, g.input_c, g.out]));
-    kinds.push(triple_xor.finish());
-
-    let mut m31_to_u32 = KindHasher::new("m31_to_u32");
-    circuit
-        .m31_to_u32
-        .iter()
-        .for_each(|g| m31_to_u32.record(&[g.input, g.out]));
-    kinds.push(m31_to_u32.finish());
-
-    let mut blake_g_gate = KindHasher::new("blake_g_gate");
-    circuit.blake_g_gate.iter().for_each(|g| {
-        blake_g_gate.record(&[
-            g.input_a, g.input_b, g.input_c, g.input_d, g.input_f0, g.input_f1, g.out_a, g.out_b,
-            g.out_c, g.out_d,
-        ])
+/// [`circuit_summary`] without the `Debug` text digest.
+pub fn gate_summary(circuit: &Circuit) -> GateSummary {
+    let mut hashers = GATE_KINDS.map(KindHasher::new);
+    visit_gates(circuit, [0; GATE_KINDS.len()], |kind, gate| match gate {
+        Gate::Fields(fields) => hashers[kind].record(fields),
+        Gate::Lists(inputs, outputs) => hashers[kind].record_list(inputs, outputs),
     });
-    kinds.push(blake_g_gate.finish());
-
-    let mut permutation = KindHasher::new("permutation");
-    circuit
-        .permutation
-        .iter()
-        .for_each(|g| permutation.record_list(&g.inputs, &g.outputs));
-    kinds.push(permutation.finish());
-
-    let mut output = KindHasher::new("output");
-    circuit.output.iter().for_each(|g| output.record(&[g.in0]));
-    kinds.push(output.finish());
+    let kinds: Vec<KindSummary> = hashers.into_iter().map(KindHasher::finish).collect();
 
     let n_vars = circuit.n_vars as u64;
     let mut list = Sha256::new();
@@ -258,11 +222,90 @@ pub fn circuit_summary(circuit: &Circuit) -> CircuitSummary {
         list.update(hex::decode(&kind.sha256).expect("kind digest is hex"));
     }
 
-    CircuitSummary {
+    GateSummary {
         n_vars,
         kinds,
         gate_list_sha256: hex::encode(list.finalize()),
-        debug_text_sha256: sha256_hex(debug_text(circuit)),
+    }
+}
+
+/// The gate kinds in `Circuit` field order, the order of every per-kind digest.
+pub const GATE_KINDS: [&str; 10] = [
+    "add",
+    "sub",
+    "mul",
+    "pointwise_mul",
+    "eq",
+    "triple_xor",
+    "m31_to_u32",
+    "blake_g_gate",
+    "permutation",
+    "output",
+];
+
+/// One gate's variable indices: struct fields in declaration order, or a permutation's lists.
+pub enum Gate<'a> {
+    Fields(&'a [usize]),
+    Lists(&'a [usize], &'a [usize]),
+}
+
+/// The per-kind gate counts of `circuit`, in [`GATE_KINDS`] order.
+pub fn gate_counts(circuit: &Circuit) -> [usize; GATE_KINDS.len()] {
+    [
+        circuit.add.len(),
+        circuit.sub.len(),
+        circuit.mul.len(),
+        circuit.pointwise_mul.len(),
+        circuit.eq.len(),
+        circuit.triple_xor.len(),
+        circuit.m31_to_u32.len(),
+        circuit.blake_g_gate.len(),
+        circuit.permutation.len(),
+        circuit.output.len(),
+    ]
+}
+
+/// Visits every gate of kind `k` from index `start[k]` on, kind by kind in [`GATE_KINDS`] order.
+pub fn visit_gates(
+    circuit: &Circuit,
+    start: [usize; GATE_KINDS.len()],
+    mut visit: impl FnMut(usize, Gate<'_>),
+) {
+    for g in &circuit.add[start[0]..] {
+        visit(0, Gate::Fields(&[g.in0, g.in1, g.out]));
+    }
+    for g in &circuit.sub[start[1]..] {
+        visit(1, Gate::Fields(&[g.in0, g.in1, g.out]));
+    }
+    for g in &circuit.mul[start[2]..] {
+        visit(2, Gate::Fields(&[g.in0, g.in1, g.out]));
+    }
+    for g in &circuit.pointwise_mul[start[3]..] {
+        visit(3, Gate::Fields(&[g.in0, g.in1, g.out]));
+    }
+    for g in &circuit.eq[start[4]..] {
+        visit(4, Gate::Fields(&[g.in0, g.in1]));
+    }
+    for g in &circuit.triple_xor[start[5]..] {
+        visit(5, Gate::Fields(&[g.input_a, g.input_b, g.input_c, g.out]));
+    }
+    for g in &circuit.m31_to_u32[start[6]..] {
+        visit(6, Gate::Fields(&[g.input, g.out]));
+    }
+    for g in &circuit.blake_g_gate[start[7]..] {
+        visit(
+            7,
+            Gate::Fields(&[
+                g.input_a, g.input_b, g.input_c, g.input_d, g.input_f0, g.input_f1, g.out_a,
+                g.out_b, g.out_c, g.out_d,
+            ]),
+        );
+    }
+    for g in &circuit.permutation[start[8]..] {
+        visit(8, Gate::Lists(&g.inputs, &g.outputs));
+    }
+    for g in &circuit.output[start[9]..] {
+        visit(9, Gate::Fields(&[g.in0]));
     }
 }
 

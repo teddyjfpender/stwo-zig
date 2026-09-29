@@ -27,7 +27,7 @@
     ],
     "invariant_tests": [
       "mod.zig::invariant: every preprocessed layout has the 45 circuit columns",
-      "mod.zig::projection reader rejects bad magic and truncation"
+      "mod.zig::invariant: projection reader rejects bad magic, other versions and truncation"
     ]
   },
   "ci": {

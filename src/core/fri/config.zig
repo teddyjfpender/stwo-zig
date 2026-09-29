@@ -60,9 +60,9 @@ pub const FOLD_STEP: u32 = 1;
 
 /// Folds performed by the next FRI layer when `remaining` line folds are
 /// left before the last layer: `fold_step`, clamped so the schedule never
-/// overshoots. Every FRI fold schedule (core verifier, prover commit, and the
-/// circuit verifier's `compute_all_fold_steps`) derives its steps from this
-/// one rule.
+/// overshoots. The core verifier, the prover's FRI commit, `FriGeometry` and
+/// the circuit verifier's `compute_all_fold_steps` derive their steps from
+/// this rule. Some RISC-V recursion fixtures still inline the same clamp.
 pub inline fn foldStepAt(fold_step: u32, remaining: u32) u32 {
     return @min(fold_step, remaining);
 }
