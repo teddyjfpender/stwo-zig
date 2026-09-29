@@ -366,6 +366,7 @@ pub const Bound = struct {
         self: *Bound,
         writers: *const trace_writer.Prepared,
         relation: *const relation_stage.PreparedPlan,
+        relation_sources: *const @import("relation_binding.zig").SourceRegistry,
     ) proof_session.Controllers {
         return .{
             .trace_writers = writers,
@@ -376,6 +377,7 @@ pub const Bound = struct {
             .evaluation = &self.evaluation,
             .pcs_bindings = self.pcs,
             .relation = relation,
+            .relation_sources = relation_sources,
             .oods = &self.oods,
             .quotient = &self.quotient,
             .fri = &self.fri,

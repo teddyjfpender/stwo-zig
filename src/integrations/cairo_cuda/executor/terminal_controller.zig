@@ -42,15 +42,20 @@ pub fn finish(
     );
     if (!verdict.isResident())
         return error.NonResidentProofVerdict;
-    return .{
-        .proof = try terminal_decode.CanonicalProof.decode(
-            allocator,
-            protocol,
-            transport,
-            measuredRead(verdict),
-        ),
-        .verdict = verdict,
+    const canonical = terminal_decode.CanonicalProof.decode(
+        allocator,
+        protocol,
+        transport,
+        measuredRead(verdict),
+    ) catch |err| {
+        // Preserve already-read transport only for an explicitly requested
+        // failure diagnostic. Never publish it as a proof or bypass decoding.
+        writeFailureTransport(allocator, transport) catch |dump_error| {
+            std.debug.print("cairo-cuda failure transport write failed: {s}\n", .{@errorName(dump_error)});
+        };
+        return err;
     };
+    return .{ .proof = canonical, .verdict = verdict };
 }
 
 fn measuredRead(
@@ -80,4 +85,17 @@ test "terminal measurement maps only observed residency counters" {
     try std.testing.expectEqual(@as(u64, 4096), measured.d2h_proof_bytes);
     try std.testing.expectEqual(@as(u64, 3), measured.runtime_compile_attempts);
     try std.testing.expectEqual(@as(u64, 2), measured.cpu_fallback_attempts);
+}
+
+fn writeFailureTransport(allocator: std.mem.Allocator, transport: []const u32) !void {
+    const path = std.process.getEnvVarOwned(allocator, "STWO_CAIRO_CUDA_FAILURE_TRANSPORT") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return,
+        else => return err,
+    };
+    defer allocator.free(path);
+    if (!std.fs.path.isAbsolute(path)) return error.InvalidDiagnosticPath;
+    const file = try std.fs.createFileAbsolute(path, .{ .exclusive = true });
+    defer file.close();
+    try file.writeAll(std.mem.sliceAsBytes(transport));
+    try file.sync();
 }

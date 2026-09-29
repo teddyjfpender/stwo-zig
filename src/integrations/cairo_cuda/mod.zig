@@ -1,9 +1,17 @@
 //! Cairo-to-generic-proof-program integration.
 //!
-//! No CUDA runtime is exposed yet. The only emitter is explicitly limited to
-//! proof-derived development semantics.
+//! The staged canonical source driver prepares proof-owned CUDA controllers.
+//! Production qualification requires real NVIDIA proof verification. The older
+//! proof-derived emitter remains an explicit development diagnostic.
 
 pub const identity = @import("identity.zig");
+pub const canonical_geometry = @import("canonical_geometry.zig");
+pub const canonical_source = @import("canonical_source.zig");
+pub const canonical_protocol = @import("canonical_protocol.zig");
+pub const canonical_verify = @import("canonical_verify.zig");
+pub const canonical_feeds = @import("canonical_feeds.zig");
+pub const parametric_eval = @import("parametric_eval.zig");
+pub const canonical_eval_aot = @import("canonical_eval_aot.zig");
 pub const base_writer_plan = @import("base_writer_plan.zig");
 pub const casm_input = @import("casm_input.zig");
 pub const lowering_map = @import("lowering_map.zig");
@@ -14,6 +22,7 @@ pub const recorded_witness = @import("recorded_witness.zig");
 pub const recorded_witness_oracle = @import("recorded_witness_oracle.zig");
 pub const request_compiler = @import("request_compiler.zig");
 pub const diagnostic_sn2 = @import("diagnostic_sn2.zig");
+pub const eval_codegen_parity = @import("eval_codegen_parity.zig");
 pub const eval_codegen = @import("eval_codegen.zig");
 pub const eval_aot = @import("eval_aot.zig");
 pub const eval_product_registry = @import("eval_product_registry.zig");

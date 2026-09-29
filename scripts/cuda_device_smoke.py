@@ -39,6 +39,8 @@ def compile_command(
     archive: Path,
     cuda_home: Path,
 ) -> list[str]:
+    # The EC fixture authenticates its independent vectors with OpenSSL.
+    extra_libraries = ["-lcrypto"] if source.stem == "native_ec_op_composite_smoke" else []
     return [
         str(compiler),
         "-std=c++17",
@@ -52,9 +54,19 @@ def compile_command(
         "-lcuda",
         "-ldl",
         "-lpthread",
+        *extra_libraries,
         "-o",
         str(executable),
     ]
+
+
+def run_command(source: Path, executable: Path, repository: Path) -> list[str]:
+    """Bind fixture-dependent tests to explicit inputs, independent of cwd."""
+    if source.stem == "native_ec_op_composite_smoke":
+        return [str(executable), str(repository / "vectors/cairo/ec_op_parity.bin")]
+    if source.stem == "native_recorded_witness_matrix_smoke":
+        return [str(executable), str(source.parent / "fixtures/recorded_witness_matrix_fixture.bin")]
+    return [str(executable)]
 
 
 def main() -> int:
@@ -110,10 +122,12 @@ def main() -> int:
         )
         subprocess.run(command, check=True)
         result = subprocess.run(
-            [str(executable)],
+            run_command(source, executable, Path(__file__).resolve().parents[1]),
             check=True,
             capture_output=True,
             text=True,
+            cwd=Path(__file__).resolve().parents[1],
+            timeout=180,
         )
         tests.append(
             {

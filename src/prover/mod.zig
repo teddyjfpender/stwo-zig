@@ -30,6 +30,7 @@ pub const measurement = @import("measurement/mod.zig");
 pub const execution = @import("execution/mod.zig");
 
 test {
+    _ = @import("vcs_lifted/blake2_stream4.zig");
     _ = @import("fri_work_test.zig");
     _ = @import("work_pool_test.zig");
     _ = host_budget_allocator;

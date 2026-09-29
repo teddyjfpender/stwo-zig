@@ -106,6 +106,7 @@ pub const SlotKind = enum(u8) {
     decommit_column_logs,
     decommit_assembly,
     terminal_bundle,
+    relation_base_inputs,
 };
 
 pub const Slot = struct {

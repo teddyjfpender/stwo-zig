@@ -17,21 +17,23 @@ const integration_graph = @import("../graph/integrations.zig");
 const policy = @import("../graph/product.zig");
 
 const composition_aot_source =
-    "vectors/cairo/official/air_template_composition_eval_domain.metallib";
+    "vectors/cairo/official/air_template_composition_bounded.metallib";
 const composition_aot_install =
-    "share/stwo-zig/cairo/official/air_template_composition_eval_domain.metallib";
+    "share/stwo-zig/cairo/official/air_template_composition_bounded.metallib";
 const composition_aot_sha256 =
-    "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb";
+    "a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1";
 const composition_aot_identity =
-    "cairo-composition-eval-domain-aot-v1:" ++
-    "label=air_template_composition_eval_domain_v1;" ++
-    "sha256=" ++ composition_aot_sha256 ++ ";length=5933764";
+    "cairo-composition-bounded-aot-v4:" ++
+    "label=air_template_composition_bounded_v4;" ++
+    "sha256=" ++ composition_aot_sha256 ++ ";length=10121115";
 
 const protocol_features =
     cairo_support.protocol_features ++
     "+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2" ++
-    "+authenticated-witness-cpu-aot-v1" ++
-    "+authenticated-cairo-composition-eval-domain-aot-v1";
+    "+authenticated-witness-cpu-aot-v2" ++
+    "+authenticated-cairo-composition-bounded-aot-v4+committed-column-openings-v1" ++
+    "+coordinate-interaction-executor-v1+planned-interaction-source-arenas-v1" ++
+    "+authenticated-preprocessed-merkle-reuse-v1+fresh-preprocessed-hash-compaction-v1";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -217,6 +219,14 @@ pub fn addProduct(context: Context) void {
             aot_bundle,
         ),
     });
+    const codegen_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/integrations/cairo_metal/codegen_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    codegen_root.addImport("stwo_cairo_frontend", stwo.import_table.get("stwo_cairo_frontend").?);
+    const codegen_tests = context.b.addTest(.{ .root_module = codegen_root, .filters = &.{ "Metal evaluation codegen", "Metal evaluation hybrid" } });
+    context.b.step("test-cairo-metal-codegen", "Test typed Metal composition generation and fusion").dependOn(&context.b.addRunArtifact(codegen_tests).step);
     cairo_support.linkBzip2(context.b, tests);
     metal.linkRuntime(context.b, tests);
     const run_tests = context.b.addRunArtifact(tests);
@@ -439,7 +449,7 @@ test "Cairo Metal is a focused parity-gated product" {
     try std.testing.expect(std.mem.indexOf(
         u8,
         protocol_features,
-        "authenticated-cairo-composition-eval-domain-aot-v1",
+        "authenticated-cairo-composition-bounded-aot-v2",
     ) != null);
     var installs_composition_aot = false;
     for (descriptor.installed_artifacts) |artifact| {

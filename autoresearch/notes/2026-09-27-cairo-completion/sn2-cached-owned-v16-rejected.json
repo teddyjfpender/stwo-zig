@@ -1,0 +1,34 @@
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "failed",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "variant_environment": {
+    "before": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_VM_ADAPTER": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/relation-paging-products-v15/bin/stwo-cairo-vm-adapter"
+    },
+    "after": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_VM_ADAPTER": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/relation-paging-products-v15/bin/stwo-cairo-vm-adapter"
+    }
+  },
+  "error": "product exited 1; see /Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn2-cached-owned-v15-v16-paired/pair-2-after/trial-1.product.log",
+  "error_type": "RuntimeError",
+  "interpretation": "Rejected candidate: first miss qualified, but warm hit adopted a host hash owner and failed strict Metal fallback qualification. Preserved as a failed experiment; not a performance result."
+}

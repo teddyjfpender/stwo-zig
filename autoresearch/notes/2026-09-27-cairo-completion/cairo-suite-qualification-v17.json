@@ -1,0 +1,3155 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-suite-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "manifest_sha256": "3546903e848bc14bef044f1c04e57d6ad645859505d759d4090acc465a1cab6f",
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "cache_mode": "retained",
+  "metal_pipeline_cache": "OS-managed and retained; admission time included in every process measurement",
+  "scheduling": "one benchmark product process at a time, including all worker sweeps",
+  "rss_scope": "largest process/descendant RSS, not sum of simultaneous allocations",
+  "manifest_workload_count": 15,
+  "selection": [
+    "ret",
+    "all-opcodes",
+    "bitwise",
+    "range96",
+    "range128",
+    "poseidon",
+    "pedersen",
+    "all-builtins",
+    "executable-add-one",
+    "fibonacci-pie",
+    "all-builtins-canonical",
+    "sn-pie-1",
+    "sn-pie-2",
+    "sn-pie-3",
+    "sn-pie-4"
+  ],
+  "not_selected": [],
+  "summary": [
+    {
+      "workload": "ret",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.469033083,
+      "prove_seconds": 0.375925584,
+      "peak_rss_bytes": 912293888,
+      "peak_product_physical_footprint_bytes": 1872250800,
+      "first_process_seconds": 0.996817084,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/ret-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-opcodes",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.666436583,
+      "prove_seconds": 0.563404167,
+      "peak_rss_bytes": 1584349184,
+      "peak_product_physical_footprint_bytes": 3014330768,
+      "first_process_seconds": 0.663381541,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/all-opcodes-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "bitwise",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.486038875,
+      "prove_seconds": 0.391378916,
+      "peak_rss_bytes": 1001799680,
+      "peak_product_physical_footprint_bytes": 1938524128,
+      "first_process_seconds": 0.477847959,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/bitwise-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "range96",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.447757042,
+      "prove_seconds": 0.35695175,
+      "peak_rss_bytes": 917618688,
+      "peak_product_physical_footprint_bytes": 1872660352,
+      "first_process_seconds": 0.457682208,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/range96-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "range128",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.571216833,
+      "prove_seconds": 0.47717025,
+      "peak_rss_bytes": 1001160704,
+      "peak_product_physical_footprint_bytes": 1939556272,
+      "first_process_seconds": 0.566414459,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/range128-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "poseidon",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.515532708,
+      "prove_seconds": 0.418433458,
+      "peak_rss_bytes": 936247296,
+      "peak_product_physical_footprint_bytes": 2460452832,
+      "first_process_seconds": 0.522566333,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/poseidon-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "pedersen",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.52533775,
+      "prove_seconds": 0.428062709,
+      "peak_rss_bytes": 929054720,
+      "peak_product_physical_footprint_bytes": 2646902728,
+      "first_process_seconds": 0.50485475,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/pedersen-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.860293125,
+      "prove_seconds": 0.800170084,
+      "peak_rss_bytes": 1170292736,
+      "peak_product_physical_footprint_bytes": 5168679024,
+      "first_process_seconds": 0.85671875,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/all-builtins-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "executable-add-one",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.440565041,
+      "prove_seconds": 0.347138375,
+      "peak_rss_bytes": 915341312,
+      "peak_product_physical_footprint_bytes": 1905510368,
+      "first_process_seconds": 0.440972125,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/executable-add-one-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "fibonacci-pie",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.765165875,
+      "prove_seconds": 0.617266708,
+      "peak_rss_bytes": 1577205760,
+      "peak_product_physical_footprint_bytes": 3014789496,
+      "first_process_seconds": 0.760579875,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/fibonacci-pie-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 3.902339708,
+      "prove_seconds": 3.827264542,
+      "peak_rss_bytes": 7682457600,
+      "peak_product_physical_footprint_bytes": 17563099800,
+      "first_process_seconds": 3.887336584,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/all-builtins-canonical-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-1",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 31.05844625,
+      "prove_seconds": 26.296796166,
+      "peak_rss_bytes": 46293204992,
+      "peak_product_physical_footprint_bytes": 61208169608,
+      "first_process_seconds": 34.418287458,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-1-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-2",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 16.480445833,
+      "prove_seconds": 13.976176708,
+      "peak_rss_bytes": 27949318144,
+      "peak_product_physical_footprint_bytes": 37152153144,
+      "first_process_seconds": 16.451820208,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-2-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-3",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 31.47444825,
+      "prove_seconds": 26.833456959,
+      "peak_rss_bytes": 45601341440,
+      "peak_product_physical_footprint_bytes": 60542847920,
+      "first_process_seconds": 31.155453459,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-3-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-4",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 21.455597042,
+      "prove_seconds": 17.175278625,
+      "peak_rss_bytes": 36191207424,
+      "peak_product_physical_footprint_bytes": 45396997376,
+      "first_process_seconds": 21.750633875,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-4-metal-workers-auto/results.json"
+    }
+  ],
+  "backend_proof_parity": [
+    {
+      "workload": "ret",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-opcodes",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "bitwise",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "range96",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "range128",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "poseidon",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "pedersen",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-builtins",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "executable-add-one",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "fibonacci-pie",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-1",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-2",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-3",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-4",
+      "workers": null,
+      "status": "single-backend"
+    }
+  ],
+  "records": [
+    {
+      "workload": "ret",
+      "family": "opcodes",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/ret-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/test_prove_verify_ret_opcode/compiled.json",
+        "sha256": "d4381c90ee04f717aeb6c5ead5a599c4029b8a38faf56d066c865ffe89273d57"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 996817084,
+            "user_ns": 1115858000,
+            "system_ns": 281389000,
+            "max_process_tree_rss_bytes": 897843200,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 15004000,
+            "proof_encode_ns": 2781375,
+            "request_until_publication_ns": 986254500,
+            "execute_ns": 22720125,
+            "prove_ns": 381267333,
+            "verify_ns": 3351417
+          },
+          "proof_sha256": "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 181221459,
+            "user_ns": 165770000,
+            "system_ns": 2752000,
+            "max_process_tree_rss_bytes": 19464192,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 24,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.001051783561706543,
+              "library_preparation_seconds": 0.016652941703796387
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 98,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 11,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 0
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 0,
+            "misses": 2,
+            "stores": 2,
+            "evictions": 0,
+            "loaded_bytes": 0,
+            "stored_bytes": 10485984,
+            "evicted_bytes": 0,
+            "directory_bytes": 5918164480,
+            "eviction_ns": 139334
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1978206152,
+            "current_physical_footprint_bytes": 1066714864,
+            "process_cpu_ns": 1332116291,
+            "energy_nj": 5253205954,
+            "instructions": 20566885546,
+            "cycles": 5673829437,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 469033083,
+            "user_ns": 982260000,
+            "system_ns": 280644000,
+            "max_process_tree_rss_bytes": 912293888,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11788750,
+            "proof_encode_ns": 2772917,
+            "request_until_publication_ns": 452254042,
+            "execute_ns": 13923333,
+            "prove_ns": 375925584,
+            "verify_ns": 3340292
+          },
+          "proof_sha256": "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 179660834,
+            "user_ns": 165245000,
+            "system_ns": 2642000,
+            "max_process_tree_rss_bytes": 19578880,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 24,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0010683536529541016,
+              "library_preparation_seconds": 0.01603090763092041
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 97,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 11,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1872250800,
+            "current_physical_footprint_bytes": 939296328,
+            "process_cpu_ns": 1226561791,
+            "energy_nj": 4986407496,
+            "instructions": 18928161845,
+            "cycles": 5272241347,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "all-opcodes",
+      "family": "opcodes",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/all-opcodes-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/all_opcodes.compiled.json",
+        "sha256": "727c4f6aa68b17d70098e50fcbe39619d07a1dc0b1966fd55dd127006e8a3e95"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 663381541,
+            "user_ns": 1805913000,
+            "system_ns": 596779000,
+            "max_process_tree_rss_bytes": 1584889856,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11516000,
+            "proof_encode_ns": 4024750,
+            "request_until_publication_ns": 646260584,
+            "execute_ns": 16772375,
+            "prove_ns": 560843625,
+            "verify_ns": 6618459
+          },
+          "proof_sha256": "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 304300666,
+            "user_ns": 290972000,
+            "system_ns": 3427000,
+            "max_process_tree_rss_bytes": 27688960,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 46,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.004483938217163086,
+              "library_preparation_seconds": 0.016072988510131836
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 123,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 15,
+            "commit_source_arena_memcpys": 13,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 3014265208,
+            "current_physical_footprint_bytes": 1556154072,
+            "process_cpu_ns": 2364090166,
+            "energy_nj": 8558342962,
+            "instructions": 31216720944,
+            "cycles": 10144626290,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 666436583,
+            "user_ns": 1752379000,
+            "system_ns": 592753000,
+            "max_process_tree_rss_bytes": 1584349184,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11657833,
+            "proof_encode_ns": 4032958,
+            "request_until_publication_ns": 650332750,
+            "execute_ns": 16450583,
+            "prove_ns": 563404167,
+            "verify_ns": 6753625
+          },
+          "proof_sha256": "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 306107125,
+            "user_ns": 290890000,
+            "system_ns": 3387000,
+            "max_process_tree_rss_bytes": 27770880,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 46,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0030384063720703125,
+              "library_preparation_seconds": 0.016087055206298828
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 123,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 15,
+            "commit_source_arena_memcpys": 13,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 3014330768,
+            "current_physical_footprint_bytes": 1598555912,
+            "process_cpu_ns": 2303842166,
+            "energy_nj": 8453933879,
+            "instructions": 30657094467,
+            "cycles": 9893109136,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "bitwise",
+      "family": "bitwise",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/bitwise-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/test_prove_verify_bitwise_builtin/compiled.json",
+        "sha256": "92049e724dc0d5578bb036d55261c45a801f7b53754a02af3f3e464824251eff"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 477847959,
+            "user_ns": 1177884000,
+            "system_ns": 284192000,
+            "max_process_tree_rss_bytes": 911769600,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11594833,
+            "proof_encode_ns": 2933458,
+            "request_until_publication_ns": 461906166,
+            "execute_ns": 14346792,
+            "prove_ns": 384395500,
+            "verify_ns": 3812292
+          },
+          "proof_sha256": "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 199365750,
+            "user_ns": 184663000,
+            "system_ns": 2863000,
+            "max_process_tree_rss_bytes": 21053440,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 29,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.001387476921081543,
+              "library_preparation_seconds": 0.016041994094848633
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 101,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 9,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1871349632,
+            "current_physical_footprint_bytes": 942933552,
+            "process_cpu_ns": 1423372541,
+            "energy_nj": 5633653015,
+            "instructions": 20945037969,
+            "cycles": 6106641445,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 486038875,
+            "user_ns": 1185596000,
+            "system_ns": 289136000,
+            "max_process_tree_rss_bytes": 1001799680,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11674167,
+            "proof_encode_ns": 2962500,
+            "request_until_publication_ns": 469354041,
+            "execute_ns": 15004000,
+            "prove_ns": 391378916,
+            "verify_ns": 3815458
+          },
+          "proof_sha256": "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 196263875,
+            "user_ns": 182046000,
+            "system_ns": 2715000,
+            "max_process_tree_rss_bytes": 21086208,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 29,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0013949871063232422,
+              "library_preparation_seconds": 0.016192078590393066
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 101,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 9,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1938524128,
+            "current_physical_footprint_bytes": 1013679784,
+            "process_cpu_ns": 1438519583,
+            "energy_nj": 5690044345,
+            "instructions": 21052472397,
+            "cycles": 6178020188,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "range96",
+      "family": "range-check",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/range96-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/test_prove_verify_range_check_bits_96_builtin/compiled.json",
+        "sha256": "86cdb3ce554996099490ce28001e5f6bd33bc63d13c6512f6f5dc28f333ed9da"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 457682208,
+            "user_ns": 856497000,
+            "system_ns": 284984000,
+            "max_process_tree_rss_bytes": 917471232,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11770708,
+            "proof_encode_ns": 2952667,
+            "request_until_publication_ns": 441012625,
+            "execute_ns": 15563291,
+            "prove_ns": 362773458,
+            "verify_ns": 3724500
+          },
+          "proof_sha256": "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 196592500,
+            "user_ns": 181737000,
+            "system_ns": 2694000,
+            "max_process_tree_rss_bytes": 20905984,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 29,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0013744831085205078,
+              "library_preparation_seconds": 0.016011953353881836
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 100,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 11,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1872234416,
+            "current_physical_footprint_bytes": 948373064,
+            "process_cpu_ns": 1105152041,
+            "energy_nj": 4574545413,
+            "instructions": 17561330800,
+            "cycles": 4756926883,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 447757042,
+            "user_ns": 860816000,
+            "system_ns": 276616000,
+            "max_process_tree_rss_bytes": 917618688,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11661625,
+            "proof_encode_ns": 2996625,
+            "request_until_publication_ns": 434014958,
+            "execute_ns": 14500500,
+            "prove_ns": 356951750,
+            "verify_ns": 3760708
+          },
+          "proof_sha256": "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 198096417,
+            "user_ns": 181950000,
+            "system_ns": 2799000,
+            "max_process_tree_rss_bytes": 20742144,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 29,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.001387953758239746,
+              "library_preparation_seconds": 0.016090035438537598
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 100,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 11,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1872660352,
+            "current_physical_footprint_bytes": 948127256,
+            "process_cpu_ns": 1100444000,
+            "energy_nj": 4591852856,
+            "instructions": 17568771704,
+            "cycles": 4733669689,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "range128",
+      "family": "range-check",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/range128-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/test_prove_verify_range_check_bits_128_builtin/compiled.json",
+        "sha256": "f14e91e258c25a9ebd780e0070a06b78d8b8715c1b1f6f81f374d89457387850"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 566414459,
+            "user_ns": 1649117000,
+            "system_ns": 272476000,
+            "max_process_tree_rss_bytes": 915128320,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11763208,
+            "proof_encode_ns": 2947416,
+            "request_until_publication_ns": 550294125,
+            "execute_ns": 15457333,
+            "prove_ns": 471987292,
+            "verify_ns": 3680583
+          },
+          "proof_sha256": "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 196959625,
+            "user_ns": 181161000,
+            "system_ns": 2496000,
+            "max_process_tree_rss_bytes": 20643840,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 29,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.001381993293762207,
+              "library_preparation_seconds": 0.01613008975982666
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 130,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 11,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1872316264,
+            "current_physical_footprint_bytes": 945047040,
+            "process_cpu_ns": 1886256041,
+            "energy_nj": 7254699873,
+            "instructions": 26087528257,
+            "cycles": 8084276852,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 571216833,
+            "user_ns": 1653622000,
+            "system_ns": 294309000,
+            "max_process_tree_rss_bytes": 1001160704,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11642333,
+            "proof_encode_ns": 2961875,
+            "request_until_publication_ns": 553925667,
+            "execute_ns": 13831083,
+            "prove_ns": 477170250,
+            "verify_ns": 3671916
+          },
+          "proof_sha256": "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 191408792,
+            "user_ns": 178980000,
+            "system_ns": 2718000,
+            "max_process_tree_rss_bytes": 20643840,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 29,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0013971328735351562,
+              "library_preparation_seconds": 0.016044020652770996
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 130,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 11,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1939556272,
+            "current_physical_footprint_bytes": 1011959392,
+            "process_cpu_ns": 1911416250,
+            "energy_nj": 7340580468,
+            "instructions": 26195450283,
+            "cycles": 8197912036,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "poseidon",
+      "family": "semantic-hash",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/poseidon-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/test_prove_verify_poseidon_builtin/compiled.json",
+        "sha256": "e10c31f78bf2fcbd24e80af1acb51bff2d6a270a939c4f3485df1f84df4c4d23"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 522566333,
+            "user_ns": 975708000,
+            "system_ns": 320772000,
+            "max_process_tree_rss_bytes": 936820736,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11767875,
+            "proof_encode_ns": 3758125,
+            "request_until_publication_ns": 505253959,
+            "execute_ns": 15630334,
+            "prove_ns": 418656125,
+            "verify_ns": 5409042
+          },
+          "proof_sha256": "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 262655291,
+            "user_ns": 247471000,
+            "system_ns": 3157000,
+            "max_process_tree_rss_bytes": 25427968,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 36,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0021888017654418945,
+              "library_preparation_seconds": 0.016036033630371094
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 109,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 7,
+            "commit_source_arena_memcpys": 6,
+            "commit_source_uploads": 30,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 2460583880,
+            "current_physical_footprint_bytes": 1531233960,
+            "process_cpu_ns": 1260424750,
+            "energy_nj": 5101861146,
+            "instructions": 19125699897,
+            "cycles": 5410288240,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 515532708,
+            "user_ns": 977195000,
+            "system_ns": 317340000,
+            "max_process_tree_rss_bytes": 936247296,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11582875,
+            "proof_encode_ns": 3842167,
+            "request_until_publication_ns": 498397667,
+            "execute_ns": 14281958,
+            "prove_ns": 418433458,
+            "verify_ns": 5469084
+          },
+          "proof_sha256": "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 263667500,
+            "user_ns": 248694000,
+            "system_ns": 3147000,
+            "max_process_tree_rss_bytes": 25427968,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 36,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.00222015380859375,
+              "library_preparation_seconds": 0.0160219669342041
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 109,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 7,
+            "commit_source_arena_memcpys": 6,
+            "commit_source_uploads": 30,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 2460452832,
+            "current_physical_footprint_bytes": 1488782992,
+            "process_cpu_ns": 1258069208,
+            "energy_nj": 5128164935,
+            "instructions": 19163658787,
+            "cycles": 5402298598,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "pedersen",
+      "family": "elliptic-curve-hash",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/pedersen-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/test_prove_verify_pedersen_builtin/compiled.json",
+        "sha256": "02eee8181d7daa5148344d1b2faeb83505a6de955fb224cb0a6d05ae4591c071"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 504854750,
+            "user_ns": 946640000,
+            "system_ns": 315420000,
+            "max_process_tree_rss_bytes": 935280640,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11727583,
+            "proof_encode_ns": 3465458,
+            "request_until_publication_ns": 491440125,
+            "execute_ns": 14355125,
+            "prove_ns": 410939292,
+            "verify_ns": 5033417
+          },
+          "proof_sha256": "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 243077417,
+            "user_ns": 230083000,
+            "system_ns": 3321000,
+            "max_process_tree_rss_bytes": 24346624,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 33,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0019419193267822266,
+              "library_preparation_seconds": 0.015990018844604492
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 106,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 9,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 30,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 2647934872,
+            "current_physical_footprint_bytes": 1658783304,
+            "process_cpu_ns": 1225356458,
+            "energy_nj": 5114211939,
+            "instructions": 19157473187,
+            "cycles": 5265479742,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 525337750,
+            "user_ns": 952742000,
+            "system_ns": 296346000,
+            "max_process_tree_rss_bytes": 929054720,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11592666,
+            "proof_encode_ns": 3615917,
+            "request_until_publication_ns": 507556416,
+            "execute_ns": 14226792,
+            "prove_ns": 428062709,
+            "verify_ns": 4996958
+          },
+          "proof_sha256": "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 244670917,
+            "user_ns": 229889000,
+            "system_ns": 3019000,
+            "max_process_tree_rss_bytes": 24133632,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 33,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0020482540130615234,
+              "library_preparation_seconds": 0.016087055206298828
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 106,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 9,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 30,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 2646902728,
+            "current_physical_footprint_bytes": 1658586672,
+            "process_cpu_ns": 1210556250,
+            "energy_nj": 5076857780,
+            "instructions": 19184581497,
+            "cycles": 5194246998,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "all-builtins",
+      "family": "mixed-builtins",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/all-builtins-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/official/all_builtins.prover_input.json",
+        "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 856718750,
+            "user_ns": 1904357000,
+            "system_ns": 685690000,
+            "max_process_tree_rss_bytes": 1170145280,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 13036792,
+            "proof_encode_ns": 6192375,
+            "request_until_publication_ns": 841704333,
+            "execute_ns": 0,
+            "prove_ns": 799503833,
+            "verify_ns": 11416584
+          },
+          "proof_sha256": "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 467336500,
+            "user_ns": 451185000,
+            "system_ns": 4171000,
+            "max_process_tree_rss_bytes": 37273600,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 48,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.009736061096191406,
+              "library_preparation_seconds": 0.016070961952209473
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 121,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 9,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 30,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 5168613464,
+            "current_physical_footprint_bytes": 3946579672,
+            "process_cpu_ns": 2588753708,
+            "energy_nj": 9151139262,
+            "instructions": 30766228231,
+            "cycles": 11128237964,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 860293125,
+            "user_ns": 1895029000,
+            "system_ns": 661191000,
+            "max_process_tree_rss_bytes": 1170292736,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 13178458,
+            "proof_encode_ns": 6290708,
+            "request_until_publication_ns": 842796500,
+            "execute_ns": 0,
+            "prove_ns": 800170084,
+            "verify_ns": 11563958
+          },
+          "proof_sha256": "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 468549709,
+            "user_ns": 453463000,
+            "system_ns": 4714000,
+            "max_process_tree_rss_bytes": 37371904,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 48,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.004761219024658203,
+              "library_preparation_seconds": 0.01608908176422119
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 121,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 9,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 30,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 5168679024,
+            "current_physical_footprint_bytes": 3945842440,
+            "process_cpu_ns": 2554677708,
+            "energy_nj": 9172493419,
+            "instructions": 30701932626,
+            "cycles": 10979794396,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "executable-add-one",
+      "family": "cairo-executable",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/executable-add-one-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/programs/executable/add_one.executable.json",
+        "sha256": "5e3e01819c1078a2768715b0e63be7ade9c6a8ea149ee0bc8b325cb013a1e23a"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 440972125,
+            "user_ns": 659643000,
+            "system_ns": 280498000,
+            "max_process_tree_rss_bytes": 915947520,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11695709,
+            "proof_encode_ns": 2981333,
+            "request_until_publication_ns": 424242167,
+            "execute_ns": 14333500,
+            "prove_ns": 346311666,
+            "verify_ns": 3865292
+          },
+          "proof_sha256": "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 202655834,
+            "user_ns": 189361000,
+            "system_ns": 2843000,
+            "max_process_tree_rss_bytes": 21250048,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 31,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0015183687210083008,
+              "library_preparation_seconds": 0.016127943992614746
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 101,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 9,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1905559472,
+            "current_physical_footprint_bytes": 981632584,
+            "process_cpu_ns": 903227791,
+            "energy_nj": 3914360111,
+            "instructions": 15379849009,
+            "cycles": 3885202200,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 440565041,
+            "user_ns": 655783000,
+            "system_ns": 280156000,
+            "max_process_tree_rss_bytes": 915341312,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11596542,
+            "proof_encode_ns": 3135375,
+            "request_until_publication_ns": 423647542,
+            "execute_ns": 14646916,
+            "prove_ns": 347138375,
+            "verify_ns": 3900625
+          },
+          "proof_sha256": "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 205600667,
+            "user_ns": 189561000,
+            "system_ns": 2893000,
+            "max_process_tree_rss_bytes": 21233664,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 31,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0015017986297607422,
+              "library_preparation_seconds": 0.016067028045654297
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 101,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 13,
+            "commit_source_arena_memcpys": 9,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 1905510368,
+            "current_physical_footprint_bytes": 980239992,
+            "process_cpu_ns": 899627583,
+            "energy_nj": 3914902005,
+            "instructions": 15377327989,
+            "cycles": 3868271485,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "fibonacci-pie",
+      "family": "bootloader-pie",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/fibonacci-pie-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip",
+        "sha256": "06da79af56d26210135fbfdd1c900469f3246806910122311479f16d17749994"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 760579875,
+            "user_ns": 2890340000,
+            "system_ns": 607788000,
+            "max_process_tree_rss_bytes": 1577009152,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11489125,
+            "proof_encode_ns": 4076917,
+            "request_until_publication_ns": 743109916,
+            "execute_ns": 69196042,
+            "prove_ns": 606841250,
+            "verify_ns": 6277917
+          },
+          "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 313925125,
+            "user_ns": 297684000,
+            "system_ns": 3475000,
+            "max_process_tree_rss_bytes": 26574848,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 40,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.002438068389892578,
+              "library_preparation_seconds": 0.016088008880615234
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 117,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 16,
+            "commit_source_arena_memcpys": 12,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 3014740416,
+            "current_physical_footprint_bytes": 1622591264,
+            "process_cpu_ns": 3407327750,
+            "energy_nj": 12287072700,
+            "instructions": 42293776638,
+            "cycles": 14615033585,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 765165875,
+            "user_ns": 2907079000,
+            "system_ns": 615970000,
+            "max_process_tree_rss_bytes": 1577205760,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11371875,
+            "proof_encode_ns": 4003709,
+            "request_until_publication_ns": 749934000,
+            "execute_ns": 66053834,
+            "prove_ns": 617266708,
+            "verify_ns": 6419917
+          },
+          "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 312370250,
+            "user_ns": 298042000,
+            "system_ns": 3535000,
+            "max_process_tree_rss_bytes": 26771456,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 40,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0024328231811523438,
+              "library_preparation_seconds": 0.016108036041259766
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 117,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 16,
+            "commit_source_arena_memcpys": 12,
+            "commit_source_uploads": 17,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 10485984,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 3014789496,
+            "current_physical_footprint_bytes": 1202357688,
+            "process_cpu_ns": 3433030458,
+            "energy_nj": 12321154186,
+            "instructions": 42390638048,
+            "cycles": 14717348234,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "family": "mixed-builtins",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/all-builtins-canonical-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "prove",
+        "path": "/Users/theodorepender/code/cryptography/stwo-zig/vectors/cairo/official/all_builtins.prover_input.json",
+        "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 3887336584,
+            "user_ns": 7316108000,
+            "system_ns": 3504308000,
+            "max_process_tree_rss_bytes": 7682424832,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 15851875,
+            "proof_encode_ns": 6965042,
+            "request_until_publication_ns": 3869253833,
+            "execute_ns": 0,
+            "prove_ns": 3823826000,
+            "verify_ns": 12836666
+          },
+          "proof_sha256": "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 525650208,
+            "user_ns": 504172000,
+            "system_ns": 4976000,
+            "max_process_tree_rss_bytes": 37928960,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 48,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.007142424583435059,
+              "library_preparation_seconds": 0.015998005867004395
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 149,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 9,
+            "commit_source_arena_memcpys": 5,
+            "commit_source_uploads": 36,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 17563689600,
+            "current_physical_footprint_bytes": 6245535080,
+            "process_cpu_ns": 10819010750,
+            "energy_nj": 40131515413,
+            "instructions": 173200041297,
+            "cycles": 46124305030,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 3902339708,
+            "user_ns": 7402961000,
+            "system_ns": 3451630000,
+            "max_process_tree_rss_bytes": 7682457600,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 13352541,
+            "proof_encode_ns": 7024792,
+            "request_until_publication_ns": 3882669417,
+            "execute_ns": 0,
+            "prove_ns": 3827264542,
+            "verify_ns": 12676541
+          },
+          "proof_sha256": "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 530803083,
+            "user_ns": 510115000,
+            "system_ns": 5143000,
+            "max_process_tree_rss_bytes": 37699584,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 48,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.00485539436340332,
+              "library_preparation_seconds": 0.016463041305541992
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 149,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 9,
+            "commit_source_arena_memcpys": 5,
+            "commit_source_uploads": 36,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 17563099800,
+            "current_physical_footprint_bytes": 6110268656,
+            "process_cpu_ns": 10853083000,
+            "energy_nj": 40001824357,
+            "instructions": 173502058286,
+            "cycles": 46079136882,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "sn-pie-1",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-1-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+        "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 34418287458,
+            "user_ns": 137190539000,
+            "system_ns": 34453620000,
+            "max_process_tree_rss_bytes": 46064025600,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 197331125,
+            "proof_encode_ns": 9247375,
+            "request_until_publication_ns": 34366572000,
+            "execute_ns": 4081137125,
+            "prove_ns": 29918211041,
+            "verify_ns": 16493416
+          },
+          "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 696695708,
+            "user_ns": 627917000,
+            "system_ns": 17711000,
+            "max_process_tree_rss_bytes": 39698432,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.036583781242370605,
+              "library_preparation_seconds": 0.03305995464324951
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 267,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 40,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 61208497240,
+            "current_physical_footprint_bytes": 4279765968,
+            "process_cpu_ns": 165783543958,
+            "energy_nj": 447445776978,
+            "instructions": 982119295087,
+            "cycles": 705394878745,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 31058446250,
+            "user_ns": 139970641000,
+            "system_ns": 33395680000,
+            "max_process_tree_rss_bytes": 46293204992,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 218787542,
+            "proof_encode_ns": 9773292,
+            "request_until_publication_ns": 30983662125,
+            "execute_ns": 4313236250,
+            "prove_ns": 26296796166,
+            "verify_ns": 15171416
+          },
+          "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 748829375,
+            "user_ns": 665233000,
+            "system_ns": 25566000,
+            "max_process_tree_rss_bytes": 39895040,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.03641796112060547,
+              "library_preparation_seconds": 0.033879995346069336
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 267,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 40,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 61208169608,
+            "current_physical_footprint_bytes": 4279372752,
+            "process_cpu_ns": 167196724916,
+            "energy_nj": 431827973807,
+            "instructions": 966121455814,
+            "cycles": 697793535288,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "sn-pie-2",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-2-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/Downloads/SN_PIE_2.zip",
+        "sha256": "f10b70ca8af790a934ac36b3835136bbdc0cc47f62d6bc63169856dec3f0dc41"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 16451820208,
+            "user_ns": 73055823000,
+            "system_ns": 12625739000,
+            "max_process_tree_rss_bytes": 27949449216,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 130825041,
+            "proof_encode_ns": 9023916,
+            "request_until_publication_ns": 16407102250,
+            "execute_ns": 2211070417,
+            "prove_ns": 13925671750,
+            "verify_ns": 15272042
+          },
+          "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 690501875,
+            "user_ns": 669387000,
+            "system_ns": 5246000,
+            "max_process_tree_rss_bytes": 39600128,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.010185003280639648,
+              "library_preparation_seconds": 0.017929911613464355
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 210,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 5,
+            "commit_source_uploads": 41,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 37151645216,
+            "current_physical_footprint_bytes": 3966143128,
+            "process_cpu_ns": 82490007125,
+            "energy_nj": 206422496547,
+            "instructions": 568967117249,
+            "cycles": 330462482961,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 16480445833,
+            "user_ns": 74257303000,
+            "system_ns": 12567995000,
+            "max_process_tree_rss_bytes": 27949318144,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 126709042,
+            "proof_encode_ns": 9288583,
+            "request_until_publication_ns": 16451140083,
+            "execute_ns": 2211302959,
+            "prove_ns": 13976176708,
+            "verify_ns": 15249625
+          },
+          "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 707916000,
+            "user_ns": 685247000,
+            "system_ns": 8469000,
+            "max_process_tree_rss_bytes": 39731200,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.005382895469665527,
+              "library_preparation_seconds": 0.018106937408447266
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 210,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 5,
+            "commit_source_uploads": 41,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 37152153144,
+            "current_physical_footprint_bytes": 3982592712,
+            "process_cpu_ns": 83633198166,
+            "energy_nj": 202472903771,
+            "instructions": 568277838999,
+            "cycles": 329755857357,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "sn-pie-3",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-3-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+        "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 31155453459,
+            "user_ns": 141713369000,
+            "system_ns": 34163531000,
+            "max_process_tree_rss_bytes": 45641285632,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 204435417,
+            "proof_encode_ns": 25404375,
+            "request_until_publication_ns": 31110517042,
+            "execute_ns": 4197764625,
+            "prove_ns": 26577295041,
+            "verify_ns": 16057792
+          },
+          "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 774551416,
+            "user_ns": 697840000,
+            "system_ns": 19162000,
+            "max_process_tree_rss_bytes": 39632896,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.036437273025512695,
+              "library_preparation_seconds": 0.032763004302978516
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 272,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 40,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 60542077800,
+            "current_physical_footprint_bytes": 3625929824,
+            "process_cpu_ns": 169933518208,
+            "energy_nj": 382574768726,
+            "instructions": 943877696371,
+            "cycles": 671430048479,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 31474448250,
+            "user_ns": 141555459000,
+            "system_ns": 34758560000,
+            "max_process_tree_rss_bytes": 45601341440,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 212177375,
+            "proof_encode_ns": 11191166,
+            "request_until_publication_ns": 31422329959,
+            "execute_ns": 4260621334,
+            "prove_ns": 26833456959,
+            "verify_ns": 17147292
+          },
+          "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 813767958,
+            "user_ns": 740365000,
+            "system_ns": 23004000,
+            "max_process_tree_rss_bytes": 39616512,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.03662276268005371,
+              "library_preparation_seconds": 0.03445899486541748
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 272,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 40,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 60542847920,
+            "current_physical_footprint_bytes": 3628125376,
+            "process_cpu_ns": 170380019583,
+            "energy_nj": 368902898291,
+            "instructions": 945579289256,
+            "cycles": 663521075257,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    },
+    {
+      "workload": "sn-pie-4",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "metal",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cached-columns-v17/sn-pie-4-metal-workers-auto/results.json",
+      "product_sha256": "16b2d69fd89cf44774358c01410dc494c7b0134a407896ef9e332bc102fba218",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload_identity": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/Downloads/SN_PIE_4.zip",
+        "sha256": "991eff7c3323e1b6b6cb2bb2d7df1704b1e31f4854c00c60d7413603fe455603"
+      },
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 21750633875,
+            "user_ns": 102660982000,
+            "system_ns": 16110226000,
+            "max_process_tree_rss_bytes": 36190961664,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 218282541,
+            "proof_encode_ns": 9885375,
+            "request_until_publication_ns": 21723294000,
+            "execute_ns": 3877036958,
+            "prove_ns": 17492456584,
+            "verify_ns": 16722167
+          },
+          "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 678424708,
+            "user_ns": 656282000,
+            "system_ns": 5084000,
+            "max_process_tree_rss_bytes": 39256064,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.005078315734863281,
+              "library_preparation_seconds": 0.01792299747467041
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 234,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 5,
+            "commit_source_uploads": 41,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 45397538000,
+            "current_physical_footprint_bytes": 4072655560,
+            "process_cpu_ns": 112960160000,
+            "energy_nj": 257457991452,
+            "instructions": 666796684043,
+            "cycles": 439657107954,
+            "unavailable_reason": null
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 21455597042,
+            "user_ns": 100329772000,
+            "system_ns": 16091221000,
+            "max_process_tree_rss_bytes": 36191207424,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 221316875,
+            "proof_encode_ns": 8938000,
+            "request_until_publication_ns": 21424208500,
+            "execute_ns": 3856294375,
+            "prove_ns": 17175278625,
+            "verify_ns": 14704334
+          },
+          "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67",
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 686303041,
+            "user_ns": 668783000,
+            "system_ns": 4553000,
+            "max_process_tree_rss_bytes": 39190528,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.005228757858276367,
+              "library_preparation_seconds": 0.017917990684509277
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512378880
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 234,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 14,
+            "commit_source_arena_memcpys": 5,
+            "commit_source_uploads": 41,
+            "cached_merkle_artifact_adoptions": 1
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 45396997376,
+            "current_physical_footprint_bytes": 4107160288,
+            "process_cpu_ns": 110605222500,
+            "energy_nj": 254549007655,
+            "instructions": 667227606188,
+            "cycles": 431532538328,
+            "unavailable_reason": null
+          }
+        }
+      ]
+    }
+  ],
+  "interpretation": "All 15 workloads, two recorded processes each, canonical 70-query/26-bit security; independent official acceptance and exact proof parity with prior frozen products. Initial trials retained. Subsequent-trial rows each contain one observation, not multi-sample warm medians. Resident LogUp remains opt-in."
+}

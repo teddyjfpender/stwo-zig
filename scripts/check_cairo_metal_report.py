@@ -65,7 +65,7 @@ def validate(
     if require_execution:
         require(isinstance(execution, dict), "missing program execution receipt")
         require(
-            execution.get("program_type") in {"json", "executable"},
+            execution.get("program_type") in {"json", "executable", "pie"},
             "invalid executed program type",
         )
         require(

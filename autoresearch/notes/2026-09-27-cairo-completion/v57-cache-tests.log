@@ -1,0 +1,27 @@
+1/26 preprocessed.prepared_columns_cache.test.prepared public column identity binds content order and protocol...OK
+2/26 preprocessed.prepared_columns_cache.test.prepared public column cache validates before publishing in-place values...OK
+3/26 preprocessed.product_cache.test.preprocessed cache is inert until a product configures it...OK
+4/26 preprocessed.product_cache.test.protocol identity keys separate variants, windows and revisions...OK
+5/26 preprocessed.product_cache.test.spec digest distinguishes preprocessed variants...OK
+6/26 preprocessed.product_cache.test.a stored artifact round-trips and any corruption falls back...OK
+7/26 preprocessed.trace.test.official Cairo preprocessed variants preserve source geometry...OK
+8/26 preprocessed.trace.test.official Cairo preprocessed indices project by identity...OK
+9/26 preprocessed.tree_digest_cache.test.the tree-digest seam stays inert without a configured product...OK
+10/26 preprocessed.tree_digest_cache.test.the key separates tree shapes, kinds and bindings...OK
+11/26 preprocessed.tree_digest_cache.test.a stored layer set round-trips and any corruption falls back...OK
+12/26 preprocessed.pedersen_table.test.Pedersen block generation agrees with exact window-18 deductions...OK
+13/26 preprocessed.pedersen_table.test.Pedersen table geometry covers official window variants...OK
+14/26 preprocessed.pedersen_table.test.standard Pedersen plans preserve exact points across chunk boundaries...OK
+15/26 preprocessed.pedersen_table.test.Pedersen worker policy is explicit, bounded, and never empty...OK
+16/26 preprocessed.pedersen_table.test.complete window-9 Pedersen table agrees at section boundaries and padding...OK
+17/26 witness.deductions.stark_curve.test.Stark curve projective doubling agrees with affine addition...OK
+18/26 witness.deductions.stark_curve.test.Stark curve batch affine conversion agrees with individual conversion...OK
+19/26 witness.deductions.felt252.test.Cairo felt inverse agrees with Fermat at limb and prime boundaries...OK
+20/26 witness.deductions.felt252.test.Cairo deductions: felt words roundtrip canonical boundary values...OK
+21/26 witness.deductions.felt252.test.Cairo deductions: felt arithmetic is canonical...OK
+22/26 witness.deductions.felt252.test.Cairo felt native multiplication matches independent wide reduction...OK
+23/26 witness.deductions.pedersen.test.Pedersen table padding repeats the first official point...OK
+24/26 witness.deductions.pedersen.test.window-9 Pedersen deduction preserves the official state layout...OK
+25/26 witness.deductions.pedersen.test.window-9 Pedersen points-table wrapper matches the generalized table...OK
+26/26 witness.deductions.pedersen.test.cached Pedersen deductions preserve exact window-9 outputs...OK
+All 26 tests passed.

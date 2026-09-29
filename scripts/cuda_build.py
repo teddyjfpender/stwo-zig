@@ -61,7 +61,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--aot-set",
         action="append",
-        choices=(".", "cairo_eval"),
+        choices=(".", "cairo_eval", "cairo_canonical_eval", "cairo_witness"),
         help="Authenticated frontend AOT set; defaults to the Native set only",
     )
     result.add_argument(
@@ -71,6 +71,7 @@ def parser() -> argparse.ArgumentParser:
         metavar=("NAME", "DIRECTORY"),
         help="Build-cache source root overriding one selected AOT set",
     )
+    result.add_argument("--aot-cubin-import-root", type=Path, default=os.environ.get("STWO_CUDA_AOT_CUBIN_IMPORT_ROOT"))
     result.add_argument("--out-dir", type=Path, required=True)
     result.add_argument("--nvcc", required=True)
     result.add_argument("--host-cxx", required=True)
@@ -112,6 +113,7 @@ def main() -> int:
                 sms=normalize_sms(args.arch),
                 jobs=args.jobs,
             ),
+            aot_cubin_import_root=args.aot_cubin_import_root,
             frontend=args.frontend,
             aot_sets=tuple(args.aot_set or (".",)),
             aot_set_roots=tuple(

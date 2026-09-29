@@ -11,6 +11,12 @@ pub const Catalog = struct {
     plan: relation_adapter.Plan,
     catalog_identity: [32]u8,
 
+    pub fn initCanonical(allocator: std.mem.Allocator, proof: *const proof_plan.CairoProofPlan, witnesses: @import("stwo_cairo_frontend").witness.bundle.Bundle, topology: @import("stwo_cairo_frontend").witness.feed_topology.Loaded, implicit: relation_bundle.Bundle) !Catalog {
+        var plan = try relation_adapter.Plan.compileCanonical(allocator, proof, witnesses, topology, implicit);
+        errdefer plan.deinit();
+        return .{ .plan = plan, .catalog_identity = catalogIdentity(&plan) };
+    }
+
     pub fn init(
         allocator: std.mem.Allocator,
         proof: *const proof_plan.CairoProofPlan,

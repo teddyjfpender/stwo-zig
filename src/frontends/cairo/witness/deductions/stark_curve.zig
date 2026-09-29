@@ -242,3 +242,43 @@ test "Stark curve batch affine conversion agrees with individual conversion" {
     for (points, actual) |projective, got|
         try std.testing.expectEqual(try projectiveToAffine(projective), got);
 }
+
+/// Exact affine addition/doubling with one inversion for the whole batch.
+/// Scratch has one canonical felt per row; no histogram or table replicas.
+pub fn batchAddAffine(
+    lhs: []const AffinePoint,
+    rhs: []const AffinePoint,
+    destination: []AffinePoint,
+    prefixes: []u256,
+    numerators: []u256,
+    denominators: []u256,
+) Error!void {
+    const rows = lhs.len;
+    if (rows == 0 or rhs.len != rows or destination.len != rows or
+        prefixes.len != rows or numerators.len != rows or denominators.len != rows)
+        return error.PointAtInfinity;
+    var product: u256 = 1;
+    for (lhs, rhs, prefixes, numerators, denominators) |a, b, *prefix, *numerator, *denominator| {
+        if (a.x == b.x) {
+            if (a.y != b.y or a.y == 0) return error.PointAtInfinity;
+            const xx = felt252.mul(a.x, a.x);
+            numerator.* = felt252.add(felt252.add(felt252.add(xx, xx), xx), 1);
+            denominator.* = felt252.add(a.y, a.y);
+        } else {
+            numerator.* = felt252.sub(b.y, a.y);
+            denominator.* = felt252.sub(b.x, a.x);
+        }
+        prefix.* = product;
+        product = felt252.mul(product, denominator.*);
+    }
+    var inverse_product = try felt252.div(1, product);
+    var row = rows;
+    while (row != 0) {
+        row -= 1;
+        const inverse_denominator = felt252.mul(inverse_product, prefixes[row]);
+        const slope = felt252.mul(numerators[row], inverse_denominator);
+        const x = felt252.sub(felt252.sub(felt252.mul(slope, slope), lhs[row].x), rhs[row].x);
+        destination[row] = .{ .x = x, .y = felt252.sub(felt252.mul(slope, felt252.sub(lhs[row].x, x)), lhs[row].y) };
+        inverse_product = felt252.mul(inverse_product, denominators[row]);
+    }
+}

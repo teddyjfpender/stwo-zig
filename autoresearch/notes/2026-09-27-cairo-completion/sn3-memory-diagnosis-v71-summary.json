@@ -1,0 +1,301 @@
+{
+  "schema": "cairo-sn3-memory-diagnosis-v71",
+  "instrumented": true,
+  "exclude_from_performance_comparisons": true,
+  "runs": {
+    "sn3-metal-memory-diagnostic-v71": {
+      "memory_and_quotient_lines": [
+        "PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=3808874144 lifetime_peak_bytes=3808743072 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=28011419608 lifetime_peak_bytes=28145621024 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.base_trace_complete current_bytes=34102913280 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.preprocessed_complete current_bytes=34104289536 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=34104322304 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=23555656232 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.main_commit_complete current_bytes=24625695296 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.interaction_build_complete current_bytes=11383940720 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=11383940720 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=11510392480 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.interaction_commit_complete current_bytes=3964915384 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.evaluation current_bytes=3987803856 lifetime_peak_bytes=42380947920 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.interpolation_split current_bytes=49401874824 lifetime_peak_bytes=49401874824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.commitment current_bytes=49435462072 lifetime_peak_bytes=49435462072 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.openings current_bytes=50743904888 lifetime_peak_bytes=51012782880 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.proof_complete current_bytes=3777416960 lifetime_peak_bytes=59004488360 source=darwin_proc_pid_rusage_v6"
+      ],
+      "report": {
+        "schema_version": 2,
+        "product": {
+          "schema_version": 2,
+          "name": "stwo-cairo-metal",
+          "frontend": "cairo",
+          "backend": "metal",
+          "role": "cli",
+          "protocol_features": "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v3+proof-mode-pie-v1+compact-input-v1+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2+authenticated-witness-cpu-aot-v2+authenticated-cairo-composition-bounded-aot-v4+committed-column-openings-v1+coordinate-interaction-executor-v1+planned-interaction-source-arenas-v1+authenticated-preprocessed-merkle-reuse-v1+fresh-preprocessed-hash-compaction-v1",
+          "protocol_manifest_sha256": "d6f0ebd77db75895fd1246c64db7329f40908c7d5006a3df58b9cd8399624dc3",
+          "identity_sha256": "5a7ed7ee8896141240a271acb4c2499f958c3a6485d789b79ad45539df17b9ba",
+          "source": {
+            "repository": "https://github.com/teddyjfpender/stwo-zig",
+            "commit": "7e95ce3017c16be868f9c0ea883c3c5c112723d8",
+            "tree": "8643e2a01b54874f7a738d20e68f27a958cea75d",
+            "dirty": true,
+            "dirty_content_sha256": "f5b4ed8890b6b30599390a57ca6292fe8944feca55d3778c7eecdfebebb7c806"
+          },
+          "zig_version": "0.15.2",
+          "target": {
+            "arch": "aarch64",
+            "os": "macos",
+            "abi": "none",
+            "cpu_model": "apple_m1",
+            "cpu_features_sha256": "5a8e19d072ec805a0742ed3e48d02162168465ee0abd2ecc227181ea3197d393"
+          },
+          "optimize": "ReleaseFast",
+          "runtime": {
+            "manifest": "metal-runtime-v2:mode=authenticated-aot;shader-amalgamation-sha256=74fb0a8bb66fd0ac342cc10930a5618174b49795192575cce82a6a95a8b2481b;runtime-objc-sha256=07d81fcbc600172d32422aa201f280b1dc17088dc65bdc8be1fef6792997a0b9;core-aot-manifest-sha256=9dd028c74673b019a1c5e85678a24bab31a1ab8c7f443779d1d6b07f92ecef25;cairo-composition-bounded-aot-v4:label=air_template_composition_bounded_v4;sha256=a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1;length=10121115",
+            "sdk": "apple-metal-sdk-v2:bound-by-core-aot-manifest-sha256=9dd028c74673b019a1c5e85678a24bab31a1ab8c7f443779d1d6b07f92ecef25",
+            "aot": "stwo-zig-metal-core-aot-v2:manifest-sha256=9dd028c74673b019a1c5e85678a24bab31a1ab8c7f443779d1d6b07f92ecef25;cairo-composition-bounded-aot-v4:label=air_template_composition_bounded_v4;sha256=a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1;length=10121115"
+          },
+          "upstream": {
+            "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+            "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+            "cairo_language_version": "2.20.0",
+            "cairo_vm_version": "3.2.0"
+          }
+        },
+        "frontend": "cairo",
+        "backend": "metal",
+        "backend_evidence": {
+          "execution": "metal-pcs",
+          "pipeline_cache": {
+            "library_hits": 0,
+            "library_misses": 1,
+            "pipeline_hits": 0,
+            "binary_archive_hits": 52,
+            "binary_archive_misses": 0,
+            "direct_compiles": 0,
+            "archive_populations": 0,
+            "archive_serializations": 0,
+            "pipeline_preparation_seconds": 0.011281251907348633,
+            "library_preparation_seconds": 0.030705928802490234
+          },
+          "archive_store": {
+            "disk_hits": 1,
+            "disk_misses": 0,
+            "bytes_published": 0,
+            "publication_failures": 0,
+            "persistence_bypasses": 0,
+            "disk_bytes": 512125760
+          },
+          "classification": "accelerated_without_fallbacks",
+          "metal_dispatches": 344,
+          "cpu_fallbacks": 0,
+          "runtime_initializations": 1,
+          "runtime_shutdowns": 1,
+          "commit_source_arena_aliases": 42,
+          "commit_source_arena_memcpys": 4,
+          "commit_source_uploads": 83,
+          "cached_merkle_artifact_adoptions": 0,
+          "compacted_merkle_layer_adoptions": 1
+        },
+        "preprocessed_cache": {
+          "enabled": true,
+          "budget_bytes": 6442450944,
+          "hits": 0,
+          "misses": 2,
+          "stores": 2,
+          "evictions": 2,
+          "loaded_bytes": 0,
+          "stored_bytes": 805306592,
+          "evicted_bytes": 805306592,
+          "directory_bytes": 5926553696,
+          "eviction_ns": 5424708
+        },
+        "profile": "official-live-cairo-canonical",
+        "execution": {
+          "program_type": "pie",
+          "program_sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4",
+          "arguments_sha256": null,
+          "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+          "wall_ns": 3867463792
+        },
+        "input": {
+          "sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98"
+        },
+        "proof": {
+          "format": "json",
+          "bytes": 6525437,
+          "sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+        },
+        "prover_process_usage": {
+          "source": "darwin_proc_pid_rusage_v6",
+          "lifetime_peak_physical_footprint_bytes": 59004488360,
+          "current_physical_footprint_bytes": 2753170408,
+          "process_cpu_ns": 107426145375,
+          "energy_nj": 317060579190,
+          "instructions": 1126949964249,
+          "cycles": 457387636645,
+          "unavailable_reason": null
+        },
+        "timing": {
+          "input_and_assets_ns": 187515167,
+          "proof_encode_ns": 9364417,
+          "request_until_publication_ns": 21493036083,
+          "execute_ns": 3867463792,
+          "prove_ns": 16787319417,
+          "verify_ns": 16694458
+        },
+        "verification": {
+          "requested": true,
+          "zig": true
+        }
+      }
+    },
+    "sn3-metal-quotient-diagnostic-v71": {
+      "memory_and_quotient_lines": [
+        "PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=3135901368 lifetime_peak_bytes=3135786680 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=28174621040 lifetime_peak_bytes=28308822456 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.base_trace_complete current_bytes=34103257752 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.preprocessed_complete current_bytes=34104584856 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=34104617624 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=23555590816 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.main_commit_complete current_bytes=24625842872 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.interaction_build_complete current_bytes=11383580224 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=11383580224 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=11510031984 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE cairo.interaction_commit_complete current_bytes=3964554864 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.evaluation current_bytes=3987443336 lifetime_peak_bytes=41691659824 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.interpolation_split current_bytes=49401563456 lifetime_peak_bytes=49401563456 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.commitment current_bytes=49435150704 lifetime_peak_bytes=49435150704 source=darwin_proc_pid_rusage_v6",
+        "PROCESS_MEMORY_STAGE core.openings current_bytes=50743593520 lifetime_peak_bytes=51012471512 source=darwin_proc_pid_rusage_v6",
+        "Metal quotient shape: raw_bytes=43064287488 columns=5877 views=6341 source_runs=16 resident_sources=0 resident_trees=4 batches=19 rows=16777216 path=segmented groups=0 partial_bytes=0",
+        "Metal quotient timing: gpu_ms=2048.815 wall_ms=2096.035 path=segmented source_runs=16 resident_sources=0",
+        "PROCESS_MEMORY_STAGE cairo.proof_complete current_bytes=3434598024 lifetime_peak_bytes=59004160608 source=darwin_proc_pid_rusage_v6"
+      ],
+      "report": {
+        "schema_version": 2,
+        "product": {
+          "schema_version": 2,
+          "name": "stwo-cairo-metal",
+          "frontend": "cairo",
+          "backend": "metal",
+          "role": "cli",
+          "protocol_features": "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v3+proof-mode-pie-v1+compact-input-v1+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2+authenticated-witness-cpu-aot-v2+authenticated-cairo-composition-bounded-aot-v4+committed-column-openings-v1+coordinate-interaction-executor-v1+planned-interaction-source-arenas-v1+authenticated-preprocessed-merkle-reuse-v1+fresh-preprocessed-hash-compaction-v1",
+          "protocol_manifest_sha256": "d6f0ebd77db75895fd1246c64db7329f40908c7d5006a3df58b9cd8399624dc3",
+          "identity_sha256": "5a7ed7ee8896141240a271acb4c2499f958c3a6485d789b79ad45539df17b9ba",
+          "source": {
+            "repository": "https://github.com/teddyjfpender/stwo-zig",
+            "commit": "7e95ce3017c16be868f9c0ea883c3c5c112723d8",
+            "tree": "8643e2a01b54874f7a738d20e68f27a958cea75d",
+            "dirty": true,
+            "dirty_content_sha256": "f5b4ed8890b6b30599390a57ca6292fe8944feca55d3778c7eecdfebebb7c806"
+          },
+          "zig_version": "0.15.2",
+          "target": {
+            "arch": "aarch64",
+            "os": "macos",
+            "abi": "none",
+            "cpu_model": "apple_m1",
+            "cpu_features_sha256": "5a8e19d072ec805a0742ed3e48d02162168465ee0abd2ecc227181ea3197d393"
+          },
+          "optimize": "ReleaseFast",
+          "runtime": {
+            "manifest": "metal-runtime-v2:mode=authenticated-aot;shader-amalgamation-sha256=74fb0a8bb66fd0ac342cc10930a5618174b49795192575cce82a6a95a8b2481b;runtime-objc-sha256=07d81fcbc600172d32422aa201f280b1dc17088dc65bdc8be1fef6792997a0b9;core-aot-manifest-sha256=9dd028c74673b019a1c5e85678a24bab31a1ab8c7f443779d1d6b07f92ecef25;cairo-composition-bounded-aot-v4:label=air_template_composition_bounded_v4;sha256=a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1;length=10121115",
+            "sdk": "apple-metal-sdk-v2:bound-by-core-aot-manifest-sha256=9dd028c74673b019a1c5e85678a24bab31a1ab8c7f443779d1d6b07f92ecef25",
+            "aot": "stwo-zig-metal-core-aot-v2:manifest-sha256=9dd028c74673b019a1c5e85678a24bab31a1ab8c7f443779d1d6b07f92ecef25;cairo-composition-bounded-aot-v4:label=air_template_composition_bounded_v4;sha256=a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1;length=10121115"
+          },
+          "upstream": {
+            "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+            "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+            "cairo_language_version": "2.20.0",
+            "cairo_vm_version": "3.2.0"
+          }
+        },
+        "frontend": "cairo",
+        "backend": "metal",
+        "backend_evidence": {
+          "execution": "metal-pcs",
+          "pipeline_cache": {
+            "library_hits": 0,
+            "library_misses": 1,
+            "pipeline_hits": 0,
+            "binary_archive_hits": 52,
+            "binary_archive_misses": 0,
+            "direct_compiles": 0,
+            "archive_populations": 0,
+            "archive_serializations": 0,
+            "pipeline_preparation_seconds": 0.002811431884765625,
+            "library_preparation_seconds": 0.013321995735168457
+          },
+          "archive_store": {
+            "disk_hits": 1,
+            "disk_misses": 0,
+            "bytes_published": 0,
+            "publication_failures": 0,
+            "persistence_bypasses": 0,
+            "disk_bytes": 512125760
+          },
+          "classification": "accelerated_without_fallbacks",
+          "metal_dispatches": 343,
+          "cpu_fallbacks": 0,
+          "runtime_initializations": 1,
+          "runtime_shutdowns": 1,
+          "commit_source_arena_aliases": 42,
+          "commit_source_arena_memcpys": 4,
+          "commit_source_uploads": 83,
+          "cached_merkle_artifact_adoptions": 1,
+          "compacted_merkle_layer_adoptions": 0
+        },
+        "preprocessed_cache": {
+          "enabled": true,
+          "budget_bytes": 6442450944,
+          "hits": 2,
+          "misses": 0,
+          "stores": 0,
+          "evictions": 0,
+          "loaded_bytes": 805306592,
+          "stored_bytes": 0,
+          "evicted_bytes": 0,
+          "directory_bytes": 0,
+          "eviction_ns": 0
+        },
+        "profile": "official-live-cairo-canonical",
+        "execution": {
+          "program_type": "pie",
+          "program_sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4",
+          "arguments_sha256": null,
+          "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+          "wall_ns": 3903584042
+        },
+        "input": {
+          "sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98"
+        },
+        "proof": {
+          "format": "json",
+          "bytes": 6525437,
+          "sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+        },
+        "prover_process_usage": {
+          "source": "darwin_proc_pid_rusage_v6",
+          "lifetime_peak_physical_footprint_bytes": 59004160608,
+          "current_physical_footprint_bytes": 2410285984,
+          "process_cpu_ns": 91661703916,
+          "energy_nj": 254620406426,
+          "instructions": 859778057584,
+          "cycles": 391693413937,
+          "unavailable_reason": null
+        },
+        "timing": {
+          "input_and_assets_ns": 191401500,
+          "proof_encode_ns": 9074084,
+          "request_until_publication_ns": 19933303584,
+          "execute_ns": 3903584042,
+          "prove_ns": 15726917958,
+          "verify_ns": 14954875
+        },
+        "verification": {
+          "requested": true,
+          "zig": true
+        }
+      }
+    }
+  }
+}

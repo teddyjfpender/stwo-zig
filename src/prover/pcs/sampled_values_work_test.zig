@@ -594,3 +594,63 @@ test "prover pcs: barycentric plan transfers allocation ownership exactly once" 
         .{},
     );
 }
+
+const ResidencyEpochBackend = struct {
+    pub const supportsBarycentricResidencyEpochs = true;
+    var handle: u8 = 0;
+    var calls: usize = 0;
+    pub fn quotientResidencyHandle(comptime _: type, resident: bool) ?*anyopaque {
+        return if (resident) @ptrCast(&handle) else null;
+    }
+    pub fn supportsHostBarycentricColumns(columns: anytype) bool {
+        for (columns) |column| if (column.log_size > 3) return false;
+        return true;
+    }
+    pub fn evaluateBarycentricTreePlans(_: std.mem.Allocator, plans: anytype) !void {
+        calls += 1;
+        const resident = plans[0].resident_tree != null;
+        for (plans) |plan| {
+            try std.testing.expectEqual(resident, plan.resident_tree != null);
+            for (plan.columns) |column| if (column.log_size > 3) try std.testing.expect(resident);
+            for (plan.tree_values) |values| for (values) |*value| {
+                value.* = QM31.fromU32Unchecked(if (resident) 7 else 11, 0, 0, 0);
+            };
+        }
+    }
+};
+fn residencyEpochCase(allocator: std.mem.Allocator, large_resident: bool) !void {
+    const Tree = struct { columns: []const @import("stwo_prover_api").ColumnEvaluation, coefficients: ?[]const u8 = null, commitment: bool };
+    const words = [_]M31{M31.one()} ** 16;
+    const device_columns = [_]@import("stwo_prover_api").ColumnEvaluation{.{ .log_size = 4, .values = &words }};
+    const host_columns = [_]@import("stwo_prover_api").ColumnEvaluation{.{ .log_size = 3, .values = words[0..8] }};
+    // Host first deliberately exercises reordering and output ownership.
+    var trees = [_]Tree{ .{ .columns = &host_columns, .commitment = false }, .{ .columns = &device_columns, .commitment = large_resident } };
+    var point = [_]CirclePointQM31{circle.SECURE_FIELD_CIRCLE_GEN.mul(17)};
+    var host_points = [_][]CirclePointQM31{&point};
+    var device_points = [_][]CirclePointQM31{&point};
+    var points = [_][][]CirclePointQM31{ &host_points, &device_points };
+    var host_value = [_]QM31{QM31.zero()};
+    var device_value = [_]QM31{QM31.zero()};
+    var host_output = [_][]QM31{&host_value};
+    var device_output = [_][]QM31{&device_value};
+    var output = [_][][]QM31{ &host_output, &device_output };
+    ResidencyEpochBackend.calls = 0;
+    const accepted = try owner.testing.evaluateBarycentricTreesWithBackend(ResidencyEpochBackend, void, &trees, &points, &output, allocator, 5, null);
+    try std.testing.expectEqual(large_resident, accepted);
+    if (large_resident) {
+        try std.testing.expectEqual(@as(usize, 2), ResidencyEpochBackend.calls);
+        try std.testing.expectEqual(QM31.fromU32Unchecked(11, 0, 0, 0), host_value[0]);
+        try std.testing.expectEqual(QM31.fromU32Unchecked(7, 0, 0, 0), device_value[0]);
+    } else {
+        try std.testing.expectEqual(@as(usize, 0), ResidencyEpochBackend.calls);
+        try std.testing.expectEqual(QM31.zero(), host_value[0]);
+        try std.testing.expectEqual(QM31.zero(), device_value[0]);
+    }
+}
+test "sampled barycentric residency keeps large device trees out of the host slab" {
+    try residencyEpochCase(std.testing.allocator, true);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, residencyEpochCase, .{true});
+}
+test "sampled barycentric residency declines unsupported host geometry before changing outputs" {
+    try residencyEpochCase(std.testing.allocator, false);
+}

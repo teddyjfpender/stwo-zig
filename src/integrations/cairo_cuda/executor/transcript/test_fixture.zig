@@ -94,7 +94,7 @@ pub fn program(
         .quotient = .{
             .term_count = 1,
             .group_count = 1,
-            .evaluation_log_rows = protocol_value.max_log_degree_bound,
+            .evaluation_log_rows = try protocol_value.evaluationLogSize(),
             .composition_degree_log = 1,
         },
         .fri_layers = fri_layers,
@@ -115,8 +115,8 @@ fn tree(
         .role = role,
         .first_column = first_column,
         .column_count = 1,
-        .evaluation_log_rows = protocol_value.max_log_degree_bound,
-        .log_rows_per_leaf = protocol_value.max_log_degree_bound,
+        .evaluation_log_rows = protocol_value.max_log_degree_bound + protocol_value.log_blowup_factor,
+        .log_rows_per_leaf = protocol_value.max_log_degree_bound + protocol_value.log_blowup_factor,
         .retain_openings = true,
     };
 }
@@ -283,7 +283,7 @@ fn friLayers(
             @intCast(index * protocol_value.fri_fold_step);
         layer.* = .{
             .tree_id = @intCast(index),
-            .evaluation_log_rows = protocol_value.max_log_degree_bound - cumulative,
+            .evaluation_log_rows = protocol_value.max_log_degree_bound + protocol_value.log_blowup_factor - cumulative,
             .fold_step = protocol_value.fri_fold_step,
             .cumulative_fold = cumulative,
             .log_rows_per_leaf = protocol_value.fri_fold_step,

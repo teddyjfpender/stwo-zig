@@ -267,7 +267,7 @@ fn commandFor(
             .{bundle},
         ));
     }
-    if (std.mem.eql(u8, scope, "compatibility_tools")) {
+    if (std.mem.eql(u8, scope, "compatibility_tools") or std.mem.eql(u8, scope, "cairo_cuda")) {
         if (options.cairo_test_filter) |filter| command.addArg(b.fmt(
             "-Dcairo-test-filter={s}",
             .{filter},

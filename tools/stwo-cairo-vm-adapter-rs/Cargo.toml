@@ -12,10 +12,14 @@ stwo-repository = "https://github.com/starkware-libs/stwo"
 stwo-revision = "7b211edde786775016ef3eecb837a6240d8fe792"
 cairo-vm-version = "3.2.0"
 cairo-language-version = "2.20.0"
+execution-runner-repository = "https://github.com/starkware-libs/proving"
+execution-runner-revision = "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+pie-bootloader-sha256 = "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76"
 
 [dependencies]
 anyhow = "1.0"
-flate2 = "1.1"
+flate2 = { version = "1.1", features = ["zlib-rs"] }
+zip = { version = "=0.6.6", default-features = false, features = ["deflate"] }
 cairo-lang-executable = "=2.20.0"
 cairo-lang-execute-utils = "=2.20.0"
 cairo-lang-runner = "=2.20.0"
@@ -24,10 +28,9 @@ cairo-vm = { version = "=3.2.0", features = ["extensive_hints", "mod_builtin"], 
 serde = "1.0"
 serde_json = "1.0"
 sha2 = "0.10"
-stwo-cairo-adapter = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
-
-[dev-dependencies]
 tempfile = "3.8"
+stwo-cairo-adapter = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
+cairo-program-runner-lib = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 
 [profile.release]
 codegen-units = 1

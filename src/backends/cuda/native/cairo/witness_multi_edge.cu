@@ -14,7 +14,7 @@ struct alignas(8) MultiEdgeDescriptor {
     std::uint32_t words_per_instance;
     std::uint32_t instance_count;
     std::uint32_t destination_row_offset;
-    std::uint32_t reserved;
+    std::uint32_t active_rows;
 };
 
 static_assert(sizeof(MultiEdgeDescriptor) == 32);
@@ -58,11 +58,13 @@ __global__ void gather_witness_edges(
     const MultiEdgeDescriptor *edge =
         edge_for_row(descriptors, edge_count, source_global_row);
 
+    const std::uint32_t active_rows = edge->active_rows == 0
+        ? edge->producer_rows : edge->active_rows;
     const std::uint64_t edge_rows =
-        static_cast<std::uint64_t>(edge->producer_rows) *
+        static_cast<std::uint64_t>(active_rows) *
         edge->instance_count;
     const bool structurally_valid =
-        edge->reserved == 0 && edge->producer_rows != 0 &&
+        active_rows != 0 && active_rows <= edge->producer_rows && edge->producer_rows != 0 &&
         edge->producer_rows % 16 == 0 &&
         edge->words_per_instance == input_width &&
         edge->instance_count != 0 &&
@@ -74,10 +76,10 @@ __global__ void gather_witness_edges(
         ? source_global_row - edge->destination_row_offset
         : 0;
     const std::uint32_t instance = structurally_valid
-        ? local_row / edge->producer_rows
+        ? local_row / active_rows
         : 0;
     const std::uint32_t producer_row = structurally_valid
-        ? local_row % edge->producer_rows
+        ? local_row % active_rows
         : 0;
     for (std::uint32_t word = 0; word < input_width; ++word) {
         const std::uint64_t source_word =

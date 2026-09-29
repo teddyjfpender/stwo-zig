@@ -29,6 +29,16 @@ pub const Catalog = struct {
         };
     }
 
+    /// Only the canonical source driver supplies this bundle, directly from
+    /// the digest-pinned AIR library's live binding. No external AIR is used.
+    pub fn initCanonical(allocator: std.mem.Allocator, bundle: composition.Bundle) !Catalog {
+        var product = try eval_aot.buildParametric(allocator, bundle, @import("../parametric_eval.zig").source_authority);
+        errdefer product.deinit();
+        var registry = try eval_product_registry.Registry.initCanonical(allocator);
+        errdefer registry.deinit();
+        return .{ .product = product, .registry = registry, .catalog_identity = try catalogIdentity(product, registry) };
+    }
+
     pub fn deinit(self: *Catalog) void {
         self.registry.deinit();
         self.product.deinit();
@@ -52,7 +62,7 @@ pub const Catalog = struct {
             part.rc_base,
         ) catch return false;
         for (self.product.bodies) |body| {
-            if (body.semantic_hash != part.semantic_hash or
+            if ((!self.registry.parametric and body.semantic_hash != part.semantic_hash) or
                 self.registry.resolve(body) == null)
             {
                 continue;
@@ -115,6 +125,11 @@ fn catalogIdentity(
         hash.update(&resolved.program_identity);
         hash.update(&resolved.source_identity);
         hash.update(&resolved.catalog_identity);
+        if (registry.parametric) {
+            // The compiled body is shared; the actual constants, geometry and
+            // coefficient placements remain bound to this request identity.
+            hash.update(&(try eval_aot.catalogIdentity(product.allocator, body.occurrences)));
+        }
     }
     return hash.finalResult();
 }

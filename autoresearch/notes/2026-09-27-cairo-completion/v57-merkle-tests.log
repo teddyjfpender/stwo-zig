@@ -1,0 +1,20 @@
+1/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: plain SIMD streaming and bounded tails match independent scalar tree...OK
+2/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: root is stable across large-layer worker-count overrides...OK
+3/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: streaming committer produces identical root — single batch...OK
+4/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: constant-column fast path matches streaming committer...OK
+5/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: streaming committer produces identical root — column-by-column...OK
+6/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: streaming committer produces identical root — many columns batched...OK
+7/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: generic streaming prefix is identical with four scoped workers...OK
+8/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: sparse terminal-block tail matches materialized commitment...OK
+9/19 vcs_lifted.tests.commit_paths.test.prover vcs_lifted: streaming committer empty columns...OK
+10/19 vcs_lifted.tests.protocol.test.prover vcs_lifted: decommit and verify roundtrip...OK
+11/19 vcs_lifted.tests.protocol.test.prover vcs_lifted: invalid witness fails verification...OK
+12/19 vcs_lifted.tests.protocol.test.prover vcs_lifted: empty columns root matches mixed-degree prover...OK
+13/19 vcs_lifted.tests.protocol.test.prover vcs_lifted: packed leaf hashing matches legacy per-value path...OK
+14/19 vcs_lifted.tests.lazy_and_batched.test.MerkleProverLifted: commitWithLazyQuotients produces same root as standard commit...OK
+15/19 vcs_lifted.tests.lazy_and_batched.test.prover vcs_lifted: owned leaf tree releases every failed allocation...OK
+16/19 vcs_lifted.tests.lazy_and_batched.test.prover vcs_lifted: batched leaf building matches original for uniform columns...OK
+17/19 vcs_lifted.tests.lazy_and_batched.test.prover vcs_lifted: batched leaf building matches original for mixed log sizes...OK
+18/19 vcs_lifted.tests.lazy_and_batched.test.prover vcs_lifted: batched commit produces same root and decommitment...OK
+19/19 vcs_lifted.tests.test_utils.test.vcs_lifted test utils: prepare merkle verifies...OK
+All 19 tests passed.

@@ -57,6 +57,7 @@ pub const PreparedInputShape = struct {
     denominator_secure_fields: u64,
     interaction_coordinate_cells: u64,
     scratch_words: u32,
+    retained_base_words: u64,
 };
 
 /// Device-owned fields supplied after arena placement. Descriptor policy,
@@ -89,6 +90,26 @@ pub const Plan = struct {
     ) !Plan {
         if (relations.graph_hash != relation_bundle.expected_graph_hash)
             return Error.InvalidRelationTrace;
+        return compileSource(allocator, proof, relations);
+    }
+
+    pub fn compileCanonical(allocator: std.mem.Allocator, proof: *const proof_plan.CairoProofPlan, programs: @import("stwo_cairo_frontend").witness.bundle.Bundle, source_topology: @import("stwo_cairo_frontend").witness.feed_topology.Loaded, implicit: relation_bundle.Bundle) !Plan {
+        var source = try @import("relation_adapter/canonical.zig").derive(allocator, proof, programs, source_topology, implicit);
+        defer source.deinit();
+        var plan = try compileSource(allocator, proof, source);
+        errdefer plan.deinit();
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("stwo-zig/cairo/cuda/canonical-relation-plan/v1\x00");
+        hash.update(&source_topology.sha256);
+        hash.update(&plan.topology_identity);
+        for (proof.components) |component| {
+            if (programs.find(component.name)) |program| hash.update(&program.program.semanticIdentity());
+        }
+        plan.topology_identity = hash.finalResult();
+        return plan;
+    }
+
+    fn compileSource(allocator: std.mem.Allocator, proof: *const proof_plan.CairoProofPlan, relations: relation_bundle.Bundle) !Plan {
         try validateRelationNames(relations);
         const selections = try selectCanonicalTraces(allocator, proof, relations);
         defer allocator.free(selections);
@@ -269,7 +290,12 @@ pub const Plan = struct {
         var output_pointer_words: u64 = 0;
         var denominator_secure_fields: u64 = 0;
         var interaction_coordinate_cells: u64 = 0;
+        var retained_base_words: u64 = 0;
         for (self.instances) |instance| {
+            if (instance.layout != .lookup_words) retained_base_words = try checkedAddU64(
+                retained_base_words,
+                try checkedMulU64(instance.source_pointer_count, instance.geometry.rows),
+            );
             source_pointer_words = try checkedAddU64(
                 source_pointer_words,
                 try checkedMulU64(instance.source_pointer_count, pointer_words),
@@ -317,6 +343,7 @@ pub const Plan = struct {
             .denominator_secure_fields = denominator_secure_fields,
             .interaction_coordinate_cells = interaction_coordinate_cells,
             .scratch_words = try self.topology().scratchWords(),
+            .retained_base_words = retained_base_words,
         };
     }
 

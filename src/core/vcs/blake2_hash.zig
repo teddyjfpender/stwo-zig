@@ -130,6 +130,22 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
             return out;
         }
 
+        pub fn hashFixedSingleBlock4WithMode(comptime byte_len: usize, mode: BackendMode, data: *const [4][byte_len]u8) [4]Blake2sHash {
+            var out = blake2_backend.Blake2sHasher.hashFixedSingleBlock4WithMode(byte_len, mode, data);
+            if (is_m31_output) for (&out) |*digest| {
+                digest.* = reduceToM31(digest.*);
+            };
+            return out;
+        }
+
+        pub fn hashEqual4WithMode(mode: BackendMode, data: *const [4][]const u8) [4]Blake2sHash {
+            var out = blake2_backend.Blake2sHasher.hashEqual4WithMode(mode, data);
+            if (is_m31_output) for (&out) |*digest| {
+                digest.* = reduceToM31(digest.*);
+            };
+            return out;
+        }
+
         pub fn hashFixedSingleBlock8(
             comptime byte_len: usize,
             data: *const [8][byte_len]u8,
@@ -263,6 +279,14 @@ pub fn Blake2sHasherGeneric(comptime is_m31_output: bool) type {
             if (is_m31_output) {
                 for (&out) |*digest| digest.* = reduceToM31(digest.*);
             }
+            return out;
+        }
+
+        pub fn hashLiftedM31Columns4WithMode(mode: BackendMode, seed: ?Fixed64Seed, columns: anytype, position: usize, max_log_size: u32) [4]Blake2sHash {
+            var out = blake2_backend.Blake2sHasher.hashLiftedM31Columns4WithMode(mode, seed, columns, position, max_log_size);
+            if (is_m31_output) for (&out) |*digest| {
+                digest.* = reduceToM31(digest.*);
+            };
             return out;
         }
 

@@ -1,0 +1,98 @@
+diff --git a/compiler/metal/src/lower_to_msl.cpp b/compiler/metal/src/lower_to_msl.cpp
+index 9c0f697..d3e0c86 100644
+--- a/compiler/metal/src/lower_to_msl.cpp
++++ b/compiler/metal/src/lower_to_msl.cpp
+@@ -4137,13 +4137,30 @@ struct AstLowerer {
+         }
+ 
+         if (operation.opcode == ir::OpCode::kSelect) {
++            const MslType result_type = lower_result_type(operation);
++            MslExpr when_true = expression_for(operation.operands[1]);
++            MslExpr when_false = expression_for(operation.operands[2]);
++            // LLVM opaque pointers can infer different pointees on each GEP
++            // and on the select result. Preserve the resolved address space
++            // while making these implicit pointee conversions explicit in MSL.
++            if (result_type.kind == MslTypeKind::kPointer) {
++                for (MslExpr* arm : {&when_true, &when_false}) {
++                    if ((*arm)->type.kind != MslTypeKind::kPointer ||
++                        (*arm)->type.address_space != result_type.address_space) {
++                        fail(&operation, "select merges incompatible pointer address spaces");
++                        return std::nullopt;
++                    }
++                    if (!((*arm)->type == result_type))
++                        *arm = MslExpression::cast(result_type, *arm, true);
++                }
++            }
+             return declare_result(
+                 operation,
+                 MslExpression::conditional(
+                     expression_for(operation.operands[0]),
+-                    expression_for(operation.operands[1]),
+-                    expression_for(operation.operands[2]),
+-                    lower_result_type(operation)));
++                    when_true,
++                    when_false,
++                    result_type));
+         }
+ 
+         if (operation.opcode == ir::OpCode::kConvert ||
+diff --git a/docs/known-gaps.md b/docs/known-gaps.md
+index b98eca2..34d3c6a 100644
+--- a/docs/known-gaps.md
++++ b/docs/known-gaps.md
+@@ -82,3 +82,10 @@ holds the exact boundary.
+ 
+ - External workloads pass only at their pinned revisions and commands.
+ - The performance gate covers five named kernels, not arbitrary kernels.
++# Local Cairo compatibility patch (2026-09-29)
++
++Opaque LLVM pointer selects now explicitly convert their operands to the
++resolved MSL result pointee type, preserving the address space. This is covered
++by `cumetal_nvvm_ir_msl_test`; downstream felt252 device parity is recorded by
++the stwo-zig local Cairo CUDA lane. This local patch does not qualify NVIDIA
++execution or a complete Cairo proof.
+diff --git a/tests/unit/nvvm_ir_msl_test.cpp b/tests/unit/nvvm_ir_msl_test.cpp
+index 5ccfb1c..1b7a604 100644
+--- a/tests/unit/nvvm_ir_msl_test.cpp
++++ b/tests/unit/nvvm_ir_msl_test.cpp
+@@ -1543,6 +1543,26 @@ entry:
+ }
+ )llvm";
+ 
++constexpr const char* kNvvmPointerSelectPointees = R"llvm(
++target datalayout = "e-p:64:64-i64:64-n16:32:64"
++target triple = "nvptx64-nvidia-cuda"
++%Storage = type { [8 x i32] }
++define ptx_kernel void @pointer_select_pointees(ptr %out, i32 %flag) {
++entry:
++  %left = alloca %Storage, align 4
++  %right = alloca %Storage, align 4
++  %a = getelementptr %Storage, ptr %left, i64 0
++  %b = getelementptr %Storage, ptr %right, i64 0
++  store i32 17, ptr %a, align 4
++  store i32 29, ptr %b, align 4
++  %condition = icmp ne i32 %flag, 0
++  %selected = select i1 %condition, ptr %a, ptr %b
++  %value = load i32, ptr %selected, align 4
++  store i32 %value, ptr %out, align 4
++  ret void
++}
++)llvm";
++
+ int main() {
+     using namespace cumetal;
+     if (!ir::llvm_frontend_available()) {
+@@ -2496,6 +2516,13 @@ int main() {
+                          std::string::npos,
+                  "typed NVVM rejects unrepresentable printf tuples explicitly");
+ 
++    const metal::NvvmToMslResult pointer_select = metal::compile_nvvm_to_msl(
++        kNvvmPointerSelectPointees, "pointer-select-pointees.ll", "pointer_select_pointees");
++    ok &= expect(pointer_select.ok &&
++                     pointer_select.source.find("? reinterpret_cast<thread") != std::string::npos,
++                 "opaque pointer select converts both pointees to its result type in the same address space");
++    if (!pointer_select.ok) std::cerr << pointer_select.error << "\n";
++
+     if (!ok) return 1;
+     std::cout << "NVVM -> CuMetal IR -> typed MSL tests passed\n";
+     return 0;

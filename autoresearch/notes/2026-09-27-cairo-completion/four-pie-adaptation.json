@@ -1,0 +1,104 @@
+[
+  {
+    "pie": 1,
+    "source_sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee",
+    "input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+    "input_bytes": 297470092,
+    "adapter": {
+      "cairo_language_version": "2.20.0",
+      "cairo_vm_version": "3.2.0",
+      "executable_sha256": "53a8ffdee9f1d20d81cf48a1b49aa164337f8d14679708cea2bf302d25aea499",
+      "execution_runner_revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230",
+      "input_formats": [
+        "json",
+        "compact-v1"
+      ],
+      "layout": "all_cairo_stwo",
+      "name": "stwo-cairo-vm-adapter",
+      "pie_bootloader_sha256": "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76",
+      "program_types": [
+        "json",
+        "executable",
+        "pie"
+      ],
+      "schema_version": 2,
+      "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+      "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+    },
+    "process": {
+      "wall_ns": 4274336708,
+      "user_ns": 5699181000,
+      "system_ns": 308904000,
+      "max_process_tree_rss_bytes": 5217665024,
+      "rss_is_simultaneous_process_tree_sum": false
+    }
+  },
+  {
+    "pie": 3,
+    "source_sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4",
+    "input_sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98",
+    "input_bytes": 285300024,
+    "adapter": {
+      "cairo_language_version": "2.20.0",
+      "cairo_vm_version": "3.2.0",
+      "executable_sha256": "53a8ffdee9f1d20d81cf48a1b49aa164337f8d14679708cea2bf302d25aea499",
+      "execution_runner_revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230",
+      "input_formats": [
+        "json",
+        "compact-v1"
+      ],
+      "layout": "all_cairo_stwo",
+      "name": "stwo-cairo-vm-adapter",
+      "pie_bootloader_sha256": "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76",
+      "program_types": [
+        "json",
+        "executable",
+        "pie"
+      ],
+      "schema_version": 2,
+      "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+      "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+    },
+    "process": {
+      "wall_ns": 4196455959,
+      "user_ns": 5571872000,
+      "system_ns": 353820000,
+      "max_process_tree_rss_bytes": 4630315008,
+      "rss_is_simultaneous_process_tree_sum": false
+    }
+  },
+  {
+    "pie": 4,
+    "source_sha256": "991eff7c3323e1b6b6cb2bb2d7df1704b1e31f4854c00c60d7413603fe455603",
+    "input_sha256": "0e59c87e308f7b650860d02b63a34946fe1b2fe334cc2504332504f6fef2ec80",
+    "input_bytes": 284530660,
+    "adapter": {
+      "cairo_language_version": "2.20.0",
+      "cairo_vm_version": "3.2.0",
+      "executable_sha256": "53a8ffdee9f1d20d81cf48a1b49aa164337f8d14679708cea2bf302d25aea499",
+      "execution_runner_revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230",
+      "input_formats": [
+        "json",
+        "compact-v1"
+      ],
+      "layout": "all_cairo_stwo",
+      "name": "stwo-cairo-vm-adapter",
+      "pie_bootloader_sha256": "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76",
+      "program_types": [
+        "json",
+        "executable",
+        "pie"
+      ],
+      "schema_version": 2,
+      "stwo_cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+      "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792"
+    },
+    "process": {
+      "wall_ns": 3725620458,
+      "user_ns": 5100994000,
+      "system_ns": 312968000,
+      "max_process_tree_rss_bytes": 5023334400,
+      "rss_is_simultaneous_process_tree_sum": false
+    }
+  }
+]

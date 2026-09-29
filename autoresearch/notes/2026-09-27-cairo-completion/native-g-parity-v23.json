@@ -1,0 +1,9 @@
+{
+  "schema": "stwo-zig-cairo-native-g-parity-v1",
+  "status": "qualified",
+  "cases": 56656,
+  "compiler": "0.15.2",
+  "emitter_sha256": "552c10fecf5b132904873c433a055dfbe3a66fb9adfdd345187a30bcf484a69e",
+  "compiled_source_sha256": "5ec9bb1ed65c341e6297b06050b02a7d65bb28c9af0f4aa6136e7764344a3cc7",
+  "coverage": "all six-word combinations of six full-width edges plus 10000 seeded random cases"
+}

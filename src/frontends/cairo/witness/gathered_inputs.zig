@@ -52,6 +52,16 @@ pub const GatheredInput = struct {
         return self.rows;
     }
 
+    /// The source owner outlives the joined component execution. Its gathered
+    /// column storage needs no second materialization into executor scratch.
+    pub fn borrowColumn(self: GatheredInput, column: usize) Error![]const u32 {
+        if (column >= self.columns) return Error.InvalidEdge;
+        const start = std.math.mul(usize, column, self.rows) catch return Error.AllocationSizeOverflow;
+        const end = std.math.add(usize, start, self.rows) catch return Error.AllocationSizeOverflow;
+        if (end > self.storage.len) return Error.InvalidRowCount;
+        return self.storage[start..end];
+    }
+
     pub fn writeColumn(
         self: GatheredInput,
         column: usize,
@@ -130,85 +140,7 @@ fn materializeGeometry(
     producers: []const Producer,
     geometry: Geometry,
 ) !GatheredInput {
-    const input_width = geometry.input_width;
-    const consumer_rows = geometry.padded_rows;
-    const columns = std.math.add(usize, input_width, 1) catch
-        return Error.AllocationSizeOverflow;
-    const storage_words = std.math.mul(usize, columns, consumer_rows) catch
-        return Error.AllocationSizeOverflow;
-    const storage = try allocator.alloc(u32, storage_words);
-    errdefer allocator.free(storage);
-    @memset(storage, 0);
-
-    const Location = struct {
-        edge: u32,
-        producer: u32,
-        instance: u32,
-        row: u32,
-    };
-    var full = std.ArrayList(Location).empty;
-    defer full.deinit(allocator);
-    var remainder = std.ArrayList(Location).empty;
-    defer remainder.deinit(allocator);
-    for (edges, 0..) |edge, edge_index| {
-        const producer_index = findProducerIndex(producers, edge.producer) orelse
-            return Error.MissingProducer;
-        const producer = producers[producer_index];
-        const full_rows = producer.active_rows & ~@as(u32, 15);
-        for (0..edge.instances) |instance| {
-            for (0..full_rows) |row| try full.append(allocator, .{
-                .edge = @intCast(edge_index),
-                .producer = @intCast(producer_index),
-                .instance = @intCast(instance),
-                .row = @intCast(row),
-            });
-        }
-        for (0..edge.instances) |instance| {
-            for (full_rows..producer.active_rows) |row| try remainder.append(allocator, .{
-                .edge = @intCast(edge_index),
-                .producer = @intCast(producer_index),
-                .instance = @intCast(instance),
-                .row = @intCast(row),
-            });
-        }
-    }
-    var locations = std.ArrayList(Location).empty;
-    defer locations.deinit(allocator);
-    try locations.ensureTotalCapacity(allocator, consumer_rows);
-    try locations.appendSlice(allocator, full.items);
-    try locations.appendSlice(allocator, remainder.items);
-    if (remainder.items.len != 0) {
-        const packed_remainder = std.mem.alignForward(usize, remainder.items.len, 16);
-        if (full.items.len + packed_remainder > consumer_rows)
-            return Error.InvalidRowCount;
-        while (locations.items.len < full.items.len + packed_remainder)
-            locations.appendAssumeCapacity(remainder.items[0]);
-    }
-    if (locations.items.len == 0 or locations.items.len > consumer_rows)
-        return Error.InvalidRowCount;
-    while (locations.items.len < consumer_rows)
-        locations.appendAssumeCapacity(locations.items[locations.items.len & 15]);
-
-    for (locations.items, 0..) |location, row| {
-        const edge = edges[location.edge];
-        const producer = producers[location.producer];
-        for (0..input_width) |word| {
-            const source_word = edge.word_base +
-                location.instance * edge.words_per_instance +
-                @as(u32, @intCast(word));
-            storage[word * consumer_rows + row] =
-                producer.words[@as(usize, location.row) * producer.words_per_row + source_word];
-        }
-        storage[@as(usize, input_width) * consumer_rows + row] =
-            @intFromBool(row < geometry.active_rows);
-    }
-    return .{
-        .allocator = allocator,
-        .storage = storage,
-        .columns = columns,
-        .rows = consumer_rows,
-        .active_rows = geometry.active_rows,
-    };
+    return @import("gathered_materialization.zig").materialize(allocator, edges, producers, geometry);
 }
 
 fn validateProducer(
@@ -264,7 +196,7 @@ test "Cairo gathered inputs mirror resident gather padding and instance order" {
 }
 
 test "Cairo gathered inputs derive exact live geometry" {
-    const words = [_]u32{ 1, 2, 3, 4, 5, 6 };
+    const words = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
     const edges = [_]proof_plan.ProducerEdge{.{
         .producer = "source",
         .word_base = 0,
@@ -275,7 +207,7 @@ test "Cairo gathered inputs derive exact live geometry" {
         .label = "source",
         .row_count = 6,
         .active_rows = 6,
-        .words_per_row = 1,
+        .words_per_row = 3,
         .words = &words,
     }};
     const geometry = try deriveGeometry(&edges, &producers);

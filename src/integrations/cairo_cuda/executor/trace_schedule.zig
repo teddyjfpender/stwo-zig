@@ -14,6 +14,7 @@ const native_ec = @import("../native_ec.zig");
 const fixed_tables = @import("stwo_cuda_backend").runtime.stages.cairo_base.fixed_tables;
 const memory = @import("stwo_cuda_backend").runtime.stages.cairo_base.memory;
 
+// Legacy SN2 regression dimensions, never an admission policy.
 pub const expected_entry_count = 58;
 pub const expected_recorded_count = 32;
 pub const expected_native_count = 2;
@@ -117,10 +118,13 @@ pub fn compile(
     catalog: catalog_module.Catalog,
 ) !Schedule {
     try validateInventoryShape(proof, catalog);
-    const ec_index = try uniqueComponentIndex(proof, ec_name, 0);
-    const partial_index = try uniqueComponentIndex(proof, partial_name, 0);
+    const absent = std.math.maxInt(u32);
+    const ec_index = (try nativeComponentIndex(proof, ec_name, 0)) orelse absent;
+    const partial_index = (try nativeComponentIndex(proof, partial_name, 0)) orelse absent;
+    if ((ec_index == absent) != (partial_index == absent))
+        return error.IncompleteNativeEcComposite;
 
-    var dependency_count: usize = 1;
+    var dependency_count: usize = @intFromBool(ec_index != absent);
     for (proof.components) |component| {
         dependency_count = std.math.add(
             usize,
@@ -335,9 +339,9 @@ fn validateInventoryShape(
     proof: *const proof_plan.CairoProofPlan,
     catalog: catalog_module.Catalog,
 ) !void {
-    if (proof.components.len != expected_entry_count or
-        proof.canonical_order.len != expected_entry_count or
-        catalog.entries.len != expected_entry_count or
+    if (proof.components.len == 0 or
+        proof.canonical_order.len != proof.components.len or
+        catalog.entries.len != proof.components.len or
         std.mem.allEqual(u8, &catalog.identity, 0))
     {
         return error.BaseWriterInventoryMismatch;
@@ -348,16 +352,7 @@ fn validateWriterCounts(
     actual: [std.meta.fields(proof_plan.WriterKind).len]u32,
     declared: [std.meta.fields(proof_plan.WriterKind).len]u32,
 ) !void {
-    if (!std.meta.eql(actual, declared) or
-        actual[@intFromEnum(proof_plan.WriterKind.recorded_aot)] !=
-            expected_recorded_count or
-        actual[@intFromEnum(proof_plan.WriterKind.native_backend)] !=
-            expected_native_count or
-        actual[@intFromEnum(proof_plan.WriterKind.fixed_table)] !=
-            expected_fixed_count or
-        actual[@intFromEnum(proof_plan.WriterKind.memory_trace)] !=
-            expected_memory_count)
-    {
+    if (!std.meta.eql(actual, declared)) {
         return error.BaseWriterInventoryMismatch;
     }
 }
@@ -389,19 +384,20 @@ fn validateCatalogEntry(
         return error.EmptyBaseWriterIdentity;
 }
 
-fn uniqueComponentIndex(
+fn nativeComponentIndex(
     proof: *const proof_plan.CairoProofPlan,
     name: []const u8,
     instance: u32,
-) !u32 {
+) !?u32 {
     var found: ?u32 = null;
     for (proof.components, 0..) |component, index| {
         if (!std.mem.eql(u8, component.name, name)) continue;
+        if (component.writer != .native_backend) continue;
         if (component.instance != instance or found != null)
             return error.DuplicateBaseWriter;
         found = @intCast(index);
     }
-    return found orelse error.MissingBaseWriter;
+    return found;
 }
 
 fn uniqueProducerIndex(
@@ -422,7 +418,11 @@ fn buildLaunchOrder(
     proof: *const proof_plan.CairoProofPlan,
     entries: []const Entry,
 ) ![]u32 {
-    const output = try allocator.alloc(u32, expected_launch_count);
+    var launch_count: usize = 0;
+    for (entries) |entry| if (entry.execution != .composite_member) {
+        launch_count += 1;
+    };
+    const output = try allocator.alloc(u32, launch_count);
     errdefer allocator.free(output);
     const seen = try allocator.alloc(bool, entries.len);
     defer allocator.free(seen);

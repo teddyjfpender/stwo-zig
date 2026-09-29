@@ -1,0 +1,15 @@
+{
+  "generator_version": 6,
+  "input": "vectors/cairo/official/air_template_library_v1.json",
+  "input_sha256": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+  "source_sha256": "c5c15e6ee584a0f773172eee65eff9497f3c4fb07cf885adae9ef5333de1d5e3",
+  "source_path": "zig-out/cairo-completion-20260927/metal-composition-v58/composition.metal",
+  "air_path": "zig-out/cairo-completion-20260927/metal-composition-v58/composition.air",
+  "artifact_sha256": "a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1",
+  "artifact_length": 10121115,
+  "command": "metal-eval-source --template-library --trace-abi bounded; xcrun -sdk macosx metal -std=metal3.0 -O3; xcrun -sdk macosx metallib",
+  "security": "unchanged; canonical plain BLAKE2s, 70 queries, 26 PoW bits",
+  "qualification": "two canonical SN PIE 2 proofs accepted by pinned official verifier; exact prior SHA-256 and zero fallbacks; full suite pending",
+  "compiler_version": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/metal/current/bin",
+  "sdk_version": "26.5"
+}

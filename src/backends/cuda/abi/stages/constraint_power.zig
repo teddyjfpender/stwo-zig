@@ -9,3 +9,11 @@ pub extern "c" fn stwo_constraint_expand_powers_on(
     count: u32,
     stream: *anyopaque,
 ) c_int;
+
+pub extern "c" fn stwo_constraint_expand_reversed_powers_on(
+    alpha: *const field.SecureField,
+    output: [*]field.SecureField,
+    output_capacity: usize,
+    count: u32,
+    stream: *anyopaque,
+) c_int;

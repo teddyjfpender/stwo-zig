@@ -58,18 +58,8 @@ pub fn collect(
     feeds: *const feed_bundle.Bundle,
     expected_components: []const checkpoint.Component,
 ) !Counts {
-    const address_values = input.memory.address_to_id.len -| 1;
-    var counts = Counts{
-        .allocator = allocator,
-        .address = try allocator.alloc(u32, try memory_tables.packedCount(address_values)),
-        .big = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.f252_values.len)),
-        .small = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.small_values.len)),
-    };
+    var counts = try initCounts(allocator, input);
     errdefer counts.deinit();
-    @memset(counts.address, 0);
-    @memset(counts.big, 0);
-    @memset(counts.small, 0);
-    try addPublicMemory(input, &counts);
 
     for (feeds.feeds, 0..) |feed, feed_index| {
         for (feeds.feeds[0..feed_index]) |previous| {
@@ -103,19 +93,37 @@ pub fn collectTopology(
     topology: feed_topology.Loaded,
     producers: []const producer_output.ProducerOutput,
 ) !Counts {
-    const address_values = input.memory.address_to_id.len -| 1;
-    var counts = Counts{
-        .allocator = allocator,
-        .address = try allocator.alloc(u32, try memory_tables.packedCount(address_values)),
-        .big = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.f252_values.len)),
-        .small = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.small_values.len)),
-    };
+    var counts = try initCounts(allocator, input);
     errdefer counts.deinit();
-    @memset(counts.address, 0);
-    @memset(counts.big, 0);
-    @memset(counts.small, 0);
-    try addPublicMemory(input, &counts);
+    try accumulateProducers(allocator, topology, producers, &counts);
+    return counts;
+}
 
+/// Public-memory seed and ownership shared by whole-graph and incremental
+/// counting. Admission failures release every earlier table allocation.
+pub fn initCounts(allocator: std.mem.Allocator, input: *const adapter.ProverInput) !Counts {
+    const address = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.address_to_id.len -| 1));
+    errdefer allocator.free(address);
+    const big = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.f252_values.len));
+    errdefer allocator.free(big);
+    const small = try allocator.alloc(u32, try memory_tables.packedCount(input.memory.small_values.len));
+    errdefer allocator.free(small);
+    var counts = Counts{ .allocator = allocator, .address = address, .big = big, .small = small };
+    @memset(address, 0);
+    @memset(big, 0);
+    @memset(small, 0);
+    try addPublicMemory(input, &counts);
+    return counts;
+}
+
+/// Consume a joined producer wave before its subcomponent slab is retired.
+/// Counts are additive, and all private scatter workers join before return.
+pub fn accumulateProducers(
+    allocator: std.mem.Allocator,
+    topology: feed_topology.Loaded,
+    producers: []const producer_output.ProducerOutput,
+    counts: *Counts,
+) !void {
     // Validate the whole graph before any counting so the parallel pass below
     // only has to do arithmetic. Every rejection here is one the serial form
     // also reached, just possibly after some counts had already landed.
@@ -132,15 +140,15 @@ pub fn collectTopology(
             if (!isMemoryFeed(feed.target)) continue;
             if (feed.relation != 0 or feed.words_per_instance != 1)
                 return error.UnsupportedMemoryFeed;
+            if (feed.word_base >= producer.words_per_row) return error.InvalidDescriptor;
             if (producer.active_rows == 0) continue;
             feeds_present = true;
             widest_rows = @max(widest_rows, @as(usize, producer.active_rows));
         }
     }
-    if (!feeds_present) return counts;
+    if (!feeds_present) return;
 
-    try accumulateTopology(allocator, topology, producers, &counts, widest_rows);
-    return counts;
+    try accumulateTopology(allocator, topology, producers, counts, widest_rows);
 }
 
 fn isMemoryFeed(target: []const u8) bool {

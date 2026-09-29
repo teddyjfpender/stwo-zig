@@ -5,9 +5,33 @@ const cli = @import("cli.zig");
 const execution_adapter = @import("execution_adapter.zig");
 const preprocessed_cache = @import("preprocessed_cache.zig");
 const profile = @import("profile.zig");
+const planning = @import("planning.zig");
+
+pub const PipelineEvidence = struct {
+    library_hits: u64,
+    library_misses: u64,
+    pipeline_hits: u64,
+    binary_archive_hits: u64,
+    binary_archive_misses: u64,
+    direct_compiles: u64,
+    archive_populations: u64,
+    archive_serializations: u64,
+    pipeline_preparation_seconds: f64,
+    library_preparation_seconds: f64,
+};
+pub const ArchiveEvidence = struct {
+    disk_hits: u64,
+    disk_misses: u64,
+    bytes_published: u64,
+    publication_failures: u64,
+    persistence_bypasses: u64,
+    disk_bytes: u64,
+};
 
 pub const BackendEvidence = struct {
     execution: []const u8,
+    pipeline_cache: ?PipelineEvidence = null,
+    archive_store: ?ArchiveEvidence = null,
     classification: []const u8,
     metal_dispatches: u64 = 0,
     cpu_fallbacks: u64 = 0,
@@ -23,6 +47,8 @@ pub const BackendEvidence = struct {
     commit_source_arena_aliases: u64 = 0,
     commit_source_arena_memcpys: u64 = 0,
     commit_source_uploads: u64 = 0,
+    cached_merkle_artifact_adoptions: u64 = 0,
+    compacted_merkle_layer_adoptions: u64 = 0,
 };
 
 pub fn run(comptime Product: type) !void {
@@ -46,6 +72,7 @@ pub fn run(comptime Product: type) !void {
         .capabilities => try writeJsonLine(Product.capabilities.write),
         .identity => try writeJsonLine(Product.identity.write),
         .prove => |request| try prove(Product, allocator, request),
+        .inspect => |request| try planning.inspect(allocator, request),
         .run_and_prove => |request| try runAndProve(
             Product,
             allocator,
@@ -72,11 +99,12 @@ fn prove(
     allocator: std.mem.Allocator,
     request: cli.Prove,
 ) !void {
+    const request_started = try std.time.Instant.now();
     try Product.stwo.interop.output_transaction.prepare(
         request.proof,
         request.report_out,
     );
-    try proveFile(Product, allocator, request, null);
+    try proveFile(Product, allocator, request, null, request_started);
 }
 
 fn runAndProve(
@@ -84,6 +112,7 @@ fn runAndProve(
     allocator: std.mem.Allocator,
     request: cli.RunAndProve,
 ) !void {
+    const request_started = try std.time.Instant.now();
     try Product.stwo.interop.output_transaction.prepare(
         request.proof,
         request.report_out,
@@ -109,7 +138,7 @@ fn runAndProve(
         .stage_profile_out = request.stage_profile_out,
         .proof_format = request.proof_format,
         .verify = request.verify,
-    }, execution);
+    }, execution, request_started);
 }
 
 fn proveFile(
@@ -117,7 +146,9 @@ fn proveFile(
     allocator: std.mem.Allocator,
     request: cli.Prove,
     execution: ?execution_adapter.Receipt,
+    request_started: std.time.Instant,
 ) !void {
+    const preparation_started = try std.time.Instant.now();
     const cairo = Product.stwo.frontends.cairo;
     const transaction = Product.transaction;
     const owned_manifest = if (request.params == null)
@@ -132,7 +163,7 @@ fn proveFile(
     const input_sha256 = try execution_adapter.fileSha256(
         request.prover_input,
     );
-    var input = try cairo.adapter.official_input.readFile(
+    var input = try cairo.adapter.input.readFile(
         allocator,
         request.prover_input,
     );
@@ -164,9 +195,11 @@ fn proveFile(
         paths.air_template_library,
     );
     defer air_templates.deinit();
+    try profile.admitInput(&paths, &input, air_templates, request.params == null);
     var cache_activation = try preprocessed_cache.activate(Product, allocator);
     defer cache_activation.deinit(Product);
     const started = std.time.Instant.now() catch return error.ClockUnavailable;
+    const input_and_assets_ns = started.since(preparation_started);
     var proof_context = try Product.beginProof(allocator);
     var proof_context_owned = true;
     defer if (proof_context_owned) Product.abortProof(&proof_context);
@@ -187,11 +220,18 @@ fn proveFile(
             .input = &input,
             .programs = &programs,
             .generated_executor = Product.witnessExecutor(),
+            .native_composition = if (comptime @hasDecl(Product, "compositionExecutor")) Product.compositionExecutor() else null,
             .interaction_executor = Product.interactionExecutor(&proof_context),
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,
             .air_templates = &air_templates,
+            .sampled_evaluation = if (comptime @hasDecl(Product, "sampledEvaluationStorage"))
+                Product.sampledEvaluationStorage()
+            else if (comptime @hasDecl(Product, "sampled_evaluation"))
+                Product.sampled_evaluation
+            else
+                .retained_coefficients,
             .composition_device = if (comptime @hasDecl(Product, "compositionDevice"))
                 Product.compositionDevice(paths.air_template_library)
             else
@@ -219,6 +259,7 @@ fn proveFile(
     );
     defer allocator.free(temporary);
     defer std.fs.cwd().deleteFile(temporary) catch {};
+    const encode_started = try std.time.Instant.now();
     try writeProof(
         Product,
         allocator,
@@ -227,6 +268,7 @@ fn proveFile(
         &result,
         request.proof_format,
     );
+    const proof_encode_ns = (try std.time.Instant.now()).since(encode_started);
     const verification_started = std.time.Instant.now() catch
         return error.ClockUnavailable;
     if (request.verify)
@@ -254,6 +296,9 @@ fn proveFile(
         proof_sha256,
         proof_bytes,
         proving_ns,
+        input_and_assets_ns,
+        proof_encode_ns,
+        (try std.time.Instant.now()).since(request_started),
         request.verify,
         verification_ns,
         request.proof_format,
@@ -369,6 +414,9 @@ fn renderReport(
     proof_sha256: [32]u8,
     proof_bytes: u64,
     proving_ns: u64,
+    input_and_assets_ns: u64,
+    proof_encode_ns: u64,
+    request_until_publication_ns: u64,
     verification_requested: bool,
     verification_ns: u64,
     proof_format: cli.ProofFormat,
@@ -421,7 +469,11 @@ fn renderReport(
             .bytes = proof_bytes,
             .sha256 = &proof_hex,
         },
+        .prover_process_usage = Product.stwo.prover.measurement.process_usage.sample() catch null,
         .timing = .{
+            .input_and_assets_ns = input_and_assets_ns,
+            .proof_encode_ns = proof_encode_ns,
+            .request_until_publication_ns = request_until_publication_ns,
             .execute_ns = if (execution) |receipt|
                 receipt.execution_ns
             else

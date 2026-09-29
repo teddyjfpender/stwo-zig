@@ -49,6 +49,13 @@ pub extern "c" fn stwo_native_aot_function_publish_pedersen_w18(
     table_identity: *const [32]u8,
     out_receipt: *ModuleGlobalsReceipt,
 ) c_int;
+pub extern "c" fn stwo_native_aot_function_publish_pedersen(
+    function: *anyopaque,
+    columns: *const [56]u64,
+    row_count: u32,
+    table_identity: *const [32]u8,
+    out_receipt: *ModuleGlobalsReceipt,
+) c_int;
 pub extern "c" fn stwo_native_aot_function_launch(
     function: *anyopaque,
     arguments: [*]const ?*anyopaque,

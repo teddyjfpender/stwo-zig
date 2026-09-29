@@ -1,0 +1,28 @@
+{
+  "schema": "stwo-zig-cairo-bounded-composition-provenance-v2",
+  "library": {
+    "path": "vectors/cairo/official/air_template_composition_bounded.metallib",
+    "sha256": "1e230cad42b6b68e56d0753e08b08806fec2f4eac0682bf478b80dcd5eaab152",
+    "bytes": 12405227
+  },
+  "source": {
+    "path": "zig-out/cairo-completion-20260927/bounded-composition-v2/air_template_composition_bounded.metal",
+    "sha256": "b482682168ca329eccd52268f39ffcb161b2d2ca96498c761e4463e25b096556",
+    "bytes": 8753519
+  },
+  "programs": 69,
+  "kernels": 138,
+  "codegen_version": 4,
+  "reader_abis": [
+    "stored_domain",
+    "tiled_domain td2_"
+  ],
+  "mask_mapping": "direct 0/-1/+1 slots; generic arbitrary-mask reader retained",
+  "metal_flags": [
+    "-std=metal3.1",
+    "-fno-fast-math",
+    "-Werror"
+  ],
+  "toolchain": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/metal/current/bin",
+  "semantic_qualification": "SN PIE 2, canonical 70 queries/26-bit PoW, independent official Rust verification, unchanged proof ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+}

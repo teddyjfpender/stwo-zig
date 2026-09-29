@@ -3,6 +3,8 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const filter = b.option([]const u8, "test-filter", "Run only matching Cairo tests");
+    const filters: []const []const u8 = if (filter) |value| &.{value} else &.{};
     const dependency_options = .{ .target = target, .optimize = optimize };
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
@@ -31,7 +33,7 @@ pub fn build(b: *std.Build) void {
     const repository_root: std.Build.LazyPath = .{
         .cwd_relative = b.pathFromRoot("../../.."),
     };
-    const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend }));
+    const tests = b.addRunArtifact(b.addTest(.{ .root_module = frontend, .filters = filters }));
     // The package owns the tests, while the monorepo owns the authenticated
     // Cairo conformance vectors they consume. Make that test-only boundary
     // independent of the directory from which `zig build` was invoked.
@@ -46,7 +48,7 @@ pub fn build(b: *std.Build) void {
     deep_root.addImport("stwo_backend_contracts", backend_contracts);
     deep_root.addImport("stwo_prover_api", prover_api);
     deep_root.addImport("stwo_prover_engine", prover);
-    const deep_tests = b.addRunArtifact(b.addTest(.{ .root_module = deep_root }));
+    const deep_tests = b.addRunArtifact(b.addTest(.{ .root_module = deep_root, .filters = filters }));
     deep_tests.setCwd(repository_root);
 
     const test_step = b.step(

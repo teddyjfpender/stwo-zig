@@ -1,7 +1,7 @@
 //! Authenticated all-family Cairo AIR template manifest.
 
 const std = @import("std");
-const preprocessed = @import("../preprocessed/trace.zig");
+const preprocessed = @import("../preprocessed/variant.zig");
 const composition = @import("../witness/composition_bundle.zig");
 const registry = @import("official_claim_registry.zig");
 
@@ -210,6 +210,12 @@ pub const Library = struct {
         }
         if (variant_source.find(label) != null) return variant_source;
         if (opcode_source.find(label) != null) return opcode_source;
+        // AIR semantics are independent of the Pedersen window selection.
+        // In particular, EC and generic EC multiplication are present in the
+        // canonical corpus. Binding projects every referenced preprocessed
+        // column into the target variant and rejects incompatible templates.
+        const canonical_source = self.sourceByRole(.canonical);
+        if (canonical_source.find(label) != null) return canonical_source;
         return error.MissingAirTemplate;
     }
 

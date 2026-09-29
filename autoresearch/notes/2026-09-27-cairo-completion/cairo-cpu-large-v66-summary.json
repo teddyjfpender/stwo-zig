@@ -1,0 +1,915 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-suite-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "manifest_sha256": "3546903e848bc14bef044f1c04e57d6ad645859505d759d4090acc465a1cab6f",
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "cache_mode": "retained",
+  "metal_pipeline_cache": "OS-managed and retained; admission time included in every process measurement",
+  "scheduling": "one benchmark product process at a time, including all worker sweeps",
+  "rss_scope": "largest process/descendant RSS, not sum of simultaneous allocations",
+  "manifest_workload_count": 15,
+  "selection": [
+    "sn-pie-1",
+    "sn-pie-2",
+    "sn-pie-3",
+    "sn-pie-4"
+  ],
+  "not_selected": [
+    "ret",
+    "all-opcodes",
+    "bitwise",
+    "range96",
+    "range128",
+    "poseidon",
+    "pedersen",
+    "all-builtins",
+    "executable-add-one",
+    "fibonacci-pie",
+    "all-builtins-canonical"
+  ],
+  "records": [
+    {
+      "workload": "sn-pie-1",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "cpu",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-1-cpu-workers-auto/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "fd43fc3f87127eb412be8f0b9641f157262435336a21b97a07bf4e5bcc5ecd30",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+          "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 69237073000,
+              "user_ns": 326882102000,
+              "system_ns": 124183367000,
+              "max_process_tree_rss_bytes": 55906664448,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 713763959,
+              "user_ns": 630273000,
+              "system_ns": 20577000,
+              "max_process_tree_rss_bytes": 39616512,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 193638083,
+              "proof_encode_ns": 37656833,
+              "request_until_publication_ns": 68737533167,
+              "execute_ns": 3967512417,
+              "prove_ns": 64020188708,
+              "verify_ns": 16819333
+            },
+            "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 0,
+              "misses": 2,
+              "stores": 2,
+              "evictions": 2,
+              "loaded_bytes": 0,
+              "stored_bytes": 805306592,
+              "evicted_bytes": 805306592,
+              "directory_bytes": 5926553696,
+              "eviction_ns": 5810750
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 69456743520,
+              "current_physical_footprint_bytes": 347097968,
+              "process_cpu_ns": 445308621333,
+              "energy_nj": 1266648455822,
+              "instructions": 3520200535497,
+              "cycles": 1893131263562,
+              "unavailable_reason": null
+            }
+          },
+          {
+            "index": 2,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 64458831750,
+              "user_ns": 304596428000,
+              "system_ns": 125020366000,
+              "max_process_tree_rss_bytes": 57172803584,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 700132667,
+              "user_ns": 625721000,
+              "system_ns": 17423000,
+              "max_process_tree_rss_bytes": 39616512,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 207912916,
+              "proof_encode_ns": 16415584,
+              "request_until_publication_ns": 64429606250,
+              "execute_ns": 4151394709,
+              "prove_ns": 59962073125,
+              "verify_ns": 14427958
+            },
+            "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 69456841944,
+              "current_physical_footprint_bytes": 347294336,
+              "process_cpu_ns": 423553367958,
+              "energy_nj": 1085268487764,
+              "instructions": 3081672338094,
+              "cycles": 1743817253907,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 66847952375.0,
+          "median_prove_ns": 61991130916.5,
+          "peak_process_rss_bytes": 57172803584,
+          "peak_product_physical_footprint_bytes": 69456841944,
+          "physical_footprint_sample_count": 2,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        },
+        "subsequent_trials_summary": {
+          "indices": [
+            2
+          ],
+          "median_process_wall_ns": 64458831750,
+          "median_prove_ns": 59962073125,
+          "peak_process_rss_bytes": 57172803584,
+          "cache_state_inferred": false,
+          "peak_product_physical_footprint_bytes": 69456841944,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "workload": "sn-pie-2",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "cpu",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-2-cpu-workers-auto/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "fd43fc3f87127eb412be8f0b9641f157262435336a21b97a07bf4e5bcc5ecd30",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_2.zip",
+          "sha256": "f10b70ca8af790a934ac36b3835136bbdc0cc47f62d6bc63169856dec3f0dc41"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 17870593583,
+              "user_ns": 174451333000,
+              "system_ns": 20138182000,
+              "max_process_tree_rss_bytes": 41112895488,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 644513292,
+              "user_ns": 621739000,
+              "system_ns": 6489000,
+              "max_process_tree_rss_bytes": 39354368,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 125835667,
+              "proof_encode_ns": 9667541,
+              "request_until_publication_ns": 17854171083,
+              "execute_ns": 2119731125,
+              "prove_ns": 15519863458,
+              "verify_ns": 15328917
+            },
+            "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 41127591160,
+              "current_physical_footprint_bytes": 203016472,
+              "process_cpu_ns": 191501909500,
+              "energy_nj": 478348380763,
+              "instructions": 1676365471524,
+              "cycles": 744122501440,
+              "unavailable_reason": null
+            }
+          },
+          {
+            "index": 2,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 18271401791,
+              "user_ns": 178565566000,
+              "system_ns": 21084052000,
+              "max_process_tree_rss_bytes": 41113534464,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 644869583,
+              "user_ns": 624902000,
+              "system_ns": 6322000,
+              "max_process_tree_rss_bytes": 39485440,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 123697625,
+              "proof_encode_ns": 9235292,
+              "request_until_publication_ns": 18255675417,
+              "execute_ns": 2122185333,
+              "prove_ns": 15919231042,
+              "verify_ns": 15496167
+            },
+            "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 41128246544,
+              "current_physical_footprint_bytes": 203622848,
+              "process_cpu_ns": 196581498708,
+              "energy_nj": 458897923478,
+              "instructions": 1676210669835,
+              "cycles": 743944859793,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 18070997687.0,
+          "median_prove_ns": 15719547250.0,
+          "peak_process_rss_bytes": 41113534464,
+          "peak_product_physical_footprint_bytes": 41128246544,
+          "physical_footprint_sample_count": 2,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        },
+        "subsequent_trials_summary": {
+          "indices": [
+            2
+          ],
+          "median_process_wall_ns": 18271401791,
+          "median_prove_ns": 15919231042,
+          "peak_process_rss_bytes": 41113534464,
+          "cache_state_inferred": false,
+          "peak_product_physical_footprint_bytes": 41128246544,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "workload": "sn-pie-3",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "cpu",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-3-cpu-workers-auto/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "fd43fc3f87127eb412be8f0b9641f157262435336a21b97a07bf4e5bcc5ecd30",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 69064078000,
+              "user_ns": 310750198000,
+              "system_ns": 116778599000,
+              "max_process_tree_rss_bytes": 58053574656,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 692126250,
+              "user_ns": 622908000,
+              "system_ns": 18159000,
+              "max_process_tree_rss_bytes": 39698432,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 197939750,
+              "proof_encode_ns": 25477292,
+              "request_until_publication_ns": 69040459583,
+              "execute_ns": 4064571250,
+              "prove_ns": 64663316792,
+              "verify_ns": 14274375
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 68460448312,
+              "current_physical_footprint_bytes": 334727784,
+              "process_cpu_ns": 421656369416,
+              "energy_nj": 996304123556,
+              "instructions": 3047548039941,
+              "cycles": 1656506760583,
+              "unavailable_reason": null
+            }
+          },
+          {
+            "index": 2,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 68842905708,
+              "user_ns": 301362140000,
+              "system_ns": 117999231000,
+              "max_process_tree_rss_bytes": 57578635264,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 697759000,
+              "user_ns": 624316000,
+              "system_ns": 18437000,
+              "max_process_tree_rss_bytes": 39780352,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 203086500,
+              "proof_encode_ns": 9573375,
+              "request_until_publication_ns": 68816786084,
+              "execute_ns": 4017316917,
+              "prove_ns": 64496357667,
+              "verify_ns": 15450833
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 68459841864,
+              "current_physical_footprint_bytes": 334629504,
+              "process_cpu_ns": 413587039000,
+              "energy_nj": 1058296660424,
+              "instructions": 3060587733599,
+              "cycles": 1675217468736,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 68953491854.0,
+          "median_prove_ns": 64579837229.5,
+          "peak_process_rss_bytes": 58053574656,
+          "peak_product_physical_footprint_bytes": 68460448312,
+          "physical_footprint_sample_count": 2,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        },
+        "subsequent_trials_summary": {
+          "indices": [
+            2
+          ],
+          "median_process_wall_ns": 68842905708,
+          "median_prove_ns": 64496357667,
+          "peak_process_rss_bytes": 57578635264,
+          "cache_state_inferred": false,
+          "peak_product_physical_footprint_bytes": 68459841864,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "workload": "sn-pie-4",
+      "family": "starknet-pie",
+      "workers": null,
+      "backend": "cpu",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-4-cpu-workers-auto/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "fd43fc3f87127eb412be8f0b9641f157262435336a21b97a07bf4e5bcc5ecd30",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_4.zip",
+          "sha256": "991eff7c3323e1b6b6cb2bb2d7df1704b1e31f4854c00c60d7413603fe455603"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 24406970250,
+              "user_ns": 227708925000,
+              "system_ns": 24189070000,
+              "max_process_tree_rss_bytes": 53385216000,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 653370125,
+              "user_ns": 607785000,
+              "system_ns": 22850000,
+              "max_process_tree_rss_bytes": 39436288,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 219675500,
+              "proof_encode_ns": 9358041,
+              "request_until_publication_ns": 24388511333,
+              "execute_ns": 3620331459,
+              "prove_ns": 20450337334,
+              "verify_ns": 14537459
+            },
+            "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 53405884184,
+              "current_physical_footprint_bytes": 327617032,
+              "process_cpu_ns": 246364142958,
+              "energy_nj": 561549976258,
+              "instructions": 2050045439336,
+              "cycles": 919489525637,
+              "unavailable_reason": null
+            }
+          },
+          {
+            "index": 2,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 26862590875,
+              "user_ns": 260573613000,
+              "system_ns": 26201079000,
+              "max_process_tree_rss_bytes": 53385658368,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 630304667,
+              "user_ns": 606623000,
+              "system_ns": 6141000,
+              "max_process_tree_rss_bytes": 39436288,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 199633167,
+              "proof_encode_ns": 9957750,
+              "request_until_publication_ns": 26848535834,
+              "execute_ns": 3630194083,
+              "prove_ns": 22918568625,
+              "verify_ns": 16074333
+            },
+            "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67",
+            "profile": "official-live-cairo-canonical",
+            "backend": "cpu",
+            "backend_evidence": {
+              "execution": "cpu-simd",
+              "pipeline_cache": null,
+              "archive_store": null,
+              "classification": "host-only",
+              "metal_dispatches": 0,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 0,
+              "runtime_shutdowns": 0,
+              "commit_source_arena_aliases": 0,
+              "commit_source_arena_memcpys": 0,
+              "commit_source_uploads": 0,
+              "cached_merkle_artifact_adoptions": 0,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 53406425000,
+              "current_physical_footprint_bytes": 328010200,
+              "process_cpu_ns": 281284915000,
+              "energy_nj": 446241442184,
+              "instructions": 2049444895296,
+              "cycles": 902476701159,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 25634780562.5,
+          "median_prove_ns": 21684452979.5,
+          "peak_process_rss_bytes": 53385658368,
+          "peak_product_physical_footprint_bytes": 53406425000,
+          "physical_footprint_sample_count": 2,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        },
+        "subsequent_trials_summary": {
+          "indices": [
+            2
+          ],
+          "median_process_wall_ns": 26862590875,
+          "median_prove_ns": 22918568625,
+          "peak_process_rss_bytes": 53385658368,
+          "cache_state_inferred": false,
+          "peak_product_physical_footprint_bytes": 53406425000,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    }
+  ],
+  "summary": [
+    {
+      "workload": "sn-pie-1",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 64.45883175,
+      "prove_seconds": 59.962073125,
+      "peak_rss_bytes": 57172803584,
+      "peak_product_physical_footprint_bytes": 69456841944,
+      "first_process_seconds": 69.237073,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-1-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-2",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 18.271401791,
+      "prove_seconds": 15.919231042,
+      "peak_rss_bytes": 41113534464,
+      "peak_product_physical_footprint_bytes": 41128246544,
+      "first_process_seconds": 17.870593583,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-2-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-3",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 68.842905708,
+      "prove_seconds": 64.496357667,
+      "peak_rss_bytes": 57578635264,
+      "peak_product_physical_footprint_bytes": 68459841864,
+      "first_process_seconds": 69.064078,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-3-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-4",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 26.862590875,
+      "prove_seconds": 22.918568625,
+      "peak_rss_bytes": 53385658368,
+      "peak_product_physical_footprint_bytes": 53406425000,
+      "first_process_seconds": 24.40697025,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66/sn-pie-4-cpu-workers-auto/results.json"
+    }
+  ],
+  "backend_proof_parity": [
+    {
+      "workload": "sn-pie-1",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-2",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-3",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-4",
+      "workers": null,
+      "status": "single-backend"
+    }
+  ],
+  "raw_results_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-cpu-large-v66"
+}

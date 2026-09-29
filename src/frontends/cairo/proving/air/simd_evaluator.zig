@@ -242,26 +242,7 @@ pub fn evaluatePartRange(
     row_start: usize,
     row_end: usize,
 ) !void {
-    try program.validate();
-    if (program.header.n_base_params != 0 or
-        program.header.n_ext_params != input.extension_parameters.len or
-        input.constraint_base + program.header.n_constraints > input.random_coefficients.len or
-        program.header.domain_log_size != input.trace_log_size or
-        input.trace_log_size > input.evaluation_log_size)
-    {
-        return error.InvalidEvaluationInput;
-    }
-    const row_count = checkedPow2(input.evaluation_log_size) catch
-        return error.InvalidEvaluationInput;
-    const denominator_count = checkedPow2(input.evaluation_log_size - input.trace_log_size) catch
-        return error.InvalidEvaluationInput;
-    if (row_count % lane_count != 0 or
-        input.denominator_inverses.len != denominator_count or
-        row_start > row_end or
-        row_end > row_count or
-        row_start % lane_count != 0 or
-        row_end % lane_count != 0)
-        return error.InvalidEvaluationInput;
+    try validateRange(program, input, row_start, row_end);
 
     const base = try allocator.alloc(PackedM31, program.header.max_base_regs);
     defer allocator.free(base);
@@ -377,6 +358,29 @@ pub fn evaluatePartRange(
             output.accumulate(row + lane, evaluation.lane(lane));
         }
     }
+}
+
+pub fn validateRange(program: eval.Program, input: Input, row_start: usize, row_end: usize) !void {
+    try program.validate();
+    if (program.header.n_base_params != 0 or
+        program.header.n_ext_params != input.extension_parameters.len or
+        @as(u64, input.constraint_base) + program.header.n_constraints > input.random_coefficients.len or
+        program.header.domain_log_size != input.trace_log_size or
+        input.trace_log_size > input.evaluation_log_size)
+    {
+        return error.InvalidEvaluationInput;
+    }
+    const row_count = checkedPow2(input.evaluation_log_size) catch
+        return error.InvalidEvaluationInput;
+    const denominator_count = checkedPow2(input.evaluation_log_size - input.trace_log_size) catch
+        return error.InvalidEvaluationInput;
+    if (row_count % lane_count != 0 or
+        input.denominator_inverses.len != denominator_count or
+        row_start > row_end or
+        row_end > row_count or
+        row_start % lane_count != 0 or
+        row_end % lane_count != 0)
+        return error.InvalidEvaluationInput;
 }
 
 fn inverse(value: PackedM31) PackedM31 {

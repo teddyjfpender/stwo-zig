@@ -14,7 +14,7 @@
 //! Otherwise the directory is `$XDG_CACHE_HOME/stwo-zig/cairo-preprocessed`,
 //! falling back to `$HOME/.cache/stwo-zig/cairo-preprocessed`. With no usable
 //! directory the cache stays inert and every proof recomputes. The budget
-//! defaults to 2 GiB and is enforced by least-recently-used eviction after each
+//! defaults to the product budget (2 GiB by default) and is enforced by least-recently-used eviction after each
 //! successful store; `0` means unbounded.
 
 const std = @import("std");
@@ -58,7 +58,7 @@ pub fn activate(
         .directory = directory,
         .budget_bytes = budgetBytes(
             allocator,
-            product_cache.default_budget_bytes,
+            if (@hasDecl(Product, "preprocessed_cache_budget_bytes")) Product.preprocessed_cache_budget_bytes else product_cache.default_budget_bytes,
         ),
     });
     return activation;

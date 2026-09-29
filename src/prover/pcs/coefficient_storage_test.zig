@@ -167,7 +167,7 @@ test "coefficient storage lazy quotient pipeline matches bounded CPU including u
     try std.testing.checkAllAllocationFailures(std.testing.allocator, checkLazy, .{});
 }
 
-fn checkStreaming(a: std.mem.Allocator) !void {
+fn checkStreamingFor(comptime TestHasher: type, comptime MC: type, comptime Channel: type, a: std.mem.Allocator) !void {
     const Cpu = struct {
         pub fn MerkleTree(comptime Hasher: type) type {
             return @import("../vcs_lifted/prover.zig").MerkleProverLifted(Hasher);
@@ -176,15 +176,14 @@ fn checkStreaming(a: std.mem.Allocator) !void {
             return MerkleTree(Hasher).commit(allocator, columns);
         }
     };
-    const MC = core.vcs_lifted.blake3_merkle.MerkleChannel;
-    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Cpu, H, MC);
+    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Cpu, TestHasher, MC);
     const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
     var baseline = try Scheme.init(a, config);
     defer baseline.deinit(a);
     var compact = try Scheme.init(a, config);
     defer compact.deinit(a);
     compact.setCompactPolynomialStorage(4);
-    var original_channel = core.channel.blake3.Channel{};
+    var original_channel = Channel{};
     var compact_channel = original_channel;
     var small: [8]M = undefined;
     var large: [32]M = undefined;
@@ -209,4 +208,318 @@ fn checkStreaming(a: std.mem.Allocator) !void {
 test "coefficient storage incremental commitments match materialized roots and openings" {
     try checkStreaming(std.testing.allocator);
     try std.testing.checkAllAllocationFailures(std.testing.allocator, checkStreaming, .{});
+}
+
+fn checkStreaming(a: std.mem.Allocator) !void {
+    try checkStreamingFor(H, core.vcs_lifted.blake3_merkle.MerkleChannel, core.channel.blake3.Channel, a);
+}
+fn checkPlainBlake2(a: std.mem.Allocator) !void {
+    try checkStreamingFor(core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher, core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel, core.channel.blake2s.Blake2sChannel, a);
+}
+fn checkPrefixedBlake2(a: std.mem.Allocator) !void {
+    try checkStreamingFor(core.vcs_lifted.blake2_merkle.Blake2sMerkleHasher, core.vcs_lifted.blake2_merkle.Blake2sMerkleChannel, core.channel.blake2s.Blake2sChannel, a);
+}
+test "coefficient storage BLAKE2s incremental commitments preserve plain and prefixed roots and openings" {
+    try checkPlainBlake2(std.testing.allocator);
+    try checkPrefixedBlake2(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkPlainBlake2, .{});
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkPrefixedBlake2, .{});
+}
+
+fn checkArenaStream(a: std.mem.Allocator) !void {
+    const Blake = core.vcs_lifted.blake2_merkle;
+    const Backend = struct {
+        pub const combined_base_in_place = true;
+        // The last batch must still use the arena-aware combined preparation.
+        pub const combined_commit_min_columns: usize = 65;
+        pub const MerkleTree = @import("owned_source_admission_test.zig").Backend.MerkleTree;
+        pub const commitMerkle = @import("owned_source_admission_test.zig").Backend.commitMerkle;
+        pub const interpolateAndEvaluateCircleBuffers = @import("owned_source_admission_test.zig").Backend.interpolateAndEvaluateCircleBuffers;
+    };
+    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Backend, Blake.Blake2sPlainMerkleHasher, Blake.Blake2sMerkleChannel);
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
+    var baseline = try Scheme.init(a, config);
+    defer baseline.deinit(a);
+    var compact = try Scheme.init(a, config);
+    defer compact.deinit(a);
+    compact.setCompactPolynomialStorage(4);
+    const count = 129;
+    var words: usize = 17; // Retain padding and the original allocation, not interior slices.
+    for (0..count) |i| words += @as(usize, 1) << @intCast(3 + i % 3);
+    const arena = try a.alloc(M, words);
+    var input_live = true;
+    defer if (input_live) a.free(arena);
+    const columns = try a.alloc(Column, count);
+    var columns_live = true;
+    defer if (columns_live) a.free(columns);
+    var starts: [count]usize = undefined;
+    var cursor: usize = 17;
+    for (columns, 0..) |*column, i| {
+        const log: u32 = @intCast(3 + i % 3);
+        const len = @as(usize, 1) << @intCast(log);
+        starts[i] = cursor;
+        const values = arena[cursor..][0..len];
+        for (values, 0..) |*value, row| value.* = M.fromU64(1 + i * 31 + row * row);
+        column.* = .{ .log_size = log, .values = values };
+        cursor += len;
+    }
+    var original_channel = core.channel.blake2s.Blake2sChannel{};
+    var compact_channel = original_channel;
+    try baseline.commitBorrowedStreamingWithRecorder(a, columns, 64, null, &original_channel);
+    const buffers = try a.alloc([]M, 1);
+    buffers[0] = arena;
+    input_live = false;
+    columns_live = false;
+    // Both descriptors and arena ownership transfer on success and error.
+    try compact.commitOwnedWithRecorderAndBacking(a, columns, buffers, null, &compact_channel);
+    try std.testing.expectEqualSlices(u8, &original_channel.digestBytes(), &compact_channel.digestBytes());
+    const tree = &compact.trees.items[0];
+    try std.testing.expectEqual(@as(usize, 1), tree.coefficient_backing_buffers.?.len);
+    try std.testing.expectEqual(arena.ptr, tree.coefficient_backing_buffers.?[0].ptr);
+    for (tree.coefficients.?, 0..) |coefficient, i|
+        try std.testing.expectEqual(arena[starts[i]..].ptr, coefficient.coefficients().ptr);
+    const queries = [_]usize{ 0, 61, 7, 16, 7 };
+    var expected = try baseline.trees.items[0].decommit(a, &queries);
+    defer expected.deinit(a);
+    var actual = try tree.decommit(a, &queries);
+    defer actual.deinit(a);
+    try std.testing.expectEqualDeep(expected, actual);
+}
+
+test "coefficient storage arena streaming retains original custody across batches and allocation failures" {
+    try checkArenaStream(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkArenaStream, .{});
+}
+
+test "coefficient storage selected FFT matches full evaluation across heights, degrees and query tails" {
+    const a = std.testing.allocator;
+    const tw = @import("../poly/twiddles.zig");
+    var transform = try tw.precomputeM31(a, poly.CanonicCoset.new(14).circleDomain().half_coset);
+    defer tw.deinitM31(a, &transform);
+    const borrowed = tw.TwiddleTree([]const M){ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles };
+    for (6..15) |log_raw| {
+        const log: u32 = @intCast(log_raw);
+        const size = @as(usize, 1) << @intCast(log);
+        const expected = try a.alloc(M, size);
+        defer a.free(expected);
+        const actual = try a.alloc(M, size);
+        defer a.free(actual);
+        for ([_]usize{ size, size / 2, size / 4 }) |count| {
+            for (expected[0..count], 0..) |*value, i| value.* = M.fromU64(i * i * 37 + i * 29 + 17);
+            @memcpy(actual[0..count], expected[0..count]);
+            @memset(expected[count..], M.zero());
+            @memset(actual[count..], M.fromCanonical(71)); // Stale scratch must be ignored.
+            const domain = poly.CanonicCoset.new(log).circleDomain();
+            try poly.poly.evaluateBuffersWithTwiddles(&.{expected}, domain, borrowed);
+            const positions = [_]usize{ 0, 1, 1, size / 3, size / 2, size / 2 + 1, size - 2, size - 1 };
+            try @import("../poly/circle/transforms.zig").evaluateSelectedBufferWithTwiddles(actual, count, domain, borrowed, &positions);
+            for (positions) |position| try std.testing.expectEqualDeep(expected[position], actual[position]);
+        }
+    }
+    var buffer = [_]M{M.one()} ** 64;
+    const selected = @import("../poly/circle/transforms.zig").evaluateSelectedBufferWithTwiddles;
+    const domain = poly.CanonicCoset.new(6).circleDomain();
+    try std.testing.expectError(error.InvalidLength, selected(&buffer, 0, domain, borrowed, &.{0}));
+    try std.testing.expectError(error.InvalidLength, selected(&buffer, 32, domain, borrowed, &.{64}));
+    try std.testing.expectError(error.InvalidLength, selected(&buffer, 32, domain, borrowed, &.{ 3, 2 }));
+}
+
+fn checkFixedCache(a: std.mem.Allocator, corrupt: bool) !void {
+    const Blake = core.vcs_lifted.blake2_merkle;
+    const Hasher = Blake.Blake2sPlainMerkleHasher;
+    const Cpu = struct {
+        pub fn MerkleTree(comptime F: type) type {
+            return @import("../vcs_lifted/prover.zig").MerkleProverLifted(F);
+        }
+        pub fn commitMerkle(comptime F: type, allocator: std.mem.Allocator, columns: []const []const M) !MerkleTree(F) {
+            return MerkleTree(F).commit(allocator, columns);
+        }
+    };
+    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Cpu, Hasher, Blake.Blake2sMerkleChannel);
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
+    var baseline = try Scheme.init(a, config);
+    defer baseline.deinit(a);
+    var compact = try Scheme.init(a, config);
+    defer compact.deinit(a);
+    compact.setCompactPolynomialStorage(4);
+    var small = [_]M{M.one()} ** 8;
+    var large: [32]M = undefined;
+    for (&large, 0..) |*value, i| value.* = M.fromU64(i * i + 17);
+    const columns = [_]Column{
+        .{ .log_size = 5, .values = &large }, .{ .log_size = 3, .values = &small },
+        .{ .log_size = 5, .values = &large },
+    };
+    var baseline_channel = core.channel.blake2s.Blake2sChannel{};
+    var compact_channel = baseline_channel;
+    try baseline.commitBorrowedStreamingWithRecorder(a, &columns, 1, null, &baseline_channel);
+    const seam = @import("merkle_layer_cache.zig");
+    const Context = struct {
+        tree: *const @import("../vcs_lifted/prover.zig").MerkleProverLifted(Hasher),
+        corrupt: bool,
+        fn load(raw: *anyopaque, request: seam.Request, layers: []const []u8) bool {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            if (request.log_size != 6 or request.pruned_bottom_layers != 0 or
+                !std.mem.eql(u32, request.column_log_sizes, &.{ 4, 6, 6 })) return false;
+            for (self.tree.layers, layers) |source, destination| {
+                if (destination.len != std.mem.sliceAsBytes(source).len) return false;
+                @memcpy(destination, std.mem.sliceAsBytes(source));
+            }
+            if (self.corrupt) layers[0][0] ^= 1;
+            return true;
+        }
+        fn store(_: *anyopaque, _: seam.Request, _: []const []const u8) void {}
+    };
+    var context = Context{ .tree = &baseline.trees.items[0].commitment, .corrupt = corrupt };
+    seam.arm(.{ .ctx = &context, .load = Context.load, .store = Context.store });
+    defer seam.disarm();
+    try compact.commitBorrowedStreamingWithRecorder(a, &columns, 1, null, &compact_channel);
+    try std.testing.expectEqualSlices(u8, &baseline_channel.digestBytes(), &compact_channel.digestBytes());
+    const queries = [_]usize{ 0, 7, 16, 61 };
+    var expected = try baseline.trees.items[0].decommit(a, &queries);
+    defer expected.deinit(a);
+    var actual = try compact.trees.items[0].decommit(a, &queries);
+    defer actual.deinit(a);
+    try std.testing.expectEqualDeep(expected, actual);
+    // A fixed-data compact tree must survive the policy transition back to
+    // ordinary witness storage, including release before subsequent openings.
+    compact.compact_polynomial_storage = false;
+    compact.setCoefficientRetentionPolicy(.never);
+    seam.disarm();
+    try compact.commitBorrowedStreamingWithRecorder(a, &columns, 1, null, &compact_channel);
+    try std.testing.expect(compact.trees.items[1].coefficients == null);
+    compact.trees.items[0].releaseCoefficients(a);
+    var retained = try compact.trees.items[0].decommit(a, &queries);
+    defer retained.deinit(a);
+    try std.testing.expectEqualDeep(expected, retained);
+}
+
+test "coefficient storage fixed cache preserves openings, rejects corrupt layers and owns failure cleanup" {
+    try checkFixedCache(std.testing.allocator, false);
+    try checkFixedCache(std.testing.allocator, true);
+    // Cache allocation failures deliberately recover through a fresh commit.
+    // Admit either correct success or OOM, while checking every owner is freed.
+    for ([_]bool{ false, true }) |corrupt| {
+        var index: usize = 0;
+        while (true) : (index += 1) {
+            var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = index });
+            checkFixedCache(failing.allocator(), corrupt) catch |err| {
+                if (err != error.OutOfMemory) return err;
+            };
+            try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+            if (!failing.has_induced_failure) break;
+        }
+    }
+}
+
+fn checkHybrid(a: std.mem.Allocator) !void {
+    const log = 13;
+    const size = 1 << log;
+    const coeff = [_]M{ M.one(), M.fromCanonical(3), M.fromCanonical(5), M.fromCanonical(7) };
+    const polynomial = try poly.CircleCoefficients.initBorrowed(&coeff);
+    const evaluation = try polynomial.evaluate(a, poly.CanonicCoset.new(log).circleDomain());
+    defer a.free(evaluation.values);
+    const materialized = [_]Column{
+        .{ .log_size = log, .values = evaluation.values },
+        .{ .log_size = log, .values = evaluation.values },
+    };
+    var compact = materialized;
+    compact[0].values = &.{};
+    compact[0].coefficient_values = &coeff;
+    var trees_materialized = [_][]const Column{&materialized};
+    var trees_compact = [_][]const Column{&compact};
+    const Point = core.circle.CirclePointQM31;
+    var first = [_]Point{ core.circle.SECURE_FIELD_CIRCLE_GEN.mul(7), core.circle.SECURE_FIELD_CIRCLE_GEN.mul(19) };
+    var second = [_]Point{first[1]};
+    var tree_points = [_][]Point{ &first, &second };
+    var point_trees = [_][][]Point{&tree_points};
+    var first_values = [_]Q{ Q.fromU32Unchecked(11, 13, 17, 19), Q.fromU32Unchecked(23, 29, 31, 37) };
+    var second_values = [_]Q{Q.fromU32Unchecked(41, 43, 47, 53)};
+    var tree_values = [_][]Q{ &first_values, &second_values };
+    var sample_trees = [_][][]Q{&tree_values};
+    const Provider = @import("quotient_ops.zig").LazyQuotientProvider;
+    const TreeVec = core.pcs.TreeVec;
+    const random = Q.fromU32Unchecked(3, 0, 1, 0);
+    var expected = try Provider.initWithMode(a, TreeVec([]const Column).initOwned(&trees_materialized), TreeVec([][]Point).initOwned(&point_trees), TreeVec([][]Q).initOwned(&sample_trees), random, log, .bounded_cpu);
+    defer expected.deinit(a);
+    var actual = try Provider.initWithMode(a, TreeVec([]const Column).initOwned(&trees_compact), TreeVec([][]Point).initOwned(&point_trees), TreeVec([][]Q).initOwned(&sample_trees), random, log, .bounded_cpu);
+    defer actual.deinit(a);
+    try std.testing.expectEqual(.bounded_cpu, actual.input_mode);
+    try std.testing.expectEqual(@as(usize, 1), actual.direct_plan.views.len);
+    try std.testing.expectEqual(@as(usize, 2), actual.combined_views.len);
+    const values = try a.alloc(M, 8 * size);
+    defer a.free(values);
+    var want: [4][]M = undefined;
+    var got: [4][]M = undefined;
+    for (&want, &got, 0..) |*w, *g, i| {
+        w.* = values[i * size ..][0..size];
+        g.* = values[(4 + i) * size ..][0..size];
+    }
+    try expected.computeChunk(0, size, &want);
+    try actual.computeChunk(0, size, &got);
+    for (want, got) |w, g| try std.testing.expectEqualSlices(M, w, g);
+    // Also qualify the parallel full-domain path with the same mixed inputs.
+    var out = @import("../secure_column.zig").SecureColumnByCoords{ .columns = got, .owns_columns = false };
+    try actual.computeAll(a, &out);
+    for (want, got) |w, g| try std.testing.expectEqualSlices(M, w, g);
+}
+
+test "coefficient storage hybrid bounded quotients preserve raw columns and parallel output parity" {
+    var pool: @import("../work_pool.zig").WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try @import("../work_pool.zig").ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try checkHybrid(std.testing.allocator);
+    var index: usize = 0;
+    while (true) : (index += 1) {
+        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = index });
+        checkHybrid(failing.allocator()) catch |err| {
+            if (err != error.OutOfMemory) return err;
+        };
+        try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
+        if (!failing.has_induced_failure) break;
+    }
+}
+
+fn checkSpilledTail(a: std.mem.Allocator) !void {
+    const Blake = core.vcs_lifted.blake2_merkle;
+    const Cpu = struct {
+        pub fn MerkleTree(comptime F: type) type {
+            return @import("../vcs_lifted/prover.zig").MerkleProverLifted(F);
+        }
+        pub fn commitMerkle(comptime F: type, allocator: std.mem.Allocator, columns: []const []const M) !MerkleTree(F) {
+            return MerkleTree(F).commit(allocator, columns);
+        }
+    };
+    const Scheme = @import("scheme.zig").CommitmentSchemeProver(Cpu, Blake.Blake2sPlainMerkleHasher, Blake.Blake2sMerkleChannel);
+    const config = core.pcs.PcsConfig{ .pow_bits = 0, .fri_config = try core.fri.FriConfig.init(0, 1, 8) };
+    var baseline = try Scheme.init(a, config);
+    defer baseline.deinit(a);
+    var compact = try Scheme.init(a, config);
+    defer compact.deinit(a);
+    compact.setCompactPolynomialStorage(4);
+    var data: [128]M = undefined;
+    for (&data, 0..) |*value, i| value.* = M.fromU64(i * i * 71 + 13);
+    var columns: [18]Column = undefined;
+    for (columns[0..16]) |*column| column.* = .{ .log_size = 3, .values = data[0..8] };
+    columns[16] = .{ .log_size = 6, .values = data[0..64] };
+    columns[17] = .{ .log_size = 7, .values = &data };
+    // Sixteen lower-height words fill a BLAKE2s block. The two terminal
+    // heights must continue through a new block, preserving exactly the root.
+    var original_channel = core.channel.blake2s.Blake2sChannel{};
+    var compact_channel = original_channel;
+    try baseline.commitBorrowedStreamingWithRecorder(a, &columns, 4, null, &original_channel);
+    try compact.commitBorrowedStreamingWithRecorder(a, &columns, 4, null, &compact_channel);
+    try std.testing.expectEqualSlices(u8, &original_channel.digestBytes(), &compact_channel.digestBytes());
+    const queries = [_]usize{ 0, 1, 37, 127, 255 };
+    var expected = try baseline.trees.items[0].decommit(a, &queries);
+    defer expected.deinit(a);
+    var actual = try compact.trees.items[0].decommit(a, &queries);
+    defer actual.deinit(a);
+    try std.testing.expectEqualDeep(expected, actual);
+}
+
+test "coefficient storage sparse terminal columns spill a full hash block without final-height state" {
+    try checkSpilledTail(std.testing.allocator);
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkSpilledTail, .{});
 }

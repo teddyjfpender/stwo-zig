@@ -609,8 +609,10 @@ fn validateScheduleAuthority(schedule: trace_schedule.Schedule) !void {
     var dependency_count: usize = 0;
     var launch_count: usize = 0;
     for (schedule.entries) |entry| {
-        if (!validOwnership(entry))
+        if (!validOwnership(entry)) {
+            std.debug.print("cairo-cuda invalid ownership {s}#{} index={}\n", .{ entry.name, entry.instance, entry.component_index });
             return error.TraceWriterBindingMismatch;
+        }
         if (entry.execution != .composite_member) launch_count += 1;
         dependency_count = std.math.add(
             usize,
@@ -618,27 +620,30 @@ fn validateScheduleAuthority(schedule: trace_schedule.Schedule) !void {
             entry.dependencies.len,
         ) catch return error.TraceWriterBindingMismatch;
         for (entry.dependencies, 0..) |dependency, index| {
-            if (!validDependencyShape(entry, dependency))
+            if (!validDependencyShape(entry, dependency)) {
+                std.debug.print("cairo-cuda invalid dependency {s}#{} index={} producer={} kind={s} words={} instances={}\n", .{ entry.name, entry.instance, entry.component_index, dependency.producer_component_index, @tagName(dependency.kind), dependency.words_per_instance, dependency.instances });
                 return error.TraceWriterBindingMismatch;
+            }
             for (entry.dependencies[0..index]) |prior| {
-                if (std.meta.eql(prior, dependency))
+                if (std.meta.eql(prior, dependency)) {
+                    std.debug.print("cairo-cuda duplicate dependency {s}#{} producer={} kind={s}\n", .{ entry.name, entry.instance, dependency.producer_component_index, @tagName(dependency.kind) });
                     return error.TraceWriterBindingMismatch;
+                }
             }
             const producer = uniqueEntry(
                 schedule.entries,
                 dependency.producer_component_index,
             ) orelse return error.TraceWriterBindingMismatch;
-            try validateDependencyOrder(
-                schedule,
-                producer,
-                entry,
-                dependency,
-            );
+            validateDependencyOrder(schedule, producer, entry, dependency) catch |err| {
+                std.debug.print("cairo-cuda dependency order failed producer={s}#{} consumer={s}#{} kind={s}\n", .{ producer.name, producer.instance, entry.name, entry.instance, @tagName(dependency.kind) });
+                return err;
+            };
         }
     }
     if (dependency_count != schedule.dependency_storage.len or
         launch_count != schedule.launch_order.len)
     {
+        std.debug.print("cairo-cuda schedule counts dependencies={}/{} launches={}/{}\n", .{ dependency_count, schedule.dependency_storage.len, launch_count, schedule.launch_order.len });
         return error.TraceWriterBindingMismatch;
     }
     var dependency_cursor: usize = 0;
@@ -729,6 +734,16 @@ fn validateDependencyOrder(
         {
             return error.TraceWriterBindingMismatch;
         }
+        return;
+    }
+    // The native EC composite emits its root outputs before evaluating the
+    // partial-multiplication member inside the same authenticated launch.
+    // This is internal dataflow, not a dependency between two launches.
+    if (consumer.execution == .composite_member and
+        producer.execution == .composite_root and
+        producer.component_index == consumer.launch_owner and
+        producer.launch_owner == consumer.launch_owner)
+    {
         return;
     }
     const producer_position = launchPosition(

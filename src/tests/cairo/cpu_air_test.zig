@@ -97,6 +97,7 @@ test "official Cairo all-opcodes commitment traces match Rust" {
         null,
         null,
         null,
+        null,
     );
     defer interaction.deinit();
 

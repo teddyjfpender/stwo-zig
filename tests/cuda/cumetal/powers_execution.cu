@@ -118,7 +118,8 @@ int main() {
     stwo::cuda::constraints::expand_powers_kernel<<<1, 1>>>(
         device_alpha,
         device_output,
-        kCount);
+        kCount,
+        false);
     if (cudaDeviceSynchronize() != cudaSuccess ||
         cudaMemcpy(
             observed,

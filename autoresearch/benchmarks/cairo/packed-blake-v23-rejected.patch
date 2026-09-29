@@ -1,0 +1,185 @@
+--- a/src/frontends/cairo/witness/program.zig
++++ b/src/frontends/cairo/witness/program.zig
+@@ -193,6 +193,9 @@
+ pub const TableContext = struct {
+     context: *anyopaque,
+     limb_fn: *const fn (*anyopaque, u32, u32, u32) u32,
++    /// Optional packed access with the same small-value admission as the limb
++    /// provider. Null results mean an encoded value is not a small value.
++    small_word_fn: ?*const fn (*anyopaque, u32) ?u32 = null,
+ 
+     pub fn limb(self: TableContext, table: u32, row: u32, limb_index: u32) u32 {
+         return self.limb_fn(self.context, table, row, limb_index);
+--- a/src/frontends/cairo/witness/execution_tables.zig
++++ b/src/frontends/cairo/witness/execution_tables.zig
+@@ -16,6 +16,7 @@
+     return .{
+         .context = @ptrCast(@constCast(input)),
+         .limb_fn = tableLimbOpaque,
++        .small_word_fn = smallWordOpaque,
+     };
+ }
+ 
+@@ -30,6 +31,47 @@
+ fn tableLimbOpaque(context: *anyopaque, table: u32, row: u32, limb_index: u32) u32 {
+     const input: *const adapter.ProverInput = @ptrCast(@alignCast(context));
+     return limb(input, table, row, limb_index);
++}
++
++fn smallWordOpaque(context: *anyopaque, address: u32) ?u32 {
++    const input: *const adapter.ProverInput = @ptrCast(@alignCast(context));
++    const encoded = addressToId(input, address);
++    if (encoded == memory_mod.EncodedMemoryValueId.EMPTY.raw or encoded >= 0x4000_0000)
++        return null;
++    if (encoded >= input.memory.small_values.len) return 0;
++    // Limb reconstruction consumes exactly the low 32 bits, including for
++    // values with higher limbs. Missing address/value rows retain zero semantics.
++    return @truncate(input.memory.small_values[encoded]);
++}
++
++test "Cairo packed execution words preserve limb reconstruction and invalid IDs" {
++    const addresses = [_]memory_mod.EncodedMemoryValueId{
++        memory_mod.EncodedMemoryValueId.small(0), memory_mod.EncodedMemoryValueId.small(1),
++        memory_mod.EncodedMemoryValueId.small(2), memory_mod.EncodedMemoryValueId.small(99),
++        memory_mod.EncodedMemoryValueId.EMPTY,    memory_mod.EncodedMemoryValueId.f252(0),
++        .{ .raw = 0x8000_0000 },
++    };
++    const values = [_]u128{ 0xf800_0000, std.math.maxInt(u128), (@as(u128, 0xa5) << 64) | 0x89abcdef };
++    var input = testInput(.{
++        .config = .{},
++        .address_to_id = @constCast(&addresses),
++        .f252_values = &.{},
++        .small_values = @constCast(&values),
++    });
++    const tables = fromInput(&input);
++    for (0..4) |address| {
++        const id = tables.limb(ADDRESS_TO_ID_TABLE, @intCast(address), 0);
++        const reconstructed = tables.limb(MEMORY_VALUE_TABLE, id, 0) |
++            (tables.limb(MEMORY_VALUE_TABLE, id, 1) << 9) |
++            (tables.limb(MEMORY_VALUE_TABLE, id, 2) << 18) |
++            ((tables.limb(MEMORY_VALUE_TABLE, id, 3) & 0x1f) << 27);
++        try std.testing.expectEqual(@as(?u32, reconstructed), tables.small_word_fn.?(tables.context, @intCast(address)));
++    }
++    for (4..addresses.len) |address|
++        try std.testing.expectEqual(@as(?u32, null), tables.small_word_fn.?(tables.context, @intCast(address)));
++    try std.testing.expectEqual(@as(?u32, @truncate(values[0])), tables.small_word_fn.?(tables.context, addresses.len));
++    input.memory.small_values = &.{};
++    try std.testing.expectEqual(@as(?u32, 0), tables.small_word_fn.?(tables.context, 0));
+ }
+ 
+ fn addressToId(input: *const adapter.ProverInput, address: u32) u32 {
+--- a/src/frontends/cairo/witness/deductions/blake.zig
++++ b/src/frontends/cairo/witness/deductions/blake.zig
+@@ -7,6 +7,41 @@
+ const memory_value_table: u32 = 1;
+ const large_value_tag: u32 = 0x4000_0000;
+ const empty_value_id: u32 = large_value_tag - 1;
++
++test "Blake rounds preserve packed and limb-only memory semantics" {
++    const memory = @import("../../common/memory.zig");
++    var addresses: [16]memory.EncodedMemoryValueId = undefined;
++    var values: [16]u128 = undefined;
++    for (&addresses, &values, 0..) |*address, *value, index| {
++        address.* = memory.EncodedMemoryValueId.small(@intCast(index));
++        value.* = (@as(u128, index + 1) << 96) | (0xffffffff - @as(u128, index) * 0x01234567);
++    }
++    var input: @import("../../adapter/mod.zig").ProverInput = undefined;
++    input.memory = .{ .config = .{}, .address_to_id = &addresses, .small_values = &values, .f252_values = &.{} };
++    const packed_tables = @import("../execution_tables.zig").fromInput(&input);
++    var limbs = packed_tables;
++    limbs.small_word_fn = null;
++    var args = [_]u32{0xffffffff} ** 19;
++    args[18] = 0;
++    for (0..10) |round| {
++        args[1] = @intCast(round);
++        var packed_output: [19]u32 = undefined;
++        var limb_output: [19]u32 = undefined;
++        try applyRound(&args, &packed_output, packed_tables);
++        try applyRound(&args, &limb_output, limbs);
++        try std.testing.expectEqualSlices(u32, &limb_output, &packed_output);
++    }
++    var output: [19]u32 = undefined;
++    args[1] = 0;
++    for ([_]u32{ empty_value_id, large_value_tag, 0x80000000, 0xc0000000 }) |invalid_id| {
++        addresses[7].raw = invalid_id;
++        try std.testing.expectError(error.BlakeMessageNotSmall, applyRound(&args, &output, packed_tables));
++        try std.testing.expectError(error.BlakeMessageNotSmall, applyRound(&args, &output, limbs));
++    }
++    args[1] = 10;
++    try std.testing.expectError(error.InvalidBlakeRound, applyRound(&args, &output, packed_tables));
++    try std.testing.expectError(error.InvalidBlakeRound, applyRound(&args, &output, limbs));
++}
+ 
+ const sigma = [10][16]u8{
+     .{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+@@ -85,6 +120,8 @@
+ }
+ 
+ fn readSmall(tables: program.TableContext, address: u32) !u32 {
++    if (tables.small_word_fn) |read_word|
++        return read_word(tables.context, address) orelse error.BlakeMessageNotSmall;
+     const encoded = tables.limb(address_to_id_table, address, 0);
+     if (encoded == empty_value_id or encoded >= large_value_tag) {
+         return error.BlakeMessageNotSmall;
+--- a/src/tools/cairo_witness_cpu_codegen/c_writer.zig
++++ b/src/tools/cairo_witness_cpu_codegen/c_writer.zig
+@@ -3,6 +3,7 @@
+ const std = @import("std");
+ const model = @import("model.zig");
+ const register_plan = @import("register_plan.zig");
++const pure_deductions = @import("pure_deductions.zig");
+ 
+ pub fn emit(
+     writer: *std.Io.Writer,
+@@ -14,6 +15,7 @@
+     const witness_program = owned.program;
+     const symbol = std.mem.readInt(u64, digest[0..8], .little);
+     try writePreamble(writer);
++    try pure_deductions.preamble(writer);
+     try writer.print(
+         \\int cairo_witness_{x}(const native_range_execution *run) {{
+         \\
+@@ -112,7 +114,7 @@
+             },
+             .deduce_call => {
+                 if (pending_arguments == 0) return error.InvalidDeduce;
+-                try writer.print(
++                if (!try pure_deductions.emit(writer, inst, pending_arguments)) try writer.print(
+                     "        if (run->deduce_fn(run->bridge_context, {}, deduce_args, {}, &registers[{}], {}) != 0) return 1;\n",
+                     .{
+                         inst.imm,
+--- a/src/tools/cairo_witness_cpu_codegen/pure_deductions.zig
++++ b/src/tools/cairo_witness_cpu_codegen/pure_deductions.zig
+@@ -0,0 +1,32 @@
++//! Inline only total, exact-shape, table-independent witness deductions.
++const std = @import("std");
++const model = @import("model.zig");
++
++pub fn emit(writer: *std.Io.Writer, inst: model.Inst, arguments: usize) !bool {
++    const kind = std.meta.intToEnum(model.DeduceKind, inst.imm) catch return false;
++    const shape = kind.shape();
++    if (arguments != shape.args or inst.b != shape.outputs) return false;
++    switch (kind) {
++        .blake_g => try writer.print("        witness_blake_g(deduce_args, &registers[{}]);\n", .{inst.dst}),
++        .triple_xor_32 => try writer.print("        registers[{}] = deduce_args[0] ^ deduce_args[1] ^ deduce_args[2];\n", .{inst.dst}),
++        else => return false,
++    }
++    return true;
++}
++
++pub fn preamble(writer: *std.Io.Writer) !void {
++    try writer.writeAll(
++        \\static inline uint32_t witness_rotr32(uint32_t x, unsigned n) {
++        \\    return (x >> n) | (x << (32u - n));
++        \\}
++        \\static inline void witness_blake_g(const uint32_t *i, uint32_t *o) {
++        \\    uint32_t a = i[0], b = i[1], c = i[2], d = i[3];
++        \\    a += b + i[4]; d = witness_rotr32(d ^ a, 16u);
++        \\    c += d; b = witness_rotr32(b ^ c, 12u);
++        \\    a += b + i[5]; d = witness_rotr32(d ^ a, 8u);
++        \\    c += d; b = witness_rotr32(b ^ c, 7u);
++        \\    o[0] = a; o[1] = b; o[2] = c; o[3] = d;
++        \\}
++        \\
++    );
++}

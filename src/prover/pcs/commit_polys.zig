@@ -29,7 +29,8 @@ pub fn commit(
         null;
     if (self.retained_column_allocator != null and self.coefficient_retention_policy != .never)
         return error.UnsupportedRetainedColumnStorage;
-    if (self.retained_column_allocator == null) {
+    const native_compact = comptime if (@hasDecl(B, "supportsCompactStreaming")) B.supportsCompactStreaming(H) else false;
+    if (self.retained_column_allocator == null and !(native_compact and self.compact_polynomial_storage)) {
         if (try commit_dispatch.tryPrecommittedPolys(
             B,
             H,
@@ -67,9 +68,10 @@ pub fn commit(
     // work-profile-complete:polynomial-commit-forward-fft
 
     var stored_coefficients: ?[]prover_circle.CircleCoefficients = null;
+    errdefer if (columns_owned) if (stored_coefficients) |coefficients|
+        column_storage.deinitOwnedCoefficientColumns(allocator, coefficients);
     if (column_storage.shouldRetainPolynomialCoefficients(polys, self.coefficient_retention_policy)) {
         const coeffs = try allocator.alloc(prover_circle.CircleCoefficients, polys.len);
-        errdefer allocator.free(coeffs);
         var initialized_coeffs: usize = 0;
         errdefer {
             for (coeffs[0..initialized_coeffs]) |*coeff| coeff.deinit(allocator);
@@ -82,6 +84,14 @@ pub fn commit(
             initialized_coeffs += 1;
         }
         stored_coefficients = coeffs;
+    }
+
+    if (native_compact and self.compact_polynomial_storage) {
+        // Coefficient commitments enter after interpolation, so keep that basis
+        // and hash their GPU extensions directly. No resident tree may borrow
+        // an LDE that compaction is about to retire.
+        columns_owned = false;
+        return commitNativeCompact(B, H, BackendCommitmentTree, self, allocator, columns, stored_coefficients, channel);
     }
 
     if (work_recorder) |work| try work.expectProducer(.commitment_tree_merkle);
@@ -111,4 +121,32 @@ pub fn commit(
     if (timing) |*clock| std.log.info("pcs coefficient commit: path=expanded columns={} setup_ns={} extension_ns={} retention_ns={} merkle_ns={} append_join_ns={} column_payload_bytes={} coefficient_payload_bytes={} payload_is_allocator_live=false", .{
         polys.len, extension_start_ns, extension_end_ns - extension_start_ns, merkle_start_ns - extension_end_ns, merkle_end_ns - merkle_start_ns, clock.read() - merkle_end_ns, column_payload_bytes, coefficient_payload_bytes,
     });
+}
+
+fn commitNativeCompact(comptime B: type, comptime H: type, comptime BackendTree: type, scheme: anytype, a: std.mem.Allocator, columns: []@import("commitment_tree.zig").ColumnEvaluation, coefficients: ?[]prover_circle.CircleCoefficients, channel: anytype) !void {
+    const Host = @import("commitment_tree.zig").CommitmentTreeProver(H);
+    var host = Host{ .columns = columns, .coefficients = coefficients, .commitment = .{ .layers = &.{}, .layer_allocator = a } };
+    errdefer host.deinit(a);
+    var committer = B.CompactStreamingCommitter(H).init(a);
+    var owns_committer = true;
+    defer if (owns_committer) committer.deinit();
+    if (comptime @hasDecl(B.CompactStreamingCommitter(H), "planColumnCount"))
+        try committer.planColumnCount(columns.len);
+    const values = try a.alloc([]const M31, columns.len);
+    defer a.free(values);
+    for (columns, values) |column, *value| value.* = column.values;
+    const Tree = @import("../vcs_lifted/prover.zig").MerkleProverLifted(H);
+    const sorted = try Tree.sortColumnsByLogSizeAsc(a, values);
+    defer a.free(sorted);
+    try committer.addColumns(sorted);
+    host.commitment = try committer.finalize();
+    owns_committer = false;
+    try host.compactPolynomialStorage(a, scheme.compact_polynomial_min_log_size);
+    const tree = BackendTree{
+        .columns = host.columns,
+        .coefficients = host.coefficients,
+        .compact_polynomials = true,
+        .commitment = B.adoptNativeStreamingMerkle(H, host.commitment),
+    };
+    try scheme.appendCommittedTree(a, tree, channel);
 }

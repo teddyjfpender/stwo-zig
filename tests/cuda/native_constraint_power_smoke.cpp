@@ -41,6 +41,12 @@ extern "C" int stwo_constraint_expand_powers_on(
     std::size_t output_capacity,
     std::uint32_t count,
     void *stream);
+extern "C" int stwo_constraint_expand_reversed_powers_on(
+    const SecureField *alpha,
+    SecureField *output,
+    std::size_t output_capacity,
+    std::uint32_t count,
+    void *stream);
 
 namespace {
 
@@ -149,7 +155,8 @@ int main() {
         return 1;
     }
 
-    constexpr std::uint32_t count = 9;
+    // Exercise Cairo-sized expansion beyond the former Native-only 510 cap.
+    constexpr std::uint32_t count = 1325;
     const SecureField alpha{2, 3, 5, 7};
     std::uint32_t *alpha_words = nullptr;
     std::uint32_t *output_words = nullptr;
@@ -182,6 +189,8 @@ int main() {
             "expand resident powers")) {
         return 1;
     }
+    // Both orders use the same field recurrence but match different frontend
+    // contracts. The Cairo order must reverse every one of the 1,325 powers.
     if (stwo_constraint_expand_powers_on(
             reinterpret_cast<const SecureField *>(alpha_words),
             reinterpret_cast<SecureField *>(output_words),
@@ -219,6 +228,28 @@ int main() {
         expected = multiply(expected, alpha);
     }
 
+    const std::vector<SecureField> ascending = actual;
+    if (!check_status(stwo_constraint_expand_reversed_powers_on(
+            reinterpret_cast<const SecureField *>(alpha_words),
+            reinterpret_cast<SecureField *>(output_words), count, count, stream),
+            "expand reversed Cairo powers") ||
+        !check_status(stwo_exec_context_memcpy_d2h_async(
+            context, actual.data(), output_words,
+            actual.size() * sizeof(SecureField)), "read reversed powers") ||
+        !check_status(stwo_exec_context_sync(context), "wait for reversed powers")) return 1;
+    for (std::uint32_t index = 0; index < count; ++index) {
+        if (!equal(actual[index], ascending[count - 1u - index])) {
+            std::fprintf(stderr, "reversed power mismatch at index %u\n", index);
+            return 1;
+        }
+    }
+    if (stwo_constraint_expand_reversed_powers_on(
+            reinterpret_cast<const SecureField *>(alpha_words),
+            reinterpret_cast<SecureField *>(output_words), count - 1, count, stream) == 0) {
+        std::fprintf(stderr, "invalid reversed power capacity was admitted\n");
+        return 1;
+    }
+
     if (!check_status(
             stwo_exec_context_free_u32(context, output_words),
             "free powers") ||
@@ -229,6 +260,6 @@ int main() {
         !check_status(stwo_exec_context_destroy(context), "destroy context")) {
         return 1;
     }
-    std::printf("native CUDA constraint-power smoke passed\n");
+    std::printf("native CUDA constraint-power smoke passed: 1325 ascending and Cairo descending powers\n");
     return 0;
 }

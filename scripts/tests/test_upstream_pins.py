@@ -20,6 +20,17 @@ LEDGER = ROOT / "conformance" / "upstream.md"
 
 
 class UpstreamPinTests(unittest.TestCase):
+    def test_pie_bootloader_rejects_artifact_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copytree(ROOT / cairo_vm_adapter.PIE_RESOURCES, root / cairo_vm_adapter.PIE_RESOURCES)
+            asset = root / cairo_vm_adapter.PIE_RESOURCES / "simple_bootloader_compiled.json.gz"
+            data = bytearray(asset.read_bytes())
+            data[len(data) // 2] ^= 1
+            asset.write_bytes(data)
+            errors = cairo_vm_adapter._check_pie_resources(root)
+        self.assertIn("identity drifted", "\n".join(errors))
+
     def test_repository_pin_carriers_match_ledger(self) -> None:
         self.assertEqual([], validate_repository(ROOT))
 

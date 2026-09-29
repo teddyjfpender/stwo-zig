@@ -1,0 +1,4 @@
+no step named 'test-cairo-incremental-multiplicities'
+  access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/70b95048afb7a0bd450ddf83ac1bd326/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0xbe6c833d -Z18880aa32f0f0d07 test-cairo-incremental-multiplicities -Doptimize=ReleaseFast -j1 --summary all

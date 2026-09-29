@@ -190,6 +190,7 @@ pub fn compileDevelopmentRequest(
         prepared.input_sha256,
         protocol,
         target,
+        null,
     );
 }
 
@@ -248,7 +249,37 @@ pub fn compileProofDerivedDiagnostic(
         input.adapted_input_identity,
         protocol,
         target,
+        null,
     );
+}
+
+/// Canonical lowering uses source-derived geometry and current generated AIR.
+/// The source assembler constructs this input from pinned templates itself.
+pub fn compileCanonicalSource(
+    allocator: std.mem.Allocator,
+    input: ProofDerivedDiagnosticInput,
+    claim: *const @import("stwo_cairo_frontend").claim_generator.OwnedClaimGeometry,
+    active_rows: []const u32,
+    topology: @import("stwo_cairo_frontend").witness.feed_topology.Loaded,
+    protocol: compact.CompactProtocolV1,
+    target: cuda_plan.CompileOptions,
+) !PreparedRequest {
+    if (input.pack.provenance != .source_derived) return error.SourceSemanticsRequired;
+    var proof = try proof_plan.CairoProofPlan.fromCanonicalGeometry(allocator, claim, active_rows, input.witnesses, input.multiplicity_feeds);
+    errdefer proof.deinit();
+    const buffers = try buildBufferDescriptions(allocator, &proof, input.composition, input.compact_statement.len);
+    errdefer allocator.free(buffers);
+    var proof_program = try subject_program.emitCanonicalSource(allocator, .{
+        .proof = &proof,
+        .pack = input.pack,
+        .composition = &input.composition,
+        .preprocessed_logs = input.preprocessed_logs,
+        .compact_statement = input.compact_statement,
+        .protocol = protocol,
+        .buffers = buffers,
+    });
+    errdefer proof_program.deinit(allocator);
+    return finishDevelopmentRequest(allocator, proof, buffers, proof_program, input.witnesses, input.multiplicity_feeds, input.fixed_tables, input.composition, input.relation_templates, input.adapted_input, input.adapted_input_bytes, input.adapted_input_identity, protocol, target, topology);
 }
 
 fn finishDevelopmentRequest(
@@ -266,6 +297,7 @@ fn finishDevelopmentRequest(
     adapted_input_identity: [32]u8,
     protocol: compact.CompactProtocolV1,
     target: cuda_plan.CompileOptions,
+    canonical_topology: ?@import("stwo_cairo_frontend").witness.feed_topology.Loaded,
 ) !PreparedRequest {
     const coalesced_schedule = try execution_schedule.Schedule.derive(
         proof_program,
@@ -277,7 +309,7 @@ fn finishDevelopmentRequest(
         plan,
     );
 
-    var product_registry = try product_aot.Registry.initProduct(allocator);
+    var product_registry = if (canonical_topology != null) try product_aot.Registry.initCanonicalCairo(allocator) else try product_aot.Registry.initProduct(allocator);
     defer product_registry.deinit();
     var bootstrap = try statement_ingress.derive(
         allocator,
@@ -300,6 +332,7 @@ fn finishDevelopmentRequest(
         adapted_input_bytes,
         adapted_input_identity,
         &bootstrap,
+        canonical_topology,
     );
     errdefer lowering_admission.deinit(allocator);
     var resident = try resident_plan.Plan.init(
@@ -408,6 +441,7 @@ fn compileLoweringAdmission(
     adapted_input_bytes: u64,
     adapted_input_identity: [32]u8,
     bootstrap: *const statement_bootstrap.OwnedStatementBootstrap,
+    canonical_topology: ?@import("stwo_cairo_frontend").witness.feed_topology.Loaded,
 ) !LoweringAdmission {
     if (constraints.len != proof.components.len or constraints.len != bundle.components.len)
         return error.CairoCudaConstraintCardinalityMismatch;
@@ -427,16 +461,12 @@ fn compileLoweringAdmission(
         base_catalog,
     );
     errdefer trace_dispatch.deinit();
-    var constraint_catalog = try constraint_admission.Catalog.init(
-        allocator,
-        bundle,
-    );
+    var constraint_catalog = if (canonical_topology != null) try constraint_admission.Catalog.initCanonical(allocator, bundle) else try constraint_admission.Catalog.init(allocator, bundle);
     defer constraint_catalog.deinit();
-    var interaction_catalog = try interaction_admission.Catalog.init(
-        allocator,
-        proof,
-        relations,
-    );
+    var interaction_catalog = if (canonical_topology) |topology|
+        try interaction_admission.Catalog.initCanonical(allocator, proof, witnesses, topology, relations)
+    else
+        try interaction_admission.Catalog.init(allocator, proof, relations);
     var interaction_catalog_live = true;
     defer if (interaction_catalog_live) interaction_catalog.deinit();
     const ingress_geometry = try resident_ingress.compile(
@@ -455,6 +485,7 @@ fn compileLoweringAdmission(
             .relations = &interaction_catalog.plan,
             .writer_identity = trace_dispatch.identity,
             .evaluation_identity = constraint_catalog.catalog_identity,
+            .parametric_evaluation = canonical_topology != null,
         },
     );
     var missing = std.ArrayList(MissingLowering).empty;
@@ -613,7 +644,7 @@ fn findComponent(
     instance: u32,
 ) ?*const composition.Component {
     for (bundle.components) |*component| {
-        if (component.instance == instance and std.mem.eql(u8, component.label, name))
+        if (component.instance == instance and std.mem.eql(u8, proof_plan.canonicalComponentName(component.label, instance), name))
             return component;
     }
     return null;
@@ -756,6 +787,7 @@ test "Cairo CUDA compiles the complete authenticated SN2 structure and only repo
         (try adapted_file.stat()).size,
         adapted_digest,
         &bootstrap,
+        null,
     );
     defer lowering_admission.deinit(allocator);
     const missing = lowering_admission.missing;

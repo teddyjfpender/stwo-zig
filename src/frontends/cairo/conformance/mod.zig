@@ -12,6 +12,7 @@ pub const recorded_trace = @import("recorded_trace.zig");
 pub const memory_trace = @import("memory_trace.zig");
 pub const fixed_trace = @import("fixed_trace.zig");
 pub const multiplicity_tables = @import("multiplicity_tables.zig");
+pub const fixed_feed_plan = @import("fixed_feed_plan.zig");
 pub const base_trace_suite = @import("base_trace_suite.zig");
 
 test {

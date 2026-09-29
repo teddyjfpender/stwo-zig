@@ -148,6 +148,34 @@ pub fn build(b: *std.Build) void {
         circle_lde_output_parity_step.dependOn(&unsupported.step);
         return;
     }
+    const leaf_stream_root = b.createModule(.{
+        .root_source_file = b.path("leaf_stream_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(leaf_stream_root, core, backend_contracts, prover_api, prover);
+    const leaf_stream_tests = b.addTest(.{ .root_module = leaf_stream_root, .filters = &.{ "metal: streaming BLAKE2s", "metal: native coefficient fold" } });
+    linkRuntime(b, leaf_stream_tests);
+    const run_leaf_stream = b.addRunArtifact(leaf_stream_tests);
+    run_leaf_stream.has_side_effects = true;
+    b.step("test-leaf-stream", "Qualify native coefficient-commitment leaf custody, block boundaries, height changes and budgets")
+        .dependOn(&run_leaf_stream.step);
+    const native_quotient_root = b.createModule(.{
+        .root_source_file = b.path("native_quotient_reduction_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(native_quotient_root, core, backend_contracts, prover_api, prover);
+    const native_quotient_tests = b.addTest(.{
+        .root_module = native_quotient_root,
+        .filters = &.{"metal: native segmented quotient reduction matches scalar mixed heights and batches"},
+    });
+    linkRuntime(b, native_quotient_tests);
+    const run_native_quotient = b.addRunArtifact(native_quotient_tests);
+    run_native_quotient.has_side_effects = true;
+    b.step("test-native-quotient-reduction", "Compare real segmented native-height Metal quotients with the scalar oracle")
+        .dependOn(&run_native_quotient.step);
+
     const framework_device_root = b.createModule(.{
         .root_source_file = b.path("framework_polynomial_device_test_root.zig"),
         .target = target,
@@ -190,6 +218,26 @@ pub fn build(b: *std.Build) void {
 
     const tests = b.addTest(.{ .root_module = backend });
     linkRuntime(b, tests);
+    const merkle_host_root = b.createModule(.{
+        .root_source_file = b.path("merkle_host_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(merkle_host_root, core, backend_contracts, prover_api, prover);
+    const merkle_host_tests = b.addTest(.{ .root_module = merkle_host_root, .filters = &.{"Metal host-backed compact Merkle"} });
+    linkRuntime(b, merkle_host_tests);
+    b.step("test-merkle-host", "Check compact cached host-tree openings without initializing a Metal device")
+        .dependOn(&b.addRunArtifact(merkle_host_tests).step);
+    const compact_merkle_root = b.createModule(.{
+        .root_source_file = b.path("compact_merkle_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(compact_merkle_root, core, backend_contracts, prover_api, prover);
+    const compact_merkle_tests = b.addTest(.{ .root_module = compact_merkle_root, .filters = &.{"Metal resident compact Merkle"} });
+    linkRuntime(b, compact_merkle_tests);
+    b.step("test-merkle-compact", "Check resident Merkle compaction admission and exact mixed-height openings")
+        .dependOn(&b.addRunArtifact(compact_merkle_tests).step);
     const composition_profile_root = b.createModule(.{
         .root_source_file = b.path("composition_profile_test_root.zig"),
         .target = target,
@@ -207,6 +255,7 @@ pub fn build(b: *std.Build) void {
         .filters = &.{
             "strict Metal",
             "every Event maps to a distinct counter",
+            "Metal telemetry cached artifacts",
             "proof of work backend rejects forbidden host search",
             "profiled Metal host graph attributes exact 1 2 4 and max worker arms",
             "profiled Metal composition fails closed when the resident route declines",

@@ -1,0 +1,58 @@
+PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=3120664224 lifetime_peak_bytes=3120172704 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=27944295296 lifetime_peak_bytes=28078545864 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE cairo.base_trace_complete current_bytes=34104143064 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE cairo.preprocessed_complete current_bytes=34105421016 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=34105453784 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=23556147944 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE cairo.main_commit_complete current_bytes=24693213952 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE cairo.interaction_build_complete current_bytes=10376717864 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE pcs.combined_inputs current_bytes=10376717864 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE pcs.combined_outputs current_bytes=10503169624 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE cairo.interaction_commit_complete current_bytes=3024866904 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+info: device composition metallib admitted: air_template_composition_bounded_v4 (a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1, 10121115 bytes)
+info: composition tiled admission: add_opcode: 524288 rows per tile, 262 MiB arena
+info: composition tiled admission: add_opcode_small: 1048576 rows per tile, 268 MiB arena
+info: composition tiled admission: assert_eq_opcode: 1048576 rows per tile, 128 MiB arena
+info: composition tiled admission: assert_eq_opcode_double_deref: 1048576 rows per tile, 172 MiB arena
+info: composition tiled admission: jnz_opcode_taken: 1048576 rows per tile, 284 MiB arena
+info: composition tiled admission: mul_opcode_small: 1048576 rows per tile, 276 MiB arena
+info: composition tiled admission: blake_round: 262144 rows per tile, 340 MiB arena
+info: composition tiled admission: blake_g: 1048576 rows per tile, 388 MiB arena
+info: composition tiled admission: partial_ec_mul_generic: 65536 rows per tile, 315 MiB arena
+info: composition tiled admission: partial_ec_mul_window_bits_18: 131072 rows per tile, 282 MiB arena
+info: composition tiled admission: pedersen_points_table_window_bits_18: 1048576 rows per tile, 280 MiB arena
+info: composition tiled admission: cube_252: 262144 rows per tile, 349 MiB arena
+info: composition tiled admission: memory_address_to_id: 1048576 rows per tile, 292 MiB arena
+info: composition tiled admission: memory_id_to_small: 1048576 rows per tile, 120 MiB arena
+error: Metal evaluation pipeline resolution failed: Missing Metal function stwo_zig_eval_sd_9fdf5a9faa2f0a5d
+info: composition host admission: bitwise_builtin: kernel stwo_zig_eval_sd_9fdf5a9faa2f0a5d: PolynomialEvaluationFailed
+error: Metal evaluation pipeline resolution failed: Missing Metal function stwo_zig_eval_sd_687039467964472f
+info: composition host admission: pedersen_builtin: kernel stwo_zig_eval_sd_687039467964472f: PolynomialEvaluationFailed
+error: Metal evaluation pipeline resolution failed: Missing Metal function stwo_zig_eval_sd_195cc0d4d7f44992
+info: composition host admission: poseidon_builtin: kernel stwo_zig_eval_sd_195cc0d4d7f44992: PolynomialEvaluationFailed
+error: Metal evaluation pipeline resolution failed: Missing Metal function stwo_zig_eval_sd_656ff0bb2a59326c
+info: composition host admission: range_check_builtin: kernel stwo_zig_eval_sd_656ff0bb2a59326c: PolynomialEvaluationFailed
+error: Metal evaluation pipeline resolution failed: Missing Metal function stwo_zig_eval_sd_ea3fae37dc254e0a
+info: composition host admission: ec_op_builtin: kernel stwo_zig_eval_sd_ea3fae37dc254e0a: PolynomialEvaluationFailed
+error: Metal evaluation pipeline resolution failed: Missing Metal function stwo_zig_eval_td3_58e641fbaf718630
+info: composition host admission: memory_address_to_id: kernel stwo_zig_eval_td3_58e641fbaf718630: PolynomialEvaluationFailed
+info: device composition stage open: 52/58 components accepted, arena 448 MiB
+PROCESS_MEMORY_STAGE core.evaluation current_bytes=3047362160 lifetime_peak_bytes=41091399360 source=darwin_proc_pid_rusage_v6
+info: composition tile staging: add_opcode: 1016 MiB across 127 read sites
+info: composition tile staging: add_opcode_small: 2016 MiB across 63 read sites
+info: composition tile staging: assert_eq_opcode: 896 MiB across 28 read sites
+info: composition tile staging: assert_eq_opcode_double_deref: 1248 MiB across 39 read sites
+info: composition tile staging: jnz_opcode_taken: 1072 MiB across 67 read sites
+info: composition tile staging: mul_opcode_small: 520 MiB across 65 read sites
+info: composition tile staging: blake_round: 2688 MiB across 336 read sites
+info: composition tile staging: blake_g: 5952 MiB across 93 read sites
+info: composition tile staging: partial_ec_mul_generic: 5024 MiB across 1256 read sites
+info: composition tile staging: partial_ec_mul_window_bits_18: 8976 MiB across 561 read sites
+info: composition tile staging: pedersen_points_table_window_bits_18: 4224 MiB across 66 read sites
+info: composition tile staging: cube_252: 2760 MiB across 345 read sites
+info: composition tile staging: memory_id_to_small: 832 MiB across 26 read sites
+info: device composition: trace staging 652.846 ms over 41161 MiB (native 3937 MiB, tiled 37224 MiB; 66.11 GB/s), 177 dispatches in 177 submissions, device 796.647 ms
+PROCESS_MEMORY_STAGE core.interpolation_split current_bytes=47387593024 lifetime_peak_bytes=47387642176 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE core.commitment current_bytes=46951139312 lifetime_peak_bytes=47421163864 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE core.openings current_bytes=48326904008 lifetime_peak_bytes=48595782000 source=darwin_proc_pid_rusage_v6
+PROCESS_MEMORY_STAGE cairo.proof_complete current_bytes=3321187760 lifetime_peak_bytes=50846681336 source=darwin_proc_pid_rusage_v6

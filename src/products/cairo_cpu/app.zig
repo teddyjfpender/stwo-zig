@@ -4,6 +4,7 @@ const std = @import("std");
 const package = @import("stwo_cairo_cpu");
 const application = @import("cairo_product").application;
 const capability_surface = @import("capabilities.zig");
+const composition_cpu_aot = @import("cairo_composition_cpu_aot");
 const witness_cpu_aot = @import("cairo_witness_cpu_aot");
 const product_identity = @import("identity.zig");
 
@@ -17,6 +18,23 @@ const Product = struct {
     pub const capabilities = capability_surface;
     pub const identity = product_identity;
     pub const ProofContext = void;
+    // Sample the committed evaluations directly, as the Metal product does.
+    // Keeping a second coefficient representation can push large Cairo proofs
+    // into memory compression and paging during composition and sampling.
+    pub const sampled_evaluation = package.frontends.cairo.proving.transaction.SampledEvaluationStorage.committed_columns;
+
+    pub fn sampledEvaluationStorage() package.frontends.cairo.proving.transaction.SampledEvaluationStorage {
+        const value = std.process.getEnvVarOwned(std.heap.page_allocator, "STWO_CAIRO_COMPACT_POLYNOMIALS") catch return sampled_evaluation;
+        defer std.heap.page_allocator.free(value);
+        if (std.mem.eql(u8, value, "preprocessed")) return .compact_preprocessed;
+        return if (std.mem.eql(u8, value, "1")) .compact_polynomials else sampled_evaluation;
+    }
+
+    pub fn compositionExecutor() ?package.frontends.cairo.proving.air.native_evaluator.Executor {
+        const value = std.process.getEnvVarOwned(std.heap.page_allocator, "STWO_CAIRO_NATIVE_COMPOSITION") catch return composition_cpu_aot.executor();
+        defer std.heap.page_allocator.free(value);
+        return if (std.mem.eql(u8, value, "1")) composition_cpu_aot.executor() else null;
+    }
 
     pub fn witnessExecutor() ?package.frontends.cairo.witness.generated_executor.Executor {
         return witness_cpu_aot.executor();
@@ -69,4 +87,8 @@ test "Cairo CPU generated writers cover every authenticated program" {
     for (bundle.entries) |entry| {
         try std.testing.expect(executor.resolve(entry.program) != null);
     }
+}
+
+test {
+    _ = @import("native_composition_test.zig");
 }

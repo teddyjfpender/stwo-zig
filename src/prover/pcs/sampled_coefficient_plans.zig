@@ -597,6 +597,12 @@ pub fn evaluateCoefficientPlans(
         if (plan.column_indices.items.len == 0) continue;
         if (plan.column_indices.items.len == 1) {
             const column_idx = plan.column_indices.items[0];
+            if (work_audit == null and @import("sampled_coefficient_split.zig").evaluate(
+                coefficients[column_idx..][0..1],
+                plan.flat_factors,
+                tree_values[column_idx..][0..1],
+                false,
+            )) continue;
             coefficients[column_idx].evalAtPointsWithFlatFactors(
                 plan.flat_factors,
                 tree_values[column_idx],
@@ -613,6 +619,9 @@ pub fn evaluateCoefficientPlans(
         if (batch_coefficients.len < batch_len) {
             if (batch_coefficients.len != 0) allocator.free(batch_coefficients);
             if (batch_out.len != 0) allocator.free(batch_out);
+            // Clear released owners before either replacement allocation can fail.
+            batch_coefficients = &.{};
+            batch_out = &.{};
             batch_coefficients = try allocator.alloc(prover_circle.CircleCoefficients, batch_len);
             batch_out = try allocator.alloc([]QM31, batch_len);
         }
@@ -624,11 +633,19 @@ pub fn evaluateCoefficientPlans(
             out_view[batch_idx] = tree_values[column_idx];
         }
 
-        if (!allow_parallel or !evaluateCoefficientBatchParallel(
+        // Exact-work capture executes its existing counted schedule. Ordinary
+        // proofs can use bounded split bases without a full domain-sized slab.
+        const split = work_audit == null and @import("sampled_coefficient_split.zig").evaluate(
             coefficient_view,
             plan.flat_factors,
             out_view,
-        )) {
+            allow_parallel,
+        );
+        if (!split and (!allow_parallel or !evaluateCoefficientBatchParallel(
+            coefficient_view,
+            plan.flat_factors,
+            out_view,
+        ))) {
             const basis_len = std.math.mul(
                 usize,
                 @as(usize, 1) << @intCast(plan.coeff_log_size),
@@ -636,6 +653,7 @@ pub fn evaluateCoefficientPlans(
             ) catch return error.ShapeMismatch;
             if (basis_scratch.len < basis_len) {
                 if (basis_scratch.len != 0) allocator.free(basis_scratch);
+                basis_scratch = &.{};
                 basis_scratch = try allocator.alloc(QM31, basis_len);
             }
             prover_circle.poly.CircleCoefficients.evalManyAtPointsWithFlatFactors(
@@ -658,13 +676,20 @@ const CoefficientEvalWork = struct {
     coefficients: []const prover_circle.CircleCoefficients,
     out: []const []QM31,
     point_bases: []const QM31,
+    cursor: *std.atomic.Value(usize),
 
     fn run(self: *const CoefficientEvalWork) void {
-        prover_circle.poly.CircleCoefficients.evalManyAtPointsWithSubsetProductBases(
-            self.coefficients,
-            self.point_bases,
-            self.out,
-        );
+        const width = @import("stwo_core").fields.m31.PACK_WIDTH;
+        while (true) {
+            const start = self.cursor.fetchAdd(width, .monotonic);
+            if (start >= self.coefficients.len) return;
+            const end = @min(start + width, self.coefficients.len);
+            prover_circle.poly.CircleCoefficients.evalManyAtPointsWithSubsetProductBases(
+                self.coefficients[start..end],
+                self.point_bases,
+                self.out[start..end],
+            );
+        }
     }
 };
 
@@ -677,7 +702,7 @@ fn evaluateCoefficientBatchParallel(
     // provide ample work to amortize one existing-pool dispatch. Keeping the
     // old eight-column floor stranded six of eighteen M5 Max cores for the
     // width-100 tree's final OODS evaluations.
-    const min_columns_per_worker: usize = 4;
+    const min_columns_per_worker: usize = @max(4, m31.PACK_WIDTH);
     const pool = work_pool_mod.getGlobalPool() orelse return false;
     const worker_count = @min(pool.workerCount(), coefficients.len / min_columns_per_worker);
     if (worker_count <= 1) return false;
@@ -698,17 +723,16 @@ fn evaluateCoefficientBatchParallel(
         basis_at += basis_len;
     }
 
+    var cursor = std.atomic.Value(usize).init(0);
     var work: [work_pool_mod.MAX_WORKERS]CoefficientEvalWork = undefined;
-    const chunk_len = (coefficients.len + worker_count - 1) / worker_count;
-    for (0..worker_count) |worker| {
-        // Clamp the start as well: with ceiling-divided chunks a trailing
-        // worker's nominal start can land past the end of the slice.
-        const start = @min(coefficients.len, worker * chunk_len);
-        const end = @min(coefficients.len, start + chunk_len);
-        work[worker] = .{
-            .coefficients = coefficients[start..end],
-            .out = out[start..end],
+    for (work[0..worker_count]) |*worker| {
+        // Claim complete native-width column batches: ceiling-dividing raw
+        // columns used to create a scalar tail in almost every worker.
+        worker.* = .{
+            .coefficients = coefficients,
+            .out = out,
             .point_bases = basis_storage,
+            .cursor = &cursor,
         };
     }
 
@@ -726,4 +750,47 @@ pub fn coefficientsAreZero(coefficients: prover_circle.CircleCoefficients) bool 
         if (!coefficient.isZero()) return false;
     }
     return true;
+}
+
+test "sampled coefficient native batches cover ragged columns with bounded workers" {
+    const allocator = std.testing.allocator;
+    const max_columns = 103;
+    const log_size = 8;
+    const rows = 1 << log_size;
+    const storage = try allocator.alloc(M31, max_columns * rows);
+    defer allocator.free(storage);
+    var rng = std.Random.DefaultPrng.init(0x5276aabc103);
+    const random = rng.random();
+    for (storage) |*value| value.* = M31.fromCanonical(random.uintLessThan(u32, m31.Modulus));
+    var factors: [2 * log_size]QM31 = undefined;
+    for (&factors) |*factor| factor.* = QM31.fromU32Unchecked(
+        random.uintLessThan(u32, m31.Modulus),
+        random.uintLessThan(u32, m31.Modulus),
+        random.uintLessThan(u32, m31.Modulus),
+        random.uintLessThan(u32, m31.Modulus),
+    );
+    var coefficients: [max_columns]prover_circle.CircleCoefficients = undefined;
+    var values: [max_columns][2]QM31 = undefined;
+    var outputs: [max_columns][]QM31 = undefined;
+    for (&coefficients, &outputs, 0..) |*polynomial, *output, column| {
+        polynomial.* = try prover_circle.CircleCoefficients.initBorrowed(storage[column * rows ..][0..rows]);
+        output.* = &values[column];
+    }
+    for ([_]usize{ 2, 7, 18 }) |workers| {
+        var pool: work_pool_mod.WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{ .worker_count = workers });
+        defer pool.deinit();
+        var binding = try work_pool_mod.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        for ([_]usize{ 99, 100, 103 }) |columns| {
+            for (values[0..columns]) |*output| @memset(output, QM31.zero());
+            try std.testing.expect(evaluateCoefficientBatchParallel(coefficients[0..columns], &factors, outputs[0..columns]));
+            for (coefficients[0..columns], values[0..columns]) |polynomial, actual| {
+                for (actual, 0..) |value, point| {
+                    const expected = polynomial.evalAtPointWithFactors(factors[point * log_size ..][0..log_size]);
+                    try std.testing.expect(expected.eql(value));
+                }
+            }
+        }
+    }
 }

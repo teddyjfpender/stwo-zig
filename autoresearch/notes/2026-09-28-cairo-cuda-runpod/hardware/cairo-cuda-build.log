@@ -1,0 +1,37 @@
+thread 207 panic: cannot resolve delegated product identity: GitCommandFailed
+/workspace/stwo-zig/build_support/build_identity.zig:238:5: 0x13f9cb7 in requireSuccess (build.zig)
+    return error.GitCommandFailed;
+    ^
+/workspace/stwo-zig/build_support/build_identity.zig:100:5: 0x1381cf1 in readCommit (build.zig)
+    try requireSuccess(result.term);
+    ^
+/workspace/stwo-zig/build_support/build_identity.zig:84:20: 0x138706d in resolveWithOverride (build.zig)
+    const commit = try readCommit(allocator, repository_root);
+                   ^
+/workspace/stwo-zig/build_support/graph/delegation.zig:358:34: 0x1388156 in resolveIdentity (build.zig)
+    ) catch |err| std.debug.panic(
+                                 ^
+/workspace/stwo-zig/build_support/graph/delegation.zig:129:40: 0x12f7075 in read (build.zig)
+            .identity = resolveIdentity(b, .{
+                                       ^
+/workspace/stwo-zig/build_support/root_dispatcher.zig:19:44: 0x12c0c41 in add (build.zig)
+    const options = delegation.Options.read(b);
+                                           ^
+/workspace/stwo-zig/build.zig:5:19: 0x1283a1a in build (build.zig)
+    dispatcher.add(b);
+                  ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/std/Build.zig:2214:33: 0x12560da in runBuild__anon_23831 (std.zig)
+        .void => build_zig.build(b),
+                                ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/compiler/build_runner.zig:366:29: 0x123bff1 in main (build_runner.zig)
+        try builder.runBuild(root);
+                            ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/std/start.zig:627:37: 0x1242c69 in posixCallMainAndExit (std.zig)
+            const result = root.main() catch |err| {
+                                    ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/std/start.zig:232:5: 0x1221351 in _start (std.zig)
+    asm volatile (switch (native_arch) {
+    ^
+???:?:?: 0x0 in ??? (???)
+error: the following build command crashed:
+.zig-cache/o/2f5afdb1a88b1c649d333ba1801a630b/build /opt/zig/zig-x86_64-linux-0.15.2/zig /opt/zig/zig-x86_64-linux-0.15.2/lib /workspace/stwo-zig .zig-cache /root/.cache/zig --seed 0x8b206f64 -Zf17638bb48d95cbe stwo-cairo-cuda -Doptimize=ReleaseFast -Dcuda-nvcc=/usr/local/cuda/bin/nvcc -Dcuda-host-cxx=/usr/bin/g++ -Dcuda-host-runtime=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -Dcuda-host-unwind-runtime=/usr/lib/x86_64-linux-gnu/libgcc_s.so.1 -Dcuda-ar=/usr/bin/ar -Dcuda-home=/usr/local/cuda -Dcuda-library-dir=/usr/local/cuda/lib64 -Dcuda-arch=sm_90 -Dcuda-build-jobs=8 -j2 --summary all

@@ -1,0 +1,1300 @@
+[
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "8f2e746b50688868",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_004fca4c617cae1a_8f2e746b50688868.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_004fca4c617cae1a",
+    "kind": "constraint",
+    "label": "cairo_eval_004fca4c617cae1a",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":39,"component_label":"range_check_3_6_6_3","component_source_identity":"c002f3db92d7283d3b29d343451e581e589a09fb9f48a36393400e5ba7298857","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":671,"instance":0,"part_index":0,"program_identity":"999977278073ec86303be747550bda7c0ffcd53ae6790c22c81c89474de8fdf2","rc_base":0,"rc_count":1,"trace_log_size":18},
+      {"component_index":87,"component_label":"range_check_3_6_6_3","component_source_identity":"aa9ab06290e44318f51936168906fa0cf583eb98722b60a1d62c40020ad50874","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1330,"instance":0,"part_index":0,"program_identity":"999977278073ec86303be747550bda7c0ffcd53ae6790c22c81c89474de8fdf2","rc_base":0,"rc_count":1,"trace_log_size":18},
+      {"component_index":135,"component_label":"range_check_3_6_6_3","component_source_identity":"9db856bc2b7d4a7575b3c4c8521ac48edb1f31fae9f6ed6adfc2b03d18a0c44b","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1330,"instance":0,"part_index":0,"program_identity":"999977278073ec86303be747550bda7c0ffcd53ae6790c22c81c89474de8fdf2","rc_base":0,"rc_count":1,"trace_log_size":18}
+    ],
+    "program_identity": "2093e286156e1bc05a008b4f5c20c0a1b8a31106cb15e2803b9700427226669d",
+    "semantic_hash": "004fca4c617cae1a",
+    "source_sha256": "fad1cfec45462701bc8691fef6bfa13651c57847493ac0ef2cb6f8ecb8d50f32"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "8209465365b733f3",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_0316bad199b5186b_8209465365b733f3.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_0316bad199b5186b",
+    "kind": "constraint",
+    "label": "cairo_eval_0316bad199b5186b",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":18,"component_label":"qm_31_add_mul_opcode","component_source_identity":"ba2afd4643591e9e8b0969debb75269f4742c32d820df03f398f47defefa68d3","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":529,"instance":0,"part_index":0,"program_identity":"efa23e9d78a781a26cf4b578694ac212d6c81d232e1fbdc07b093269986fcd2d","rc_base":0,"rc_count":28,"trace_log_size":4}
+    ],
+    "program_identity": "efa23e9d78a781a26cf4b578694ac212d6c81d232e1fbdc07b093269986fcd2d",
+    "semantic_hash": "0316bad199b5186b",
+    "source_sha256": "8e774b36b4fbc5b172696921c9a793784ef83dfe7a1eefdfe20dc9bb967afca3"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "d3cf9707719524b6",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_09705bbddfc9f2e5_d3cf9707719524b6.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_09705bbddfc9f2e5",
+    "kind": "constraint",
+    "label": "cairo_eval_09705bbddfc9f2e5",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":42,"component_label":"verify_bitwise_xor_4","component_source_identity":"76c6062b72cd8de6848fcac3e8b8853c572ebe36b7f02c1c4e2a6c34706ec32d","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":674,"instance":0,"part_index":0,"program_identity":"ec2a33449e85f709bb022da0c22f170534ee408d3ec59aa62be9faa8a70f69ed","rc_base":0,"rc_count":1,"trace_log_size":8},
+      {"component_index":90,"component_label":"verify_bitwise_xor_4","component_source_identity":"cd138b14d7dffb69bb8f81a5196a1fdc57ebbafc73330bc5f2c765ed2a4de975","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":1333,"instance":0,"part_index":0,"program_identity":"ec2a33449e85f709bb022da0c22f170534ee408d3ec59aa62be9faa8a70f69ed","rc_base":0,"rc_count":1,"trace_log_size":8},
+      {"component_index":138,"component_label":"verify_bitwise_xor_4","component_source_identity":"4ed07706c6d429d7db68c957b2cc7b7a862d1bce95e01ffeaae7f9d767fc1a75","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":1333,"instance":0,"part_index":0,"program_identity":"ec2a33449e85f709bb022da0c22f170534ee408d3ec59aa62be9faa8a70f69ed","rc_base":0,"rc_count":1,"trace_log_size":8}
+    ],
+    "program_identity": "25781357c3e16a94f970b6a3a09c0a79ad35112c66db2686f9165243a976a157",
+    "semantic_hash": "09705bbddfc9f2e5",
+    "source_sha256": "0cb6e3b01dfeb01382f394d8255f5321b4776c12ef162af7aebf3f457d9ac969"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "5f1cc9dcaf21c336",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_0c8c77308db01a80_5f1cc9dcaf21c336.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_0c8c77308db01a80",
+    "kind": "constraint",
+    "label": "cairo_eval_0c8c77308db01a80",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":63,"component_label":"ec_op_builtin","component_source_identity":"2538465b44a0410fe4a892b3b8416303406ce531af36023844b1debd600ebf55","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":441,"instance":0,"part_index":0,"program_identity":"d1147ef94734ea997515bb3ab9fc597ff6f41d37942574cc021bdd8edf394d72","rc_base":0,"rc_count":15,"trace_log_size":6},
+      {"component_index":111,"component_label":"ec_op_builtin","component_source_identity":"2538465b44a0410fe4a892b3b8416303406ce531af36023844b1debd600ebf55","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":441,"instance":0,"part_index":0,"program_identity":"d1147ef94734ea997515bb3ab9fc597ff6f41d37942574cc021bdd8edf394d72","rc_base":0,"rc_count":15,"trace_log_size":6}
+    ],
+    "program_identity": "472501b310ae5aa6eafb17be8ee01bfcebe994ee54ff220df09b5e8537ba30f8",
+    "semantic_hash": "0c8c77308db01a80",
+    "source_sha256": "7479505f85c9e6e7e4c5dde1ecc3a407e04b015bea51e717c43d3c7713c6da34"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "794993714a655a38",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_0ce88083354b8d35_794993714a655a38.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_0ce88083354b8d35",
+    "kind": "constraint",
+    "label": "cairo_eval_0ce88083354b8d35",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":8,"component_label":"call_opcode_rel_imm","component_source_identity":"d7660d22748d7e91e69b22b5e7f4929973647e087ed56bb8c8d96225ae6a1a83","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":170,"instance":0,"part_index":0,"program_identity":"da2daf7cfc9ec6be0bfcc0a50cf0cf27e4d3a90046dbc4c81a4e9739d27b1b09","rc_base":0,"rc_count":17,"trace_log_size":7},
+      {"component_index":51,"component_label":"call_opcode_rel_imm","component_source_identity":"9dda73b08d4708c71d6dee690f69eadf16f6cb05032fcf97e07b2a4e01063049","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":75,"instance":0,"part_index":0,"program_identity":"25d908b93cf08f3491f6d53d0e8b22ee45cdc4bcf0f691fd3c429135b5f034e3","rc_base":0,"rc_count":17,"trace_log_size":10},
+      {"component_index":99,"component_label":"call_opcode_rel_imm","component_source_identity":"9dda73b08d4708c71d6dee690f69eadf16f6cb05032fcf97e07b2a4e01063049","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":75,"instance":0,"part_index":0,"program_identity":"25d908b93cf08f3491f6d53d0e8b22ee45cdc4bcf0f691fd3c429135b5f034e3","rc_base":0,"rc_count":17,"trace_log_size":10}
+    ],
+    "program_identity": "7c97ff496078bc14c8276407ba97783f44c0a784f956aff8448a6f5e376aa182",
+    "semantic_hash": "0ce88083354b8d35",
+    "source_sha256": "07bbc3ba10bbc5f9111a8afe47b445cd69ef551a5f46325f38956f5eaf2f458c"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "043fad8b38952b11",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_15a6de4ad26733cf_043fad8b38952b11.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_15a6de4ad26733cf",
+    "kind": "constraint",
+    "label": "cairo_eval_15a6de4ad26733cf",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":67,"component_label":"pedersen_points_table_window_bits_18","component_source_identity":"21b9a9276d244dcaffa5e4de7aff73c2e16216f5a5287f64e1697bc0aa2c9bb7","domain_log_size":23,"evaluation_log_size":24,"global_rc_base":1070,"instance":0,"part_index":0,"program_identity":"09134c7b4b3494d54a39739e079618a07f4c28066722f8199d545826dbf8a624","rc_base":0,"rc_count":1,"trace_log_size":23}
+    ],
+    "program_identity": "e58474470933ad059945ebdd22d6fb5b93beda47ee940a553f7480e8b91e8595",
+    "semantic_hash": "15a6de4ad26733cf",
+    "source_sha256": "dd7be4eaa322f8f58d6d3a5ec88f03d305bffdbc870d5fb027f1f2d49beba440"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "e598dccf808f5fb2",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_16e62ffef5de5385_e598dccf808f5fb2.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_16e62ffef5de5385",
+    "kind": "constraint",
+    "label": "cairo_eval_16e62ffef5de5385",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":29,"component_label":"range_check_6","component_source_identity":"867d5a4a40db2fc60bc39e12be65025ab77bce9d12d43ec5ceb5a395c521b2af","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":655,"instance":0,"part_index":0,"program_identity":"9f419de442d65cef2b712a569345b33764fd245086454c2fccc60146ee8ea1c7","rc_base":0,"rc_count":1,"trace_log_size":6},
+      {"component_index":77,"component_label":"range_check_6","component_source_identity":"be23351f9cb79c3b4e387c2b2da62ca2597ef563afaa2ac6db3047faff4b26ca","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":1314,"instance":0,"part_index":0,"program_identity":"9f419de442d65cef2b712a569345b33764fd245086454c2fccc60146ee8ea1c7","rc_base":0,"rc_count":1,"trace_log_size":6},
+      {"component_index":125,"component_label":"range_check_6","component_source_identity":"277f56a0f72a56750d23688ace75a7f820ddc8f623c673f839ed40c5a3215968","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":1314,"instance":0,"part_index":0,"program_identity":"9f419de442d65cef2b712a569345b33764fd245086454c2fccc60146ee8ea1c7","rc_base":0,"rc_count":1,"trace_log_size":6}
+    ],
+    "program_identity": "7f31afbd791fe0619cb5cb055222fb5aa1dd75d92c2d58ce95246c3d6f43a3d3",
+    "semantic_hash": "16e62ffef5de5385",
+    "source_sha256": "005bcbf5f366895dc6cc67a8c28cfd3656775ba7ed12169f8b58980e0863a7bb"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "96e44143eb9e416b",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_20613ce56c6d1ea5_96e44143eb9e416b.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_20613ce56c6d1ea5",
+    "kind": "constraint",
+    "label": "cairo_eval_20613ce56c6d1ea5",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":14,"component_label":"jump_opcode_rel","component_source_identity":"8f2c80e5f6e23908202f369899632aec665b8b604a5e4d6d57b0106ebe98bcb0","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":428,"instance":0,"part_index":0,"program_identity":"248539d1bf16aec4c70c28b18f696c75275fc525a8f7f91738dc276826b21e1c","rc_base":0,"rc_count":12,"trace_log_size":4}
+    ],
+    "program_identity": "248539d1bf16aec4c70c28b18f696c75275fc525a8f7f91738dc276826b21e1c",
+    "semantic_hash": "20613ce56c6d1ea5",
+    "source_sha256": "32590d68d836428d6252ffe8e218244d7bc019a49ff2d661a4394e97c2dc5ca6"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "ca69daf18061e416",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_20ac53552c8ab47f_ca69daf18061e416.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_20ac53552c8ab47f",
+    "kind": "constraint",
+    "label": "cairo_eval_20ac53552c8ab47f",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":71,"component_label":"cube_252","component_source_identity":"dbca9957492c07fb79d47fa8441803dfcf732a7bb6773a5d371a124f16d94be6","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1178,"instance":0,"part_index":0,"program_identity":"c465d7c1af17c1c8372fef800b2d04d6fa1d1ee95925c0c92084beda38edb940","rc_base":0,"rc_count":107,"trace_log_size":11},
+      {"component_index":119,"component_label":"cube_252","component_source_identity":"377b8d4b3fc2d3ef85691128e34335b45067a389a747e6ac7d803f5e1581df80","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1178,"instance":0,"part_index":0,"program_identity":"c465d7c1af17c1c8372fef800b2d04d6fa1d1ee95925c0c92084beda38edb940","rc_base":0,"rc_count":107,"trace_log_size":11}
+    ],
+    "program_identity": "a512ffec09e5082ed1a375c15ec2ff7e50c89e1ec17e5aff0f6b49397ff791f8",
+    "semantic_hash": "20ac53552c8ab47f",
+    "source_sha256": "361520ea659ff99e0bd724f5772a16e0dbe55b33d2a104f1829ec4251943b199"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "14a18b9b013b1995",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_220d81bd8d6ec477_14a18b9b013b1995.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_220d81bd8d6ec477",
+    "kind": "constraint",
+    "label": "cairo_eval_220d81bd8d6ec477",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":20,"component_label":"verify_instruction","component_source_identity":"7a62a01cdcfd7f583915060d48fc122f99b446a27cdf96ed92d26c0a0f6349fa","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":566,"instance":0,"part_index":0,"program_identity":"14feadc1e9d813d7c9ddf53fc9b4effdbf6efa7e8e35cb8f6843232e72e3e63a","rc_base":0,"rc_count":6,"trace_log_size":10},
+      {"component_index":55,"component_label":"verify_instruction","component_source_identity":"08bde43dda0afb2860daefcaaa773c28b0895f1483e986004043b5e1f881f208","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":123,"instance":0,"part_index":0,"program_identity":"fbbe2aceefb20de831a400531bc39a2f6273918de5751b4dc3e614b297c9834c","rc_base":0,"rc_count":6,"trace_log_size":9},
+      {"component_index":103,"component_label":"verify_instruction","component_source_identity":"08bde43dda0afb2860daefcaaa773c28b0895f1483e986004043b5e1f881f208","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":123,"instance":0,"part_index":0,"program_identity":"fbbe2aceefb20de831a400531bc39a2f6273918de5751b4dc3e614b297c9834c","rc_base":0,"rc_count":6,"trace_log_size":9}
+    ],
+    "program_identity": "36f1ac004b650ad6535678c8f00711609aa0205220a6ab98cb7a0e9e190216e6",
+    "semantic_hash": "220d81bd8d6ec477",
+    "source_sha256": "089c398a67aaaead10678ff7d53077c76cf0ef8bf987acb64bc006b7fa9ee47b"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "4490750cac8a39ee",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_28582515c3999e53_4490750cac8a39ee.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_28582515c3999e53",
+    "kind": "constraint",
+    "label": "cairo_eval_28582515c3999e53",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":68,"component_label":"poseidon_aggregator","component_source_identity":"aaf5e6621e9116b0b5aa7eb2e73f42a1798a79b6cc657ce0102b12707bd092aa","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":1071,"instance":0,"part_index":0,"program_identity":"febc07f7a172b65e12d863c45f21cae84129b621d7ba6e6c59f1ac3af02c9585","rc_base":0,"rc_count":51,"trace_log_size":4},
+      {"component_index":116,"component_label":"poseidon_aggregator","component_source_identity":"7bdaaea4fbd947bdf996ddf27fdc9c01bcb7e2034453a6cf7bdf2742986d967e","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":1071,"instance":0,"part_index":0,"program_identity":"febc07f7a172b65e12d863c45f21cae84129b621d7ba6e6c59f1ac3af02c9585","rc_base":0,"rc_count":51,"trace_log_size":4}
+    ],
+    "program_identity": "febc07f7a172b65e12d863c45f21cae84129b621d7ba6e6c59f1ac3af02c9585",
+    "semantic_hash": "28582515c3999e53",
+    "source_sha256": "f53688e6340eec5fe99e605b3ab2a8ef795a61ced6bd4fdfda72c200842dff00"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "4024e74a0d836960",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_2f743f265a823e57_4024e74a0d836960.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_2f743f265a823e57",
+    "kind": "constraint",
+    "label": "cairo_eval_2f743f265a823e57",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":36,"component_label":"range_check_4_4","component_source_identity":"7f533a02b06008191f2aefacbf30454a0ee50095e7115eaef3b3580a3aac5279","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":665,"instance":0,"part_index":0,"program_identity":"fe6fbfd10ba8664f470df7faec0e5b1e540c15b80b8f9fa7c0e27adcd2705286","rc_base":0,"rc_count":1,"trace_log_size":8},
+      {"component_index":84,"component_label":"range_check_4_4","component_source_identity":"9fda7f28edaf2ebc5f6016f853dd47fd8bd63904d4aae7cf9f836fae41eabd26","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":1324,"instance":0,"part_index":0,"program_identity":"fe6fbfd10ba8664f470df7faec0e5b1e540c15b80b8f9fa7c0e27adcd2705286","rc_base":0,"rc_count":1,"trace_log_size":8},
+      {"component_index":132,"component_label":"range_check_4_4","component_source_identity":"78634c42b64add01f624ca7ed9bc9de37be002a3717f2409aad52d773c35a477","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":1324,"instance":0,"part_index":0,"program_identity":"fe6fbfd10ba8664f470df7faec0e5b1e540c15b80b8f9fa7c0e27adcd2705286","rc_base":0,"rc_count":1,"trace_log_size":8}
+    ],
+    "program_identity": "64f208b302fb1ea7de04fc12d3733c5a933e494b15aaba606c30a66300211ea4",
+    "semantic_hash": "2f743f265a823e57",
+    "source_sha256": "57e332ba4868cc6e36b9f1efaaa8832d673ec321ea72fd2658bbe462ab7772ff"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "ecf961521480fe85",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_3617b6afaf32e710_ecf961521480fe85.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_3617b6afaf32e710",
+    "kind": "constraint",
+    "label": "cairo_eval_3617b6afaf32e710",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":26,"component_label":"memory_address_to_id","component_source_identity":"6e9df071b021284617d1425659713c25c00878c6b00a93281b46340686132a0f","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":636,"instance":0,"part_index":0,"program_identity":"793ee9168e1bfab73679ccaa4e3824c41ecc605bbd6da1a6ec0835c8dd4dc194","rc_base":0,"rc_count":8,"trace_log_size":8},
+      {"component_index":74,"component_label":"memory_address_to_id","component_source_identity":"bbfca9e7bd4f2535dde49c160a9bd5dfb0c7bdb9910ceb766d6ad701b3b7c809","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":1295,"instance":0,"part_index":0,"program_identity":"be36755d8008ff5c1d9c17315d70309b1a250465a3a470f3b38c9e45e1e86ebe","rc_base":0,"rc_count":8,"trace_log_size":10},
+      {"component_index":122,"component_label":"memory_address_to_id","component_source_identity":"517d1c8c6b96da625c2b336d6afe884eb1174673dd025a513321fa720dd87ddc","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":1295,"instance":0,"part_index":0,"program_identity":"be36755d8008ff5c1d9c17315d70309b1a250465a3a470f3b38c9e45e1e86ebe","rc_base":0,"rc_count":8,"trace_log_size":10}
+    ],
+    "program_identity": "e0d52b710a0e178d78b30ce904db254fd4f240c604623aca8dc602124dc1fefc",
+    "semantic_hash": "3617b6afaf32e710",
+    "source_sha256": "d12f8b2f5f1c9dab1889938f11e3f1bba095b20626d86bb1b724303a405b3a5d"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "1c7c0358f59d1f74",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_3b5c888efc076e7a_1c7c0358f59d1f74.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_3b5c888efc076e7a",
+    "kind": "constraint",
+    "label": "cairo_eval_3b5c888efc076e7a",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":65,"component_label":"pedersen_aggregator_window_bits_18","component_source_identity":"90deebfcf11c6946408b3f58455616a8aa7ab84faadc7e69f8167ce73c202c0f","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":904,"instance":0,"part_index":0,"program_identity":"2026e17c7f71b7616856cffce0cd7c70d00b815af394e294982fbc5ddd16c6fb","rc_base":0,"rc_count":16,"trace_log_size":4}
+    ],
+    "program_identity": "2026e17c7f71b7616856cffce0cd7c70d00b815af394e294982fbc5ddd16c6fb",
+    "semantic_hash": "3b5c888efc076e7a",
+    "source_sha256": "65186c846980cd834402a0cde6c2c882996c88dca3756cc37cdef1036260971f"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "677efc8af78cde1b",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_47df0a761733c077_677efc8af78cde1b.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_47df0a761733c077",
+    "kind": "constraint",
+    "label": "cairo_eval_47df0a761733c077",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":41,"component_label":"range_check_3_3_3_3_3","component_source_identity":"21d4202362d1079629d8bd121ff01eadabd4c3b56d13a6f309dc3fbb2a44b47f","domain_log_size":15,"evaluation_log_size":16,"global_rc_base":673,"instance":0,"part_index":0,"program_identity":"1597c466788509c3752f677bc7dd2fc563c3178587b3f9ccc80e0b291f646e8d","rc_base":0,"rc_count":1,"trace_log_size":15},
+      {"component_index":89,"component_label":"range_check_3_3_3_3_3","component_source_identity":"25f7e9294b068193ffd6fc380c4b126c6e75cb538456f880b45ac43b57082463","domain_log_size":15,"evaluation_log_size":16,"global_rc_base":1332,"instance":0,"part_index":0,"program_identity":"1597c466788509c3752f677bc7dd2fc563c3178587b3f9ccc80e0b291f646e8d","rc_base":0,"rc_count":1,"trace_log_size":15},
+      {"component_index":137,"component_label":"range_check_3_3_3_3_3","component_source_identity":"527aa2af1b9561e4dc85a860feb042f36b0e9cb1e4630a0d94789d2857bb29f2","domain_log_size":15,"evaluation_log_size":16,"global_rc_base":1332,"instance":0,"part_index":0,"program_identity":"1597c466788509c3752f677bc7dd2fc563c3178587b3f9ccc80e0b291f646e8d","rc_base":0,"rc_count":1,"trace_log_size":15}
+    ],
+    "program_identity": "c7b886db5a2f660b5ba09f292a877cc86713304cd9f1f580c71d76dc6d3a2ffd",
+    "semantic_hash": "47df0a761733c077",
+    "source_sha256": "28a3e58186a7f290d6879f4b13c821fa0c08583855409483c387e61387bcbb1c"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "64694d2a170bc12d",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_493d926de8a4db14_64694d2a170bc12d.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_493d926de8a4db14",
+    "kind": "constraint",
+    "label": "cairo_eval_493d926de8a4db14",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":7,"component_label":"call_opcode_abs","component_source_identity":"382f508780a7e3957f609e54c4bae11487e550f2f30a6f531c2600781140f721","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":154,"instance":0,"part_index":0,"program_identity":"9c68ea94baba0f27470204ea0f68fa5d4dc6bd1e15c7d7a22512f18d5ad4a0d2","rc_base":0,"rc_count":16,"trace_log_size":4}
+    ],
+    "program_identity": "9c68ea94baba0f27470204ea0f68fa5d4dc6bd1e15c7d7a22512f18d5ad4a0d2",
+    "semantic_hash": "493d926de8a4db14",
+    "source_sha256": "3e685661b7d604081901d1cad6a7b0b905ca6406d4ce25183cf27e84c358cb2b"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "7ed15ca0df33f208",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_4f909056be12a284_7ed15ca0df33f208.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_4f909056be12a284",
+    "kind": "constraint",
+    "label": "cairo_eval_4f909056be12a284",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":21,"component_label":"blake_round","component_source_identity":"54bf2930b2cd520584af6591c79d05c01950d4448eb999f0a99e2276a75de369","domain_log_size":5,"evaluation_log_size":6,"global_rc_base":572,"instance":0,"part_index":0,"program_identity":"d11ca50fcdc63cf0ff38a4975db502245b2e2f6864b3b383433c3296071b13ab","rc_base":0,"rc_count":31,"trace_log_size":5}
+    ],
+    "program_identity": "ea6acc4f20b744be852969a404b875cee0d041dafe6ef1577492f3aea94c7864",
+    "semantic_hash": "4f909056be12a284",
+    "source_sha256": "5029d71efbd3b1d70289e77f14d2dd7bdca5ab1f656638783da0a215bff720a8"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "69ca6f0d2b7ee568",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_588dac9d42f6b550_69ca6f0d2b7ee568.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_588dac9d42f6b550",
+    "kind": "constraint",
+    "label": "cairo_eval_588dac9d42f6b550",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":4,"component_label":"assert_eq_opcode_imm","component_source_identity":"54de0f787e28b45475682efd2f17f10addc9bd90f9330cc57dff41f7b1fceb16","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":83,"instance":0,"part_index":0,"program_identity":"26f1008114dc0656517d25d6f8ea31b1e72ba546a5f02891614d39c0b73d901f","rc_base":0,"rc_count":7,"trace_log_size":9},
+      {"component_index":49,"component_label":"assert_eq_opcode_imm","component_source_identity":"f02744d429016b8da8f509ecd4651c412db7d1cc77aa4182abff67a2e3cd003f","domain_log_size":12,"evaluation_log_size":13,"global_rc_base":56,"instance":0,"part_index":0,"program_identity":"656b042208f51b6b7a686e9a5e010b8bb5be8011174dfbbb3e335b5fa3ae2fc3","rc_base":0,"rc_count":7,"trace_log_size":12},
+      {"component_index":97,"component_label":"assert_eq_opcode_imm","component_source_identity":"f02744d429016b8da8f509ecd4651c412db7d1cc77aa4182abff67a2e3cd003f","domain_log_size":12,"evaluation_log_size":13,"global_rc_base":56,"instance":0,"part_index":0,"program_identity":"656b042208f51b6b7a686e9a5e010b8bb5be8011174dfbbb3e335b5fa3ae2fc3","rc_base":0,"rc_count":7,"trace_log_size":12}
+    ],
+    "program_identity": "588a45074ae25b7186c6dfbe3996ed685e5cec8df3b5c156a6bd81dbd1b69c0b",
+    "semantic_hash": "588dac9d42f6b550",
+    "source_sha256": "5815326bb130cf8aec5739c4f56c197a091dbc129b042c499e08e0576b8993e8"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "fbc2a631ed99e5e9",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_58ef5345a1a6a19b_fbc2a631ed99e5e9.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_58ef5345a1a6a19b",
+    "kind": "constraint",
+    "label": "cairo_eval_58ef5345a1a6a19b",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":70,"component_label":"poseidon_full_round_chain","component_source_identity":"8c697b1336fdb660b6877ddc2ec68c042894ccaf44c3db5bcdf2ba7681b5580a","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":1168,"instance":0,"part_index":0,"program_identity":"a56184eb404cb8a639299c71eb7ce2b21d3c04a9c20c58a38d570f3d5cc8aea3","rc_base":0,"rc_count":10,"trace_log_size":7},
+      {"component_index":118,"component_label":"poseidon_full_round_chain","component_source_identity":"d8a666981748a8aa608cbe2415aaf63201f71e34d97ff3ed484c020a09a0b392","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":1168,"instance":0,"part_index":0,"program_identity":"a56184eb404cb8a639299c71eb7ce2b21d3c04a9c20c58a38d570f3d5cc8aea3","rc_base":0,"rc_count":10,"trace_log_size":7}
+    ],
+    "program_identity": "70b34ee5afbbff6b0472f24e9da8993d2a3196d5f6dfbd0b2fb4f8a5ec6a2d4a",
+    "semantic_hash": "58ef5345a1a6a19b",
+    "source_sha256": "94c87d353afc91504f44ab8269d53a798c2fa123f9a0ada6f1aae6c04f4bc1c6"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "c1057adf4cd5683a",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_5dcfc4c1e6b0ad10_c1057adf4cd5683a.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_5dcfc4c1e6b0ad10",
+    "kind": "constraint",
+    "label": "cairo_eval_5dcfc4c1e6b0ad10",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":56,"component_label":"add_mod_builtin","component_source_identity":"286c7e7cb7c36738dd596d1e1f812b00c2b588090f599a431985fbd23f9e347c","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":129,"instance":0,"part_index":0,"program_identity":"b59d3a709733bc576e2483f20ce234ad14892c1951678d50041beddb6b406299","rc_base":0,"rc_count":91,"trace_log_size":6},
+      {"component_index":104,"component_label":"add_mod_builtin","component_source_identity":"286c7e7cb7c36738dd596d1e1f812b00c2b588090f599a431985fbd23f9e347c","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":129,"instance":0,"part_index":0,"program_identity":"b59d3a709733bc576e2483f20ce234ad14892c1951678d50041beddb6b406299","rc_base":0,"rc_count":91,"trace_log_size":6}
+    ],
+    "program_identity": "884cb28e60f87946bdaaeb3c57da208fa1c0735d91febb3a60f388c9f7045243",
+    "semantic_hash": "5dcfc4c1e6b0ad10",
+    "source_sha256": "fcdf736cab4a2fa8e1a3640c01994ce874b68e9efa8c426afab16366b423adfb"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "2028fe3a66090cc0",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_5e5fb15810ea27fd_2028fe3a66090cc0.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_5e5fb15810ea27fd",
+    "kind": "constraint",
+    "label": "cairo_eval_5e5fb15810ea27fd",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":37,"component_label":"range_check_9_9","component_source_identity":"0edb80c48dfb4619ab9994b28dcf3f8af79fb0c41e5714601a43bd39fcbfdf12","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":666,"instance":0,"part_index":0,"program_identity":"99aae8463c24a6f1b3f91720821a68a23e14a150c725ad29b43bd45aa38fbfb5","rc_base":0,"rc_count":4,"trace_log_size":18},
+      {"component_index":85,"component_label":"range_check_9_9","component_source_identity":"b4e598a3dabeb4afbf6c9693e8f7299a74e69fc0891421574c565faadc0d43f1","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1325,"instance":0,"part_index":0,"program_identity":"99aae8463c24a6f1b3f91720821a68a23e14a150c725ad29b43bd45aa38fbfb5","rc_base":0,"rc_count":4,"trace_log_size":18},
+      {"component_index":133,"component_label":"range_check_9_9","component_source_identity":"0a3ab2fa60e69a129e371daebd1fa9c500348f44e3b09955b6f8961919d91366","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1325,"instance":0,"part_index":0,"program_identity":"99aae8463c24a6f1b3f91720821a68a23e14a150c725ad29b43bd45aa38fbfb5","rc_base":0,"rc_count":4,"trace_log_size":18}
+    ],
+    "program_identity": "b1c6693ebe79244f65795e76c8c91fc3d704c615975b102cdf42282313753295",
+    "semantic_hash": "5e5fb15810ea27fd",
+    "source_sha256": "d63dcbd94dbc006e4e6f1eea9e7e268a55798ad9fc8f3dffbd57490957c51605"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "14fa3ca64a37dd21",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_6142f9bc20588a94_14fa3ca64a37dd21.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_6142f9bc20588a94",
+    "kind": "constraint",
+    "label": "cairo_eval_6142f9bc20588a94",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":15,"component_label":"jump_opcode_rel_imm","component_source_identity":"9c42bfbc1821300e7c0b3efd101e7abbe6080e91f228f467d544b462b1afaa2a","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":440,"instance":0,"part_index":0,"program_identity":"d56095553df0b9b003f7ceb1570b72f163f7b7e00c5203186953de615c76ed9f","rc_base":0,"rc_count":10,"trace_log_size":4}
+    ],
+    "program_identity": "d56095553df0b9b003f7ceb1570b72f163f7b7e00c5203186953de615c76ed9f",
+    "semantic_hash": "6142f9bc20588a94",
+    "source_sha256": "3e25e00a1e6aa52899ea3192e98e3d13cafafe057490304275d0f7d9d57c2a46"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "8966e29bf1020ff2",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_6698ca774c7ca163_8966e29bf1020ff2.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_6698ca774c7ca163",
+    "kind": "constraint",
+    "label": "cairo_eval_6698ca774c7ca163",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":6,"component_label":"blake_compress_opcode","component_source_identity":"1018d778d14f73ee457dc20bfc28a09bbba72a51a8672979734589126e8b6324","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":102,"instance":0,"part_index":0,"program_identity":"6e121b16684702feedc6f86fe5ef125f8c9a320e4686314131585f522c466785","rc_base":0,"rc_count":52,"trace_log_size":4}
+    ],
+    "program_identity": "6e121b16684702feedc6f86fe5ef125f8c9a320e4686314131585f522c466785",
+    "semantic_hash": "6698ca774c7ca163",
+    "source_sha256": "fd0af9f4a7ab76cecce3429a8d675e2847e856316ba5cb67d72032bab0732a35"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "7b46f65b2254871c",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_688dd659cd3274a6_7b46f65b2254871c.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_688dd659cd3274a6",
+    "kind": "constraint",
+    "label": "cairo_eval_688dd659cd3274a6",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":61,"component_label":"range_check96_builtin","component_source_identity":"e948df11d837bb54bca3afef7e947b43da751e09501bccd7711a6816935e3396","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":436,"instance":0,"part_index":0,"program_identity":"c53eb8e4953744a602c3bdb194ba41391d3c10636264dc88e14cb70820ec99e9","rc_base":0,"rc_count":2,"trace_log_size":6},
+      {"component_index":109,"component_label":"range_check96_builtin","component_source_identity":"e948df11d837bb54bca3afef7e947b43da751e09501bccd7711a6816935e3396","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":436,"instance":0,"part_index":0,"program_identity":"c53eb8e4953744a602c3bdb194ba41391d3c10636264dc88e14cb70820ec99e9","rc_base":0,"rc_count":2,"trace_log_size":6}
+    ],
+    "program_identity": "ea6aaca2b6d2577ca5b45574dacdf70b1cdb4941d068c7393f84138eb140780c",
+    "semantic_hash": "688dd659cd3274a6",
+    "source_sha256": "9b141b597146826cd61b33e5c3dea1b517b46d42ff24170f034228d5f187cff2"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "4713d8701db9c2d9",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_6e7d9762fbd1969a_4713d8701db9c2d9.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_6e7d9762fbd1969a",
+    "kind": "constraint",
+    "label": "cairo_eval_6e7d9762fbd1969a",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":1,"component_label":"add_opcode_small","component_source_identity":"04c2c4b71ed49c49f3fbb3579cdcc1642ab1fba66211ff9938d93368810d2844","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":27,"instance":0,"part_index":0,"program_identity":"9fcdc7743cfba7326321f54ecce09b1d01c201012d0b4920260899d8d6dbe44c","rc_base":0,"rc_count":32,"trace_log_size":8},
+      {"component_index":46,"component_label":"add_opcode_small","component_source_identity":"e3596427a2512bea22d43aa9f1de33e29cac99f43e84f82d772f57c5dbdf704e","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":0,"instance":0,"part_index":0,"program_identity":"b67922135653deb707ab624a43f7f663144ef530264bfe4451465c0bcaab77d6","rc_base":0,"rc_count":32,"trace_log_size":11},
+      {"component_index":94,"component_label":"add_opcode_small","component_source_identity":"e3596427a2512bea22d43aa9f1de33e29cac99f43e84f82d772f57c5dbdf704e","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":0,"instance":0,"part_index":0,"program_identity":"b67922135653deb707ab624a43f7f663144ef530264bfe4451465c0bcaab77d6","rc_base":0,"rc_count":32,"trace_log_size":11}
+    ],
+    "program_identity": "66d6d1912249b03d5683294313316f45d004c855c9b9b252776fc10f59d54027",
+    "semantic_hash": "6e7d9762fbd1969a",
+    "source_sha256": "05cad34654f0bf3c9a0b6eb5d5ca2650505252ea3a35dfec20d283a4d577455c"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "31ef87c0c6cfa81a",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_7205ab34dcdb920d_31ef87c0c6cfa81a.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_7205ab34dcdb920d",
+    "kind": "constraint",
+    "label": "cairo_eval_7205ab34dcdb920d",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":19,"component_label":"ret_opcode","component_source_identity":"78c96500e69e59ffd4ba03d9044a05572076cfe0689ab67eb6fd2ffe1089e7f8","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":557,"instance":0,"part_index":0,"program_identity":"a4c2454151bd3e01ec04ada2f6d7910b388455a95205e2c05f6a1eac0d2cfd63","rc_base":0,"rc_count":9,"trace_log_size":7},
+      {"component_index":54,"component_label":"ret_opcode","component_source_identity":"14fa5414abac37d45e07289ebe293d310b4aca2c9ca0f237abdf92480ab8dbc0","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":114,"instance":0,"part_index":0,"program_identity":"3f16d2fbf16945e885e530f399168e4ca5157113d84880c4a0fa3c2cf98ff367","rc_base":0,"rc_count":9,"trace_log_size":10},
+      {"component_index":102,"component_label":"ret_opcode","component_source_identity":"14fa5414abac37d45e07289ebe293d310b4aca2c9ca0f237abdf92480ab8dbc0","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":114,"instance":0,"part_index":0,"program_identity":"3f16d2fbf16945e885e530f399168e4ca5157113d84880c4a0fa3c2cf98ff367","rc_base":0,"rc_count":9,"trace_log_size":10}
+    ],
+    "program_identity": "e3408ead70efddd0d1332473eebc3d26ba281b5f3f5801156e534003e7021902",
+    "semantic_hash": "7205ab34dcdb920d",
+    "source_sha256": "f67e0ff87374e591f87037be22f12baaab0c3448c6b88546f39b3990b0ddec06"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "d14c646ec00fdeb8",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_73ef672ad1e99d37_d14c646ec00fdeb8.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_73ef672ad1e99d37",
+    "kind": "constraint",
+    "label": "cairo_eval_73ef672ad1e99d37",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":5,"component_label":"assert_eq_opcode_double_deref","component_source_identity":"8ca1ad4bb675ab4ea03bfe9f2541636b816caa8e7e792e3f2fbd9242b9f3b55c","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":90,"instance":0,"part_index":0,"program_identity":"dc81d274e8cd8f7951419b2c6e6440b2b6ce5903fa0ceebf510831cb7efaddaf","rc_base":0,"rc_count":12,"trace_log_size":9},
+      {"component_index":50,"component_label":"assert_eq_opcode_double_deref","component_source_identity":"1021e468303e395bf9837a8e0a81cdfdc3d99f1a5980b73d8ce69254a3c5bb73","domain_log_size":12,"evaluation_log_size":13,"global_rc_base":63,"instance":0,"part_index":0,"program_identity":"ac8fa9eeae8196ead616feb12fb1b635d51700b2b2a6cdf888989c85fd4706ce","rc_base":0,"rc_count":12,"trace_log_size":12},
+      {"component_index":98,"component_label":"assert_eq_opcode_double_deref","component_source_identity":"1021e468303e395bf9837a8e0a81cdfdc3d99f1a5980b73d8ce69254a3c5bb73","domain_log_size":12,"evaluation_log_size":13,"global_rc_base":63,"instance":0,"part_index":0,"program_identity":"ac8fa9eeae8196ead616feb12fb1b635d51700b2b2a6cdf888989c85fd4706ce","rc_base":0,"rc_count":12,"trace_log_size":12}
+    ],
+    "program_identity": "1fbc1aeb8375d642d4ebed20ac850d2a230da32e97d8fe50d6da9dbd70023dd2",
+    "semantic_hash": "73ef672ad1e99d37",
+    "source_sha256": "a1c9e076442c54c0381006cede29d624a239d6402f8e851ed49a8bc7f85ea589"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "a1e8ec3010c20294",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_751f65b635273678_a1e8ec3010c20294.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_751f65b635273678",
+    "kind": "constraint",
+    "label": "cairo_eval_751f65b635273678",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":17,"component_label":"mul_opcode_small","component_source_identity":"83cc2d619da34cdd90f583f8b880b757f2addcddf52ac0824fc5ade5a87f5444","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":508,"instance":0,"part_index":0,"program_identity":"8b1c5a6eabc25eb7315ce611fa4a9eb0227a1fa7e62a4ae18cf6da377196bb84","rc_base":0,"rc_count":21,"trace_log_size":7}
+    ],
+    "program_identity": "530834afc97746fe775d7be1cdc7fa92a7cfe4fbcb6ee183fdce9681cc8412f2",
+    "semantic_hash": "751f65b635273678",
+    "source_sha256": "353de21d4adbc20ece7404c4b8a4616062235c925edecc4083f1f25042e0c804"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "e38b624558fb6c4a",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_76751be344433844_e38b624558fb6c4a.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_76751be344433844",
+    "kind": "constraint",
+    "label": "cairo_eval_76751be344433844",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":45,"component_label":"verify_bitwise_xor_9","component_source_identity":"0850a9971526b9b6eb5a42f77bb4164fb0e8e853a52d67f392068ec40c35ad66","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":677,"instance":0,"part_index":0,"program_identity":"c68e24c8993fac760a5988764c5b35a85aeb2f0c4eafd1e9532d6833bc521a9e","rc_base":0,"rc_count":1,"trace_log_size":18},
+      {"component_index":93,"component_label":"verify_bitwise_xor_9","component_source_identity":"2622e4ce7e011a78827d2bf6a1511514b686f58b198a157063608824076ff291","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1336,"instance":0,"part_index":0,"program_identity":"c68e24c8993fac760a5988764c5b35a85aeb2f0c4eafd1e9532d6833bc521a9e","rc_base":0,"rc_count":1,"trace_log_size":18},
+      {"component_index":141,"component_label":"verify_bitwise_xor_9","component_source_identity":"47667cd84e3dcbd16dabd58fbbea0b6cff51d735928597ae2ec3223f28a65caa","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1336,"instance":0,"part_index":0,"program_identity":"c68e24c8993fac760a5988764c5b35a85aeb2f0c4eafd1e9532d6833bc521a9e","rc_base":0,"rc_count":1,"trace_log_size":18}
+    ],
+    "program_identity": "06c6eddb32fa8deb1327f100e8ff5dd68d3f395081da9e17a4c1d281a55fb579",
+    "semantic_hash": "76751be344433844",
+    "source_sha256": "e1dd153e111b7f29967b09916927c4121e3c9e95ea417d03d332019b7fce4926"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "e0221541b1e73d1e",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_773d385162091c3d_e0221541b1e73d1e.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_773d385162091c3d",
+    "kind": "constraint",
+    "label": "cairo_eval_773d385162091c3d",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":12,"component_label":"jump_opcode_abs","component_source_identity":"feee3df4e51f7206ea66b9cfb87267e5ae909fe7918c5e0bd94a4a2bbaecdd59","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":407,"instance":0,"part_index":0,"program_identity":"c30cd45450f37a2f87ee2ecd07e0aa8ccee8afccbb675ff4ebbf333d4bf90937","rc_base":0,"rc_count":9,"trace_log_size":4}
+    ],
+    "program_identity": "c30cd45450f37a2f87ee2ecd07e0aa8ccee8afccbb675ff4ebbf333d4bf90937",
+    "semantic_hash": "773d385162091c3d",
+    "source_sha256": "3097d2504f446cd31db2a0f5179bf98a89a088bcd8eeb6c0e15f4fddd1ed29cd"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "cb1f841902d37bb1",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_792590d1e13e3d0b_cb1f841902d37bb1.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_792590d1e13e3d0b",
+    "kind": "constraint",
+    "label": "cairo_eval_792590d1e13e3d0b",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":24,"component_label":"triple_xor_32","component_source_identity":"c409219dc4969c65723d10984331f3f34704f6089bd3d6104de30761a80d6812","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":622,"instance":0,"part_index":0,"program_identity":"6f5904a0987379b423c0ae1bc3e2c9628129a8974c8029b611c87586d93ad842","rc_base":0,"rc_count":6,"trace_log_size":4}
+    ],
+    "program_identity": "6f5904a0987379b423c0ae1bc3e2c9628129a8974c8029b611c87586d93ad842",
+    "semantic_hash": "792590d1e13e3d0b",
+    "source_sha256": "36b9b053029c6ad0bf2daff69ba02d9d2138dd099030ab69c00f754f31642301"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "5eb9edcbea9ce112",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_7a58776d46a0d41b_5eb9edcbea9ce112.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_7a58776d46a0d41b",
+    "kind": "constraint",
+    "label": "cairo_eval_7a58776d46a0d41b",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":32,"component_label":"range_check_12","component_source_identity":"973fc2f5730a323a6936dc10690205cb06ed166019bceb8303d6491231795c72","domain_log_size":12,"evaluation_log_size":13,"global_rc_base":658,"instance":0,"part_index":0,"program_identity":"ee88fee61e840a7b0b03a9462653427853f52b14593331a5083e443fa949ed28","rc_base":0,"rc_count":1,"trace_log_size":12},
+      {"component_index":80,"component_label":"range_check_12","component_source_identity":"d600562f347a05d09f64cf1886b7d39841aa37fb340aa2e33055fe397f154b59","domain_log_size":12,"evaluation_log_size":13,"global_rc_base":1317,"instance":0,"part_index":0,"program_identity":"ee88fee61e840a7b0b03a9462653427853f52b14593331a5083e443fa949ed28","rc_base":0,"rc_count":1,"trace_log_size":12},
+      {"component_index":128,"component_label":"range_check_12","component_source_identity":"e0c52a50b8a4bb731b87de2e59b5bb2bacb167d6f3def8dd7a8fe89df27a07db","domain_log_size":12,"evaluation_log_size":13,"global_rc_base":1317,"instance":0,"part_index":0,"program_identity":"ee88fee61e840a7b0b03a9462653427853f52b14593331a5083e443fa949ed28","rc_base":0,"rc_count":1,"trace_log_size":12}
+    ],
+    "program_identity": "be12936afc41ba152f87728b478f7889080f864d6d54d0df5bcb3dbf10662193",
+    "semantic_hash": "7a58776d46a0d41b",
+    "source_sha256": "b3268efd23e2e999bd8cd7a86b0c6fd4f61aed8449f6a65457f56932256c31d2"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "4d5888504995285a",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_7ae47d325c8767b3_4d5888504995285a.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_7ae47d325c8767b3",
+    "kind": "constraint",
+    "label": "cairo_eval_7ae47d325c8767b3",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":57,"component_label":"bitwise_builtin","component_source_identity":"1eef334fa08216379a5c54a62f2b8d4968f945c47cab18ee34834fa5d52a40a7","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":220,"instance":0,"part_index":0,"program_identity":"1919e735b0463d492eed2bb34943f9026f5495da94ea5cb603335ae214022ba4","rc_base":0,"rc_count":19,"trace_log_size":6},
+      {"component_index":105,"component_label":"bitwise_builtin","component_source_identity":"1eef334fa08216379a5c54a62f2b8d4968f945c47cab18ee34834fa5d52a40a7","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":220,"instance":0,"part_index":0,"program_identity":"1919e735b0463d492eed2bb34943f9026f5495da94ea5cb603335ae214022ba4","rc_base":0,"rc_count":19,"trace_log_size":6}
+    ],
+    "program_identity": "6cdb9f1a6c57a1b335cfe31b3ee9dab08b5fdc6547cfed7a1e41b6d0195c0715",
+    "semantic_hash": "7ae47d325c8767b3",
+    "source_sha256": "6649670c96ce422b2a2c9e939c0448002cf1cca7796ba8a4d9b2661959beb082"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "79d6350154bde65d",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_7ef972a5d6688858_79d6350154bde65d.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_7ef972a5d6688858",
+    "kind": "constraint",
+    "label": "cairo_eval_7ef972a5d6688858",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":44,"component_label":"verify_bitwise_xor_8","component_source_identity":"3745ae7a63be9c5b9e01c8f207ad2a5571eb36e26e6fe26fd9fc072195d57d69","domain_log_size":16,"evaluation_log_size":17,"global_rc_base":676,"instance":0,"part_index":0,"program_identity":"4eba8dd2c8acbf002da1062309de76209284bd73227f8ebce9657ebbd9dae9ac","rc_base":0,"rc_count":1,"trace_log_size":16},
+      {"component_index":92,"component_label":"verify_bitwise_xor_8","component_source_identity":"a54a4f8b727aaef8a2f19cafa7e732fdb75ded6d2d09196a903bc4d99a1dfade","domain_log_size":16,"evaluation_log_size":17,"global_rc_base":1335,"instance":0,"part_index":0,"program_identity":"4eba8dd2c8acbf002da1062309de76209284bd73227f8ebce9657ebbd9dae9ac","rc_base":0,"rc_count":1,"trace_log_size":16},
+      {"component_index":140,"component_label":"verify_bitwise_xor_8","component_source_identity":"97989d664ecb0438b5a89a4557aacabe67a775fcfb360a7e5780807a746659e8","domain_log_size":16,"evaluation_log_size":17,"global_rc_base":1335,"instance":0,"part_index":0,"program_identity":"4eba8dd2c8acbf002da1062309de76209284bd73227f8ebce9657ebbd9dae9ac","rc_base":0,"rc_count":1,"trace_log_size":16}
+    ],
+    "program_identity": "2791617c7c3572dd82ce5d372e1236a90a5dfed4760ecb29aff4f1b74bb4351e",
+    "semantic_hash": "7ef972a5d6688858",
+    "source_sha256": "774efe8a872829361d1817192112371586de24ff680a92d69612ce7cf0a0cad3"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "586c2743641315ff",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_800a8e5d141c169e_586c2743641315ff.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_800a8e5d141c169e",
+    "kind": "constraint",
+    "label": "cairo_eval_800a8e5d141c169e",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":62,"component_label":"range_check_builtin","component_source_identity":"110e2042d45d0e2fb03b704be43848dfcc058a0502a24aab935d87e8a2db3232","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":438,"instance":0,"part_index":0,"program_identity":"48edb06e6d3029bbe31e419b9d6a59bd7a6b842f3fc533ff9909d772029ee1b0","rc_base":0,"rc_count":3,"trace_log_size":6},
+      {"component_index":110,"component_label":"range_check_builtin","component_source_identity":"110e2042d45d0e2fb03b704be43848dfcc058a0502a24aab935d87e8a2db3232","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":438,"instance":0,"part_index":0,"program_identity":"48edb06e6d3029bbe31e419b9d6a59bd7a6b842f3fc533ff9909d772029ee1b0","rc_base":0,"rc_count":3,"trace_log_size":6}
+    ],
+    "program_identity": "d1adbce7dad227a3ee098c94a5150cf1d99ffcc01aa05676ca2b1d6c72c20f6e",
+    "semantic_hash": "800a8e5d141c169e",
+    "source_sha256": "8a29a11c8c70a92c5aba3bec4c445a7ecac455a095d03ae3f84c39784afecccc"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "d6a3ac4ce45cb35a",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_89160704ff765b5c_d6a3ac4ce45cb35a.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_89160704ff765b5c",
+    "kind": "constraint",
+    "label": "cairo_eval_89160704ff765b5c",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":59,"component_label":"pedersen_builtin","component_source_identity":"778e66a73a1b23024562fc09a45591a6322c0cfed24a2409d2d0689c54fe1699","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":430,"instance":0,"part_index":0,"program_identity":"94c3e0b9fc3916a9eafb1e12f74d0963b83a82d9cd1635e82bf5299378c8293c","rc_base":0,"rc_count":2,"trace_log_size":6}
+    ],
+    "program_identity": "d21cb1f9ce56f4f2c0ef892b41259e2a3097d8db90253478467351dfc2f3efcb",
+    "semantic_hash": "89160704ff765b5c",
+    "source_sha256": "fcb71e5fde37e78c3a17bae6b53777a4d01b7aa808267bdfb5b4a14f3a7e3c74"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "dbae588791ec09a6",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_8e3ee30308c76acb_dbae588791ec09a6.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_8e3ee30308c76acb",
+    "kind": "constraint",
+    "label": "cairo_eval_8e3ee30308c76acb",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":27,"component_label":"memory_id_to_big[0]","component_source_identity":"ed61f0faab263b72aac267dae09175aed6c29eb20fdb8bc795ba408f7b7c6a28","domain_log_size":5,"evaluation_log_size":6,"global_rc_base":644,"instance":0,"part_index":0,"program_identity":"1b6795c5a37bfc5c2f5c0467fb2f6889c2f6f2c65ee26ea2a5e0a3c203b8dfef","rc_base":0,"rc_count":8,"trace_log_size":5},
+      {"component_index":75,"component_label":"memory_id_to_big[0]","component_source_identity":"2ec3c1550d31cbbe1f7fb7b2771df47a0496449a32935e7b338ceb0904005772","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":1303,"instance":0,"part_index":0,"program_identity":"fcddcb488731e2dbdf96e5f3721be5cd8d56147f0e09f23b6139d502655d0b51","rc_base":0,"rc_count":8,"trace_log_size":6},
+      {"component_index":123,"component_label":"memory_id_to_big[0]","component_source_identity":"3ee32c34790db139dc96823a9fea53b6eb17f6524c507d084166a08a3b1faa80","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":1303,"instance":0,"part_index":0,"program_identity":"fcddcb488731e2dbdf96e5f3721be5cd8d56147f0e09f23b6139d502655d0b51","rc_base":0,"rc_count":8,"trace_log_size":6}
+    ],
+    "program_identity": "024dd5009dab9781719af7711870b172db387ddfee6eb3d6768cc1687c8fc74a",
+    "semantic_hash": "8e3ee30308c76acb",
+    "source_sha256": "f90caeaf09f8c1f22a40c331a38f6315aee982366542fdc78d81847dfc1521b1"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "3969ce1faf016dcb",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_91448bafa4e75cb5_3969ce1faf016dcb.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_91448bafa4e75cb5",
+    "kind": "constraint",
+    "label": "cairo_eval_91448bafa4e75cb5",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":0,"component_label":"add_opcode","component_source_identity":"2011a8377ccf150e457e38afb8497ab83eb547ca5a0b17886ad13d0294b1947e","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":0,"instance":0,"part_index":0,"program_identity":"dd06b0ad65a61d0e8b18b3c06b00168d258f8e8eef1920c198d206a1c2a9291b","rc_base":0,"rc_count":27,"trace_log_size":6}
+    ],
+    "program_identity": "0c89c942f63537f54fa66cee1dae98e002453361e7ab221ed999e60b40304fbf",
+    "semantic_hash": "91448bafa4e75cb5",
+    "source_sha256": "49bc6a966416d3667b08008fccc30a3c3729668395c09ee58f8e955394b70365"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "55d14b976e55c505",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_92ce49b45d6c1f4e_55d14b976e55c505.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_92ce49b45d6c1f4e",
+    "kind": "constraint",
+    "label": "cairo_eval_92ce49b45d6c1f4e",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":113,"component_label":"pedersen_aggregator_window_bits_9","component_source_identity":"32211be5a0f0e7b50a014b4685778de14fce8a016b548586664bb7284b8599e0","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":904,"instance":0,"part_index":0,"program_identity":"55c83251764fa6210a4f908367643e33e2027c638ef9313d5190cd1266985638","rc_base":0,"rc_count":16,"trace_log_size":4}
+    ],
+    "program_identity": "55c83251764fa6210a4f908367643e33e2027c638ef9313d5190cd1266985638",
+    "semantic_hash": "92ce49b45d6c1f4e",
+    "source_sha256": "889abf2717069076ff735d721e8414e1c327c6bfc89ee0249599b91516e49b96"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "c52c812862cb5e96",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_9374f8b45ca93e8f_c52c812862cb5e96.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_9374f8b45ca93e8f",
+    "kind": "constraint",
+    "label": "cairo_eval_9374f8b45ca93e8f",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":30,"component_label":"range_check_8","component_source_identity":"3010c4227b2e9c49f76020877f0b11b0a8b4a211a9092d34b16c049f7818c30b","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":656,"instance":0,"part_index":0,"program_identity":"687a1a2f96bd4ab6334e6f77cbd4ebc1787109f4fd451d208bfa2c60b58f3050","rc_base":0,"rc_count":1,"trace_log_size":8},
+      {"component_index":78,"component_label":"range_check_8","component_source_identity":"8bc873dfb99f4afadf9276d75507e19a50ef066a74ddb9241cca4c0c231accbd","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":1315,"instance":0,"part_index":0,"program_identity":"687a1a2f96bd4ab6334e6f77cbd4ebc1787109f4fd451d208bfa2c60b58f3050","rc_base":0,"rc_count":1,"trace_log_size":8},
+      {"component_index":126,"component_label":"range_check_8","component_source_identity":"60d8359fed91d0799d88f2e6d4e49aae76cec83ae2bcfbc362a1023e2f8688ed","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":1315,"instance":0,"part_index":0,"program_identity":"687a1a2f96bd4ab6334e6f77cbd4ebc1787109f4fd451d208bfa2c60b58f3050","rc_base":0,"rc_count":1,"trace_log_size":8}
+    ],
+    "program_identity": "027cc56f3731475b03f9a52cf5ea1c6b4d7704a3235626a9b936bb44459b31fe",
+    "semantic_hash": "9374f8b45ca93e8f",
+    "source_sha256": "2b8d3b6c29410b72e732f154aaee25bf8d991a437bcb073bb38878e4edaaf093"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "e68e27321e69b518",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_a0ca930f9557f54f_e68e27321e69b518.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_a0ca930f9557f54f",
+    "kind": "constraint",
+    "label": "cairo_eval_a0ca930f9557f54f",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":43,"component_label":"verify_bitwise_xor_7","component_source_identity":"c9dd3219e396d2f0a88822219610ac793c5eb89837467aeb84287fed964b7a95","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":675,"instance":0,"part_index":0,"program_identity":"1b8e10485abb356f461119f61d25df900d3ae747c9685b105cb532ee601d501b","rc_base":0,"rc_count":1,"trace_log_size":14},
+      {"component_index":91,"component_label":"verify_bitwise_xor_7","component_source_identity":"e425ace9b3ef23f84d84432cb05f7cc8d2f400ddc5fd65b939b71670dbeb1b41","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":1334,"instance":0,"part_index":0,"program_identity":"1b8e10485abb356f461119f61d25df900d3ae747c9685b105cb532ee601d501b","rc_base":0,"rc_count":1,"trace_log_size":14},
+      {"component_index":139,"component_label":"verify_bitwise_xor_7","component_source_identity":"7bb17c6702c45df65dd0e348799d20f1788a673f9a6046a5563fc24153df3828","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":1334,"instance":0,"part_index":0,"program_identity":"1b8e10485abb356f461119f61d25df900d3ae747c9685b105cb532ee601d501b","rc_base":0,"rc_count":1,"trace_log_size":14}
+    ],
+    "program_identity": "538b5c9ffd1659682a084a62804b812859f3a16c36c95fb0a19296176e6c2a9a",
+    "semantic_hash": "a0ca930f9557f54f",
+    "source_sha256": "70e7214fefe6c6a84c646f792ed798abe08158a8b1b7d8ebbded80b783deccdf"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "b71f3cbd039d787b",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_a4aa30d3952d3247_b71f3cbd039d787b.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_a4aa30d3952d3247",
+    "kind": "constraint",
+    "label": "cairo_eval_a4aa30d3952d3247",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":25,"component_label":"verify_bitwise_xor_12","component_source_identity":"1128ca1d6c5f861a93b62ed185ab25d273dbdce9b962d6f9c401e536c5f69084","domain_log_size":20,"evaluation_log_size":21,"global_rc_base":628,"instance":0,"part_index":0,"program_identity":"de4a0ed6c10a1c888d08155ec4215d452ecc4bffeadaebda83896b137dab7922","rc_base":0,"rc_count":8,"trace_log_size":20}
+    ],
+    "program_identity": "c3346cad91ec121827c57af79fc8f75e89d97a088a81d8b7d2cc924a9dabd718",
+    "semantic_hash": "a4aa30d3952d3247",
+    "source_sha256": "eaaa970012aa9e1d1c7a8a68aaf2bee7b510689f3236b1b6223606cf1e8a573d"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "be6aaa36a5114252",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_ba50438ddca00bc5_be6aaa36a5114252.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_ba50438ddca00bc5",
+    "kind": "constraint",
+    "label": "cairo_eval_ba50438ddca00bc5",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":64,"component_label":"partial_ec_mul_generic","component_source_identity":"8555960db87319b8a5bf67ddaf3fa0532442cf05f9f963b73f557287551a3779","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":456,"instance":0,"part_index":0,"program_identity":"4f3d46867fdf0665043c2f491010e7218e290bfcba73b73884b46ca9fcc3c5dd","rc_base":0,"rc_count":448,"trace_log_size":14},
+      {"component_index":112,"component_label":"partial_ec_mul_generic","component_source_identity":"8555960db87319b8a5bf67ddaf3fa0532442cf05f9f963b73f557287551a3779","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":456,"instance":0,"part_index":0,"program_identity":"4f3d46867fdf0665043c2f491010e7218e290bfcba73b73884b46ca9fcc3c5dd","rc_base":0,"rc_count":448,"trace_log_size":14}
+    ],
+    "program_identity": "a29b7b77d94850a60c9e9ce2fd37b14a1af0428b4037c9e342d922f771f3646c",
+    "semantic_hash": "ba50438ddca00bc5",
+    "source_sha256": "e756f0e5f39653316da45cfe971acbe066bb44c43c2e49d7858ab0acd8343913"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "83b75c9d1528804a",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_c05ddc49664c6391_83b75c9d1528804a.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_c05ddc49664c6391",
+    "kind": "constraint",
+    "label": "cairo_eval_c05ddc49664c6391",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":69,"component_label":"poseidon_3_partial_rounds_chain","component_source_identity":"a6e71ac8738539ef19b0d4de08518d281fd87de05b951de5e9084f6c510bcb78","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":1122,"instance":0,"part_index":0,"program_identity":"a3cf5f6a217b07d0d45158fe3371a4f7954a0744babefad7e59f9b5401bf36fb","rc_base":0,"rc_count":46,"trace_log_size":9},
+      {"component_index":117,"component_label":"poseidon_3_partial_rounds_chain","component_source_identity":"c9c700488e7565f0656d8260c140a70b56e46b6ed37315d7bb084656896d1973","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":1122,"instance":0,"part_index":0,"program_identity":"a3cf5f6a217b07d0d45158fe3371a4f7954a0744babefad7e59f9b5401bf36fb","rc_base":0,"rc_count":46,"trace_log_size":9}
+    ],
+    "program_identity": "1e6b1087b840006ddd4b01fb862411a76dc0b8c887d4f4531ac5b12150df4798",
+    "semantic_hash": "c05ddc49664c6391",
+    "source_sha256": "78933551d673a1729e2c22bfe7ad5677da1ec9f4f368b3f1d761492c495292fa"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "7f9b051c2a3447b2",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_c06ceab427d079e4_7f9b051c2a3447b2.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_c06ceab427d079e4",
+    "kind": "constraint",
+    "label": "cairo_eval_c06ceab427d079e4",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":31,"component_label":"range_check_11","component_source_identity":"a3380dee994b51ae436688c1f33b74341d88e2432070de9994cd2cb7559ec6e4","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":657,"instance":0,"part_index":0,"program_identity":"cea43d149a606399e2c642c150341d18f9b702b5ca6e606bf13a1b711ef8373b","rc_base":0,"rc_count":1,"trace_log_size":11},
+      {"component_index":79,"component_label":"range_check_11","component_source_identity":"a05947d40f82e07697a6ba1c9f93ffe6b85cdf4efad2d609617e4aac8215203a","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1316,"instance":0,"part_index":0,"program_identity":"cea43d149a606399e2c642c150341d18f9b702b5ca6e606bf13a1b711ef8373b","rc_base":0,"rc_count":1,"trace_log_size":11},
+      {"component_index":127,"component_label":"range_check_11","component_source_identity":"ffa705a3a8ef5fcee77e4cb0bf4a882534897e9a4dbc8e8269b8ca244d7200c6","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1316,"instance":0,"part_index":0,"program_identity":"cea43d149a606399e2c642c150341d18f9b702b5ca6e606bf13a1b711ef8373b","rc_base":0,"rc_count":1,"trace_log_size":11}
+    ],
+    "program_identity": "00ccfa56032daa4d7fafc85eb42290d133f906e4cae31121c7e5e1c0c37ae6c7",
+    "semantic_hash": "c06ceab427d079e4",
+    "source_sha256": "3725e819862c034ce3cbcc183474a3ac621e95b8f56854a1925058d57f506e51"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "17348bf82a236bb4",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_c4f7761d89d0cb90_17348bf82a236bb4.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_c4f7761d89d0cb90",
+    "kind": "constraint",
+    "label": "cairo_eval_c4f7761d89d0cb90",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":33,"component_label":"range_check_18","component_source_identity":"3179ddf189553a8471a2001b711c3073bf787fc5f68dfa733a25170a005c10eb","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":659,"instance":0,"part_index":0,"program_identity":"993ed6959cc9f93146aa6174585cda562dd2c380dcd1bb2c7bb67e5b6cbfe4a2","rc_base":0,"rc_count":1,"trace_log_size":18},
+      {"component_index":81,"component_label":"range_check_18","component_source_identity":"398f6d452cdef778ce66ccb349fc45d5f3a3a793f6a3af3f8e931a5cb7b61308","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1318,"instance":0,"part_index":0,"program_identity":"993ed6959cc9f93146aa6174585cda562dd2c380dcd1bb2c7bb67e5b6cbfe4a2","rc_base":0,"rc_count":1,"trace_log_size":18},
+      {"component_index":129,"component_label":"range_check_18","component_source_identity":"faa457ea8ae4cec38540a5270e1e19f5ab2c4398f028f1a0179b1c23babf3459","domain_log_size":18,"evaluation_log_size":19,"global_rc_base":1318,"instance":0,"part_index":0,"program_identity":"993ed6959cc9f93146aa6174585cda562dd2c380dcd1bb2c7bb67e5b6cbfe4a2","rc_base":0,"rc_count":1,"trace_log_size":18}
+    ],
+    "program_identity": "8e62f168646775dcb8d6d401e9459a2a9b5f2430377d70dd2d793b30f4d44717",
+    "semantic_hash": "c4f7761d89d0cb90",
+    "source_sha256": "d9444c3f718c857242516eca96d4f2a7d617e81af53ea6049f97e96877042842"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "24cf9bdf79761d95",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_c611ef6ea6bd2061_24cf9bdf79761d95.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_c611ef6ea6bd2061",
+    "kind": "constraint",
+    "label": "cairo_eval_c611ef6ea6bd2061",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":72,"component_label":"poseidon_round_keys","component_source_identity":"058d4b0a0943f498ff550fbb20c6274bacc0e2b1c7b5c34067af844221047860","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":1285,"instance":0,"part_index":0,"program_identity":"b8629fe4c8a8e0d04a459c29af8675c4a9fccb7e5c563d86aa17e68de0031c6a","rc_base":0,"rc_count":1,"trace_log_size":6},
+      {"component_index":120,"component_label":"poseidon_round_keys","component_source_identity":"25e99569644702e86a56603bda38333724a16a80a38591b205d9547d3ac0776f","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":1285,"instance":0,"part_index":0,"program_identity":"b8629fe4c8a8e0d04a459c29af8675c4a9fccb7e5c563d86aa17e68de0031c6a","rc_base":0,"rc_count":1,"trace_log_size":6}
+    ],
+    "program_identity": "0f1b043f9456a8724d94432e4dfe4242eb1731a290aa4711b4277321c7f1a41a",
+    "semantic_hash": "c611ef6ea6bd2061",
+    "source_sha256": "667e2ee35db7c0853f944ffa7969bf24c0f6860ce46bdee4a341929d44009eaf"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "3ba0ba1edebe7b32",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_cac0420ea393b163_3ba0ba1edebe7b32.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_cac0420ea393b163",
+    "kind": "constraint",
+    "label": "cairo_eval_cac0420ea393b163",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":2,"component_label":"add_ap_opcode","component_source_identity":"4f4fc48ad0f50e48f453285085ec8a5a99d4e12acd2af1664e4e0dfd4f66e51f","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":59,"instance":0,"part_index":0,"program_identity":"9c7e441c0e99abbeb801e8d222c6edf9415830b8592ee3a890995850ffee1803","rc_base":0,"rc_count":15,"trace_log_size":7},
+      {"component_index":47,"component_label":"add_ap_opcode","component_source_identity":"33f3f1fea75d606e9d8fe574bd1c75b12239d49c279cc9d2ed38979837692cd9","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":32,"instance":0,"part_index":0,"program_identity":"9c7e441c0e99abbeb801e8d222c6edf9415830b8592ee3a890995850ffee1803","rc_base":0,"rc_count":15,"trace_log_size":7},
+      {"component_index":95,"component_label":"add_ap_opcode","component_source_identity":"33f3f1fea75d606e9d8fe574bd1c75b12239d49c279cc9d2ed38979837692cd9","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":32,"instance":0,"part_index":0,"program_identity":"9c7e441c0e99abbeb801e8d222c6edf9415830b8592ee3a890995850ffee1803","rc_base":0,"rc_count":15,"trace_log_size":7}
+    ],
+    "program_identity": "deade49ef27cd16622d43149f7ef34026f58be6347526cf8af0b5c2501573c40",
+    "semantic_hash": "cac0420ea393b163",
+    "source_sha256": "4221ede26150ee84808e75ff10783cc51784344bb43d0387baed1032e543420f"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "e09d0b2ef023d75c",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_cc13aa5b6e028a9f_e09d0b2ef023d75c.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_cc13aa5b6e028a9f",
+    "kind": "constraint",
+    "label": "cairo_eval_cc13aa5b6e028a9f",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":28,"component_label":"memory_id_to_small","component_source_identity":"7c55d95cf83af04a1f3c726fbf885f9602f29d54aa2b1daaebc0378e9904921d","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":652,"instance":0,"part_index":0,"program_identity":"af110cde570f234d3f883cc31ef5a313759512ddfb7151cead7273cebeeda7d6","rc_base":0,"rc_count":3,"trace_log_size":9},
+      {"component_index":76,"component_label":"memory_id_to_small","component_source_identity":"c787ac3886a5ce58d9d5455d635866df4e3e78f80af87a83a5813dc9b5ba88a5","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1311,"instance":0,"part_index":0,"program_identity":"cfae5edf481b043e354617d40c0a8c68bf81b00dac845eee96ff512c1e6ee64e","rc_base":0,"rc_count":3,"trace_log_size":11},
+      {"component_index":124,"component_label":"memory_id_to_small","component_source_identity":"9fabaa4ad12b407606551ed913a3f409270c81a19f6d7f92baf624fe0ae53862","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1311,"instance":0,"part_index":0,"program_identity":"cfae5edf481b043e354617d40c0a8c68bf81b00dac845eee96ff512c1e6ee64e","rc_base":0,"rc_count":3,"trace_log_size":11}
+    ],
+    "program_identity": "b9f1b7fd5e3f4858184e318e4c50c7c929580dc34a52e0c23487aae2d6e350f3",
+    "semantic_hash": "cc13aa5b6e028a9f",
+    "source_sha256": "b5b2ae1f30946d415bb212c6ff576b092790ce82cf48278a9be6afea55d32da4"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "31d6f926bbc248aa",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_cf93975736fce4ec_31d6f926bbc248aa.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_cf93975736fce4ec",
+    "kind": "constraint",
+    "label": "cairo_eval_cf93975736fce4ec",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":115,"component_label":"pedersen_points_table_window_bits_9","component_source_identity":"b2318ae8630f8e8f4de7b9171f8bae5b5ded94cc66e6db976734266f7bf7aea5","domain_log_size":15,"evaluation_log_size":16,"global_rc_base":1070,"instance":0,"part_index":0,"program_identity":"390eace0eabeb843ff632bf16b2f3d0dc4511edaa944cf3949aea42249d62c91","rc_base":0,"rc_count":1,"trace_log_size":15}
+    ],
+    "program_identity": "c46e00931010f7452d879d24f29eafb974773ac3d8b552cbe34ca40cc601e9e8",
+    "semantic_hash": "cf93975736fce4ec",
+    "source_sha256": "b35c1b1743ca89a992841c6346b9a541bb1da09d123ef19ad58d4748968fbe67"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "b9c4f8fd2e91daa7",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_d77b877d338ab8fc_b9c4f8fd2e91daa7.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_d77b877d338ab8fc",
+    "kind": "constraint",
+    "label": "cairo_eval_d77b877d338ab8fc",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":9,"component_label":"generic_opcode","component_source_identity":"2d023ffc89da7c1a080c601ddbfc6dbd7f2becf148df5c5a82c948f5c381e12f","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":187,"instance":0,"part_index":0,"program_identity":"fd920bb1ac64aea9cab7f23965c8df7e30968f0e32b6e0422fe809a12adf1cb4","rc_base":0,"rc_count":198,"trace_log_size":4}
+    ],
+    "program_identity": "fd920bb1ac64aea9cab7f23965c8df7e30968f0e32b6e0422fe809a12adf1cb4",
+    "semantic_hash": "d77b877d338ab8fc",
+    "source_sha256": "e3966ebfcfdda3dea1821cc734f96f1d9c3b263d223c5ad11d53662681edb433"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "d74035eb309fa5f3",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_d8e0f9866c43c2ca_d74035eb309fa5f3.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_d8e0f9866c43c2ca",
+    "kind": "constraint",
+    "label": "cairo_eval_d8e0f9866c43c2ca",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":3,"component_label":"assert_eq_opcode","component_source_identity":"00ecd23a577a53d672942b16c5e986cb76a6a4053dfefbfb5efe7fae820def94","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":74,"instance":0,"part_index":0,"program_identity":"abd885c334bc099b1f1bdc4e5131bb6d255f0f42b44d8eccb3eff81a68d5008d","rc_base":0,"rc_count":9,"trace_log_size":6},
+      {"component_index":48,"component_label":"assert_eq_opcode","component_source_identity":"bb31f2c4dbd89ab080a7aebfdd29ef534bd2811227ea9e8ea6815b19e32a06c5","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":47,"instance":0,"part_index":0,"program_identity":"abd885c334bc099b1f1bdc4e5131bb6d255f0f42b44d8eccb3eff81a68d5008d","rc_base":0,"rc_count":9,"trace_log_size":6},
+      {"component_index":96,"component_label":"assert_eq_opcode","component_source_identity":"bb31f2c4dbd89ab080a7aebfdd29ef534bd2811227ea9e8ea6815b19e32a06c5","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":47,"instance":0,"part_index":0,"program_identity":"abd885c334bc099b1f1bdc4e5131bb6d255f0f42b44d8eccb3eff81a68d5008d","rc_base":0,"rc_count":9,"trace_log_size":6}
+    ],
+    "program_identity": "f9d10954a7d79246b8e4cab02c8c5a928f0461c9b444e46c304f657f7ae97567",
+    "semantic_hash": "d8e0f9866c43c2ca",
+    "source_sha256": "0a7102ad9bffb785fd4bec13a35988ff2238d2db9d2cec379354ad831a2a5b97"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "2d7624a023bb57cc",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_da8241be39e42c17_2d7624a023bb57cc.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_da8241be39e42c17",
+    "kind": "constraint",
+    "label": "cairo_eval_da8241be39e42c17",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":35,"component_label":"range_check_4_3","component_source_identity":"2639dfca9c3c856edf4629361a39a3835ddac550443fa3d7cf4a2a306ec11bc2","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":664,"instance":0,"part_index":0,"program_identity":"caf96ccddcf9bd8962d51cee53454b4934a9b4ce24e5675e1e7eef347773feb9","rc_base":0,"rc_count":1,"trace_log_size":7},
+      {"component_index":83,"component_label":"range_check_4_3","component_source_identity":"b2482f0d9b95d645ceb5f85e943aa3006ff35103664d0d88de52eab35b6f16d2","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":1323,"instance":0,"part_index":0,"program_identity":"caf96ccddcf9bd8962d51cee53454b4934a9b4ce24e5675e1e7eef347773feb9","rc_base":0,"rc_count":1,"trace_log_size":7},
+      {"component_index":131,"component_label":"range_check_4_3","component_source_identity":"b7811ba127851432c74ebb70f09f7248ce1419d4ccc3359e4136b6a1e5b708db","domain_log_size":7,"evaluation_log_size":8,"global_rc_base":1323,"instance":0,"part_index":0,"program_identity":"caf96ccddcf9bd8962d51cee53454b4934a9b4ce24e5675e1e7eef347773feb9","rc_base":0,"rc_count":1,"trace_log_size":7}
+    ],
+    "program_identity": "a868bf8974a729fcf50dac21a78ee7141029b75548234905c5684680425a9a1c",
+    "semantic_hash": "da8241be39e42c17",
+    "source_sha256": "98e9adf2481ee9d83401dcb9a735d42a56c1aaa32b57b642b0c3b86e0ad5630b"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "b3184e8160343133",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_db086017701593e0_b3184e8160343133.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_db086017701593e0",
+    "kind": "constraint",
+    "label": "cairo_eval_db086017701593e0",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":60,"component_label":"poseidon_builtin","component_source_identity":"2f0554ad3a677577d8074a2ace8b4c0e9ddcd6d090bc7e6de5bedbf5901f0c55","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":432,"instance":0,"part_index":0,"program_identity":"e85aad0c352eac6b634127dcd884110227f20e333b295299751d3ba7df98c0b0","rc_base":0,"rc_count":4,"trace_log_size":6},
+      {"component_index":108,"component_label":"poseidon_builtin","component_source_identity":"2f0554ad3a677577d8074a2ace8b4c0e9ddcd6d090bc7e6de5bedbf5901f0c55","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":432,"instance":0,"part_index":0,"program_identity":"e85aad0c352eac6b634127dcd884110227f20e333b295299751d3ba7df98c0b0","rc_base":0,"rc_count":4,"trace_log_size":6}
+    ],
+    "program_identity": "a289318e7bc3699384639e96aec11f2da1cdc426b6e28001c0c491fd61215651",
+    "semantic_hash": "db086017701593e0",
+    "source_sha256": "a10881721b695689d38643df7dfd96126924b3b538c8e273c7c97de689dcb617"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "cad7411165513703",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_dbb402bcc1a41130_cad7411165513703.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_dbb402bcc1a41130",
+    "kind": "constraint",
+    "label": "cairo_eval_dbb402bcc1a41130",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":10,"component_label":"jnz_opcode_non_taken","component_source_identity":"a640789226aacf7dab136f4909a9fd4e887e91990ba2a72117ee5904261dec32","domain_log_size":5,"evaluation_log_size":6,"global_rc_base":385,"instance":0,"part_index":0,"program_identity":"4c34aadfdf2b1ce4a58d1cd9d23fec7c8258463bf28b2d8d8ca404eb5492bb83","rc_base":0,"rc_count":7,"trace_log_size":5},
+      {"component_index":52,"component_label":"jnz_opcode_non_taken","component_source_identity":"01a0014068a6955419b393bec8866d6aee740e283b2de46b1d77a88762806451","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":92,"instance":0,"part_index":0,"program_identity":"a538c06cfa9ebb167c5f73cbb0a1a575a0e15d76b35c357c26e154f06d0aec94","rc_base":0,"rc_count":7,"trace_log_size":4},
+      {"component_index":100,"component_label":"jnz_opcode_non_taken","component_source_identity":"01a0014068a6955419b393bec8866d6aee740e283b2de46b1d77a88762806451","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":92,"instance":0,"part_index":0,"program_identity":"a538c06cfa9ebb167c5f73cbb0a1a575a0e15d76b35c357c26e154f06d0aec94","rc_base":0,"rc_count":7,"trace_log_size":4}
+    ],
+    "program_identity": "a538c06cfa9ebb167c5f73cbb0a1a575a0e15d76b35c357c26e154f06d0aec94",
+    "semantic_hash": "dbb402bcc1a41130",
+    "source_sha256": "f55983ece94243e0e4c8a97c36bbd6f8ca3afc31e35d6a60b71546a09dcd3ca4"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "46dcb00f88e042e3",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_dc2be10c0d504adb_46dcb00f88e042e3.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_dc2be10c0d504adb",
+    "kind": "constraint",
+    "label": "cairo_eval_dc2be10c0d504adb",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":13,"component_label":"jump_opcode_double_deref","component_source_identity":"25f5fb2a145b489c211c415790e39cb72fa327d62a61eabdf6d484de08ab36f2","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":416,"instance":0,"part_index":0,"program_identity":"ca5b9fb0dcbfa73d1bf7e1eb0ab8d01778217dde2f214e13662dfb5b906786eb","rc_base":0,"rc_count":12,"trace_log_size":4}
+    ],
+    "program_identity": "ca5b9fb0dcbfa73d1bf7e1eb0ab8d01778217dde2f214e13662dfb5b906786eb",
+    "semantic_hash": "dc2be10c0d504adb",
+    "source_sha256": "be9ab37cce59c473c13135cf5afe3efe958198ad73893661981591b687916b2b"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "41b00c8c94bfb70c",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_e002c8210e52d12e_41b00c8c94bfb70c.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_e002c8210e52d12e",
+    "kind": "constraint",
+    "label": "cairo_eval_e002c8210e52d12e",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":73,"component_label":"range_check_252_width_27","component_source_identity":"461682843c28a951922c893d37a5469706e2f61510c93f2f94476668ad596f45","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1286,"instance":0,"part_index":0,"program_identity":"e9624668e50ab75cab608846d910b082d11f51cc800d5fe475958b5e58131cb7","rc_base":0,"rc_count":9,"trace_log_size":11},
+      {"component_index":121,"component_label":"range_check_252_width_27","component_source_identity":"a6d96b917c9c519f4c2924f9aefeced11fbf3bfceec9e97cd7eca142e94c49b4","domain_log_size":11,"evaluation_log_size":12,"global_rc_base":1286,"instance":0,"part_index":0,"program_identity":"e9624668e50ab75cab608846d910b082d11f51cc800d5fe475958b5e58131cb7","rc_base":0,"rc_count":9,"trace_log_size":11}
+    ],
+    "program_identity": "45f89aa40ae0c432104551b1ea77ee450963d0862d97fe41e2980fd40747c367",
+    "semantic_hash": "e002c8210e52d12e",
+    "source_sha256": "ebda57afcb6dc91c76d8890f269c8ac6658c08a0a85126d458487dc4c6557342"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "82b12ad60745d63e",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_e414065707fe0e8f_82b12ad60745d63e.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_e414065707fe0e8f",
+    "kind": "constraint",
+    "label": "cairo_eval_e414065707fe0e8f",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":22,"component_label":"blake_g","component_source_identity":"87dab79c8d0d11c1d398e58dc88cece82059aba9aba27a7ee30e7974d3cfbe31","domain_log_size":8,"evaluation_log_size":9,"global_rc_base":603,"instance":0,"part_index":0,"program_identity":"4920a8f114f2d3d5002e5f36557824062172b9d9769848e4fe9cadadc890a323","rc_base":0,"rc_count":18,"trace_log_size":8}
+    ],
+    "program_identity": "807fd3d7fe26d91e4e683f80704183ba9c76c45ee1c3d763a816e95b3b549e38",
+    "semantic_hash": "e414065707fe0e8f",
+    "source_sha256": "8f28fdc461064e436a21cfbd37742195c9c7ae56806d80bf5aaca0124b0ac577"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "0b6abcb396a63d3f",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_e9884ae7da22257f_0b6abcb396a63d3f.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_e9884ae7da22257f",
+    "kind": "constraint",
+    "label": "cairo_eval_e9884ae7da22257f",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":11,"component_label":"jnz_opcode_taken","component_source_identity":"d6250d9470040673eb0e209f9a0bf216e46efdb4568e8a1a14655169d753adf5","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":392,"instance":0,"part_index":0,"program_identity":"b287a3a96d0b15e78c22910f2dfe1240d2de135a5493acffd757a843e2aae304","rc_base":0,"rc_count":15,"trace_log_size":6},
+      {"component_index":53,"component_label":"jnz_opcode_taken","component_source_identity":"13851ca3d7c96c8a23cfaa5d51e5cc6d7d8cb8dc286e29e205d1b7a9c45072a8","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":99,"instance":0,"part_index":0,"program_identity":"ef1bac4d77ceed9d927e82e3c74bfdba14dbd608b920b1cec230163a9cc5c1cb","rc_base":0,"rc_count":15,"trace_log_size":9},
+      {"component_index":101,"component_label":"jnz_opcode_taken","component_source_identity":"13851ca3d7c96c8a23cfaa5d51e5cc6d7d8cb8dc286e29e205d1b7a9c45072a8","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":99,"instance":0,"part_index":0,"program_identity":"ef1bac4d77ceed9d927e82e3c74bfdba14dbd608b920b1cec230163a9cc5c1cb","rc_base":0,"rc_count":15,"trace_log_size":9}
+    ],
+    "program_identity": "d6c1426150b903dcaf7a4d6382be101a8d0b5b4c5a9c938d606fb64f0d5f8d8d",
+    "semantic_hash": "e9884ae7da22257f",
+    "source_sha256": "dcd94e8efbd3ee74e819befd442860319995ac5dbbea60035e80591ed1b834a8"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "1a3db71c79ccebf5",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_ea5275587edf9674_1a3db71c79ccebf5.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_ea5275587edf9674",
+    "kind": "constraint",
+    "label": "cairo_eval_ea5275587edf9674",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":23,"component_label":"blake_round_sigma","component_source_identity":"1c3adbf32deaf267d53dea520f14d9899e71839e1be8c3916e6e324e785c82e9","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":621,"instance":0,"part_index":0,"program_identity":"52f3a5cf35eff7e2df75bbca4cf5abbaad1c35627ddd710eccd3cec38db879a6","rc_base":0,"rc_count":1,"trace_log_size":4}
+    ],
+    "program_identity": "52f3a5cf35eff7e2df75bbca4cf5abbaad1c35627ddd710eccd3cec38db879a6",
+    "semantic_hash": "ea5275587edf9674",
+    "source_sha256": "7f481b202ad6459c02f4f9e1a7d5b11f5fa192b94632d56a52dc9a8068881902"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "f0ef4ee69272e14d",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_efae9e8c68dba549_f0ef4ee69272e14d.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_efae9e8c68dba549",
+    "kind": "constraint",
+    "label": "cairo_eval_efae9e8c68dba549",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":38,"component_label":"range_check_7_2_5","component_source_identity":"000fd28abc9b2411ed3d101648ca18f7053df553ba1489e3933a366fa8de60c8","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":670,"instance":0,"part_index":0,"program_identity":"5e71524765439b5e165b1a8d1ce08c29904d4c1dda68620d00f8b19a7c94a425","rc_base":0,"rc_count":1,"trace_log_size":14},
+      {"component_index":86,"component_label":"range_check_7_2_5","component_source_identity":"ffb89909037709d89f190c040cfa5a37f97949ec66ca8c384fb9b35d38d4c820","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":1329,"instance":0,"part_index":0,"program_identity":"5e71524765439b5e165b1a8d1ce08c29904d4c1dda68620d00f8b19a7c94a425","rc_base":0,"rc_count":1,"trace_log_size":14},
+      {"component_index":134,"component_label":"range_check_7_2_5","component_source_identity":"c94ea70f546f5dc25db82921cf839c32b3abda0b31d95faf640cc328bada7320","domain_log_size":14,"evaluation_log_size":15,"global_rc_base":1329,"instance":0,"part_index":0,"program_identity":"5e71524765439b5e165b1a8d1ce08c29904d4c1dda68620d00f8b19a7c94a425","rc_base":0,"rc_count":1,"trace_log_size":14}
+    ],
+    "program_identity": "fb2d7217bc2d264325667a487662a0bdafcc3580b4571d8615575d3abdda2a94",
+    "semantic_hash": "efae9e8c68dba549",
+    "source_sha256": "fba6d35167e2b9d7696bb34109c010aad1a0eef58e06d796028dbcc422514ec7"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "b68090262d91c407",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_f121becb27a01b51_b68090262d91c407.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_f121becb27a01b51",
+    "kind": "constraint",
+    "label": "cairo_eval_f121becb27a01b51",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":16,"component_label":"mul_opcode","component_source_identity":"ed0571472e9f5d2c1acd8f77d10f03f0f072c8a394f5170d8776e313456dd597","domain_log_size":4,"evaluation_log_size":5,"global_rc_base":450,"instance":0,"part_index":0,"program_identity":"129cb6c1d0a72a4c1d4c8ce31c78861597c35936c7ed6376d94d4375e45b6024","rc_base":0,"rc_count":58,"trace_log_size":4}
+    ],
+    "program_identity": "129cb6c1d0a72a4c1d4c8ce31c78861597c35936c7ed6376d94d4375e45b6024",
+    "semantic_hash": "f121becb27a01b51",
+    "source_sha256": "26fb01836466130945216f1e6c3f7600ff0a25e2627bde78d365c6a5b97e3d72"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "8586df08633673cd",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_f3a6fefb41bb9e7b_8586df08633673cd.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_f3a6fefb41bb9e7b",
+    "kind": "constraint",
+    "label": "cairo_eval_f3a6fefb41bb9e7b",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":34,"component_label":"range_check_20","component_source_identity":"c81e571455e05bbead3beecbac80a339879008c856244a8c2bfd81d5820f8f84","domain_log_size":20,"evaluation_log_size":21,"global_rc_base":660,"instance":0,"part_index":0,"program_identity":"22327a7e8318a6001bec91ebb487213de4669496b9e2b6e68a29c80364a280cf","rc_base":0,"rc_count":4,"trace_log_size":20},
+      {"component_index":82,"component_label":"range_check_20","component_source_identity":"4050e72df53dc305345378bf6bd303aacf8d699109573d966467bb8ea869cdb5","domain_log_size":20,"evaluation_log_size":21,"global_rc_base":1319,"instance":0,"part_index":0,"program_identity":"22327a7e8318a6001bec91ebb487213de4669496b9e2b6e68a29c80364a280cf","rc_base":0,"rc_count":4,"trace_log_size":20},
+      {"component_index":130,"component_label":"range_check_20","component_source_identity":"b0c5437e6d3c64adf25ac1265322fd5a4a8f12dec2914242598bee7ece754b9d","domain_log_size":20,"evaluation_log_size":21,"global_rc_base":1319,"instance":0,"part_index":0,"program_identity":"22327a7e8318a6001bec91ebb487213de4669496b9e2b6e68a29c80364a280cf","rc_base":0,"rc_count":4,"trace_log_size":20}
+    ],
+    "program_identity": "f49e51f97f40efa628ca2e0b4497a6c895ff07ebe7e1a4e7e7959810c1a22708",
+    "semantic_hash": "f3a6fefb41bb9e7b",
+    "source_sha256": "0a3dab78b207eb57e19ea052a233d05e2738ebc6a835a5e78eaf710ce74ec9ad"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "3cdccace1c000eac",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_f4537cc3313a7813_3cdccace1c000eac.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_f4537cc3313a7813",
+    "kind": "constraint",
+    "label": "cairo_eval_f4537cc3313a7813",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":66,"component_label":"partial_ec_mul_window_bits_18","component_source_identity":"59d094b952cdc8baea7247d0530892cacc4652767e32503142a3b9babb7228ca","domain_log_size":9,"evaluation_log_size":10,"global_rc_base":920,"instance":0,"part_index":0,"program_identity":"73dceff50eaa35d0f789c939a1e1fb43f4254b0c13d418161862e19cd295750b","rc_base":0,"rc_count":150,"trace_log_size":9}
+    ],
+    "program_identity": "c8394b867f1a957ad4fdcf757ca0d7504142a2affdec7f5db2e3c06c443e8fc3",
+    "semantic_hash": "f4537cc3313a7813",
+    "source_sha256": "f3336556c3c91e71abc12b45217837c083d5c9d70250806e701e6de23090d7d5"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "ab4c2b3ef22e82ed",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_f6cb16877965e24a_ab4c2b3ef22e82ed.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_f6cb16877965e24a",
+    "kind": "constraint",
+    "label": "cairo_eval_f6cb16877965e24a",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":40,"component_label":"range_check_4_4_4_4","component_source_identity":"060bbcd4bbd52a95f83b9af51bcbfdad11c439036ed8bb7e24bd1e8f5058d0bc","domain_log_size":16,"evaluation_log_size":17,"global_rc_base":672,"instance":0,"part_index":0,"program_identity":"086a5275729d5cf44420ec7e92c2988dd6aed2d8df728fe425d30fc2e8c6a4e6","rc_base":0,"rc_count":1,"trace_log_size":16},
+      {"component_index":88,"component_label":"range_check_4_4_4_4","component_source_identity":"e8ac5103d894dc102e1da6b6afa46b373728214f972afc0b9db81910c1bd3959","domain_log_size":16,"evaluation_log_size":17,"global_rc_base":1331,"instance":0,"part_index":0,"program_identity":"086a5275729d5cf44420ec7e92c2988dd6aed2d8df728fe425d30fc2e8c6a4e6","rc_base":0,"rc_count":1,"trace_log_size":16},
+      {"component_index":136,"component_label":"range_check_4_4_4_4","component_source_identity":"4694a1742d40598d9092c20064ebdbfb96d776be5060b7af09ec75a976f7e952","domain_log_size":16,"evaluation_log_size":17,"global_rc_base":1331,"instance":0,"part_index":0,"program_identity":"086a5275729d5cf44420ec7e92c2988dd6aed2d8df728fe425d30fc2e8c6a4e6","rc_base":0,"rc_count":1,"trace_log_size":16}
+    ],
+    "program_identity": "b260649b31172e3d89edc6c614e0628b4409eafc97916be4807674381b30d51e",
+    "semantic_hash": "f6cb16877965e24a",
+    "source_sha256": "487f629c0fca6a18c9326c2afa49b77b9a6a04a066d64361e3e8eb2ce80a7dcc"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "efca9c9ed7aa319b",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_fe20f860e2d83528_efca9c9ed7aa319b.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_fe20f860e2d83528",
+    "kind": "constraint",
+    "label": "cairo_eval_fe20f860e2d83528",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":114,"component_label":"partial_ec_mul_window_bits_9","component_source_identity":"3960325bdf07a2d3a7834ded0413c1f3077b14d1ac767ac56115cfd7fa58d52c","domain_log_size":10,"evaluation_log_size":11,"global_rc_base":920,"instance":0,"part_index":0,"program_identity":"50d9c5c0314b2d22cf4d24fa88a878fb161a90ded4e521f04b68b0745fbb85b6","rc_base":0,"rc_count":150,"trace_log_size":10}
+    ],
+    "program_identity": "e527c29abd6343472a216b292790a771e4b14be1764e20f9624c4292eceb7dea",
+    "semantic_hash": "fe20f860e2d83528",
+    "source_sha256": "b8c351fc964f1b0a1abd0038abe94e8b4e854e6658bb9c2781fd9ec68e6c4d3b"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "975486c076e3681f",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_fe88a12bb2ed41e3_975486c076e3681f.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_fe88a12bb2ed41e3",
+    "kind": "constraint",
+    "label": "cairo_eval_fe88a12bb2ed41e3",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":107,"component_label":"pedersen_builtin_narrow_windows","component_source_identity":"778e66a73a1b23024562fc09a45591a6322c0cfed24a2409d2d0689c54fe1699","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":430,"instance":0,"part_index":0,"program_identity":"57431905f1852ca669277eb07215681f62c5e90c0d94517d7bc405404d311dd5","rc_base":0,"rc_count":2,"trace_log_size":6}
+    ],
+    "program_identity": "b8cb35e14ed29e1ac2c155250aa88b17344a55be0f958e4fffd8408f028ca0b7",
+    "semantic_hash": "fe88a12bb2ed41e3",
+    "source_sha256": "9447104c6b39dc4319cef524ba3dc3f0d7ba0ad77122889ef6071571f1fe7d88"
+  },
+  {
+    "abi_schema": "cairo_eval_part_v1",
+    "cache_key": "3d0538b54dabf5ce",
+    "catalog_identity": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+    "codegen_version": 3,
+    "file": "constraint_cairo_eval_ffc1033f3f8600ff_3d0538b54dabf5ce.cu",
+    "identity_scheme": "sha256-cairo-eval-parametric-source-v3",
+    "kernel_name": "stwo_cairo_cuda_eval_v3_ffc1033f3f8600ff",
+    "kind": "constraint",
+    "label": "cairo_eval_ffc1033f3f8600ff",
+    "module_globals": "none",
+    "occurrences": [
+      {"component_index":58,"component_label":"mul_mod_builtin","component_source_identity":"b5c2d1ccc17b994a3dcefa0dec3a532cb325a4d94d49340edcff9b080a70f52b","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":239,"instance":0,"part_index":0,"program_identity":"396526e20d214b3b838b0e608d1f88cce2f6dc5721f41f4b483b69aeebb80435","rc_base":0,"rc_count":191,"trace_log_size":6},
+      {"component_index":106,"component_label":"mul_mod_builtin","component_source_identity":"b5c2d1ccc17b994a3dcefa0dec3a532cb325a4d94d49340edcff9b080a70f52b","domain_log_size":6,"evaluation_log_size":7,"global_rc_base":239,"instance":0,"part_index":0,"program_identity":"396526e20d214b3b838b0e608d1f88cce2f6dc5721f41f4b483b69aeebb80435","rc_base":0,"rc_count":191,"trace_log_size":6}
+    ],
+    "program_identity": "c6bd9a8e0866370df0fcacb8f748187aa070ce5b3137a86698f712f0a0ca57d2",
+    "semantic_hash": "ffc1033f3f8600ff",
+    "source_sha256": "13ffaa649d411cfd284f6bce641d7b74a7100d6f33dd195f0b2ec11922f5f992"
+  }
+]

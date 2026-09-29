@@ -10,13 +10,15 @@ const telemetry = @import("telemetry.zig");
 pub const receipt_abi_version: u32 = 3;
 pub const ModuleGlobals = module_globals.Requirement;
 
-pub const PedersenW18Publication = struct {
+pub const PedersenPublication = struct {
     columns: [module_globals.pedersen_w18_column_count]u64,
     row_count: u32,
     table_identity: [32]u8,
+    requirement: ModuleGlobals = .pedersen_w18_columns_rows_v1,
 
-    pub fn validate(self: PedersenW18Publication) runtime_error.Error!void {
-        if (self.row_count != module_globals.pedersen_w18_row_count or
+    pub fn validate(self: PedersenPublication) runtime_error.Error!void {
+        const rows = self.requirement.pedersenRows() orelse return error.InvalidKernelDescriptor;
+        if (self.row_count != rows or
             std.mem.allEqual(u8, &self.table_identity, 0))
         {
             return error.InvalidKernelDescriptor;
@@ -27,6 +29,8 @@ pub const PedersenW18Publication = struct {
         }
     }
 };
+
+pub const PedersenW18Publication = PedersenPublication;
 
 pub const Kernel = struct {
     stage: telemetry.Stage,

@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-cairo-cuda-transcript-constraint-powers-v1",
+  "full_proof_verified": false,
+  "accepted_benchmark": false,
+  "powers_checked": 678,
+  "matching": 678,
+  "alpha": [
+    156378991,
+    681041287,
+    1359119218,
+    1085800993
+  ],
+  "mismatches": []
+}

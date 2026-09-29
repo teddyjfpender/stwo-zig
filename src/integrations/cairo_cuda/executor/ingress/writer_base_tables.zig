@@ -231,8 +231,12 @@ pub fn prepare(
             .id_to_big => "memory_id_to_big",
             .id_to_small => "memory_id_to_big#small",
         };
-        const multiplicities = feeds.destination(multiplicity_name) orelse
+        const all_multiplicities = feeds.destination(multiplicity_name) orelse
             return error.MissingMultiplicityDestination;
+        const multiplicities = if (entry.kind == .id_to_big)
+            try all_multiplicities.sub(entry.source_value_offset, entry.row_count)
+        else
+            all_multiplicities;
         const dependencies = try dependencyCapabilities(
             owned,
             scheduled.dependencies,
@@ -451,6 +455,7 @@ fn dependencyCapabilities(
         trace_writer.DependencyCapability,
         dependencies.len,
     );
+    errdefer allocator.free(capabilities);
     for (dependencies, capabilities) |dependency, *capability| {
         const producer = views.find(
             dependency.producer_component_index,
@@ -468,11 +473,17 @@ fn dependencyCapabilities(
             .capacity => dependency.instances,
             .native_ec_workspace => return error.InvalidBaseTableDependency,
         };
-        if (required == 0 or producer.sub_words.len < required)
+        // Implicit memory writers feed their canonical trace slab directly;
+        // they have no separately generated subcomponent-word slab.
+        const resident = if (dependency.kind == .capacity and producer.sub_words.len == 0 and producer.trace_columns.len != 0)
+            producer.trace_columns[0]
+        else
+            producer.sub_words;
+        if (required == 0 or resident.len < required)
             return error.InvalidBaseTableDependency;
         capability.* = .{
             .dependency = dependency,
-            .resident = try producer.sub_words.sub(0, required),
+            .resident = try resident.sub(0, required),
         };
     }
     return capabilities;
@@ -489,6 +500,20 @@ fn exactSlot(
     if (resident.len != descriptor.words)
         return error.InvalidResidentSlotExtent;
     return resident;
+}
+
+test "canonical CUDA memory range dependencies bind implicit trace capacity" {
+    const trace = [_]common.Words{.{ .address = 0x10000, .len = 16, .owner = 1, .generation = 1 }};
+    const empty = common.Words{ .address = 0, .len = 0, .owner = 1, .generation = 1 };
+    const components = [_]writer_views.Component{.{ .component_index = 27, .trace_columns = &trace, .lookup_words = empty, .sub_words = empty }};
+    var dependencies = [_]@import("../trace_schedule.zig").Dependency{.{ .producer_component_index = 27, .kind = .capacity, .word_base = 0, .words_per_instance = 0, .instances = 1 }};
+    const capabilities = try dependencyCapabilities(std.testing.allocator, &dependencies, .{ .components = &components });
+    defer std.testing.allocator.free(capabilities);
+    try std.testing.expectEqual(trace[0].address, capabilities[0].resident.address);
+    try std.testing.expectEqual(@as(usize, 1), capabilities[0].resident.len);
+    dependencies[0].kind = .producer_words;
+    dependencies[0].words_per_instance = 1;
+    try std.testing.expectError(error.InvalidBaseTableDependency, dependencyCapabilities(std.testing.allocator, &dependencies, .{ .components = &components }));
 }
 
 fn take(

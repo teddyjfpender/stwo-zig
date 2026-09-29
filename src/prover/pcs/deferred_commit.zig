@@ -24,6 +24,7 @@ const column_preparation = @import("columns/preparation.zig");
 const column_storage = @import("columns/storage.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const tree_builders = @import("tree_builders.zig");
+const merkle_layer_cache = @import("merkle_layer_cache.zig");
 
 const ColumnEvaluation = commitment_tree.ColumnEvaluation;
 
@@ -72,7 +73,13 @@ pub fn trySpawn(
             columns: []ColumnEvaluation,
             worker_work_recorder: ?*work_profile.Recorder(true),
             out: *P.Slot,
+            layer_source: ?merkle_layer_cache.LayerSource,
         ) void {
+            // This seam is coordinator-local. Capture its borrowed source at
+            // launch and bind it only for this tree's joined worker lifetime;
+            // unrelated commitments must never discover another source.
+            if (layer_source) |source| merkle_layer_cache.arm(source);
+            defer if (layer_source != null) merkle_layer_cache.disarm();
             var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING"))
                 std.time.Timer.start() catch null
             else
@@ -127,7 +134,7 @@ pub fn trySpawn(
     const thread = std.Thread.spawn(
         .{},
         Worker.run,
-        .{ scheme, allocator, owned_columns, work_recorder, slot },
+        .{ scheme, allocator, owned_columns, work_recorder, slot, merkle_layer_cache.armed() },
     ) catch {
         allocator.destroy(slot);
         return false;

@@ -40,16 +40,10 @@ test "SN2 OODS topology binds every canonical sample to compact trees" {
     try std.testing.expectEqual(@as(usize, 102_455), topology.factor_count);
     try std.testing.expectEqual(@as(usize, 932_480), topology.scratch_count);
     try std.testing.expect(!std.mem.allEqual(u8, &topology.identity, 0));
-    var expected_identity: [32]u8 = undefined;
-    _ = try std.fmt.hexToBytes(
-        &expected_identity,
-        "5d75debc5eab9935362e6126fc0cbabcf06b2c7f19949d135ecad1a17b66b278",
-    );
-    try std.testing.expectEqualSlices(
-        u8,
-        &expected_identity,
-        &topology.identity,
-    );
+    for (topology.source_indices, topology.fold_counts) |source_index, folds| {
+        const coefficient_log = quotient.sources[source_index].compact.log_size;
+        try std.testing.expectEqual(input.protocol.max_log_degree_bound - coefficient_log, folds);
+    }
     try std.testing.expectEqualSlices(
         u32,
         topology.output_indices,

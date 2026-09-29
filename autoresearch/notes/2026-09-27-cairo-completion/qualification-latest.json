@@ -1,0 +1,48 @@
+{
+  "scope": "Cairo completion speed batch, SN PIE 2 CPU and small CPU/Metal PIE parity",
+  "checks": [
+    {
+      "check": "core crypto and PCS",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_path": "/tmp/cairo-completion-plain-blake2-core-tests.log"
+    },
+    {
+      "check": "Merkle differential and borrowed streaming",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_path": "/tmp/cairo-completion-merkle-cache-v10-tests.log"
+    },
+    {
+      "check": "Cairo tree cache integrity and round trips",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_path": "/tmp/cairo-completion-tree-cache-v11-tests.log"
+    },
+    {
+      "check": "Metal host compact openings",
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_path": "/tmp/cairo-completion-metal-host-v12-tests.log"
+    },
+    {
+      "check": "CPU/Metal product checks and Metal product build",
+      "exit_code": 0,
+      "log_sha256": "cd086f73b2e819ae530a19ed78f2e5b9a2dbdc5f5d1082977cc2b1f0bf6c7bf3",
+      "log_path": "/tmp/cairo-completion-products-v12.log"
+    }
+  ],
+  "upstream_pin_gate": "passed",
+  "sn2_cpu_receipt": "sn2-e2e-cpu-v11.json",
+  "small_cpu_metal_receipts": [
+    "fibonacci-cpu-v12.json",
+    "fibonacci-metal-v12.json"
+  ],
+  "small_cpu_metal_proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+  "remaining": [
+    "SN PIE 1/3/4 full proof qualification",
+    "SN PIE 2 Metal qualification",
+    "native Cairo recursion port",
+    "10x CPU speed target"
+  ]
+}

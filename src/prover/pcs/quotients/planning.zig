@@ -32,11 +32,19 @@ pub const CombinedContributionPlan = struct {
 
     pub fn deinit(self: *CombinedContributionPlan, allocator: std.mem.Allocator) void {
         for (self.views) |view| {
-            for (view.coordinates) |coordinate| allocator.free(coordinate);
+            view.deinitCoordinates(allocator);
         }
         allocator.free(self.views);
         self.* = undefined;
     }
+};
+
+/// Inputs remain borrowed until the backend has synchronously joined the fold.
+/// Coordinate planes share one owner on the native coefficient path.
+pub const CoefficientFoldJob = struct {
+    source: []const M31,
+    coordinates: [qm31.SECURE_EXTENSION_DEGREE][]M31,
+    coefficients: [qm31.SECURE_EXTENSION_DEGREE]M31,
 };
 
 pub const CompactContributionMember = struct {
@@ -313,6 +321,19 @@ pub fn buildCombinedContributionPlan(
     nonzero_columns: []const bool,
     lifting_log_size: u32,
 ) !CombinedContributionPlan {
+    return buildCombinedContributionPlanForBackend(void, allocator, flat_columns, active_column_indices, contribution_ranges, contributions, nonzero_columns, lifting_log_size);
+}
+
+pub fn buildCombinedContributionPlanForBackend(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    flat_columns: []const ColumnEvaluation,
+    active_column_indices: []const usize,
+    contribution_ranges: []const ColumnContributionRange,
+    contributions: []const ColumnContribution,
+    nonzero_columns: []const bool,
+    lifting_log_size: u32,
+) !CombinedContributionPlan {
     if (active_column_indices.len != contribution_ranges.len or
         flat_columns.len != nonzero_columns.len)
     {
@@ -321,10 +342,13 @@ pub fn buildCombinedContributionPlan(
 
     var coefficient_groups = std.ArrayList(bool).empty;
     defer coefficient_groups.deinit(allocator);
+    const native_fold = comptime B != void and @hasDecl(B, "foldCoefficientContributions");
+    var fold_jobs = std.ArrayList(CoefficientFoldJob).empty;
+    defer fold_jobs.deinit(allocator);
     var views = std.ArrayList(CombinedContributionView).empty;
     defer views.deinit(allocator);
     errdefer for (views.items) |view| {
-        for (view.coordinates) |coordinate| allocator.free(coordinate);
+        view.deinitCoordinates(allocator);
     };
 
     for (active_column_indices, contribution_ranges) |column_idx, contribution_range| {
@@ -357,15 +381,21 @@ pub fn buildCombinedContributionPlan(
 
             if (view_index == null) {
                 var coordinates: [qm31.SECURE_EXTENSION_DEGREE][]M31 = undefined;
+                var backing: ?[]align(std.heap.page_size_max) M31 = null;
                 var initialized: usize = 0;
-                errdefer for (coordinates[0..initialized]) |coordinate| allocator.free(coordinate);
-                inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
+                errdefer if (backing) |owner| allocator.free(owner) else for (coordinates[0..initialized]) |coordinate| allocator.free(coordinate);
+                const native_fft = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
+                if (native_fft and coefficient_basis) {
+                    backing = try allocator.alignedAlloc(M31, comptime std.mem.Alignment.fromByteUnits(std.heap.page_size_max), try std.math.mul(usize, size, qm31.SECURE_EXTENSION_DEGREE));
+                    inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| coordinates[coord] = backing.?[coord * size ..][0..size];
+                } else inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
                     coordinates[coord] = try allocator.alloc(M31, size);
                     initialized += 1;
                 }
                 try coefficient_groups.append(allocator, coefficient_basis);
                 try views.append(allocator, .{
                     .coordinates = coordinates,
+                    .coordinate_backing = backing,
                     .batch_index = contribution.batch_index,
                     .shift_amt = shift_amt,
                     .is_direct = column.log_size == lifting_log_size,
@@ -376,6 +406,10 @@ pub fn buildCombinedContributionPlan(
 
             const coeffs = contribution.value_coeff.toM31Array();
             const view = &views.items[view_index.?];
+            if (native_fold and coefficient_basis) {
+                try fold_jobs.append(allocator, .{ .source = source, .coordinates = view.coordinates, .coefficients = coeffs });
+                continue;
+            }
             inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
                 if (created) {
                     @memset(view.coordinates[coord][source.len..], M31.zero());
@@ -395,6 +429,8 @@ pub fn buildCombinedContributionPlan(
         }
     }
 
+    if (native_fold and fold_jobs.items.len != 0) try B.foldCoefficientContributions(allocator, fold_jobs.items);
+
     // Fold in the native basis first: four FFTs per (sample, domain) group,
     // instead of materializing an LDE for every committed column.
     const poly = @import("../../poly/circle/mod.zig");
@@ -405,11 +441,10 @@ pub fn buildCombinedContributionPlan(
         const domain = poly.CanonicCoset.new(log).circleDomain();
         var transform = try twiddles.precomputeM31(allocator, domain.half_coset);
         defer twiddles.deinitM31(allocator, &transform);
-        try poly.poly.evaluateBuffersWithTwiddles(&view.coordinates, domain, .{
-            .root_coset = transform.root_coset,
-            .twiddles = transform.twiddles,
-            .itwiddles = transform.itwiddles,
-        });
+        const borrowed = twiddles.TwiddleTree([]const M31){ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles };
+        if (comptime B != void and @hasDecl(B, "evaluateCircleBuffers")) {
+            _ = try B.evaluateCircleBuffers(allocator, &view.coordinates, domain, borrowed);
+        } else try poly.poly.evaluateBuffersWithTwiddles(&view.coordinates, domain, borrowed);
     }
     return .{ .views = try views.toOwnedSlice(allocator) };
 }

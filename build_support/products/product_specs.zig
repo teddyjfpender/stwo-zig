@@ -91,13 +91,16 @@ pub const products = [_]Spec{
         .generated_module_roots = &.{
             "generated:options:",
             "generated:cairo-witness-cpu-aot:",
+            "generated:cairo-composition-cpu-aot:",
         },
         .dependency_module_roots = catalog.package_dependencies.cairo_cpu_protocol_package_roots,
         .configure_allowed_files = &.{
             "build_support/products/cairo_witness_cpu_aot.zig",
+            "build_support/products/cairo_composition_cpu_aot.zig",
         },
         .configure_allowed_prefixes = &.{
             "src/tools/cairo_witness_cpu_codegen",
+            "src/tools/cairo_composition_cpu_codegen",
             "third_party/bzip2",
         },
     },

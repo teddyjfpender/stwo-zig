@@ -25,6 +25,7 @@ LABEL_RE = re.compile(r"^[a-z0-9_]+$")
 MODULE_GLOBAL_REQUIREMENTS = {
     "none": 0,
     "pedersen_w18_columns_rows_v1": 1,
+    "pedersen_w9_columns_rows_v1": 2,
 }
 
 

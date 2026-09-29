@@ -40,6 +40,7 @@ const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const composition = @import("../../witness/composition_bundle.zig");
 const component_mod = @import("component.zig");
+pub const trace_lease = @import("trace_lease.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -75,6 +76,8 @@ pub const Session = struct {
     accepts: []const bool,
     evaluate: *const fn (context: *anyopaque, request: *const Request) anyerror!void,
     close: *const fn (context: *anyopaque) void,
+    /// Coefficient-backed trace reconstruction stays on the admitted device.
+    expansion: ?trace_lease.ExpansionExecutor = null,
 };
 
 /// The injection point carried on `Fixture`. Absent on the CPU product.
@@ -85,6 +88,7 @@ pub const Device = struct {
         context: *anyopaque,
         allocator: std.mem.Allocator,
         components: []const composition.Component,
+        column_log_sizes: []const []u32,
     ) anyerror!?Session,
 };
 
@@ -103,12 +107,15 @@ pub const Bound = struct {
     session: Session,
     recorder: ?*prover.stage_profile.Recorder,
     counts: Counts = .{},
+    closed: bool = false,
 
     pub fn asStage(self: *Bound) StageStruct {
         return .{ .context = self, .evaluate = evaluateAdapter };
     }
 
     pub fn close(self: *Bound) void {
+        if (self.closed) return;
+        self.closed = true;
         self.session.close(self.session.context);
         self.allocator.free(self.session.accepts);
     }
@@ -124,6 +131,11 @@ fn evaluateAdapter(
     result: *anyopaque,
 ) anyerror!bool {
     const self: *Bound = @ptrCast(@alignCast(context));
+    if (self.closed) return error.CompositionStageClosed;
+    // The synchronous evaluator joins all device work and returns an owned
+    // accumulator. Its staging arena/library are dead before PCS/FRI begins.
+    // The transaction's final close remains an idempotent failure safeguard.
+    defer self.close();
     const typed_trace: *const Trace = @ptrCast(@alignCast(trace));
     const evaluated = try evaluateStage(
         self,
@@ -158,6 +170,8 @@ fn evaluateStage(
 
     const pool = prover.work_pool.getGlobalPool();
     for (self.components, self.captured, self.session.accepts) |*runtime, *captured, accepted| {
+        var component_scope = try prover.stage_profile.StageScope.begin(self.recorder, if (accepted) "cairo_composition_component_device" else "cairo_composition_component_host", captured.label);
+        defer component_scope.end();
         if (!accepted) {
             self.counts.host_components += 1;
             if (pool) |ready| {
@@ -235,8 +249,10 @@ fn evaluateOnDevice(
     );
     defer allocator.free(coefficients);
 
+    var lease = try trace_lease.Lease.initWithExecutor(allocator, trace, captured, self.session.expansion);
+    defer lease.deinit();
     var context = component_mod.TraceContext{
-        .trace = trace,
+        .trace = lease.trace(),
         .captured = captured,
         .evaluation_log_size = captured.evaluation_log_size,
     };
@@ -273,4 +289,37 @@ test "a session that accepts nothing reproduces the host stage exactly" {
     try std.testing.expectEqual(@as(usize, 0), counts.device_components);
     try std.testing.expectEqual(@as(usize, 0), counts.host_components);
     try std.testing.expectEqual(@as(usize, 0), counts.device_fallbacks);
+}
+
+test "Cairo composition lifetime: failed evaluation closes device custody exactly once" {
+    const Probe = struct {
+        closes: usize = 0,
+        fn close(raw: *anyopaque) void {
+            const self: *@This() = @ptrCast(@alignCast(raw));
+            self.closes += 1;
+        }
+        fn evaluate(_: *anyopaque, _: *const Request) anyerror!void {
+            return error.UnexpectedDeviceCall;
+        }
+    };
+    var probe = Probe{};
+    const accepts = try std.testing.allocator.alloc(bool, 0);
+    var bound = Bound{
+        .allocator = std.testing.allocator,
+        .components = &.{},
+        .captured = &.{},
+        .session = .{ .context = &probe, .accepts = accepts, .evaluate = Probe.evaluate, .close = Probe.close },
+        .recorder = null,
+    };
+    defer bound.close();
+    var failure = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    var trace: Trace = undefined;
+    var result: SecureColumnByCoords = undefined;
+    const stage = bound.asStage();
+    try std.testing.expectError(error.OutOfMemory, stage.evaluate(stage.context, failure.allocator(), QM31.one(), 4, 1, &trace, &result));
+    try std.testing.expect(bound.closed);
+    try std.testing.expectEqual(@as(usize, 1), probe.closes);
+    bound.close();
+    try std.testing.expectEqual(@as(usize, 1), probe.closes);
+    try std.testing.expectError(error.CompositionStageClosed, stage.evaluate(stage.context, std.testing.allocator, QM31.one(), 4, 1, &trace, &result));
 }

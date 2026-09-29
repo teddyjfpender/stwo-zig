@@ -110,9 +110,14 @@ pub fn Operations(comptime H: type) type {
             scratch: ?[]align(@alignOf(M31)) u8,
             start: usize,
             end: usize,
+            cursor: ?*std.atomic.Value(usize) = null,
         };
 
         fn buildLeavesBatchedRange(ctx: *const BatchedLeafRangeCtx) void {
+            runLeafTickets(BatchedLeafRangeCtx, ctx, buildLeavesBatchedRangeTile);
+        }
+
+        fn buildLeavesBatchedRangeTile(ctx: *const BatchedLeafRangeCtx) void {
             if (comptime @hasDecl(H, "leafSeed") and @hasDecl(H, "hashPackedLeavesWithSeed4")) {
                 buildLeavesBatchedRange4(ctx);
                 return;
@@ -178,6 +183,18 @@ pub fn Operations(comptime H: type) type {
         }
 
         fn buildLeavesBatchedRange4(ctx: *const BatchedLeafRangeCtx) void {
+            if (comptime @hasDecl(H, "hashDirectLiftedM31LeavesWithSeed4")) {
+                if (ctx.start % 4 == 0 and ctx.end % 4 == 0) {
+                    const seed = H.leafSeed();
+                    var position = ctx.start;
+                    while (position < ctx.end) : (position += 4) {
+                        const hashes = H.hashDirectLiftedM31LeavesWithSeed4(seed, ctx.sorted_columns, position, ctx.max_log_size);
+                        inline for (0..4) |lane| ctx.out[position + lane] = hashes[lane];
+                    }
+                    return;
+                }
+            }
+
             if (comptime @hasDecl(H, "hashDirectM31LeavesWithSeed4")) {
                 var direct = true;
                 for (ctx.sorted_columns) |column| {
@@ -321,6 +338,7 @@ pub fn Operations(comptime H: type) type {
             const four_way_hashing = comptime @hasDecl(H, "leafSeed") and
                 @hasDecl(H, "hashPackedLeavesWithSeed4");
             const direct_four_way = blk: {
+                if (comptime four_way_hashing and @hasDecl(H, "hashDirectLiftedM31LeavesWithSeed4")) break :blk total_leaves >= 4;
                 if (comptime four_way_hashing and @hasDecl(H, "hashDirectM31LeavesWithSeed4")) {
                     for (sorted_columns) |column| {
                         if (column.log_size != max_log_size) break :blk false;
@@ -345,11 +363,8 @@ pub fn Operations(comptime H: type) type {
             defer if (scratch_words) |words| allocator.free(words);
 
             var contexts: [max_parallel_workers]BatchedLeafRangeCtx = undefined;
-            const batches = (total_leaves + per_worker_batch - 1) / per_worker_batch;
-            const batches_per_worker = (batches + worker_count - 1) / worker_count;
+            var cursor = std.atomic.Value(usize).init(0);
             for (0..worker_count) |worker| {
-                const start = @min(total_leaves, worker * batches_per_worker * per_worker_batch);
-                const end = @min(total_leaves, start + batches_per_worker * per_worker_batch);
                 contexts[worker] = .{
                     .seed_hasher = seed_hasher,
                     .sorted_columns = sorted_columns,
@@ -360,8 +375,9 @@ pub fn Operations(comptime H: type) type {
                         const scratch_start = worker * scratch_words_per_worker;
                         break :blk std.mem.sliceAsBytes(words[scratch_start..][0..scratch_words_per_worker]);
                     } else null,
-                    .start = start,
-                    .end = end,
+                    .start = 0,
+                    .end = total_leaves,
+                    .cursor = if (worker_count > 1) &cursor else null,
                 };
             }
 
@@ -603,6 +619,7 @@ pub fn Operations(comptime H: type) type {
             group_columns: []const ColumnRef,
             start: usize,
             end: usize,
+            cursor: ?*std.atomic.Value(usize) = null,
         };
 
         const GenericLeafRangeCtx = struct {
@@ -701,6 +718,10 @@ pub fn Operations(comptime H: type) type {
         }
 
         fn updateLeafHashersPackedRange(ctx: *const PackedLeafRangeCtx) void {
+            runLeafTickets(PackedLeafRangeCtx, ctx, updateLeafHashersPackedRangeTile);
+        }
+
+        fn updateLeafHashersPackedRangeTile(ctx: *const PackedLeafRangeCtx) void {
             var tile_start = ctx.start;
             while (tile_start < ctx.end) : (tile_start += leaf_tile_len) {
                 const tile_end = @min(ctx.end, tile_start + leaf_tile_len);
@@ -777,18 +798,16 @@ pub fn Operations(comptime H: type) type {
             defer allocator.free(scratch_words);
 
             var contexts: [max_parallel_workers]PackedLeafRangeCtx = undefined;
-            const tiles = (layer_size + leaf_tile_len - 1) / leaf_tile_len;
-            const tiles_per_worker = (tiles + actual_workers - 1) / actual_workers;
+            var cursor = std.atomic.Value(usize).init(0);
             for (0..actual_workers) |worker| {
-                const start = @min(layer_size, worker * tiles_per_worker * leaf_tile_len);
-                const end = @min(layer_size, start + tiles_per_worker * leaf_tile_len);
                 const scratch_start = worker * scratch_words_per_worker;
                 contexts[worker] = .{
                     .scratch = std.mem.sliceAsBytes(scratch_words[scratch_start..][0..scratch_words_per_worker]),
                     .leaf_hashers = leaf_hashers,
                     .group_columns = group_columns,
-                    .start = start,
-                    .end = end,
+                    .start = 0,
+                    .end = layer_size,
+                    .cursor = if (actual_workers > 1) &cursor else null,
                 };
             }
 
@@ -838,4 +857,20 @@ pub fn Operations(comptime H: type) type {
             }
         }
     };
+}
+
+/// Workers retain their private scratch while claiming disjoint aligned leaf
+/// intervals. Joining the wave preserves per-leaf absorption order and custody.
+fn runLeafTickets(comptime Context: type, context: *const Context, comptime execute: anytype) void {
+    const cursor = context.cursor orelse return execute(context);
+    // Supply several tickets per worker even for small domains, while keeping
+    // large intervals bounded and aligned to the 256-row scratch tile.
+    const rows = @min(@as(usize, 1 << 14), @max(@as(usize, 256), context.end / 128));
+    var tile = context.*;
+    while (true) {
+        tile.start = cursor.fetchAdd(rows, .monotonic);
+        if (tile.start >= context.end) return;
+        tile.end = @min(tile.start + rows, context.end);
+        execute(&tile);
+    }
 }

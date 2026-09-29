@@ -24,6 +24,8 @@ stwo-cairo-adapter = { git = "https://github.com/starkware-libs/stwo-cairo", rev
 stwo-cairo-common = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 stwo-cairo-prover = { git = "https://github.com/starkware-libs/stwo-cairo", rev = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78" }
 
+stwo-constraint-framework = { git = "https://github.com/starkware-libs/stwo", rev = "7b211edd", features = ["prover"] }
+
 [profile.release]
 codegen-units = 1
 lto = "thin"

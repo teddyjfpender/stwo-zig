@@ -207,10 +207,46 @@ pub const TableContext = struct {
     }
 };
 
+pub const DeduceBatch = struct {
+    rows: usize,
+    args: []const u32,
+    arg_stride: usize,
+    arg_count: usize,
+    outputs: []u32,
+    output_stride: usize,
+    output_count: usize,
+
+    pub fn validate(self: DeduceBatch) !void {
+        if (self.rows == 0 or self.arg_count == 0 or self.output_count == 0 or
+            self.arg_stride < self.arg_count or self.output_stride < self.output_count)
+            return error.InvalidDeduceBatch;
+        const last_args = try std.math.mul(usize, self.rows - 1, self.arg_stride);
+        const last_outputs = try std.math.mul(usize, self.rows - 1, self.output_stride);
+        if (try std.math.add(usize, last_args, self.arg_count) > self.args.len or
+            try std.math.add(usize, last_outputs, self.output_count) > self.outputs.len)
+            return error.InvalidDeduceBatch;
+    }
+
+    pub fn rowArgs(self: DeduceBatch, row: usize) []const u32 {
+        return self.args[row * self.arg_stride ..][0..self.arg_count];
+    }
+
+    pub fn rowOutputs(self: DeduceBatch, row: usize) []u32 {
+        return self.outputs[row * self.output_stride ..][0..self.output_count];
+    }
+};
+
 pub const DeduceContext = struct {
     context: *anyopaque,
     call_fn: *const fn (*anyopaque, u32, []const u32, []u32) anyerror!void,
     table_call_fn: ?*const fn (*anyopaque, u32, []const u32, []u32, TableContext) anyerror!void = null,
+    batch_call_fn: ?*const fn (*anyopaque, u32, DeduceBatch, TableContext) anyerror!void = null,
+
+    pub fn callBatch(self: DeduceContext, selector: u32, batch: DeduceBatch, tables: TableContext) !void {
+        try batch.validate();
+        if (self.batch_call_fn) |call_batch| return call_batch(self.context, selector, batch, tables);
+        for (0..batch.rows) |row| try self.call(selector, batch.rowArgs(row), batch.rowOutputs(row), tables);
+    }
 
     pub fn call(
         self: DeduceContext,

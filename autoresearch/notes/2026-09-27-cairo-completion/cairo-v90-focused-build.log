@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded
+test-stwo-prover-coefficient-storage success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 21s MaxRSS:780M
+test-cairo-trace-lease success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 4s MaxRSS:324M
+

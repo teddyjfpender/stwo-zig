@@ -5,6 +5,7 @@ const build_identity = @import("../build_identity.zig");
 const cairo_oracle_gate = @import("cairo_cpu/oracle_gate.zig");
 const cairo_csp_fixtures = @import("cairo_cpu/csp_fixtures.zig");
 const cairo_support = @import("cairo_support.zig");
+const cairo_composition_cpu_aot = @import("cairo_composition_cpu_aot.zig");
 const cairo_witness_cpu_aot = @import("cairo_witness_cpu_aot.zig");
 const cairo_vm_adapter = @import("cairo_cpu/vm_adapter.zig");
 const cairo_zkvm_fixtures = @import("cairo_cpu/zkvm_fixtures.zig");
@@ -17,7 +18,7 @@ const policy = @import("../graph/product.zig");
 
 const protocol_features =
     cairo_support.protocol_features ++
-    "+authenticated-witness-cpu-aot-v1";
+    "+authenticated-witness-cpu-aot-v2+authenticated-composition-cpu-aot-v1";
 
 const source_closure = policy.SourceClosure{
     .entry_roots = &.{
@@ -38,6 +39,7 @@ const source_closure = policy.SourceClosure{
     },
     .generated_imports = &.{
         "cairo_witness_cpu_aot",
+        "cairo_composition_cpu_aot",
         "product_identity",
     },
     .allowed_files = &.{
@@ -100,6 +102,16 @@ pub fn addProduct(context: Context) void {
         .{@errorName(err)},
     );
     const stwo = createStwoModule(context, .library);
+    const export_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/tools/cairo_preprocessed_export/main.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    export_root.addImport("stwo", stwo);
+    const exporter = context.b.addExecutable(.{ .name = "cairo-preprocessed-export", .root_module = export_root });
+    const install_exporter = context.b.addInstallArtifact(exporter, .{});
+    context.b.step("cairo-preprocessed-export", "Build the bounded canonical coefficient exporter").dependOn(&install_exporter.step);
+
     const shared = createSharedProductModule(context, .library, stwo);
     const witness_aot = cairo_witness_cpu_aot.createModule(
         context.b,
@@ -142,6 +154,66 @@ pub fn addProduct(context: Context) void {
         test_witness_aot,
     );
     const tests = context.b.addTest(.{ .root_module = test_root });
+    const native_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/products/cairo_cpu/native_composition_test.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    native_root.addImport("stwo_cairo_cpu", stwo);
+    native_root.addImport("cairo_composition_cpu_aot", root.import_table.get("cairo_composition_cpu_aot").?);
+    const native_tests = context.b.addTest(.{ .root_module = native_root, .filters = &.{"Cairo native CPU AIR"} });
+    context.b.step("test-cairo-cpu-native-composition", "Qualify every authenticated native CPU AIR kernel against SIMD").dependOn(&context.b.addRunArtifact(native_tests).step);
+    const cache_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/frontends/cairo/cache_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    cache_root.addImport("stwo_core", context.protocol.core);
+    cache_root.addImport("stwo_prover_engine", context.protocol.prover);
+    const cache_tests = context.b.addTest(.{ .root_module = cache_root });
+    context.b.step("test-cairo-preprocessed-cache", "Qualify public preprocessing cache identity and safe fallback").dependOn(&context.b.addRunArtifact(cache_tests).step);
+    const storage_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/frontends/cairo/witness_storage_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    storage_root.addImport("stwo_core", context.protocol.core);
+    storage_root.addImport("stwo_prover_engine", context.protocol.prover);
+    storage_root.addImport("stwo_prover_api", context.protocol.prover_api);
+    const storage_tests = context.b.addTest(.{ .root_module = storage_root, .filters = &.{ "Cairo witness final storage", "Cairo gathered inputs" } });
+    context.b.step("test-cairo-witness-storage", "Qualify borrowed final witness storage and allocation failure custody").dependOn(&context.b.addRunArtifact(storage_tests).step);
+    const incremental_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/frontends/cairo/incremental_multiplicities_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    incremental_root.addImport("stwo_core", context.protocol.core);
+    incremental_root.addImport("stwo_prover_engine", context.protocol.prover);
+    incremental_root.addImport("stwo_prover_api", context.protocol.prover_api);
+    const incremental_tests = context.b.addTest(.{ .root_module = incremental_root, .filters = &.{"Cairo incremental feeds"} });
+    context.b.step("test-cairo-incremental-multiplicities", "Qualify streamed multiplicities, last-consumer retirement and failure custody")
+        .dependOn(&context.b.addRunArtifact(incremental_tests).step);
+    const trace_lease_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/frontends/cairo/trace_lease_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    trace_lease_root.addImport("stwo_core", context.protocol.core);
+    trace_lease_root.addImport("stwo_prover_engine", context.protocol.prover);
+    trace_lease_root.addImport("stwo_prover_api", context.protocol.prover_api);
+    const trace_lease_tests = context.b.addTest(.{ .root_module = trace_lease_root, .filters = &.{ "Cairo trace lease", "Cairo preprocessed source batching" } });
+    context.b.step("test-cairo-trace-lease", "Qualify scoped coefficient reconstruction, parallel parity and allocation failure custody")
+        .dependOn(&context.b.addRunArtifact(trace_lease_tests).step);
+    const lifetime_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/frontends/cairo/composition_lifetime_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    lifetime_root.addImport("stwo_core", context.protocol.core);
+    lifetime_root.addImport("stwo_prover_engine", context.protocol.prover);
+    lifetime_root.addImport("stwo_prover_api", context.protocol.prover_api);
+    const lifetime_tests = context.b.addTest(.{ .root_module = lifetime_root, .filters = &.{"Cairo composition lifetime"} });
+    context.b.step("test-cairo-composition-lifetime", "Qualify device composition staging release and failure custody").dependOn(&context.b.addRunArtifact(lifetime_tests).step);
     cairo_support.linkBzip2(context.b, tests);
     const test_step = context.b.step(
         descriptor.test_step.?,
@@ -233,6 +305,7 @@ fn createProductModule(
     root.addImport("stwo_cairo_cpu", stwo);
     root.addImport("cairo_product", shared);
     root.addImport("cairo_witness_cpu_aot", witness_aot);
+    root.addImport("cairo_composition_cpu_aot", cairo_composition_cpu_aot.createModule(context.b, context.target, context.optimize, stwo));
     root.addOptions(
         "product_identity",
         graph_identity.productOptions(

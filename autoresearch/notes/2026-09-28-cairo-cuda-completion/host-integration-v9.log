@@ -1,0 +1,32 @@
+test
++- run test stderr
+cairo-cuda unknown resident slot id=10 slots=2
+cairo-cuda decommit phase=validate failed
+SN2 decommit controller: query_step=38 groups=139 records=12 identity=d14513e4066f87ee8d1b8088ea37e81cd3c62c2dc878b44094f09dc658f45be8 route=04c52c13e7795fb15578993564a09547ff0b2271816ecfd2d06eb77bf7034907
+SN2 decommit topology: trace_trees=4 groups=139 fri_trees=8 query_log=24 assembly_words=2077800 identity=c545b14a4273501501e5e13b32138bee5a893aa899fba4d7acf12ed278e7e2f9
+SN2 OODS controller: batches=365 transcript=17/18/19 identity=6ed743750550996a7c43e7dff7caa28acba3a032a4df360c8747d9ce6708f952
+SN2 OODS topology: samples=6110 cohorts=365 factors=102455 scratch=932480 identity=b4e1f6e54f229864653f79e3315fe9a1ea89398798d2354f89e5e009b763e9c4
+SN2 CUDA resident plan: slots=142 coefficient_cells=3717220288 lde_cells=7434440576 logical_bytes=70703579160 peak_live_bytes=58776180840 allocated_bytes=58843270060 terminal_words=2102610 decommit_words=878280 fits_h100_80gb=true
+cairo-cuda terminal header index=1 expected=1 actual=0
+cairo-cuda terminal header index=15 expected=0 actual=1
+cairo-cuda native trace seal failed: member_shape=true member_binding_catalog=false root_prepared_catalog=true member_prepared_catalog=true root_binding_nonzero=true member_binding_nonzero=true
+cairo-cuda trace binding test#0 ordinal=4 launch=4 failed: TraceWriterBindingMismatch
+cairo-cuda trace binding test#0 ordinal=0 launch=1 failed: TraceWriterBindingMismatch
+cairo-cuda native trace seal failed: member_shape=true member_binding_catalog=true root_prepared_catalog=true member_prepared_catalog=false root_binding_nonzero=true member_binding_nonzero=true
+cairo-cuda trace binding test#0 ordinal=4 launch=4 failed: TraceWriterBindingMismatch
+cairo-cuda trace body validation launch=4 component=4 failed: TraceWriterBindingMismatch
+cairo-cuda trace binding test#0 ordinal=1 launch=2 failed: TraceWriterBindingMismatch
+cairo-cuda trace binding test#0 ordinal=3 launch=3 failed: TraceWriterBindingMismatch
+cairo-cuda invalid ownership test#0 index=1
+cairo-cuda trace schedule authority failed: TraceWriterBindingMismatch
+cairo-cuda dependency order failed producer=test#0 consumer=test#0 kind=producer_words
+cairo-cuda trace schedule authority failed: TraceWriterBindingMismatch
+cairo-cuda invalid dependency test#0 index=5 producer=3 kind=native_ec_workspace words=0 instances=1
+cairo-cuda trace schedule authority failed: TraceWriterBindingMismatch
+SN2 quotient topology: samples=6110 terms=6342 groups=19 sources=5886 source_evaluation_words=7434440576 partial_words=20971472 identity=02c699fc8ce8daa2777eadd776d19508eebe9a3bcee2034649793693d6cf256f
+
+Build Summary: 3/3 steps succeeded; 111/118 tests passed; 7 skipped
+test success
++- run test 111 passed 7 skipped 2s MaxRSS:30M
+   +- compile test ReleaseFast native success 19s MaxRSS:1G
+

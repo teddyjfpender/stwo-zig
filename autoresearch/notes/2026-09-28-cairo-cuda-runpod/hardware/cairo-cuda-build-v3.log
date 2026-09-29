@@ -1,0 +1,44 @@
+stwo-cairo-cuda
++- install generated to lib/libstwo_cuda_kernels.a
+   +- run python3 (stwo-native-cuda-runtime)
+      +- run exe cairo-cuda-witness-aot (native-cuda-product)
+         +- compile exe cairo-cuda-witness-aot ReleaseFast native 1 errors
+src/tools/cairo_witness_cpu_codegen/model.zig:41:40: error: no module named 'cairo_deduction_contract' available within module 'cairo_witness_model'
+pub const deduction_contract = @import("cairo_deduction_contract");
+                                       ^~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    DeduceKind: src/tools/cairo_witness_cpu_codegen/model.zig:42:24
+    needsPedersen: src/tools/cairo_cuda_witness_aot/main.zig:194:18
+    7 reference(s) hidden; use '-freference-trace=9' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/zig/zig-x86_64-linux-0.15.2/zig build-exe -OReleaseFast --dep cairo_witness_model -Mroot=/workspace/stwo-zig/src/tools/cairo_cuda_witness_aot/main.zig -OReleaseFast -Mcairo_witness_model=/workspace/stwo-zig/src/tools/cairo_witness_cpu_codegen/model.zig --cache-dir .zig-cache/products/cairo_cuda --global-cache-dir /root/.cache/zig --name cairo-cuda-witness-aot --zig-lib-dir /opt/zig/zig-x86_64-linux-0.15.2/lib/ --listen=-
+stwo-cairo-cuda
++- install generated to lib/libstwo_cuda_kernels.a
+   +- run python3 (stwo-native-cuda-runtime)
+      +- run exe cairo-cuda-eval-aot (cairo-cuda-eval-aot) stderr
+generated 271 authenticated bodies for 279 exact SN2 placements
+
+Build Summary: 3/10 steps succeeded; 1 failed
+stwo-cairo-cuda transitive failure
++- install stwo-cairo-cuda transitive failure
+|  +- compile exe stwo-cairo-cuda ReleaseFast native transitive failure
+|     +- run python3 (stwo-native-cuda-runtime) transitive failure
+|     |  +- run exe cairo-cuda-witness-aot (native-cuda-product) transitive failure
+|     |     +- compile exe cairo-cuda-witness-aot ReleaseFast native 1 errors
+|     +- run python3 (stwo-native-cuda-runtime) (+2 more reused dependencies)
++- install generated to lib/libstwo_cuda_kernels.a transitive failure
+   +- run python3 (stwo-native-cuda-runtime) (+2 more reused dependencies)
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/cairo_cuda/o/c0fa79e27babeab0665be154d22aeca0/build /opt/zig/zig-x86_64-linux-0.15.2/zig /opt/zig/zig-x86_64-linux-0.15.2/lib /workspace/stwo-zig/build_support .zig-cache/products/cairo_cuda /root/.cache/zig --seed 0x85bf0f8 -Z5a94ea78c8d230eb stwo-cairo-cuda -p /workspace/stwo-zig/zig-out -Drepository-root=/workspace/stwo-zig -Dproduct-scope=cairo_cuda -Doptimize=ReleaseFast -Dcuda-nvcc=/usr/local/cuda/bin/nvcc -Dcuda-host-cxx=/usr/bin/g++ -Dcuda-host-runtime=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -Dcuda-host-unwind-runtime=/usr/lib/x86_64-linux-gnu/libgcc_s.so.1 -Dcuda-ar=/usr/bin/ar -Dcuda-home=/usr/local/cuda -Dcuda-library-dir=/usr/local/cuda/lib64 -Dcuda-arch=sm_90 -Dcuda-build-jobs=8 -Dimplementation-commit=7e95ce3017c16be868f9c0ea883c3c5c112723d8 -Dimplementation-dirty=true -Dimplementation-tree=8643e2a01b54874f7a738d20e68f27a958cea75d -Dimplementation-dirty-content-sha256=df33eb098bce5f60e193c6806fe50953e7c4da2fbb2b1efbff3767b21c34ae71
+stwo-cairo-cuda
++- run /opt/zig/zig-x86_64-linux-0.15.2/zig failure
+error: the following command exited with error code 1:
+/opt/zig/zig-x86_64-linux-0.15.2/zig build stwo-cairo-cuda --build-file /workspace/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/cairo_cuda -p /workspace/stwo-zig/zig-out -Drepository-root=/workspace/stwo-zig -Dproduct-scope=cairo_cuda -Doptimize=ReleaseFast -Dcuda-nvcc=/usr/local/cuda/bin/nvcc -Dcuda-host-cxx=/usr/bin/g++ -Dcuda-host-runtime=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -Dcuda-host-unwind-runtime=/usr/lib/x86_64-linux-gnu/libgcc_s.so.1 -Dcuda-ar=/usr/bin/ar -Dcuda-home=/usr/local/cuda -Dcuda-library-dir=/usr/local/cuda/lib64 -Dcuda-arch=sm_90 -Dcuda-build-jobs=8 -Dimplementation-commit=7e95ce3017c16be868f9c0ea883c3c5c112723d8 -Dimplementation-dirty=true -Dimplementation-tree=8643e2a01b54874f7a738d20e68f27a958cea75d -Dimplementation-dirty-content-sha256=df33eb098bce5f60e193c6806fe50953e7c4da2fbb2b1efbff3767b21c34ae71
+
+Build Summary: 0/2 steps succeeded; 1 failed
+stwo-cairo-cuda transitive failure
++- run /opt/zig/zig-x86_64-linux-0.15.2/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/2f5afdb1a88b1c649d333ba1801a630b/build /opt/zig/zig-x86_64-linux-0.15.2/zig /opt/zig/zig-x86_64-linux-0.15.2/lib /workspace/stwo-zig .zig-cache /root/.cache/zig --seed 0xa5a0a4f9 -Zb28956739d4d62f1 stwo-cairo-cuda -Doptimize=ReleaseFast -Dimplementation-commit=7e95ce3017c16be868f9c0ea883c3c5c112723d8 -Dimplementation-dirty=true -Dimplementation-dirty-content-sha256=df33eb098bce5f60e193c6806fe50953e7c4da2fbb2b1efbff3767b21c34ae71 -Dcuda-nvcc=/usr/local/cuda/bin/nvcc -Dcuda-host-cxx=/usr/bin/g++ -Dcuda-host-runtime=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -Dcuda-host-unwind-runtime=/usr/lib/x86_64-linux-gnu/libgcc_s.so.1 -Dcuda-ar=/usr/bin/ar -Dcuda-home=/usr/local/cuda -Dcuda-library-dir=/usr/local/cuda/lib64 -Dcuda-arch=sm_90 -Dcuda-build-jobs=8 -j2 --summary all -Dimplementation-tree=8643e2a01b54874f7a738d20e68f27a958cea75d

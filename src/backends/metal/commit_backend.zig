@@ -64,10 +64,15 @@ pub const MetalCommitBackend = struct {
     pub const preferMonolithicCommit = true;
     // No-copy bind when source == coefficient arena (`circle_legacy.m:227`).
     pub const adopts_source_trace_arena = true;
+    pub const supports_preprocessed_preparation_cache = true;
     // Resident composition addresses each component as a tightly packed run
     // of columns.  Keeping the LDE arena compact also lets the Merkle tree and
     // every later polynomial batch share that one proof-owned Metal view.
     pub const requires_contiguous_resident_columns = true;
+    // Each joined LDE epoch retires its temporary coefficients and fragmented
+    // source columns. The final evaluation arena remains one resident binding.
+    pub const circle_lde_epoch_coefficient_bytes: usize = 256 * 1024 * 1024;
+
     // Apple-silicon pages are 16 KiB; this is also a multiple of Intel macOS's
     // 4 KiB pages, so `newBufferWithBytesNoCopy` can bind either target.
     pub const resident_column_arena_alignment = std.mem.Alignment.fromByteUnits(16 * 1024);
@@ -149,6 +154,11 @@ pub const MetalCommitBackend = struct {
                 "Metal circle LDE batch: {} direct groups, {d:.3}ms GPU",
                 .{ stats.encoded_operations, stats.gpu_milliseconds },
             );
+            if (std.posix.getenv("STWO_METAL_PROFILE_LDE") != null)
+                std.debug.print(
+                    "metal_circle_lde groups={} gpu_ms={d:.3}\n",
+                    .{ stats.encoded_operations, stats.gpu_milliseconds },
+                );
         }
 
         fn captureParityGroup(
@@ -452,6 +462,21 @@ pub const MetalCommitBackend = struct {
 
     pub const tryCommitStreamingMerkle = @import("runtime/blake3_streaming_leaves.zig").tryCommit;
 
+    pub const supportsCompactQuotientInputs = true;
+    pub const supports_compact_arena_borrow = true;
+
+    pub fn supportsCompactStreaming(comptime H: type) bool {
+        const b2 = @import("stwo_core").vcs_lifted.blake2_merkle;
+        return H == b2.Blake2sPlainMerkleHasher or H == b2.Blake2sMerkleHasher;
+    }
+
+    pub const CompactStreamingCommitter = @import("runtime/compact_streaming_committer.zig").Committer;
+
+    /// Native streaming hashes already reside in proof-owned upper layers.
+    pub fn adoptNativeStreamingMerkle(comptime H: type, tree: merkle.MerkleProverLifted(H)) MerkleTree(H) {
+        return MerkleTree(H).fromHost(tree);
+    }
+
     pub fn adoptHostMerkle(
         comptime H: type,
         tree: merkle.MerkleProverLifted(H),
@@ -459,6 +484,53 @@ pub const MetalCommitBackend = struct {
         telemetry.record(.host_merkle_commit);
         telemetry.record(.cpu_streaming_merkle_commit);
         return MerkleTree(H).fromHost(tree);
+    }
+
+    /// An authenticated artifact supplies hashes without a host commitment.
+    /// Later sampling retains proof-owned Metal column views independently.
+    pub fn adoptCachedMerkle(
+        comptime H: type,
+        allocator: std.mem.Allocator,
+        columns: []const []const @import("stwo_core").fields.m31.M31,
+        backings: ?[][]@import("stwo_core").fields.m31.M31,
+        tree: merkle.MerkleProverLifted(H),
+    ) !MerkleTree(H) {
+        return adoptFixedMerkleLayers(H, allocator, columns, backings, tree, .cached_merkle_artifact_adoption);
+    }
+
+    /// Fresh device hashes can retain their upper layers immediately, without
+    /// waiting for a second proof to load an artifact from disk.
+    pub fn adoptCompactedMerkle(
+        comptime H: type,
+        allocator: std.mem.Allocator,
+        columns: []const []const @import("stwo_core").fields.m31.M31,
+        backings: ?[][]@import("stwo_core").fields.m31.M31,
+        tree: merkle.MerkleProverLifted(H),
+    ) !MerkleTree(H) {
+        return adoptFixedMerkleLayers(H, allocator, columns, backings, tree, .compacted_merkle_layer_adoption);
+    }
+
+    fn adoptFixedMerkleLayers(
+        comptime H: type,
+        allocator: std.mem.Allocator,
+        columns: []const []const @import("stwo_core").fields.m31.M31,
+        backings: ?[][]@import("stwo_core").fields.m31.M31,
+        tree: merkle.MerkleProverLifted(H),
+        event: telemetry.Event,
+    ) !MerkleTree(H) {
+        var owned = tree;
+        errdefer owned.deinit(allocator);
+        var lease = try shared_runtime.acquire();
+        defer lease.deinit();
+        const view = try @import("runtime/cached_column_views.zig").create(
+            lease.runtime,
+            allocator,
+            columns,
+            backings,
+            tree.maxLogSize(),
+        );
+        telemetry.record(event);
+        return MerkleTree(H).fromCached(tree, view);
     }
 
     pub fn quotientResidencyHandle(
@@ -658,6 +730,10 @@ pub const MetalCommitBackend = struct {
         return !std.process.hasEnvVarConstant("STWO_ZIG_CPU_HOST_BARYCENTRIC");
     }
 
+    /// The PCS planner can keep resident and staged trees in separate epochs.
+    /// Host slab limits then apply only to trees that actually need an upload.
+    pub const supportsBarycentricResidencyEpochs = true;
+
     pub fn supportsHostBarycentricColumns(columns: anytype) bool {
         if (!supportsMixedSampledEvaluation()) return false;
         for (columns) |column| if (column.log_size > 24) return false;
@@ -770,6 +846,8 @@ pub const MetalCommitBackend = struct {
         try execution.validate();
         return execution;
     }
+
+    pub const foldCoefficientContributions = @import("runtime/native_coefficient_fold.zig").fold;
 
     pub fn evaluateCircleBuffers(
         allocator: std.mem.Allocator,

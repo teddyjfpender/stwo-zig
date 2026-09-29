@@ -49,7 +49,7 @@ const countKernelDeclarations = manifest.testing.countKernelDeclarations;
 const kernelDeclaration = manifest.testing.kernelDeclaration;
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 199), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 233), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
@@ -72,7 +72,7 @@ fn expectIsolated(source: []const u8, names: []const []const u8) !void {
 
 test "metal shader manifest exactly covers source and runtime exports" {
     const runtime_source = @embedFile("../runtime.m");
-    try std.testing.expectEqual(@as(usize, 211), exports.len);
+    try std.testing.expectEqual(@as(usize, 245), exports.len);
 
     var declaration_count: usize = 0;
     var remaining: []const u8 = amalgamated_source[0 .. amalgamated_source.len - 1];
@@ -100,9 +100,10 @@ test "metal shader manifest exactly covers source and runtime exports" {
 }
 
 test "commitment shader bindings match core ABI version 24" {
-    try std.testing.expectEqual(@as(u32, 24), core_shader_abi);
+    try std.testing.expectEqual(@as(u32, 27), core_shader_abi);
     const bindings = [_]struct { kernel: []const u8, argument: []const u8 }{
         .{ .kernel = "stwo_zig_blake2s_leaves", .argument = "prefix_bytes [[buffer(7)]]" },
+        .{ .kernel = "stwo_zig_blake2s_leaves_wide", .argument = "device const ulong *column_offsets [[buffer(1)]]" },
         .{ .kernel = "stwo_zig_blake2s_parents", .argument = "prefix_bytes [[buffer(4)]]" },
         .{ .kernel = "stwo_zig_blake2s_parents_sparse", .argument = "prefix_bytes [[buffer(5)]]" },
         .{ .kernel = "stwo_zig_blake2s_parent_tail_sparse", .argument = "transcript_config [[buffer(7)]]" },

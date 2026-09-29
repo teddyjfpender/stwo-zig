@@ -40,13 +40,62 @@ pub const SourceRegistry = struct {
     allocator: std.mem.Allocator,
     sources: []ComponentSources,
     base_columns: []common.Words,
+    captures: []Capture,
+
+    const Capture = struct { source: common.Words, destination: common.Words };
+
+    /// Runs before the in-place main-trace interpolation. No host reads or
+    /// whole-trace duplicate are needed; lookup slabs already survive it.
+    pub fn captureBaseInputs(self: *const SourceRegistry, session: anytype) !void {
+        try common.requireStage(session, .trace_commit);
+        for (self.captures) |capture| {
+            try session.context.copyDeviceSlice(u32, capture.destination, capture.source);
+        }
+    }
 
     pub fn deinit(self: *SourceRegistry) void {
         self.allocator.free(self.base_columns);
+        self.allocator.free(self.captures);
         self.allocator.free(self.sources);
         self.* = undefined;
     }
 };
+
+test "direct relation inputs survive in-place commitment interpolation" {
+    const telemetry = @import("stwo_cuda_backend").runtime.telemetry;
+    const FakeContext = struct {
+        active: telemetry.Stage = .trace_commit,
+        copies: usize = 0,
+
+        pub fn requireStage(self: *@This(), stage: telemetry.Stage) !void {
+            if (self.active != stage) return error.StageOrderViolation;
+        }
+
+        pub fn copyDeviceSlice(self: *@This(), comptime T: type, destination: common.Words, source: common.Words) !void {
+            if (destination.len != source.len) return error.SizeOverflow;
+            const out: [*]T = @ptrFromInt(destination.address);
+            const in: [*]const T = @ptrFromInt(source.address);
+            @memcpy(out[0..destination.len], in[0..source.len]);
+            self.copies += 1;
+        }
+    };
+    var original = [_]u32{ 3, 8, 13, 21, 34, 55, 89, 144 };
+    var retained = [_]u32{0} ** 8;
+    const source = common.Words{ .address = @intFromPtr(&original), .len = original.len, .owner = 1, .generation = 1 };
+    const destination = common.Words{ .address = @intFromPtr(&retained), .len = retained.len, .owner = 1, .generation = 1 };
+    var captures = [_]SourceRegistry.Capture{.{ .source = source, .destination = destination }};
+    const registry = SourceRegistry{ .allocator = std.testing.allocator, .sources = &.{}, .base_columns = &.{}, .captures = &captures };
+    var context = FakeContext{};
+    const session = .{ .context = &context };
+    const expected = original;
+    try registry.captureBaseInputs(session);
+    @memset(&original, 0);
+    try std.testing.expectEqualSlices(u32, &expected, &retained);
+    try std.testing.expectEqual(@as(usize, 1), context.copies);
+    context.active = .constraint_evaluation;
+    try std.testing.expectError(error.StageOrderViolation, registry.captureBaseInputs(session));
+    try std.testing.expectEqual(@as(usize, 1), context.copies);
+}
 
 /// Partitions retained lookup slabs in canonical component order and resolves
 /// every non-lookup relation against its authenticated main-writer output.
@@ -60,13 +109,17 @@ pub fn buildSourceRegistry(
     schedule: trace_schedule.Schedule,
     views: writer_views.Registry,
     main_commit: anytype,
+    retained: common.Words,
 ) !SourceRegistry {
     if (relations.instances.len != schedule.entries.len)
         return error.InvalidRelationSourceCount;
     var base_count: usize = 0;
+    var capture_count: usize = 0;
     for (relations.instances) |instance| {
-        if (instance.layout != .lookup_words)
+        if (instance.layout != .lookup_words) {
             base_count = try add(base_count, instance.source_pointer_count);
+            capture_count += 1;
+        }
     }
     const sources = try allocator.alloc(
         ComponentSources,
@@ -75,8 +128,12 @@ pub fn buildSourceRegistry(
     errdefer allocator.free(sources);
     const base_columns = try allocator.alloc(common.Words, base_count);
     errdefer allocator.free(base_columns);
+    const captures = try allocator.alloc(SourceRegistry.Capture, capture_count);
+    errdefer allocator.free(captures);
 
     var base_cursor: usize = 0;
+    var retained_cursor: usize = 0;
+    var capture_cursor: usize = 0;
     for (relations.instances, sources) |instance, *source| {
         const ordinal = try scheduleOrdinal(
             schedule,
@@ -148,9 +205,14 @@ pub fn buildSourceRegistry(
         }
         const end = try add(base_cursor, instance.source_pointer_count);
         const columns = base_columns[base_cursor..end];
+        const preserved = try retained.sub(retained_cursor, matrix.storage.len);
+        captures[capture_cursor] = .{ .source = matrix.storage, .destination = preserved };
+        capture_cursor += 1;
+        retained_cursor = try add(retained_cursor, preserved.len);
         for (columns, 0..) |*column, index| {
-            column.* = try matrix.storage.sub(
-                try mul(index, matrix.column_stride_words),
+            const base_index = canonicalBaseColumn(instance.layout, columns.len, index);
+            column.* = try preserved.sub(
+                try mul(base_index, matrix.column_stride_words),
                 matrix.column_stride_words,
             );
         }
@@ -160,13 +222,33 @@ pub fn buildSourceRegistry(
         };
         base_cursor = end;
     }
-    if (base_cursor != base_columns.len)
+    if (base_cursor != base_columns.len or retained_cursor != retained.len or capture_cursor != captures.len)
         return error.InvalidRelationSourceExtent;
     return .{
         .allocator = allocator,
         .sources = sources,
         .base_columns = base_columns,
+        .captures = captures,
     };
+}
+
+// Memory AIR commits multiplicity first. Its implicit LogUp tuples consume
+// value limbs followed by multiplicity, so permute pointer headers only.
+fn canonicalBaseColumn(layout: @import("stwo_cairo_frontend").witness.relation_bundle.SourceLayout, count: usize, index: usize) usize {
+    return switch (layout) {
+        .memory_big, .memory_small => if (index + 1 == count) 0 else index + 1,
+        else => index,
+    };
+}
+
+test "canonical CUDA memory relation pointers preserve AIR column order" {
+    for ([_]usize{ 9, 29 }) |count| {
+        for (0..count - 1) |index|
+            try std.testing.expectEqual(index + 1, canonicalBaseColumn(.memory_big, count, index));
+        try std.testing.expectEqual(@as(usize, 0), canonicalBaseColumn(.memory_small, count, count - 1));
+        for (0..count) |index|
+            try std.testing.expectEqual(index, canonicalBaseColumn(.memory_address, count, index));
+    }
 }
 
 pub const Bound = struct {
@@ -642,6 +724,7 @@ test "source registry rejects cardinality before touching resident views" {
             schedule,
             .{ .components = &.{} },
             MainCommit{},
+            .{ .address = 0, .len = 0, .owner = 0 },
         ),
     );
 }

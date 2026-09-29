@@ -7,6 +7,8 @@
 const std = @import("std");
 const composition = @import("stwo_cairo_frontend").witness.composition_bundle;
 const codegen = @import("eval_codegen.zig");
+const parametric = @import("parametric_eval.zig");
+pub const parametric_identity_scheme = "sha256-cairo-eval-parametric-source-v3";
 
 pub const abi_schema = "cairo_eval_part_v1";
 pub const codegen_version = codegen.codegen_version;
@@ -81,6 +83,7 @@ pub const Product = struct {
 
 const BuildingBody = struct {
     semantic_hash: u64,
+    shape_identity: [32]u8,
     source_identity: [32]u8,
     kernel_name: []u8,
     source: []u8,
@@ -91,6 +94,14 @@ pub fn build(
     allocator: std.mem.Allocator,
     bundle: composition.Bundle,
 ) !Product {
+    return buildMode(allocator, bundle, null);
+}
+
+pub fn buildParametric(allocator: std.mem.Allocator, bundle: composition.Bundle, source_authority: [32]u8) !Product {
+    return buildMode(allocator, bundle, source_authority);
+}
+
+fn buildMode(allocator: std.mem.Allocator, bundle: composition.Bundle, source_authority: ?[32]u8) !Product {
     var building = std.ArrayList(BuildingBody).empty;
     defer {
         for (building.items) |*body| {
@@ -101,15 +112,20 @@ pub fn build(
         building.deinit(allocator);
     }
 
+    var library = if (source_authority != null) try parametric.loadLibrary(allocator, "vectors/cairo/official/air_template_library_v1.json") else null;
+    defer if (library) |*loaded| loaded.deinit();
     var occurrence_count: usize = 0;
     for (bundle.components, 0..) |component, component_index| {
         const source_identity = componentSourceIdentity(component);
         for (component.parts, 0..) |part, part_index| {
             const program_identity = codegen.programIdentity(part.program);
-            const generated_source = try codegen.generate(
-                allocator,
-                part.program,
-            );
+            var normalized = if (source_authority != null) try parametric.bind(allocator, library.?, component.label, part_index, part.program) else null;
+            defer if (normalized) |*bound| bound.deinit();
+            const executable = if (normalized) |bound| bound.program else part.program;
+            const generated_source = if (source_authority != null)
+                try codegen.generateParametric(allocator, executable, normalized.?.dynamic_constants)
+            else
+                try codegen.generate(allocator, executable);
             const generated_source_identity =
                 codegen.sourceIdentity(generated_source);
             var body_index = findBody(
@@ -117,15 +133,16 @@ pub fn build(
                 generated_source_identity,
             );
             if (body_index == null) {
-                const kernel_name = codegen.kernelName(
-                    allocator,
-                    part.semantic_hash,
-                ) catch |err| {
+                const kernel_name = (if (source_authority != null)
+                    std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v3_{x:0>16}", .{executable.header.semantic_hash})
+                else
+                    codegen.kernelName(allocator, part.semantic_hash)) catch |err| {
                     allocator.free(generated_source);
                     return err;
                 };
                 building.append(allocator, .{
-                    .semantic_hash = part.semantic_hash,
+                    .semantic_hash = executable.header.semantic_hash,
+                    .shape_identity = codegen.programIdentity(executable),
                     .source_identity = generated_source_identity,
                     .kernel_name = kernel_name,
                     .source = generated_source,
@@ -142,7 +159,7 @@ pub fn build(
             const body = &building.items[body_index.?];
             const observed_source_identity =
                 codegen.sourceIdentity(body.source);
-            if (body.semantic_hash != part.semantic_hash or
+            if (body.semantic_hash != executable.header.semantic_hash or
                 !std.mem.eql(
                     u8,
                     &body.source_identity,
@@ -186,21 +203,17 @@ pub fn build(
         const source = &building.items[initialized];
         const occurrences = try source.occurrences.toOwnedSlice(allocator);
         errdefer allocator.free(occurrences);
-        const catalog_identity = try catalogIdentity(
-            allocator,
-            occurrences,
-        );
-        const program_identity = programSetIdentity(occurrences);
+        const catalog_identity = source_authority orelse try catalogIdentity(allocator, occurrences);
+        const program_identity = if (source_authority != null) source.shape_identity else programSetIdentity(occurrences);
         bodies[initialized] = .{
             .semantic_hash = source.semantic_hash,
             .program_identity = program_identity,
             .source_identity = source.source_identity,
             .catalog_identity = catalog_identity,
-            .cache_key = codegen.productCacheKey(
-                program_identity,
-                source.source_identity,
-                catalog_identity,
-            ),
+            .cache_key = if (source_authority != null)
+                parametric.cacheKey(program_identity, source.source_identity, catalog_identity)
+            else
+                codegen.productCacheKey(program_identity, source.source_identity, catalog_identity),
             .kernel_name = source.kernel_name,
             .source = source.source,
             .occurrences = occurrences,
@@ -221,6 +234,14 @@ pub fn renderManifest(
     allocator: std.mem.Allocator,
     product: Product,
 ) ![]u8 {
+    return renderManifestMode(allocator, product, false);
+}
+
+pub fn renderParametricManifest(allocator: std.mem.Allocator, product: Product) ![]u8 {
+    return renderManifestMode(allocator, product, true);
+}
+
+fn renderManifestMode(allocator: std.mem.Allocator, product: Product, parametric_mode: bool) ![]u8 {
     var output = std.ArrayList(u8).empty;
     errdefer output.deinit(allocator);
     const writer = output.writer(allocator);
@@ -241,12 +262,12 @@ pub fn renderManifest(
         try writer.writeAll("\",\n");
         try writer.print(
             "    \"codegen_version\": {},\n",
-            .{codegen.codegen_version},
+            .{if (parametric_mode) @as(u64, 3) else codegen.codegen_version},
         );
         try writer.print("    \"file\": \"{s}\",\n", .{filename});
         try writer.print(
             "    \"identity_scheme\": \"{s}\",\n",
-            .{identity_scheme},
+            .{if (parametric_mode) parametric_identity_scheme else identity_scheme},
         );
         try writer.print(
             "    \"kernel_name\": \"{s}\",\n",
@@ -456,8 +477,11 @@ fn hashExtSource(
 
 fn writeJsonLabel(writer: anytype, label: []const u8) !void {
     if (label.len == 0) return error.InvalidComponentLabel;
+    const indexed_memory = std.mem.startsWith(u8, label, "memory_id_to_big[") and
+        label[label.len - 1] == ']' and
+        (std.fmt.parseUnsigned(u32, label["memory_id_to_big[".len .. label.len - 1], 10) catch return error.InvalidComponentLabel) < 8;
     for (label) |byte| {
-        if (!std.ascii.isAlphanumeric(byte) and byte != '_')
+        if (!std.ascii.isAlphanumeric(byte) and byte != '_' and !(indexed_memory and (byte == '[' or byte == ']')))
             return error.InvalidComponentLabel;
         try writer.writeByte(byte);
     }

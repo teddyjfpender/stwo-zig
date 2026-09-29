@@ -20,6 +20,7 @@ const ingress = @import("resident_plan_ingress.zig");
 const pointer_words: u64 = @sizeOf(usize) / @sizeOf(u32);
 
 pub const Input = struct {
+    parametric_evaluation: bool = false,
     adapted_input_bytes: u64,
     adapted_input_identity: [32]u8,
     statement_bootstrap_words: u64,
@@ -73,9 +74,10 @@ pub fn compile(
         relation_shape,
         input.relations.topology_identity,
     );
-    const evaluation = try ingress.deriveEvaluation(
+    const evaluation = try ingress.deriveEvaluationMode(
         input.components,
         input.evaluation_identity,
+        input.parametric_evaluation,
     );
     const output = ingress.Geometry{
         .adapted_input_words = divCeil(input.adapted_input_bytes, 4),
@@ -418,7 +420,9 @@ fn feedGeometry(
     var multiplicity_words: u64 = 0;
     var unique_destinations: u64 = 0;
     for (feeds.feeds) |feed| {
-        if (feed.descriptors.len == 0 or
+        if (feed.row_count == 0 or
+            (feed.active_row_count != null and feed.active_row_count.? > feed.row_count) or
+            feed.descriptors.len == 0 or
             feed.descriptors.len % 14 != 0 or
             feed.destinations.len == 0)
         {
@@ -619,6 +623,7 @@ fn relationGeometry(
         .claimed_sum_words = try mul(shape.instance_count, 4),
         .output_pointer_words = shape.output_pointer_words,
         .output_coordinate_words = shape.interaction_coordinate_cells,
+        .retained_base_words = shape.retained_base_words,
         .reduction_scratch_words = shape.scratch_words,
         .scan_scratch_words = shape.scratch_words,
         .identity = identity,

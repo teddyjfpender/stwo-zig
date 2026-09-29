@@ -9,6 +9,31 @@ const Blake2sMerkleChannel =
 const claim_summary_path = "vectors/cairo/official/all_opcodes.claim_summary.json";
 const input_path = "vectors/cairo/official/all_opcodes.prover_input.json";
 
+test "official Cairo EC closure supports the small Pedersen profile" {
+    var input = try cairo.adapter.input.readFile(std.testing.allocator, "vectors/cairo/official/all_builtins.prover_input.json");
+    defer input.deinit(std.testing.allocator);
+    var geometry = try cairo.claim_generator.deriveFromProverInput(std.testing.allocator, &input, .{ .preprocessed_variant = .canonical_small });
+    defer geometry.deinit();
+    var library = try cairo.air.template_library.Library.readFile(std.testing.allocator, "vectors/cairo/official/air_template_library_v1.json");
+    defer library.deinit();
+    var standard = try cairo.preprocessed.trace.Spec.init(std.testing.allocator, .canonical);
+    defer standard.deinit();
+    var small = try cairo.preprocessed.trace.Spec.init(std.testing.allocator, .canonical_small);
+    defer small.deinit();
+    inline for (.{ "ec_op_builtin", "partial_ec_mul_generic" }) |name| {
+        var present = false;
+        for (geometry.components) |component| if (std.mem.eql(u8, component.name, name)) {
+            present = true;
+        };
+        try std.testing.expect(present);
+        const source = try library.sourceFor(name, 4, .canonical_small);
+        const template = source.find(name).?;
+        const indices = try standard.projectIndices(std.testing.allocator, small, template.preprocessed_indices);
+        defer std.testing.allocator.free(indices);
+        try std.testing.expectEqual(template.preprocessed_indices.len, indices.len);
+    }
+}
+
 test "official Cairo claim: live input matches canonical flat geometry and mix" {
     const encoded = try std.fs.cwd().readFileAlloc(
         std.testing.allocator,

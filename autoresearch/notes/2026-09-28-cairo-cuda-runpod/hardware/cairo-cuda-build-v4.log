@@ -1,0 +1,11 @@
+stwo-cairo-cuda
++- install stwo-cairo-cuda
+   +- compile exe stwo-cairo-cuda ReleaseFast native
+      +- run python3 (stwo-native-cuda-runtime)
+         +- run exe cairo-cuda-witness-aot (native-cuda-product) stderr
+Native CUDA AOT generated: 48 entries, 33 witness programs
+
+Build Summary: 2/2 steps succeeded
+stwo-cairo-cuda success
++- run /opt/zig/zig-x86_64-linux-0.15.2/zig success 5m MaxRSS:1G
+

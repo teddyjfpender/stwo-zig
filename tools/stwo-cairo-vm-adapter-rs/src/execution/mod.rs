@@ -2,6 +2,8 @@
 
 mod executable;
 mod legacy_json;
+mod pie;
+mod pie_archive;
 
 use anyhow::Result;
 use cairo_vm::cairo_run::CairoRunConfig;
@@ -10,12 +12,13 @@ use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use stwo_cairo_adapter::PublicSegmentContext;
 
 pub const CAIRO_LANGUAGE_VERSION: &str = "2.20.0";
-pub const PROGRAM_TYPE_NAMES: [&str; 2] = ["json", "executable"];
+pub const PROGRAM_TYPE_NAMES: [&str; 3] = ["json", "executable", "pie"];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ProgramType {
     Json,
     Executable,
+    Pie,
 }
 
 impl ProgramType {
@@ -23,7 +26,10 @@ impl ProgramType {
         match value {
             "json" => Ok(Self::Json),
             "executable" => Ok(Self::Executable),
-            _ => anyhow::bail!("unsupported program type {value:?}; expected json or executable"),
+            "pie" => Ok(Self::Pie),
+            _ => anyhow::bail!(
+                "unsupported program type {value:?}; expected json, executable or pie"
+            ),
         }
     }
 }
@@ -53,6 +59,7 @@ pub fn run(
             public_segment_context: None,
         }),
         ProgramType::Executable => executable::run(program_bytes, argument_bytes, &config),
+        ProgramType::Pie => pie::run(program_bytes, argument_bytes, config),
     }
 }
 
@@ -68,6 +75,7 @@ mod tests {
             ProgramType::Executable
         );
         assert!(ProgramType::parse("sierra").is_err());
-        assert_eq!(PROGRAM_TYPE_NAMES, ["json", "executable"]);
+        assert_eq!(ProgramType::parse("pie").unwrap(), ProgramType::Pie);
+        assert_eq!(PROGRAM_TYPE_NAMES, ["json", "executable", "pie"]);
     }
 }

@@ -20,6 +20,7 @@ pub const Error = error{
     InvalidCanonicalProofLength,
     InvalidDecommitment,
     InvalidTerminalHeader,
+    InvalidFriDegree,
     NonzeroDecommitmentTail,
     RuntimeCompilationObserved,
     TerminalReadLengthMismatch,
@@ -157,8 +158,10 @@ fn validateTransport(
             @as(u32, 0)
         else
             expected;
-        if (transport[index] != finalized)
-            return error.InvalidTerminalHeader;
+        if (transport[index] != finalized) {
+            std.debug.print("cairo-cuda terminal header index={d} expected={d} actual={d}\n", .{ index, finalized, transport[index] });
+            return if (index == common.fixed_header_words - 1) error.InvalidFriDegree else error.InvalidTerminalHeader;
+        }
     }
 }
 

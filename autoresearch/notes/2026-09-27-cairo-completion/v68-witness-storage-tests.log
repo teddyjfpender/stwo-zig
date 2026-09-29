@@ -1,0 +1,14 @@
+1/13 proving.base_columns_test.test.Cairo witness final storage owns component placement across all allocation failures...OK
+2/13 witness.final_storage_test.test.Cairo witness final storage retains borrowed columns through all allocation failures...OK
+3/13 witness.final_storage_test.test.Cairo witness final storage validates all destinations before writing...OK
+4/13 witness.final_storage_test.test.Cairo witness final storage matches owned outputs and accepts final-column lowering...OK
+5/13 witness.final_storage_test.test.Cairo witness final storage borrows immutable source columns across allocation failures...OK
+6/13 witness.gathered_materialization_test.test.Cairo witness final storage gather preserves full packs, multi-producer remainders and selectors...OK
+7/13 witness.gathered_materialization_test.test.Cairo witness final storage large gather matches serial ordering with joined column workers...OK
+8/13 witness.gathered_materialization_test.test.Cairo witness final storage gather releases output slabs when source admission allocation fails...OK
+9/13 witness.gathered_inputs.test.Cairo gathered inputs mirror resident gather padding and instance order...OK
+10/13 witness.gathered_inputs.test.Cairo gathered inputs derive exact live geometry...OK
+11/13 witness.gathered_inputs.test.Cairo gathered inputs place full SIMD packs before cross-instance remainders...OK
+12/13 witness.interaction_executor.test_0...OK
+13/13 witness.deductions.mod.test_0...OK
+All 13 tests passed.

@@ -4,6 +4,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const feed_topology = @import("feed_topology.zig");
 const interaction_trace = @import("interaction_trace.zig");
+const program_mod = @import("program.zig");
 
 pub const Compiled = struct {
     allocator: std.mem.Allocator,
@@ -71,6 +72,50 @@ pub fn compile(
     return .{ .allocator = allocator, .descriptors = descriptors };
 }
 
+/// Derives constant relation IDs from the authenticated writer IR rather than
+/// downloading and scanning a resident lookup slab. Dynamic IDs are refused.
+pub fn compileProgram(
+    allocator: std.mem.Allocator,
+    component: feed_topology.Component,
+    program: program_mod.Program,
+) !Compiled {
+    try program.validate();
+    if (program.n_lookup_words != component.lookup_words_per_row)
+        return Error.InvalidLookupWords;
+    const constants = try allocator.alloc(?u32, program.n_regs);
+    defer allocator.free(constants);
+    @memset(constants, null);
+    const lookup_constants = try allocator.alloc(?u32, program.n_lookup_words);
+    defer allocator.free(lookup_constants);
+    @memset(lookup_constants, null);
+    for (program.insts) |inst| {
+        switch (@as(program_mod.Op, @enumFromInt(inst.op))) {
+            .constant => constants[inst.dst] = inst.imm,
+            .lookup_word => lookup_constants[inst.imm] = constants[inst.a],
+            else => {},
+        }
+    }
+    const descriptors = try allocator.alloc(u32, try std.math.mul(usize, component.logup_columns.len, interaction_trace.descriptor_words));
+    errdefer allocator.free(descriptors);
+    @memset(descriptors, 0);
+    for (component.logup_columns, 0..) |column, index| {
+        const descriptor = descriptors[index * interaction_trace.descriptor_words ..][0..interaction_trace.descriptor_words];
+        descriptor[0] = if (column.b == null) 1 else 2;
+        try writeProgramUse(descriptor[1..][0..interaction_trace.use_words], component.lookup_fields, column.a, lookup_constants);
+        if (column.b) |use| try writeProgramUse(descriptor[1 + interaction_trace.use_words ..][0..interaction_trace.use_words], component.lookup_fields, use, lookup_constants);
+    }
+    return .{ .allocator = allocator, .descriptors = descriptors };
+}
+
+fn writeProgramUse(destination: *[interaction_trace.use_words]u32, fields: []const feed_topology.LookupField, use: feed_topology.LogupUse, constants: []const ?u32) !void {
+    const relation = findField(fields, use.field) orelse return Error.UnknownLookupField;
+    if (relation.word_base >= constants.len or relation.words > constants.len - relation.word_base)
+        return Error.InvalidLookupWords;
+    const id = constants[relation.word_base] orelse return Error.NonConstantRelationId;
+    if (id == 0 or id >= m31.Modulus) return Error.NonCanonicalRelationId;
+    try writeUseWithRelation(destination, fields, use, relation, id);
+}
+
 fn writeUse(
     destination: *[interaction_trace.use_words]u32,
     fields: []const feed_topology.LookupField,
@@ -87,6 +132,10 @@ fn writeUse(
         if (value != relation_id) return Error.NonConstantRelationId;
     }
 
+    try writeUseWithRelation(destination, fields, use, relation, relation_id);
+}
+
+fn writeUseWithRelation(destination: *[interaction_trace.use_words]u32, fields: []const feed_topology.LookupField, use: feed_topology.LogupUse, relation: feed_topology.LookupField, relation_id: u32) !void {
     const multiplicity = if (std.mem.eql(u8, use.multiplicity, "1"))
         .{ @as(u32, 0), @as(u32, 0) }
     else if (std.mem.eql(u8, use.multiplicity, "enabler"))
@@ -175,4 +224,23 @@ test "Cairo interaction topology rejects row-varying relation IDs" {
         Error.NonConstantRelationId,
         compile(std.testing.allocator, component, &.{ 17, 18 }, 2),
     );
+}
+
+test "canonical interaction descriptors compile every official writer without lookup readback" {
+    const allocator = std.testing.allocator;
+    var topology = try feed_topology.readOfficial(allocator, "vectors/cairo/official/witness_feed_topology_v1.json");
+    defer topology.deinit();
+    var bundle = try @import("bundle.zig").Bundle.readFile(allocator, "vectors/cairo/official/witness_programs_v1.bin");
+    defer bundle.deinit();
+    for (bundle.entries) |entry| {
+        const component = topology.find(entry.label) orelse return error.MissingComponent;
+        var compiled = try compileProgram(allocator, component, entry.program);
+        defer compiled.deinit();
+        try std.testing.expectEqual(component.logup_columns.len, compiled.columnCount());
+        if (std.mem.eql(u8, entry.label, "add_ap_opcode")) {
+            // The official ABI reads the recorded opcode multiplicity; the
+            // retired CUDA template used a constant in this position.
+            try std.testing.expectEqual(@as(u32, 2), compiled.descriptors[5]);
+        }
+    }
 }

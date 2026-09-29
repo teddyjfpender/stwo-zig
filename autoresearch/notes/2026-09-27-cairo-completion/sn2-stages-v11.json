@@ -1,0 +1,269 @@
+[
+  {
+    "trial": "trial-1.stages.json",
+    "stages": [
+      {
+        "id": "preprocessed_plan",
+        "seconds": 1.2e-05
+      },
+      {
+        "id": "preprocessed_table_build",
+        "seconds": 9.651266
+      },
+      {
+        "id": "base_trace_build",
+        "seconds": 7.112652
+      },
+      {
+        "id": "air_template_instantiation",
+        "seconds": 0.000383
+      },
+      {
+        "id": "preprocessed_materialize_and_commit",
+        "seconds": 6.215396
+      },
+      {
+        "id": "main_trace_commit",
+        "seconds": 3.662735
+      },
+      {
+        "id": "interaction_trace_build",
+        "seconds": 1.745289
+      },
+      {
+        "id": "interaction_trace_commit",
+        "seconds": 2.970824
+      },
+      {
+        "id": "draw_random_coeff",
+        "seconds": 0
+      },
+      {
+        "id": "composition_trace_extract",
+        "seconds": 0.000122
+      },
+      {
+        "id": "composition_evaluation",
+        "seconds": 9.902944
+      },
+      {
+        "id": "composition_interpolate_and_split",
+        "seconds": 0.049851
+      },
+      {
+        "id": "composition_commit",
+        "seconds": 0.183086
+      },
+      {
+        "id": "oods_point_and_mask_points",
+        "seconds": 0.000348
+      },
+      {
+        "id": "sampled_value_evaluation",
+        "seconds": 1.036144
+      },
+      {
+        "id": "sampled_value_channel_mix",
+        "seconds": 0.00024
+      },
+      {
+        "id": "fri_quotient_build_and_commit",
+        "seconds": 1.850114
+      },
+      {
+        "id": "proof_of_work",
+        "seconds": 0.131276
+      },
+      {
+        "id": "fri_decommit",
+        "seconds": 0.011822
+      },
+      {
+        "id": "trace_decommit",
+        "seconds": 0.185444
+      },
+      {
+        "id": "constraint_check_and_assembly",
+        "seconds": 0.001745
+      }
+    ]
+  },
+  {
+    "trial": "trial-2.stages.json",
+    "stages": [
+      {
+        "id": "preprocessed_plan",
+        "seconds": 1.3e-05
+      },
+      {
+        "id": "preprocessed_table_build",
+        "seconds": 0.263863
+      },
+      {
+        "id": "base_trace_build",
+        "seconds": 7.428962
+      },
+      {
+        "id": "air_template_instantiation",
+        "seconds": 0.000382
+      },
+      {
+        "id": "preprocessed_materialize_and_commit",
+        "seconds": 4.896912
+      },
+      {
+        "id": "main_trace_commit",
+        "seconds": 3.616869
+      },
+      {
+        "id": "interaction_trace_build",
+        "seconds": 1.761565
+      },
+      {
+        "id": "interaction_trace_commit",
+        "seconds": 3.05797
+      },
+      {
+        "id": "draw_random_coeff",
+        "seconds": 0
+      },
+      {
+        "id": "composition_trace_extract",
+        "seconds": 3.4e-05
+      },
+      {
+        "id": "composition_evaluation",
+        "seconds": 10.185054
+      },
+      {
+        "id": "composition_interpolate_and_split",
+        "seconds": 0.056042
+      },
+      {
+        "id": "composition_commit",
+        "seconds": 0.18837
+      },
+      {
+        "id": "oods_point_and_mask_points",
+        "seconds": 0.000307
+      },
+      {
+        "id": "sampled_value_evaluation",
+        "seconds": 1.086607
+      },
+      {
+        "id": "sampled_value_channel_mix",
+        "seconds": 0.000245
+      },
+      {
+        "id": "fri_quotient_build_and_commit",
+        "seconds": 1.836612
+      },
+      {
+        "id": "proof_of_work",
+        "seconds": 0.130833
+      },
+      {
+        "id": "fri_decommit",
+        "seconds": 0.012472
+      },
+      {
+        "id": "trace_decommit",
+        "seconds": 0.183849
+      },
+      {
+        "id": "constraint_check_and_assembly",
+        "seconds": 0.001815
+      }
+    ]
+  },
+  {
+    "trial": "trial-3.stages.json",
+    "stages": [
+      {
+        "id": "preprocessed_plan",
+        "seconds": 1.2e-05
+      },
+      {
+        "id": "preprocessed_table_build",
+        "seconds": 0.256433
+      },
+      {
+        "id": "base_trace_build",
+        "seconds": 7.521946
+      },
+      {
+        "id": "air_template_instantiation",
+        "seconds": 0.000386
+      },
+      {
+        "id": "preprocessed_materialize_and_commit",
+        "seconds": 4.908034
+      },
+      {
+        "id": "main_trace_commit",
+        "seconds": 3.669584
+      },
+      {
+        "id": "interaction_trace_build",
+        "seconds": 1.786963
+      },
+      {
+        "id": "interaction_trace_commit",
+        "seconds": 3.12164
+      },
+      {
+        "id": "draw_random_coeff",
+        "seconds": 1e-06
+      },
+      {
+        "id": "composition_trace_extract",
+        "seconds": 4.3e-05
+      },
+      {
+        "id": "composition_evaluation",
+        "seconds": 10.312488
+      },
+      {
+        "id": "composition_interpolate_and_split",
+        "seconds": 0.053673
+      },
+      {
+        "id": "composition_commit",
+        "seconds": 0.192635
+      },
+      {
+        "id": "oods_point_and_mask_points",
+        "seconds": 0.000366
+      },
+      {
+        "id": "sampled_value_evaluation",
+        "seconds": 1.093013
+      },
+      {
+        "id": "sampled_value_channel_mix",
+        "seconds": 0.000245
+      },
+      {
+        "id": "fri_quotient_build_and_commit",
+        "seconds": 1.868281
+      },
+      {
+        "id": "proof_of_work",
+        "seconds": 0.132021
+      },
+      {
+        "id": "fri_decommit",
+        "seconds": 0.01324
+      },
+      {
+        "id": "trace_decommit",
+        "seconds": 0.186169
+      },
+      {
+        "id": "constraint_check_and_assembly",
+        "seconds": 0.001908
+      }
+    ]
+  }
+]

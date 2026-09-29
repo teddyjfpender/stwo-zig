@@ -458,11 +458,10 @@ pub const CircleEvaluation = struct {
     ) EvaluationError!QM31 {
         if (self.values.len != weights.len) return EvaluationError.ShapeMismatch;
 
-        var acc = QM31.zero();
-        for (self.values, weights) |value, weight| {
-            acc = acc.add(weight.mulM31(value));
-        }
-        return acc;
+        // Coefficient bases and barycentric weights both form exact secure
+        // linear combinations of base-field values. Share the tested four-term
+        // coordinate reducer, including its portable ragged tail.
+        return @import("point_evaluation.zig").evalWithSubsetProductBasis(self.values, weights);
     }
 
     pub fn barycentricEvalAtPoint(

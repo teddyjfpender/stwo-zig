@@ -1,0 +1,9 @@
+{
+  "schema": "stwo-cairo-cuda-retained-diagnostic-artifacts-v1",
+  "full_proof_verified": false,
+  "accepted_benchmark": false,
+  "path": "zig-out/cairo-cuda-completion/current/v20-retained.tar.gz",
+  "bytes": 32079269,
+  "sha256": "814f9f494019914be8223df6b5f358019af440b048d4948aca19c59d2fc98b2f",
+  "source_snapshot_sha256": "09580bf143654b53f939794e3ffbece038cec81a70afe22cb721c233e418bec7"
+}

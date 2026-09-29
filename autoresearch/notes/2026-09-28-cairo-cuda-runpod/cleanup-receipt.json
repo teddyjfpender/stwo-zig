@@ -1,0 +1,10 @@
+{
+  "pod_id": "rv54fifjcakbwx",
+  "checked_utc": "2026-09-28T15:16:52.706487+00:00",
+  "initial_balance_usd": 20.6466621933,
+  "final_balance_usd": 16.3352369101,
+  "observed_balance_decrease_usd": 4.311425283199998,
+  "pod_list_after_cleanup": [],
+  "settled_current_spend_per_hour_usd": 0,
+  "settled_balance_usd": 16.3352369101
+}

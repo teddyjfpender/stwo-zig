@@ -369,6 +369,10 @@ pub inline fn addPacked(a: PackedM31, b: PackedM31) PackedM31 {
 
 /// Packed M31 subtraction.
 pub inline fn subPacked(a: PackedM31, b: PackedM31) PackedM31 {
+    if (comptime builtin.cpu.arch == .aarch64 and PACK_WIDTH == VEC_WIDTH) {
+        // Share the fixed-width canonical SUB / ADD / UMIN reduction.
+        return @bitCast(subVec4(@bitCast(a), @bitCast(b)));
+    }
     return @select(u32, a < b, (a +% P_PACKED) -% b, a -% b);
 }
 

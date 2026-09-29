@@ -1,0 +1,6 @@
+1/5 proving.air.trace_lease_test.test.Cairo trace lease reconstructs only mask columns and preserves borrowed sources...OK
+2/5 proving.air.trace_lease_test.test.Cairo trace lease releases every reconstruction allocation failure...OK
+3/5 proving.air.trace_lease_test.test.Cairo trace lease parallel reconstruction matches serial polynomial values...OK
+4/5 preprocessed.trace.test.Cairo preprocessed source batching preserves identities and values across mixed heights...OK
+5/5 preprocessed.trace.test.Cairo preprocessed source batching cleans up every materialization allocation failure...OK
+All 5 tests passed.

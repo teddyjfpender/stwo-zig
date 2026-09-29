@@ -155,6 +155,9 @@ pub fn CommitOps(
                 }
                 return commitStreamingWithBacking(self, allocator, owned_columns, backing_buffers, false, streaming_batch_size, recorder, channel);
             }
+            const native_compact = comptime if (@hasDecl(B, "supportsCompactStreaming")) B.supportsCompactStreaming(H) else false;
+            if (native_compact and self.compact_polynomial_storage and source.isMaterialized())
+                return commitStreamingWithBacking(self, allocator, owned_columns, backing_buffers, false, streaming_batch_size, recorder, channel);
             if (source.isMaterialized() and column_preparation.columnEvaluationsAreConstant(owned_columns)) {
                 if (backing_buffers) |buffers| {
                     const detached = backed_columns.detach(allocator, owned_columns) catch |err| {
@@ -180,6 +183,8 @@ pub fn CommitOps(
             if (source.isMaterialized() and owned_columns.len >= streaming_column_threshold and
                 !backend_prefers_monolithic)
             {
+                if (self.compact_polynomial_storage)
+                    return commitStreamingWithBacking(self, allocator, owned_columns, backing_buffers, false, streaming_batch_size, recorder, channel);
                 if (backing_buffers) |buffers| {
                     const detached = backed_columns.detach(allocator, owned_columns) catch |err| {
                         backed_columns.free(allocator, owned_columns, buffers);
@@ -481,17 +486,35 @@ pub fn CommitOps(
                 effective_batch_size,
             );
             errdefer builder.deinit();
+            try builder.planCompactTree(owned_columns, order);
 
             // Each batch moves entries out of `owned_columns`; the builder owns
             // consumed entries and the error paths below free the remainder.
+            const backend_byte_budget = if (comptime @hasDecl(B, "streamingCommitByteBudget")) B.streamingCommitByteBudget() else streaming_batch_byte_budget;
+            // A compact batch retires its LDE immediately after native-height
+            // hashing. Keep that transient owner small beside the coefficients.
+            const byte_budget = if (self.compact_polynomial_storage)
+                @min(backend_byte_budget, 512 * 1024 * 1024)
+            else
+                backend_byte_budget;
+            // The arena stays under input custody while batches retain borrowed
+            // coefficients. Transfer its owner exactly once after every batch joins.
+            const source_arena: ?[]M31 = if ((comptime (@hasDecl(B, "combined_base_in_place") and B.combined_base_in_place) or
+                (@hasDecl(B, "supports_compact_arena_borrow") and B.supports_compact_arena_borrow)) and
+                self.compact_polynomial_storage and builder.compact_committer != null and
+                self.config.fri_config.log_blowup_factor != 0 and !borrowed_values and backing_buffers != null and
+                backing_buffers.?.len == 1) backing_buffers.?[0] else null;
+            if (source_arena != null) try builder.retained_coefficient_buffers.ensureUnusedCapacity(allocator, 1);
             var consumed: usize = 0;
             while (consumed < owned_columns.len) {
-                const end = try boundedBatchEnd(owned_columns, order, consumed, effective_batch_size, self.config.fri_config.log_blowup_factor, streaming_batch_byte_budget);
+                const end = try boundedBatchEnd(owned_columns, order, consumed, effective_batch_size, self.config.fri_config.log_blowup_factor, byte_budget);
                 const batch = try allocator.alloc(ColumnEvaluation, end - consumed);
                 var initialized: usize = 0;
                 for (order[consumed..end], 0..) |original_index, batch_index| {
                     const column = owned_columns[original_index];
-                    if (borrowed_values or backing_buffers != null) {
+                    if (source_arena != null) {
+                        batch[batch_index] = column;
+                    } else if (borrowed_values or backing_buffers != null) {
                         const values = allocator.dupe(M31, column.values) catch |err| {
                             for (batch[0..initialized]) |item| allocator.free(item.values);
                             allocator.free(batch);
@@ -505,10 +528,17 @@ pub fn CommitOps(
                     initialized += 1;
                 }
                 // This call consumes the batch on both success and error.
-                try tree_builders.addColumnsOwnedIndexed(&builder, batch, order[consumed..end], recorder);
+                if (source_arena) |arena|
+                    try builder.addColumnsBorrowingArenaIndexed(batch, order[consumed..end], recorder, arena)
+                else
+                    try tree_builders.addColumnsOwnedIndexed(&builder, batch, order[consumed..end], recorder);
                 consumed = end;
             }
-            if (borrowed_values)
+            if (source_arena) |arena| {
+                builder.retained_coefficient_buffers.appendAssumeCapacity(arena);
+                allocator.free(backing_buffers.?);
+                allocator.free(owned_columns);
+            } else if (borrowed_values)
                 allocator.free(owned_columns)
             else if (backing_buffers) |buffers|
                 backed_columns.free(allocator, owned_columns, buffers)

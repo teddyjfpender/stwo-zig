@@ -1,0 +1,12 @@
+{
+  "schema": "stwo-zig-cairo-native-row-tile-parity-v1",
+  "status": "qualified",
+  "programs": 64,
+  "cases": 256,
+  "source_sha256": [
+    "d2ed69d17dd422417e4d6c37e271ed5affa3241658f1136410acc91ccca8fb7e",
+    "1a7e14e14899f264124e353b903d0b7a5d246ca8a222551de2e6647c1c74ad71"
+  ],
+  "coverage": "all output/lookup/sub channels, untouched sentinels, empty/full/partial ranges with tile tails",
+  "providers": "deterministic stateless synthetic providers; official proof verification required separately"
+}

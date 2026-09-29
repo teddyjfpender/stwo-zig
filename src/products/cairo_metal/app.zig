@@ -15,11 +15,21 @@ pub const Product = struct {
     pub const name = "stwo-cairo-metal";
     pub const backend_name = "metal";
     pub const backend_description =
-        "Apple Metal PCS with explicit host witness and AIR evaluation.";
+        "Apple Metal PCS, bounded AIR evaluation, and native witness execution.";
     pub const stwo = package;
     pub const transaction = backend_transaction;
     pub const capabilities = capability_surface;
     pub const identity = product_identity;
+    /// Retain one committed-column representation. The shared PCS backend opens
+    /// these with its exact resident/streamed barycentric evaluator.
+    pub const sampled_evaluation = package.frontends.cairo.proving.transaction.SampledEvaluationStorage.committed_columns;
+
+    /// Experimental coefficient retention; ordinary storage remains the default.
+    pub fn sampledEvaluationStorage() package.frontends.cairo.proving.transaction.SampledEvaluationStorage {
+        const value = std.posix.getenv("STWO_CAIRO_COMPACT_POLYNOMIALS") orelse return sampled_evaluation;
+        if (std.mem.eql(u8, value, "preprocessed")) return .compact_preprocessed;
+        return if (std.mem.eql(u8, value, "1")) .compact_polynomials else sampled_evaluation;
+    }
 
     pub fn witnessExecutor() ?package.frontends.cairo.witness.generated_executor.Executor {
         return witness_cpu_aot.executor();
@@ -37,7 +47,7 @@ pub const Product = struct {
         return package.integrations.cairo_metal.interaction_executor.executor();
     }
 
-    /// The Option-A device composition hook. Admission (metallib digest, arena
+    /// Authenticated native and bounded tiled device composition. Admission (metallib digest, arena
     /// plan, kernel resolution) happens inside `open`; a refusal keeps the
     /// unchanged host composition stage.
     pub fn compositionDevice(
@@ -79,6 +89,26 @@ pub const Product = struct {
         const lifecycle = backend_transaction.runtimeLifecycleSnapshot();
         return .{
             .execution = "metal-pcs",
+            .pipeline_cache = .{
+                .library_hits = delta.pipeline_cache.library_cache_hits,
+                .library_misses = delta.pipeline_cache.library_cache_misses,
+                .pipeline_hits = delta.pipeline_cache.pipeline_cache_hits,
+                .binary_archive_hits = delta.pipeline_cache.binary_archive_hits,
+                .binary_archive_misses = delta.pipeline_cache.binary_archive_misses,
+                .direct_compiles = delta.pipeline_cache.direct_compiles,
+                .archive_populations = delta.pipeline_cache.archive_populations,
+                .archive_serializations = delta.pipeline_cache.archive_serializations,
+                .pipeline_preparation_seconds = delta.pipeline_cache.pipeline_preparation_seconds,
+                .library_preparation_seconds = delta.pipeline_cache.library_preparation_seconds,
+            },
+            .archive_store = .{
+                .disk_hits = delta.archive_store.archive_disk_hits,
+                .disk_misses = delta.archive_store.archive_disk_misses,
+                .bytes_published = delta.archive_store.archive_bytes_published,
+                .publication_failures = delta.archive_store.archive_publication_failures,
+                .persistence_bypasses = delta.archive_store.archive_persistence_bypasses,
+                .disk_bytes = delta.archive_store.archive_disk_bytes,
+            },
             .classification = @tagName(delta.classification()),
             .metal_dispatches = delta.counters.metalDispatchTotal(),
             .cpu_fallbacks = delta.counters.cpuFallbackTotal(),
@@ -89,6 +119,8 @@ pub const Product = struct {
             .commit_source_arena_aliases = delta.counters.metal_commit_source_arena_aliases,
             .commit_source_arena_memcpys = delta.counters.metal_commit_source_arena_memcpys,
             .commit_source_uploads = delta.counters.metal_commit_source_uploads,
+            .cached_merkle_artifact_adoptions = delta.counters.cached_merkle_artifact_adoptions,
+            .compacted_merkle_layer_adoptions = delta.counters.compacted_merkle_layer_adoptions,
         };
     }
 

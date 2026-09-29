@@ -10,6 +10,7 @@ const twiddle_source_mod = @import("../../poly/twiddle_source.zig");
 const commitment_tree = @import("../commitment_tree.zig");
 const circle_transforms = @import("circle_transforms.zig");
 const column_storage = @import("storage.zig");
+const preparation_cache = @import("../column_preparation_cache.zig");
 
 const M31 = m31.M31;
 const ColumnEvaluation = commitment_tree.ColumnEvaluation;
@@ -17,6 +18,36 @@ const CoefficientRetentionPolicy = column_storage.CoefficientRetentionPolicy;
 const PreparedCommitmentColumns = column_storage.PreparedCommitmentColumns;
 const TwiddleSource = twiddle_source_mod.TwiddleSource;
 const WorkRecorder = work_profile.Recorder(true);
+
+const PendingCacheStore = struct {
+    source: preparation_cache.Source,
+    key: [32]u8,
+    request: preparation_cache.Request,
+    coefficients: [][]M31,
+    evaluations: [][]M31,
+};
+
+fn queueCacheStore(allocator: std.mem.Allocator, pending: *std.ArrayList(PendingCacheStore), source: preparation_cache.Source, key: [32]u8, request: preparation_cache.Request, coefficients: []const []M31, evaluations: []const []M31) void {
+    const coefficient_views = allocator.dupe([]M31, coefficients) catch return;
+    const evaluation_views = allocator.dupe([]M31, evaluations) catch {
+        allocator.free(coefficient_views);
+        return;
+    };
+    pending.append(allocator, .{ .source = source, .key = key, .request = request, .coefficients = coefficient_views, .evaluations = evaluation_views }) catch {
+        allocator.free(coefficient_views);
+        allocator.free(evaluation_views);
+    };
+}
+
+// Cache publication and descriptor release happen only after the device join.
+fn publishPendingCacheStores(allocator: std.mem.Allocator, pending: *std.ArrayList(PendingCacheStore)) void {
+    for (pending.items) |store| {
+        store.source.store(store.source.ctx, store.key, store.request, store.coefficients, store.evaluations);
+        allocator.free(store.coefficients);
+        allocator.free(store.evaluations);
+    }
+    pending.clearRetainingCapacity();
+}
 
 const PreparationWorkPlan = enum {
     passthrough,
@@ -164,6 +195,41 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
     source_arena: ?[]M31,
     work_recorder: ?*WorkRecorder,
 ) !PreparedCommitmentColumns {
+    return prepareColumnsWithArenaOwnership(B, allocator, owned_columns, log_blowup_factor, retention_policy, twiddle_source, recorder, source_arena, .adopt, work_recorder);
+}
+
+const ArenaOwnership = enum { adopt, borrow };
+
+/// Consume only the descriptors, transforming source subcolumns in place.
+/// The caller must retain the arena until all returned coefficients are retired.
+/// This is the batch preparation contract for a single arena-backed stream.
+pub fn prepareColumnsBorrowingArenaForBackend(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    twiddle_source: *TwiddleSource,
+    recorder: ?*stage_profile.Recorder,
+    source_arena: []M31,
+) !PreparedCommitmentColumns {
+    if (comptime !((@hasDecl(B, "combined_base_in_place") and B.combined_base_in_place) or
+        (@hasDecl(B, "supports_compact_arena_borrow") and B.supports_compact_arena_borrow)))
+        return error.UnsupportedTraceArena;
+    return prepareColumnsWithArenaOwnership(B, allocator, owned_columns, log_blowup_factor, .always, twiddle_source, recorder, source_arena, .borrow, if (recorder) |active| active.workCaptureRecorder() else null);
+}
+
+fn prepareColumnsWithArenaOwnership(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    owned_columns: []ColumnEvaluation,
+    log_blowup_factor: u32,
+    retention_policy: CoefficientRetentionPolicy,
+    twiddle_source: *TwiddleSource,
+    recorder: ?*stage_profile.Recorder,
+    source_arena: ?[]M31,
+    arena_ownership: ArenaOwnership,
+    work_recorder: ?*WorkRecorder,
+) !PreparedCommitmentColumns {
     if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) {
         var census_timer: ?std.time.Timer = std.time.Timer.start() catch null;
         const Group = struct {
@@ -209,7 +275,9 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
     if (source_arena != null and (log_blowup_factor == 0 or
         !(comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers"))))
         return error.UnsupportedTraceArena;
-    const combined_commit_min_columns = if (comptime @hasDecl(B, "combined_commit_min_columns"))
+    const combined_commit_min_columns = if (comptime @hasDecl(B, "combinedCommitMinimumColumns"))
+        B.combinedCommitMinimumColumns()
+    else if (comptime @hasDecl(B, "combined_commit_min_columns"))
         B.combined_commit_min_columns
     else
         0;
@@ -222,7 +290,7 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
         .passthrough
     else if (log_blowup_factor != 0 and
         (comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers")) and
-        owned_columns.len >= combined_commit_min_columns and
+        (arena_ownership == .borrow or owned_columns.len >= combined_commit_min_columns) and
         owned_columns.len <= combined_commit_max_columns)
         .combined
     else if (log_blowup_factor == 0)
@@ -250,6 +318,7 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
                 retain_coefficients,
                 twiddle_source,
                 source_arena,
+                arena_ownership,
                 work_recorder,
             );
         }
@@ -343,8 +412,10 @@ fn prepareColumnsCombinedForBackend(
     retain_coefficients: bool,
     twiddle_source: *TwiddleSource,
     source_arena: ?[]M31,
+    arena_ownership: ArenaOwnership,
     work_recorder: ?*WorkRecorder,
 ) !PreparedCommitmentColumns {
+    @import("../../measurement/process_usage.zig").reportStage("pcs.combined_inputs");
     var completed_work: work_profile.Counters = .{};
     const extended = try allocator.alloc(ColumnEvaluation, owned_columns.len);
     for (extended) |*column| column.* = .{ .log_size = 0, .values = &.{} };
@@ -379,6 +450,7 @@ fn prepareColumnsCombinedForBackend(
     // group forced the Merkle boundary to repack multi-gigabyte RISC-V traces
     // into a second private staging arena even though the GPU had produced all
     // of the values in shared memory immediately beforehand.
+    const skew_threshold = if (comptime @hasDecl(B, "residentColumnSkewMinimumColumns")) B.residentColumnSkewMinimumColumns() else 64;
     const page_words = std.heap.pageSize() / @sizeOf(M31);
     const compact_resident_columns = comptime @hasDecl(B, "requires_contiguous_resident_columns") and
         B.requires_contiguous_resident_columns;
@@ -390,7 +462,7 @@ fn prepareColumnsCombinedForBackend(
         const extended_len = @as(usize, 1) << @intCast(extended_log_size);
         const column_count = group.indices.items.len;
         if (column_count == 0) return error.ShapeMismatch;
-        const page_rotate = column_count >= 64 and extended_len >= (1 << 18);
+        const page_rotate = column_count >= skew_threshold and extended_len >= (1 << 18);
         const extended_stride = try std.math.add(
             usize,
             extended_len,
@@ -398,7 +470,7 @@ fn prepareColumnsCombinedForBackend(
                 0
             else if (page_rotate)
                 page_words + 16
-            else if (column_count >= 64)
+            else if (column_count >= skew_threshold)
                 16
             else
                 0,
@@ -424,147 +496,228 @@ fn prepareColumnsCombinedForBackend(
     var transform_arena_cursor: usize = 0;
     const supports_circle_lde_batch = comptime @hasDecl(B, "CircleLdeBatch") and
         @hasDecl(B, "interpolateAndEvaluateCircleBuffersBatched");
-    var circle_lde_batch: if (supports_circle_lde_batch) B.CircleLdeBatch else void =
-        if (supports_circle_lde_batch)
-            if (comptime @hasDecl(B.CircleLdeBatch, "initWithAllocator"))
-                try B.CircleLdeBatch.initWithAllocator(allocator)
-            else
-                try B.CircleLdeBatch.init()
-        else {};
-    defer if (supports_circle_lde_batch) circle_lde_batch.deinit();
-
-    for (groups.items) |group| {
-        const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
-            return error.ShapeMismatch;
-        const base_domain = canonic.CanonicCoset.new(group.log_size).circleDomain();
-        const extended_domain = canonic.CanonicCoset.new(extended_log_size).circleDomain();
-        const base_twiddles = try twiddle_source.getWithWorkRecorder(
-            allocator,
-            group.log_size,
-            work_recorder,
-        );
-        const extended_twiddles = try twiddle_source.getWithWorkRecorder(
-            allocator,
-            extended_log_size,
-            work_recorder,
-        );
-
-        const column_count = group.indices.items.len;
-        const base_in_place = comptime @hasDecl(B, "combined_base_in_place") and
-            B.combined_base_in_place;
-        // Keep Metal coefficients independently releasable from the skewed
-        // evaluation arena; CPU backends transform their owned inputs in place.
-        // A planned arena already holds this group's columns as one run in
-        // exactly the order the group walks them. Bind that run as the
-        // coefficient arena so the backend sees source == base and can skip
-        // the upload entirely.
-        const adopted = if (base_in_place)
-            null
-        else
-            arenaGroupRun(source_arena, owned_columns, group, base_domain.size());
-        const base_buffer: []M31 = if (base_in_place)
-            &.{}
-        else if (adopted) |run|
-            run
-        else blk: {
-            const buffer = try allocator.alloc(
-                M31,
-                try std.math.mul(usize, column_count, base_domain.size()),
-            );
-            errdefer allocator.free(buffer);
-            try coefficient_buffers.append(allocator, buffer);
-            break :blk buffer;
-        };
-        const extended_start: usize = 0;
-        // AIR evaluators walk a row across columns. An exact power-of-two
-        // column stride aliases cache and translation structures. Large
-        // columns amortize an odd-page rotation; retain the cheaper cache-line
-        // rotation for small columns where a page of padding is material.
-        const page_rotate = column_count >= 64 and extended_domain.size() >= (1 << 18);
-        const extended_stride = extended_domain.size() +
-            @as(usize, if (compact_resident_columns)
-                0
-            else if (page_rotate)
-                page_words + 16
-            else if (column_count >= 64)
-                16
-            else
-                0);
-        const extended_span = try std.math.add(
-            usize,
-            try std.math.mul(usize, column_count - 1, extended_stride),
-            extended_domain.size(),
-        );
-        const backing_words = std.mem.alignForward(usize, extended_span, page_words);
-        const transform_buffer = transform_arena[transform_arena_cursor..][0..backing_words];
-        transform_arena_cursor += backing_words;
-
-        const base_values = try allocator.alloc([]M31, group.indices.items.len);
-        defer allocator.free(base_values);
-        const source_values = try allocator.alloc([]const M31, group.indices.items.len);
-        defer allocator.free(source_values);
-        const extended_values = try allocator.alloc([]M31, group.indices.items.len);
-        defer allocator.free(extended_values);
-        for (group.indices.items, 0..) |column_index, group_index| {
-            const base = if (base_in_place)
-                @constCast(owned_columns[column_index].values)
-            else
-                base_buffer[group_index * base_domain.size() ..][0..base_domain.size()];
-            source_values[group_index] = owned_columns[column_index].values;
-            base_values[group_index] = base;
-            const values = transform_buffer[extended_start + group_index * extended_stride ..][0..extended_domain.size()];
-            extended_values[group_index] = values;
-            extended[column_index] = .{ .log_size = extended_log_size, .values = values };
+    // Bound temporary coefficients without fragmenting the final resident
+    // output. Retained coefficients keep the original all-groups lifetime.
+    const epoch_budget = if (comptime @hasDecl(B, "circle_lde_epoch_coefficient_bytes"))
+        B.circle_lde_epoch_coefficient_bytes
+    else
+        0;
+    const bounded_epochs = supports_circle_lde_batch and compact_resident_columns and
+        !(comptime @hasDecl(B, "combined_base_in_place") and B.combined_base_in_place) and
+        epoch_budget != 0 and !retain_coefficients;
+    var circle_lde_batch: if (supports_circle_lde_batch) ?B.CircleLdeBatch else void =
+        if (supports_circle_lde_batch) null else {};
+    defer if (supports_circle_lde_batch) {
+        if (circle_lde_batch) |*batch| batch.deinit();
+    };
+    var pending_cache_stores: std.ArrayList(PendingCacheStore) = .empty;
+    defer {
+        for (pending_cache_stores.items) |pending| {
+            allocator.free(pending.coefficients);
+            allocator.free(pending.evaluations);
         }
-        const execution: work_profile.M31CircleLdeExecution = if (supports_circle_lde_batch)
-            try B.interpolateAndEvaluateCircleBuffersBatched(
-                &circle_lde_batch,
-                allocator,
-                source_values,
-                base_values,
-                extended_values,
-                transform_buffer,
-                extended_start,
-                extended_stride,
-                base_domain,
-                base_twiddles,
-                extended_domain,
-                extended_twiddles,
-            )
-        else
-            try B.interpolateAndEvaluateCircleBuffers(
-                allocator,
-                source_values,
-                base_values,
-                extended_values,
-                transform_buffer,
-                extended_start,
-                extended_stride,
-                base_domain,
-                base_twiddles,
-                extended_domain,
-                extended_twiddles,
-            );
-        if (work_recorder != null) {
-            try validateCombinedExecution(
-                execution,
-                group.log_size,
-                extended_log_size,
-                column_count,
-            );
-            completed_work = try completed_work.add(try execution.exactWork());
-        }
+        pending_cache_stores.deinit(allocator);
+    }
 
-        for (group.indices.items, base_values) |column_index, base| {
-            coefficients[column_index] = if (base_in_place) blk: {
-                const coefficient = try prover_circle.CircleCoefficients.initOwned(base);
-                owned_columns[column_index].values = &.{};
-                break :blk coefficient;
-            } else try prover_circle.CircleCoefficients.initBorrowed(base);
-            initialized_indices.appendAssumeCapacity(column_index);
+    for (groups.items) |whole_group| {
+        const base_len = @as(usize, 1) << @intCast(whole_group.log_size);
+        // Page-sized domains give every chunk an aligned GPU binding and
+        // exactly the same contiguous output layout as the unsplit group.
+        // Smaller groups stay whole, including their final page padding.
+        const columns_per_epoch = if (bounded_epochs and base_len >= page_words)
+            @max(@as(usize, 1), epoch_budget / @sizeOf(M31) / base_len)
+        else
+            whole_group.indices.items.len;
+        var group_start: usize = 0;
+        while (group_start < whole_group.indices.items.len) {
+            const group_end = group_start + @min(columns_per_epoch, whole_group.indices.items.len - group_start);
+            const group = circle_transforms.LogSizeGroup{
+                .log_size = whole_group.log_size,
+                .indices = .{ .items = whole_group.indices.items[group_start..group_end], .capacity = group_end - group_start },
+            };
+            group_start = group_end;
+            const coefficient_buffer_start = coefficient_buffers.items.len;
+            const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
+                return error.ShapeMismatch;
+            const base_domain = canonic.CanonicCoset.new(group.log_size).circleDomain();
+            const extended_domain = canonic.CanonicCoset.new(extended_log_size).circleDomain();
+
+            const column_count = group.indices.items.len;
+            const base_in_place = (comptime @hasDecl(B, "combined_base_in_place") and B.combined_base_in_place) or
+                (arena_ownership == .borrow and source_arena != null and
+                    (comptime @hasDecl(B, "supports_compact_arena_borrow") and B.supports_compact_arena_borrow));
+            // Keep Metal coefficients independently releasable from the skewed
+            // evaluation arena; CPU backends transform their owned inputs in place.
+            // A planned arena already holds this group's columns as one run in
+            // exactly the order the group walks them. Bind that run as the
+            // coefficient arena so the backend sees source == base and can skip
+            // the upload entirely.
+            const adopted = if (base_in_place)
+                null
+            else
+                arenaGroupRun(source_arena, owned_columns, group, base_domain.size());
+            const base_buffer: []M31 = if (base_in_place)
+                &.{}
+            else if (adopted) |run|
+                run
+            else blk: {
+                const buffer = try allocator.alloc(
+                    M31,
+                    try std.math.mul(usize, column_count, base_domain.size()),
+                );
+                errdefer allocator.free(buffer);
+                try coefficient_buffers.append(allocator, buffer);
+                break :blk buffer;
+            };
+            const extended_start: usize = 0;
+            // AIR evaluators walk a row across columns. An exact power-of-two
+            // column stride aliases cache and translation structures. Large
+            // columns amortize an odd-page rotation; retain the cheaper cache-line
+            // rotation for small columns where a page of padding is material.
+            const page_rotate = column_count >= skew_threshold and extended_domain.size() >= (1 << 18);
+            const extended_stride = extended_domain.size() +
+                @as(usize, if (compact_resident_columns)
+                    0
+                else if (page_rotate)
+                    page_words + 16
+                else if (column_count >= skew_threshold)
+                    16
+                else
+                    0);
+            const extended_span = try std.math.add(
+                usize,
+                try std.math.mul(usize, column_count - 1, extended_stride),
+                extended_domain.size(),
+            );
+            const backing_words = std.mem.alignForward(usize, extended_span, page_words);
+            const transform_buffer = transform_arena[transform_arena_cursor..][0..backing_words];
+            transform_arena_cursor += backing_words;
+
+            const base_values = try allocator.alloc([]M31, group.indices.items.len);
+            defer allocator.free(base_values);
+            const source_values = try allocator.alloc([]const M31, group.indices.items.len);
+            defer allocator.free(source_values);
+            const extended_values = try allocator.alloc([]M31, group.indices.items.len);
+            defer allocator.free(extended_values);
+            for (group.indices.items, 0..) |column_index, group_index| {
+                const base = if (base_in_place)
+                    @constCast(owned_columns[column_index].values)
+                else
+                    base_buffer[group_index * base_domain.size() ..][0..base_domain.size()];
+                source_values[group_index] = owned_columns[column_index].values;
+                base_values[group_index] = base;
+                const values = transform_buffer[extended_start + group_index * extended_stride ..][0..extended_domain.size()];
+                extended_values[group_index] = values;
+                extended[column_index] = .{ .log_size = extended_log_size, .values = values };
+            }
+            const cache_request = preparation_cache.Request{ .base_log_size = group.log_size, .extended_log_size = extended_log_size, .column_count = column_count };
+            const cache = if (work_recorder == null) preparation_cache.armed() else null;
+            const cache_key = if (cache) |source| source.identify(source.ctx, cache_request, source_values) else null;
+            const cache_loaded = if (cache_key) |key| cache.?.load(cache.?.ctx, key, cache_request, base_values, extended_values) else false;
+            const execution: ?work_profile.M31CircleLdeExecution = if (cache_loaded) null else blk: {
+                const base_twiddles = try twiddle_source.getWithWorkRecorder(
+                    allocator,
+                    group.log_size,
+                    work_recorder,
+                );
+                const extended_twiddles = try twiddle_source.getWithWorkRecorder(
+                    allocator,
+                    extended_log_size,
+                    work_recorder,
+                );
+
+                if (supports_circle_lde_batch and circle_lde_batch == null) {
+                    circle_lde_batch = if (comptime @hasDecl(B.CircleLdeBatch, "initWithAllocator"))
+                        try B.CircleLdeBatch.initWithAllocator(allocator)
+                    else
+                        try B.CircleLdeBatch.init();
+                }
+                const executed: work_profile.M31CircleLdeExecution = if (supports_circle_lde_batch)
+                    try B.interpolateAndEvaluateCircleBuffersBatched(
+                        &circle_lde_batch.?,
+                        allocator,
+                        source_values,
+                        base_values,
+                        extended_values,
+                        transform_buffer,
+                        extended_start,
+                        extended_stride,
+                        base_domain,
+                        base_twiddles,
+                        extended_domain,
+                        extended_twiddles,
+                    )
+                else
+                    try B.interpolateAndEvaluateCircleBuffers(
+                        allocator,
+                        source_values,
+                        base_values,
+                        extended_values,
+                        transform_buffer,
+                        extended_start,
+                        extended_stride,
+                        base_domain,
+                        base_twiddles,
+                        extended_domain,
+                        extended_twiddles,
+                    );
+                if (cache_key) |key| {
+                    if (supports_circle_lde_batch) {
+                        // Device transforms are only encoded here. Publish cache
+                        // bytes after the batch has joined and outputs are valid.
+                        queueCacheStore(allocator, &pending_cache_stores, cache.?, key, cache_request, base_values, extended_values);
+                    } else cache.?.store(cache.?.ctx, key, cache_request, base_values, extended_values);
+                }
+                break :blk executed;
+            };
+            if (work_recorder != null) {
+                try validateCombinedExecution(
+                    execution.?,
+                    group.log_size,
+                    extended_log_size,
+                    column_count,
+                );
+                completed_work = try completed_work.add(try execution.?.exactWork());
+            }
+
+            for (group.indices.items, base_values) |column_index, base| {
+                coefficients[column_index] = if (base_in_place) blk: {
+                    // An adopted arena owns the whole allocation; its subcolumns
+                    // must never acquire independent allocator custody.
+                    const coefficient = if (source_arena != null)
+                        try prover_circle.CircleCoefficients.initBorrowed(base)
+                    else
+                        try prover_circle.CircleCoefficients.initOwned(base);
+                    owned_columns[column_index].values = &.{};
+                    break :blk coefficient;
+                } else try prover_circle.CircleCoefficients.initBorrowed(base);
+                initialized_indices.appendAssumeCapacity(column_index);
+            }
+            if (bounded_epochs) {
+                if (supports_circle_lde_batch) {
+                    if (circle_lde_batch) |*batch| {
+                        try batch.finish();
+                        // Destroy command buffers and their borrowed Metal views
+                        // before releasing any backing allocation.
+                        batch.deinit();
+                        circle_lde_batch = null;
+                    }
+                }
+                publishPendingCacheStores(allocator, &pending_cache_stores);
+                if (source_arena == null) for (group.indices.items) |index| {
+                    allocator.free(owned_columns[index].values);
+                    // The caller still owns unconsumed descriptors on failure.
+                    owned_columns[index].values = &.{};
+                };
+                for (coefficient_buffers.items[coefficient_buffer_start..]) |buffer| allocator.free(buffer);
+                coefficient_buffers.shrinkRetainingCapacity(coefficient_buffer_start);
+            }
         }
     }
-    if (supports_circle_lde_batch) try circle_lde_batch.finish();
+    if (supports_circle_lde_batch) {
+        if (circle_lde_batch) |*batch| try batch.finish();
+    }
+    publishPendingCacheStores(allocator, &pending_cache_stores);
     std.debug.assert(transform_arena_cursor == transform_arena.len);
     try recordM31TransformCompletion(
         work_recorder,
@@ -576,25 +729,28 @@ fn prepareColumnsCombinedForBackend(
 
     const owned_column_buffers = try allocator.dupe([]M31, column_buffers.items);
     errdefer allocator.free(owned_column_buffers);
-    const coefficient_buffer_count = coefficient_buffers.items.len + @intFromBool(source_arena != null);
+    const adopts_arena = source_arena != null and arena_ownership == .adopt;
+    const coefficient_buffer_count = coefficient_buffers.items.len + @intFromBool(adopts_arena);
     const owned_coefficient_buffers: ?[][]M31 = if (retain_coefficients and coefficient_buffer_count != 0) blk: {
         const buffers = try allocator.alloc([]M31, coefficient_buffer_count);
         @memcpy(buffers[0..coefficient_buffers.items.len], coefficient_buffers.items);
-        if (source_arena) |arena| buffers[buffers.len - 1] = arena;
+        if (adopts_arena) buffers[buffers.len - 1] = source_arena.?;
         break :blk buffers;
     } else null;
 
-    // All fallible work is complete. Until this point the caller retains the
-    // source arena, and our error cleanup owns only newly allocated buffers.
+    // The caller retains an adopted source arena until all fallible work is
+    // complete. Bounded epochs may have retired individual source columns;
+    // their empty descriptors preserve the caller's error cleanup custody.
     if (source_arena == null) {
         for (owned_columns) |column| if (column.values.len != 0) allocator.free(column.values);
     }
     allocator.free(owned_columns);
 
+    @import("../../measurement/process_usage.zig").reportStage("pcs.combined_outputs");
     if (!retain_coefficients) {
         column_storage.deinitOwnedCoefficientColumns(allocator, coefficients);
         for (coefficient_buffers.items) |buffer| allocator.free(buffer);
-        if (source_arena) |arena| allocator.free(arena);
+        if (adopts_arena) allocator.free(source_arena.?);
         coefficient_buffers.clearRetainingCapacity();
         column_buffers.clearRetainingCapacity();
         return .{

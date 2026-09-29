@@ -21,6 +21,7 @@ pub const Writer = struct {
 };
 
 pub const Relation = struct {
+    retained_base_words: u64 = 0,
     instance_count: u32,
     top_level_pointer_words: u64,
     source_pointer_words: u64,
@@ -38,6 +39,7 @@ pub const Relation = struct {
 };
 
 pub const Evaluation = struct {
+    parametric_constants: u32 = 0,
     placement_count: u32,
     argument_words: u64,
     trace_offset_words: u64,
@@ -140,7 +142,12 @@ pub const Geometry = struct {
             }
         }
         inline for (std.meta.fields(Evaluation)) |field| {
-            if (field.type == proof_ir.Digest) {
+            if (comptime std.mem.eql(u8, field.name, "parametric_constants")) {
+                if (self.evaluation.parametric_constants != 0) {
+                    hash.update("parametric-eval-v2\x00");
+                    hashInt(&hash, self.evaluation.parametric_constants);
+                }
+            } else if (field.type == proof_ir.Digest) {
                 hash.update(&@field(self.evaluation, field.name));
             } else {
                 hashInt(&hash, @field(self.evaluation, field.name));
@@ -154,7 +161,7 @@ pub fn validateEvaluation(
     bundle: composition.Bundle,
     evaluation: Evaluation,
 ) !void {
-    const expected = try deriveEvaluation(bundle, evaluation.identity);
+    const expected = try deriveEvaluationMode(bundle, evaluation.identity, evaluation.parametric_constants != 0);
     if (!std.meta.eql(expected, evaluation))
         return error.InvalidIngressGeometry;
 }
@@ -163,6 +170,10 @@ pub fn deriveEvaluation(
     bundle: composition.Bundle,
     identity: proof_ir.Digest,
 ) !Evaluation {
+    return deriveEvaluationMode(bundle, identity, false);
+}
+
+pub fn deriveEvaluationMode(bundle: composition.Bundle, identity: proof_ir.Digest, parametric_constants: bool) !Evaluation {
     var placements: u64 = 0;
     var trace_offsets: u64 = 0;
     var interaction_offsets: u64 = 0;
@@ -202,6 +213,8 @@ pub fn deriveEvaluation(
                 component_base,
                 part.program.header.n_base_params,
             );
+            if (parametric_constants) base_parameters = try add(base_parameters,
+                try @import("../parametric_eval.zig").constantWordCount(part.program));
         }
         base_parameters = try add(base_parameters, component_base);
         extended_parameters = try add(
@@ -220,6 +233,7 @@ pub fn deriveEvaluation(
         );
     }
     return .{
+        .parametric_constants = @intFromBool(parametric_constants),
         .placement_count = std.math.cast(u32, placements) orelse
             return error.InvalidIngressGeometry,
         .argument_words = try mul(placements, 24),

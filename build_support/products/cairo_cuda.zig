@@ -99,6 +99,39 @@ pub fn addProduct(context: Context) void {
         "invalid Cairo CUDA descriptor: {s}",
         .{@errorName(err)},
     );
+    // Compile the complete CLI/controller/verification path without linking a
+    // CUDA runtime. This gate is useful on development hosts without NVIDIA.
+    const local_stwo = createStwoModule(context, .library);
+    const local_root = createProductModule(context, product(.library), local_stwo, "80,90");
+    local_root.root_source_file = context.b.path("src/products/cairo_cuda/compile_check.zig");
+    local_root.link_libc = true;
+    const local_object = context.b.addObject(.{
+        .name = "cairo-cuda-local-compile",
+        .root_module = local_root,
+    });
+    const local_step = context.b.step("check-cairo-cuda-local", "Compile the complete Cairo CUDA product and validate its archive plan without a GPU");
+    local_step.dependOn(&local_object.step);
+    var generator_context = context;
+    generator_context.target = context.b.graph.host;
+    generator_context.protocol = graph.createPrivateProtocolModules(context.b, context.b.graph.host, context.optimize);
+    const generator_stwo = createStwoModule(generator_context, .library);
+    const local_aot = cuda_aot.addCairoEval(context.b, context.b.graph.host, generator_stwo);
+    local_step.dependOn(&cuda.addCairoPlan(context.b, local_aot).step);
+    const host_test_root = context.b.createModule(.{
+        .root_source_file = context.b.path("src/integrations/cairo_cuda/local_test_root.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+        .link_libc = true,
+    });
+    const integration_module = local_stwo.import_table.get("stwo_cairo_cuda_integration").?;
+    var imports = integration_module.import_table.iterator();
+    while (imports.next()) |item| host_test_root.addImport(item.key_ptr.*, item.value_ptr.*);
+    const host_test_filter = context.b.option([]const u8, "cairo-test-filter", "Run focused Cairo tests containing this text");
+    const host_tests = context.b.addTest(.{
+        .root_module = host_test_root,
+        .filters = if (host_test_filter) |filter| &.{filter} else &.{"canonical CUDA"},
+    });
+    context.b.step("test-cairo-cuda-local", "Test canonical CUDA source admission and table geometry without a GPU").dependOn(&context.b.addRunArtifact(host_tests).step);
     if (!descriptor.isAvailableOn(context.target.result.os.tag)) {
         policy.registerUnavailable(context.b, descriptor, context.target.result.os.tag);
         return;
@@ -111,7 +144,7 @@ pub fn addProduct(context: Context) void {
     }
 
     const stwo = createStwoModule(context, .library);
-    const root = createProductModule(context, descriptor.product, stwo);
+    const root = createProductModule(context, descriptor.product, stwo, options.architectures.?);
     const installed = graph_install.executable(
         context.b,
         descriptor.executable.?,
@@ -128,7 +161,7 @@ pub fn addProduct(context: Context) void {
         context.b,
         options.toolchain(),
         .cairo,
-        cairo_eval_aot.directory,
+        cairo_eval_aot,
     );
     cuda.linkRuntime(installed.executable, options.toolchain(), archive);
     const install_archive = context.b.addInstallFile(
@@ -141,8 +174,10 @@ pub fn addProduct(context: Context) void {
         context,
         product(.@"test"),
         createStwoModule(context, .@"test"),
+        options.architectures.?,
     );
-    const tests = context.b.addTest(.{ .root_module = test_root });
+    const test_filters: []const []const u8 = if (host_test_filter) |filter| &.{filter} else &.{};
+    const tests = context.b.addTest(.{ .root_module = test_root, .filters = test_filters });
     cuda.linkRuntime(tests, options.toolchain(), archive);
     context.b.step(
         descriptor.test_step.?,
@@ -248,6 +283,7 @@ fn createProductModule(
     context: Context,
     product_descriptor: graph.Product,
     stwo: *std.Build.Module,
+    architectures: []const u8,
 ) *std.Build.Module {
     const root = graph.create(context.b, .{
         .product = product_descriptor,
@@ -257,6 +293,9 @@ fn createProductModule(
     });
     context.protocol.addImports(root);
     root.addImport("stwo_cairo_cuda", stwo);
+    const architecture_options = context.b.addOptions();
+    architecture_options.addOption([]const u8, "architectures", architectures);
+    root.addOptions("cuda_architectures", architecture_options);
     root.addOptions(
         "product_identity",
         graph_identity.productOptionsWithRuntime(

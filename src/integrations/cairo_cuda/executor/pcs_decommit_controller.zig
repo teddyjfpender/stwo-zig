@@ -131,6 +131,8 @@ pub const Prepared = struct {
         schedule: transcript_schedule.Schedule,
         cursor: *transcript_controller.Cursor,
     ) !TerminalRoute {
+        var phase: []const u8 = "validate";
+        errdefer std.debug.print("cairo-cuda decommit phase={s} failed\n", .{phase});
         try self.validate(plan, protocol, schedule);
         if (self.state != .prepared)
             return error.InvalidDecommitControllerState;
@@ -140,6 +142,7 @@ pub const Prepared = struct {
             .decommit,
             self.bindings.decommit_assembly,
         );
+        phase = "draw_queries";
         try transcript_controller.drawQueries(
             Ops.Transcript,
             session,
@@ -149,6 +152,7 @@ pub const Prepared = struct {
             5,
             self.bindings.decommit.raw_queries,
         );
+        phase = "normalize_queries";
         try topology_module.normalizeWith(
             Ops.Decommit,
             session,
@@ -156,6 +160,7 @@ pub const Prepared = struct {
             self.bindings.decommit,
             self.bindings.decommit_assembly,
         );
+        phase = "open_trees";
         try topology_module.openAllWith(
             Ops.Decommit,
             session,
@@ -165,6 +170,7 @@ pub const Prepared = struct {
             self.bindings.decommit,
             self.bindings.decommit_assembly,
         );
+        phase = "capture_openings";
         try Ops.Capture.captureDecommitment(
             session,
             .{ .proof = self.bindings.proof },

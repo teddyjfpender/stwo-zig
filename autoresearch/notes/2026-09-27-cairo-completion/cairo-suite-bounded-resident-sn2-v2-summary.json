@@ -1,0 +1,33 @@
+{
+  "status": "proof-qualified; tiled execution not admitted",
+  "summary": {
+    "median_process_wall_ns": 67473390500,
+    "median_prove_ns": 63944823875,
+    "peak_process_rss_bytes": 28024487936
+  },
+  "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+  "official_verifier": {
+    "exit_code": 0,
+    "wall_ns": 626907250,
+    "user_ns": 609746000,
+    "system_ns": 4866000,
+    "max_process_tree_rss_bytes": 39567360,
+    "rss_is_simultaneous_process_tree_sum": false
+  },
+  "pipeline_cache": {
+    "library_hits": 0,
+    "library_misses": 1,
+    "pipeline_hits": 0,
+    "binary_archive_hits": 0,
+    "binary_archive_misses": 42,
+    "direct_compiles": 42,
+    "archive_populations": 42,
+    "archive_serializations": 42,
+    "pipeline_preparation_seconds": 48.30645167827606,
+    "library_preparation_seconds": 0.008962035179138184
+  },
+  "gpu_components": 42,
+  "planned_tiled_components": 11,
+  "qualified_tiled_components": 0,
+  "reason": "Full-domain runtime validator rejected row-tile dispatch geometry before pipeline preparation."
+}

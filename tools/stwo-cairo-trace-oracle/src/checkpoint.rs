@@ -22,6 +22,8 @@ pub struct ColumnCheckpoint {
     pub ordinal: u32,
     pub row_count: u64,
     pub sha256: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub diagnostic_prefix_m31: Option<Vec<u32>>,
 }
 
 #[derive(Serialize)]
@@ -228,6 +230,13 @@ pub fn build(
                 ordinal: column_ordinal,
                 row_count,
                 sha256: hex::encode(digest),
+                diagnostic_prefix_m31: (std::env::var(
+                    "STWO_CAIRO_TRACE_ORACLE_BASE_PREFIX_COMPONENT",
+                )
+                .ok()
+                .as_deref()
+                    == Some(layout.label.as_str()))
+                .then(|| values.iter().take(16).map(|v| v.0).collect()),
             });
         }
         accumulator = accumulator_digest(

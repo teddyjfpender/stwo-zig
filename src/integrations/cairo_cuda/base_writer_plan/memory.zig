@@ -52,7 +52,7 @@ pub fn compile(
 
     var count: usize = 0;
     for (components.components, 0..) |component, component_index| {
-        const kind = kindFor(component.label) orelse continue;
+        const kind = kindFor(@import("stwo_cairo_frontend").proof_plan.canonicalComponentName(component.label, component.instance)) orelse continue;
         if (count >= entries.len) return error.MemoryComponentInventoryMismatch;
         entries[count] = try compileEntry(
             input,
@@ -128,7 +128,7 @@ fn compileEntry(
     }
     const entry = Entry{
         .component_index = component_index,
-        .name = component.label,
+        .name = @import("stwo_cairo_frontend").proof_plan.canonicalComponentName(component.label, component.instance),
         .instance = component.instance,
         .kind = kind,
         .log_size = component.trace_log_size,

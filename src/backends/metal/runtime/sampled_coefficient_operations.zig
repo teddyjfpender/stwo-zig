@@ -4,6 +4,7 @@ const std = @import("std");
 const runtime = @import("../runtime.zig");
 const dispatch_ffi = @import("sampled_dispatch_bindings_v1.zig");
 const dispatch_budget = @import("sampled_dispatch_budget_v1.zig");
+const coefficient_geometry = @import("sampled_coefficient_geometry.zig");
 const work_profile = @import("stwo_prover_api").work_profile;
 
 const MetalError = runtime.MetalError;
@@ -116,7 +117,7 @@ fn evaluateCoefficientTreePlansInternal(
         for (tree_plan.coefficients) |coefficient| {
             const values = coefficient.coefficients();
             if (values.len == 0 or !std.math.isPowerOfTwo(values.len)) return MetalError.PolynomialEvaluationFailed;
-            coefficient_count = checkedSampledSizeAdd(coefficient_count, values.len) catch return MetalError.PolynomialEvaluationFailed;
+            coefficient_count = coefficient_geometry.addSourceWords(coefficient_count, values.len) catch return MetalError.PolynomialEvaluationFailed;
         }
         for (tree_plan.plans) |plan| {
             if (plan.coeff_log_size >= 32 or plan.normalized_points.len == 0) return MetalError.PolynomialEvaluationFailed;
@@ -147,6 +148,7 @@ fn evaluateCoefficientTreePlansInternal(
         .outputs = output_count,
     }) catch return MetalError.PolynomialEvaluationFailed;
 
+    std.log.info("sampled coefficient evaluation: {d} source words in {d} columns; bounded source streaming {any}", .{ coefficient_count, coefficient_column_count, coefficient_geometry.usesStreaming(coefficient_count) });
     const coefficient_offsets = try allocator.alloc(u32, coefficient_column_count);
     defer allocator.free(coefficient_offsets);
     const coefficient_ptrs = try allocator.alloc([*]const u32, coefficient_column_count);
@@ -158,7 +160,7 @@ fn evaluateCoefficientTreePlansInternal(
     for (tree_plans) |tree_plan| {
         for (tree_plan.coefficients) |coefficient| {
             const words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(coefficient.coefficients()));
-            coefficient_offsets[coefficient_cursor] = @intCast(coefficient_word_cursor);
+            coefficient_offsets[coefficient_cursor] = coefficient_geometry.taskOffset(coefficient_word_cursor, coefficient_count) catch return MetalError.PolynomialEvaluationFailed;
             coefficient_ptrs[coefficient_cursor] = words.ptr;
             coefficient_lengths[coefficient_cursor] = words.len;
             coefficient_cursor += 1;
@@ -436,4 +438,8 @@ fn checkedSampledSizeAdd(left: usize, right: usize) !usize {
     const result = try std.math.add(usize, left, right);
     if (result > std.math.maxInt(u32)) return error.InvalidSampledCoefficientShape;
     return result;
+}
+
+test {
+    _ = coefficient_geometry;
 }

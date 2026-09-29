@@ -4,6 +4,8 @@ const std = @import("std");
 const producer_output = @import("../witness/producer_output.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 const fixed_table_bundle = @import("../witness/fixed_table_bundle.zig");
+const fixed_feed_plan = @import("fixed_feed_plan.zig");
+const pool_split = @import("../witness/pool_split.zig");
 
 const max_fixed_rows: u32 = 1 << 24;
 const max_dense_words: usize = 1 << 27;
@@ -121,6 +123,9 @@ pub const Tables = struct {
         topology: feed_topology.Loaded,
         producers: []const producer_output.ProducerOutput,
     ) !void {
+        var feeds: std.ArrayList(PreparedFeed) = .empty;
+        defer feeds.deinit(self.allocator);
+        var active_rows: usize = 0;
         for (producers) |producer| {
             const component = topology.find(producer.label) orelse
                 return error.MissingProducerTopology;
@@ -130,88 +135,309 @@ pub const Tables = struct {
                 return error.FeedGeometryMismatch;
             for (component.feeds) |feed| {
                 const table = self.find(feed.target) orelse continue;
-                for (0..producer.active_rows) |row| {
-                    const base = @as(usize, row) * producer.words_per_row + feed.word_base;
-                    const words = producer.words[base .. base + feed.words_per_instance];
-                    try self.routeOne(table.entry.*, feed, words);
-                }
+                if (producer.active_rows == 0) continue;
+                if (feed.word_base > producer.words_per_row or
+                    feed.words_per_instance > producer.words_per_row - feed.word_base)
+                    return error.FeedGeometryMismatch;
+                const plan = try fixed_feed_plan.Plan.init(table.entry.*, feed);
+                // Reserve in source order so admission still uses one shared
+                // dense-word budget. Workers never allocate private histograms.
+                _ = try self.reserve(feed.target);
+                try feeds.append(self.allocator, .{
+                    .table_index = (@intFromPtr(table) - @intFromPtr(self.items.ptr)) / @sizeOf(Table),
+                    .plan = plan,
+                    .words = producer.words,
+                    .rows = producer.active_rows,
+                    .stride = producer.words_per_row,
+                    .word_base = feed.word_base,
+                });
+                active_rows = std.math.add(usize, active_rows, producer.active_rows) catch
+                    return error.AllocationSizeOverflow;
             }
         }
-    }
-
-    fn routeOne(
-        self: *Tables,
-        entry: fixed_table_bundle.Entry,
-        feed: feed_topology.Feed,
-        words: []const u32,
-    ) !void {
-        if (std.mem.startsWith(u8, feed.target, "range_check_")) {
-            const key = try rangeKey(feed.target["range_check_".len..], words);
-            try self.increment(feed.target, feed.relation, key);
-            return;
-        }
-        if (std.mem.startsWith(u8, feed.target, "verify_bitwise_xor_")) {
-            const bits = std.fmt.parseUnsigned(
-                u5,
-                feed.target["verify_bitwise_xor_".len..],
-                10,
-            ) catch return error.UnsupportedFixedRelation;
-            if (words.len != 3 or bits == 0 or bits >= 16)
-                return error.FeedGeometryMismatch;
-            const limit = @as(u32, 1) << bits;
-            if ((words[0] | words[1] | words[2]) >= limit or
-                words[2] != (words[0] ^ words[1]))
-                return error.InvalidMultiplicityKey;
-            if (bits == 12) {
-                if (entry.multiplicity_columns != 16 or entry.row_count != 1 << 20)
-                    return error.FixedGeometryMismatch;
-                const relation = ((words[0] >> 10) << 2) | (words[1] >> 10);
-                const row = ((words[0] & 0x3ff) << 10) | (words[1] & 0x3ff);
-                try self.increment(feed.target, relation, row);
-            } else {
-                const row = (words[0] << bits) | words[1];
-                try self.increment(feed.target, feed.relation, row);
-            }
-            return;
-        }
-        if (std.mem.eql(u8, feed.target, "blake_round_sigma") or
-            std.mem.eql(u8, feed.target, "poseidon_round_keys") or
-            std.mem.eql(u8, feed.target, "pedersen_points_table_window_bits_18") or
-            std.mem.eql(u8, feed.target, "pedersen_points_table_window_bits_9"))
-        {
-            if (words.len != 1) return error.FeedGeometryMismatch;
-            try self.increment(feed.target, feed.relation, words[0]);
-            return;
-        }
-        return error.UnsupportedFixedRelation;
+        try accumulate(self.allocator, self.items, feeds.items, active_rows);
     }
 };
 
-fn rangeKey(shape: []const u8, words: []const u32) !u32 {
-    var parts = std.mem.splitScalar(u8, shape, '_');
-    var key: u32 = 0;
-    var word_index: usize = 0;
-    while (parts.next()) |part| {
-        const bits = std.fmt.parseUnsigned(u5, part, 10) catch
-            return error.UnsupportedFixedRelation;
-        if (bits == 0 or bits >= 31 or word_index == words.len)
-            return error.FeedGeometryMismatch;
-        const limit = @as(u32, 1) << bits;
-        if (words[word_index] >= limit) return error.InvalidMultiplicityKey;
-        key = std.math.shl(u32, key, bits);
-        key = std.math.add(u32, key, words[word_index]) catch
-            return error.InvalidMultiplicityKey;
-        word_index += 1;
+const PreparedFeed = struct {
+    table_index: usize,
+    plan: fixed_feed_plan.Plan,
+    words: []const u32,
+    rows: usize,
+    stride: usize,
+    word_base: usize,
+};
+
+const TableWork = struct {
+    tables: []const Table,
+    feeds: []const PreparedFeed,
+    worker_index: usize,
+    worker_count: usize,
+    parallel_tables: []const bool,
+    profile_tables: bool,
+    failure: ?anyerror = null,
+
+    pub fn run(self: *TableWork) void {
+        var index = self.worker_index;
+        while (index < self.tables.len) : (index += self.worker_count) {
+            if (self.parallel_tables[index]) continue;
+            const dense = self.tables[index].dense orelse continue;
+            var timer = if (self.profile_tables) std.time.Timer.start() catch null else null;
+            var feed_rows: usize = 0;
+            for (self.feeds) |feed| {
+                if (feed.table_index != index) continue;
+                feed_rows += feed.rows;
+                for (0..feed.rows) |row| {
+                    const base = row * feed.stride + feed.word_base;
+                    feed.plan.increment(dense, feed.words[base..][0..feed.plan.word_count]) catch |err| {
+                        self.failure = err;
+                        return;
+                    };
+                }
+            }
+            if (timer) |*running| std.log.info(
+                "Cairo fixed table {s}: {d} feed rows, {d} destination words, {d:.3} ms",
+                .{ self.tables[index].entry.component, feed_rows, dense.len, @as(f64, @floatFromInt(running.read())) / std.time.ns_per_ms },
+            );
+        }
     }
-    if (word_index != words.len) return error.FeedGeometryMismatch;
-    return key;
+};
+
+const AtomicTask = struct { feed_index: usize, begin: usize, end: usize };
+const AtomicWork = struct {
+    tables: []const Table,
+    feeds: []const PreparedFeed,
+    tasks: []const AtomicTask,
+    next: *std.atomic.Value(usize),
+    failure: ?anyerror = null,
+
+    pub fn run(self: *AtomicWork) void {
+        while (true) {
+            const task_index = self.next.fetchAdd(1, .monotonic);
+            if (task_index >= self.tasks.len) return;
+            const task = self.tasks[task_index];
+            const feed = self.feeds[task.feed_index];
+            const dense = self.tables[feed.table_index].dense orelse {
+                self.failure = error.FixedGeometryMismatch;
+                return;
+            };
+            // Small keys repeat in every multiplicity relation. Coalesce a
+            // bounded prefix of each relation, keeping hot bins from bouncing
+            // between cores without replicating a large table.
+            const cached_rows = 256;
+            const cached_relations = 16;
+            var small_counts: [cached_rows * cached_relations]u32 = @splat(0);
+            for (task.begin..task.end) |row| {
+                const base = row * feed.stride + feed.word_base;
+                const key = feed.plan.key(feed.words[base..][0..feed.plan.word_count]) catch |err| {
+                    self.failure = err;
+                    return;
+                };
+                const index = @as(usize, key.relation) * feed.plan.row_count + key.row;
+                if (index >= dense.len) {
+                    self.failure = error.FixedGeometryMismatch;
+                    return;
+                }
+                if (key.row < cached_rows and key.relation < cached_relations)
+                    small_counts[@as(usize, key.relation) * cached_rows + key.row] += 1
+                else
+                    atomicAddChecked(&dense[index], 1) catch |err| {
+                        self.failure = err;
+                        return;
+                    };
+            }
+            for (0..@min(feed.plan.columns, cached_relations)) |relation|
+                for (0..@min(feed.plan.row_count, cached_rows)) |row| {
+                    const count = small_counts[relation * cached_rows + row];
+                    if (count == 0) continue;
+                    atomicAddChecked(&dense[relation * feed.plan.row_count + row], count) catch |err| {
+                        self.failure = err;
+                        return;
+                    };
+                };
+        }
+    }
+};
+
+fn atomicAddChecked(counter: *u32, count: u32) !void {
+    const previous = @atomicRmw(u32, counter, .Add, count, .monotonic);
+    if (previous > std.math.maxInt(u32) - count) return error.MultiplicityOverflow;
 }
 
-test "Cairo multiplicity routing derives composite and XOR keys" {
-    try std.testing.expectEqual(@as(u32, 0b101_010101_111000), try rangeKey(
-        "3_6_6",
-        &.{ 0b101, 0b010101, 0b111000 },
-    ));
-    try std.testing.expectError(error.InvalidMultiplicityKey, rangeKey("4_3", &.{ 16, 0 }));
-    try std.testing.expectError(error.FeedGeometryMismatch, rangeKey("4_3", &.{1}));
+fn accumulateAtomic(tables: []const Table, feeds: []const PreparedFeed, tasks: []const AtomicTask, worker_count: usize) !void {
+    if (tasks.len == 0) return;
+    var next = std.atomic.Value(usize).init(0);
+    var workers: [pool_split.work_pool.MAX_WORKERS]AtomicWork = undefined;
+    for (workers[0..worker_count]) |*worker| worker.* = .{
+        .tables = tables,
+        .feeds = feeds,
+        .tasks = tasks,
+        .next = &next,
+    };
+    try pool_split.dispatch(AtomicWork, workers[0..worker_count]);
+}
+
+/// Small tables retain one writer. Large feeds use shared atomic counters over
+/// bounded row tasks, preventing one huge table from serializing the whole
+/// stage. Both routes own exactly one dense histogram per table.
+fn accumulate(allocator: std.mem.Allocator, tables: []const Table, feeds: []const PreparedFeed, rows: usize) !void {
+    if (feeds.len == 0) return;
+    const pool_workers = pool_split.workerCount(.{
+        .rows = rows,
+        .min_rows_per_worker = 1 << 14,
+    });
+    const parallel_tables = try allocator.alloc(bool, tables.len);
+    defer allocator.free(parallel_tables);
+    @memset(parallel_tables, false);
+    for (tables, 0..) |table, index| {
+        const dense = table.dense orelse continue;
+        if (pool_workers <= 1 or dense.len < 1 << 16) continue;
+        var table_rows: usize = 0;
+        for (feeds) |feed| if (feed.table_index == index) {
+            table_rows = std.math.add(usize, table_rows, feed.rows) catch return error.AllocationSizeOverflow;
+        };
+        parallel_tables[index] = table_rows >= 1 << 22;
+    }
+    var tasks: std.ArrayList(AtomicTask) = .empty;
+    defer tasks.deinit(allocator);
+    for (feeds, 0..) |feed, index| {
+        if (!parallel_tables[feed.table_index]) continue;
+        var begin: usize = 0;
+        while (begin < feed.rows) {
+            const end = begin + @min(@as(usize, 1 << 18), feed.rows - begin);
+            try tasks.append(allocator, .{ .feed_index = index, .begin = begin, .end = end });
+            begin = end;
+        }
+    }
+    const worker_count = @min(tables.len, pool_workers);
+    const profile_tables = std.posix.getenv("STWO_CAIRO_PROFILE_FIXED_TABLES") != null;
+    var work: [pool_split.work_pool.MAX_WORKERS]TableWork = undefined;
+    for (work[0..worker_count], 0..) |*item, index| item.* = .{
+        .tables = tables,
+        .feeds = feeds,
+        .worker_index = index,
+        .worker_count = worker_count,
+        .parallel_tables = parallel_tables,
+        .profile_tables = profile_tables,
+    };
+    try pool_split.dispatch(TableWork, work[0..worker_count]);
+    var timer = if (profile_tables) std.time.Timer.start() catch null else null;
+    try accumulateAtomic(tables, feeds, tasks.items, @min(pool_workers, tasks.items.len));
+    if (timer) |*running| std.log.info(
+        "Cairo fixed atomic scatter: {d} bounded tasks over {d} workers, {d:.3} ms",
+        .{ tasks.items.len, @min(pool_workers, tasks.items.len), @as(f64, @floatFromInt(running.read())) / std.time.ns_per_ms },
+    );
+}
+
+test "Cairo fixed feed parallel table ownership preserves collisions without replicas" {
+    const allocator = std.testing.allocator;
+    const row_count = (1 << 16) + 1;
+    const words = try allocator.alloc(u32, row_count);
+    defer allocator.free(words);
+    for (words, 0..) |*word, row| word.* = @intCast((row * 5 + 3) % 8);
+    const plan = fixed_feed_plan.Plan{
+        .kind = .indexed,
+        .relation = 0,
+        .row_count = 8,
+        .columns = 1,
+        .word_count = 1,
+    };
+    const feeds = [_]PreparedFeed{
+        .{ .table_index = 0, .plan = plan, .words = words, .rows = row_count, .stride = 1, .word_base = 0 },
+        .{ .table_index = 1, .plan = plan, .words = words, .rows = row_count, .stride = 1, .word_base = 0 },
+        .{ .table_index = 0, .plan = plan, .words = words, .rows = row_count, .stride = 1, .word_base = 0 },
+        .{ .table_index = 2, .plan = plan, .words = words, .rows = row_count, .stride = 1, .word_base = 0 },
+    };
+    var histograms = [_][8]u32{[_]u32{0} ** 8} ** 3;
+    const entry: fixed_table_bundle.Entry = .{
+        .component = @constCast("blake_round_sigma"),
+        .log_size = 3,
+        .row_count = 8,
+        .multiplicity_columns = 1,
+        .trace_multiplicity_columns = &.{},
+        .preprocessed_sources = &.{},
+        .lookup_descriptors = &.{},
+    };
+    var tables: [3]Table = undefined;
+    for (&tables, &histograms) |*table, *histogram| table.* = .{ .entry = &entry, .dense = histogram };
+    var pool: pool_split.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .backing_allocator = allocator });
+    defer pool.deinit();
+    var binding = try pool_split.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try accumulate(allocator, &tables, &feeds, row_count * feeds.len);
+    var expected = [_]u32{0} ** 8;
+    for (words) |word| expected[word] += 1;
+    for (expected, 0..) |count, key| {
+        try std.testing.expectEqual(2 * count, histograms[0][key]);
+        try std.testing.expectEqual(count, histograms[1][key]);
+        try std.testing.expectEqual(count, histograms[2][key]);
+    }
+    // Checked arithmetic still propagates from a helper thread after joining.
+    histograms[2][words[0]] = std.math.maxInt(u32);
+    try std.testing.expectError(error.MultiplicityOverflow, accumulate(allocator, &tables, &feeds, row_count * feeds.len));
+    words[0] = 8;
+    try std.testing.expectError(error.InvalidMultiplicityKey, accumulate(allocator, &tables, &feeds, row_count * feeds.len));
+}
+
+test "Cairo fixed atomic scatter preserves shared collisions and rejects overflow" {
+    const allocator = std.testing.allocator;
+    const row_count = (1 << 16) + 1;
+    const words = try allocator.alloc(u32, row_count);
+    defer allocator.free(words);
+    for (words, 0..) |*word, row| {
+        const bin = row % 16;
+        word.* = @intCast(if (bin < 8) bin else bin - 8 + 256);
+    }
+    const plan = fixed_feed_plan.Plan{
+        .kind = .indexed,
+        .relation = 0,
+        .row_count = 512,
+        .columns = 2,
+        .word_count = 1,
+    };
+    var second_relation = plan;
+    second_relation.relation = 1;
+    const feeds = [_]PreparedFeed{
+        .{ .table_index = 0, .plan = plan, .words = words, .rows = row_count, .stride = 1, .word_base = 0 },
+        .{ .table_index = 0, .plan = plan, .words = words, .rows = row_count, .stride = 1, .word_base = 0 },
+        .{ .table_index = 1, .plan = second_relation, .words = words, .rows = row_count, .stride = 1, .word_base = 0 },
+    };
+    const tasks = [_]AtomicTask{
+        .{ .feed_index = 0, .begin = 0, .end = row_count },
+        .{ .feed_index = 1, .begin = 0, .end = row_count },
+        .{ .feed_index = 2, .begin = 0, .end = row_count },
+    };
+    var histograms = [_][1024]u32{[_]u32{0} ** 1024} ** 2;
+    const entry: fixed_table_bundle.Entry = .{
+        .component = @constCast("blake_round_sigma"),
+        .log_size = 9,
+        .row_count = 512,
+        .multiplicity_columns = 2,
+        .trace_multiplicity_columns = &.{},
+        .preprocessed_sources = &.{},
+        .lookup_descriptors = &.{},
+    };
+    var tables: [2]Table = undefined;
+    for (&tables, &histograms) |*table, *histogram| table.* = .{ .entry = &entry, .dense = histogram };
+    var pool: pool_split.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 3, .backing_allocator = allocator });
+    defer pool.deinit();
+    var binding = try pool_split.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    try accumulateAtomic(&tables, &feeds, &tasks, 3);
+    var expected = [_]u32{0} ** 512;
+    for (words) |word| expected[word] += 1;
+    for (expected, 0..) |count, key| {
+        try std.testing.expectEqual(2 * count, histograms[0][key]);
+        try std.testing.expectEqual(count, histograms[1][512 + key]);
+        try std.testing.expectEqual(@as(u32, 0), histograms[0][512 + key]);
+        try std.testing.expectEqual(@as(u32, 0), histograms[1][key]);
+    }
+    histograms[0][0] = std.math.maxInt(u32);
+    try std.testing.expectError(error.MultiplicityOverflow, accumulateAtomic(&tables, &feeds, &tasks, 3));
+    @memset(&histograms[0], 0);
+    @memset(&histograms[1], 0);
+    words[0] = 512;
+    try std.testing.expectError(error.InvalidMultiplicityKey, accumulateAtomic(&tables, &feeds, &tasks, 3));
 }

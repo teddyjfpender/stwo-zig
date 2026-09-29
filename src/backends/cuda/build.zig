@@ -16,7 +16,8 @@ pub fn build(b: *std.Build) void {
     });
     backend.addImport("stwo_backend_contracts", backend_contracts);
 
-    const tests = b.addTest(.{ .root_module = backend });
+    const filters: []const []const u8 = if (b.option([]const u8, "test-filter", "Run CUDA backend tests whose names contain this text")) |filter| &.{filter} else &.{};
+    const tests = b.addTest(.{ .root_module = backend, .filters = filters });
     tests.addCSourceFile(.{
         .file = b.path("runtime/stages/test_stubs.c"),
         .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },

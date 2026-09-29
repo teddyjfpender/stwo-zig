@@ -1,0 +1,536 @@
+--- a/src/integrations/cairo_metal/eval_abi.zig
++++ b/src/integrations/cairo_metal/eval_abi.zig
+@@ -35,6 +35,8 @@
+     stored_domain,
+     /// Exact host-mapped mask slabs for a bounded range of evaluation rows.
+     tiled_domain,
++    /// Read borrowed native Metal column buffers without staging their words.
++    indirect_domain,
+ 
+     /// Kernels of the different ABIs read different arena shapes out of the same
+     /// offsets, so they are named apart: a library-ABI mismatch then surfaces as
+@@ -44,6 +46,7 @@
+             .eval_domain => "",
+             .stored_domain => "sd_",
+             .tiled_domain => "td3_",
++            .indirect_domain => "pd5_",
+         };
+     }
+ 
+@@ -51,7 +54,7 @@
+     pub fn shiftTableOffset(self: TraceAbi, base_params: u32, program: eval.Program) u32 {
+         return switch (self) {
+             .eval_domain, .tiled_domain => base_params,
+-            .stored_domain => base_params + program.header.n_base_params,
++            .stored_domain, .indirect_domain => base_params + program.header.n_base_params,
+         };
+     }
+ };
+@@ -100,3 +103,16 @@
+     \\}
+     \\
+ ;
++
++/// Pointer table has one GPU address per global column. Missing columns point to a two-word zero plane, with a maximum lift shift,
++/// preserving the host's zero-column semantics without per-read branches. Domain offsets precede native lifting.
++pub const indirect_domain_reader =
++    \\struct CairoSourceColumn { device const uint *values; };
++    \\inline uint trace_value_indirect(device uint *arena, constant EvalArgs &args, device const CairoSourceColumn *sources, uint interaction, uint column, uint row, int offset, uint shift_base) {
++    \\    uint target=offset==0 ? row : offset_circle(row,args.domain_log_size,ctz(args.row_count),offset);
++    \\    uint global=arena[args.interaction_offsets+interaction]+column;
++    \\    uint index=((target>>arena[shift_base+global])<<1)+(target&1u);
++    \\    return sources[global].values[index];
++    \\}
++    \\
++;
+--- a/src/integrations/cairo_metal/eval_codegen.zig
++++ b/src/integrations/cairo_metal/eval_codegen.zig
+@@ -386,6 +386,7 @@
+         .eval_domain => preamble,
+         .stored_domain => preamble ++ eval_abi.stored_domain_reader,
+         .tiled_domain => preamble ++ eval_abi.tiled_domain_reader,
++        .indirect_domain => preamble ++ eval_abi.indirect_domain_reader,
+     };
+ }
+ 
+@@ -410,10 +411,10 @@
+         \\kernel void {s}(
+         \\    device uint *arena [[buffer(0)]],
+         \\    constant EvalArgs &args [[buffer(1)]],
+-        \\    uint row [[thread_position_in_grid]]) {{
++        \\    {s}uint row [[thread_position_in_grid]]) {{
+         \\    if (row >= args.row_count) return;
+         \\
+-    , .{name});
++    , .{ name, if (abi == .indirect_domain) "device const CairoSourceColumn *sources [[buffer(2)]],\n    " else "" });
+ 
+     try emitRowMapping(writer, abi);
+     try emitProgramBody(allocator, writer, program, 0, abi);
+@@ -483,9 +484,9 @@
+         \\kernel void {s}(
+         \\    device uint *arena [[buffer(0)]],
+         \\    constant EvalArgs &args [[buffer(1)]],
+-        \\    uint row [[thread_position_in_grid]]) {{
++        \\    {s}uint row [[thread_position_in_grid]]) {{
+         \\    if (row >= args.row_count) return;
+-    , .{name});
++    , .{ name, if (abi == .indirect_domain) "device const CairoSourceColumn *sources [[buffer(2)]],\n    " else "" });
+     try emitRowMapping(writer, abi);
+     try writer.writeAll(
+         \\    uint denominator = arena[args.denom_inv + (row >> args.trace_log_size)];
+@@ -566,6 +567,10 @@
+                             try self.writer.print("    {s}b{} = trace_value_tiled(arena, args, {}u, {}u, row, {});\n", .{ decl, inst.dst, inst.interaction, inst.a, inst.imm });
+                         }
+                     },
++                    .indirect_domain => try self.writer.print(
++                        "    {s}b{} = trace_value_indirect(arena, args, sources, {}u, {}u, row, {}, args.base_params + {}u);\n",
++                        .{ decl, inst.dst, inst.interaction, inst.a, inst.imm, self.n_base_params },
++                    ),
+                     .stored_domain => try self.writer.print(
+                         "    {s}b{} = trace_value_stored(arena, args, {}u, {}u, row, {}, args.base_params + {}u);\n",
+                         .{ decl, inst.dst, inst.interaction, inst.a, inst.imm, self.n_base_params },
+@@ -790,6 +795,13 @@
+     try std.testing.expect(std.mem.indexOf(u8, tiled, "args.coord_0 + coordinate_row") != null);
+     try std.testing.expect(std.mem.indexOf(u8, tiled, "args.denom_inv + (row >> args.trace_log_size)") != null);
+ 
++    const indirect = try generateKernelFor(std.testing.allocator, program, true, .indirect_domain);
++    defer std.testing.allocator.free(indirect);
++    try std.testing.expect(std.mem.indexOf(u8, indirect, "stwo_zig_eval_pd5_0000000000001234") != null);
++    try std.testing.expect(std.mem.indexOf(u8, indirect, "device const CairoSourceColumn *sources [[buffer(2)]]") != null);
++    try std.testing.expect(std.mem.indexOf(u8, indirect, "trace_value_indirect(arena, args, sources, 0u, 2u, row, -1, args.base_params + 1u)") != null);
++    try std.testing.expect(std.mem.indexOf(u8, indirect, "==nullptr") == null);
++
+     const stored = try generateKernelFor(std.testing.allocator, program, false, .stored_domain);
+     defer std.testing.allocator.free(stored);
+     // The kernel is named apart from its eval-domain twin, the parameter read is
+--- a/src/integrations/cairo_metal/composition_stored_arena.zig
++++ b/src/integrations/cairo_metal/composition_stored_arena.zig
+@@ -25,6 +25,14 @@
+ /// Sizes come from the actual committed PCS columns, before device admission.
+ /// No workload labels, guessed claim sizes or proof-selected code enter this plan.
+ pub fn plan(allocator: std.mem.Allocator, component: Component, tree_logs: []const []u32) !Plan {
++    return planPlacement(allocator, component, tree_logs, false);
++}
++
++pub fn planIndirect(allocator: std.mem.Allocator, component: Component, tree_logs: []const []u32) !Plan {
++    return planPlacement(allocator, component, tree_logs, true);
++}
++
++fn planPlacement(allocator: std.mem.Allocator, component: Component, tree_logs: []const []u32, indirect: bool) !Plan {
+     var layout = try eval_arena.nativeGeometry(allocator, component);
+     errdefer layout.deinit(allocator);
+     const offsets = try allocator.alloc(u32, layout.columns);
+@@ -54,7 +62,7 @@
+             lengths[global] = @as(u32, 1) << @intCast(log_size);
+             offsets[global] = std.math.cast(u32, next) orelse return error.EvalArenaTooLarge;
+             shifts[global] = component.evaluation_log_size - log_size + 1;
+-            next += lengths[global];
++            if (!indirect) next += lengths[global];
+         }
+     }
+     layout.trace_offsets = try take(&next, layout.columns);
+@@ -204,3 +212,42 @@
+     try std.testing.expect(stored.layout.words < 5 * (1 << 20));
+     try std.testing.expectEqual(@as(u32, 4), stored.lengths[4095]);
+ }
++
++fn indirectAllocationCase(allocator: std.mem.Allocator) !void {
++    var logs0 = [_]u32{2};
++    var logs1 = [_]u32{3};
++    const logs = [_][]u32{ &logs0, &logs1 };
++    var native = try plan(allocator, testComponent(), &logs);
++    defer native.deinit(allocator);
++    var indirect = try planIndirect(allocator, testComponent(), &logs);
++    defer indirect.deinit(allocator);
++    try std.testing.expectEqualSlices(u32, native.lengths, indirect.lengths);
++    try std.testing.expectEqualSlices(u32, native.shifts, indirect.shifts);
++    try std.testing.expectEqual(native.layout.words - 12, indirect.layout.words);
++    try std.testing.expectEqual(native.layout.eval_rows, indirect.layout.eval_rows);
++}
++
++test "indirect composition owns metadata only and cleans up allocation failures" {
++    try std.testing.checkAllAllocationFailures(std.testing.allocator, indirectAllocationCase, .{});
++}
++
++test "indirect composition excludes source words from arena addressing limits" {
++    var component = testComponent();
++    component.trace_log_size = 25;
++    component.evaluation_log_size = 26;
++    var parts = test_parts;
++    parts[0].program.header.domain_log_size = 25;
++    component.parts = &parts;
++    var denominators = [_]u32{1} ** 2;
++    component.denominator_inverses = &denominators;
++    var logs0 = [_]u32{25};
++    var logs1 = [_]u32{25};
++    const logs = [_][]u32{ &logs0, &logs1 };
++    var indirect = try planIndirect(std.testing.allocator, component, &logs);
++    defer indirect.deinit(std.testing.allocator);
++    try std.testing.expectEqualSlices(u32, &.{ 2, 2 }, indirect.shifts);
++    try std.testing.expectEqualSlices(u32, &.{ 1 << 25, 1 << 25 }, indirect.lengths);
++    try std.testing.expect(indirect.layout.words < 4 * (1 << 26) + 64);
++    logs1[0] = 27;
++    try std.testing.expectError(error.InvalidTraceShape, planIndirect(std.testing.allocator, component, &logs));
++}
+--- a/src/integrations/cairo_metal/composition_stage.zig
++++ b/src/integrations/cairo_metal/composition_stage.zig
+@@ -77,35 +77,37 @@
+ /// components use exact masked row tiles under the same authenticated library.
+ const ComponentPlan = union(enum) {
+     native: stored_arena.Plan,
++    indirect: stored_arena.Plan,
+     tiled: tiled_arena.Plan,
+ 
+     fn layout(self: ComponentPlan) eval_arena.Plan {
+         return switch (self) {
+-            .native => |value| value.layout,
++            .native, .indirect => |value| value.layout,
+             .tiled => |value| value.layout,
+         };
+     }
+     fn abi(self: ComponentPlan) codegen.TraceAbi {
+         return switch (self) {
+             .native => .stored_domain,
++            .indirect => .indirect_domain,
+             .tiled => .tiled_domain,
+         };
+     }
+     fn rows(self: ComponentPlan) u32 {
+         return switch (self) {
+-            .native => |value| value.layout.eval_rows,
++            .native, .indirect => |value| value.layout.eval_rows,
+             .tiled => |value| value.tile_rows,
+         };
+     }
+     fn baseParams(self: ComponentPlan) u32 {
+         return switch (self) {
+-            .native => |value| value.base_params,
++            .native, .indirect => |value| value.base_params,
+             .tiled => |value| value.base_params,
+         };
+     }
+     fn deinit(self: *ComponentPlan, allocator: std.mem.Allocator) void {
+         switch (self.*) {
+-            .native => |*value| value.deinit(allocator),
++            .native, .indirect => |*value| value.deinit(allocator),
+             .tiled => |*value| value.deinit(allocator),
+         }
+         self.* = undefined;
+@@ -113,6 +115,13 @@
+ };
+ 
+ fn planComponent(allocator: std.mem.Allocator, component: composition.Component, logs: []const []u32, cap: u64) !ComponentPlan {
++    if (std.posix.getenv("STWO_CAIRO_INDIRECT_COMPOSITION")) |flag| {
++        if (std.mem.eql(u8, flag, "1")) {
++            var indirect = try stored_arena.planIndirect(allocator, component, logs);
++            if (indirect.layout.words <= cap / @sizeOf(u32)) return .{ .indirect = indirect };
++            indirect.deinit(allocator);
++        }
++    }
+     var native = stored_arena.plan(allocator, component, logs) catch |err| {
+         if (err != error.EvalArenaTooLarge) return err;
+         return .{ .tiled = try tiled_arena.plan(allocator, component, cap) };
+@@ -490,6 +499,32 @@
+         request.captured.denominator_inverses,
+     );
+     switch (stored) {
++        .indirect => |indirect| {
++            const pointers = try self.allocator.alloc([*]const u32, plan.columns);
++            defer self.allocator.free(pointers);
++            const lengths = try self.allocator.alloc(usize, plan.columns);
++            defer self.allocator.free(lengths);
++            var timer = try std.time.Timer.start();
++            for (self.resolved[0..plan.columns], indirect.lengths, indirect.shifts, pointers, lengths) |column, length, shift, *pointer, *count| {
++                if (column.values.len != 0 and (column.values.len != length or column.shift_amt != shift)) return error.EvalArenaColumnShape;
++                pointer.* = column.values.ptr;
++                count.* = column.values.len;
++            }
++            @memcpy(self.words[indirect.base_params..][0..indirect.shifts.len], indirect.shifts);
++            // Missing columns read the shared zero pair at index (row & 1).
++            for (lengths, 0..) |length, column| if (length == 0) {
++                self.words[indirect.base_params + column] = @ctz(plan.eval_rows) + 1;
++            };
++            const batch = entry.batch orelse return error.UnplannedComponent;
++            const copied = try self.lease.runtime.bindEvalBatchSources(batch, pointers, lengths, 64 * 1024 * 1024);
++            defer self.lease.runtime.clearEvalBatchSources(batch);
++            self.staged_bytes += copied;
++            self.native_staged_bytes += copied;
++            self.stage_ns += timer.read();
++            for (plan.coordinates) |offset| @memset(self.words[offset..][0..rows], 0);
++            try submit(self, entry);
++            publish(request, self.words, plan.coordinates, rows);
++        },
+         .native => |native| {
+             var timer = try std.time.Timer.start();
+             const bytes = try stored_arena.stage(self.words, native, self.resolved[0..plan.columns]);
+--- a/src/tools/cairo_metal_codegen/eval_source.zig
++++ b/src/tools/cairo_metal_codegen/eval_source.zig
+@@ -25,7 +25,7 @@
+     );
+     const trace_abi: codegen.TraceAbi = switch (options.trace_abi) {
+         .eval_domain => .eval_domain,
+-        .stored_domain, .bounded => .stored_domain,
++        .stored_domain, .bounded, .indirect => .stored_domain,
+     };
+     var bundle: ?composition.Bundle = null;
+     defer if (bundle) |*owned| owned.deinit();
+@@ -52,13 +52,15 @@
+     try writer.writeAll(codegen.preambleSourceFor(trace_abi));
+     var seen = std.AutoHashMap(u64, void).init(allocator);
+     defer seen.deinit();
+-    if (options.trace_abi == .bounded) {
++    if (options.trace_abi == .bounded or options.trace_abi == .indirect) {
+         try writer.writeAll(integration.eval_abi.tiled_domain_reader);
++        if (options.trace_abi == .indirect) try writer.writeAll(integration.eval_abi.indirect_domain_reader);
+         var count: usize = 0;
+         for (components) |component| for (component.parts) |part| {
+             const entry = try seen.getOrPut(part.semantic_hash);
+             if (entry.found_existing) continue;
+-            for ([_]codegen.TraceAbi{ .stored_domain, .tiled_domain }) |abi| {
++            const abis: []const codegen.TraceAbi = if (options.trace_abi == .indirect) &.{ .stored_domain, .tiled_domain, .indirect_domain } else &.{ .stored_domain, .tiled_domain };
++            for (abis) |abi| {
+                 const source = try codegen.generateKernelFor(allocator, part.program, false, abi);
+                 defer allocator.free(source);
+                 try writer.writeAll(source);
+@@ -66,7 +68,7 @@
+             count += 1;
+         };
+         try writer.flush();
+-        std.debug.print("emitted {} unique AIR programs with native and bounded tiled readers over {} components\n", .{ count, components.len });
++        std.debug.print("emitted {} unique AIR programs with {s} readers over {} components\n", .{ count, @tagName(options.trace_abi), components.len });
+         return;
+     }
+     var seen_fused = std.AutoHashMap(u64, void).init(allocator);
+@@ -161,7 +163,7 @@
+     \\bundle, for offline compilation into a composition metallib.
+     \\
+     \\options:
+-    \\  --trace-abi <eval-domain|stored-domain|bounded>
++    \\  --trace-abi <eval-domain|stored-domain|bounded|indirect>
+     \\        Which trace-indexing ABI the emitted kernels implement.
+     \\        eval-domain (default) indexes columns directly at
+     \\        evaluation-domain length, so the host must lift each
+@@ -178,6 +180,8 @@
+     \\        Read the authenticated three-source AIR template manifest.
+     \\  --trace-abi bounded
+     \\        Emit native and tiled kernels together, without unused fusion.
++    \\  --trace-abi indirect
++    \\        Also emit pd5 kernels that read borrowed source buffers directly.
+     \\  --fusion-cap <n>
+     \\        Per-group emitted-operation ceiling for fused kernels.
+     \\  --experimental-hybrid-source-diagnostic
+--- a/src/tools/cairo_metal_codegen/eval_source_options.zig
++++ b/src/tools/cairo_metal_codegen/eval_source_options.zig
+@@ -18,6 +18,7 @@
+     /// runtime base-parameter block, so no host lift is needed.
+     stored_domain,
+     bounded,
++    indirect,
+ };
+ 
+ pub const Options = struct {
+@@ -92,7 +93,7 @@
+     }
+     if (options.fusion_mode == .experimental_hybrid_source_diagnostic and fusion_cap_explicit)
+         return error.HybridFusionConflictsWithCap;
+-    if (options.trace_abi == .bounded and (options.selected_only or fusion_mode_explicit or fusion_cap_explicit))
++    if ((options.trace_abi == .bounded or options.trace_abi == .indirect) and (options.selected_only or fusion_mode_explicit or fusion_cap_explicit))
+         return error.BoundedEmissionConflictsWithFusion;
+     return options;
+ }
+@@ -101,6 +102,7 @@
+     if (std.mem.eql(u8, encoded, "eval-domain")) return .eval_domain;
+     if (std.mem.eql(u8, encoded, "stored-domain")) return .stored_domain;
+     if (std.mem.eql(u8, encoded, "bounded")) return .bounded;
++    if (std.mem.eql(u8, encoded, "indirect")) return .indirect;
+     return error.InvalidTraceAbi;
+ }
+ 
+--- a/src/backends/metal/runtime/dynamic_evaluation.m
++++ b/src/backends/metal/runtime/dynamic_evaluation.m
+@@ -635,6 +635,11 @@
+             [encoder setComputePipelineState:plan.pipeline];
+             [encoder setBuffer:arena offset:0 atIndex:0];
+             [encoder setBuffer:plan.arguments offset:0 atIndex:1];
++            if (batch.sourceAddresses != nil) {
++                [encoder setBuffer:batch.sourceAddresses offset:0 atIndex:2];
++                for (id<MTLBuffer> source in batch.sourceBuffers)
++                    [encoder useResource:source usage:MTLResourceUsageRead];
++            }
+             [encoder dispatchThreads:MTLSizeMake(plan.rowCount, 1u, 1u) threadsPerThreadgroup:MTLSizeMake(plan.dispatchWidth, 1u, 1u)];
+             [encoder endEncoding];
+         }
+@@ -646,3 +651,67 @@
+         return true;
+     }
+ }
++
++// Bind only for the synchronous evaluation request. No-copy aliases borrow the
++// committed planes; the coordinator clears this binding before their lifetime
++// can end. Misaligned small columns have a strictly bounded copied fallback.
++bool stwo_zig_metal_eval_batch_bind_sources(
++    void *runtime_ptr, void *batch_ptr, const uint32_t *const *columns,
++    const size_t *lengths, uint32_t count, uint64_t copy_budget,
++    uint64_t *copied_bytes, char *error_message, size_t error_message_len
++) {
++    if (runtime_ptr == NULL || batch_ptr == NULL || columns == NULL || lengths == NULL || count == 0u) return false;
++    @autoreleasepool {
++        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
++        StwoZigEvalBatch *batch = (__bridge StwoZigEvalBatch *)batch_ptr;
++        if (batch.sourceAddresses != nil || batch.sourceBuffers != nil) return false;
++        const size_t page = (size_t)getpagesize();
++        uint64_t copy_total = 0u;
++        // Validate and budget every column before publishing a binding or copy.
++        for (uint32_t i=0u; i<count; ++i) {
++            if (lengths[i]==0u) continue;
++            if (columns[i]==NULL || (uintptr_t)columns[i]%sizeof(uint32_t)!=0u ||
++                lengths[i]>SIZE_MAX/sizeof(uint32_t)) return false;
++            const size_t bytes=lengths[i]*sizeof(uint32_t);
++            if (bytes>runtime.device.maxBufferLength || (uintptr_t)columns[i]>UINTPTR_MAX-bytes) return false;
++            const bool alias=runtime.device.hasUnifiedMemory && (uintptr_t)columns[i]%page==0u && bytes%page==0u;
++            if (!alias) {
++                if (bytes>copy_budget-copy_total) {
++                    write_error(error_message,error_message_len,@"Indirect composition copied-source budget exceeded"); return false;
++                }
++                copy_total+=bytes;
++            }
++        }
++        NSMutableArray<id<MTLBuffer>> *buffers=[NSMutableArray arrayWithCapacity:count];
++        id<MTLBuffer> addresses=[runtime.device newBufferWithLength:(NSUInteger)count*sizeof(uint64_t) options:MTLResourceStorageModeShared];
++        if (buffers==nil || addresses==nil) return false;
++        id<MTLBuffer> zero=[runtime.device newBufferWithLength:2u*sizeof(uint32_t) options:MTLResourceStorageModeShared];
++        if (zero==nil || zero.gpuAddress==0u) return false;
++        ((uint32_t *)zero.contents)[0]=0u; ((uint32_t *)zero.contents)[1]=0u;
++        [buffers addObject:zero];
++        uint64_t *words=addresses.contents;
++        for (uint32_t i=0u; i<count; ++i) {
++            words[i]=zero.gpuAddress;
++            if (lengths[i]==0u) continue;
++            const size_t bytes=lengths[i]*sizeof(uint32_t);
++            const bool alias=runtime.device.hasUnifiedMemory && (uintptr_t)columns[i]%page==0u && bytes%page==0u;
++            id<MTLBuffer> buffer=alias
++                ? [runtime.device newBufferWithBytesNoCopy:(void *)columns[i] length:bytes options:MTLResourceStorageModeShared deallocator:nil]
++                : [runtime.device newBufferWithBytes:columns[i] length:bytes options:MTLResourceStorageModeShared];
++            if (buffer==nil || buffer.gpuAddress==0u) return false;
++            words[i]=buffer.gpuAddress;
++            [buffers addObject:buffer];
++        }
++        batch.sourceBuffers=buffers;
++        batch.sourceAddresses=addresses;
++        if (copied_bytes!=NULL) *copied_bytes=copy_total;
++        return true;
++    }
++}
++
++void stwo_zig_metal_eval_batch_clear_sources(void *batch_ptr) {
++    if (batch_ptr==NULL) return;
++    StwoZigEvalBatch *batch=(__bridge StwoZigEvalBatch *)batch_ptr;
++    batch.sourceAddresses=nil;
++    batch.sourceBuffers=nil;
++}
+--- a/src/backends/metal/runtime/object_model.h
++++ b/src/backends/metal/runtime/object_model.h
+@@ -340,6 +340,9 @@
+ 
+ @interface StwoZigEvalBatch : NSObject
+ @property(nonatomic, strong) NSArray<StwoZigEvalPlan *> *plans;
++@property(nonatomic, strong) NSArray<id<MTLBuffer>> *sourceBuffers;
++@property(nonatomic, strong) id<MTLBuffer> sourceAddresses;
++
+ @end
+ @implementation StwoZigEvalBatch
+ @end
+--- a/src/backends/metal/runtime/prepared_execution.zig
++++ b/src/backends/metal/runtime/prepared_execution.zig
+@@ -764,3 +764,21 @@
+     const handle = ffi.stwo_zig_metal_resident_merkle_prepare_staged_blake3_v1(self.handle, column_offsets.ptr, column_logs.ptr, @intCast(column_offsets.len), lifting_log, layer_offsets.ptr, @intCast(layer_offsets.len), &state_offsets, &message, message.len) orelse return MetalError.CommitmentFailed;
+     return .{ .handle = handle, .lifting_log_size = lifting_log };
+ }
++
++/// Sources must remain immutable and live through the blocking batch call.
++/// Clear the binding after that call, before releasing any borrowed source.
++pub fn bindEvalBatchSources(self: *Runtime, batch: EvalBatchPlan, columns: []const [*]const u32, lengths: []const usize, copy_budget: u64) MetalError!u64 {
++    if (columns.len == 0 or columns.len != lengths.len or columns.len > std.math.maxInt(u32)) return MetalError.PolynomialEvaluationFailed;
++    var copied: u64 = 0;
++    var message: [1024]u8 = @splat(0);
++    if (!ffi.stwo_zig_metal_eval_batch_bind_sources(self.handle, batch.handle, columns.ptr, lengths.ptr, @intCast(columns.len), copy_budget, &copied, &message, message.len)) {
++        std.log.err("Metal evaluation source binding failed: {s}", .{std.mem.sliceTo(&message, 0)});
++        return MetalError.PolynomialEvaluationFailed;
++    }
++    return copied;
++}
++
++pub fn clearEvalBatchSources(self: *Runtime, batch: EvalBatchPlan) void {
++    _ = self;
++    ffi.stwo_zig_metal_eval_batch_clear_sources(batch.handle);
++}
+--- a/src/backends/metal/runtime/bindings.zig
++++ b/src/backends/metal/runtime/bindings.zig
+@@ -1161,3 +1161,16 @@
+ 
+ pub const stwo_zig_metal_fri_line_cascade_v2 = opening_bindings.stwo_zig_metal_fri_line_cascade_v2;
+ pub const stwo_zig_metal_fri_line_cascade_budgeted_v1 = opening_bindings.stwo_zig_metal_fri_line_cascade_budgeted_v1;
++
++pub extern fn stwo_zig_metal_eval_batch_bind_sources(
++    runtime: *anyopaque,
++    batch: *anyopaque,
++    columns: [*]const [*]const u32,
++    lengths: [*]const usize,
++    count: u32,
++    copy_budget: u64,
++    copied_bytes: *u64,
++    error_message: [*]u8,
++    error_message_len: usize,
++) bool;
++pub extern fn stwo_zig_metal_eval_batch_clear_sources(batch: *anyopaque) void;
+--- a/src/backends/metal/runtime.zig
++++ b/src/backends/metal/runtime.zig
+@@ -227,6 +227,8 @@
+     pub const evalPrepared = prepared_ops.evalPrepared;
+     pub const prepareEvalBatch = prepared_ops.prepareEvalBatch;
+     pub const evalBatchPrepared = prepared_ops.evalBatchPrepared;
++    pub const bindEvalBatchSources = prepared_ops.bindEvalBatchSources;
++    pub const clearEvalBatchSources = prepared_ops.clearEvalBatchSources;
+     pub const prepareBasePolynomialAot = base_polynomial_ops.prepareBasePolynomialAot;
+     pub const prepareFrameworkPolynomialAot = framework_polynomial_ops.prepareFrameworkPolynomialAot;
+     pub const evaluateFrameworkPolynomialBatch = framework_polynomial_ops.evaluateFrameworkPolynomialBatch;
+--- a/src/integrations/cairo_metal/composition_aot.zig
++++ b/src/integrations/cairo_metal/composition_aot.zig
+@@ -91,9 +91,9 @@
+ 
+ /// Native and compressed native-pair row-tiled readers, emitted from all
+ /// authenticated AIR template sources by codegen v5. See the provenance record.
+-pub const bounded_label = "air_template_composition_bounded_v3";
+-pub const bounded_sha256_hex = "52677f12c937dfa58e8532d333073d66e47b36488d2a602956485d744d760d05";
+-pub const bounded_length: u64 = 12825211;
++pub const bounded_label = "air_template_composition_bounded_v5";
++pub const bounded_sha256_hex = "51e266cd5492b24e21f9d8eac7ccaa502855a72240ded88af432746dd43d97f5";
++pub const bounded_length: u64 = 19083315;
+ 
+ pub const approved_metallibs = [_]ApprovedMetallib{
+     .{
+--- a/build_support/products/cairo_metal.zig
++++ b/build_support/products/cairo_metal.zig
+@@ -21,17 +21,17 @@
+ const composition_aot_install =
+     "share/stwo-zig/cairo/official/air_template_composition_bounded.metallib";
+ const composition_aot_sha256 =
+-    "52677f12c937dfa58e8532d333073d66e47b36488d2a602956485d744d760d05";
++    "51e266cd5492b24e21f9d8eac7ccaa502855a72240ded88af432746dd43d97f5";
+ const composition_aot_identity =
+-    "cairo-composition-bounded-aot-v3:" ++
+-    "label=air_template_composition_bounded_v3;" ++
+-    "sha256=" ++ composition_aot_sha256 ++ ";length=12825211";
++    "cairo-composition-bounded-aot-v5:" ++
++    "label=air_template_composition_bounded_v5;" ++
++    "sha256=" ++ composition_aot_sha256 ++ ";length=19083315";
+ 
+ const protocol_features =
+     cairo_support.protocol_features ++
+     "+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2" ++
+     "+authenticated-witness-cpu-aot-v2" ++
+-    "+authenticated-cairo-composition-bounded-aot-v3+committed-column-openings-v1" ++
++    "+authenticated-cairo-composition-bounded-aot-v5+committed-column-openings-v1" ++
+     "+coordinate-interaction-executor-v1+planned-interaction-source-arenas-v1" ++
+     "+authenticated-preprocessed-merkle-reuse-v1+fresh-preprocessed-hash-compaction-v1";
+ 

@@ -80,7 +80,12 @@ pub fn addProduct(context: Context) Result {
     test_step.dependOn(&context.b.addRunArtifact(tests).step);
     test_step.dependOn(&closure.step);
     test_step.dependOn(&purity.step);
+    const focused = graph.create(context.b, .{ .product = graph.coreProduct(.@"test"), .root_source_file = "src/core/focused_test_root.zig", .target = context.target, .optimize = context.optimize });
+    const field_tests = context.b.addTest(.{ .root_module = focused, .filters = &.{"m31:"} });
+    context.b.step("test-stwo-core-m31", "Test scalar and packed M31 arithmetic and butterfly parity").dependOn(&context.b.addRunArtifact(field_tests).step);
 
+    const hash_tests = context.b.addTest(.{ .root_module = focused, .filters = &.{ "BLAKE2s", "blake2", "Blake2" } });
+    context.b.step("test-stwo-core-blake2s", "Test BLAKE2s streams and mixed-height SIMD leaf hashing").dependOn(&context.b.addRunArtifact(hash_tests).step);
     return .{ .module = module };
 }
 

@@ -443,7 +443,7 @@ fn validateMemoryGeometry(
         return Error.FixedGeometryMismatch;
 }
 
-fn addMemoryRangeChecksLive(
+pub fn addMemoryRangeChecksLive(
     input: *const adapter.ProverInput,
     tables: *Tables,
 ) !void {

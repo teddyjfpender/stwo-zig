@@ -138,16 +138,32 @@ pub const CoefficientGeometry = struct {
 /// Exact six persistent coefficient-evaluation buffers, including the 4-byte
 /// placeholder on the streamed branch and on a zero-factor constant plan.
 pub fn coefficientBaseBytes(g: CoefficientGeometry) !usize {
-    if (g.coefficient_words == 0 or g.coefficient_words > std.math.maxInt(u32) or
+    if (g.coefficient_words == 0 or
         g.tasks == 0 or g.tasks > std.math.maxInt(u32) or g.basis_tasks == 0 or
         g.basis_tasks > std.math.maxInt(u32) or g.basis_values == 0 or
         g.basis_values > std.math.maxInt(u32) or g.outputs == 0 or
         g.outputs > std.math.maxInt(u32) / 4) return error.InvalidSampledBudgetGeometry;
     const coefficients = try std.math.mul(usize, g.coefficient_words, 4);
-    var bytes: usize = if (coefficients >= 64 * 1024 * 1024) 4 else coefficients;
+    var bytes: usize = if (@import("sampled_coefficient_geometry.zig").usesStreaming(g.coefficient_words)) 4 else coefficients;
     bytes = try std.math.add(usize, bytes, try std.math.mul(usize, @max(@as(usize, 1), g.factor_words), 4));
     bytes = try std.math.add(usize, bytes, try std.math.mul(usize, g.tasks, 20));
     bytes = try std.math.add(usize, bytes, try std.math.mul(usize, g.basis_tasks, 16));
     bytes = try std.math.add(usize, bytes, try std.math.mul(usize, g.basis_values, 16));
     return std.math.add(usize, bytes, try std.math.mul(usize, g.outputs, 16));
+}
+
+test "streamed coefficient budget accounts for bounded buffers beyond u32 source totals" {
+    if (@bitSizeOf(usize) < 64) return error.SkipZigTest;
+    const shape: CoefficientGeometry = .{
+        .coefficient_words = @as(usize, std.math.maxInt(u32)) + 4097,
+        .factor_words = 3,
+        .tasks = 2,
+        .basis_tasks = 1,
+        .basis_values = 4,
+        .outputs = 2,
+    };
+    try std.testing.expectEqual(@as(usize, 4 + 12 + 40 + 16 + 64 + 32), try coefficientBaseBytes(shape));
+    var invalid = shape;
+    invalid.coefficient_words = std.math.maxInt(usize) / 4 + 1;
+    try std.testing.expectError(error.Overflow, coefficientBaseBytes(invalid));
 }

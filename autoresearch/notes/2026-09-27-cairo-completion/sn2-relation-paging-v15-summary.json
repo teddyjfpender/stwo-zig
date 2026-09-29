@@ -1,0 +1,55 @@
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "variant_environment": {
+    "before": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_METAL_RESIDENT_LOGUP": "1",
+      "STWO_CAIRO_METAL_LOGUP_DIAGNOSTICS": "1",
+      "STWO_METAL_PROFILE_RELATION": "1",
+      "STWO_CAIRO_METAL_PREFAULT_LOGUP_OUTPUTS": "0"
+    },
+    "after": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_METAL_RESIDENT_LOGUP": "1",
+      "STWO_CAIRO_METAL_LOGUP_DIAGNOSTICS": "1",
+      "STWO_METAL_PROFILE_RELATION": "1",
+      "STWO_CAIRO_METAL_PREFAULT_LOGUP_OUTPUTS": "1"
+    }
+  },
+  "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+  "backend": "metal",
+  "summary": {
+    "before": {
+      "median_process_wall_ns": 15963537833,
+      "median_prove_ns": 13471849000,
+      "peak_process_rss_bytes": 27680407552
+    },
+    "after": {
+      "median_process_wall_ns": 15809411958,
+      "median_prove_ns": 13392550584,
+      "peak_process_rss_bytes": 27680374784
+    }
+  },
+  "process_speedup": 1.009748994801923,
+  "prove_speedup": 1.0059210839266672,
+  "raw_receipt": "zig-out/cairo-completion-20260927/sn2-relation-paging-v15-paired/results.json",
+  "interpretation": "0.97% process median improvement, 0.59% proving; not promoted by this result alone."
+}

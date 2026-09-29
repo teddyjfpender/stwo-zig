@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const M31 = @import("stwo_core").fields.m31.M31;
 const arena_plan = @import("stwo_metal_backend").arena_plan;
 const relation_recipe = @import("stwo_metal_backend").recipes.relation;
 const shared_runtime = @import("stwo_metal_backend").shared_runtime;
@@ -16,7 +17,34 @@ pub fn executor() interaction_executor.Executor {
     return .{
         .allocate_lookup_fn = resident_lookup.allocate,
         .execute_fn = execute,
+        .execute_coordinates_fn = executeCoordinates,
     };
+}
+
+fn executeCoordinates(
+    _: ?*anyopaque,
+    allocator: std.mem.Allocator,
+    request: interaction_executor.Request,
+    planes: []const []M31,
+) !QM31 {
+    try validateRequest(request);
+    if (request.source.backendResidency()) |residency|
+        if (resident_lookup.fromResidency(residency)) |storage|
+            return resident_interaction.executeCoordinates(allocator, request, storage, planes);
+    if (std.posix.getenv("STWO_CAIRO_METAL_FORCE_COPIED_LOGUP") != null)
+        return (interaction_executor.Executor{ .execute_fn = execute }).materializeCoordinates(
+            allocator,
+            request,
+            planes,
+        );
+    return recorded_interaction.materializeCoordinates(
+        allocator,
+        request.descriptors,
+        request.source,
+        request.z,
+        request.alpha_powers,
+        planes,
+    );
 }
 
 fn execute(

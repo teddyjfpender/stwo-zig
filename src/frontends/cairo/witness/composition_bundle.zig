@@ -44,13 +44,11 @@ pub const Bundle = struct {
     plan_hash: u64,
     components: []Component,
 
-    /// Returns the verifier's exact maximum log-degree bound. Version 1
-    /// records that bound directly; projected version 2 records the unsplit
-    /// composition evaluation log, one above the verifier bound.
+    /// The unsplit composition evaluation log is one above the degree bound
+    /// of its two committed halves in both captured and projected formats.
     pub fn verifierMaxLogDegreeBound(self: Bundle) !u32 {
         const bound = switch (self.format_version) {
-            version => self.max_evaluation_log_size,
-            projected_version => std.math.sub(
+            version, projected_version => std.math.sub(
                 u32,
                 self.max_evaluation_log_size,
                 1,
@@ -274,7 +272,7 @@ test "Cairo composition bundle: exact SN2 AIR programs load and validate" {
     try std.testing.expectEqual(version, bundle.format_version);
     try std.testing.expectEqual(@as(u64, 1325), bundle.total_constraints);
     try std.testing.expectEqual(@as(u32, 24), bundle.max_evaluation_log_size);
-    try std.testing.expectEqual(@as(u32, 24), try bundle.verifierMaxLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 23), try bundle.verifierMaxLogDegreeBound());
     try std.testing.expectEqual(@as(usize, 58), bundle.components.len);
     try std.testing.expectEqual(@as(u64, 10359646181791462711), bundle.plan_hash);
     var parts: usize = 0;
@@ -302,7 +300,7 @@ test "Cairo composition bundle: projected plans authenticate their complete enco
     try std.testing.expectError(error.InvalidPlanHash, Bundle.parse(allocator, bytes));
 }
 
-test "Cairo composition bundle: format version owns verifier degree semantics" {
+test "Cairo composition bundle: captured and projected plans use split degree bounds" {
     const base = Bundle{
         .allocator = undefined,
         .max_kernel_instructions = 1,
@@ -311,7 +309,7 @@ test "Cairo composition bundle: format version owns verifier degree semantics" {
         .plan_hash = 1,
         .components = &.{},
     };
-    try std.testing.expectEqual(@as(u32, 24), try base.verifierMaxLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 23), try base.verifierMaxLogDegreeBound());
 
     var projected = base;
     projected.format_version = projected_version;

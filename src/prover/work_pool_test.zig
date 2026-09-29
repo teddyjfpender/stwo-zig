@@ -45,6 +45,50 @@ test "work_pool: scoped binding exposes one pool and suppresses unbound helpers"
     try std.testing.expect(!helper_saw_pool);
 }
 
+test "work_pool: joined background coordinator borrows one pool without binding helpers" {
+    var pool: WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 2, .stack_size = 64 * 1024, .backing_allocator = std.testing.allocator });
+    defer pool.deinit();
+    var binding = try ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const Context = struct {
+        pool: *WorkPool,
+        ready: std.Thread.ResetEvent = .{},
+        completed: std.atomic.Value(usize) = .init(0),
+        helpers_bound: std.atomic.Value(bool) = .init(false),
+        err: ?anyerror = null,
+        fn helper(context: *@This()) void {
+            if (getGlobalPool() != null) context.helpers_bound.store(true, .release);
+            _ = context.completed.fetchAdd(1, .monotonic);
+        }
+        fn wave(context: *@This()) void {
+            var joined: std.Thread.WaitGroup = .{};
+            for (0..8) |_| context.pool.spawnWg(&joined, helper, .{context});
+            joined.wait();
+        }
+        fn background(context: *@This()) void {
+            var borrowed = ScopedPoolBinding.initIfNeeded(context.pool) catch |err| {
+                context.err = err;
+                context.ready.set();
+                return;
+            };
+            defer if (borrowed) |*owned| owned.deinit();
+            context.ready.set();
+            wave(context);
+        }
+    };
+    var context = Context{ .pool = &pool };
+    const background = try std.Thread.spawn(.{}, Context.background, .{&context});
+    context.ready.wait();
+    Context.wave(&context);
+    background.join();
+    if (context.err) |err| return err;
+    try std.testing.expectEqual(@as(usize, 16), context.completed.load(.acquire));
+    try std.testing.expect(!context.helpers_bound.load(.acquire));
+    try std.testing.expectEqual(@as(usize, 1), work_pool.testing.activeScopedPoolCount());
+    try std.testing.expectEqual(&pool, getGlobalPool().?);
+}
+
 test "work_pool: concurrent coordinators resolve only their own scoped pools" {
     var pools: [2]WorkPool = undefined;
     for (&pools) |*pool| {

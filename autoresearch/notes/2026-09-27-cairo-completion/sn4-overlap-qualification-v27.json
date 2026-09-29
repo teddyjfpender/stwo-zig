@@ -1,0 +1,3290 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v2",
+  "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "product_sha256": "0ad9f1bb7353f8a8bb18df3fcdd61cc88c7128d377c60d9b025272fd6e356f01",
+  "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+  "workload": {
+    "kind": "run-and-prove",
+    "path": "/Users/theodorepender/Downloads/SN_PIE_4.zip",
+    "sha256": "991eff7c3323e1b6b6cb2bb2d7df1704b1e31f4854c00c60d7413603fe455603"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "controlled_environment": {
+    "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+    "STWO_CAIRO_OVERLAP_PREPROCESSED": "1"
+  },
+  "status": "qualified",
+  "trials": [
+    {
+      "index": 1,
+      "status": "qualified",
+      "phase": "complete",
+      "command": [
+        "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/preprocessed-overlap-products-v27/bin/stwo-cairo-metal",
+        "run-and-prove",
+        "--program",
+        "/Users/theodorepender/Downloads/SN_PIE_4.zip",
+        "--program-type",
+        "pie",
+        "--proof",
+        "zig-out/cairo-completion-20260927/sn4-overlap-qualification-v27/trial-1.proof.json",
+        "--report-out",
+        "zig-out/cairo-completion-20260927/sn4-overlap-qualification-v27/trial-1.report.json",
+        "--stage-profile-out",
+        "zig-out/cairo-completion-20260927/sn4-overlap-qualification-v27/trial-1.stages.json",
+        "--verify"
+      ],
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 17085972584,
+        "user_ns": 60119110000,
+        "system_ns": 16052491000,
+        "max_process_tree_rss_bytes": 36192649216,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 636760917,
+        "user_ns": 616014000,
+        "system_ns": 5108000,
+        "max_process_tree_rss_bytes": 39256064,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 203831792,
+        "proof_encode_ns": 8088541,
+        "request_until_publication_ns": 17055465125,
+        "execute_ns": 3711696500,
+        "prove_ns": 12978372750,
+        "verify_ns": 14225292
+      },
+      "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67",
+      "profile": "official-live-cairo-canonical",
+      "backend": "metal",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 52,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.005089998245239258,
+          "library_preparation_seconds": 0.017251014709472656
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 512378880
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 234,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 14,
+        "commit_source_arena_memcpys": 5,
+        "commit_source_uploads": 41,
+        "cached_merkle_artifact_adoptions": 1,
+        "compacted_merkle_layer_adoptions": 0
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 6442450944,
+        "hits": 2,
+        "misses": 0,
+        "stores": 0,
+        "evictions": 0,
+        "loaded_bytes": 805306592,
+        "stored_bytes": 0,
+        "evicted_bytes": 0,
+        "directory_bytes": 0,
+        "eviction_ns": 0
+      },
+      "prover_process_usage": {
+        "source": "darwin_proc_pid_rusage_v6",
+        "lifetime_peak_physical_footprint_bytes": 45398963816,
+        "current_physical_footprint_bytes": 4108651544,
+        "process_cpu_ns": 70465169916,
+        "energy_nj": 183096132304,
+        "instructions": 668147155318,
+        "cycles": 285303446415,
+        "unavailable_reason": null
+      },
+      "stages": [
+        {
+          "id": "preprocessed_plan",
+          "label": "Preprocessed plan",
+          "seconds": 2e-05,
+          "children": null
+        },
+        {
+          "id": "preprocessed_table_build",
+          "label": "Preprocessed table build",
+          "seconds": 0.256026,
+          "children": [
+            {
+              "id": "preprocessed_table_cache_load",
+              "label": "Preprocessed table cache load",
+              "seconds": 0.256026,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "base_trace_arena_plan",
+          "label": "Base trace arena plan",
+          "seconds": 2.5e-05,
+          "children": [
+            {
+              "id": "base_trace_geometry_oracle",
+              "label": "Pre-execution feed geometry resolution",
+              "seconds": 1.1e-05,
+              "children": null
+            },
+            {
+              "id": "base_trace_arena_fallback",
+              "label": "Base trace arena fallback",
+              "seconds": 0,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "base_trace_build",
+          "label": "Base trace build",
+          "seconds": 3.92346,
+          "children": [
+            {
+              "id": "base_geometry",
+              "label": "Base geometry derivation",
+              "seconds": 6e-06,
+              "children": null
+            },
+            {
+              "id": "base_witness_graph",
+              "label": "Recorded witness graph",
+              "seconds": 2.803574,
+              "children": [
+                {
+                  "id": "add_opcode",
+                  "label": "add_opcode",
+                  "seconds": 0.254584,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.002995,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 9e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.224762,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.016464,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "add_opcode_small",
+                  "label": "add_opcode_small",
+                  "seconds": 0.098005,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.005597,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.069236,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.013507,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "add_ap_opcode",
+                  "label": "add_ap_opcode",
+                  "seconds": 0.016944,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001452,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.012426,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.0016,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "assert_eq_opcode",
+                  "label": "assert_eq_opcode",
+                  "seconds": 0.036421,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.003042,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.028253,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.002456,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "assert_eq_opcode_imm",
+                  "label": "assert_eq_opcode_imm",
+                  "seconds": 0.015455,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001559,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 4e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.011828,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.000901,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "assert_eq_opcode_double_deref",
+                  "label": "assert_eq_opcode_double_deref",
+                  "seconds": 0.058078,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.005688,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 7e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.038386,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.006968,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "blake_compress_opcode",
+                  "label": "blake_compress_opcode",
+                  "seconds": 0.050824,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000275,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2.1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.046931,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.00202,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "call_opcode_abs",
+                  "label": "call_opcode_abs",
+                  "seconds": 0.000328,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 5e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 4e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.000301,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 1.3e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "call_opcode_rel_imm",
+                  "label": "call_opcode_rel_imm",
+                  "seconds": 0.017147,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000766,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.014296,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.001257,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "jnz_opcode_non_taken",
+                  "label": "jnz_opcode_non_taken",
+                  "seconds": 0.009057,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000386,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.008095,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.000319,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "jnz_opcode_taken",
+                  "label": "jnz_opcode_taken",
+                  "seconds": 0.0347,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001491,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 6e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.02581,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.004591,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 3e-06,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "jump_opcode_double_deref",
+                  "label": "jump_opcode_double_deref",
+                  "seconds": 0.000223,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.000198,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 1.5e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "jump_opcode_rel",
+                  "label": "jump_opcode_rel",
+                  "seconds": 0.000554,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 1.2e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.00048,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 5.1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "jump_opcode_rel_imm",
+                  "label": "jump_opcode_rel_imm",
+                  "seconds": 0.029664,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001507,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 4e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.025556,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.00132,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "mul_opcode",
+                  "label": "mul_opcode",
+                  "seconds": 0.047591,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000807,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 4e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 6e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.037898,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.005206,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 1e-06,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "mul_opcode_small",
+                  "label": "mul_opcode_small",
+                  "seconds": 0.03068,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001469,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 4e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.023314,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.003349,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "ret_opcode",
+                  "label": "ret_opcode",
+                  "seconds": 0.013036,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000788,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.01094,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.000706,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "verify_instruction",
+                  "label": "verify_instruction",
+                  "seconds": 0.039404,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000967,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.002084,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.000221,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "blake_round",
+                  "label": "blake_round",
+                  "seconds": 0.271976,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.00547,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1.5e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.164618,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.021792,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "blake_g",
+                  "label": "blake_g",
+                  "seconds": 0.464913,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.014858,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1.6e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.150993,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.038654,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "triple_xor_32",
+                  "label": "triple_xor_32",
+                  "seconds": 0.034421,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.00083,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.022112,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.001802,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "bitwise_builtin",
+                  "label": "bitwise_builtin",
+                  "seconds": 0.001601,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 9e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 4e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.001448,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 9.9e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "pedersen_builtin",
+                  "label": "pedersen_builtin",
+                  "seconds": 0.00058,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 1.9e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.000512,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 3.3e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "poseidon_builtin",
+                  "label": "poseidon_builtin",
+                  "seconds": 0.000515,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 9e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.000464,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 3.1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "range_check_builtin",
+                  "label": "range_check_builtin",
+                  "seconds": 0.024317,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000656,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.020725,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.001575,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "ec_op_builtin",
+                  "label": "ec_op_builtin",
+                  "seconds": 0.050139,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 7e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 5e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 0.002921,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.047145,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 5.1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "partial_ec_mul_generic",
+                  "label": "partial_ec_mul_generic",
+                  "seconds": 0.195028,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.004089,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 7e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 4.3e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.096026,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.005975,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "pedersen_aggregator_window_bits_18",
+                  "label": "pedersen_aggregator_window_bits_18",
+                  "seconds": 0.078375,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.000124,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 0.011014,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.064118,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.00078,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 1e-06,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "partial_ec_mul_window_bits_18",
+                  "label": "partial_ec_mul_window_bits_18",
+                  "seconds": 0.683247,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.019795,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1.4e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1.9e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.24212,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.022668,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "poseidon_aggregator",
+                  "label": "poseidon_aggregator",
+                  "seconds": 0.023179,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 2.4e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 0.000955,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.021449,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.000255,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "poseidon_3_partial_rounds_chain",
+                  "label": "poseidon_3_partial_rounds_chain",
+                  "seconds": 0.08295,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001574,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1.6e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.057397,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.001949,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "poseidon_full_round_chain",
+                  "label": "poseidon_full_round_chain",
+                  "seconds": 0.020569,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.00026,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 1e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.013773,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.000425,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 1e-06,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "cube_252",
+                  "label": "cube_252",
+                  "seconds": 0.090271,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001547,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 5e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 1.3e-05,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.058295,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.005815,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                },
+                {
+                  "id": "range_check_252_width_27",
+                  "label": "range_check_252_width_27",
+                  "seconds": 0.028701,
+                  "children": [
+                    {
+                      "id": "witness_input_materialize",
+                      "label": "Witness input materialization",
+                      "seconds": 0.001358,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_allocate",
+                      "label": "Witness output allocation",
+                      "seconds": 2e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_output_initialize",
+                      "label": "Witness output initialization",
+                      "seconds": 3e-06,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_program_execute",
+                      "label": "Witness program execution",
+                      "seconds": 0.00783,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_base_lower",
+                      "label": "Witness base-column lowering",
+                      "seconds": 0.00099,
+                      "children": null
+                    },
+                    {
+                      "id": "witness_feed_retain",
+                      "label": "Witness feed retention",
+                      "seconds": 0,
+                      "children": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "base_fixed_multiplicities",
+              "label": "Fixed-table multiplicities",
+              "seconds": 0.833035,
+              "children": null
+            },
+            {
+              "id": "base_memory_tables",
+              "label": "Memory-table construction",
+              "seconds": 0.250584,
+              "children": null
+            },
+            {
+              "id": "base_finalize",
+              "label": "Base-column finalization",
+              "seconds": 2.2e-05,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "air_template_instantiation",
+          "label": "AIR template instantiation",
+          "seconds": 0.000383,
+          "children": null
+        },
+        {
+          "id": "preprocessed_materialize_and_commit",
+          "label": "Preprocessed materialize and commit",
+          "seconds": 1.349353,
+          "children": [
+            {
+              "id": "preprocessed_column_materialize",
+              "label": "Preprocessed column materialization",
+              "seconds": 0.171232,
+              "children": null
+            },
+            {
+              "id": "preprocessed_column_commit",
+              "label": "Preprocessed column commitment",
+              "seconds": 1.17812,
+              "children": [
+                {
+                  "id": "preprocessed_tree_cache_load",
+                  "label": "Preprocessed tree cache load",
+                  "seconds": 0.113271,
+                  "children": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "main_trace_commit",
+          "label": "Main trace commit",
+          "seconds": 1.575047,
+          "children": [
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.707801,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "interaction_trace_arena_plan",
+          "label": "Interaction trace arena plan",
+          "seconds": 4.5e-05,
+          "children": null
+        },
+        {
+          "id": "interaction_trace_build",
+          "label": "Interaction trace build",
+          "seconds": 2.091512,
+          "children": [
+            {
+              "id": "add_opcode",
+              "label": "add_opcode",
+              "seconds": 0.063936,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.051367,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "add_opcode_small",
+              "label": "add_opcode_small",
+              "seconds": 0.141385,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.114647,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "add_ap_opcode",
+              "label": "add_ap_opcode",
+              "seconds": 0.022666,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.018104,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "assert_eq_opcode",
+              "label": "assert_eq_opcode",
+              "seconds": 0.028711,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.023119,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "assert_eq_opcode_imm",
+              "label": "assert_eq_opcode_imm",
+              "seconds": 0.01502,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.012286,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "assert_eq_opcode_double_deref",
+              "label": "assert_eq_opcode_double_deref",
+              "seconds": 0.083094,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.066465,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "blake_compress_opcode",
+              "label": "blake_compress_opcode",
+              "seconds": 0.028449,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.022782,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "call_opcode_abs",
+              "label": "call_opcode_abs",
+              "seconds": 0.000241,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000227,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "call_opcode_rel_imm",
+              "label": "call_opcode_rel_imm",
+              "seconds": 0.016244,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.01298,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "jnz_opcode_non_taken",
+              "label": "jnz_opcode_non_taken",
+              "seconds": 0.004914,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.004081,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "jnz_opcode_taken",
+              "label": "jnz_opcode_taken",
+              "seconds": 0.024938,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.020466,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "jump_opcode_double_deref",
+              "label": "jump_opcode_double_deref",
+              "seconds": 0.000186,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000176,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "jump_opcode_rel",
+              "label": "jump_opcode_rel",
+              "seconds": 0.00086,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000833,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "jump_opcode_rel_imm",
+              "label": "jump_opcode_rel_imm",
+              "seconds": 0.018277,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.015069,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "mul_opcode",
+              "label": "mul_opcode",
+              "seconds": 0.0357,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.027538,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "mul_opcode_small",
+              "label": "mul_opcode_small",
+              "seconds": 0.034718,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.027105,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "ret_opcode",
+              "label": "ret_opcode",
+              "seconds": 0.013215,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.010664,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "verify_instruction",
+              "label": "verify_instruction",
+              "seconds": 0.002895,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.002455,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "blake_round",
+              "label": "blake_round",
+              "seconds": 0.192945,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.151278,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "blake_g",
+              "label": "blake_g",
+              "seconds": 0.294092,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.207252,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "triple_xor_32",
+              "label": "triple_xor_32",
+              "seconds": 0.023901,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.017212,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "bitwise_builtin",
+              "label": "bitwise_builtin",
+              "seconds": 0.002954,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.002804,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "pedersen_builtin",
+              "label": "pedersen_builtin",
+              "seconds": 0.000816,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000721,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "poseidon_builtin",
+              "label": "poseidon_builtin",
+              "seconds": 0.001035,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000944,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_builtin",
+              "label": "range_check_builtin",
+              "seconds": 0.015317,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.012305,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "ec_op_builtin",
+              "label": "ec_op_builtin",
+              "seconds": 0.000379,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000346,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "partial_ec_mul_generic",
+              "label": "partial_ec_mul_generic",
+              "seconds": 0.098127,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.074656,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "pedersen_aggregator_window_bits_18",
+              "label": "pedersen_aggregator_window_bits_18",
+              "seconds": 0.006601,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.005797,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "partial_ec_mul_window_bits_18",
+              "label": "partial_ec_mul_window_bits_18",
+              "seconds": 0.251345,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.167083,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "poseidon_aggregator",
+              "label": "poseidon_aggregator",
+              "seconds": 0.003412,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.003281,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "poseidon_3_partial_rounds_chain",
+              "label": "poseidon_3_partial_rounds_chain",
+              "seconds": 0.009356,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.007336,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "poseidon_full_round_chain",
+              "label": "poseidon_full_round_chain",
+              "seconds": 0.003607,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.003188,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "cube_252",
+              "label": "cube_252",
+              "seconds": 0.083246,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.057033,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_252_width_27",
+              "label": "range_check_252_width_27",
+              "seconds": 0.017005,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.012279,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "blake_round_sigma",
+              "label": "blake_round_sigma",
+              "seconds": 1.4e-05,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 1.3e-05,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "pedersen_points_table_window_bits_18",
+              "label": "pedersen_points_table_window_bits_18",
+              "seconds": 0.33818,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.338179,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "poseidon_round_keys",
+              "label": "poseidon_round_keys",
+              "seconds": 4.5e-05,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 4.4e-05,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_11",
+              "label": "range_check_11",
+              "seconds": 6.4e-05,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 6.3e-05,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_12",
+              "label": "range_check_12",
+              "seconds": 0.00014,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.00014,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_18",
+              "label": "range_check_18",
+              "seconds": 0.00287,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.00287,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_20",
+              "label": "range_check_20",
+              "seconds": 0.021858,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.021856,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_3_3_3_3_3",
+              "label": "range_check_3_3_3_3_3",
+              "seconds": 0.001638,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.001637,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_3_6_6_3",
+              "label": "range_check_3_6_6_3",
+              "seconds": 0.00375,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.00375,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_4_3",
+              "label": "range_check_4_3",
+              "seconds": 1.4e-05,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 1.3e-05,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_4_4",
+              "label": "range_check_4_4",
+              "seconds": 1.8e-05,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 1.8e-05,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_4_4_4_4",
+              "label": "range_check_4_4_4_4",
+              "seconds": 0.001566,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.001563,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_6",
+              "label": "range_check_6",
+              "seconds": 6e-06,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 5e-06,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_7_2_5",
+              "label": "range_check_7_2_5",
+              "seconds": 0.000804,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000804,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_8",
+              "label": "range_check_8",
+              "seconds": 1.1e-05,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 1.1e-05,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "range_check_9_9",
+              "label": "range_check_9_9",
+              "seconds": 0.009692,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.009692,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "verify_bitwise_xor_12",
+              "label": "verify_bitwise_xor_12",
+              "seconds": 0.026473,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.026224,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "verify_bitwise_xor_4",
+              "label": "verify_bitwise_xor_4",
+              "seconds": 2.6e-05,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 2.5e-05,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "verify_bitwise_xor_7",
+              "label": "verify_bitwise_xor_7",
+              "seconds": 0.000698,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.000698,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "verify_bitwise_xor_8",
+              "label": "verify_bitwise_xor_8",
+              "seconds": 0.001657,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.001656,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "verify_bitwise_xor_9",
+              "label": "verify_bitwise_xor_9",
+              "seconds": 0.002999,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.002999,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "memory_address_to_id",
+              "label": "memory_address_to_id",
+              "seconds": 0.047651,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.024951,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "memory_id_to_big",
+              "label": "memory_id_to_big",
+              "seconds": 0.01242,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.006877,
+                  "children": null
+                }
+              ]
+            },
+            {
+              "id": "memory_id_to_small",
+              "label": "memory_id_to_small",
+              "seconds": 0.079282,
+              "children": [
+                {
+                  "id": "interaction_fraction_materialize",
+                  "label": "Interaction fraction materialization",
+                  "seconds": 0.048446,
+                  "children": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "interaction_trace_commit",
+          "label": "Interaction trace commit",
+          "seconds": 1.059028,
+          "children": [
+            {
+              "id": "interaction_trace_commit_arena_bound",
+              "label": "Interaction commitment adopts its coordinate arena",
+              "seconds": 0,
+              "children": null
+            },
+            {
+              "id": "merkle_commit",
+              "label": "Merkle commit",
+              "seconds": 0.482484,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "composition_device_admission",
+          "label": "Device composition admission",
+          "seconds": 0.028232,
+          "children": null
+        },
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 1e-06,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 2.1e-05,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 2.554796,
+          "children": [
+            {
+              "id": "cairo_composition_component_device",
+              "label": "add_opcode",
+              "seconds": 0.113677,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "add_opcode_small",
+              "seconds": 0.143266,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "add_ap_opcode",
+              "seconds": 0.016932,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "assert_eq_opcode",
+              "seconds": 0.019121,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "assert_eq_opcode_imm",
+              "seconds": 0.008197,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "assert_eq_opcode_double_deref",
+              "seconds": 0.071492,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "blake_compress_opcode",
+              "seconds": 0.026842,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "call_opcode_abs",
+              "seconds": 0.001386,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "call_opcode_rel_imm",
+              "seconds": 0.011275,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "jnz_opcode_non_taken",
+              "seconds": 0.003477,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "jnz_opcode_taken",
+              "seconds": 0.027874,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "jump_opcode_double_deref",
+              "seconds": 0.001364,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "jump_opcode_rel",
+              "seconds": 0.000544,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "jump_opcode_rel_imm",
+              "seconds": 0.011872,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "mul_opcode",
+              "seconds": 0.048865,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "mul_opcode_small",
+              "seconds": 0.025802,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "ret_opcode",
+              "seconds": 0.006391,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "verify_instruction",
+              "seconds": 0.001562,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "blake_round",
+              "seconds": 0.156245,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "blake_g",
+              "seconds": 0.299485,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "blake_round_sigma",
+              "seconds": 0.000734,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "triple_xor_32",
+              "seconds": 0.013645,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "verify_bitwise_xor_12",
+              "seconds": 0.018057,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_host",
+              "label": "bitwise_builtin",
+              "seconds": 0.001458,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_host",
+              "label": "pedersen_builtin",
+              "seconds": 0.000481,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_host",
+              "label": "poseidon_builtin",
+              "seconds": 0.000425,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_host",
+              "label": "range_check_builtin",
+              "seconds": 0.023874,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_host",
+              "label": "ec_op_builtin",
+              "seconds": 0.002004,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "partial_ec_mul_generic",
+              "seconds": 0.224898,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "pedersen_aggregator_window_bits_18",
+              "seconds": 0.004028,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "partial_ec_mul_window_bits_18",
+              "seconds": 0.34879,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "pedersen_points_table_window_bits_18",
+              "seconds": 0.173093,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "poseidon_aggregator",
+              "seconds": 0.003057,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "poseidon_3_partial_rounds_chain",
+              "seconds": 0.012081,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "poseidon_full_round_chain",
+              "seconds": 0.00242,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "cube_252",
+              "seconds": 0.103785,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "poseidon_round_keys",
+              "seconds": 0.000432,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_252_width_27",
+              "seconds": 0.010325,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_host",
+              "label": "memory_address_to_id",
+              "seconds": 0.049698,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "memory_id_to_big[0]",
+              "seconds": 0.008433,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "memory_id_to_small",
+              "seconds": 0.062727,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_6",
+              "seconds": 0.000939,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_8",
+              "seconds": 0.001144,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_11",
+              "seconds": 0.001115,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_12",
+              "seconds": 0.000353,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_18",
+              "seconds": 0.001666,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_20",
+              "seconds": 0.007819,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_4_3",
+              "seconds": 0.001005,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_4_4",
+              "seconds": 0.000403,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_9_9",
+              "seconds": 0.003257,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_7_2_5",
+              "seconds": 0.001265,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_3_6_6_3",
+              "seconds": 0.00124,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_4_4_4_4",
+              "seconds": 0.000654,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "range_check_3_3_3_3_3",
+              "seconds": 0.000462,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "verify_bitwise_xor_4",
+              "seconds": 0.000376,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "verify_bitwise_xor_7",
+              "seconds": 0.000394,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "verify_bitwise_xor_8",
+              "seconds": 0.000582,
+              "children": null
+            },
+            {
+              "id": "cairo_composition_component_device",
+              "label": "verify_bitwise_xor_9",
+              "seconds": 0.001816,
+              "children": null
+            }
+          ]
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.018011,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.08934,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 0.000317,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.280326,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 0.00026,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.920002,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.00232,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.007219,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.016998,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 0.00201,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 1e-06,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_components",
+          "label": "Components evaluated on device",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_host_components",
+          "label": "Components evaluated on host inside the device stage",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_host_components",
+          "label": "Components evaluated on host inside the device stage",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_host_components",
+          "label": "Components evaluated on host inside the device stage",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_host_components",
+          "label": "Components evaluated on host inside the device stage",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_host_components",
+          "label": "Components evaluated on host inside the device stage",
+          "seconds": 0,
+          "children": null
+        },
+        {
+          "id": "composition_device_host_components",
+          "label": "Components evaluated on host inside the device stage",
+          "seconds": 0,
+          "children": null
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "median_process_wall_ns": 17085972584,
+    "median_prove_ns": 12978372750,
+    "peak_process_rss_bytes": 36192649216,
+    "peak_product_physical_footprint_bytes": 45398963816,
+    "physical_footprint_sample_count": 1,
+    "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+  }
+}

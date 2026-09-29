@@ -113,7 +113,10 @@ pub fn derive(
     );
     errdefer allocator.free(group_storage);
 
-    const query_log = maximumCommitmentLog(program);
+    // FRI queries live on the quotient/composition lifting domain. Fixed
+    // columns may have a taller commitment and must map those queries upward;
+    // they must never enlarge the FRI query domain.
+    const query_log = program.quotient.evaluation_log_rows;
     var group_count: usize = 0;
     var column_cursor: usize = 0;
     for (program.commitments, openings, 0..) |tree, *opening, ordinal| {
@@ -156,7 +159,7 @@ pub fn derive(
             group_count += 1;
             first = end;
         }
-        if (tree.evaluation_log_rows > query_log or
+        if ((tree.role != .preprocessed and tree.evaluation_log_rows > query_log) or
             tree.log_rows_per_leaf != tree.evaluation_log_rows or
             evaluation_offset == 0)
         {
@@ -299,6 +302,8 @@ fn openTrace(
     assembly: common.Words,
     opening: TraceOpening,
 ) !void {
+    var phase: []const u8 = "map_queries";
+    errdefer std.debug.print("cairo-cuda opening tree={} phase={s} failed\n", .{ opening.tree_index, phase });
     const queries = decommit.traceQueries();
     try Decommit.prepareTraceQueries(
         session,
@@ -331,6 +336,7 @@ fn openTrace(
     ) catch return error.SizeOverflow;
     if (tree.evaluations.len != expected_tree_words)
         return error.InvalidKernelDescriptor;
+    phase = "pack_values";
     for (topology.trace_groups[first_group..end_group]) |group| {
         if (group.tree_ordinal != opening.tree_index)
             return error.InvalidKernelDescriptor;
@@ -362,6 +368,7 @@ fn openTrace(
     }
     const empty_words = try decommit.sparse_indices.sub(0, 0);
     const empty_hashes = try decommit.sparse_hashes.sub(0, 0);
+    phase = "assemble_trace";
     try Decommit.assembleTrace(
         session,
         opening.tree_index,
@@ -396,6 +403,8 @@ fn openFri(
     assembly: common.Words,
     opening: FriOpening,
 ) !void {
+    var phase: []const u8 = "map_fri_queries";
+    errdefer std.debug.print("cairo-cuda FRI opening tree={} phase={s} failed\n", .{ opening.tree_index, phase });
     const queries = decommit.friQueries();
     try Decommit.prepareFriQueries(
         session,
@@ -406,6 +415,7 @@ fn openFri(
         opening.log_rows_per_leaf,
         queries,
     );
+    phase = "assemble_fri";
     try Decommit.assembleFri(
         session,
         opening.tree_index,
@@ -461,14 +471,6 @@ fn validateInputs(
     }
     if (first_column != program.trace_columns.len)
         return error.InvalidKernelDescriptor;
-}
-
-fn maximumCommitmentLog(program: proof_ir.ProofProgram) u32 {
-    var result: u32 = 0;
-    for (program.commitments) |tree| {
-        result = @max(result, tree.evaluation_log_rows);
-    }
-    return result;
 }
 
 fn treeAt(

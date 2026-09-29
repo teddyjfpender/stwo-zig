@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-zig-cairo-bounded-composition-provenance-v3",
+  "library": {
+    "path": "vectors/cairo/official/air_template_composition_bounded.metallib",
+    "sha256": "52677f12c937dfa58e8532d333073d66e47b36488d2a602956485d744d760d05",
+    "bytes": 12825211
+  },
+  "source": {
+    "path": "zig-out/cairo-completion-20260927/bounded-composition-v3/air_template_composition_bounded.metal",
+    "sha256": "8d434d52b0513da9489e5fbd60836f28121d054487de083dc75ef9f7cae95c35",
+    "bytes": 8753707
+  },
+  "programs": 69,
+  "kernels": 138,
+  "codegen_version": 5,
+  "reader_abis": [
+    "stored_domain",
+    "tiled_domain td3_ compressed native pairs"
+  ],
+  "metal_flags": [
+    "-std=metal3.1",
+    "-fno-fast-math",
+    "-Werror"
+  ],
+  "semantic_qualification": "SN PIE 2, canonical 70 queries/26-bit PoW, independent official Rust verification, unchanged proof ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+}

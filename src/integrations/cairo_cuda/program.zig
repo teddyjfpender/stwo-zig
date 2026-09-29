@@ -117,6 +117,13 @@ pub fn emitProofDerivedDiagnostic(
     return emitAuthenticated(allocator, authority);
 }
 
+/// Source authority is assembled by canonical_source from the pinned library
+/// and live input. This route remains unqualified until device proof admission.
+pub fn emitCanonicalSource(allocator: std.mem.Allocator, authority: Authority) !ir.ProofProgram {
+    if (authority.pack.provenance != .source_derived) return error.SourceSemanticsRequired;
+    return emitAuthenticated(allocator, authority);
+}
+
 fn emitAuthenticated(allocator: std.mem.Allocator, authority: Authority) !ir.ProofProgram {
     try validateAuthority(allocator, authority);
     const pack_digest = authority.pack.digest();
@@ -149,7 +156,7 @@ fn emitAuthenticated(allocator: std.mem.Allocator, authority: Authority) !ir.Pro
                 return Error.GeometryOverflow,
             .group_count = std.math.cast(u32, authority.composition.components.len) orelse
                 return Error.GeometryOverflow,
-            .evaluation_log_rows = authority.protocol.max_log_degree_bound,
+            .evaluation_log_rows = try authority.protocol.evaluationLogSize(),
             .composition_degree_log = composition_degree_log,
         },
         .fri_layers = fri_layers,
@@ -160,8 +167,6 @@ fn emitAuthenticated(allocator: std.mem.Allocator, authority: Authority) !ir.Pro
 }
 
 fn validateAuthority(allocator: std.mem.Allocator, authority: Authority) !void {
-    if (authority.pack.provenance != .proof_derived)
-        return Error.DevelopmentSemanticsRequired;
     try authority.protocol.validate();
     try validateStatementForComposition(
         allocator,
@@ -275,11 +280,7 @@ fn traceColumns(allocator: std.mem.Allocator, authority: Authority) ![]ir.TraceC
             }
         }
     }
-    const composition_log = std.math.sub(
-        u32,
-        authority.protocol.max_log_degree_bound,
-        1,
-    ) catch return Error.InvalidCompositionGeometry;
+    const composition_log = authority.protocol.max_log_degree_bound;
     for (0..authority.protocol.trace_columns[3]) |_| {
         columns[cursor] = columnAt(cursor, std.math.maxInt(u32) - 1, composition_log, .composition);
         cursor += 1;
@@ -354,9 +355,9 @@ fn commitmentTrees(columns: []const ir.TraceColumn, protocol: compact.CompactPro
 }
 
 fn friLayers(allocator: std.mem.Allocator, protocol: compact.CompactProtocolV1) ![]ir.FriLayer {
-    const final_log = std.math.add(u32, protocol.log_last_layer_degree_bound, 1) catch
+    const final_log = std.math.add(u32, protocol.log_last_layer_degree_bound, protocol.log_blowup_factor) catch
         return Error.InvalidCompositionGeometry;
-    const geometry = core.fri.geometry.FriGeometry.initRuntime(protocol.max_log_degree_bound, .{
+    const geometry = core.fri.geometry.FriGeometry.initRuntime(try protocol.evaluationLogSize(), .{
         .round_count = protocol.fri_tree_count,
         .fold_step = protocol.fri_fold_step,
         .final_log = final_log,
@@ -766,7 +767,7 @@ fn findComponent(
     instance: u32,
 ) ?*const composition.Component {
     for (bundle.components) |*component| {
-        if (component.instance == instance and std.mem.eql(u8, component.label, label))
+        if (component.instance == instance and std.mem.eql(u8, proof_plan.canonicalComponentName(component.label, instance), label))
             return component;
     }
     return null;

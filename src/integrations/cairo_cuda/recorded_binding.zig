@@ -8,6 +8,23 @@ const pointer_words = @sizeOf(usize) / @sizeOf(u32);
 const execution_table_count = 37;
 const execution_big_limb_count = 28;
 
+pub fn requiredModuleGlobals(program: @import("stwo_cairo_frontend").witness.program.Program) !product_aot.ModuleGlobals {
+    var requirement: product_aot.ModuleGlobals = .none;
+    for (program.insts) |inst| {
+        if (inst.op != @intFromEnum(@import("stwo_cairo_frontend").witness.program.Op.deduce_call)) continue;
+        const kind = try std.meta.intToEnum(@import("stwo_cairo_frontend").witness.deduction_contract.Selector, inst.imm);
+        const current: product_aot.ModuleGlobals = switch (kind) {
+            .partial_ec_mul_w18, .pedersen_points_table_w18 => .pedersen_w18_columns_rows_v1,
+            .partial_ec_mul_w9, .pedersen_points_table_w9 => .pedersen_w9_columns_rows_v1,
+            else => .none,
+        };
+        if (current == .none) continue;
+        if (requirement != .none and requirement != current) return error.MixedPedersenWindowModule;
+        requirement = current;
+    }
+    return requirement;
+}
+
 comptime {
     std.debug.assert(pointer_words == 2);
 }

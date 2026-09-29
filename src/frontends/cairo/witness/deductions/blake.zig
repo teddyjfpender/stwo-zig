@@ -114,7 +114,7 @@ fn mix(a0: u32, b0: u32, c0: u32, d0: u32, m0: u32, m1: u32) [4]u32 {
 test "Blake triple xor uses full-width words" {
     var output: [1]u32 = undefined;
     try applyTripleXor(&.{ 0xffff_0000, 0x0f0f_0f0f, 0x1234_5678 }, &output);
-    try std.testing.expectEqual(@as(u32, 0xe2c4_5967), output[0]);
+    try std.testing.expectEqual(@as(u32, 0xe2c4_5977), output[0]);
 }
 
 test "Blake G and sigma match the official scalar semantics" {

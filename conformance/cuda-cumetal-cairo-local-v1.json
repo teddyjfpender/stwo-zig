@@ -1,0 +1,27 @@
+{
+  "schema": "stwo-zig-cairo-cuda-local-contract-v1",
+  "cumetal_revision": "e74b377942f9d2db0f2dde14c5a1b51a9c678692",
+  "compat_patch": "conformance/cuda-cumetal-cairo-v0.6-pointer-select.patch",
+  "compat_patch_sha256": "6dc5fc7075ed35f2e242489a0c84551c9dbc02e809f41dcb414ca708ebbdb8cb",
+  "additional_maintained_sources": [
+    {
+      "source": "src/backends/cuda/native/witness/active_feeds.cu",
+      "sha256": "97ced4ded1bbc869aaf3814a3b29fdc2a002dbf55af4aa92bd5988f3c91e8259",
+      "harness": "tests/cuda/cumetal/active_feeds_execution.cu",
+      "kernel": "count_active"
+    }
+  ],
+  "required_generated_entries": {
+    "cairo_witness": 64,
+    "cairo_canonical_eval": 68
+  },
+  "required_numerical": [
+    "powers_execution.cu",
+    "active_feeds_execution.cu",
+    "felt252_execution.cu",
+    "parametric_air_execution.cu",
+    "row_chunks_execution.cu"
+  ],
+  "nvidia_qualified": false,
+  "full_proof_verified": false
+}

@@ -9,6 +9,7 @@ const generated = @import("generated_executor.zig");
 const interaction_executor = @import("interaction_executor.zig");
 const interaction_residency = @import("interaction_residency.zig");
 const program_mod = @import("program.zig");
+const row_ranges = @import("row_ranges.zig");
 const prover = @import("stwo_prover_engine");
 const work_pool = prover.work_pool;
 
@@ -69,6 +70,24 @@ pub fn execute(
     pedersen_table: ?deductions.PedersenTable,
     recorder: ?*prover.stage_profile.Recorder,
 ) !Execution {
+    return executeInto(allocator, input, witness_program, generated_executor, interaction_backend, interaction_columns, source, layout, pedersen_table, recorder, null);
+}
+
+/// Borrow final trace columns for this call; only locally allocated outputs
+/// belong to the returned execution. Feed storage always retains its own owner.
+pub fn executeInto(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    witness_program: program_mod.Program,
+    generated_executor: ?generated.Executor,
+    interaction_backend: ?interaction_executor.Executor,
+    interaction_columns: usize,
+    source: anytype,
+    layout: component_layout.ComponentLayout,
+    pedersen_table: ?deductions.PedersenTable,
+    recorder: ?*prover.stage_profile.Recorder,
+    borrowed_outputs: ?[]const []u32,
+) !Execution {
     layout.validate() catch return Error.InvalidReceiptGeometry;
     if (witness_program.n_inputs != source.columnCount())
         return Error.WitnessInputCountMismatch;
@@ -77,6 +96,10 @@ pub fn execute(
     if (witness_program.n_mult_tables != 0)
         return Error.UnsupportedMultiplicityTable;
     const row_count = layout.row_count;
+    if (borrowed_outputs) |columns| {
+        if (columns.len != witness_program.n_cols) return Error.InvalidReceiptGeometry;
+        for (columns) |column| if (column.len != row_count) return Error.InvalidReceiptGeometry;
+    }
     source.validateRowCount(row_count) catch return Error.InvalidReceiptGeometry;
 
     const input_words = std.math.mul(usize, source.columnCount(), row_count) catch
@@ -94,7 +117,10 @@ pub fn execute(
         "Witness input materialization",
     );
     defer input_stage.end();
-    const input_storage = try allocator.alloc(u32, input_words);
+    // Gathered sources already own immutable column-major storage. Borrow it
+    // until the joined execution ends instead of allocating and copying it again.
+    const borrowed_input = comptime @hasDecl(@TypeOf(source), "borrowColumn");
+    const input_storage: []u32 = if (borrowed_input) &.{} else try allocator.alloc(u32, input_words);
     defer allocator.free(input_storage);
     const input_columns = try allocator.alloc([]const u32, source.columnCount());
     defer allocator.free(input_columns);
@@ -105,8 +131,14 @@ pub fn execute(
     defer allocator.free(native_input_columns);
     for (input_columns, 0..) |*column, column_index| {
         const start = column_index * row_count;
-        const values = input_storage[start .. start + row_count];
-        try source.writeColumn(column_index, values);
+        const values = if (borrowed_input)
+            try source.borrowColumn(column_index)
+        else blk: {
+            const destination = input_storage[start .. start + row_count];
+            try source.writeColumn(column_index, destination);
+            break :blk destination;
+        };
+        if (values.len != row_count) return Error.InvalidReceiptGeometry;
         column.* = values;
         native_input_columns[column_index] = .{
             .ptr = values.ptr,
@@ -124,7 +156,7 @@ pub fn execute(
     var result = Execution{
         .allocator = allocator,
         .row_count = row_count,
-        .output_storage = try allocator.alloc(u32, output_words),
+        .output_storage = if (borrowed_outputs == null) try allocator.alloc(u32, output_words) else &.{},
         .output_columns = &.{},
         .lookup_words = &.{},
         .lookup_allocation = null,
@@ -135,7 +167,7 @@ pub fn execute(
     errdefer allocator.free(result.output_columns);
     for (result.output_columns, 0..) |*column, column_index| {
         const start = column_index * row_count;
-        column.* = result.output_storage[start .. start + row_count];
+        column.* = if (borrowed_outputs) |columns| columns[column_index] else result.output_storage[start .. start + row_count];
     }
     const native_output_columns = try allocator.alloc(
         generated.ColumnView,
@@ -225,6 +257,15 @@ pub fn execute(
     const deduction_config = deductions.Context{
         .pedersen_table = pedersen_table,
     };
+    const dynamic_enabled = if (std.posix.getenv("STWO_CAIRO_WITNESS_DYNAMIC_RANGES")) |value|
+        std.mem.eql(u8, value, "1")
+    else
+        false;
+    const dynamic_grain = if (dynamic_enabled)
+        row_ranges.grain(row_count, worker_count, rows_per_worker)
+    else
+        null;
+    var queue = row_ranges.Queue{ .row_count = row_count, .grain = dynamic_grain orelse 1 };
 
     const Work = struct {
         program: program_mod.Program,
@@ -235,6 +276,7 @@ pub fn execute(
         auxiliary: program_mod.AuxiliaryOutputs,
         start: usize,
         end: usize,
+        queue: ?*row_ranges.Queue,
         registers: []u32,
         deduce_args: []u32,
         tables: program_mod.TableContext,
@@ -243,6 +285,21 @@ pub fn execute(
         failure: ?anyerror = null,
 
         fn run(self: *@This()) void {
+            if (self.queue) |tickets| {
+                while (tickets.take()) |range| {
+                    self.executeRange(range.start, range.end) catch |err| {
+                        self.failure = err;
+                        return;
+                    };
+                }
+            } else {
+                self.executeRange(self.start, self.end) catch |err| {
+                    self.failure = err;
+                };
+            }
+        }
+
+        fn executeRange(self: *@This(), start: usize, end: usize) !void {
             const execution_result = if (self.generated_writer) |writer|
                 writer(.{
                     .input_columns = self.input_columns,
@@ -250,8 +307,8 @@ pub fn execute(
                     .native_input_columns = self.native_input_columns,
                     .native_output_columns = self.native_output_columns,
                     .auxiliary = self.auxiliary,
-                    .start = self.start,
-                    .end = self.end,
+                    .start = start,
+                    .end = end,
                     .registers = self.registers,
                     .deduce_args = self.deduce_args,
                     .tables = self.tables,
@@ -263,16 +320,14 @@ pub fn execute(
                     self.input_columns,
                     self.output_columns,
                     self.auxiliary,
-                    self.start,
-                    self.end,
+                    start,
+                    end,
                     self.registers,
                     self.deduce_args,
                     self.tables,
                     self.deduce,
                 );
-            execution_result catch |err| {
-                self.failure = err;
-            };
+            try execution_result;
         }
     };
     const chunk_len = std.math.divCeil(
@@ -292,6 +347,7 @@ pub fn execute(
             .auxiliary = auxiliary,
             .start = start,
             .end = @min(row_count, start + chunk_len),
+            .queue = if (dynamic_grain != null) &queue else null,
             .registers = register_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .deduce_args = deduce_storage[worker * witness_program.n_regs .. (worker + 1) * witness_program.n_regs],
             .tables = execution_tables.fromInput(input),
@@ -331,6 +387,7 @@ fn parallelRowsPerWorker(witness_program: program_mod.Program) usize {
 }
 
 test "Cairo component executor assigns finer ranges to computed deductions" {
+    _ = row_ranges;
     const plain = [_]program_mod.Inst{.{
         .op = @intFromEnum(program_mod.Op.constant),
         .dst = 0,

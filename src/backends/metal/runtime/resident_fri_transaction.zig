@@ -199,6 +199,7 @@ pub fn Ops(comptime B: type) type {
             defer raw_trees.deinit();
             var first_tree = try B.MerkleTree(H).fromSharedRuntime(try raw_trees.takeInitial());
             errdefer first_tree.deinit(allocator);
+            first_tree.compactForQueries();
             // The fused route must honor the same independent raw-output
             // diagnostic as standalone quotient commits, after owners are armed.
             try B.validateQuotientOutputParity(allocator, provider, &first_column);
@@ -213,7 +214,9 @@ pub fn Ops(comptime B: type) type {
             }
             var layer_domain = line_domain;
             for (ready_layers, columns) |*layer, column| {
-                const tree = try B.MerkleTree(H).fromSharedRuntime(try raw_trees.takeNext());
+                var tree = try B.MerkleTree(H).fromSharedRuntime(try raw_trees.takeNext());
+                if (line_domain.logSize() >= 20)
+                    tree.pruneBottomLayers(@min(4, tree.maxLogSize()));
                 layer.* = .{
                     .domain = layer_domain,
                     .column = column,
@@ -424,6 +427,8 @@ pub fn Ops(comptime B: type) type {
                     .merkle_tree = tree,
                     .fold_step = 1,
                 };
+                if (line_domain.logSize() >= 20)
+                    layer.merkle_tree.pruneBottomLayers(@min(4, layer.merkle_tree.maxLogSize()));
                 layer_domain = layer_domain.double();
             }
             const terminal_evaluation = cascade.last_layer_evaluation;

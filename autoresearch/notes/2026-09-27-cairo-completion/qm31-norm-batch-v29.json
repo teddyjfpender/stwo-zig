@@ -1,0 +1,146 @@
+{
+  "schema": "stwo-zig-qm31-norm-scaled-batch-v1",
+  "status": "qualified",
+  "schedule": "AB BA AB BA; single coordinator; every output compared",
+  "scope": "scaled batch inversion only, caller owns mutable input; copies and parity outside timed region",
+  "records": [
+    {
+      "count": 1024,
+      "trial": 1,
+      "before_ns": 34583,
+      "after_ns": 24000,
+      "equal": true
+    },
+    {
+      "count": 1024,
+      "trial": 2,
+      "before_ns": 18875,
+      "after_ns": 22625,
+      "equal": true
+    },
+    {
+      "count": 1024,
+      "trial": 3,
+      "before_ns": 18334,
+      "after_ns": 22584,
+      "equal": true
+    },
+    {
+      "count": 1024,
+      "trial": 4,
+      "before_ns": 18375,
+      "after_ns": 22500,
+      "equal": true
+    },
+    {
+      "count": 32768,
+      "trial": 1,
+      "before_ns": 542084,
+      "after_ns": 726500,
+      "equal": true
+    },
+    {
+      "count": 32768,
+      "trial": 2,
+      "before_ns": 509291,
+      "after_ns": 685833,
+      "equal": true
+    },
+    {
+      "count": 32768,
+      "trial": 3,
+      "before_ns": 519250,
+      "after_ns": 698750,
+      "equal": true
+    },
+    {
+      "count": 32768,
+      "trial": 4,
+      "before_ns": 514167,
+      "after_ns": 719542,
+      "equal": true
+    },
+    {
+      "count": 262144,
+      "trial": 1,
+      "before_ns": 3723500,
+      "after_ns": 4690916,
+      "equal": true
+    },
+    {
+      "count": 262144,
+      "trial": 2,
+      "before_ns": 2797208,
+      "after_ns": 4159250,
+      "equal": true
+    },
+    {
+      "count": 262144,
+      "trial": 3,
+      "before_ns": 2804250,
+      "after_ns": 3868125,
+      "equal": true
+    },
+    {
+      "count": 262144,
+      "trial": 4,
+      "before_ns": 2561000,
+      "after_ns": 3416959,
+      "equal": true
+    },
+    {
+      "count": 1048576,
+      "trial": 1,
+      "before_ns": 9651750,
+      "after_ns": 11942375,
+      "equal": true
+    },
+    {
+      "count": 1048576,
+      "trial": 2,
+      "before_ns": 7899917,
+      "after_ns": 10760542,
+      "equal": true
+    },
+    {
+      "count": 1048576,
+      "trial": 3,
+      "before_ns": 7291708,
+      "after_ns": 9855000,
+      "equal": true
+    },
+    {
+      "count": 1048576,
+      "trial": 4,
+      "before_ns": 7112125,
+      "after_ns": 9771916,
+      "equal": true
+    }
+  ],
+  "summary": [
+    {
+      "count": 1024,
+      "before_ns": 18625.0,
+      "after_ns": 22604.5,
+      "speedup": 0.8239509832113074
+    },
+    {
+      "count": 32768,
+      "before_ns": 516708.5,
+      "after_ns": 709146.0,
+      "speedup": 0.7286348650348448
+    },
+    {
+      "count": 262144,
+      "before_ns": 2800729.0,
+      "after_ns": 4013687.5,
+      "speedup": 0.6977944844983572
+    },
+    {
+      "count": 1048576,
+      "before_ns": 7595812.5,
+      "after_ns": 10307771.0,
+      "speedup": 0.7369015570873664
+    }
+  ]
+}

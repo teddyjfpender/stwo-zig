@@ -18,6 +18,8 @@ const base_trace = @import("base_trace.zig");
 const feed_geometry_oracle = @import("feed_geometry_oracle.zig");
 const interaction_trace = @import("interaction_trace.zig");
 const trace_arena = @import("trace_arena.zig");
+const trace_commit = @import("trace_commit.zig");
+const preprocessed_commit = @import("preprocessed_commit.zig");
 const transcript = @import("transcript.zig");
 const geometry = @import("../witness/resident_geometry.zig");
 
@@ -36,6 +38,10 @@ pub const official_pcs_config = core.pcs.PcsConfig{
     .lifting_log_size = 0,
 };
 
+/// Execution storage only; both opening methods evaluate the same committed
+/// polynomials at the same transcript points and preserve proof bytes.
+pub const SampledEvaluationStorage = enum { retained_coefficients, committed_columns, compact_polynomials, compact_preprocessed };
+
 pub const Fixture = struct {
     input: *const adapter.ProverInput,
     programs: *const witness.bundle.Bundle,
@@ -49,6 +55,8 @@ pub const Fixture = struct {
     /// product and absent on the CPU product, which keeps the CPU lane the
     /// byte-parity reference by construction.
     composition_device: ?proving_air.device_stage.Device = null,
+    native_composition: ?proving_air.native_evaluator.Executor = null,
+    sampled_evaluation: SampledEvaluationStorage = .retained_coefficients,
 };
 
 pub fn Result(comptime Engine: type) type {
@@ -150,6 +158,30 @@ pub fn proveFixtureWithRecorder(
         }
     }
 
+    var channel = Engine.Channel{};
+    transcript.mixChannelSalt(&channel, 0);
+    official_pcs_config.mixInto(&channel);
+    var scheme = try Engine.init(allocator, official_pcs_config);
+    var scheme_owned = true;
+    errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
+    switch (fixture.sampled_evaluation) {
+        .committed_columns => scheme.setCoefficientRetentionPolicy(.never),
+        .retained_coefficients => {},
+        .compact_polynomials, .compact_preprocessed => scheme.setCompactPolynomialStorage(18),
+    }
+
+    var preprocessed_worker = preprocessed_commit.Worker(Engine).init(
+        allocator,
+        &target,
+        if (pedersen_initialized) &pedersen else null,
+        preprocessed_binding,
+        &scheme,
+        &channel,
+        recorder,
+    );
+    defer preprocessed_worker.deinit();
+    preprocessed_worker.start(recorder);
+
     // Backends that bind one contiguous resident source arena get their base
     // trace planned and allocated *before* component execution, so every
     // generated and implicit column is written at its final offset and nothing
@@ -171,6 +203,8 @@ pub fn proveFixtureWithRecorder(
     // soundness abort: without a prediction the planned claim is exactly what
     // `deriveFromProverInput` produced, and a disagreement there is a real bug.
     var oracle_predicted = false;
+    // Compact host streams interpolate arena subcolumns in place and transfer
+    // their shared owner once; the ordinary resident path adopts it directly.
     if (arena_capable) {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -334,6 +368,7 @@ pub fn proveFixtureWithRecorder(
         );
     };
     defer base.deinit();
+    prover.measurement.process_usage.reportStage("cairo.base_trace_complete");
     var composition = blk: {
         if (planned_composition) |ready| {
             planned_composition = null;
@@ -373,38 +408,14 @@ pub fn proveFixtureWithRecorder(
     });
     errdefer owned_statement.deinit();
 
-    var channel = Engine.Channel{};
-    transcript.mixChannelSalt(&channel, 0);
-    official_pcs_config.mixInto(&channel);
-    var scheme = try Engine.init(allocator, official_pcs_config);
-    var scheme_owned = true;
-    errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
-
-    {
-        var stage = try prover.stage_profile.StageScope.begin(
-            recorder,
-            "preprocessed_materialize_and_commit",
-            "Preprocessed materialize and commit",
-        );
-        defer stage.end();
-        const preprocessed_columns = try target.materializeWithPedersen(
-            allocator,
-            if (pedersen_initialized) &pedersen else null,
-        );
-        // The preprocessed commitment is a pure function of the protocol
-        // identity, so its Merkle layers may be supplied by the authenticated
-        // artifact cache. Armed for this one commit only.
-        preprocessed.tree_digest_cache.arm(allocator, preprocessed_binding, recorder);
-        defer preprocessed.tree_digest_cache.disarm();
-        try Engine.commit(
-            &scheme,
-            allocator,
-            preprocessed_columns,
-            recorder,
-            &channel,
-        );
-        try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    try preprocessed_worker.finish(recorder);
+    // The fixed-data tree keeps its own compact representation. After the
+    // worker joins, future witness trees can retain ordinary committed columns.
+    if (fixture.sampled_evaluation == .compact_preprocessed) {
+        scheme.compact_polynomial_storage = false;
+        scheme.setCoefficientRetentionPolicy(.never);
     }
+    prover.measurement.process_usage.reportStage("cairo.preprocessed_complete");
     try transcript.mixClaim(allocator, &channel, &owned_statement);
 
     {
@@ -414,45 +425,14 @@ pub fn proveFixtureWithRecorder(
             "Main trace commit",
         );
         defer stage.end();
-        const base_columns = base.takeColumns();
-        if (arena) |*ready| {
-            // Checked, not assumed: the flat commit-order column list really
-            // does cover the arena at the planned offsets. That equality is the
-            // whole basis of the no-copy device binding.
-            if (!trace_arena.columnsMatchPlan(ready, base_columns))
-                return error.InvalidBaseTraceArena;
-            const backing = try ready.backing(allocator);
-            const words = ready.words;
-            ready.layout.deinit();
-            arena = null;
-            base.arena_backed = false;
-            _ = words;
-            var bound = try prover.stage_profile.StageScope.begin(
-                recorder,
-                "main_trace_commit_arena_bound",
-                "Main trace commit bound to the base trace arena",
-            );
-            bound.end();
-            try Engine.commitWithBacking(
-                &scheme,
-                allocator,
-                base_columns,
-                backing,
-                recorder,
-                &channel,
-            );
-        } else {
-            try Engine.commit(
-                &scheme,
-                allocator,
-                base_columns,
-                recorder,
-                &channel,
-            );
-        }
+        try trace_commit.commit(Engine, &scheme, allocator, &base, &arena, recorder, &channel, .{
+            .id = "main_trace_commit_arena_bound",
+            .label = "Main trace commit bound to the base trace arena",
+        });
         try Engine.flushPendingCommit(&scheme, allocator, &channel);
     }
 
+    prover.measurement.process_usage.reportStage("cairo.main_commit_complete");
     const interaction_pow =
         transcript.grindInteraction(&channel);
     const lookup = try transcript.drawLookupElements(
@@ -460,6 +440,28 @@ pub fn proveFixtureWithRecorder(
         &channel,
     );
 
+    var interaction_arena: ?trace_arena.Arena = null;
+    defer if (interaction_arena) |*owned| owned.deinit();
+    // Compact host streams interpolate arena subcolumns in place and transfer
+    // their shared owner once; the ordinary resident path adopts it directly.
+    if (arena_capable) {
+        var stage = try prover.stage_profile.StageScope.begin(
+            recorder,
+            "interaction_trace_arena_plan",
+            "Interaction trace arena plan",
+        );
+        defer stage.end();
+        if (trace_arena.planInteraction(allocator, composition.components)) |layout| {
+            if (std.posix.getenv("STWO_CAIRO_PROFILE_ARENAS") != null)
+                std.debug.print("cairo_interaction_arena admitted=true bytes={} columns={}\n", .{
+                    layout.base_words * @sizeOf(core.fields.m31.M31), layout.offsets.len,
+                });
+            interaction_arena = try trace_arena.allocateUninitialized(allocator, layout);
+        } else |err| {
+            if (std.posix.getenv("STWO_CAIRO_PROFILE_ARENAS") != null)
+                std.debug.print("cairo_interaction_arena admitted=false reason={s}\n", .{@errorName(err)});
+        }
+    }
     var interaction = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -479,10 +481,12 @@ pub fn proveFixtureWithRecorder(
             if (pedersen_initialized) &pedersen else null,
             fixture.interaction_executor,
             recorder,
+            if (interaction_arena) |*ready| ready else null,
         );
     };
     defer interaction.deinit();
     base.releaseWitnessFeeds();
+    prover.measurement.process_usage.reportStage("cairo.interaction_build_complete");
     const public_sum = try statement.public_logup.sum(
         allocator,
         fixture.input,
@@ -502,16 +506,14 @@ pub fn proveFixtureWithRecorder(
             "Interaction trace commit",
         );
         defer stage.end();
-        try Engine.commit(
-            &scheme,
-            allocator,
-            interaction.takeColumns(),
-            recorder,
-            &channel,
-        );
+        try trace_commit.commit(Engine, &scheme, allocator, &interaction, &interaction_arena, recorder, &channel, .{
+            .id = "interaction_trace_commit_arena_bound",
+            .label = "Interaction commitment adopts its coordinate arena",
+        });
         try Engine.flushPendingCommit(&scheme, allocator, &channel);
     }
 
+    prover.measurement.process_usage.reportStage("cairo.interaction_commit_complete");
     const runtime_components = try allocator.alloc(
         proving_air.component.Component,
         composition.components.len,
@@ -537,6 +539,8 @@ pub fn proveFixtureWithRecorder(
             lookup.alpha,
             claimed_sum,
         );
+        runtime.native_executor = fixture.native_composition;
+        runtime.recorder = if (fixture.native_composition != null) recorder else null;
         component.* = runtime.asProverComponent();
     }
 
@@ -554,10 +558,13 @@ pub fn proveFixtureWithRecorder(
             "composition_device_admission",
             "Device composition admission",
         );
+        var committed_logs = try scheme.columnLogSizes(allocator);
+        defer committed_logs.deinitDeep(allocator);
         const opened = device.open(
             device.context,
             allocator,
             composition.components,
+            committed_logs.items,
         ) catch null;
         admit.end();
         if (opened) |session| {
@@ -589,6 +596,7 @@ pub fn proveFixtureWithRecorder(
             .composition_stage = if (bound) |*ready| ready.asStage() else null,
         },
     );
+    prover.measurement.process_usage.reportStage("cairo.proof_complete");
     return .{
         .allocator = allocator,
         .proof = proof,

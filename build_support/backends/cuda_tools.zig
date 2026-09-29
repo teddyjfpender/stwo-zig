@@ -221,7 +221,13 @@ pub fn addProducts(
         native_cuda,
         stwo,
     );
-    cuda_aot.addCairoEvalToolStep(b, target, stwo);
+    const eval_facade = b.createModule(.{
+        .root_source_file = b.path("src/tools/cairo_cuda_eval_aot/facade.zig"),
+        .target = target, .optimize = optimize,
+    });
+    eval_facade.addImport("stwo_cairo_frontend", cairo_frontend);
+    eval_facade.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    cuda_aot.addCairoEvalToolStep(b, target, eval_facade);
     _ = integration_graph.addCairoCpuImport(
         b,
         protocol,

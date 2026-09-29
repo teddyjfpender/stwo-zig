@@ -8,6 +8,20 @@ static const uint64_t STWO_ZIG_EVAL_PIPELINE_BYTE_LIMIT = 16u * 1024u * 1024u;
 // conservative fixed cost so both the count and the accounting budget bound it.
 static const uint64_t STWO_ZIG_EVAL_PIPELINE_ENTRY_BYTES = 256u * 1024u;
 
+// Diagnostic occupancy sweep. Resolve once per plan, retaining the same
+// authenticated pipeline and hard limits for every subsequent dispatch.
+static NSUInteger eval_dispatch_width(id<MTLComputePipelineState> pipeline, uint32_t rows) {
+    NSUInteger requested = 256u;
+    const char *control = getenv("STWO_METAL_EVAL_THREADS_PER_GROUP");
+    if (control != NULL && control[0] != '\0') {
+        char *end = NULL;
+        unsigned long parsed = strtoul(control, &end, 10);
+        if (end != control && *end == '\0' && parsed >= 32u && parsed <= 1024u &&
+            (parsed & (parsed - 1u)) == 0u) requested = (NSUInteger)parsed;
+    }
+    return MIN(requested, MIN((NSUInteger)rows, pipeline.maxTotalThreadsPerThreadgroup));
+}
+
 @interface StwoZigEvalCacheState : NSObject
 @property(nonatomic, strong) StwoZigEvalRuntimeIdentity *runtimeIdentity;
 @property(nonatomic, strong) NSMutableArray<StwoZigEvalLibraryKey *> *libraryLru;
@@ -87,6 +101,7 @@ void *stwo_zig_metal_eval_prepare(
         plan.pipeline = pipeline;
         plan.arguments = [runtime.device newBufferWithBytes:arguments length:14u * sizeof(uint32_t) options:MTLResourceStorageModeShared];
         plan.rowCount = arguments[10];
+        plan.dispatchWidth = eval_dispatch_width(pipeline, plan.rowCount);
         if (plan.arguments == nil) {
             write_error(error_message, error_message_len, @"Metal evaluation argument allocation failed"); return NULL;
         }
@@ -550,6 +565,7 @@ void *stwo_zig_metal_eval_prepare_library(
         plan.pipeline = pipeline;
         plan.arguments = [runtime.device newBufferWithBytes:arguments length:14u * sizeof(uint32_t) options:MTLResourceStorageModeShared];
         plan.rowCount = arguments[10];
+        plan.dispatchWidth = eval_dispatch_width(pipeline, plan.rowCount);
         if (plan.arguments == nil) { write_error(error_message, error_message_len, @"Metal evaluation argument allocation failed"); return NULL; }
         return (__bridge_retained void *)plan;
     }
@@ -619,8 +635,7 @@ bool stwo_zig_metal_eval_batch_prepared(
             [encoder setComputePipelineState:plan.pipeline];
             [encoder setBuffer:arena offset:0 atIndex:0];
             [encoder setBuffer:plan.arguments offset:0 atIndex:1];
-            NSUInteger width = MIN((NSUInteger)256u, MIN((NSUInteger)plan.rowCount, plan.pipeline.maxTotalThreadsPerThreadgroup));
-            [encoder dispatchThreads:MTLSizeMake(plan.rowCount, 1u, 1u) threadsPerThreadgroup:MTLSizeMake(width, 1u, 1u)];
+            [encoder dispatchThreads:MTLSizeMake(plan.rowCount, 1u, 1u) threadsPerThreadgroup:MTLSizeMake(plan.dispatchWidth, 1u, 1u)];
             [encoder endEncoding];
         }
         [command commit]; [command waitUntilCompleted];

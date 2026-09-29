@@ -62,6 +62,7 @@ pub fn prepareAndUpload(
     feeds: feed_bundle.Bundle,
     fixed_tables: fixed_plan.Plan,
     sources: []const ComponentSubwords,
+    input: *const @import("stwo_cairo_frontend").adapter.ProverInput,
 ) !Bound {
     const shape = try deriveShape(feeds, fixed_tables);
     const pointer_slot = try exactSlot(
@@ -97,6 +98,9 @@ pub fn prepareAndUpload(
     errdefer allocator.free(destinations);
     var destination_count: usize = 0;
     for (feeds.feeds) |feed| {
+        if (feed.row_count == 0 or
+            (feed.active_row_count != null and feed.active_row_count.? > feed.row_count))
+            return error.InvalidMultiplicityFeedExtent;
         for (feed.destinations) |candidate| {
             if (findDestination(
                 destinations[0..destination_count],
@@ -149,6 +153,21 @@ pub fn prepareAndUpload(
         return error.InvalidMultiplicityFeedExtent;
     }
 
+    // Public memory belongs to the statement, before any execution writer.
+    // Seed its admitted counts once during ingress; execution adds its uses
+    // on-device. Padding is initialized explicitly for the whole resident slab.
+    var public_counts = try @import("stwo_cairo_frontend").witness.cpu_memory_multiplicity.initCounts(allocator, input);
+    defer public_counts.deinit();
+    for (destinations) |destination| {
+        const initial = publicMemoryCounts(destination.name, &public_counts) orelse continue;
+        if (initial.len > destination.words.len) return error.InvalidMultiplicityFeedExtent;
+        const padded = try allocator.alloc(u32, destination.words.len);
+        defer allocator.free(padded);
+        @memset(padded, 0);
+        @memcpy(padded[0..initial.len], initial);
+        try uploader.uploadSlice(u32, destination.words, padded);
+    }
+
     const clear_pointer_words = try mul(
         destinations.len,
         pointer_words,
@@ -182,8 +201,9 @@ pub fn prepareAndUpload(
         *length,
     | {
         words.* = destination.words;
-        length.* = std.math.cast(u32, destination.words.len) orelse
-            return error.InvalidMultiplicityFeedExtent;
+        // The memory slabs already contain the public statement seed. Only
+        // challenge-independent fixed-table counters are cleared at execution.
+        length.* = if (publicMemoryCounts(destination.name, &public_counts) != null) 0 else std.math.cast(u32, destination.words.len) orelse return error.InvalidMultiplicityFeedExtent;
         maximum_words = @max(maximum_words, length.*);
     }
     try recorded_binding.encodePointerTable(
@@ -300,6 +320,7 @@ pub fn prepareAndUpload(
             .binding = .{
                 .sub_words_word_major = source,
                 .column_length = feed.row_count,
+                .active_rows = feed.active_row_count,
                 .descriptors = descriptors,
                 .descriptor_count = @intCast(
                     feed.descriptors.len / feed_stage.descriptor_words,
@@ -327,6 +348,13 @@ pub fn prepareAndUpload(
             .maximum_words = maximum_words,
         },
     };
+}
+
+fn publicMemoryCounts(name: []const u8, counts: *const @import("stwo_cairo_frontend").witness.cpu_memory_multiplicity.Counts) ?[]const u32 {
+    if (std.mem.eql(u8, name, "memory_address_to_id")) return counts.address;
+    if (std.mem.eql(u8, name, "memory_id_to_big")) return counts.big;
+    if (std.mem.eql(u8, name, "memory_id_to_big#small")) return counts.small;
+    return null;
 }
 
 const Shape = struct {

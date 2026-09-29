@@ -1,0 +1,65 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v1",
+  "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "product_sha256": "2fdf3245906bf629c8f4fb9cf1f6e63166d469ff682ef86707a54f5af5f639b7",
+  "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+  "workload": {
+    "kind": "run-and-prove",
+    "path": "tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip",
+    "sha256": "06da79af56d26210135fbfdd1c900469f3246806910122311479f16d17749994"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "trials": [
+    {
+      "index": 1,
+      "process": {
+        "wall_ns": 1270134250,
+        "user_ns": 3697623000,
+        "system_ns": 508259000,
+        "max_process_tree_rss_bytes": 1539866624,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 11557000,
+        "proof_encode_ns": 4006083,
+        "request_until_publication_ns": 872150333,
+        "execute_ns": 79017459,
+        "prove_ns": 705954916,
+        "verify_ns": 6187417
+      },
+      "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+      "official_verifier": {
+        "wall_ns": 305842042,
+        "user_ns": 291218000,
+        "system_ns": 2871000,
+        "max_process_tree_rss_bytes": 26804224,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "profile": "official-live-cairo-canonical-small",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 118,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 8,
+        "commit_source_arena_memcpys": 6,
+        "commit_source_uploads": 31
+      }
+    }
+  ],
+  "summary": {
+    "median_process_wall_ns": 1270134250,
+    "median_prove_ns": 705954916,
+    "peak_process_rss_bytes": 1539866624
+  }
+}

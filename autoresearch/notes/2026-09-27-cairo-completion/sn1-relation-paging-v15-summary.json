@@ -1,0 +1,278 @@
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "variant_environment": {
+    "before": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_METAL_RESIDENT_LOGUP": "1",
+      "STWO_CAIRO_METAL_LOGUP_DIAGNOSTICS": "1",
+      "STWO_METAL_PROFILE_RELATION": "1",
+      "STWO_CAIRO_METAL_PREFAULT_LOGUP_OUTPUTS": "0"
+    },
+    "after": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_METAL_RESIDENT_LOGUP": "1",
+      "STWO_CAIRO_METAL_LOGUP_DIAGNOSTICS": "1",
+      "STWO_METAL_PROFILE_RELATION": "1",
+      "STWO_CAIRO_METAL_PREFAULT_LOGUP_OUTPUTS": "1"
+    }
+  },
+  "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+  "backend": "metal",
+  "summary": {
+    "before": {
+      "median_process_wall_ns": 36892595625,
+      "median_prove_ns": 31805856500,
+      "peak_process_rss_bytes": 46298152960
+    },
+    "after": {
+      "median_process_wall_ns": 36022063291,
+      "median_prove_ns": 31073464958,
+      "peak_process_rss_bytes": 46290485248
+    }
+  },
+  "process_speedup": 1.024166642731359,
+  "prove_speedup": 1.0235696773111698,
+  "records": [
+    {
+      "pair": 1,
+      "variant": "before",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 51865280209,
+        "user_ns": 133022383000,
+        "system_ns": 45695158000,
+        "max_process_tree_rss_bytes": 46062272512,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 192321958,
+        "proof_encode_ns": 10639750,
+        "request_until_publication_ns": 51264805416,
+        "execute_ns": 4018088291,
+        "prove_ns": 46395319209,
+        "verify_ns": 18073208
+      },
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 694846750,
+        "user_ns": 627615000,
+        "system_ns": 19337000,
+        "max_process_tree_rss_bytes": 39747584,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "relation_wall_totals_ms": {
+        "encode_ms": 0.5710000000000002,
+        "commit_ms": 0.23800000000000013,
+        "wait_ms": 10173.466999999997,
+        "kernel_ms": 9904.565999999999,
+        "gpu_ms": 260.082
+      },
+      "raw_result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-relation-paging-v15-paired/pair-1-before/results.json"
+    },
+    {
+      "pair": 1,
+      "variant": "after",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 35487736417,
+        "user_ns": 121617338000,
+        "system_ns": 21849273000,
+        "max_process_tree_rss_bytes": 46290485248,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 207863333,
+        "proof_encode_ns": 28791417,
+        "request_until_publication_ns": 35425928708,
+        "execute_ns": 4357565125,
+        "prove_ns": 30683945084,
+        "verify_ns": 21100417
+      },
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 747272250,
+        "user_ns": 649913000,
+        "system_ns": 34650000,
+        "max_process_tree_rss_bytes": 39600128,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "relation_wall_totals_ms": {
+        "encode_ms": 0.5160000000000001,
+        "commit_ms": 0.2150000000000001,
+        "wait_ms": 1790.4959999999996,
+        "kernel_ms": 1558.831,
+        "gpu_ms": 222.784
+      },
+      "raw_result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-relation-paging-v15-paired/pair-1-after/results.json"
+    },
+    {
+      "pair": 2,
+      "variant": "after",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 38377436625,
+        "user_ns": 121732939000,
+        "system_ns": 23315021000,
+        "max_process_tree_rss_bytes": 46285094912,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 212102541,
+        "proof_encode_ns": 9860625,
+        "request_until_publication_ns": 38211454667,
+        "execute_ns": 4459067750,
+        "prove_ns": 33415076292,
+        "verify_ns": 17173833
+      },
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 758227166,
+        "user_ns": 669754000,
+        "system_ns": 22379000,
+        "max_process_tree_rss_bytes": 39616512,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "relation_wall_totals_ms": {
+        "encode_ms": 0.8670000000000004,
+        "commit_ms": 0.2550000000000001,
+        "wait_ms": 3970.945,
+        "kernel_ms": 3713.2180000000003,
+        "gpu_ms": 246.20900000000003
+      },
+      "raw_result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-relation-paging-v15-paired/pair-2-after/results.json"
+    },
+    {
+      "pair": 2,
+      "variant": "before",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 35118664833,
+        "user_ns": 123538171000,
+        "system_ns": 21154036000,
+        "max_process_tree_rss_bytes": 46190247936,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 211809958,
+        "proof_encode_ns": 42546208,
+        "request_until_publication_ns": 35065110791,
+        "execute_ns": 4353859333,
+        "prove_ns": 30327671042,
+        "verify_ns": 19193125
+      },
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 746019333,
+        "user_ns": 672853000,
+        "system_ns": 25567000,
+        "max_process_tree_rss_bytes": 39682048,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "relation_wall_totals_ms": {
+        "encode_ms": 0.5230000000000001,
+        "commit_ms": 0.2190000000000001,
+        "wait_ms": 1185.639,
+        "kernel_ms": 964.694,
+        "gpu_ms": 212.92400000000004
+      },
+      "raw_result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-relation-paging-v15-paired/pair-2-before/results.json"
+    },
+    {
+      "pair": 3,
+      "variant": "before",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 36892595625,
+        "user_ns": 126836709000,
+        "system_ns": 22026348000,
+        "max_process_tree_rss_bytes": 46298152960,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 220339125,
+        "proof_encode_ns": 11363750,
+        "request_until_publication_ns": 36792154208,
+        "execute_ns": 4639980000,
+        "prove_ns": 31805856500,
+        "verify_ns": 18250375
+      },
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 771196917,
+        "user_ns": 698342000,
+        "system_ns": 22405000,
+        "max_process_tree_rss_bytes": 39878656,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "relation_wall_totals_ms": {
+        "encode_ms": 0.9440000000000005,
+        "commit_ms": 0.22500000000000014,
+        "wait_ms": 2202.851,
+        "kernel_ms": 1965.9160000000002,
+        "gpu_ms": 226.62699999999998
+      },
+      "raw_result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-relation-paging-v15-paired/pair-3-before/results.json"
+    },
+    {
+      "pair": 3,
+      "variant": "after",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 36022063291,
+        "user_ns": 127799002000,
+        "system_ns": 22196352000,
+        "max_process_tree_rss_bytes": 46250590208,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 219344417,
+        "proof_encode_ns": 10979250,
+        "request_until_publication_ns": 35949402166,
+        "execute_ns": 4515680583,
+        "prove_ns": 31073464958,
+        "verify_ns": 19539375
+      },
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 819160834,
+        "user_ns": 714716000,
+        "system_ns": 39087000,
+        "max_process_tree_rss_bytes": 39878656,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "relation_wall_totals_ms": {
+        "encode_ms": 0.5350000000000001,
+        "commit_ms": 0.2100000000000001,
+        "wait_ms": 1152.3609999999999,
+        "kernel_ms": 930.7929999999999,
+        "gpu_ms": 213.45700000000005
+      },
+      "raw_result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-relation-paging-v15-paired/pair-3-after/results.json"
+    }
+  ],
+  "interpretation": "All trials retained. Large between-trial driver wait variation; modest median improvement does not justify default promotion alone."
+}

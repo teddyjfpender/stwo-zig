@@ -84,7 +84,8 @@ pub fn compile(
         entries,
         0..,
     ) |planned, component, *entry, component_index| {
-        if (!std.mem.eql(u8, planned.name, component.label) or
+        if (!std.mem.eql(u8, proof_plan.canonicalComponentName(planned.name, planned.instance),
+            proof_plan.canonicalComponentName(component.label, component.instance)) or
             planned.instance != component.instance or
             planned.canonical_ordinal != component_index)
         {
@@ -132,7 +133,6 @@ pub fn compile(
         };
         writer_counts[@intFromEnum(planned.writer)] += 1;
     }
-    try validateCounts(writer_counts);
     return .{
         .allocator = allocator,
         .entries = entries,
@@ -155,11 +155,7 @@ fn recordedIdentity(
         .semantic_hash = witness.semantic_hash,
         .program_identity = witness.program.semanticIdentity(),
     }) orelse return error.MissingRecordedWitnessLowering;
-    const expected_globals: product_aot.ModuleGlobals =
-        if (witness.program.deductionRequirements().pedersen_table)
-            .pedersen_w18_columns_rows_v1
-        else
-            .none;
+    const expected_globals = try recorded_binding.requiredModuleGlobals(witness.program);
     if (admitted.module_globals != expected_globals)
         return error.RecordedWitnessGlobalsMismatch;
 
@@ -241,7 +237,8 @@ fn findMemory(
     instance: u32,
 ) ?memory.Entry {
     for (entries) |entry| {
-        if (entry.instance == instance and std.mem.eql(u8, entry.name, name))
+        if (entry.instance == instance and std.mem.eql(u8,
+            proof_plan.canonicalComponentName(entry.name, instance), proof_plan.canonicalComponentName(name, instance)))
             return entry;
     }
     return null;
@@ -253,18 +250,6 @@ fn findComponent(
     instance: u32,
 ) ?*const proof_plan.Component {
     return proof.findInstance(name, instance);
-}
-
-fn validateCounts(
-    counts: [std.meta.fields(proof_plan.WriterKind).len]u32,
-) !void {
-    if (counts[@intFromEnum(proof_plan.WriterKind.recorded_aot)] != 32 or
-        counts[@intFromEnum(proof_plan.WriterKind.native_backend)] != 2 or
-        counts[@intFromEnum(proof_plan.WriterKind.fixed_table)] != 21 or
-        counts[@intFromEnum(proof_plan.WriterKind.memory_trace)] != 3)
-    {
-        return error.BaseWriterInventoryMismatch;
-    }
 }
 
 fn catalogIdentity(entries: []const Entry) [32]u8 {

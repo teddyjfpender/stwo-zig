@@ -17,6 +17,7 @@ pub fn emit(
         \\pub const generated_program_count: usize =
     );
     try writer.print("{};\n\n", .{programs.len});
+    try writer.print("comptime {{ if (generated.native_abi_version != {}) @compileError(\"Cairo native witness ABI mismatch\"); }}\n\n", .{model.deduction_contract.native_abi_version});
     try writer.writeAll(
         \\pub fn executor() generated.Executor {
         \\    return .{ .resolve_fn = resolve };

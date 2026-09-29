@@ -3,17 +3,28 @@
 pub const Requirement = enum(u32) {
     none = 0,
     pedersen_w18_columns_rows_v1 = 1,
+    pedersen_w9_columns_rows_v1 = 2,
 
     pub fn wire(self: Requirement) []const u8 {
         return switch (self) {
             .none => "none",
             .pedersen_w18_columns_rows_v1 => "pedersen_w18_columns_rows_v1",
+            .pedersen_w9_columns_rows_v1 => "pedersen_w9_columns_rows_v1",
+        };
+    }
+
+    pub fn pedersenRows(self: Requirement) ?u32 {
+        return switch (self) {
+            .none => null,
+            .pedersen_w18_columns_rows_v1 => pedersen_w18_row_count,
+            .pedersen_w9_columns_rows_v1 => pedersen_w9_row_count,
         };
     }
 };
 
 pub const pedersen_w18_column_count: u32 = 56;
 pub const pedersen_w18_row_count: u32 = 1 << 23;
+pub const pedersen_w9_row_count: u32 = 1 << 15;
 
 pub fn parse(encoded: []const u8) ?Requirement {
     inline for (std.meta.fields(Requirement)) |field| {

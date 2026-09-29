@@ -155,6 +155,7 @@ pub const Work = struct {
     scratch: ?*Scratch,
     domain: CircleDomain,
     compact_groups: []const compact_groups.Group = &.{},
+    combined_views: []const row_executor.CombinedContributionView = &.{},
     column_views: []const row_executor.LiftingColumnView,
     contribution_ranges: []const row_executor.ColumnContributionRange,
     contributions: []const row_executor.ColumnContribution,
@@ -247,6 +248,33 @@ fn accumulateTile(work: *const Work, scratch: *Scratch, start: usize, row_count:
         start,
         row_count,
     );
+    // Only coefficient-backed inputs are folded beforehand. Ordinary columns
+    // retain the bounded direct lane and never create full combined copies.
+    for (work.combined_views) |view| {
+        var row: usize = 0;
+        while (row + m31.VEC_WIDTH <= row_count) : (row += m31.VEC_WIDTH) {
+            inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+                const input = if (view.is_direct) m31.loadVec4(view.coordinates[coordinate].ptr + start + row) else blk: {
+                    var values: [m31.VEC_WIDTH]M31 = undefined;
+                    inline for (0..m31.VEC_WIDTH) |lane| {
+                        const position = start + row + lane;
+                        values[lane] = view.coordinates[coordinate][((position >> view.shift_amt) << 1) + (position & 1)];
+                    }
+                    break :blk m31.loadVec4(&values);
+                };
+                const destination: [*]M31 = @ptrCast(scratch.numerator(view.batch_index, coordinate, row));
+                m31.storeVec4(destination, m31.addVec4(m31.loadVec4(destination), input));
+            }
+        }
+        while (row < row_count) : (row += 1) {
+            const position = start + row;
+            const index = if (view.is_direct) position else ((position >> view.shift_amt) << 1) + (position & 1);
+            inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coordinate| {
+                const destination = scratch.numerator(view.batch_index, coordinate, row);
+                destination.* = destination.add(view.coordinates[coordinate][index]);
+            }
+        }
+    }
 }
 
 /// Reconstructs only the pre-finalization numerator planes for a bounded row
@@ -543,6 +571,7 @@ fn executeScalar(work: *Work) !void {
                         compact_groups.scalarValueAt(group, position),
                     );
             }
+            row_executor.accumulateStreamingNumerators(work.workspace, work.combined_views, position);
             try writeRow(work, position, domain_point.y, work.workspace.denominator_inverses);
         }
         try emitTile(work, tile_start, tile_end);
@@ -666,6 +695,7 @@ pub const ParallelRequest = struct {
     allow_parallel_scalar: bool,
     domain: CircleDomain,
     compact_groups: []const compact_groups.Group = &.{},
+    combined_views: []const row_executor.CombinedContributionView = &.{},
     column_views: []const row_executor.LiftingColumnView,
     contribution_ranges: []const row_executor.ColumnContributionRange,
     contributions: []const row_executor.ColumnContribution,
@@ -741,6 +771,7 @@ pub fn executeParallel(
             .scratch = if (scratches) |values| &values[worker_index] else null,
             .domain = request.domain,
             .compact_groups = request.compact_groups,
+            .combined_views = request.combined_views,
             .column_views = request.column_views,
             .contribution_ranges = request.contribution_ranges,
             .contributions = request.contributions,

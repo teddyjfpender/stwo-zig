@@ -72,10 +72,8 @@ pub fn run(
         PROGRAM_INPUT_ITERATIONS_HINT.to_string(),
         Rc::new(program_input_iterations_hint()),
     );
-    let mut hints = Box::new(BuiltinHintProcessor::new(
-        extra_hints,
-        Default::default(),
-    )) as Box<dyn HintProcessor>;
+    let mut hints = Box::new(BuiltinHintProcessor::new(extra_hints, Default::default()))
+        as Box<dyn HintProcessor>;
     cairo_run_program_with_initial_scope(&program, config, hints.as_mut(), scopes)
         .context("official Cairo VM JSON execution failed")
 }

@@ -752,13 +752,21 @@ fn evaluateBarycentricTreesWithBackend(
     work_audit: ?*sampled_work.Audit,
 ) !bool {
     for (trees) |tree| if (tree.coefficients != null) return false;
-    // Decide eligibility before constructing plans or recording their work.
-    // A mixed epoch stages every column, including formerly resident trees.
+    // Keep a large resident tree on its device when another tree (commonly a
+    // cached preprocessed root) requires host staging. Without separate epochs,
+    // the staging slab limit would unnecessarily apply to every resident tree.
+    const residency_epochs = comptime @hasDecl(B, "supportsBarycentricResidencyEpochs") and B.supportsBarycentricResidencyEpochs;
     var host_columns = false;
-    for (trees) |tree| host_columns = host_columns or B.quotientResidencyHandle(H, tree.commitment) == null;
+    var resident_count: usize = 0;
+    for (trees) |tree| {
+        if (B.quotientResidencyHandle(H, tree.commitment) == null) host_columns = true else resident_count += 1;
+    }
     if (host_columns) {
         if (comptime @hasDecl(B, "supportsHostBarycentricColumns")) {
-            for (trees) |tree| if (!B.supportsHostBarycentricColumns(tree.columns)) return false;
+            for (trees) |tree| {
+                if (residency_epochs and B.quotientResidencyHandle(H, tree.commitment) != null) continue;
+                if (!B.supportsHostBarycentricColumns(tree.columns)) return false;
+            }
         } else return false;
     }
 
@@ -808,12 +816,38 @@ fn evaluateBarycentricTreesWithBackend(
         };
     }
 
+    if (residency_epochs and host_columns and resident_count != 0) {
+        const ordered = try allocator.alloc(BarycentricEvalTreePlan, tree_plans.len);
+        defer allocator.free(ordered);
+        var device_index: usize = 0;
+        var host_index = resident_count;
+        for (tree_plans) |tree_plan| {
+            if (tree_plan.resident_tree != null) {
+                ordered[device_index] = tree_plan;
+                device_index += 1;
+            } else {
+                ordered[host_index] = tree_plan;
+                host_index += 1;
+            }
+        }
+        std.debug.assert(device_index == resident_count and host_index == ordered.len);
+        try dispatchBarycentricBackend(B, allocator, ordered[0..resident_count], work_audit);
+        try dispatchBarycentricBackend(B, allocator, ordered[resident_count..], work_audit);
+    } else {
+        try dispatchBarycentricBackend(B, allocator, tree_plans, work_audit);
+    }
+    return true;
+}
+
+fn dispatchBarycentricBackend(
+    comptime B: type,
+    allocator: std.mem.Allocator,
+    tree_plans: []const BarycentricEvalTreePlan,
+    work_audit: ?*sampled_work.Audit,
+) !void {
     if (comptime @hasDecl(B, "evaluateBarycentricTreePlansWithReceipt")) {
         if (work_audit) |audit| {
-            const execution = try B.evaluateBarycentricTreePlansWithReceipt(
-                allocator,
-                tree_plans,
-            );
+            const execution = try B.evaluateBarycentricTreePlansWithReceipt(allocator, tree_plans);
             audit.observeBarycentricBackendExecution(execution);
         } else {
             try B.evaluateBarycentricTreePlans(allocator, tree_plans);
@@ -822,7 +856,6 @@ fn evaluateBarycentricTreesWithBackend(
         try B.evaluateBarycentricTreePlans(allocator, tree_plans);
         if (work_audit) |audit| audit.complete = false;
     }
-    return true;
 }
 
 fn mergeBackendCoefficientExecution(
@@ -952,4 +985,5 @@ pub const testing = if (builtin.is_test) struct {
     pub const finishBarycentricWork = Root.finishBarycentricWork;
     pub const parallelEvaluationPool = Root.parallelEvaluationPool;
     pub const mergeBackendCoefficientExecution = Root.mergeBackendCoefficientExecution;
+    pub const evaluateBarycentricTreesWithBackend = Root.evaluateBarycentricTreesWithBackend;
 } else struct {};

@@ -74,7 +74,7 @@ fn validateEdge(
     row_cursor: u64,
     producer_word_count: usize,
 ) runtime_error.Error!u64 {
-    if (edge.reserved != 0 or edge.producer_rows == 0 or
+    if (edge.activeRows() == 0 or edge.activeRows() > edge.producer_rows or edge.producer_rows == 0 or
         edge.producer_rows % 16 != 0 or edge.instance_count == 0 or
         edge.words_per_instance != input_width or
         edge.destination_row_offset != @as(u32, @intCast(row_cursor)))
@@ -105,7 +105,7 @@ fn validateEdge(
         return error.InvalidKernelDescriptor;
     const destination_rows = std.math.mul(
         u64,
-        edge.producer_rows,
+        edge.activeRows(),
         edge.instance_count,
     ) catch return error.SizeOverflow;
     const next = std.math.add(

@@ -202,7 +202,7 @@ pub fn drawQueries(
         session,
         view.state,
         try boundary(schedule, step, view),
-        schedule.protocol.max_log_degree_bound,
+        try schedule.protocol.evaluationLogSize(),
         output,
         output,
     );

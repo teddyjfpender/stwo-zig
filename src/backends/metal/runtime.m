@@ -38,7 +38,7 @@ static id<MTLComputePipelineState> stwo_zig_commitment_direct_leaves_pipeline(
     StwoZigMetalRuntime *runtime, uint32_t family
 ) {
     if (family == StwoZigCommitmentHashFamilyBlake3V1) return runtime.blake3LeavesWide;
-    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return runtime.leaves;
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return runtime.leavesWide;
     if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
         return runtime.poseidon2M31LeavesWide;
     return nil;
@@ -124,7 +124,7 @@ static bool stwo_zig_tree_resident_column(
         const uint64_t *wide_offsets = offset_word_bytes == sizeof(uint64_t)
             ? tree.residentColumnWordOffsets.bytes : NULL;
         NSUInteger count = tree.residentColumnHostBegins.length / sizeof(uintptr_t);
-        if (buffers.count == 1u && begins != NULL && counts != NULL &&
+        if ((buffers.count == 1u || buffers.count == count) && begins != NULL && counts != NULL &&
             (narrow_offsets != NULL || wide_offsets != NULL) &&
             tree.residentColumnHostBegins.length == count * sizeof(uintptr_t) &&
             tree.residentColumnWordCounts.length == count * sizeof(size_t) &&
@@ -137,7 +137,7 @@ static bool stwo_zig_tree_resident_column(
                     continue;
                 size_t offset = (address - begin) / sizeof(uint32_t);
                 if (offset > words || column_words > words - offset) continue;
-                id<MTLBuffer> buffer = buffers[0];
+                id<MTLBuffer> buffer = buffers[buffers.count == 1u ? 0u : index];
                 uint64_t resident_offset = wide_offsets != NULL
                     ? wide_offsets[index] : (uint64_t)narrow_offsets[index];
                 size_t buffer_words = buffer.length / sizeof(uint32_t);
@@ -406,6 +406,8 @@ static StwoZigMetalRuntime *create_runtime_from_library(
                                                             error_message, error_message_len);
         runtime.leaves = make_pipeline(device, library, @"stwo_zig_blake2s_leaves",
                                        error_message, error_message_len);
+        runtime.leavesWide = make_pipeline(device, library, @"stwo_zig_blake2s_leaves_wide",
+                                     error_message, error_message_len);
         runtime.poseidon2M31Leaves = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaves",
                                                   error_message, error_message_len);
         runtime.poseidon2M31LeavesWide = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaves_wide",
@@ -484,6 +486,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.qm31ToCoordinates = make_pipeline(device, library, @"stwo_zig_qm31_to_coordinates", error_message, error_message_len);
         runtime.leafAbsorbResident = make_pipeline(device, library, @"stwo_zig_blake2s_leaf_absorb_resident", error_message, error_message_len);
         runtime.leafAbsorbCompactResident = make_pipeline(device, library, @"stwo_zig_blake2s_leaf_absorb_compact_resident", error_message, error_message_len);
+        runtime.leafAbsorbStreamV1 = make_pipeline(device, library, @"stwo_zig_blake2s_leaf_absorb_stream_v1", error_message, error_message_len);
         runtime.poseidon2M31LeafAbsorbResident = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaf_absorb_resident", error_message, error_message_len);
         runtime.poseidon2M31LeafAbsorbCompactResident = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaf_absorb_compact_resident", error_message, error_message_len);
         runtime.poseidon2M31LeafStateDigestResidentV1 = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaf_state_digest_resident_v1", error_message, error_message_len);
@@ -919,7 +922,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
 
         if (runtime.queue == nil || runtime.quadraticRecurrenceTrace == nil ||
             runtime.quadraticRecurrenceIfftWide == nil ||
-            runtime.leaves == nil || runtime.parents == nil ||
+            runtime.leaves == nil || runtime.leavesWide == nil || runtime.parents == nil ||
             runtime.poseidon2M31Leaves == nil || runtime.poseidon2M31LeavesWide == nil ||
             runtime.poseidon2M31Parents == nil ||
             runtime.quotients == nil || runtime.rawQuotients == nil || runtime.polynomialEval == nil ||
@@ -956,7 +959,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.decommitSparseParentResident == nil || runtime.decommitAssembleTraceResident == nil ||
             runtime.decommitSparseLeavesResident == nil ||
             runtime.decommitSparseLeafGroupResident == nil || runtime.clearArenaSpans == nil ||
-            runtime.leafAbsorbResident == nil || runtime.leafAbsorbCompactResident == nil ||
+            runtime.leafAbsorbResident == nil || runtime.leafAbsorbCompactResident == nil || runtime.leafAbsorbStreamV1 == nil ||
             runtime.poseidon2M31LeafAbsorbResident == nil || runtime.poseidon2M31LeafAbsorbCompactResident == nil ||
             runtime.poseidon2M31LeafStateDigestResidentV1 == nil ||
             runtime.parentsPlainSparse == nil ||
@@ -1070,6 +1073,7 @@ static void encode_fri_inverse_domain(
 #import "runtime/resource_plans.m"
 #import "runtime/circle_plans.m"
 #import "runtime/merkle_epochs.m"
+#import "runtime/blake2_leaf_stream.m"
 #import "runtime/auxiliary_plans.m"
 #import "runtime/cache_identity.m"
 #import "runtime/archive_store.m"
@@ -1087,7 +1091,9 @@ static void encode_fri_inverse_domain(
 #import "runtime/quotient_completion.m"
 // Segmented quotient dispatch binds only the source run's covered batch range.
 #import "runtime/quotients.m"
+#import "runtime/native_coefficient_fold.m"
 #import "runtime/lifecycle_and_tree.m"
+#import "runtime/cached_column_views.m"
 
 size_t stwo_zig_metal_runtime_identity(void *runtime_ptr, char *output, size_t output_len) {
     @autoreleasepool {

@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const M31 = @import("stwo_core").fields.m31.M31;
 const relation_recipe = @import("stwo_metal_backend").recipes.relation;
 const shared_runtime = @import("stwo_metal_backend").shared_runtime;
 const interaction_executor =
@@ -15,6 +16,69 @@ pub fn execute(
     request: interaction_executor.Request,
     storage: *resident_lookup.Storage,
 ) !interaction_executor.MaterializedTrace {
+    const execution = try executeRecipe(allocator, request, storage);
+    const column_count = storage.interaction_columns;
+    const values = try allocator.alloc(
+        QM31,
+        try std.math.mul(usize, column_count, storage.rows),
+    );
+    errdefer allocator.free(values);
+    for (0..column_count) |column| {
+        const a = try resident_lookup.bindingWords(
+            &storage.arena,
+            storage.outputs[column * 4],
+        );
+        const b = try resident_lookup.bindingWords(
+            &storage.arena,
+            storage.outputs[column * 4 + 1],
+        );
+        const c = try resident_lookup.bindingWords(
+            &storage.arena,
+            storage.outputs[column * 4 + 2],
+        );
+        const d = try resident_lookup.bindingWords(
+            &storage.arena,
+            storage.outputs[column * 4 + 3],
+        );
+        for (0..storage.rows) |row|
+            values[column * storage.rows + row] =
+                QM31.fromU32Unchecked(a[row], b[row], c[row], d[row]);
+    }
+    if (std.posix.getenv("STWO_CAIRO_METAL_LOGUP_DIAGNOSTICS") != null) {
+        const finished = try std.time.Instant.now();
+        std.debug.print(
+            "cairo_metal_logup resident=true rows={} columns={} " ++
+                "gpu_ms={d:.3} gather_ms={d:.3} total_ms={d:.3}\n",
+            .{
+                storage.rows,
+                column_count,
+                execution.gpu_ms,
+                elapsedMs(execution.executed, finished),
+                elapsedMs(execution.started, finished),
+            },
+        );
+    }
+    return .{
+        .allocator = allocator,
+        .values = values,
+        .row_count = storage.rows,
+        .column_count = column_count,
+        .claimed_sum = execution.claimed_sum,
+    };
+}
+
+const Execution = struct {
+    claimed_sum: QM31,
+    started: std.time.Instant,
+    executed: std.time.Instant,
+    gpu_ms: f64,
+};
+
+fn executeRecipe(
+    allocator: std.mem.Allocator,
+    request: interaction_executor.Request,
+    storage: *resident_lookup.Storage,
+) !Execution {
     const started = try std.time.Instant.now();
     const column_count =
         request.descriptors.len / interaction_trace.descriptor_words;
@@ -22,6 +86,27 @@ pub fn execute(
         request.source.rows() != storage.rows or
         column_count != storage.interaction_columns)
         return error.InvalidResidentLookupGeometry;
+
+    // Diagnostic placement experiment: CPU faults one word per destination
+    // page before submission, rather than asking the device to instantiate
+    // untouched shared pages. The kernel still writes every coordinate.
+    if (std.posix.getenv("STWO_CAIRO_METAL_PREFAULT_LOGUP_OUTPUTS")) |value| {
+        if (std.mem.eql(u8, value, "1")) {
+            const stride = @max(@as(usize, 1), std.heap.pageSize() / @sizeOf(u32));
+            for (storage.outputs) |output| {
+                const words = try resident_lookup.bindingWords(&storage.arena, output);
+                var row: usize = 0;
+                while (row < words.len) : (row += stride) {
+                    const word: *volatile u32 = &words[row];
+                    word.* = 0;
+                }
+                if (words.len != 0) {
+                    const last: *volatile u32 = &words[words.len - 1];
+                    last.* = 0;
+                }
+            }
+        }
+    }
 
     try writeSecureSlice(
         &storage.arena,
@@ -53,32 +138,6 @@ pub fn execute(
     try recipe.execute();
     const executed = try std.time.Instant.now();
 
-    const values = try allocator.alloc(
-        QM31,
-        try std.math.mul(usize, column_count, storage.rows),
-    );
-    errdefer allocator.free(values);
-    for (0..column_count) |column| {
-        const a = try resident_lookup.bindingWords(
-            &storage.arena,
-            storage.outputs[column * 4],
-        );
-        const b = try resident_lookup.bindingWords(
-            &storage.arena,
-            storage.outputs[column * 4 + 1],
-        );
-        const c = try resident_lookup.bindingWords(
-            &storage.arena,
-            storage.outputs[column * 4 + 2],
-        );
-        const d = try resident_lookup.bindingWords(
-            &storage.arena,
-            storage.outputs[column * 4 + 3],
-        );
-        for (0..storage.rows) |row|
-            values[column * storage.rows + row] =
-                QM31.fromU32Unchecked(a[row], b[row], c[row], d[row]);
-    }
     const claimed_words = try resident_lookup.bindingWords(
         &storage.arena,
         storage.claimed_sum,
@@ -93,31 +152,51 @@ pub fn execute(
         storage.rows,
         storage.rows - 1,
     );
-    if (!values[(column_count - 1) * storage.rows + final_row]
-        .eql(QM31.zero()))
-        return error.InvalidInteractionSum;
+    for (0..4) |coordinate| {
+        const final_plane = try resident_lookup.bindingWords(
+            &storage.arena,
+            storage.outputs[(column_count - 1) * 4 + coordinate],
+        );
+        if (final_plane[final_row] != 0) return error.InvalidInteractionSum;
+    }
 
+    return .{
+        .claimed_sum = claimed_sum,
+        .started = started,
+        .executed = executed,
+        .gpu_ms = recipe.accumulated_gpu_ms,
+    };
+}
+
+/// Copy canonical device coordinate planes once, without an intermediate
+/// secure-field trace. Destination geometry is checked before any GPU work.
+pub fn executeCoordinates(
+    allocator: std.mem.Allocator,
+    request: interaction_executor.Request,
+    storage: *resident_lookup.Storage,
+    planes: []const []M31,
+) !QM31 {
+    if (planes.len != storage.interaction_columns * 4)
+        return error.InvalidInteractionGeometry;
+    for (planes) |plane| if (plane.len != storage.rows)
+        return error.InvalidInteractionGeometry;
+    const execution = try executeRecipe(allocator, request, storage);
+    for (planes, storage.outputs) |plane, output| {
+        const source = try resident_lookup.bindingWords(&storage.arena, output);
+        @memcpy(std.mem.sliceAsBytes(plane), std.mem.sliceAsBytes(source));
+    }
     if (std.posix.getenv("STWO_CAIRO_METAL_LOGUP_DIAGNOSTICS") != null) {
         const finished = try std.time.Instant.now();
         std.debug.print(
-            "cairo_metal_logup resident=true rows={} columns={} " ++
-                "gpu_ms={d:.3} gather_ms={d:.3} total_ms={d:.3}\n",
+            "cairo_metal_logup resident=true coordinates=true rows={} columns={} " ++
+                "gpu_ms={d:.3} copy_ms={d:.3} total_ms={d:.3}\n",
             .{
-                storage.rows,
-                column_count,
-                recipe.accumulated_gpu_ms,
-                elapsedMs(executed, finished),
-                elapsedMs(started, finished),
+                storage.rows,                            storage.interaction_columns,            execution.gpu_ms,
+                elapsedMs(execution.executed, finished), elapsedMs(execution.started, finished),
             },
         );
     }
-    return .{
-        .allocator = allocator,
-        .values = values,
-        .row_count = storage.rows,
-        .column_count = column_count,
-        .claimed_sum = claimed_sum,
-    };
+    return execution.claimed_sum;
 }
 
 fn writeSecure(

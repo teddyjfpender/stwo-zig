@@ -137,6 +137,18 @@ acceptance. The production port targets the current official StarkWare source pa
 - Cairo language version: `2.20.0`
 - Cairo VM version: `3.2.0`
 
+PIE execution additionally uses `cairo-program-runner-lib` from the official
+`https://github.com/starkware-libs/proving` repository at
+`5a7c5ede4299c91a61df19a07cba4f7502c14230`. This is an execution-only authority:
+its proof-mode simple bootloader runs `Task::Pie` with Blake task hashing, then
+the existing pinned Stwo-Cairo adapter produces the prover input. It does not
+change the AIR or final proof-verifier revisions above. Embedded bootloader
+and PIE fixture hashes are recorded in
+`tools/stwo-cairo-vm-adapter-rs/resources/provenance.json`; the upstream pin
+gate validates the exact asset roster, compressed bytes and uncompressed
+bootloader digest. Sidecar identity schema 2 binds the execution-runner revision
+and supports official JSON plus `compact-v1` transport.
+
 These revisions govern the production AIR registry, isolated base/interaction
 trace oracle, and final Rust `verify_cairo` adapter. The completion
 requirements are recorded in

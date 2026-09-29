@@ -163,7 +163,7 @@ test "strict session returns a resident verdict and never exposes fallback" {
                 receipt,
             );
         }
-        pub fn stwo_native_aot_function_publish_pedersen_w18(
+        pub fn stwo_native_aot_function_publish_pedersen(
             _: *anyopaque,
             _: *const [56]u64,
             _: u32,

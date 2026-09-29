@@ -35,7 +35,13 @@ pub fn readFileWithLimits(
 
     var buffer: [256 * 1024]u8 = undefined;
     var file_reader = file.readerStreaming(&buffer);
-    var json_reader = std.json.Reader.init(allocator, &file_reader.interface);
+    return read(allocator, &file_reader.interface, stat.size, limits);
+}
+
+pub fn read(allocator: std.mem.Allocator, reader: *std.Io.Reader, size: u64, limits: Limits) !adapter.ProverInput {
+    if (size == 0) return Error.EmptyInput;
+    if (size > limits.max_file_bytes) return Error.InputTooLarge;
+    var json_reader = std.json.Reader.init(allocator, reader);
     defer json_reader.deinit();
     var parsed = try std.json.parseFromTokenSource(
         wire.ProverInput,

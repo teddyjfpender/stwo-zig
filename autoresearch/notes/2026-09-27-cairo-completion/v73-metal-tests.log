@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded; 18/18 tests passed
+test-shader-authority success
++- run test 8 passed 32ms MaxRSS:8M
+   +- compile test ReleaseFast native cached 47ms MaxRSS:34M
+test-blake3-fri-cascade success
++- run test 10 passed 773ms MaxRSS:96M
+   +- compile test ReleaseFast native success 13s MaxRSS:900M
+

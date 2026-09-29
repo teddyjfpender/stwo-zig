@@ -1,0 +1,48 @@
+1/47 crypto.blake2s_backend.test_0...OK
+2/47 vcs.blake2_hash.test.blake2 hash: single hash test...OK
+3/47 vcs.blake2_hash.test.blake2 hash: incremental equals one-shot...OK
+4/47 vcs.blake2_hash.test.blake2 hash: m31 output limbs are canonical...OK
+5/47 vcs.blake2_hash.test.blake2 hash: fixed128 backend matches generic hasher...OK
+6/47 vcs.blake2_hash.test.blake2 hash: scalar and simd backends match without shared policy mutation...OK
+7/47 vcs.blake2_hash.test.blake2 hash: compatibility backend selectors remain observable...OK
+8/47 vcs.blake2_hash.test.blake2 hash: backend wrapper matches std reference on varied lengths...OK
+9/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hash children deterministic...OK
+10/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: direct column-major leaves match packed messages...OK
+11/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: mix root changes channel digest...OK
+12/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: plain updateLeaf matches explicit byte packing...OK
+13/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: pinned Cairo Rust oracle uses plain leaf and parent hashes...OK
+14/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: pinned raw Stwo oracle uses domain-prefixed hashes...OK
+15/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: updateLeafPackedBytes matches updateLeaf...OK
+16/47 vcs_lifted.blake2_merkle.test.vcs_lifted blake2: hashChildrenWithSeed matches fixed parent hash...OK
+17/47 vcs_lifted.blake2_merkle.test.BLAKE2s direct mixed-height SIMD leaves match independent scalar messages...OK
+18/47 channel.blake2s.test.blake2s channel: draw counters...OK
+19/47 channel.blake2s.test.blake2s channel: draw_u32s differs on successive calls...OK
+20/47 channel.blake2s.test.blake2s channel: draw_secure_felt differs on successive calls...OK
+21/47 channel.blake2s.test.blake2s channel: draw_secure_felts are unique for small sample...OK
+22/47 channel.blake2s.test.blake2s channel: mix_felts changes digest...OK
+23/47 channel.blake2s.test.blake2s channel: compiled Metal transcript vector remains canonical...OK
+24/47 channel.blake2s.test.blake2s channel: mix_u64 matches mix_u32s and upstream digest bytes...OK
+25/47 channel.blake2s.test.blake2s channel: mix_u32s upstream digest bytes...OK
+26/47 channel.blake2s.test.blake2s channel: parallel grinding returns the lowest valid nonce...OK
+27/47 channel.blake2s.test.blake2s channel: zero-bit grinding is independent of worker count...OK
+28/47 channel.blake2s.test.blake2s channel: failed worker residues are completed synchronously...OK
+29/47 crypto.tests.blake2s_backend.test.BLAKE2s plain four-message batches match the independent standard library...OK
+30/47 crypto.tests.blake2s_backend.test.blake2s backend: one-shot known vector...OK
+31/47 crypto.tests.blake2s_backend.test.blake2s backend: incremental equals one-shot...OK
+32/47 crypto.tests.blake2s_backend.test.blake2s backend: fixed128 equals generic stream hash...OK
+33/47 crypto.tests.blake2s_backend.test.blake2s backend: fixed single-block helpers equal generic hash...OK
+34/47 crypto.tests.blake2s_backend.test.blake2s backend: four-way single-block hashes match scalar messages...OK
+35/47 crypto.tests.blake2s_backend.test.blake2s backend: eight-way single-block hashes match scalar messages...OK
+36/47 crypto.tests.blake2s_backend.test.blake2s backend: prepared fixed40 nonce words match complete hashes...OK
+37/47 crypto.tests.blake2s_backend.test.blake2s backend: four-way terminal compression matches scalar messages...OK
+38/47 crypto.tests.blake2s_backend.test.blake2s backend: eight-way terminal compression matches scalar messages...OK
+39/47 crypto.tests.blake2s_backend.test.blake2s backend: four-way equal messages match seeded scalar stream...OK
+40/47 crypto.tests.blake2s_backend.test.blake2s backend: fixed-seed scalar and simd modes cover boundaries and unaligned tails...OK
+41/47 crypto.tests.blake2s_backend.test.blake2s backend: four-way incremental updates preserve independent streams...OK
+42/47 crypto.tests.blake2s_backend.test.blake2s backend: four-way final tails preserve independent states...OK
+43/47 crypto.tests.blake2s_dispatch.test.blake2s backend: backend selection is observable and captured per hasher...OK
+44/47 crypto.tests.blake2s_dispatch.test.blake2s backend: process default changes do not alter existing hashers...OK
+45/47 crypto.tests.blake2s_dispatch.test.blake2s backend: compatibility selectors preserve default semantics...OK
+46/47 crypto.tests.blake2s_dispatch.test.blake2s backend: four-lane helpers honor explicit dispatch mode...OK
+47/47 crypto.tests.blake2s_dispatch.test.blake2s backend: four-way read-only aliases and scalar tails are supported...OK
+All 47 tests passed.

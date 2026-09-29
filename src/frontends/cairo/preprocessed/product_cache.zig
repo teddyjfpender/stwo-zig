@@ -147,7 +147,7 @@ pub fn recordStore(bytes: u64) void {
 // loaded, which is exactly the current product identity's working set.
 // ---------------------------------------------------------------------------
 
-const max_protected_keys: usize = 16;
+const max_protected_keys: usize = 64;
 var protected_mutex: std.Thread.Mutex = .{};
 var protected_keys: [max_protected_keys][64]u8 = undefined;
 var protected_len: usize = 0;
@@ -204,7 +204,7 @@ fn nameIsProtected(name: []const u8) bool {
 // because no artifact is ever mutated in place.
 // ---------------------------------------------------------------------------
 
-const artifact_extensions = [_][]const u8{ ".preprocessed", ".preprocessed-tree" };
+const artifact_extensions = [_][]const u8{ ".preprocessed", ".preprocessed-tree", ".preprocessed-columns" };
 const temporary_extension = ".tmp";
 /// A temporary older than this is a crashed writer's leftover rather than an
 /// in-flight write, and may be reclaimed. In-flight temporaries are never

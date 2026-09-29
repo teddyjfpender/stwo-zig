@@ -3,6 +3,7 @@
 const std = @import("std");
 
 pub const Command = enum {
+    inspect,
     prove,
     run_and_prove,
     capabilities,
@@ -36,6 +37,7 @@ pub const Prove = struct {
 pub const ProgramType = enum {
     json,
     executable,
+    pie,
 
     pub fn name(self: ProgramType) []const u8 {
         return @tagName(self);
@@ -55,11 +57,17 @@ pub const RunAndProve = struct {
 };
 
 pub const Parsed = union(enum) {
+    inspect: Inspect,
     prove: Prove,
     run_and_prove: RunAndProve,
     capabilities,
     identity,
     help: ?Command,
+};
+
+pub const Inspect = struct {
+    prover_input: []const u8,
+    params: ?[]const u8,
 };
 
 const Flag = enum {
@@ -111,7 +119,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
             if (argv.len != 1) return error.IrrelevantArgument;
             return if (command == .capabilities) .capabilities else .identity;
         },
-        .prove, .run_and_prove => {},
+        .prove, .run_and_prove, .inspect => {},
     }
 
     var scratch = Scratch{};
@@ -128,6 +136,17 @@ pub fn parse(argv: []const []const u8) !Parsed {
         if (index == argv.len) return error.MissingArgumentValue;
         try assign(&scratch, flag, argv[index]);
         index += 1;
+    }
+    if (command == .inspect) {
+        inline for (std.meta.fields(Flag)) |field| {
+            const flag: Flag = @enumFromInt(field.value);
+            if (flag != .count and flag != .prover_input and flag != .params and
+                scratch.seen[field.value]) return error.IrrelevantArgument;
+        }
+        return .{ .inspect = .{
+            .prover_input = try requiredPath(scratch.prover_input, error.MissingProverInput),
+            .params = try optionalPath(scratch.params),
+        } };
     }
     const proof = try requiredPath(scratch.proof, error.MissingProofOutput);
     const params = try optionalPath(scratch.params);
@@ -155,6 +174,8 @@ pub fn parse(argv: []const []const u8) !Parsed {
         .run_and_prove => blk: {
             if (scratch.seen[@intFromEnum(Flag.prover_input)])
                 return error.IrrelevantArgument;
+            if (scratch.program_type == .pie and scratch.arguments != null)
+                return error.IrrelevantArgument;
             break :blk .{ .run_and_prove = .{
                 .program = try requiredPath(
                     scratch.program,
@@ -170,7 +191,7 @@ pub fn parse(argv: []const []const u8) !Parsed {
                 .verify = scratch.verify,
             } };
         },
-        .capabilities, .identity => unreachable,
+        .capabilities, .identity, .inspect => unreachable,
     };
 }
 
@@ -245,6 +266,7 @@ pub fn writeUsage(
         try writer.writeAll(
             \\
             \\Commands:
+            \\  inspect        Inspect input coverage and trace sizing without proving
             \\  prove          Prove one official Stwo-Cairo ProverInput
             \\  run-and-prove  Execute and prove one compiled Cairo program
             \\  capabilities   Print the machine-readable capability contract
@@ -255,6 +277,12 @@ pub fn writeUsage(
     }
     try writer.print("Usage: {s} ", .{product_name});
     switch (command.?) {
+        .inspect => try writer.writeAll(
+            \\inspect --prover-input PATH [--params PATH]
+            \\  Accepts official JSON or compact input; emits a planning report
+            \\  Feed-derived row counts are predictions, not proof qualification
+            \\
+        ),
         .prove => try writer.writeAll(
             \\prove --prover-input PATH --proof PATH [options]
             \\  --params PATH          Authenticated proving-profile manifest
@@ -267,7 +295,7 @@ pub fn writeUsage(
         ),
         .run_and_prove => try writer.writeAll(
             \\run-and-prove --program PATH --proof PATH [options]
-            \\  --program-type TYPE    Compiled program type: json or executable
+            \\  --program-type TYPE    Program type: json, executable or pie
             \\  --arguments PATH       Optional program arguments JSON
             \\  --params PATH          Authenticated proving-profile manifest
             \\  --proof-format FORMAT  json, cairo-serde, or binary
@@ -346,6 +374,18 @@ test "Cairo CPU CLI admits the released Cairo-serde spelling" {
         "cairo-serde",
         parsed.prove.proof_format.name(),
     );
+}
+
+test "Cairo inspect admits compact inputs and refuses proving flags" {
+    const parsed = try parse(&.{ "inspect", "--prover-input", "block.cpi", "--params", "params.json" });
+    try std.testing.expectEqualStrings("block.cpi", parsed.inspect.prover_input);
+    try std.testing.expectError(error.IrrelevantArgument, parse(&.{ "inspect", "--prover-input", "block.cpi", "--verify" }));
+    try std.testing.expectError(error.IrrelevantArgument, parse(&.{ "inspect", "--prover-input", "block.cpi", "--proof", "proof.json" }));
+}
+
+test "Cairo PIE execution is admitted without caller arguments" {
+    const parsed = try parse(&.{ "run-and-prove", "--program", "block.zip", "--program-type", "pie", "--proof", "proof.json" });
+    try std.testing.expectEqual(ProgramType.pie, parsed.run_and_prove.program_type);
 }
 
 test "Cairo CPU CLI admits the official compressed binary format" {

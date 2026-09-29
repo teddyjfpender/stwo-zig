@@ -13,6 +13,8 @@ const expected_stwo_cairo_revision =
     "82f21252a68ec006d73e299f5bf1ce6d4db0ee78";
 const expected_stwo_revision =
     "7b211edde786775016ef3eecb837a6240d8fe792";
+const expected_execution_runner_revision = "5a7c5ede4299c91a61df19a07cba4f7502c14230";
+const expected_pie_bootloader_sha256 = "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76";
 
 pub const Request = struct {
     program: []const u8,
@@ -51,6 +53,8 @@ pub fn run(
             request.program,
             "--program-type",
             request.program_type,
+            "--input-format",
+            "compact",
             "--arguments",
             arguments,
             "--prover-input-out",
@@ -64,6 +68,8 @@ pub fn run(
             request.program,
             "--program-type",
             request.program_type,
+            "--input-format",
+            "compact",
             "--prover-input-out",
             request.prover_input_out,
         });
@@ -134,6 +140,9 @@ const Identity = struct {
     schema_version: u32,
     name: []const u8,
     program_types: []const []const u8,
+    input_formats: []const []const u8,
+    execution_runner_revision: []const u8,
+    pie_bootloader_sha256: []const u8,
     layout: []const u8,
     cairo_vm_version: []const u8,
     cairo_language_version: []const u8,
@@ -167,11 +176,17 @@ fn validateIdentity(
 
 fn validateIdentityValue(identity: Identity, executable_sha256: [32]u8) !void {
     const digest = std.fmt.bytesToHex(executable_sha256, .lower);
-    if (identity.schema_version != 1 or
+    if (identity.schema_version != 2 or
         !std.mem.eql(u8, identity.name, expected_name) or
-        identity.program_types.len != 2 or
+        identity.program_types.len != 3 or
         !std.mem.eql(u8, identity.program_types[0], "json") or
         !std.mem.eql(u8, identity.program_types[1], "executable") or
+        !std.mem.eql(u8, identity.program_types[2], "pie") or
+        identity.input_formats.len != 2 or
+        !std.mem.eql(u8, identity.input_formats[0], "json") or
+        !std.mem.eql(u8, identity.input_formats[1], "compact-v1") or
+        !std.mem.eql(u8, identity.execution_runner_revision, expected_execution_runner_revision) or
+        !std.mem.eql(u8, identity.pie_bootloader_sha256, expected_pie_bootloader_sha256) or
         !std.mem.eql(u8, identity.layout, expected_layout) or
         !std.mem.eql(
             u8,
@@ -227,9 +242,12 @@ test "execution adapter exit status fails closed" {
 test "execution adapter identity binds versions, surface, and bytes" {
     const digest = [_]u8{0xab} ** 32;
     const valid = Identity{
-        .schema_version = 1,
+        .schema_version = 2,
         .name = expected_name,
-        .program_types = &.{ "json", "executable" },
+        .program_types = &.{ "json", "executable", "pie" },
+        .input_formats = &.{ "json", "compact-v1" },
+        .execution_runner_revision = expected_execution_runner_revision,
+        .pie_bootloader_sha256 = expected_pie_bootloader_sha256,
         .layout = expected_layout,
         .cairo_vm_version = expected_cairo_vm_version,
         .cairo_language_version = expected_cairo_language_version,

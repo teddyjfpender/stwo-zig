@@ -3,7 +3,8 @@
 //! The second artifact kind of the preprocessed product cache. Increment 9
 //! cached the Pedersen affine-point table — the *source data* of the
 //! preprocessed columns. This caches the *commitment* over those columns: the
-//! complete Merkle layer set, root first. On a hit the preprocessed
+//! retained upper Merkle layer set, root first. Bottom layers omitted by
+//! query compaction are reconstructed from columns during openings. On a hit the preprocessed
 //! `merkle_commit` is skipped entirely; the column interpolation and
 //! extended-domain evaluation are still recomputed, because later stages
 //! consume those evaluations.
@@ -36,13 +37,13 @@ const prover = @import("stwo_prover_engine");
 const product_cache = @import("product_cache.zig");
 
 const magic = "STWOZPT1";
-const format_version: u32 = 1;
+const format_version: u32 = 2;
 const kind_tree_digests: u32 = 2;
 const header_bytes: usize = 128;
 const digest_bytes: usize = 32;
 const chunk_bytes: u32 = 4 * 1024 * 1024;
-/// Bounds the cache: nothing larger is ever written or read. A log-24 domain
-/// with 32-byte digests is 1 GiB, so this also caps the shapes admitted.
+/// Bounds the cache: nothing larger is ever written or read. Query compaction
+/// permits the canonical log-26 tree to retain only ~256 MiB of upper layers.
 const max_artifact_bytes: usize = 1024 * 1024 * 1024;
 const max_hash_workers: usize = 16;
 
@@ -54,7 +55,7 @@ const Session = struct {
     recorder: ?*prover.stage_profile.Recorder,
 };
 
-var session: Session = undefined;
+threadlocal var session: Session = undefined;
 
 /// Arms the seam for the immediately following preprocessed commit. Inert
 /// unless a product configured the preprocessed cache.
@@ -67,6 +68,7 @@ pub fn arm(
     session = .{ .allocator = allocator, .binding = binding, .recorder = recorder };
     prover.pcs.merkle_layer_cache.arm(.{
         .ctx = @ptrCast(&session),
+        .max_payload_bytes = max_artifact_bytes - header_bytes - digest_bytes,
         .load = loadThunk,
         .store = storeThunk,
     });
@@ -121,6 +123,7 @@ fn shapeDigest(request: Request) [32]u8 {
     hasher.update(request.hasher_tag);
     updateU32(&hasher, request.hash_bytes);
     updateU32(&hasher, request.log_size);
+    updateU32(&hasher, request.pruned_bottom_layers);
     updateU32(&hasher, @intCast(request.column_log_sizes.len));
     for (request.column_log_sizes) |log_size| updateU32(&hasher, log_size);
     return hasher.finalResult();
@@ -153,13 +156,28 @@ fn artifactPath(buffer: []u8, key: [32]u8) ![]const u8 {
 }
 
 fn payloadBytes(request: Request) !u64 {
-    // Layers are 1, 2, ... 1 << log_size digests: 2^(log_size + 1) - 1 total.
-    const nodes = (@as(u64, 2) << @intCast(request.log_size)) - 1;
+    if (request.log_size > 30 or request.pruned_bottom_layers > request.log_size)
+        return error.PreprocessedTreeCacheUnusable;
+    const retained_log = request.log_size - request.pruned_bottom_layers;
+    const nodes = (@as(u64, 2) << @intCast(retained_log)) - 1;
     const total = std.math.mul(u64, nodes, request.hash_bytes) catch
         return error.PreprocessedTreeCacheUnusable;
     if (header_bytes + total + digest_bytes > max_artifact_bytes)
         return error.PreprocessedTreeCacheUnusable;
     return total;
+}
+
+fn validateLayerSizes(request: Request, layers: anytype) !void {
+    _ = try payloadBytes(request);
+    if (layers.len != @as(usize, request.log_size) + 1)
+        return error.PreprocessedTreeCacheUnusable;
+    for (layers, 0..) |layer, index| {
+        const expected: u64 = if (index > request.log_size - request.pruned_bottom_layers)
+            0
+        else
+            (@as(u64, 1) << @intCast(index)) * request.hash_bytes;
+        if (layer.len != expected) return error.PreprocessedTreeCacheUnusable;
+    }
 }
 
 fn writeHeader(
@@ -179,6 +197,7 @@ fn writeHeader(
     std.mem.writeInt(u32, header[60..64], chunk_bytes, .little);
     std.mem.writeInt(u64, header[64..72], payload, .little);
     @memcpy(header[72..104], &shapeDigest(request));
+    std.mem.writeInt(u32, header[104..108], request.pruned_bottom_layers, .little);
 }
 
 // ---------------------------------------------------------------------------
@@ -228,7 +247,7 @@ fn totalChunks(layers: []const []const u8) usize {
 /// SHA-256 over the header followed by every payload chunk digest in order.
 /// Each payload byte is covered exactly once; the chunk boundaries are fixed by
 /// the header, so the construction is unambiguous for a given header.
-fn integrityDigest(
+pub fn integrityDigest(
     allocator: std.mem.Allocator,
     header: *const [header_bytes]u8,
     layers: []const []const u8,
@@ -247,13 +266,20 @@ fn integrityDigest(
         @min(count, max_hash_workers),
         @max(@as(usize, 1), std.Thread.getCpuCount() catch 1),
     );
-    var threads: [max_hash_workers]std.Thread = undefined;
-    var spawned: usize = 0;
-    while (spawned + 1 < worker_target) : (spawned += 1) {
-        threads[spawned] = std.Thread.spawn(.{}, ChunkPlan.run, .{&plan}) catch break;
+    if (prover.work_pool.getGlobalPool()) |pool| {
+        var group: std.Thread.WaitGroup = .{};
+        for (1..@min(worker_target, pool.workerCount())) |_| pool.spawnWg(&group, ChunkPlan.run, .{&plan});
+        plan.run();
+        group.wait();
+    } else {
+        var threads: [max_hash_workers]std.Thread = undefined;
+        var spawned: usize = 0;
+        while (spawned + 1 < worker_target) : (spawned += 1) {
+            threads[spawned] = std.Thread.spawn(.{}, ChunkPlan.run, .{&plan}) catch break;
+        }
+        plan.run();
+        for (threads[0..spawned]) |thread| thread.join();
     }
-    plan.run();
-    for (threads[0..spawned]) |thread| thread.join();
 
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
     hasher.update(header);
@@ -273,8 +299,7 @@ fn load(state: *Session, request: Request, layers: []const []u8) !void {
     );
     defer stage.end();
 
-    if (layers.len != @as(usize, request.log_size) + 1)
-        return error.PreprocessedTreeCacheUnusable;
+    try validateLayerSizes(request, layers);
     const payload = try payloadBytes(request);
     const key = artifactKey(state.binding, request);
     product_cache.protectKey(key);
@@ -333,6 +358,7 @@ fn store(state: *Session, request: Request, layers: []const []const u8) !void {
     );
     defer stage.end();
 
+    try validateLayerSizes(request, layers);
     const payload = try payloadBytes(request);
     var written: u64 = 0;
     for (layers) |layer| written += layer.len;
@@ -417,6 +443,15 @@ test "the key separates tree shapes, kinds and bindings" {
     other_domain.log_size = 20;
     try std.testing.expect(!std.mem.eql(u8, &base, &artifactKey(binding, other_domain)));
 
+    var pruned = request;
+    pruned.pruned_bottom_layers = 4;
+    try std.testing.expect(!std.mem.eql(u8, &base, &artifactKey(binding, pruned)));
+    var canonical = pruned;
+    canonical.log_size = 26;
+    try std.testing.expectEqual(@as(u64, 268435424), try payloadBytes(canonical));
+    canonical.pruned_bottom_layers = 27;
+    try std.testing.expectError(error.PreprocessedTreeCacheUnusable, payloadBytes(canonical));
+
     const other_heights = [_]u32{ 4, 5, 20, 21 };
     var other_columns = request;
     other_columns.column_log_sizes = &other_heights;
@@ -446,70 +481,73 @@ test "a stored layer set round-trips and any corruption falls back" {
         .directory = absolute,
     });
 
-    const log_size: u32 = 8;
-    const heights = [_]u32{ 6, 8 };
-    const request = Request{
-        .hasher_tag = "test-hasher",
-        .hash_bytes = 32,
-        .log_size = log_size,
-        .column_log_sizes = &heights,
-    };
-    const binding = Binding{
-        .variant = .canonical_small,
-        .spec_digest = @splat(1),
-        .pcs_digest = @splat(2),
-    };
-    var state = Session{ .allocator = allocator, .binding = binding, .recorder = null };
+    for ([_]u32{ 0, 4 }) |pruned_bottom_layers| {
+        const log_size: u32 = 8;
+        const heights = [_]u32{ 6, 8 };
+        const request = Request{
+            .hasher_tag = "test-hasher",
+            .hash_bytes = 32,
+            .log_size = log_size,
+            .pruned_bottom_layers = pruned_bottom_layers,
+            .column_log_sizes = &heights,
+        };
+        const binding = Binding{
+            .variant = .canonical_small,
+            .spec_digest = @splat(1),
+            .pcs_digest = @splat(2),
+        };
+        var state = Session{ .allocator = allocator, .binding = binding, .recorder = null };
 
-    var owned: [log_size + 1][]u8 = undefined;
-    var views: [log_size + 1][]const u8 = undefined;
-    for (0..log_size + 1) |index| {
-        owned[index] = try allocator.alloc(u8, (@as(usize, 1) << @intCast(index)) * 32);
-        for (owned[index], 0..) |*byte, position| byte.* = @truncate(index *% 31 +% position);
-        views[index] = owned[index];
+        var owned: [log_size + 1][]u8 = undefined;
+        var views: [log_size + 1][]const u8 = undefined;
+        for (0..log_size + 1) |index| {
+            owned[index] = try allocator.alloc(u8, if (index > log_size - pruned_bottom_layers) 0 else (@as(usize, 1) << @intCast(index)) * 32);
+            for (owned[index], 0..) |*byte, position| byte.* = @truncate(index *% 31 +% position);
+            views[index] = owned[index];
+        }
+        defer for (owned) |layer| allocator.free(layer);
+
+        try store(&state, request, &views);
+
+        var loaded: [log_size + 1][]u8 = undefined;
+        for (0..log_size + 1) |index| {
+            loaded[index] = try allocator.alloc(u8, owned[index].len);
+        }
+        defer for (loaded) |layer| allocator.free(layer);
+        try load(&state, request, &loaded);
+        for (owned, loaded) |expected, actual| {
+            try std.testing.expectEqualSlices(u8, expected, actual);
+        }
+
+        const key = artifactKey(binding, request);
+        var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
+        const path = try artifactPath(&path_buffer, key);
+
+        const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_write });
+        defer file.close();
+        try file.seekTo(header_bytes + 5);
+        var byte: [1]u8 = undefined;
+        try readExact(file, &byte);
+        byte[0] ^= 0x01;
+        try file.seekTo(header_bytes + 5);
+        try file.writeAll(&byte);
+        try std.testing.expectError(
+            error.PreprocessedTreeCacheUnusable,
+            load(&state, request, &loaded),
+        );
+
+        try file.setEndPos(header_bytes);
+        try std.testing.expectError(
+            error.PreprocessedTreeCacheUnusable,
+            load(&state, request, &loaded),
+        );
+
+        // A different shape derives a different key and therefore never loads.
+        var wrong_shape = request;
+        wrong_shape.hasher_tag = "other-hasher";
+        try std.testing.expectError(
+            error.FileNotFound,
+            load(&state, wrong_shape, &loaded),
+        );
     }
-    defer for (owned) |layer| allocator.free(layer);
-
-    try store(&state, request, &views);
-
-    var loaded: [log_size + 1][]u8 = undefined;
-    for (0..log_size + 1) |index| {
-        loaded[index] = try allocator.alloc(u8, (@as(usize, 1) << @intCast(index)) * 32);
-    }
-    defer for (loaded) |layer| allocator.free(layer);
-    try load(&state, request, &loaded);
-    for (owned, loaded) |expected, actual| {
-        try std.testing.expectEqualSlices(u8, expected, actual);
-    }
-
-    const key = artifactKey(binding, request);
-    var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
-    const path = try artifactPath(&path_buffer, key);
-
-    const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_write });
-    defer file.close();
-    try file.seekTo(header_bytes + 5);
-    var byte: [1]u8 = undefined;
-    try readExact(file, &byte);
-    byte[0] ^= 0x01;
-    try file.seekTo(header_bytes + 5);
-    try file.writeAll(&byte);
-    try std.testing.expectError(
-        error.PreprocessedTreeCacheUnusable,
-        load(&state, request, &loaded),
-    );
-
-    try file.setEndPos(header_bytes);
-    try std.testing.expectError(
-        error.PreprocessedTreeCacheUnusable,
-        load(&state, request, &loaded),
-    );
-
-    // A different shape derives a different key and therefore never loads.
-    var wrong_shape = request;
-    wrong_shape.hasher_tag = "other-hasher";
-    try std.testing.expectError(
-        error.FileNotFound,
-        load(&state, wrong_shape, &loaded),
-    );
 }

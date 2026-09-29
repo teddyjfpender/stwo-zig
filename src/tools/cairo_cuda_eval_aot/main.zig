@@ -30,6 +30,14 @@ fn run() !void {
     const allocator = gpa.allocator();
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--parametric-parity")) {
+        const integration = if (@hasDecl(stwo, "integrations")) stwo.integrations.cairo_cuda else stwo.integration;
+        return integration.eval_codegen_parity.generate(allocator, args[2]);
+    }
+    if (args.len == 4 and std.mem.eql(u8, args[1], "--canonical")) {
+        const integration = if (@hasDecl(stwo, "integrations")) stwo.integrations.cairo_cuda else stwo.integration;
+        return integration.canonical_eval_aot.generate(allocator, args[2], args[3]);
+    }
     if (args.len != 3) {
         std.debug.print("{s}", .{usage});
         return error.InvalidArguments;

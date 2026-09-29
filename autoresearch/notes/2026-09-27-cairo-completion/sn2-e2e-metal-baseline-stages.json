@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "runtime": "metal",
+  "example": "cairo",
+  "stages": [
+    {
+      "id": "preprocessed_plan",
+      "label": "Preprocessed plan",
+      "seconds": 1.8e-05
+    },
+    {
+      "id": "preprocessed_table_build",
+      "label": "Preprocessed table build",
+      "seconds": 9.64957
+    },
+    {
+      "id": "base_trace_arena_plan",
+      "label": "Base trace arena plan",
+      "seconds": 2.9e-05
+    },
+    {
+      "id": "base_trace_build",
+      "label": "Base trace build",
+      "seconds": 7.223474
+    },
+    {
+      "id": "air_template_instantiation",
+      "label": "AIR template instantiation",
+      "seconds": 0.000398
+    },
+    {
+      "id": "preprocessed_materialize_and_commit",
+      "label": "Preprocessed materialize and commit",
+      "seconds": 1.222966
+    },
+    {
+      "id": "main_trace_commit",
+      "label": "Main trace commit",
+      "seconds": 1.201763
+    },
+    {
+      "id": "interaction_trace_build",
+      "label": "Interaction trace build",
+      "seconds": 1.728877
+    },
+    {
+      "id": "interaction_trace_commit",
+      "label": "Interaction trace commit",
+      "seconds": 0.919941
+    },
+    {
+      "id": "composition_device_admission",
+      "label": "Device composition admission",
+      "seconds": 53.188191
+    },
+    {
+      "id": "draw_random_coeff",
+      "label": "Draw random coefficient",
+      "seconds": 1e-06
+    },
+    {
+      "id": "composition_trace_extract",
+      "label": "Composition trace extract",
+      "seconds": 6.5e-05
+    },
+    {
+      "id": "composition_evaluation",
+      "label": "Composition evaluation",
+      "seconds": 3.183419
+    },
+    {
+      "id": "composition_interpolate_and_split",
+      "label": "Composition interpolate and split",
+      "seconds": 0.022109
+    },
+    {
+      "id": "composition_commit",
+      "label": "Composition commit",
+      "seconds": 0.047485
+    },
+    {
+      "id": "oods_point_and_mask_points",
+      "label": "OODS point and mask points",
+      "seconds": 0.000289
+    },
+    {
+      "id": "sampled_value_evaluation",
+      "label": "Sampled-value evaluation",
+      "seconds": 0.807251
+    },
+    {
+      "id": "sampled_value_channel_mix",
+      "label": "Sampled-value channel mix",
+      "seconds": 0.000241
+    },
+    {
+      "id": "fri_quotient_build_and_commit",
+      "label": "FRI quotient build + commit (lazy)",
+      "seconds": 1.024329
+    },
+    {
+      "id": "proof_of_work",
+      "label": "Proof of work",
+      "seconds": 0.013311
+    },
+    {
+      "id": "fri_decommit",
+      "label": "FRI decommit",
+      "seconds": 0.007748
+    },
+    {
+      "id": "trace_decommit",
+      "label": "Trace decommit",
+      "seconds": 0.013216
+    },
+    {
+      "id": "constraint_check_and_assembly",
+      "label": "Constraint check and assembly",
+      "seconds": 0.001744
+    },
+    {
+      "id": "composition_device_components",
+      "label": "Components evaluated on device",
+      "seconds": 1e-06
+    }
+  ]
+}

@@ -1,0 +1,2535 @@
+{
+  "schema": "stwo-cuda-native-cubin-bundle-v1",
+  "producer": {
+    "provider": "nvidia_nvcc",
+    "host_arch": "linux-arm64",
+    "nvcc_sha256": "583fc40aa2994a18a6a7871c026e77bcaf1e96f6c89f5704ac06a3f0c2359fac",
+    "host_cxx_sha256": "fc02363794280f404c6ca6f5da1c8fe469be902e9de140d35d8573bb3393f53b",
+    "host_cc1plus_sha256": "110b837d05f403bcd21a63eb1f2341338d613aaf3d977d7db6d2c1661c8afa7d",
+    "nvcc_version": "nvcc: NVIDIA (R) Cuda compiler driver\nCopyright (c) 2005-2025 NVIDIA Corporation\nBuilt on Fri_Feb_21_20:26:18_PST_2025\nCuda compilation tools, release 12.8, V12.8.93\nBuild cuda_12.8.r12.8/compiler.35583870_0",
+    "host_cxx_version": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+    "toolkit_manifest_sha256": "249e28a83008d711d5f72880541c8be6253f6d61608461de4fcb715554a6cf17",
+    "toolkit_tree_sha256": "98e3d49993991e18530249ec91dd8d0604643afdf22cb5825627481c77ea8d4a",
+    "container_image_digest": "sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3",
+    "container_image_reference": "docker.io/library/ubuntu:24.04"
+  },
+  "entries": [
+    {
+      "cache_key": "da56c4f1154e3ee9",
+      "kernel_name": "stwo_jit_witness_d837ca159d597a25",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "da56c4f1154e3ee9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "04610b6f3645276f2751df1e16c83cf48d6fd0685f8184247f6e599be2cffa72",
+      "cubin_sha256": "2c4edab98285a63e00396c8ccbe121e6db076c83d862560968406e17a25d7064",
+      "elapsed_s": 0.3458107920596376
+    },
+    {
+      "cache_key": "6500688b1ca39694",
+      "kernel_name": "stwo_jit_witness_7302dbf1d3b95b86",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "6500688b1ca39694-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "37aaa641485617b65b4c031a1df89be948cc0196ee6cfe7090461491552f4af5",
+      "cubin_sha256": "ab6bd7d40cdd9591fd188d16944824c82094cdb364cdbbfa726b7e25ed3f5a50",
+      "elapsed_s": 0.40042954206001014
+    },
+    {
+      "cache_key": "8198b076d55684cb",
+      "kernel_name": "stwo_jit_witness_49ca17d617cdfdc2",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8198b076d55684cb-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "04e09888dc220ea6415d89c4e329eb46a15a240ecb1dcd0956c4c593df116d36",
+      "cubin_sha256": "5b88bc6c38455769b88a3ab925606c72643ebd603b9c8fc2ddd6a79a9208a99f",
+      "elapsed_s": 0.44707641599234194
+    },
+    {
+      "cache_key": "eaba279a0e938a8d",
+      "kernel_name": "stwo_jit_witness_1f1dcf6f4acf3d2d",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "eaba279a0e938a8d-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "d400b21faa13f4ec30ada05d6834391cb6cc9247b732baea5f21063d1d78ac82",
+      "cubin_sha256": "88e9fad687e14eb6fbb4b8c093b8e29a9c95e7ae7a277fc678a995bed0a5598b",
+      "elapsed_s": 1.1910050420556217
+    },
+    {
+      "cache_key": "cd07cf44115031c6",
+      "kernel_name": "stwo_jit_witness_98d7d935a303b865",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "cd07cf44115031c6-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "52ed353c663d31ce60dbc5a37ac02bdf7403f1cfecf9c362d36f7af021cf9369",
+      "cubin_sha256": "2e7fb0a2c511be7aa0303ee1c16145b3e75f0e4dcababc38a6377841acf37803",
+      "elapsed_s": 0.29061854095198214
+    },
+    {
+      "cache_key": "69378b0f728f28a5",
+      "kernel_name": "stwo_jit_witness_2780bde3a07577cc",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "69378b0f728f28a5-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "82dae1c6eac7d17ea333399eccdc0b4a5a5019d47b730b5c3c629ebc218a5b7f",
+      "cubin_sha256": "435657e8d0f886682f3e48683e1c743ceaffb21ae987b3f95509e2e4eee31d6e",
+      "elapsed_s": 0.2796909169992432
+    },
+    {
+      "cache_key": "9ab3401f37962f86",
+      "kernel_name": "stwo_jit_witness_3d20c15a14add9de",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "9ab3401f37962f86-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "dc2f6a3630821263aad29b7d9bb487ae5b198f64f09294bd78b334539f01e38e",
+      "cubin_sha256": "34ad79e4ebed42367bc6de395ffe3ff9f587d50c4572af208d3fd3c41be2ddb3",
+      "elapsed_s": 0.2330147500615567
+    },
+    {
+      "cache_key": "fc62705dde8ff261",
+      "kernel_name": "stwo_jit_witness_154882da03f89342",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "fc62705dde8ff261-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "5dfa41b3f07431931a716c94600a30b5eaf1483a955cc61d26a83f5e40b43bce",
+      "cubin_sha256": "f7b46000afc26b507229d4816dc315307b636b85f92fb15d47f461ebd3430ee4",
+      "elapsed_s": 0.4563657919643447
+    },
+    {
+      "cache_key": "9482f0da589574f0",
+      "kernel_name": "stwo_jit_witness_bb78ac69a434a127",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "9482f0da589574f0-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "bcfa3445dc9649ac3fd520ce6a223050adedfef94b535246d2cc1188f3630c44",
+      "cubin_sha256": "9867e99fd4f9d57c6941c2c62789242ea6099d955c68e5194f9a074ff6dedd63",
+      "elapsed_s": 0.28337941702920943
+    },
+    {
+      "cache_key": "f2dfda29962057b6",
+      "kernel_name": "stwo_jit_witness_4c685df6aa70bdfe",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "f2dfda29962057b6-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "cc249a160bfdd60dfa4065c6f9e1a4b508393e5e9f9aa7166a0e8474583560df",
+      "cubin_sha256": "761ad996bf24b4d323199bc2b0847f61a510c6d4270d75311547a1a4cebaddfd",
+      "elapsed_s": 1.5292490840656683
+    },
+    {
+      "cache_key": "926e6d6a917798e3",
+      "kernel_name": "stwo_jit_witness_48eaad578e60a980",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "926e6d6a917798e3-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "9bfdd88c114ff85c5a0a01a70958f602eb85134f67628cd6e6f223560bff23f1",
+      "cubin_sha256": "e6fb670e2c885077517c64be024703cc0a25ac8a14252d022ea119c1568f1cbb",
+      "elapsed_s": 0.8271332080475986
+    },
+    {
+      "cache_key": "bafa0d82bf4e959a",
+      "kernel_name": "stwo_jit_witness_1c1f5ab14c0667cd",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "bafa0d82bf4e959a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "ca8dcfe2c3fb9605a63f509c6165f7a6c47864dbd2b3d94e7177418310e21875",
+      "cubin_sha256": "988ba51bac039bdda93d7e2ed40760273106b0ff2aa0c2a28f59229551f91adf",
+      "elapsed_s": 0.2901415409287438
+    },
+    {
+      "cache_key": "6c9a75c5c1fc22a2",
+      "kernel_name": "stwo_jit_witness_87cbd5c5a25cfa46",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "6c9a75c5c1fc22a2-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "5cb21d1025339254028dda457b87a0ecd4b55490ea58f3b499741f368f099c70",
+      "cubin_sha256": "a8d70f967c18db41c2be639ee064d265346cb0bc127504152f5de2ec529f8112",
+      "elapsed_s": 0.2393671249737963
+    },
+    {
+      "cache_key": "fe795f7d7b1eda71",
+      "kernel_name": "stwo_jit_witness_44b12b9d6e90e51d",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "fe795f7d7b1eda71-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "0bba6e591dccfe70190a3e0c878357b6fdb5dee2214f131b6c468d3d259a6e70",
+      "cubin_sha256": "cd7d344bcf1a604ec2f58ced9e8ff4984a7f4d91c1ea7ff5ed0c3b5ccae9af22",
+      "elapsed_s": 0.27776641701348126
+    },
+    {
+      "cache_key": "964a5742a3a3de28",
+      "kernel_name": "stwo_jit_witness_3c43d63ac963c130",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "964a5742a3a3de28-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "ad84dc23590848322626fba0289ba399d87e160d501f203703b4eb042c0ed26d",
+      "cubin_sha256": "f181d1817cc345cee5208436ec3cbca4e4c02ad128e00819cfaaa6ad5486afba",
+      "elapsed_s": 0.23839220905210823
+    },
+    {
+      "cache_key": "61b39d67a388fdff",
+      "kernel_name": "stwo_jit_witness_8d98db1d31b90129",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "61b39d67a388fdff-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "bb642f3a63a74966d33ed9c0f108f74fb46246307ad0cefd2d658cceef3cd73a",
+      "cubin_sha256": "87a7363a8b967d859f196083aa27df7c2c3633e5f284219e6818ca7f762d3005",
+      "elapsed_s": 0.35078141698613763
+    },
+    {
+      "cache_key": "9dfb61c6f1b7b5c7",
+      "kernel_name": "stwo_jit_witness_36f44c8360e57615",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "9dfb61c6f1b7b5c7-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "300795f1682e5ad34a8f45f70c04930fd248838089e93d499473f16ecaf3d1d6",
+      "cubin_sha256": "e5282f5b786bdbba1c12c348aad9b644f54901037eb36cf6f6d61f68ea5c2796",
+      "elapsed_s": 2.48756666702684
+    },
+    {
+      "cache_key": "2a33783c9c5aaf45",
+      "kernel_name": "stwo_jit_witness_20781f2fa84b60c8",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "2a33783c9c5aaf45-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "305a877214cceebe5e130a95d22d43bebe18aeb31ae905f059bd44dbf05a9117",
+      "cubin_sha256": "10cd87db948758970f9562cea94d8358a965cc5cb57ed2d98cd268a09a2bff14",
+      "elapsed_s": 2.4233764581149444
+    },
+    {
+      "cache_key": "4edea532d725a823",
+      "kernel_name": "stwo_jit_witness_316e17015e088987",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "4edea532d725a823-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "02235d76bac5743900446d2711d009affdd18bf7de31a9b0b709f05dbdd2abdb",
+      "cubin_sha256": "cc22c367425f3cd7dadb6f3bc2f4dae02696c50dd6e7d193fdc1254eeae90a3f",
+      "elapsed_s": 0.28338466701097786
+    },
+    {
+      "cache_key": "a5c4d1ad0d628bc9",
+      "kernel_name": "stwo_jit_witness_4ee2164a1b06dda5",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "a5c4d1ad0d628bc9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "07a12243f6102360161cec61c3b552a25d02f544a121e7fde5e74ae45ea917f9",
+      "cubin_sha256": "f8760dcb494262eb868daf2ff7d3be8fa32cbd6cb02cdc84c87592a11201bd57",
+      "elapsed_s": 0.2928765000542626
+    },
+    {
+      "cache_key": "1106869d4ca4eb13",
+      "kernel_name": "stwo_jit_witness_ad479f3f51c8f650",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "1106869d4ca4eb13-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "2d60da0a7efd989c0cb7ba1203bfc92817fb6660d2c63243c676d0ac12a59726",
+      "cubin_sha256": "4fe88b8f3893c3ab2fae0e962dd3ad89cd033cb65569f65b0683423e5619e6cf",
+      "elapsed_s": 0.2411657499615103
+    },
+    {
+      "cache_key": "e2d55d70473883a5",
+      "kernel_name": "stwo_jit_witness_e50ff77de385ab64",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e2d55d70473883a5-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "0dd1e903b8f46dab8a64a1718b23fb82ae8264462dfbc1eaf2edb417226ddb59",
+      "cubin_sha256": "92d2dfeda27b4b7c2504323117b22a5906b81a6799be2e697bd2067e586c2c2d",
+      "elapsed_s": 0.2933860409539193
+    },
+    {
+      "cache_key": "790bb8520b517f8c",
+      "kernel_name": "stwo_jit_witness_b58a4d852bcfbbc8",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "790bb8520b517f8c-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "9db6a12e6bc679aca3db90e9377cb6d8372e0674e9be07f0f02d793fca5605cc",
+      "cubin_sha256": "34484d7d1e096a7aa5567c26bdb2938331c9571628f612df2939821f37a5f5cd",
+      "elapsed_s": 0.3367856669938192
+    },
+    {
+      "cache_key": "87edbdb61208092b",
+      "kernel_name": "stwo_jit_witness_99e872f9619b5a11",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "87edbdb61208092b-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "c035db8386bb1012a5f05092bb0a4bc5dcdc921c2fc171b76dc006b6f3f2e337",
+      "cubin_sha256": "e1e3cfcf550b4b5ff80a71a2e293abe243106e354340c58d22b307fa0113fe69",
+      "elapsed_s": 1.2626365839969367
+    },
+    {
+      "cache_key": "ed1e3eaabff88477",
+      "kernel_name": "stwo_jit_witness_1eaef7673656952a",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "ed1e3eaabff88477-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "2050f901bebca8d60b200ea092d13fae149bdfc50fd3930e646874bb47db5708",
+      "cubin_sha256": "aa5aef97abfff605964fb44d6e9624ca2e4585d71be4ae09cdfd86ad83f92621",
+      "elapsed_s": 0.2340175419813022
+    },
+    {
+      "cache_key": "82f0598c0a3b1088",
+      "kernel_name": "stwo_jit_witness_da729390f0d884f9",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "82f0598c0a3b1088-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7edb0692919e5a978657e4830336b70157e77f22d4041eeb19bcec6151123110",
+      "cubin_sha256": "a8cb822ca3aceccc5342e89950160bd92273ba823601b49f55fd02ab225394b0",
+      "elapsed_s": 0.23711766710039228
+    },
+    {
+      "cache_key": "1e8f9ccc172e06d2",
+      "kernel_name": "stwo_jit_witness_e6af3c8893f63e0e",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "1e8f9ccc172e06d2-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "c8415c274214e06f3708eed78f05f25f8ac31bb35a26986a02d1206f7f104ba6",
+      "cubin_sha256": "16e26c4fb997f98ad4b1770fedd02c716a51a60bf8c52d30f814df5ba6f1fb9e",
+      "elapsed_s": 0.2330460420344025
+    },
+    {
+      "cache_key": "7c263d70de61ba08",
+      "kernel_name": "stwo_jit_witness_58a69689aa366788",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "7c263d70de61ba08-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "9d2c2bbfe188c771b7d2fe2c8dacfa82fc37a253c0c1ca7b46f41781538a6b7b",
+      "cubin_sha256": "03532927a0cd81711e4542be94a66c601071be34074ce8be7b95610665c3ae5d",
+      "elapsed_s": 0.2376937500666827
+    },
+    {
+      "cache_key": "ede84c2cc6dc6c60",
+      "kernel_name": "stwo_jit_witness_0a3d7e723159a6df",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "ede84c2cc6dc6c60-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "d719ba87ce8a06c34e09fed5286e8e54b04be9de4c4e995c2ac5e9111d8a517f",
+      "cubin_sha256": "b442ff9a38c32d40f26aab06e50b2bddd7025f23f101c8c32bfd5ab8ddd91bb9",
+      "elapsed_s": 0.23239612497854978
+    },
+    {
+      "cache_key": "0bb831c3d6774af0",
+      "kernel_name": "stwo_jit_witness_c70a7352ff0c74a9",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "0bb831c3d6774af0-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "200fa0701919804bb823885b3285c42ee47dea8a6858b502f20af1d20e14fa49",
+      "cubin_sha256": "ca0e3f167503c22670697b4c5373837c63cfbc5a1234ed385f91ea38328c94d3",
+      "elapsed_s": 0.2320834998972714
+    },
+    {
+      "cache_key": "b5e2fe8b09d863de",
+      "kernel_name": "stwo_jit_witness_49476ec7b956b5f9",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "b5e2fe8b09d863de-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "5a34314690c5bcd4d72db8f09079049dc7a8625fb542666e37fa52df40f685bc",
+      "cubin_sha256": "6e8ee7d5023f928cb983f5783fd371a5043601aecc013a2e65732ff8761406f9",
+      "elapsed_s": 0.3988308330299333
+    },
+    {
+      "cache_key": "edcf85435734ffd7",
+      "kernel_name": "stwo_jit_witness_cc732240ac96da6e",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "edcf85435734ffd7-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "1b8f8736b6f12cc935ee0756bc0a49a92db53d82089e4cf9f361976f49505429",
+      "cubin_sha256": "b0936bcf7266e2d56034575f14af559bfd073031d15812d79a068f1c0f6f70b8",
+      "elapsed_s": 5.046404791995883
+    },
+    {
+      "cache_key": "8843ec0226e6190e",
+      "kernel_name": "stwo_jit_witness_a22d701aec01804a",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8843ec0226e6190e-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7728481df79211bc9e65110f02e963cf297014cc80e64486032e7b5bf589b112",
+      "cubin_sha256": "93af1ea463091073e15d468ff62cc2950944a75bcc7fe1a831f7c50c931c32be",
+      "elapsed_s": 0.23392449994571507
+    },
+    {
+      "cache_key": "3cc7daf3fc00e73f",
+      "kernel_name": "stwo_jit_witness_88eec094d2b9e511",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "3cc7daf3fc00e73f-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "525e4d2bc88d431a96f218219be68bd657e451c6bc2c3ce3b488b495de112119",
+      "cubin_sha256": "22703f194e808fecd780e16cf18e12222eae2dc7b68a12b895ebdbd8c1b1d869",
+      "elapsed_s": 0.23727000004146248
+    },
+    {
+      "cache_key": "d8ca5b2cf8c7797f",
+      "kernel_name": "stwo_jit_witness_2d2e27efbee7c51e",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "d8ca5b2cf8c7797f-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "ffa1d0b7538403da3a550e99a4abf2777da58d1a7ddc9478319b13739827f49a",
+      "cubin_sha256": "1da40176421251194a2d4df491dd227abec2d5f583e5d8d437b289671498e7d2",
+      "elapsed_s": 0.23408358392771333
+    },
+    {
+      "cache_key": "5d1b1f60d2143831",
+      "kernel_name": "stwo_jit_witness_de64ac70f286dc43",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "5d1b1f60d2143831-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "128aeca48e2f532bf94d10ad34c799142ecf7c53ebf21eefac86b0a8bff95aed",
+      "cubin_sha256": "9424949ee27a7318d99a1e3b19f265ceda098f4713bb2a890684c37ab0337bb8",
+      "elapsed_s": 0.24363433301914483
+    },
+    {
+      "cache_key": "fba99bb9b4d72653",
+      "kernel_name": "stwo_jit_witness_608b81af66346de1",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "fba99bb9b4d72653-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7eae828a885db323214edfbdfd28ff2a997ef7dc745360b75d3592af273d57c9",
+      "cubin_sha256": "17b3da8ba67e1d8ffd05a154d746d5f6066c0fda112ee47c225593fbe25972e3",
+      "elapsed_s": 0.2428248750511557
+    },
+    {
+      "cache_key": "8976b54895505670",
+      "kernel_name": "stwo_jit_witness_9145b4b693552cac",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8976b54895505670-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "8a1e45417795ce1a3c38ea0a1af012076fd45e840564dc2c05f03932987b8350",
+      "cubin_sha256": "c47af200f4a63b902346e349531e298724dd1cfc160926fd420902f3ae9620ef",
+      "elapsed_s": 0.2938271249877289
+    },
+    {
+      "cache_key": "45d7056e3f69b066",
+      "kernel_name": "stwo_jit_witness_409f3db564789215",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "45d7056e3f69b066-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "b7b20d07486ceb3f86cccc216ed64d785a61e5d62f19212feba86131e62a30ed",
+      "cubin_sha256": "def3400d93b3766485125ef694a5f0b014442017652bcd62a54d17c30db45a2b",
+      "elapsed_s": 0.24189145804848522
+    },
+    {
+      "cache_key": "ed71c9e34587066e",
+      "kernel_name": "stwo_jit_witness_85e03be965b08ac8",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "ed71c9e34587066e-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7cde49f1a9a2a9463bc4bbe7cd20b55dec07745ce2180a32c25b8718ecaac44c",
+      "cubin_sha256": "8d7b06a3cf3c31f9abbec5835f73dcdd3c0280fae9eb205291cfd827a5d7ab93",
+      "elapsed_s": 0.23740779096260667
+    },
+    {
+      "cache_key": "6b016b3183f74fe2",
+      "kernel_name": "stwo_jit_witness_f26228a7657f6287",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "6b016b3183f74fe2-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7c8454d504f31acf2816aa58af3cab9f80ba9ea2fcd19089e3880ef9e71cf2c6",
+      "cubin_sha256": "d9df5b1a10caf3c7f9bb7b86bf932a9520f52e20f308c1b9dbea839219c0063d",
+      "elapsed_s": 0.23906287492718548
+    },
+    {
+      "cache_key": "213d0d55c26f8c58",
+      "kernel_name": "stwo_jit_witness_c9a21f8a4b77f94b",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "213d0d55c26f8c58-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "a8c4e6bd78090d874552e90ea3c07df0aae8952d09f4703dffe2e9e190124f7b",
+      "cubin_sha256": "7e560368d7e8f98a41a31bf24ec60bf4543c3a9800c8aa2f5fce3f6577d5b373",
+      "elapsed_s": 0.23803458304610103
+    },
+    {
+      "cache_key": "e2cc66d09824ae23",
+      "kernel_name": "stwo_jit_witness_026e3705d6288277",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e2cc66d09824ae23-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7f3a347d41c715c8af492f42c542475630a6e98bd561c1f6e871d5b9fbf4106e",
+      "cubin_sha256": "3ad59cc6817b887671229451363fd5d976506dae64b1a648162a269b091e6962",
+      "elapsed_s": 0.23928987502586097
+    },
+    {
+      "cache_key": "571c74906f213f20",
+      "kernel_name": "stwo_jit_witness_9aa92125909538d8",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "571c74906f213f20-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "20c043f2a1cacb3748f39fd2206db6dfd8415ef5a704e1d46679ebe947649154",
+      "cubin_sha256": "28825b5620dca278aee2e61594ad3556f4c30c2ea8ae5f296e6fe0700b237600",
+      "elapsed_s": 0.2432893329532817
+    },
+    {
+      "cache_key": "f942f1bdf31a8d5a",
+      "kernel_name": "stwo_jit_witness_c063ab12debca933",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "f942f1bdf31a8d5a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "cc39a6b3f8733a54b15a0f71b2ce26b00351a957008d057b4757ebb26a58ec71",
+      "cubin_sha256": "f18c911671640005d01bd264544f5c9eb9e2bdcbde2e3bedcb8c0caf3165cb84",
+      "elapsed_s": 0.23593824997078627
+    },
+    {
+      "cache_key": "bd387b911e4101b2",
+      "kernel_name": "stwo_jit_witness_f0f43b660ac57bbf",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "bd387b911e4101b2-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "ad655c66f6845895f87ba393a7bd49a8afa77d930d68200c7257c25ecd02f4be",
+      "cubin_sha256": "d88e691ada2762ab1cd56cd38fcde539b4e1135b4e862effc43410e368513a74",
+      "elapsed_s": 0.2370262499898672
+    },
+    {
+      "cache_key": "bdf5090fb9b6e5aa",
+      "kernel_name": "stwo_jit_witness_57e09935feaee102",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "bdf5090fb9b6e5aa-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "13ffb6965e59877110acfb0ea71a8aefe32e7bb0cfbbe27d02be8811d7423767",
+      "cubin_sha256": "aa4517b41635b16b01bc2d1119851fcddd39f26e50c97986c1e5e3cf8ffb154b",
+      "elapsed_s": 0.2378413340775296
+    },
+    {
+      "cache_key": "8027eab7f30e1db9",
+      "kernel_name": "stwo_jit_witness_db645310cc7040dd",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8027eab7f30e1db9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "93ab06f5c32a9a3e3eb30952a2199c81c3faa7eecf0de908e1c8b1cbaa52386f",
+      "cubin_sha256": "ffd2cb220ce1c2a462f1cc44a29b1fec5471ca46023b27b21e1b5a9cb9dd88e8",
+      "elapsed_s": 0.23526083398610353
+    },
+    {
+      "cache_key": "c10c97b08f77bed0",
+      "kernel_name": "stwo_jit_witness_e7536b0a967d377b",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "c10c97b08f77bed0-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "f8c077d58fb76600c8548ecf761a61428678a3977c650e47f1b49ffa888f3207",
+      "cubin_sha256": "9f5f14a625e0c5ca981e42de32470c80faf491b4a6a954abc960614bc2fb7c84",
+      "elapsed_s": 0.2926436670823023
+    },
+    {
+      "cache_key": "ee85d395c6beaf73",
+      "kernel_name": "stwo_jit_witness_8c4ef00bd566feed",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "ee85d395c6beaf73-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "efa248ca30ef582cdd1286c912d25907a6650a2537735df4751539513482953f",
+      "cubin_sha256": "da9ba42201632e131c73032f92832fc70177bc8728ca91d2711f7e43d2e5db1f",
+      "elapsed_s": 0.28376791696064174
+    },
+    {
+      "cache_key": "1dd796e401a395bf",
+      "kernel_name": "stwo_jit_witness_f272d0edbb9a3a43",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "1dd796e401a395bf-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "1752c0269d2d8b6e49db01ad27cb0dfe65bd20daaf1a9d1c1bb914186051e04a",
+      "cubin_sha256": "08529325f956daab5bea0c510aa9698492bdf11f5587d371abb5313b41e8d874",
+      "elapsed_s": 0.23739849997218698
+    },
+    {
+      "cache_key": "29e446f8b70999eb",
+      "kernel_name": "stwo_jit_witness_a54ce9e1fe6db499",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "29e446f8b70999eb-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "d95207716bebb669a5f4acdff8bddcae36706daf8fa6e06480d470886e306ab8",
+      "cubin_sha256": "9fce6904e266986af94580a28419c03be0cd1c89e589e7720cd64ea713f210fd",
+      "elapsed_s": 0.23242933303117752
+    },
+    {
+      "cache_key": "1616f7c816860984",
+      "kernel_name": "stwo_jit_witness_88e4ae09bf5e05b7",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "1616f7c816860984-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "14406a0d9c24acb962cb8e40be5761d1b695e4eb02d298c5ec236a9f992c9b81",
+      "cubin_sha256": "ee2adf6b0c19f16f617df97ec2157cb979b3a9d40906664ca2093b1f3ae8f78c",
+      "elapsed_s": 0.23949199996422976
+    },
+    {
+      "cache_key": "f48ce1906b501052",
+      "kernel_name": "stwo_jit_witness_80742cd96fd7596a",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "f48ce1906b501052-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "24c9786d8bde737f4dc31333abb4954d865839c46251ec3f6ab6caf3b9f4a8d3",
+      "cubin_sha256": "acfc34f989d47ac7061375314b60d5673882726b2a520e8d312a90a33fb6aa38",
+      "elapsed_s": 0.2389837499940768
+    },
+    {
+      "cache_key": "615783d105cab351",
+      "kernel_name": "stwo_jit_witness_c07a5982884afa1a",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "615783d105cab351-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "e39be98b45afbdc7dc207c4ea71baca2ec570a934b80157366d47e9b6391740e",
+      "cubin_sha256": "b990e5ec77f9e21e247e8bad34db30d134b577262088424ee5944918c039a01c",
+      "elapsed_s": 0.2336508750449866
+    },
+    {
+      "cache_key": "8f2e746b50688868",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_004fca4c617cae1a",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8f2e746b50688868-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "fad1cfec45462701bc8691fef6bfa13651c57847493ac0ef2cb6f8ecb8d50f32",
+      "cubin_sha256": "014b38b40ab4af89641893f3077740c414093d0978b0ea2d97ae3c5aa3806b6f",
+      "elapsed_s": 0.28869924996979535
+    },
+    {
+      "cache_key": "d3cf9707719524b6",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_09705bbddfc9f2e5",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "d3cf9707719524b6-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "0cb6e3b01dfeb01382f394d8255f5321b4776c12ef162af7aebf3f457d9ac969",
+      "cubin_sha256": "bad90cebce8eb8ef4e0068fe2d04843c58e41f28e34f235feef512ad1ae62db9",
+      "elapsed_s": 0.28723462496418506
+    },
+    {
+      "cache_key": "794993714a655a38",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_0ce88083354b8d35",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "794993714a655a38-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "07bbc3ba10bbc5f9111a8afe47b445cd69ef551a5f46325f38956f5eaf2f458c",
+      "cubin_sha256": "9031ce86d791eeb469a0b85351bf1f603da5862151a86d8461e6b89511a482e2",
+      "elapsed_s": 0.9273177909199148
+    },
+    {
+      "cache_key": "8209465365b733f3",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_0316bad199b5186b",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8209465365b733f3-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "8e774b36b4fbc5b172696921c9a793784ef83dfe7a1eefdfe20dc9bb967afca3",
+      "cubin_sha256": "6d4780dada87721292674e1b66370891a93e0825cdd8aa8b27fad588a4102875",
+      "elapsed_s": 2.2457432080991566
+    },
+    {
+      "cache_key": "043fad8b38952b11",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_15a6de4ad26733cf",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "043fad8b38952b11-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "dd7be4eaa322f8f58d6d3a5ec88f03d305bffdbc870d5fb027f1f2d49beba440",
+      "cubin_sha256": "fa1f3db8bc10c0f11d383ec4352b99bf35369ff9e6851d063354fc8da72e320c",
+      "elapsed_s": 0.5621256669983268
+    },
+    {
+      "cache_key": "e598dccf808f5fb2",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_16e62ffef5de5385",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e598dccf808f5fb2-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "005bcbf5f366895dc6cc67a8c28cfd3656775ba7ed12169f8b58980e0863a7bb",
+      "cubin_sha256": "09e92a2c33ee4489c7ebd1c4b7d1fa8ee850a5ac4fee1d1aee25ceaf77ddb285",
+      "elapsed_s": 0.2892207079567015
+    },
+    {
+      "cache_key": "96e44143eb9e416b",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_20613ce56c6d1ea5",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "96e44143eb9e416b-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "32590d68d836428d6252ffe8e218244d7bc019a49ff2d661a4394e97c2dc5ca6",
+      "cubin_sha256": "077635708715e0ce2a80e7f0e7911ec0bd3975c060662db0a94d33a81dd50d36",
+      "elapsed_s": 0.7055609999224544
+    },
+    {
+      "cache_key": "14a18b9b013b1995",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_220d81bd8d6ec477",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "14a18b9b013b1995-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "089c398a67aaaead10678ff7d53077c76cf0ef8bf987acb64bc006b7fa9ee47b",
+      "cubin_sha256": "0d56b53a0c764a9859e3787bfa9a629b464aa686bce8c71ee3a207f3d0afd91c",
+      "elapsed_s": 0.5441273339092731
+    },
+    {
+      "cache_key": "5f1cc9dcaf21c336",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_0c8c77308db01a80",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "5f1cc9dcaf21c336-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7479505f85c9e6e7e4c5dde1ecc3a407e04b015bea51e717c43d3c7713c6da34",
+      "cubin_sha256": "8e2a517352c78755794b90a7ba5c06857a0f253a81bcc6f9fa6fd2eda9e8358c",
+      "elapsed_s": 18.483409292064607
+    },
+    {
+      "cache_key": "4024e74a0d836960",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_2f743f265a823e57",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "4024e74a0d836960-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "57e332ba4868cc6e36b9f1efaaa8832d673ec321ea72fd2658bbe462ab7772ff",
+      "cubin_sha256": "4e32ecc5308fbb6b03815af8cf0c088656ae0b6c7e4ef81af1c6aec55de84d6c",
+      "elapsed_s": 0.3458755409810692
+    },
+    {
+      "cache_key": "ecf961521480fe85",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_3617b6afaf32e710",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "ecf961521480fe85-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "d12f8b2f5f1c9dab1889938f11e3f1bba095b20626d86bb1b724303a405b3a5d",
+      "cubin_sha256": "1db03dc9ec377ff996b75ddf598128e5e1242dbe7bc100a1dd92e221500017a5",
+      "elapsed_s": 1.2549710420425981
+    },
+    {
+      "cache_key": "677efc8af78cde1b",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_47df0a761733c077",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "677efc8af78cde1b-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "28a3e58186a7f290d6879f4b13c821fa0c08583855409483c387e61387bcbb1c",
+      "cubin_sha256": "c1ed3ed248e153b865a1a7458c723faabb957d5b79543923f24bd85aa91681bd",
+      "elapsed_s": 0.349934707977809
+    },
+    {
+      "cache_key": "64694d2a170bc12d",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_493d926de8a4db14",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "64694d2a170bc12d-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "3e685661b7d604081901d1cad6a7b0b905ca6406d4ce25183cf27e84c358cb2b",
+      "cubin_sha256": "506b1d91b655933e13c496049b2d5d8ed39ca21416566e98318ae6926c40cdb1",
+      "elapsed_s": 0.9485438340343535
+    },
+    {
+      "cache_key": "1c7c0358f59d1f74",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_3b5c888efc076e7a",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "1c7c0358f59d1f74-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "65186c846980cd834402a0cde6c2c882996c88dca3756cc37cdef1036260971f",
+      "cubin_sha256": "a178b7bce9f49a1cf3dac207901467ee73ab51a4bea3df6e8d952ca2e0832786",
+      "elapsed_s": 10.152567957993597
+    },
+    {
+      "cache_key": "4490750cac8a39ee",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_28582515c3999e53",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "4490750cac8a39ee-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "f53688e6340eec5fe99e605b3ab2a8ef795a61ced6bd4fdfda72c200842dff00",
+      "cubin_sha256": "2602716817cef5f7f458b933680b131591fb123dc6500d90f5278532bcd8f85e",
+      "elapsed_s": 27.990126500022598
+    },
+    {
+      "cache_key": "69ca6f0d2b7ee568",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_588dac9d42f6b550",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "69ca6f0d2b7ee568-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "5815326bb130cf8aec5739c4f56c197a091dbc129b042c499e08e0576b8993e8",
+      "cubin_sha256": "907a8b990ce84995cdc54cfa77d7e0409b12393f2586ca04050fdc85dbef7e58",
+      "elapsed_s": 0.5529544999590144
+    },
+    {
+      "cache_key": "fbc2a631ed99e5e9",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_58ef5345a1a6a19b",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "fbc2a631ed99e5e9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "94c87d353afc91504f44ab8269d53a798c2fa123f9a0ada6f1aae6c04f4bc1c6",
+      "cubin_sha256": "6a9637f2d3e8a062642f66c6700f8571e55d81cdb0969e18eb3ee84b5da2f420",
+      "elapsed_s": 2.6524382079951465
+    },
+    {
+      "cache_key": "2028fe3a66090cc0",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_5e5fb15810ea27fd",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "2028fe3a66090cc0-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "d63dcbd94dbc006e4e6f1eea9e7e268a55798ad9fc8f3dffbd57490957c51605",
+      "cubin_sha256": "3374b4958b9dbf71b5e7333623fc59e840e5e69c075368dfd0fa769ce5f195c8",
+      "elapsed_s": 0.5008342079818249
+    },
+    {
+      "cache_key": "7ed15ca0df33f208",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_4f909056be12a284",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "7ed15ca0df33f208-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "5029d71efbd3b1d70289e77f14d2dd7bdca5ab1f656638783da0a215bff720a8",
+      "cubin_sha256": "86c352b3572b86937f1429c59c72a7e87add34f112921b5314d740f9d1a2b835",
+      "elapsed_s": 40.54081620799843
+    },
+    {
+      "cache_key": "14fa3ca64a37dd21",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_6142f9bc20588a94",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "14fa3ca64a37dd21-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "3e25e00a1e6aa52899ea3192e98e3d13cafafe057490304275d0f7d9d57c2a46",
+      "cubin_sha256": "2d7712db4d04c4b09483891c98cf2430cb381fc28ff737fa4ecc341c1c72324e",
+      "elapsed_s": 0.6732949169818312
+    },
+    {
+      "cache_key": "c1057adf4cd5683a",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_5dcfc4c1e6b0ad10",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "c1057adf4cd5683a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "fcdf736cab4a2fa8e1a3640c01994ce874b68e9efa8c426afab16366b423adfb",
+      "cubin_sha256": "1388589175441b13c54c4da85764aa95ef60960f421aaab473c3f46335a654df",
+      "elapsed_s": 118.30189670808613
+    },
+    {
+      "cache_key": "7b46f65b2254871c",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_688dd659cd3274a6",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "7b46f65b2254871c-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "9b141b597146826cd61b33e5c3dea1b517b46d42ff24170f034228d5f187cff2",
+      "cubin_sha256": "1b96cf235055e5644d06496bdd2e8900ad23090797252c9baa6c029faa2f8593",
+      "elapsed_s": 0.4437113329768181
+    },
+    {
+      "cache_key": "31ef87c0c6cfa81a",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_7205ab34dcdb920d",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "31ef87c0c6cfa81a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "f67e0ff87374e591f87037be22f12baaab0c3448c6b88546f39b3990b0ddec06",
+      "cubin_sha256": "bf2cb090616c46216a7b767ca88099d684ea6af6f4400298494cd39f444dd70b",
+      "elapsed_s": 0.6660184590145946
+    },
+    {
+      "cache_key": "4713d8701db9c2d9",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_6e7d9762fbd1969a",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "4713d8701db9c2d9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "05cad34654f0bf3c9a0b6eb5d5ca2650505252ea3a35dfec20d283a4d577455c",
+      "cubin_sha256": "d4abd414e792912992807b8dbcb185cca225db49ce49a597946ddd66dcd50aad",
+      "elapsed_s": 2.0874864170327783
+    },
+    {
+      "cache_key": "d14c646ec00fdeb8",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_73ef672ad1e99d37",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "d14c646ec00fdeb8-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "a1c9e076442c54c0381006cede29d624a239d6402f8e851ed49a8bc7f85ea589",
+      "cubin_sha256": "de4cdbcfd10cf40d155c173fcdcb5503c3db84450df25309028e5540ca08d95c",
+      "elapsed_s": 0.7066839160397649
+    },
+    {
+      "cache_key": "8966e29bf1020ff2",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_6698ca774c7ca163",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8966e29bf1020ff2-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "fd0af9f4a7ab76cecce3429a8d675e2847e856316ba5cb67d72032bab0732a35",
+      "cubin_sha256": "de7f9a686e26dc7697085e6dce1827233373addd0c2b6412612b2d4453731578",
+      "elapsed_s": 56.26238662505057
+    },
+    {
+      "cache_key": "a1e8ec3010c20294",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_751f65b635273678",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "a1e8ec3010c20294-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "353de21d4adbc20ece7404c4b8a4616062235c925edecc4083f1f25042e0c804",
+      "cubin_sha256": "3c60e832431f50eadfa055e07b30128f1e55dc31d895c5464d42e4632561c8cb",
+      "elapsed_s": 1.0601471660193056
+    },
+    {
+      "cache_key": "e38b624558fb6c4a",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_76751be344433844",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e38b624558fb6c4a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "e1dd153e111b7f29967b09916927c4121e3c9e95ea417d03d332019b7fce4926",
+      "cubin_sha256": "4b4a6704d5e83f8fa24f1198c8c42bdcb7a3334171dc08d99b547dc316ffedd9",
+      "elapsed_s": 0.2894429999869317
+    },
+    {
+      "cache_key": "e0221541b1e73d1e",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_773d385162091c3d",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e0221541b1e73d1e-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "3097d2504f446cd31db2a0f5179bf98a89a088bcd8eeb6c0e15f4fddd1ed29cd",
+      "cubin_sha256": "2cd2c32daaccd464177497c91b57d7225ea4587bd6ea34499ab425d8bac9836c",
+      "elapsed_s": 0.553638375014998
+    },
+    {
+      "cache_key": "5eb9edcbea9ce112",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_7a58776d46a0d41b",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "5eb9edcbea9ce112-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "b3268efd23e2e999bd8cd7a86b0c6fd4f61aed8449f6a65457f56932256c31d2",
+      "cubin_sha256": "f74c1b0774add03da47bbb0041386d14a70092b21700955e59a4736086745924",
+      "elapsed_s": 0.29130758298560977
+    },
+    {
+      "cache_key": "cb1f841902d37bb1",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_792590d1e13e3d0b",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "cb1f841902d37bb1-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "36b9b053029c6ad0bf2daff69ba02d9d2138dd099030ab69c00f754f31642301",
+      "cubin_sha256": "a55b29e68891e1f577c2d1994a1e2350551af364a7a4650f8ddbaa8b6085064c",
+      "elapsed_s": 0.7735669580288231
+    },
+    {
+      "cache_key": "79d6350154bde65d",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_7ef972a5d6688858",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "79d6350154bde65d-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "774efe8a872829361d1817192112371586de24ff680a92d69612ce7cf0a0cad3",
+      "cubin_sha256": "d1cc96c9aaa3219558d899ce72bc2188e733410719d78c8d7c27388a4ad308da",
+      "elapsed_s": 0.28979541594162583
+    },
+    {
+      "cache_key": "586c2743641315ff",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_800a8e5d141c169e",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "586c2743641315ff-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "8a29a11c8c70a92c5aba3bec4c445a7ecac455a095d03ae3f84c39784afecccc",
+      "cubin_sha256": "995200c1ea4ffa8d3db7d3b7e6907a0ddda51dc0a4ad527186db99c1d0788b74",
+      "elapsed_s": 0.5126203750260174
+    },
+    {
+      "cache_key": "d6a3ac4ce45cb35a",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_89160704ff765b5c",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "d6a3ac4ce45cb35a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "fcb71e5fde37e78c3a17bae6b53777a4d01b7aa808267bdfb5b4a14f3a7e3c74",
+      "cubin_sha256": "84e0bc08963033854fda068728769986c9a3776fa0b6afd2fb3cb0a63863fc45",
+      "elapsed_s": 0.6030128340935335
+    },
+    {
+      "cache_key": "4d5888504995285a",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_7ae47d325c8767b3",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "4d5888504995285a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "6649670c96ce422b2a2c9e939c0448002cf1cca7796ba8a4d9b2661959beb082",
+      "cubin_sha256": "69b660b1c497b44a0665fb75e5c00d1057a9a0328bfc2903e2b3599a8e996c85",
+      "elapsed_s": 10.220601250068285
+    },
+    {
+      "cache_key": "dbae588791ec09a6",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_8e3ee30308c76acb",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "dbae588791ec09a6-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "f90caeaf09f8c1f22a40c331a38f6315aee982366542fdc78d81847dfc1521b1",
+      "cubin_sha256": "46f6a3384537aad33ebb2c0c9b8d42b441ead39ba8362305e8df1259ec6cc295",
+      "elapsed_s": 1.190048500080593
+    },
+    {
+      "cache_key": "c52c812862cb5e96",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_9374f8b45ca93e8f",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "c52c812862cb5e96-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "2b8d3b6c29410b72e732f154aaee25bf8d991a437bcb073bb38878e4edaaf093",
+      "cubin_sha256": "9e101987e109a30e5877bb46d53b5d1686c9fac3abd59d8161725e0cfc63ed42",
+      "elapsed_s": 0.3194479999365285
+    },
+    {
+      "cache_key": "3969ce1faf016dcb",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_91448bafa4e75cb5",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "3969ce1faf016dcb-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "49bc6a966416d3667b08008fccc30a3c3729668395c09ee58f8e955394b70365",
+      "cubin_sha256": "26ee611337a7fa4dba24187836f3abb1cda786b614590d4c308646ff2f15349a",
+      "elapsed_s": 2.3455972919473425
+    },
+    {
+      "cache_key": "e68e27321e69b518",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_a0ca930f9557f54f",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e68e27321e69b518-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "70e7214fefe6c6a84c646f792ed798abe08158a8b1b7d8ebbded80b783deccdf",
+      "cubin_sha256": "1dae30b392dc085ad51343f497442b674f9af58690f69d228a8b8577b309d46b",
+      "elapsed_s": 0.29144441697280854
+    },
+    {
+      "cache_key": "b71f3cbd039d787b",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_a4aa30d3952d3247",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "b71f3cbd039d787b-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "eaaa970012aa9e1d1c7a8a68aaf2bee7b510689f3236b1b6223606cf1e8a573d",
+      "cubin_sha256": "c23464c2e52bce06a7e90a829efc0930a2191c5f06b92b3ea8df47b887de8f15",
+      "elapsed_s": 1.0093020419590175
+    },
+    {
+      "cache_key": "55d14b976e55c505",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_92ce49b45d6c1f4e",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "55d14b976e55c505-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "889abf2717069076ff735d721e8414e1c327c6bfc89ee0249599b91516e49b96",
+      "cubin_sha256": "f3017ce6e69bac5ed23ac80d629c5174be961580f84f6ce425bdf91822296b2b",
+      "elapsed_s": 8.5648876670748
+    },
+    {
+      "cache_key": "7f9b051c2a3447b2",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_c06ceab427d079e4",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "7f9b051c2a3447b2-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "3725e819862c034ce3cbcc183474a3ac621e95b8f56854a1925058d57f506e51",
+      "cubin_sha256": "8c993ab962ed4ab191bb270d6ab0c8869575c1f2bbdb0cda77a01fabde064acd",
+      "elapsed_s": 0.3103427499299869
+    },
+    {
+      "cache_key": "17348bf82a236bb4",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_c4f7761d89d0cb90",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "17348bf82a236bb4-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "d9444c3f718c857242516eca96d4f2a7d617e81af53ea6049f97e96877042842",
+      "cubin_sha256": "e893dcb41c3eb0a66dcbe382e97a32caa8cea8042e761fab34ead20ebd9d7ce2",
+      "elapsed_s": 0.3135553750908002
+    },
+    {
+      "cache_key": "83b75c9d1528804a",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_c05ddc49664c6391",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "83b75c9d1528804a-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "78933551d673a1729e2c22bfe7ad5677da1ec9f4f368b3f1d761492c495292fa",
+      "cubin_sha256": "73c599487aca955d6de6d12adaf8f53d6d724d540c6a05d070987c98bb6d31ce",
+      "elapsed_s": 14.806199375074357
+    },
+    {
+      "cache_key": "24cf9bdf79761d95",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_c611ef6ea6bd2061",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "24cf9bdf79761d95-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "667e2ee35db7c0853f944ffa7969bf24c0f6860ce46bdee4a341929d44009eaf",
+      "cubin_sha256": "ac1906fccbfb68d50f634eb405d3b6f661c4fd914076995948fd1fd42115e255",
+      "elapsed_s": 0.42663849995005876
+    },
+    {
+      "cache_key": "3ba0ba1edebe7b32",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_cac0420ea393b163",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "3ba0ba1edebe7b32-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "4221ede26150ee84808e75ff10783cc51784344bb43d0387baed1032e543420f",
+      "cubin_sha256": "7c3aa0538dca5d36ebc8a95394f511e723129935299baaa93c72f8293c5ab248",
+      "elapsed_s": 0.8920439160428941
+    },
+    {
+      "cache_key": "e09d0b2ef023d75c",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_cc13aa5b6e028a9f",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e09d0b2ef023d75c-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "b5b2ae1f30946d415bb212c6ff576b092790ce82cf48278a9be6afea55d32da4",
+      "cubin_sha256": "0df28ed5674911e4d5d567d2586226a73f53b3f98cc5ece722568334ea63547a",
+      "elapsed_s": 0.4785546249477193
+    },
+    {
+      "cache_key": "31d6f926bbc248aa",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_cf93975736fce4ec",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "31d6f926bbc248aa-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "b35c1b1743ca89a992841c6346b9a541bb1da09d123ef19ad58d4748968fbe67",
+      "cubin_sha256": "1af5c801bf12b80109ad16e99f0d7a900113728bd18f8b574fc35efe0c55f4e7",
+      "elapsed_s": 0.6313088330207393
+    },
+    {
+      "cache_key": "d74035eb309fa5f3",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_d8e0f9866c43c2ca",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "d74035eb309fa5f3-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "0a7102ad9bffb785fd4bec13a35988ff2238d2db9d2cec379354ad831a2a5b97",
+      "cubin_sha256": "be71f1d75dea75386c9df08c89634ac369aa6ad81500727913a57d27acc184b0",
+      "elapsed_s": 0.567378249950707
+    },
+    {
+      "cache_key": "2d7624a023bb57cc",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_da8241be39e42c17",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "2d7624a023bb57cc-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "98e9adf2481ee9d83401dcb9a735d42a56c1aaa32b57b642b0c3b86e0ad5630b",
+      "cubin_sha256": "0974f1c6ac34d9b5520be694093fa0e3a558e0b3915d8ad9ea3a641d3e332b67",
+      "elapsed_s": 0.3139070419128984
+    },
+    {
+      "cache_key": "b3184e8160343133",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_db086017701593e0",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "b3184e8160343133-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "a10881721b695689d38643df7dfd96126924b3b538c8e273c7c97de689dcb617",
+      "cubin_sha256": "b84aaf15101ebb625f0e0a55cd12cbd17d82ab5e900b8540ac8bda555bd579db",
+      "elapsed_s": 0.5686324170092121
+    },
+    {
+      "cache_key": "cad7411165513703",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_dbb402bcc1a41130",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "cad7411165513703-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "f55983ece94243e0e4c8a97c36bbd6f8ca3afc31e35d6a60b71546a09dcd3ca4",
+      "cubin_sha256": "a00d169f7645d82b152b128f8c2720f8421257c827a218c69580bb83fefeb1c4",
+      "elapsed_s": 0.5117844169726595
+    },
+    {
+      "cache_key": "46dcb00f88e042e3",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_dc2be10c0d504adb",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "46dcb00f88e042e3-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "be9ab37cce59c473c13135cf5afe3efe958198ad73893661981591b687916b2b",
+      "cubin_sha256": "b8b635a0c25279d2947a2be1fc279fc0497914388f1e29648740e0a90daee313",
+      "elapsed_s": 0.7248129160143435
+    },
+    {
+      "cache_key": "41b00c8c94bfb70c",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_e002c8210e52d12e",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "41b00c8c94bfb70c-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "ebda57afcb6dc91c76d8890f269c8ac6658c08a0a85126d458487dc4c6557342",
+      "cubin_sha256": "5b16a3dc2f582ed286ac1606a239f44efdac5a498b57a273ed46b40c68817da2",
+      "elapsed_s": 1.3363221250474453
+    },
+    {
+      "cache_key": "0b6abcb396a63d3f",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_e9884ae7da22257f",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "0b6abcb396a63d3f-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "dcd94e8efbd3ee74e819befd442860319995ac5dbbea60035e80591ed1b834a8",
+      "cubin_sha256": "c36faf0bbf15ca099afc31dc6c3879b98a8caaf0a9143a7020674bfa60b7d3fe",
+      "elapsed_s": 1.2813379999715835
+    },
+    {
+      "cache_key": "b9c4f8fd2e91daa7",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_d77b877d338ab8fc",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "b9c4f8fd2e91daa7-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "e3966ebfcfdda3dea1821cc734f96f1d9c3b263d223c5ad11d53662681edb433",
+      "cubin_sha256": "ee990dec4b8ce647e8d085c8f8d2090a64324cf97137a1552aac8a180c628f74",
+      "elapsed_s": 68.365681083058
+    },
+    {
+      "cache_key": "82b12ad60745d63e",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_e414065707fe0e8f",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "82b12ad60745d63e-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "8f28fdc461064e436a21cfbd37742195c9c7ae56806d80bf5aaca0124b0ac577",
+      "cubin_sha256": "44deb26ebb90242e42a523d0c7f86c6cfffe042587e0b0d6c7ed6a748dec5ba6",
+      "elapsed_s": 2.082036125008017
+    },
+    {
+      "cache_key": "1a3db71c79ccebf5",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_ea5275587edf9674",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "1a3db71c79ccebf5-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "7f481b202ad6459c02f4f9e1a7d5b11f5fa192b94632d56a52dc9a8068881902",
+      "cubin_sha256": "466988c1704926b5e92575f8d55689a86c62a9d460143738bbf1ad40387cc6ef",
+      "elapsed_s": 0.4019762499956414
+    },
+    {
+      "cache_key": "f0ef4ee69272e14d",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_efae9e8c68dba549",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "f0ef4ee69272e14d-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "fba6d35167e2b9d7696bb34109c010aad1a0eef58e06d796028dbcc422514ec7",
+      "cubin_sha256": "c5394123de787f7b313b4be35df1fc290fba10ce16496e2160b90c3d34a51527",
+      "elapsed_s": 0.3131397500401363
+    },
+    {
+      "cache_key": "ab4c2b3ef22e82ed",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_f6cb16877965e24a",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "ab4c2b3ef22e82ed-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "487f629c0fca6a18c9326c2afa49b77b9a6a04a066d64361e3e8eb2ce80a7dcc",
+      "cubin_sha256": "f7b3b0b2c2cada2ff6928aed8254294f6282ad66795883b351d150e81c7149eb",
+      "elapsed_s": 0.3074496249901131
+    },
+    {
+      "cache_key": "8586df08633673cd",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_f3a6fefb41bb9e7b",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8586df08633673cd-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "0a3dab78b207eb57e19ea052a233d05e2738ebc6a835a5e78eaf710ce74ec9ad",
+      "cubin_sha256": "4885407292ede03667fc478e9627fb5bc6662f798a8c8814363242ed95817a79",
+      "elapsed_s": 0.5266276670154184
+    },
+    {
+      "cache_key": "975486c076e3681f",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_fe88a12bb2ed41e3",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "975486c076e3681f-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "9447104c6b39dc4319cef524ba3dc3f0d7ba0ad77122889ef6071571f1fe7d88",
+      "cubin_sha256": "43d659783fc58e7c4f7dc1fcd14fe14c833cc14832fd9096395b9be0adf032f5",
+      "elapsed_s": 0.4123465409502387
+    },
+    {
+      "cache_key": "b68090262d91c407",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_f121becb27a01b51",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "b68090262d91c407-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "26fb01836466130945216f1e6c3f7600ff0a25e2627bde78d365c6a5b97e3d72",
+      "cubin_sha256": "170eb1e44cacc874976f1dd24064abc37e7c642b9c847066f7f90516ef881826",
+      "elapsed_s": 39.91700045904145
+    },
+    {
+      "cache_key": "e4ec3fc248dd8b2c",
+      "kernel_name": "stwo_jit_witness_becbbf6f2f210ad9",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "e4ec3fc248dd8b2c-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "18afda31206d923ca2bd6d91589fdadc0b4dcb6cc7aa8c31bc0a6d7294f73cbe",
+      "cubin_sha256": "0256c55d9cffdb9fd6eee6fe6666feabc3dbe5958364ce4044ac8d98fda33b8e",
+      "elapsed_s": 47.336945875082165
+    },
+    {
+      "cache_key": "a212db14608ea97f",
+      "kernel_name": "stwo_jit_witness_2c85c2f1fcc0df90",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "a212db14608ea97f-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "1754db0eba19b9f83c3e3113bc1f0a948cb5517d67c677dc197f0811257d2258",
+      "cubin_sha256": "bb79e959ed230c32f0da553c07f1150ea8e42a3f6b6797f913cf45e5adb9dfe3",
+      "elapsed_s": 20.48256545793265
+    },
+    {
+      "cache_key": "f1f336a4c53e2943",
+      "kernel_name": "stwo_jit_witness_0a5012bd6007b9be",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "f1f336a4c53e2943-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "57784a6509acb2cce01887de18bd5b51dc03286a1ed1b9d0af395aaaf1563572",
+      "cubin_sha256": "542e59d1377ec5b6ba3a083dea33c7fae910a3fd84c141181535b3142e6081d9",
+      "elapsed_s": 15.579530291026458
+    },
+    {
+      "cache_key": "86b21cd3a1363d1e",
+      "kernel_name": "stwo_jit_witness_4ad230c161d829a3",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "pedersen_w18_columns_rows_v1",
+      "sm": 90,
+      "file": "86b21cd3a1363d1e-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "875d94428c7305b9c50ff54f67849a6d5587d8d095ee9f243cd31c5af450824a",
+      "cubin_sha256": "e55c37e338cec5d076085bc86381f307ca9b4b2065cfcc3c36da76af82eb84b5",
+      "elapsed_s": 6.745154167059809
+    },
+    {
+      "cache_key": "9e6106ee7f9f2be9",
+      "kernel_name": "stwo_jit_witness_70a805768b2e1ce7",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "pedersen_w9_columns_rows_v1",
+      "sm": 90,
+      "file": "9e6106ee7f9f2be9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "5ce6c27694fe6b60b101225f070d6d7d792cfdd7396a2c21daa2e9155e01fabd",
+      "cubin_sha256": "0776fd391b41e545b6210735c32b869d53f6861219b5192ede577015eb29b048",
+      "elapsed_s": 6.666514792013913
+    },
+    {
+      "cache_key": "bfaf3680e0e56f5d",
+      "kernel_name": "stwo_jit_witness_e1cf71013a0f5925",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "pedersen_w18_columns_rows_v1",
+      "sm": 90,
+      "file": "bfaf3680e0e56f5d-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "66cfe46248ca9f6027b0d9ca47ef27f3029375e366bea12b393bb6752e9f74f0",
+      "cubin_sha256": "5569fd0ba13b390079c623bd420e5ebe7d531a2168a019f79bb06a7dac99af1f",
+      "elapsed_s": 41.425236875074916
+    },
+    {
+      "cache_key": "926cf1ac5593dee9",
+      "kernel_name": "stwo_jit_witness_e1206adbcf8d911c",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "pedersen_w9_columns_rows_v1",
+      "sm": 90,
+      "file": "926cf1ac5593dee9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "b8370fd158262a3d73983516c49116313c57fc48a59019321cba315788756bf2",
+      "cubin_sha256": "3fea7740ae197250d54c07bb923f1f3f6faef63ae6885a15b76eaf420c0fd4d9",
+      "elapsed_s": 227.64014495897572
+    },
+    {
+      "cache_key": "f4b68435e787a8e9",
+      "kernel_name": "stwo_jit_witness_b863d4ded2d89fdf",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "f4b68435e787a8e9-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90",
+        "-Xptxas=-O0"
+      ],
+      "source_sha256": "4373c43422490a086e99e560dad8091002478ce0586ac57647496d73f01dd036",
+      "cubin_sha256": "570ea20160122da7f01b3ddbff6d779300cb43cc3cba8a7af224c6ee0e83d626",
+      "elapsed_s": 9.121280540945008
+    },
+    {
+      "cache_key": "8349ae046e7a13cd",
+      "kernel_name": "stwo_jit_witness_51e314719c4fa150",
+      "abi_schema": "recorded_witness_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "8349ae046e7a13cd-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90"
+      ],
+      "source_sha256": "9362c219a45c78994a2f3c3882ff1fa41d1287244765a789094f9d3ca03b9cf0",
+      "cubin_sha256": "e3d2e0f68e477561a69a3475f1f930b95859777a04cb1c9f6abef5384cc56cd6",
+      "elapsed_s": 39.44742387498263
+    },
+    {
+      "cache_key": "ca69daf18061e416",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_20ac53552c8ab47f",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "ca69daf18061e416-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90",
+        "-Xptxas=-O1"
+      ],
+      "source_sha256": "361520ea659ff99e0bd724f5772a16e0dbe55b33d2a104f1829ec4251943b199",
+      "cubin_sha256": "afdda81b2685109db7329bebc731b2c9e448fcc41ae92ad370c4a2ce0b8a67e8",
+      "elapsed_s": 22.365377875044942
+    },
+    {
+      "cache_key": "be6aaa36a5114252",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_ba50438ddca00bc5",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "be6aaa36a5114252-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90",
+        "-Xptxas=-O0"
+      ],
+      "source_sha256": "e756f0e5f39653316da45cfe971acbe066bb44c43c2e49d7858ab0acd8343913",
+      "cubin_sha256": "979632a9b821baea605f126f3214a8b54f4e62b6c9638929447490dc14469a07",
+      "elapsed_s": 487.8794650839409
+    },
+    {
+      "cache_key": "3cdccace1c000eac",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_f4537cc3313a7813",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "3cdccace1c000eac-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90",
+        "-Xptxas=-O1"
+      ],
+      "source_sha256": "f3336556c3c91e71abc12b45217837c083d5c9d70250806e701e6de23090d7d5",
+      "cubin_sha256": "280f879985150deff46889780615c499446ca435549f137b1f0acd3524f42990",
+      "elapsed_s": 52.3548500839388
+    },
+    {
+      "cache_key": "efca9c9ed7aa319b",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_fe20f860e2d83528",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "efca9c9ed7aa319b-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90",
+        "-Xptxas=-O1"
+      ],
+      "source_sha256": "b8c351fc964f1b0a1abd0038abe94e8b4e854e6658bb9c2781fd9ec68e6c4d3b",
+      "cubin_sha256": "6ba639fa445e971556b80dd01bc782843a0bbde8c2a4e2eafe560b33c246f142",
+      "elapsed_s": 57.40942354197614
+    },
+    {
+      "cache_key": "3d0538b54dabf5ce",
+      "kernel_name": "stwo_cairo_cuda_eval_v3_ffc1033f3f8600ff",
+      "abi_schema": "cairo_eval_part_v1",
+      "module_globals": "none",
+      "sm": 90,
+      "file": "3d0538b54dabf5ce-sm_90.cubin",
+      "flags": [
+        "-cubin",
+        "-O3",
+        "--std=c++17",
+        "--expt-relaxed-constexpr",
+        "-ccbin=/usr/bin/g++",
+        "-arch=sm_90",
+        "-Xptxas=-O1"
+      ],
+      "source_sha256": "13ffaa649d411cfd284f6bce641d7b74a7100d6f33dd195f0b2ec11922f5f992",
+      "cubin_sha256": "b1f393600039659f6f1e39fb429661231373f3043b6223a9ecb88f3643593cf2",
+      "elapsed_s": 151.74322662502527
+    }
+  ],
+  "failures": [],
+  "complete_inventory": true,
+  "nvidia_proof_verified": false
+}

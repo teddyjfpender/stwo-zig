@@ -1,0 +1,44 @@
+{
+  "schema": "stwo-cairo-cuda-local-composition-split-v1",
+  "provider": "cumetal",
+  "compiler_backend": "legacy",
+  "evidence_class": "apple_gpu_translation",
+  "passed": true,
+  "nvidia_qualified": false,
+  "full_proof_verified": false,
+  "accepted_benchmark": false,
+  "log_size": 21,
+  "coordinates": 4,
+  "coefficient_words_compared": 8388608,
+  "production_schedule": [
+    9,
+    6,
+    6
+  ],
+  "oracle": "Independent scalar inverse transform with standard modular arithmetic and arbitrary nonzero twiddles",
+  "source_sha256": "3235e07d2e04e85de074beeb335da4a072c2e881736b0561af64599a600b8566",
+  "execution_log_sha256": "285d6f9e628b2eb146da393eca27e3cc2ee4f6b3099561b62fe833a6716fdccf",
+  "limitations": "Numerical evidence for one fused schedule only; not full proof qualification. Default cumetal-ir rejects the device-helper collective graph; legacy source lowering executes on the Apple GPU.",
+  "source_dependencies": [
+    {
+      "path": "src/backends/cuda/native/transform/b2n_fused.cuh",
+      "sha256": "03423a6ed00f1e21769809a23cf56551be316a3cf0d94c9a94adbc634f3a98a2"
+    },
+    {
+      "path": "src/backends/cuda/native/transform/transform_internal.cuh",
+      "sha256": "e01bf8a083b88fc7336461bad4d2445a9156c67c79e8ffca941f5df5829e1ed0"
+    },
+    {
+      "path": "src/backends/cuda/native/common/circle_twiddle.cuh",
+      "sha256": "70c5c2f306eeb3838a49f531febf96bed95126637781a595bbf5d39786012c91"
+    },
+    {
+      "path": "src/backends/cuda/native/common/m31.cuh",
+      "sha256": "e9762058eea4f25c5fb017e9dec1ba6e84dfa86795e2ca0230c8e11c067a3c30"
+    },
+    {
+      "path": "src/backends/cuda/native/common/provider_compat.cuh",
+      "sha256": "535a7099e74ebebb68a149e2939c4e6c7db0bce1f8988d3329ebaf649e1cbf05"
+    }
+  ]
+}

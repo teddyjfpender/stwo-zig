@@ -7,7 +7,13 @@ pub const MultiEdgeDescriptor = extern struct {
     words_per_instance: u32,
     instance_count: u32,
     destination_row_offset: u32,
-    reserved: u32 = 0,
+    /// Zero retains the historical all-padded-row gather. Canonical callers
+    /// supply the active count independently of the physical column stride.
+    active_rows: u32 = 0,
+
+    pub fn activeRows(self: MultiEdgeDescriptor) u32 {
+        return if (self.active_rows == 0) self.producer_rows else self.active_rows;
+    }
 };
 
 pub extern "c" fn stwo_witness_casm_input_scatter_on(

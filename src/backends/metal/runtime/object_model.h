@@ -11,6 +11,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceTrace;
 @property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceIfftWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> leaves;
+@property(nonatomic, strong) id<MTLComputePipelineState> leavesWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31Leaves;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeavesWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> proofOfWork;
@@ -104,6 +105,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> publicMemorySeedResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> leafAbsorbResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> leafAbsorbCompactResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> leafAbsorbStreamV1;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeafAbsorbResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeafAbsorbCompactResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeafStateDigestResidentV1;
@@ -312,6 +314,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> pipeline;
 @property(nonatomic, strong) id<MTLBuffer> arguments;
 @property(nonatomic) uint32_t rowCount;
+@property(nonatomic) NSUInteger dispatchWidth;
 @end
 @implementation StwoZigEvalPlan
 @end
@@ -500,6 +503,7 @@
 @property(nonatomic, strong) id<MTLBuffer> rootReadback;
 @property(nonatomic, assign) uint32_t rootReadbackWordOffset;
 @property(nonatomic, assign) uint32_t logSize;
+@property(nonatomic, assign) uint32_t prunedBottomLayers;
 @property(nonatomic, assign) double gpuMilliseconds;
 @property(nonatomic, strong) id<MTLBuffer> residentColumns;
 @property(nonatomic, assign) uintptr_t residentColumnsHostBegin;

@@ -297,7 +297,9 @@ int resolve_module_globals(Module *module) {
         return CUDA_SUCCESS;
     }
     if (module->module_globals !=
-        STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1) {
+            STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1 &&
+        module->module_globals !=
+            STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W9_COLUMNS_ROWS_V1) {
         return CUDA_ERROR_INVALID_IMAGE;
     }
     CUresult status = cuModuleGetGlobal(
@@ -446,7 +448,7 @@ extern "C" int stwo_native_aot_function_bind_with_globals(
     if (owner != CUDA_SUCCESS) return owner;
     if (cache_key == 0 || abi_schema == 0 ||
         expected_module_globals >
-            STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1 ||
+            STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W9_COLUMNS_ROWS_V1 ||
         kernel_name == nullptr || kernel_name[0] == '\0' ||
         argument_count == 0) {
         return CUDA_ERROR_INVALID_VALUE;
@@ -545,7 +547,7 @@ extern "C" int stwo_native_aot_function_bind_with_globals(
     return CUDA_SUCCESS;
 }
 
-extern "C" int stwo_native_aot_function_publish_pedersen_w18(
+extern "C" int stwo_native_aot_function_publish_pedersen(
     void *raw_function,
     const uint64_t columns[kPedersenColumnCount],
     uint32_t row_count,
@@ -562,17 +564,19 @@ extern "C" int stwo_native_aot_function_publish_pedersen_w18(
     Module *module = function->module;
     const int owner = require_owner(loader);
     if (owner != CUDA_SUCCESS) return owner;
-    if (module->module_globals !=
-            STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1 ||
+    const uint32_t expected_rows =
+        module->module_globals == STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1 ? kPedersenRowCount :
+        module->module_globals == STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W9_COLUMNS_ROWS_V1 ? STWO_NATIVE_PEDERSEN_W9_ROW_COUNT : 0;
+    if (expected_rows == 0 ||
         module->pedersen_columns_symbol == 0 ||
         module->pedersen_rows_symbol == 0 ||
-        row_count != kPedersenRowCount ||
+        row_count != expected_rows ||
         !digest_present(table_identity)) {
         return CUDA_ERROR_INVALID_VALUE;
     }
 
-    constexpr size_t kColumnBytes =
-        static_cast<size_t>(kPedersenRowCount) * sizeof(uint32_t);
+    const size_t kColumnBytes =
+        static_cast<size_t>(expected_rows) * sizeof(uint32_t);
     CUdeviceptr typed_columns[kPedersenColumnCount] = {};
     for (uint32_t index = 0; index < kPedersenColumnCount; ++index) {
         if (columns[index] >
@@ -674,6 +678,18 @@ extern "C" int stwo_native_aot_function_publish_pedersen_w18(
         table_identity,
         sizeof(out_receipt->table_identity));
     return CUDA_SUCCESS;
+}
+
+extern "C" int stwo_native_aot_function_publish_pedersen_w18(
+    void *raw_function, const uint64_t columns[kPedersenColumnCount],
+    uint32_t row_count, const uint8_t table_identity[32],
+    StwoNativeAotModuleGlobalsReceipt *out_receipt) {
+    BoundFunction *function = static_cast<BoundFunction *>(raw_function);
+    if (function == nullptr || function->module == nullptr ||
+        function->module->module_globals != STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1)
+        return CUDA_ERROR_INVALID_VALUE;
+    return stwo_native_aot_function_publish_pedersen(
+        raw_function, columns, row_count, table_identity, out_receipt);
 }
 
 extern "C" int stwo_native_aot_function_launch(

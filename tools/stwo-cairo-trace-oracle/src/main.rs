@@ -1,5 +1,7 @@
 mod checkpoint;
+mod device_traces;
 mod interaction;
+mod oods;
 
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};
@@ -23,6 +25,7 @@ struct Arguments {
 enum Mode {
     Base,
     Interaction,
+    Oods,
 }
 
 fn arguments() -> Result<Arguments> {
@@ -33,12 +36,19 @@ fn arguments() -> Result<Arguments> {
         .context(
             "usage: stwo-cairo-trace-oracle INPUT.json [OUTPUT.json]\n       stwo-cairo-trace-oracle interaction INPUT.json [OUTPUT.json]",
         )?;
-    let (mode, input) = if first == Path::new("interaction") {
+    let (mode, input) = if first == Path::new("interaction") || first == Path::new("oods") {
         let input = values
             .next()
             .map(PathBuf::from)
             .context("interaction mode requires an input path")?;
-        (Mode::Interaction, input)
+        (
+            if first == Path::new("oods") {
+                Mode::Oods
+            } else {
+                Mode::Interaction
+            },
+            input,
+        )
     } else {
         (Mode::Base, first)
     };
@@ -122,7 +132,7 @@ fn main() -> Result<()> {
         serde_json::from_slice(&bytes).context("failed to decode official ProverInput JSON")?;
 
     let preprocessed = Arc::new(PreProcessedTrace::canonical());
-    let generator = create_cairo_claim_generator(prover_input, preprocessed);
+    let generator = create_cairo_claim_generator(prover_input, Arc::clone(&preprocessed));
     let (evals, claim, interaction_generator) = generator.write_trace(None);
     match arguments.mode {
         Mode::Base => {
@@ -131,11 +141,49 @@ fn main() -> Result<()> {
         }
         Mode::Interaction => {
             drop(evals);
-            let (lookup_elements, challenge) = interaction::diagnostic_lookup_elements()?;
+            let (lookup_elements, challenge) =
+                match std::env::var("STWO_CAIRO_TRACE_ORACLE_LOOKUP_CHANNEL_DIGEST") {
+                    Ok(text) => {
+                        let digest: [u8; 32] = hex::decode(text)?.try_into().map_err(|_| {
+                            anyhow::anyhow!("lookup channel digest must be exactly 32 bytes")
+                        })?;
+                        interaction::replay_lookup_elements(digest)?
+                    }
+                    Err(std::env::VarError::NotPresent) => {
+                        interaction::diagnostic_lookup_elements()?
+                    }
+                    Err(err) => return Err(err.into()),
+                };
             let (evals, interaction_claim) =
                 interaction_generator.write_interaction_trace(&lookup_elements);
             let checkpoint =
                 interaction::build(input_digest, &claim, &interaction_claim, evals, challenge)?;
+            write_checkpoint(arguments.output.as_deref(), &checkpoint)
+        }
+        Mode::Oods => {
+            let report_path = std::env::var("STWO_CAIRO_TRACE_ORACLE_OODS_REPORT")
+                .context("oods mode requires the rejected CUDA prefix oracle report")?;
+            let report: serde_json::Value = serde_json::from_slice(&std::fs::read(report_path)?)?;
+            let digest: [u8; 32] = hex::decode(
+                report["lookup_channel_digest_hex"]
+                    .as_str()
+                    .context("missing lookup digest")?,
+            )?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("invalid lookup digest"))?;
+            let (lookups, _) = interaction::replay_lookup_elements(digest)?;
+            let (interaction_evals, interaction_claim) =
+                interaction_generator.write_interaction_trace(&lookups);
+            let checkpoint = oods::build(
+                input_digest,
+                &claim,
+                &interaction_claim,
+                &lookups,
+                &preprocessed,
+                evals,
+                interaction_evals,
+                &report,
+            )?;
             write_checkpoint(arguments.output.as_deref(), &checkpoint)
         }
     }

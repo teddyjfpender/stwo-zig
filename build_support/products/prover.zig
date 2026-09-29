@@ -11,6 +11,9 @@ const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{
         "src/products/prover/root.zig",
         "src/products/prover/surface.zig",
+        "src/prover/focused_test_root.zig",
+        "src/prover/merkle_test_root.zig",
+        "src/prover/work_pool_test.zig",
     },
     .named_imports = &.{
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
@@ -108,6 +111,28 @@ pub fn addProduct(context: Context) Result {
     test_step.dependOn(&context.b.addRunArtifact(engine_tests).step);
     test_step.dependOn(&closure.step);
     test_step.dependOn(&purity.step);
+    const focused = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/focused_test_root.zig", .target = context.target, .optimize = context.optimize });
+    protocol.addImports(focused);
+    const fft_tests = context.b.addTest(.{ .root_module = focused, .filters = &.{ "circle poly", "fft" } });
+    context.b.step("test-stwo-prover-fft", "Test circle transforms, radix scheduling and coefficient parity").dependOn(&context.b.addRunArtifact(fft_tests).step);
+    const sampling_tests = context.b.addTest(.{ .root_module = focused, .filters = &.{ "sampled", "point evaluation", "circle poly" } });
+    context.b.step("test-stwo-prover-sampling", "Test sampled values and independent circle polynomial evaluation").dependOn(&context.b.addRunArtifact(sampling_tests).step);
+    const merkle_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/merkle_test_root.zig", .target = context.target, .optimize = context.optimize });
+    protocol.addImports(merkle_root);
+    const merkle_tests = context.b.addTest(.{ .root_module = merkle_root, .filters = &.{ "vcs_lifted", "MerkleProverLifted" } });
+    context.b.step("test-stwo-prover-merkle", "Test lifted Merkle commitment paths and allocation custody").dependOn(&context.b.addRunArtifact(merkle_tests).step);
+    const preparation_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/focused_test_root.zig", .target = context.target, .optimize = context.optimize });
+    protocol.addImports(preparation_root);
+    const preparation_tests = context.b.addTest(.{ .root_module = preparation_root, .filters = &.{"column preparation"} });
+    context.b.step("test-stwo-prover-preparation", "Test prepared column cache and asynchronous publication").dependOn(&context.b.addRunArtifact(preparation_tests).step);
+    const coefficient_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/coefficient_storage_test_root.zig", .target = context.target, .optimize = context.optimize });
+    protocol.addImports(coefficient_root);
+    const coefficient_tests = context.b.addTest(.{ .root_module = coefficient_root, .filters = &.{"coefficient storage"} });
+    context.b.step("test-stwo-prover-coefficient-storage", "Qualify compact polynomial commitments, quotients, openings and failure custody").dependOn(&context.b.addRunArtifact(coefficient_tests).step);
+    const pool_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/work_pool_test.zig", .target = context.target, .optimize = context.optimize });
+    protocol.addImports(pool_root);
+    const pool_tests = context.b.addTest(.{ .root_module = pool_root });
+    context.b.step("test-stwo-prover-pool", "Test proof-scoped pool lifetimes and concurrent borrowed coordinators").dependOn(&context.b.addRunArtifact(pool_tests).step);
 
     return .{ .module = module, .protocol = protocol, .test_step = test_step };
 }

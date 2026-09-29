@@ -1,0 +1,22 @@
+{
+  "stored_geometry_and_admission": {
+    "exit_code": 0,
+    "log": "/tmp/cairo-nine-hours-stored-tests-v9.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "parallel_counting": {
+    "exit_code": 0,
+    "log": "/tmp/cairo-nine-hours-fixed-parallel-tests-v2.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "metal_product_gate": {
+    "exit_code": 0,
+    "log": "/tmp/cairo-nine-hours-product-gate-v1.log",
+    "log_sha256": "847f32439c337e2ac672a91cadd8ebf6e6433ce5c75a7494ba5e27f6a2d2861b"
+  },
+  "metal_build": {
+    "exit_code": 0,
+    "log": "/tmp/cairo-nine-hours-parallel-build-v2.log",
+    "log_sha256": "d67df0bf268256ea10c5265d4cc4512fa3c9a9d203bb9182153c66007302e891"
+  }
+}

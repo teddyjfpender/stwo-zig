@@ -8,7 +8,9 @@ const runtime_error = @import("../error.zig");
 const telemetry = @import("../telemetry.zig");
 
 pub const Native = OpsFor(abi);
-pub const max_power_count: usize = 510;
+// The ABI count and the owned output extent bound the launch. Native's old
+// 510-power limit was workload-specific and excludes Cairo's 1,325 powers.
+pub const max_power_count: usize = @import("std").math.maxInt(u32);
 
 const stage = telemetry.Stage.constraint_evaluation;
 
@@ -19,6 +21,16 @@ pub fn OpsFor(comptime Api: type) type {
             alpha: common.SecureFields,
             output: common.SecureFields,
         ) runtime_error.Error!void {
+            return expandWith(Api.stwo_constraint_expand_powers_on, session, alpha, output);
+        }
+
+        /// Cairo consumes alpha^(N-1-i) in constraint encounter order. Keep
+        /// the ascending primitive available for other proof frontends.
+        pub fn expandReversed(session: anytype, alpha: common.SecureFields, output: common.SecureFields) runtime_error.Error!void {
+            return expandWith(Api.stwo_constraint_expand_reversed_powers_on, session, alpha, output);
+        }
+
+        fn expandWith(comptime launch: anytype, session: anytype, alpha: common.SecureFields, output: common.SecureFields) runtime_error.Error!void {
             try common.requireStage(session, stage);
             if (alpha.len != 1 or output.len == 0 or
                 output.len > max_power_count)
@@ -41,7 +53,7 @@ pub fn OpsFor(comptime Api: type) type {
                 &.{output_values.range},
                 &.{alpha_value.range},
             );
-            const status = Api.stwo_constraint_expand_powers_on(
+            const status = launch(
                 @ptrCast(alpha_value.pointer),
                 output_values.pointer,
                 output.len,
@@ -57,6 +69,7 @@ test "constraint powers validate stage ownership range alias and capacity" {
     const TestApi = struct {
         var launches: u32 = 0;
         var last_stream: usize = 0;
+        var reversed: bool = false;
 
         fn stwo_constraint_expand_powers_on(
             _: *const field.SecureField,
@@ -69,6 +82,10 @@ test "constraint powers validate stage ownership range alias and capacity" {
             launches += 1;
             last_stream = @intFromPtr(stream);
             return 0;
+        }
+        fn stwo_constraint_expand_reversed_powers_on(alpha: *const field.SecureField, output: [*]field.SecureField, capacity: usize, count: u32, stream: *anyopaque) c_int {
+            reversed = true;
+            return stwo_constraint_expand_powers_on(alpha, output, capacity, count, stream);
         }
     };
     const Ops = OpsFor(TestApi);
@@ -108,6 +125,12 @@ test "constraint powers validate stage ownership range alias and capacity" {
         error.InvalidKernelDescriptor,
         Ops.expand(&session, alpha, too_wide),
     );
+    session.context.range_end = 0x10000;
+    try Ops.expand(&session, alpha, testSecure(0x2100, 1325));
+    try @import("std").testing.expectEqual(@as(u32, 2), TestApi.launches);
+    try Ops.expandReversed(&session, alpha, testSecure(0x2100, 1325));
+    try @import("std").testing.expect(TestApi.reversed);
+    try @import("std").testing.expectEqual(@as(u32, 3), TestApi.launches);
     session.context.active_stage = .oods;
     try @import("std").testing.expectError(
         error.StageOrderViolation,
@@ -134,6 +157,7 @@ const TestSession = struct {
 const TestContext = struct {
     active_stage: telemetry.Stage = stage,
     stream: *anyopaque = @ptrFromInt(0x3000),
+    range_end: usize = 0x2000,
 
     pub fn requireStage(
         self: *TestContext,
@@ -143,7 +167,7 @@ const TestContext = struct {
     }
 
     pub fn deviceSlicePointer(
-        _: *TestContext,
+        self: *TestContext,
         comptime F: type,
         slice: anytype,
         minimum: usize,
@@ -165,7 +189,7 @@ const TestContext = struct {
             slice.address,
             bytes,
         ) catch return error.SizeOverflow;
-        if (slice.address < 0x1000 or end > 0x2000)
+        if (slice.address < 0x1000 or end > self.range_end)
             return error.InvalidDeviceAddress;
         return @ptrFromInt(slice.address);
     }

@@ -1,0 +1,337 @@
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 493395500, "user_ns": 1032607000, "system_ns": 313473000, "max_process_tree_rss_bytes": 786251776, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 191433000, "user_ns": 175262000, "system_ns": 2619000, "max_process_tree_rss_bytes": 19611648, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11923541, "proof_encode_ns": 2874792, "request_until_publication_ns": 479886500, "execute_ns": 15558667, "prove_ns": 403392417, "verify_ns": 3544542}, "proof_sha256": "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 24, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0010927915573120117, "library_preparation_seconds": 0.01374804973602295}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 98, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 13, "commit_source_arena_memcpys": 11, "commit_source_uploads": 17, "cached_merkle_artifact_adoptions": 0, "compacted_merkle_layer_adoptions": 24}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 0, "misses": 2, "stores": 2, "evictions": 0, "loaded_bytes": 0, "stored_bytes": 10485984, "evicted_bytes": 0, "directory_bytes": 5937039680, "eviction_ns": 165000}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1302824472, "current_physical_footprint_bytes": 373605600, "process_cpu_ns": 1309046541, "energy_nj": 5009020733, "instructions": 19366356512, "cycles": 5568468149, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 636459542, "user_ns": 1708948000, "system_ns": 619022000, "max_process_tree_rss_bytes": 1441529856, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 326643000, "user_ns": 309127000, "system_ns": 4059000, "max_process_tree_rss_bytes": 27836416, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11819291, "proof_encode_ns": 4496417, "request_until_publication_ns": 620803042, "execute_ns": 15057625, "prove_ns": 534677459, "verify_ns": 7150166}, "proof_sha256": "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 46, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0021109580993652344, "library_preparation_seconds": 0.013624072074890137}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 123, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 15, "commit_source_arena_memcpys": 13, "commit_source_uploads": 17, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1928415080, "current_physical_footprint_bytes": 822822208, "process_cpu_ns": 2287959666, "energy_nj": 8028870900, "instructions": 28872444587, "cycles": 9764862217, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 487303750, "user_ns": 1178448000, "system_ns": 308355000, "max_process_tree_rss_bytes": 787398656, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 204470000, "user_ns": 192719000, "system_ns": 3094000, "max_process_tree_rss_bytes": 21135360, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11853958, "proof_encode_ns": 3134583, "request_until_publication_ns": 471673708, "execute_ns": 14183833, "prove_ns": 393242750, "verify_ns": 4111000}, "proof_sha256": "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 29, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0012558698654174805, "library_preparation_seconds": 0.013630032539367676}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 101, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 13, "commit_source_arena_memcpys": 9, "commit_source_uploads": 17, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1303512648, "current_physical_footprint_bytes": 626771288, "process_cpu_ns": 1449770291, "energy_nj": 5453531288, "instructions": 20369077293, "cycles": 6184147979, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 446662666, "user_ns": 846929000, "system_ns": 258881000, "max_process_tree_rss_bytes": 787021824, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 207848917, "user_ns": 192138000, "system_ns": 3098000, "max_process_tree_rss_bytes": 20807680, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11935583, "proof_encode_ns": 3091542, "request_until_publication_ns": 431811333, "execute_ns": 13118375, "prove_ns": 354698917, "verify_ns": 3986167}, "proof_sha256": "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 29, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0012499094009399414, "library_preparation_seconds": 0.013699054718017578}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 100, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 13, "commit_source_arena_memcpys": 11, "commit_source_uploads": 17, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1235961296, "current_physical_footprint_bytes": 559416520, "process_cpu_ns": 1068044416, "energy_nj": 4306695424, "instructions": 16853388305, "cycles": 4550218586, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 550967583, "user_ns": 1643528000, "system_ns": 297491000, "max_process_tree_rss_bytes": 786808832, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 204636334, "user_ns": 188711000, "system_ns": 3039000, "max_process_tree_rss_bytes": 20660224, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11960458, "proof_encode_ns": 3158333, "request_until_publication_ns": 535145667, "execute_ns": 12603375, "prove_ns": 458548750, "verify_ns": 3947292}, "proof_sha256": "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 29, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.001432657241821289, "library_preparation_seconds": 0.014307022094726562}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 130, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 13, "commit_source_arena_memcpys": 11, "commit_source_uploads": 17, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1235731944, "current_physical_footprint_bytes": 407864544, "process_cpu_ns": 1903662166, "energy_nj": 7146817536, "instructions": 25362699806, "cycles": 8114287070, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 495924000, "user_ns": 959547000, "system_ns": 290525000, "max_process_tree_rss_bytes": 802947072, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 279300125, "user_ns": 261727000, "system_ns": 3511000, "max_process_tree_rss_bytes": 25657344, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11885417, "proof_encode_ns": 3941791, "request_until_publication_ns": 479809000, "execute_ns": 13971750, "prove_ns": 399068958, "verify_ns": 5827208}, "proof_sha256": "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 36, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0016711950302124023, "library_preparation_seconds": 0.013638973236083984}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 109, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 7, "commit_source_arena_memcpys": 6, "commit_source_uploads": 30, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1534264880, "current_physical_footprint_bytes": 850396480, "process_cpu_ns": 1212103208, "energy_nj": 4838846491, "instructions": 18379163360, "cycles": 5164895422, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 494789459, "user_ns": 994287000, "system_ns": 339015000, "max_process_tree_rss_bytes": 817250304, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 258211875, "user_ns": 241534000, "system_ns": 3428000, "max_process_tree_rss_bytes": 24035328, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11976250, "proof_encode_ns": 3703833, "request_until_publication_ns": 479065125, "execute_ns": 13142500, "prove_ns": 399734792, "verify_ns": 5412750}, "proof_sha256": "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 33, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0015518665313720703, "library_preparation_seconds": 0.013615012168884277}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 106, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 9, "commit_source_arena_memcpys": 4, "commit_source_uploads": 30, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1808238104, "current_physical_footprint_bytes": 1111934200, "process_cpu_ns": 1296469625, "energy_nj": 5015695132, "instructions": 19026490481, "cycles": 5523889461, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 754648000, "user_ns": 1690595000, "system_ns": 697732000, "max_process_tree_rss_bytes": 1016266752, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 490624375, "user_ns": 472528000, "system_ns": 5202000, "max_process_tree_rss_bytes": 37142528, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 13815500, "proof_encode_ns": 6457916, "request_until_publication_ns": 738797416, "execute_ns": 0, "prove_ns": 698019166, "verify_ns": 12412500}, "proof_sha256": "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 48, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0027381181716918945, "library_preparation_seconds": 0.0135880708694458}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 121, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 9, "commit_source_arena_memcpys": 4, "commit_source_uploads": 30, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 2994652888, "current_physical_footprint_bytes": 2122777992, "process_cpu_ns": 2386148125, "energy_nj": 8327962106, "instructions": 29289800849, "cycles": 10187846090, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 432323041, "user_ns": 643958000, "system_ns": 293453000, "max_process_tree_rss_bytes": 787169280, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 213182792, "user_ns": 197918000, "system_ns": 2963000, "max_process_tree_rss_bytes": 21446656, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11817834, "proof_encode_ns": 3140083, "request_until_publication_ns": 417985875, "execute_ns": 13956625, "prove_ns": 342474750, "verify_ns": 4145292}, "proof_sha256": "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 31, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0013450384140014648, "library_preparation_seconds": 0.013502001762390137}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 101, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 13, "commit_source_arena_memcpys": 9, "commit_source_uploads": 17, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1252640208, "current_physical_footprint_bytes": 576226480, "process_cpu_ns": 900269666, "energy_nj": 3578612194, "instructions": 14643283236, "cycles": 3830041964, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 731683417, "user_ns": 2858865000, "system_ns": 628480000, "max_process_tree_rss_bytes": 1448263680, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 325069417, "user_ns": 309095000, "system_ns": 3750000, "max_process_tree_rss_bytes": 26591232, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 11928375, "proof_encode_ns": 4287500, "request_until_publication_ns": 715844541, "execute_ns": 71207417, "prove_ns": 575690083, "verify_ns": 6704125}, "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f", "profile": "official-live-cairo-canonical-small", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 40, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0018388032913208008, "library_preparation_seconds": 0.013669967651367188}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 117, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 16, "commit_source_arena_memcpys": 12, "commit_source_uploads": 17, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 23}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 10485984, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 1880197016, "current_physical_footprint_bytes": 772982104, "process_cpu_ns": 3392948708, "energy_nj": 11746042981, "instructions": 40473183068, "cycles": 14451848310, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 4739477541, "user_ns": 7933369000, "system_ns": 3814017000, "max_process_tree_rss_bytes": 7332298752, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 534611917, "user_ns": 513654000, "system_ns": 5518000, "max_process_tree_rss_bytes": 37666816, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 16235541, "proof_encode_ns": 7180042, "request_until_publication_ns": 4722254500, "execute_ns": 0, "prove_ns": 4678705542, "verify_ns": 13213625}, "proof_sha256": "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348", "profile": "official-live-cairo-canonical", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 48, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.004517793655395508, "library_preparation_seconds": 0.021950960159301758}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 156, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 9, "commit_source_arena_memcpys": 5, "commit_source_uploads": 43, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 26}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 12757768696, "current_physical_footprint_bytes": 1882375848, "process_cpu_ns": 11745998041, "energy_nj": 34555941202, "instructions": 172434722110, "cycles": 46198818362, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 21849315916, "user_ns": 87207180000, "system_ns": 28745034000, "max_process_tree_rss_bytes": 46120992768, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 698695958, "user_ns": 628119000, "system_ns": 17210000, "max_process_tree_rss_bytes": 39878656, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 202984667, "proof_encode_ns": 8878583, "request_until_publication_ns": 21816310375, "execute_ns": 4124191125, "prove_ns": 17313879458, "verify_ns": 14589500}, "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111", "profile": "official-live-cairo-canonical", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 52, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.0106201171875, "library_preparation_seconds": 0.028064966201782227}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 340, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 42, "commit_source_arena_memcpys": 4, "commit_source_uploads": 85, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 26}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 51525356344, "current_physical_footprint_bytes": 2616101984, "process_cpu_ns": 110011370625, "energy_nj": 245152028930, "instructions": 890871371476, "cycles": 445954208992, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 13523519500, "user_ns": 46668177000, "system_ns": 13282722000, "max_process_tree_rss_bytes": 27436220416, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 627930791, "user_ns": 610381000, "system_ns": 6540000, "max_process_tree_rss_bytes": 39485440, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 128433541, "proof_encode_ns": 8094083, "request_until_publication_ns": 13495076292, "execute_ns": 2144122375, "prove_ns": 11092358750, "verify_ns": 14472000}, "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545", "profile": "official-live-cairo-canonical", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 52, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.003026247024536133, "library_preparation_seconds": 0.015679001808166504}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 249, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 28, "commit_source_arena_memcpys": 5, "commit_source_uploads": 66, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 26}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 32198317536, "current_physical_footprint_bytes": 3291942152, "process_cpu_ns": 56727005750, "energy_nj": 139837272506, "instructions": 542568922688, "cycles": 228059651825, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 19953008750, "user_ns": 82121932000, "system_ns": 18891123000, "max_process_tree_rss_bytes": 45708951552, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 703370833, "user_ns": 624017000, "system_ns": 21178000, "max_process_tree_rss_bytes": 39895040, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 196993750, "proof_encode_ns": 8986125, "request_until_publication_ns": 19916228625, "execute_ns": 4042182125, "prove_ns": 15574131041, "verify_ns": 14736833}, "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9", "profile": "official-live-cairo-canonical", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 52, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.01151895523071289, "library_preparation_seconds": 0.028349995613098145}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 343, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 42, "commit_source_arena_memcpys": 4, "commit_source_uploads": 83, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 26}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 50847959432, "current_physical_footprint_bytes": 4715630240, "process_cpu_ns": 95265031458, "energy_nj": 237168737578, "instructions": 858209684501, "cycles": 390218228857, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 16712889625, "user_ns": 56091329000, "system_ns": 15848630000, "max_process_tree_rss_bytes": 35669032960, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 627580166, "user_ns": 606141000, "system_ns": 5844000, "max_process_tree_rss_bytes": 39436288, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 203467917, "proof_encode_ns": 8602042, "request_until_publication_ns": 16685194334, "execute_ns": 3644326250, "prove_ns": 12713664750, "verify_ns": 14775458}, "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67", "profile": "official-live-cairo-canonical", "backend": "metal", "backend_evidence": {"execution": "metal-pcs", "pipeline_cache": {"library_hits": 0, "library_misses": 1, "pipeline_hits": 0, "binary_archive_hits": 52, "binary_archive_misses": 0, "direct_compiles": 0, "archive_populations": 0, "archive_serializations": 0, "pipeline_preparation_seconds": 0.002980947494506836, "library_preparation_seconds": 0.013789057731628418}, "archive_store": {"disk_hits": 1, "disk_misses": 0, "bytes_published": 0, "publication_failures": 0, "persistence_bypasses": 0, "disk_bytes": 512125760}, "classification": "accelerated_without_fallbacks", "metal_dispatches": 285, "cpu_fallbacks": 0, "runtime_initializations": 1, "runtime_shutdowns": 1, "commit_source_arena_aliases": 31, "commit_source_arena_memcpys": 5, "commit_source_uploads": 75, "cached_merkle_artifact_adoptions": 1, "compacted_merkle_layer_adoptions": 26}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 40435363056, "current_physical_footprint_bytes": 4623945232, "process_cpu_ns": 66399355000, "energy_nj": 178272698009, "instructions": 626963230633, "cycles": 276575366076, "unavailable_reason": null}}
+{
+  "status": "qualified",
+  "summary": [
+    {
+      "workload": "ret",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.4933955,
+      "prove_seconds": 0.403392417,
+      "peak_rss_bytes": 786251776,
+      "peak_product_physical_footprint_bytes": 1302824472,
+      "first_process_seconds": 0.4933955,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/ret-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-opcodes",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.636459542,
+      "prove_seconds": 0.534677459,
+      "peak_rss_bytes": 1441529856,
+      "peak_product_physical_footprint_bytes": 1928415080,
+      "first_process_seconds": 0.636459542,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/all-opcodes-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "bitwise",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.48730375,
+      "prove_seconds": 0.39324275,
+      "peak_rss_bytes": 787398656,
+      "peak_product_physical_footprint_bytes": 1303512648,
+      "first_process_seconds": 0.48730375,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/bitwise-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "range96",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.446662666,
+      "prove_seconds": 0.354698917,
+      "peak_rss_bytes": 787021824,
+      "peak_product_physical_footprint_bytes": 1235961296,
+      "first_process_seconds": 0.446662666,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/range96-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "range128",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.550967583,
+      "prove_seconds": 0.45854875,
+      "peak_rss_bytes": 786808832,
+      "peak_product_physical_footprint_bytes": 1235731944,
+      "first_process_seconds": 0.550967583,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/range128-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "poseidon",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.495924,
+      "prove_seconds": 0.399068958,
+      "peak_rss_bytes": 802947072,
+      "peak_product_physical_footprint_bytes": 1534264880,
+      "first_process_seconds": 0.495924,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/poseidon-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "pedersen",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.494789459,
+      "prove_seconds": 0.399734792,
+      "peak_rss_bytes": 817250304,
+      "peak_product_physical_footprint_bytes": 1808238104,
+      "first_process_seconds": 0.494789459,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/pedersen-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.754648,
+      "prove_seconds": 0.698019166,
+      "peak_rss_bytes": 1016266752,
+      "peak_product_physical_footprint_bytes": 2994652888,
+      "first_process_seconds": 0.754648,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/all-builtins-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "executable-add-one",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.432323041,
+      "prove_seconds": 0.34247475,
+      "peak_rss_bytes": 787169280,
+      "peak_product_physical_footprint_bytes": 1252640208,
+      "first_process_seconds": 0.432323041,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/executable-add-one-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "fibonacci-pie",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.731683417,
+      "prove_seconds": 0.575690083,
+      "peak_rss_bytes": 1448263680,
+      "peak_product_physical_footprint_bytes": 1880197016,
+      "first_process_seconds": 0.731683417,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/fibonacci-pie-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 4.739477541,
+      "prove_seconds": 4.678705542,
+      "peak_rss_bytes": 7332298752,
+      "peak_product_physical_footprint_bytes": 12757768696,
+      "first_process_seconds": 4.739477541,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/all-builtins-canonical-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-1",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 21.849315916,
+      "prove_seconds": 17.313879458,
+      "peak_rss_bytes": 46120992768,
+      "peak_product_physical_footprint_bytes": 51525356344,
+      "first_process_seconds": 21.849315916,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-1-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-2",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 13.5235195,
+      "prove_seconds": 11.09235875,
+      "peak_rss_bytes": 27436220416,
+      "peak_product_physical_footprint_bytes": 32198317536,
+      "first_process_seconds": 13.5235195,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-2-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-3",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 19.95300875,
+      "prove_seconds": 15.574131041,
+      "peak_rss_bytes": 45708951552,
+      "peak_product_physical_footprint_bytes": 50847959432,
+      "first_process_seconds": 19.95300875,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-3-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-4",
+      "backend": "metal",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 16.712889625,
+      "prove_seconds": 12.71366475,
+      "peak_rss_bytes": 35669032960,
+      "peak_product_physical_footprint_bytes": 40435363056,
+      "first_process_seconds": 16.712889625,
+      "aggregation": "single trial",
+      "proof_sha256": [
+        "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-4-metal-workers-auto/results.json"
+    }
+  ],
+  "backend_proof_parity": [
+    {
+      "workload": "ret",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-opcodes",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "bitwise",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "range96",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "range128",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "poseidon",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "pedersen",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-builtins",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "executable-add-one",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "fibonacci-pie",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-1",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-2",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-3",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-4",
+      "workers": null,
+      "status": "single-backend"
+    }
+  ]
+}

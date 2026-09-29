@@ -245,6 +245,12 @@ pub extern fn stwo_zig_metal_merkle_commit_v2(
     error_message_len: usize,
 ) ?*anyopaque;
 pub extern fn stwo_zig_metal_tree_destroy(tree: ?*anyopaque) void;
+pub extern fn stwo_zig_metal_tree_prune_bottom_v1(
+    runtime: *anyopaque,
+    tree: *anyopaque,
+    bottom_layers: u32,
+    arena_bytes: usize,
+) bool;
 pub extern fn stwo_zig_metal_tree_root(
     tree: *anyopaque,
     root: *[32]u8,
@@ -318,6 +324,7 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
             handle: *anyopaque,
             runtime_handle: *anyopaque,
             log_size: u32,
+            pruned_bottom_layers: u32 = 0,
             external_reservation: ExternalReservation = .empty(),
             shared_external_reservation: @import("fri_reservation_owner_v1.zig").Ref = .{},
 
@@ -335,6 +342,30 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
                 return .{ .hash = hash, .gpu_ms = gpu_ms };
             }
 
+            /// Exclusive, joined trees only. On refusal the original tree is
+            /// unchanged. The old reservation stays conservative, including
+            /// aliases or hash arenas shared by several cascade trees.
+            pub fn pruneBottomLayers(self: *Tree, count: u32) bool {
+                if (self.pruned_bottom_layers != 0 or count == 0 or
+                    count > self.log_size or self.log_size >= 31) return false;
+                var bytes: usize = 0;
+                for (0..self.log_size - count + 1) |log| {
+                    bytes = std.mem.alignForward(usize, bytes, 256);
+                    bytes += (@as(usize, 1) << @intCast(log)) * 32;
+                }
+                var temporary = if (self.external_reservation.owner) |owner|
+                    owner.reserveExternal(bytes) catch return false
+                else if (self.shared_external_reservation.owner) |owner|
+                    owner.binding.reserve(bytes) catch return false
+                else
+                    ExternalReservation.unbudgeted(bytes);
+                defer temporary.deinit();
+                if (!stwo_zig_metal_tree_prune_bottom_v1(self.runtime_handle, self.handle, count, bytes))
+                    return false;
+                self.pruned_bottom_layers = count;
+                return true;
+            }
+
             /// Reads only selected hashes from one logical root-to-leaf layer.
             /// `layer_log_size == 0` addresses the root and `log_size` the leaves.
             pub fn copyHashes(
@@ -343,7 +374,7 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
                 layer_log_size: u32,
                 indices: []const u32,
             ) (MetalError || std.mem.Allocator.Error)![][32]u8 {
-                if (layer_log_size > self.log_size) return MetalError.RootReadFailed;
+                if (layer_log_size > self.log_size - self.pruned_bottom_layers) return MetalError.RootReadFailed;
                 const layer_len = @as(usize, 1) << @intCast(layer_log_size);
                 for (indices) |index| {
                     if (index >= layer_len) return MetalError.RootReadFailed;
@@ -396,7 +427,7 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
 
                 var total_hashes: usize = 0;
                 for (requests, 0..) |request, request_index| {
-                    if (request.layer_log_size >= 31 or request.layer_log_size > self.log_size)
+                    if (request.layer_log_size >= 31 or request.layer_log_size > self.log_size - self.pruned_bottom_layers)
                         return MetalError.RootReadFailed;
                     const layer_len = @as(usize, 1) << @intCast(request.layer_log_size);
                     for (request.indices) |index| if (index >= layer_len) return MetalError.RootReadFailed;
@@ -504,6 +535,7 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
                 allocator: std.mem.Allocator,
                 log_size: u32,
             ) (MetalError || std.mem.Allocator.Error)![][32]u8 {
+                if (self.pruned_bottom_layers != 0) return MetalError.RootReadFailed;
                 const hash_count = (@as(usize, 1) << @intCast(log_size + 1)) - 1;
                 const output = try allocator.alloc([32]u8, hash_count);
                 errdefer allocator.free(output);
@@ -525,21 +557,8 @@ pub fn ResidentData(comptime MetalError: type, comptime Runtime: type) type {
     };
 }
 
-const TestRuntime = struct {
-    handle: *anyopaque,
-};
-const TestData = ResidentData(error{RootReadFailed}, TestRuntime);
-
-test "resident resources retain stable host layouts" {
-    try std.testing.expectEqual(@as(usize, 3 * @sizeOf(usize)), @sizeOf(TestData.ResidentBuffer));
-    try std.testing.expectEqual(@as(usize, 0), @offsetOf(TestData.ResidentBuffer, "handle"));
-    try std.testing.expectEqual(@as(usize, @sizeOf(usize)), @offsetOf(TestData.ResidentBuffer, "contents"));
-
-    try std.testing.expectEqual(@as(usize, 0), @offsetOf(TestData.Tree, "handle"));
-    try std.testing.expectEqual(@as(usize, @sizeOf(usize)), @offsetOf(TestData.Tree, "runtime_handle"));
-    try std.testing.expectEqual(@as(usize, 2 * @sizeOf(usize)), @offsetOf(TestData.Tree, "log_size"));
-}
-
+// Resource wrappers are private Zig ownership objects, not C payloads. Their
+// layout includes budget reservations; native custody crosses opaque handles.
 test "resident commitment bindings retain pointer ABI" {
     const commit = @typeInfo(@TypeOf(stwo_zig_metal_merkle_commit)).@"fn";
     try std.testing.expect(commit.params[1].type.? == [*]const [*]const u32);

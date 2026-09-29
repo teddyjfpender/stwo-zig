@@ -298,7 +298,18 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
                 column_refs[i] = column.values;
             }
 
-            var commitment = if (comptime @hasDecl(B, "commitMerkleWithBacking"))
+            const HostTree = vcs_lifted_prover.MerkleProverLifted(H);
+            const can_adopt_cached = B.MerkleTree(H) == HostTree or @hasDecl(B, "adoptHostMerkle");
+            const loaded: ?HostTree = if (comptime can_adopt_cached)
+                @import("merkle_cached_tree.zig").loadColumns(H, allocator, column_refs)
+            else
+                null;
+            var commitment = if (loaded) |cached| blk: {
+                if (comptime B.MerkleTree(H) == HostTree) break :blk cached;
+                if (comptime @hasDecl(B, "adoptCachedMerkle"))
+                    break :blk try B.adoptCachedMerkle(H, allocator, column_refs, column_backing_buffers, cached);
+                break :blk B.adoptHostMerkle(H, cached);
+            } else if (comptime @hasDecl(B, "commitMerkleWithBacking"))
                 if (column_backing_buffers) |buffers|
                     try B.commitMerkleWithBacking(H, allocator, column_refs, buffers)
                 else
@@ -306,7 +317,36 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             else
                 try B.commitMerkle(H, allocator, column_refs);
             errdefer commitment.deinit(allocator);
-            recordMerkleWork(B, work_recorder, column_refs);
+            if (loaded == null) {
+                if (comptime @hasDecl(B, "adoptCompactedMerkle")) {
+                    if (@import("merkle_cached_tree.zig").captureAndStoreReader(
+                        H,
+                        allocator,
+                        column_refs,
+                        commitment,
+                    )) |upper| {
+                        const reduced = try B.adoptCompactedMerkle(
+                            H,
+                            allocator,
+                            column_refs,
+                            column_backing_buffers,
+                            upper,
+                        );
+                        commitment.deinit(allocator);
+                        commitment = reduced;
+                    }
+                } else {
+                    @import("merkle_cached_tree.zig").storeReader(H, allocator, column_refs, commitment);
+                }
+                recordMerkleWork(B, work_recorder, column_refs);
+            } else if (work_recorder) |active| {
+                active.recordCompletedDelta(.{
+                    .site = .commitment_tree_merkle,
+                    .producer = .commitment_tree_merkle,
+                    .source_mask = @import("stwo_prover_api").work_profile.SourceMask.one(.merkle_compressions),
+                    .counters = .{},
+                }) catch active.markIncomplete();
+            }
             if (comptime @hasDecl(B.MerkleTree(H), "compactForQueries")) commitment.compactForQueries();
 
             return .{
@@ -447,8 +487,10 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             var result = if (self.compact_polynomials and self.columns.len != 0) blk: {
                 if (comptime @hasField(B.MerkleTree(H), "layers"))
                     break :blk try @import("coefficient_opening.zig").decommit(H, allocator, self, sorted_positions)
-                else
-                    return error.UnsupportedCompactPolynomialStorage;
+                else if (comptime @hasDecl(B.MerkleTree(H), "coefficientOpeningCommitment")) {
+                    const borrowed = .{ .columns = self.columns, .commitment = try self.commitment.coefficientOpeningCommitment() };
+                    break :blk try @import("coefficient_opening.zig").decommitForBackend(B, H, allocator, borrowed, sorted_positions);
+                } else return error.UnsupportedCompactPolynomialStorage;
             } else try self.commitment.decommit(allocator, sorted_positions, column_refs);
             errdefer result.deinit(allocator);
 

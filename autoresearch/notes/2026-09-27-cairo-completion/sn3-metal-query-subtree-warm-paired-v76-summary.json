@@ -1,0 +1,4375 @@
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "variant_environment": {
+    "before": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+    },
+    "after": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+    }
+  },
+  "records": [
+    {
+      "pair": 1,
+      "variant": "before",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn3-metal-query-subtree-warm-paired-v76/pair-1-before/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "b54f21b30c5a856f7ac50af56198ee21c60b95905880518617eb3b6652c33562",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 20331142375,
+              "user_ns": 80925360000,
+              "system_ns": 18388420000,
+              "max_process_tree_rss_bytes": 45709639680,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 698010458,
+              "user_ns": 625209000,
+              "system_ns": 19727000,
+              "max_process_tree_rss_bytes": 39927808,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 198730125,
+              "proof_encode_ns": 8445875,
+              "request_until_publication_ns": 20300107834,
+              "execute_ns": 4041320083,
+              "prove_ns": 15881354041,
+              "verify_ns": 14315250
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.010509967803955078,
+                "library_preparation_seconds": 0.029185891151428223
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512125760
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 343,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 42,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 83,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 53622442376,
+              "current_physical_footprint_bytes": 2601192424,
+              "process_cpu_ns": 93538049250,
+              "energy_nj": 251106734855,
+              "instructions": 859003908488,
+              "cycles": 393719830170,
+              "unavailable_reason": null
+            },
+            "stages": [
+              {
+                "id": "preprocessed_plan",
+                "label": "Preprocessed plan",
+                "seconds": 2e-05
+              },
+              {
+                "id": "preprocessed_table_build",
+                "label": "Preprocessed table build",
+                "seconds": 0.251226
+              },
+              {
+                "id": "base_trace_arena_plan",
+                "label": "Base trace arena plan",
+                "seconds": 2.6e-05
+              },
+              {
+                "id": "base_trace_build",
+                "label": "Base trace build",
+                "seconds": 4.150883
+              },
+              {
+                "id": "air_template_instantiation",
+                "label": "AIR template instantiation",
+                "seconds": 0.000384
+              },
+              {
+                "id": "preprocessed_materialize_and_commit",
+                "label": "Preprocessed materialize and commit",
+                "seconds": 1.550202
+              },
+              {
+                "id": "main_trace_commit",
+                "label": "Main trace commit",
+                "seconds": 2.494426
+              },
+              {
+                "id": "interaction_trace_arena_plan",
+                "label": "Interaction trace arena plan",
+                "seconds": 5.7e-05
+              },
+              {
+                "id": "interaction_trace_build",
+                "label": "Interaction trace build",
+                "seconds": 2.153974
+              },
+              {
+                "id": "interaction_trace_commit",
+                "label": "Interaction trace commit",
+                "seconds": 1.664171
+              },
+              {
+                "id": "composition_device_admission",
+                "label": "Device composition admission",
+                "seconds": 0.045461
+              },
+              {
+                "id": "draw_random_coeff",
+                "label": "Draw random coefficient",
+                "seconds": 0
+              },
+              {
+                "id": "composition_trace_extract",
+                "label": "Composition trace extract",
+                "seconds": 2.5e-05
+              },
+              {
+                "id": "composition_evaluation",
+                "label": "Composition evaluation",
+                "seconds": 2.236622
+              },
+              {
+                "id": "composition_interpolate_and_split",
+                "label": "Composition interpolate and split",
+                "seconds": 0.025191
+              },
+              {
+                "id": "composition_commit",
+                "label": "Composition commit",
+                "seconds": 0.090661
+              },
+              {
+                "id": "oods_point_and_mask_points",
+                "label": "OODS point and mask points",
+                "seconds": 0.000302
+              },
+              {
+                "id": "sampled_value_evaluation",
+                "label": "Sampled-value evaluation",
+                "seconds": 0.413414
+              },
+              {
+                "id": "sampled_value_channel_mix",
+                "label": "Sampled-value channel mix",
+                "seconds": 0.000241
+              },
+              {
+                "id": "fri_quotient_build_and_commit",
+                "label": "FRI quotient build + commit (lazy)",
+                "seconds": 2.13529
+              },
+              {
+                "id": "proof_of_work",
+                "label": "Proof of work",
+                "seconds": 0.011352
+              },
+              {
+                "id": "fri_decommit",
+                "label": "FRI decommit",
+                "seconds": 0.007504
+              },
+              {
+                "id": "trace_decommit",
+                "label": "Trace decommit",
+                "seconds": 0.01815
+              },
+              {
+                "id": "constraint_check_and_assembly",
+                "label": "Constraint check and assembly",
+                "seconds": 0.002084
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 20331142375,
+          "median_prove_ns": 15881354041,
+          "peak_process_rss_bytes": 45709639680,
+          "peak_product_physical_footprint_bytes": 53622442376,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "variant": "after",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn3-metal-query-subtree-warm-paired-v76/pair-1-after/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "cac36fc1f292117a8e0c93f9f276df5e6696b7a95231b5202569d54d77947ece",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 20533756833,
+              "user_ns": 81527873000,
+              "system_ns": 18471341000,
+              "max_process_tree_rss_bytes": 45708771328,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 698781291,
+              "user_ns": 625633000,
+              "system_ns": 18580000,
+              "max_process_tree_rss_bytes": 39895040,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 207823459,
+              "proof_encode_ns": 8797750,
+              "request_until_publication_ns": 20500668084,
+              "execute_ns": 4085399209,
+              "prove_ns": 16027323791,
+              "verify_ns": 14258500
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.010647416114807129,
+                "library_preparation_seconds": 0.029034018516540527
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512125760
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 343,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 42,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 83,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 26
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 50668390816,
+              "current_physical_footprint_bytes": 3438267944,
+              "process_cpu_ns": 94227874083,
+              "energy_nj": 249447810991,
+              "instructions": 859972487542,
+              "cycles": 393819477301,
+              "unavailable_reason": null
+            },
+            "stages": [
+              {
+                "id": "preprocessed_plan",
+                "label": "Preprocessed plan",
+                "seconds": 2.6e-05
+              },
+              {
+                "id": "preprocessed_table_build",
+                "label": "Preprocessed table build",
+                "seconds": 0.257244
+              },
+              {
+                "id": "base_trace_arena_plan",
+                "label": "Base trace arena plan",
+                "seconds": 3.3e-05
+              },
+              {
+                "id": "base_trace_build",
+                "label": "Base trace build",
+                "seconds": 4.198223
+              },
+              {
+                "id": "air_template_instantiation",
+                "label": "AIR template instantiation",
+                "seconds": 0.000409
+              },
+              {
+                "id": "preprocessed_materialize_and_commit",
+                "label": "Preprocessed materialize and commit",
+                "seconds": 1.583123
+              },
+              {
+                "id": "main_trace_commit",
+                "label": "Main trace commit",
+                "seconds": 2.462697
+              },
+              {
+                "id": "interaction_trace_arena_plan",
+                "label": "Interaction trace arena plan",
+                "seconds": 6.4e-05
+              },
+              {
+                "id": "interaction_trace_build",
+                "label": "Interaction trace build",
+                "seconds": 2.199254
+              },
+              {
+                "id": "interaction_trace_commit",
+                "label": "Interaction trace commit",
+                "seconds": 1.668729
+              },
+              {
+                "id": "composition_device_admission",
+                "label": "Device composition admission",
+                "seconds": 0.050608
+              },
+              {
+                "id": "draw_random_coeff",
+                "label": "Draw random coefficient",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_trace_extract",
+                "label": "Composition trace extract",
+                "seconds": 2.2e-05
+              },
+              {
+                "id": "composition_evaluation",
+                "label": "Composition evaluation",
+                "seconds": 2.272482
+              },
+              {
+                "id": "composition_interpolate_and_split",
+                "label": "Composition interpolate and split",
+                "seconds": 0.018038
+              },
+              {
+                "id": "composition_commit",
+                "label": "Composition commit",
+                "seconds": 0.097572
+              },
+              {
+                "id": "oods_point_and_mask_points",
+                "label": "OODS point and mask points",
+                "seconds": 0.000329
+              },
+              {
+                "id": "sampled_value_evaluation",
+                "label": "Sampled-value evaluation",
+                "seconds": 0.40975
+              },
+              {
+                "id": "sampled_value_channel_mix",
+                "label": "Sampled-value channel mix",
+                "seconds": 0.00024
+              },
+              {
+                "id": "fri_quotient_build_and_commit",
+                "label": "FRI quotient build + commit (lazy)",
+                "seconds": 2.146769
+              },
+              {
+                "id": "proof_of_work",
+                "label": "Proof of work",
+                "seconds": 0.01107
+              },
+              {
+                "id": "fri_decommit",
+                "label": "FRI decommit",
+                "seconds": 0.006667
+              },
+              {
+                "id": "trace_decommit",
+                "label": "Trace decommit",
+                "seconds": 0.065382
+              },
+              {
+                "id": "constraint_check_and_assembly",
+                "label": "Constraint check and assembly",
+                "seconds": 0.002048
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 20533756833,
+          "median_prove_ns": 16027323791,
+          "peak_process_rss_bytes": 45708771328,
+          "peak_product_physical_footprint_bytes": 50668390816,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "variant": "after",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn3-metal-query-subtree-warm-paired-v76/pair-2-after/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "cac36fc1f292117a8e0c93f9f276df5e6696b7a95231b5202569d54d77947ece",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 20598239417,
+              "user_ns": 81989118000,
+              "system_ns": 18046709000,
+              "max_process_tree_rss_bytes": 45708967936,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 678191750,
+              "user_ns": 626470000,
+              "system_ns": 13151000,
+              "max_process_tree_rss_bytes": 39632896,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 200427000,
+              "proof_encode_ns": 8769375,
+              "request_until_publication_ns": 20567086959,
+              "execute_ns": 4058336500,
+              "prove_ns": 16199997583,
+              "verify_ns": 14447833
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.010647416114807129,
+                "library_preparation_seconds": 0.028314948081970215
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512125760
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 343,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 42,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 83,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 26
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 50668669344,
+              "current_physical_footprint_bytes": 2758577296,
+              "process_cpu_ns": 94305380916,
+              "energy_nj": 246074682406,
+              "instructions": 858002451092,
+              "cycles": 390970226540,
+              "unavailable_reason": null
+            },
+            "stages": [
+              {
+                "id": "preprocessed_plan",
+                "label": "Preprocessed plan",
+                "seconds": 2e-05
+              },
+              {
+                "id": "preprocessed_table_build",
+                "label": "Preprocessed table build",
+                "seconds": 0.253794
+              },
+              {
+                "id": "base_trace_arena_plan",
+                "label": "Base trace arena plan",
+                "seconds": 2.4e-05
+              },
+              {
+                "id": "base_trace_build",
+                "label": "Base trace build",
+                "seconds": 4.28661
+              },
+              {
+                "id": "air_template_instantiation",
+                "label": "AIR template instantiation",
+                "seconds": 0.000387
+              },
+              {
+                "id": "preprocessed_materialize_and_commit",
+                "label": "Preprocessed materialize and commit",
+                "seconds": 1.607466
+              },
+              {
+                "id": "main_trace_commit",
+                "label": "Main trace commit",
+                "seconds": 2.443712
+              },
+              {
+                "id": "interaction_trace_arena_plan",
+                "label": "Interaction trace arena plan",
+                "seconds": 5.1e-05
+              },
+              {
+                "id": "interaction_trace_build",
+                "label": "Interaction trace build",
+                "seconds": 2.252906
+              },
+              {
+                "id": "interaction_trace_commit",
+                "label": "Interaction trace commit",
+                "seconds": 1.649495
+              },
+              {
+                "id": "composition_device_admission",
+                "label": "Device composition admission",
+                "seconds": 0.048538
+              },
+              {
+                "id": "draw_random_coeff",
+                "label": "Draw random coefficient",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_trace_extract",
+                "label": "Composition trace extract",
+                "seconds": 2.6e-05
+              },
+              {
+                "id": "composition_evaluation",
+                "label": "Composition evaluation",
+                "seconds": 2.274837
+              },
+              {
+                "id": "composition_interpolate_and_split",
+                "label": "Composition interpolate and split",
+                "seconds": 0.033992
+              },
+              {
+                "id": "composition_commit",
+                "label": "Composition commit",
+                "seconds": 0.081365
+              },
+              {
+                "id": "oods_point_and_mask_points",
+                "label": "OODS point and mask points",
+                "seconds": 0.000287
+              },
+              {
+                "id": "sampled_value_evaluation",
+                "label": "Sampled-value evaluation",
+                "seconds": 0.41267
+              },
+              {
+                "id": "sampled_value_channel_mix",
+                "label": "Sampled-value channel mix",
+                "seconds": 0.00024
+              },
+              {
+                "id": "fri_quotient_build_and_commit",
+                "label": "FRI quotient build + commit (lazy)",
+                "seconds": 2.144751
+              },
+              {
+                "id": "proof_of_work",
+                "label": "Proof of work",
+                "seconds": 0.011177
+              },
+              {
+                "id": "fri_decommit",
+                "label": "FRI decommit",
+                "seconds": 0.00661
+              },
+              {
+                "id": "trace_decommit",
+                "label": "Trace decommit",
+                "seconds": 0.065494
+              },
+              {
+                "id": "constraint_check_and_assembly",
+                "label": "Constraint check and assembly",
+                "seconds": 0.002053
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 20598239417,
+          "median_prove_ns": 16199997583,
+          "peak_process_rss_bytes": 45708967936,
+          "peak_product_physical_footprint_bytes": 50668669344,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "variant": "before",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn3-metal-query-subtree-warm-paired-v76/pair-2-before/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "b54f21b30c5a856f7ac50af56198ee21c60b95905880518617eb3b6652c33562",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 20573646708,
+              "user_ns": 82573859000,
+              "system_ns": 18652641000,
+              "max_process_tree_rss_bytes": 45709328384,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 692818083,
+              "user_ns": 626848000,
+              "system_ns": 16754000,
+              "max_process_tree_rss_bytes": 39763968,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 204194500,
+              "proof_encode_ns": 8480791,
+              "request_until_publication_ns": 20538381041,
+              "execute_ns": 4102783458,
+              "prove_ns": 16125174625,
+              "verify_ns": 14454542
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.014136910438537598,
+                "library_preparation_seconds": 0.030151009559631348
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512125760
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 343,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 42,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 83,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 53629129304,
+              "current_physical_footprint_bytes": 2772782200,
+              "process_cpu_ns": 95439771791,
+              "energy_nj": 243935331012,
+              "instructions": 858036374591,
+              "cycles": 393578620615,
+              "unavailable_reason": null
+            },
+            "stages": [
+              {
+                "id": "preprocessed_plan",
+                "label": "Preprocessed plan",
+                "seconds": 2.1e-05
+              },
+              {
+                "id": "preprocessed_table_build",
+                "label": "Preprocessed table build",
+                "seconds": 0.256535
+              },
+              {
+                "id": "base_trace_arena_plan",
+                "label": "Base trace arena plan",
+                "seconds": 2.4e-05
+              },
+              {
+                "id": "base_trace_build",
+                "label": "Base trace build",
+                "seconds": 4.21527
+              },
+              {
+                "id": "air_template_instantiation",
+                "label": "AIR template instantiation",
+                "seconds": 0.00039
+              },
+              {
+                "id": "preprocessed_materialize_and_commit",
+                "label": "Preprocessed materialize and commit",
+                "seconds": 1.590043
+              },
+              {
+                "id": "main_trace_commit",
+                "label": "Main trace commit",
+                "seconds": 2.480626
+              },
+              {
+                "id": "interaction_trace_arena_plan",
+                "label": "Interaction trace arena plan",
+                "seconds": 7.5e-05
+              },
+              {
+                "id": "interaction_trace_build",
+                "label": "Interaction trace build",
+                "seconds": 2.26298
+              },
+              {
+                "id": "interaction_trace_commit",
+                "label": "Interaction trace commit",
+                "seconds": 1.664977
+              },
+              {
+                "id": "composition_device_admission",
+                "label": "Device composition admission",
+                "seconds": 0.050072
+              },
+              {
+                "id": "draw_random_coeff",
+                "label": "Draw random coefficient",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_trace_extract",
+                "label": "Composition trace extract",
+                "seconds": 2.2e-05
+              },
+              {
+                "id": "composition_evaluation",
+                "label": "Composition evaluation",
+                "seconds": 2.284926
+              },
+              {
+                "id": "composition_interpolate_and_split",
+                "label": "Composition interpolate and split",
+                "seconds": 0.017344
+              },
+              {
+                "id": "composition_commit",
+                "label": "Composition commit",
+                "seconds": 0.099088
+              },
+              {
+                "id": "oods_point_and_mask_points",
+                "label": "OODS point and mask points",
+                "seconds": 0.000339
+              },
+              {
+                "id": "sampled_value_evaluation",
+                "label": "Sampled-value evaluation",
+                "seconds": 0.418003
+              },
+              {
+                "id": "sampled_value_channel_mix",
+                "label": "Sampled-value channel mix",
+                "seconds": 0.000253
+              },
+              {
+                "id": "fri_quotient_build_and_commit",
+                "label": "FRI quotient build + commit (lazy)",
+                "seconds": 2.140268
+              },
+              {
+                "id": "proof_of_work",
+                "label": "Proof of work",
+                "seconds": 0.011026
+              },
+              {
+                "id": "fri_decommit",
+                "label": "FRI decommit",
+                "seconds": 0.007734
+              },
+              {
+                "id": "trace_decommit",
+                "label": "Trace decommit",
+                "seconds": 0.016829
+              },
+              {
+                "id": "constraint_check_and_assembly",
+                "label": "Constraint check and assembly",
+                "seconds": 0.002053
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 20573646708,
+          "median_prove_ns": 16125174625,
+          "peak_process_rss_bytes": 45709328384,
+          "peak_product_physical_footprint_bytes": 53629129304,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "variant": "before",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn3-metal-query-subtree-warm-paired-v76/pair-3-before/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "b54f21b30c5a856f7ac50af56198ee21c60b95905880518617eb3b6652c33562",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 20672973875,
+              "user_ns": 82813101000,
+              "system_ns": 18453503000,
+              "max_process_tree_rss_bytes": 45709230080,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 700401042,
+              "user_ns": 633616000,
+              "system_ns": 19232000,
+              "max_process_tree_rss_bytes": 39927808,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 202102333,
+              "proof_encode_ns": 8449750,
+              "request_until_publication_ns": 20643662334,
+              "execute_ns": 4068659708,
+              "prove_ns": 16193524209,
+              "verify_ns": 14159917
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.01131439208984375,
+                "library_preparation_seconds": 0.028182029724121094
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512125760
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 343,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 42,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 83,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 53623050624,
+              "current_physical_footprint_bytes": 2600357056,
+              "process_cpu_ns": 95457864750,
+              "energy_nj": 242728453416,
+              "instructions": 860281335310,
+              "cycles": 392005259398,
+              "unavailable_reason": null
+            },
+            "stages": [
+              {
+                "id": "preprocessed_plan",
+                "label": "Preprocessed plan",
+                "seconds": 2.1e-05
+              },
+              {
+                "id": "preprocessed_table_build",
+                "label": "Preprocessed table build",
+                "seconds": 0.259116
+              },
+              {
+                "id": "base_trace_arena_plan",
+                "label": "Base trace arena plan",
+                "seconds": 2.5e-05
+              },
+              {
+                "id": "base_trace_build",
+                "label": "Base trace build",
+                "seconds": 4.257841
+              },
+              {
+                "id": "air_template_instantiation",
+                "label": "AIR template instantiation",
+                "seconds": 0.000396
+              },
+              {
+                "id": "preprocessed_materialize_and_commit",
+                "label": "Preprocessed materialize and commit",
+                "seconds": 1.606203
+              },
+              {
+                "id": "main_trace_commit",
+                "label": "Main trace commit",
+                "seconds": 2.496684
+              },
+              {
+                "id": "interaction_trace_arena_plan",
+                "label": "Interaction trace arena plan",
+                "seconds": 4.6e-05
+              },
+              {
+                "id": "interaction_trace_build",
+                "label": "Interaction trace build",
+                "seconds": 2.302325
+              },
+              {
+                "id": "interaction_trace_commit",
+                "label": "Interaction trace commit",
+                "seconds": 1.665288
+              },
+              {
+                "id": "composition_device_admission",
+                "label": "Device composition admission",
+                "seconds": 0.049229
+              },
+              {
+                "id": "draw_random_coeff",
+                "label": "Draw random coefficient",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_trace_extract",
+                "label": "Composition trace extract",
+                "seconds": 2.3e-05
+              },
+              {
+                "id": "composition_evaluation",
+                "label": "Composition evaluation",
+                "seconds": 2.265702
+              },
+              {
+                "id": "composition_interpolate_and_split",
+                "label": "Composition interpolate and split",
+                "seconds": 0.01845
+              },
+              {
+                "id": "composition_commit",
+                "label": "Composition commit",
+                "seconds": 0.095455
+              },
+              {
+                "id": "oods_point_and_mask_points",
+                "label": "OODS point and mask points",
+                "seconds": 0.000303
+              },
+              {
+                "id": "sampled_value_evaluation",
+                "label": "Sampled-value evaluation",
+                "seconds": 0.431262
+              },
+              {
+                "id": "sampled_value_channel_mix",
+                "label": "Sampled-value channel mix",
+                "seconds": 0.000241
+              },
+              {
+                "id": "fri_quotient_build_and_commit",
+                "label": "FRI quotient build + commit (lazy)",
+                "seconds": 2.138674
+              },
+              {
+                "id": "proof_of_work",
+                "label": "Proof of work",
+                "seconds": 0.011146
+              },
+              {
+                "id": "fri_decommit",
+                "label": "FRI decommit",
+                "seconds": 0.007707
+              },
+              {
+                "id": "trace_decommit",
+                "label": "Trace decommit",
+                "seconds": 0.018807
+              },
+              {
+                "id": "constraint_check_and_assembly",
+                "label": "Constraint check and assembly",
+                "seconds": 0.002101
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 20672973875,
+          "median_prove_ns": 16193524209,
+          "peak_process_rss_bytes": 45709230080,
+          "peak_product_physical_footprint_bytes": 53623050624,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "variant": "after",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn3-metal-query-subtree-warm-paired-v76/pair-3-after/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "cac36fc1f292117a8e0c93f9f276df5e6696b7a95231b5202569d54d77947ece",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 20646097292,
+              "user_ns": 83081150000,
+              "system_ns": 18487964000,
+              "max_process_tree_rss_bytes": 45675626496,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 658587375,
+              "user_ns": 639847000,
+              "system_ns": 5221000,
+              "max_process_tree_rss_bytes": 39698432,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 207127667,
+              "proof_encode_ns": 8892375,
+              "request_until_publication_ns": 20609259000,
+              "execute_ns": 4087376167,
+              "prove_ns": 16209517667,
+              "verify_ns": 14451500
+            },
+            "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.0028769969940185547,
+                "library_preparation_seconds": 0.013997912406921387
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512125760
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 343,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 42,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 83,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 26
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 50668882144,
+              "current_physical_footprint_bytes": 4646833560,
+              "process_cpu_ns": 95751457333,
+              "energy_nj": 241708214274,
+              "instructions": 857710459305,
+              "cycles": 392979465074,
+              "unavailable_reason": null
+            },
+            "stages": [
+              {
+                "id": "preprocessed_plan",
+                "label": "Preprocessed plan",
+                "seconds": 1.8e-05
+              },
+              {
+                "id": "preprocessed_table_build",
+                "label": "Preprocessed table build",
+                "seconds": 0.258175
+              },
+              {
+                "id": "base_trace_arena_plan",
+                "label": "Base trace arena plan",
+                "seconds": 2.4e-05
+              },
+              {
+                "id": "base_trace_build",
+                "label": "Base trace build",
+                "seconds": 4.254164
+              },
+              {
+                "id": "air_template_instantiation",
+                "label": "AIR template instantiation",
+                "seconds": 0.000402
+              },
+              {
+                "id": "preprocessed_materialize_and_commit",
+                "label": "Preprocessed materialize and commit",
+                "seconds": 1.585343
+              },
+              {
+                "id": "main_trace_commit",
+                "label": "Main trace commit",
+                "seconds": 2.468862
+              },
+              {
+                "id": "interaction_trace_arena_plan",
+                "label": "Interaction trace arena plan",
+                "seconds": 7.1e-05
+              },
+              {
+                "id": "interaction_trace_build",
+                "label": "Interaction trace build",
+                "seconds": 2.277761
+              },
+              {
+                "id": "interaction_trace_commit",
+                "label": "Interaction trace commit",
+                "seconds": 1.651986
+              },
+              {
+                "id": "composition_device_admission",
+                "label": "Device composition admission",
+                "seconds": 0.02251
+              },
+              {
+                "id": "draw_random_coeff",
+                "label": "Draw random coefficient",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_trace_extract",
+                "label": "Composition trace extract",
+                "seconds": 2.3e-05
+              },
+              {
+                "id": "composition_evaluation",
+                "label": "Composition evaluation",
+                "seconds": 2.299099
+              },
+              {
+                "id": "composition_interpolate_and_split",
+                "label": "Composition interpolate and split",
+                "seconds": 0.018433
+              },
+              {
+                "id": "composition_commit",
+                "label": "Composition commit",
+                "seconds": 0.095553
+              },
+              {
+                "id": "oods_point_and_mask_points",
+                "label": "OODS point and mask points",
+                "seconds": 0.000371
+              },
+              {
+                "id": "sampled_value_evaluation",
+                "label": "Sampled-value evaluation",
+                "seconds": 0.421115
+              },
+              {
+                "id": "sampled_value_channel_mix",
+                "label": "Sampled-value channel mix",
+                "seconds": 0.000248
+              },
+              {
+                "id": "fri_quotient_build_and_commit",
+                "label": "FRI quotient build + commit (lazy)",
+                "seconds": 2.155305
+              },
+              {
+                "id": "proof_of_work",
+                "label": "Proof of work",
+                "seconds": 0.011079
+              },
+              {
+                "id": "fri_decommit",
+                "label": "FRI decommit",
+                "seconds": 0.006585
+              },
+              {
+                "id": "trace_decommit",
+                "label": "Trace decommit",
+                "seconds": 0.06372
+              },
+              {
+                "id": "constraint_check_and_assembly",
+                "label": "Constraint check and assembly",
+                "seconds": 0.002136
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 1e-06
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_components",
+                "label": "Components evaluated on device",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              },
+              {
+                "id": "composition_device_host_components",
+                "label": "Components evaluated on host inside the device stage",
+                "seconds": 0
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 20646097292,
+          "median_prove_ns": 16209517667,
+          "peak_process_rss_bytes": 45675626496,
+          "peak_product_physical_footprint_bytes": 50668882144,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    }
+  ],
+  "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+  "backend": "metal",
+  "summary": {
+    "before": {
+      "median_process_wall_ns": 20573646708,
+      "median_prove_ns": 16125174625,
+      "peak_process_rss_bytes": 45709639680,
+      "peak_product_physical_footprint_bytes": 53629129304,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    },
+    "after": {
+      "median_process_wall_ns": 20598239417,
+      "median_prove_ns": 16199997583,
+      "peak_process_rss_bytes": 45708967936,
+      "peak_product_physical_footprint_bytes": 50668882144,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    }
+  },
+  "process_speedup": 0.9988060771359079,
+  "prove_speedup": 0.9953812981997899,
+  "timing_scope_note": "Three alternating pairs after explicit separate cache-population runs. Every comparison trial has two public cache hits, zero misses. Setup and original initial-miss receipts retained separately.",
+  "decision": "Lower physical footprint qualified. Prove median +0.47%; timings approximately maintained, no speedup claim.",
+  "cache_population_receipts": [
+    {
+      "schema": "stwo-zig-cairo-benchmark-v2",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "host_details": {
+        "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "cpu": "Apple M5 Max",
+        "logical_cpus": 18
+      },
+      "product_sha256": "b54f21b30c5a856f7ac50af56198ee21c60b95905880518617eb3b6652c33562",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+        "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+      },
+      "arguments_sha256": null,
+      "params_sha256": null,
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+        "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+      },
+      "status": "qualified",
+      "trials": [
+        {
+          "index": 1,
+          "status": "qualified",
+          "phase": "complete",
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 19908265166,
+            "user_ns": 78979755000,
+            "system_ns": 18493696000,
+            "max_process_tree_rss_bytes": 45708083200,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 689520375,
+            "user_ns": 621192000,
+            "system_ns": 18926000,
+            "max_process_tree_rss_bytes": 39714816,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 200389833,
+            "proof_encode_ns": 8617125,
+            "request_until_publication_ns": 19875805041,
+            "execute_ns": 3871493166,
+            "prove_ns": 15630727750,
+            "verify_ns": 14234125
+          },
+          "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+          "profile": "official-live-cairo-canonical",
+          "backend": "metal",
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.010898709297180176,
+              "library_preparation_seconds": 0.02836298942565918
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 343,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 1,
+            "compacted_merkle_layer_adoptions": 0
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 53627638240,
+            "current_physical_footprint_bytes": 2600012896,
+            "process_cpu_ns": 91798373541,
+            "energy_nj": 253353674681,
+            "instructions": 859574018758,
+            "cycles": 392582462928,
+            "unavailable_reason": null
+          },
+          "stages": [
+            {
+              "id": "preprocessed_plan",
+              "label": "Preprocessed plan",
+              "seconds": 2e-05
+            },
+            {
+              "id": "preprocessed_table_build",
+              "label": "Preprocessed table build",
+              "seconds": 0.243022
+            },
+            {
+              "id": "base_trace_arena_plan",
+              "label": "Base trace arena plan",
+              "seconds": 2.3e-05
+            },
+            {
+              "id": "base_trace_build",
+              "label": "Base trace build",
+              "seconds": 4.050588
+            },
+            {
+              "id": "air_template_instantiation",
+              "label": "AIR template instantiation",
+              "seconds": 0.000377
+            },
+            {
+              "id": "preprocessed_materialize_and_commit",
+              "label": "Preprocessed materialize and commit",
+              "seconds": 1.524907
+            },
+            {
+              "id": "main_trace_commit",
+              "label": "Main trace commit",
+              "seconds": 2.468305
+            },
+            {
+              "id": "interaction_trace_arena_plan",
+              "label": "Interaction trace arena plan",
+              "seconds": 6.8e-05
+            },
+            {
+              "id": "interaction_trace_build",
+              "label": "Interaction trace build",
+              "seconds": 2.048669
+            },
+            {
+              "id": "interaction_trace_commit",
+              "label": "Interaction trace commit",
+              "seconds": 1.672834
+            },
+            {
+              "id": "composition_device_admission",
+              "label": "Device composition admission",
+              "seconds": 0.045061
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.4e-05
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 2.228214
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.027519
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.08984
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000338
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.409537
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000225
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 2.133396
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.011281
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.008576
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.018118
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.001978
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 1e-06
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 1e-06
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 19908265166,
+        "median_prove_ns": 15630727750,
+        "peak_process_rss_bytes": 45708083200,
+        "peak_product_physical_footprint_bytes": 53627638240,
+        "physical_footprint_sample_count": 1,
+        "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+      }
+    },
+    {
+      "schema": "stwo-zig-cairo-benchmark-v2",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "host_details": {
+        "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "cpu": "Apple M5 Max",
+        "logical_cpus": 18
+      },
+      "product_sha256": "cac36fc1f292117a8e0c93f9f276df5e6696b7a95231b5202569d54d77947ece",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+        "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+      },
+      "arguments_sha256": null,
+      "params_sha256": null,
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "controlled_environment": {
+        "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+        "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+      },
+      "status": "qualified",
+      "trials": [
+        {
+          "index": 1,
+          "status": "qualified",
+          "phase": "complete",
+          "process": {
+            "exit_code": 0,
+            "wall_ns": 20176860125,
+            "user_ns": 79871928000,
+            "system_ns": 18485722000,
+            "max_process_tree_rss_bytes": 45674397696,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "official_verifier": {
+            "exit_code": 0,
+            "wall_ns": 651299833,
+            "user_ns": 623881000,
+            "system_ns": 6031000,
+            "max_process_tree_rss_bytes": 39616512,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 198874166,
+            "proof_encode_ns": 8734542,
+            "request_until_publication_ns": 20141362250,
+            "execute_ns": 4017046208,
+            "prove_ns": 15823286375,
+            "verify_ns": 14400000
+          },
+          "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+          "profile": "official-live-cairo-canonical",
+          "backend": "metal",
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0028624534606933594,
+              "library_preparation_seconds": 0.013784050941467285
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 343,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 1,
+            "compacted_merkle_layer_adoptions": 26
+          },
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "prover_process_usage": {
+            "source": "darwin_proc_pid_rusage_v6",
+            "lifetime_peak_physical_footprint_bytes": 50667522272,
+            "current_physical_footprint_bytes": 4645473688,
+            "process_cpu_ns": 92641064208,
+            "energy_nj": 253336092974,
+            "instructions": 858257187038,
+            "cycles": 393013306921,
+            "unavailable_reason": null
+          },
+          "stages": [
+            {
+              "id": "preprocessed_plan",
+              "label": "Preprocessed plan",
+              "seconds": 1.9e-05
+            },
+            {
+              "id": "preprocessed_table_build",
+              "label": "Preprocessed table build",
+              "seconds": 0.247883
+            },
+            {
+              "id": "base_trace_arena_plan",
+              "label": "Base trace arena plan",
+              "seconds": 2e-05
+            },
+            {
+              "id": "base_trace_build",
+              "label": "Base trace build",
+              "seconds": 4.120687
+            },
+            {
+              "id": "air_template_instantiation",
+              "label": "AIR template instantiation",
+              "seconds": 0.000391
+            },
+            {
+              "id": "preprocessed_materialize_and_commit",
+              "label": "Preprocessed materialize and commit",
+              "seconds": 1.591823
+            },
+            {
+              "id": "main_trace_commit",
+              "label": "Main trace commit",
+              "seconds": 2.476567
+            },
+            {
+              "id": "interaction_trace_arena_plan",
+              "label": "Interaction trace arena plan",
+              "seconds": 6.7e-05
+            },
+            {
+              "id": "interaction_trace_build",
+              "label": "Interaction trace build",
+              "seconds": 2.111151
+            },
+            {
+              "id": "interaction_trace_commit",
+              "label": "Interaction trace commit",
+              "seconds": 1.642258
+            },
+            {
+              "id": "composition_device_admission",
+              "label": "Device composition admission",
+              "seconds": 0.02226
+            },
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.1e-05
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 2.228766
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.025571
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.088865
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000331
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.410716
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000233
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 2.137861
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.011143
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.00664
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.063664
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.002112
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_components",
+              "label": "Components evaluated on device",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 1e-06
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            },
+            {
+              "id": "composition_device_host_components",
+              "label": "Components evaluated on host inside the device stage",
+              "seconds": 0
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 20176860125,
+        "median_prove_ns": 15823286375,
+        "peak_process_rss_bytes": 45674397696,
+        "peak_product_physical_footprint_bytes": 50667522272,
+        "physical_footprint_sample_count": 1,
+        "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+      }
+    }
+  ]
+}

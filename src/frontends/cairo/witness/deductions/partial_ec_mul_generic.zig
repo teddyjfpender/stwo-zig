@@ -115,3 +115,57 @@ test "generic partial EC-mul rotates width-27 words when counter reaches zero" {
         &output,
     );
 }
+
+pub fn applyBatch(batch: @import("../program.zig").DeduceBatch) !void {
+    try batch.validate();
+    if (batch.arg_count != io_word_count or batch.output_count != io_word_count)
+        return error.InvalidWordCount;
+    const capacity = @import("../deduction_contract.zig").max_batch_rows;
+    const scalar_start = 2;
+    const point_start = scalar_start + scalar_word_count;
+    const accumulator_start = point_start + 2 * felt_word_count;
+    const counter_index = accumulator_start + 2 * felt_word_count;
+    var points: [capacity]stark_curve.AffinePoint = undefined;
+    var accumulators: [capacity]stark_curve.AffinePoint = undefined;
+    var doubled: [capacity]stark_curve.AffinePoint = undefined;
+    var odd_accumulators: [capacity]stark_curve.AffinePoint = undefined;
+    var odd_points: [capacity]stark_curve.AffinePoint = undefined;
+    var odd_sums: [capacity]stark_curve.AffinePoint = undefined;
+    var odd_indices: [capacity]usize = undefined;
+    var prefixes: [capacity]u256 = undefined;
+    var numerators: [capacity]u256 = undefined;
+    var denominators: [capacity]u256 = undefined;
+    var start: usize = 0;
+    while (start < batch.rows) {
+        const count = @min(capacity, batch.rows - start);
+        var odd_count: usize = 0;
+        for (0..count) |row| {
+            const args = batch.rowArgs(start + row);
+            try validateScalar(args[scalar_start..point_start]);
+            points[row] = try decodePoint(args[point_start..accumulator_start]);
+            accumulators[row] = try decodePoint(args[accumulator_start..counter_index]);
+            if (args[scalar_start] & 1 == 1) {
+                odd_indices[odd_count] = row;
+                odd_accumulators[odd_count] = accumulators[row];
+                odd_points[odd_count] = points[row];
+                odd_count += 1;
+            }
+        }
+        try stark_curve.batchAddAffine(points[0..count], points[0..count], doubled[0..count], prefixes[0..count], numerators[0..count], denominators[0..count]);
+        if (odd_count != 0) {
+            try stark_curve.batchAddAffine(odd_accumulators[0..odd_count], odd_points[0..odd_count], odd_sums[0..odd_count], prefixes[0..odd_count], numerators[0..odd_count], denominators[0..odd_count]);
+            for (0..odd_count) |index| accumulators[odd_indices[index]] = odd_sums[index];
+        }
+        for (0..count) |row| {
+            const args = batch.rowArgs(start + row);
+            const outputs = batch.rowOutputs(start + row);
+            outputs[0] = args[0];
+            outputs[1] = incrementM31(args[1]);
+            shiftScalar(args[scalar_start..point_start], args[counter_index], outputs[scalar_start..point_start]);
+            encodePoint(doubled[row], outputs[point_start..accumulator_start]);
+            encodePoint(accumulators[row], outputs[accumulator_start..counter_index]);
+            outputs[counter_index] = if (args[counter_index] == 0) 26 else args[counter_index] - 1;
+        }
+        start += count;
+    }
+}

@@ -69,7 +69,7 @@ pub const PreparedLaunch = struct {
     ) runtime_error.Error!void {
         var pointers = self.arguments.pointers();
         if (self.pedersen_w18) |publication| {
-            try session.launchKernelWithPedersenW18(
+            try session.launchKernelWithPedersen(
                 self.kernel,
                 &pointers,
                 publication,
@@ -190,11 +190,7 @@ fn prepareImpl(
     }) orelse return error.StrictAotViolation;
     if (admitted.semantic_hash != semantic_hash)
         return error.StrictAotViolation;
-    const expected_globals: product_aot.ModuleGlobals =
-        if (program.deductionRequirements().pedersen_table)
-            .pedersen_w18_columns_rows_v1
-        else
-            .none;
+    const expected_globals = try binding.requiredModuleGlobals(program);
     if (admitted.module_globals != expected_globals)
         return error.StrictAotViolation;
     const catalog_identity = catalogIdentity(
@@ -282,21 +278,21 @@ fn prepareImpl(
     }
     var pedersen_publication: ?kernel_module.PedersenW18Publication = null;
     if (buffers.pedersen_w18) |table| {
-        if (expected_globals != .pedersen_w18_columns_rows_v1 or
-            std.mem.allEqual(u8, &table.identity, 0))
-        {
+        const rows = expected_globals.pedersenRows() orelse return error.InvalidKernelDescriptor;
+        if (std.mem.allEqual(u8, &table.identity, 0)) {
             return error.InvalidKernelDescriptor;
         }
         var publication = kernel_module.PedersenW18Publication{
             .columns = undefined,
-            .row_count = product_aot_module_globals.pedersen_w18_row_count,
+            .row_count = rows,
             .table_identity = table.identity,
+            .requirement = expected_globals,
         };
         for (table.columns, 0..) |column, index| {
             const resident = try exactResident(
                 session,
                 column,
-                product_aot_module_globals.pedersen_w18_row_count,
+                rows,
                 @alignOf(u32),
             );
             publication.columns[index] = @intFromPtr(resident.pointer);
@@ -716,14 +712,14 @@ const TestSession = struct {
         self.launches += 1;
     }
 
-    pub fn launchKernelWithPedersenW18(
+    pub fn launchKernelWithPedersen(
         self: *TestSession,
         kernel: kernel_module.Kernel,
         arguments: []const ?*anyopaque,
         publication: kernel_module.PedersenW18Publication,
     ) runtime_error.Error!void {
         try publication.validate();
-        if (kernel.module_globals != .pedersen_w18_columns_rows_v1)
+        if (kernel.module_globals != publication.requirement)
             return error.InvalidKernelDescriptor;
         try self.launchKernel(kernel, arguments);
     }

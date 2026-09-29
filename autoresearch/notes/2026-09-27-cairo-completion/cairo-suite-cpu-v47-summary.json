@@ -1,0 +1,363 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-suite-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "manifest_sha256": "3546903e848bc14bef044f1c04e57d6ad645859505d759d4090acc465a1cab6f",
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "cache_mode": "retained",
+  "metal_pipeline_cache": "OS-managed and retained; admission time included in every process measurement",
+  "scheduling": "one benchmark product process at a time, including all worker sweeps",
+  "rss_scope": "largest process/descendant RSS, not sum of simultaneous allocations",
+  "manifest_workload_count": 15,
+  "selection": [
+    "ret",
+    "all-opcodes",
+    "bitwise",
+    "range96",
+    "range128",
+    "poseidon",
+    "pedersen",
+    "all-builtins",
+    "executable-add-one",
+    "fibonacci-pie",
+    "all-builtins-canonical",
+    "sn-pie-1",
+    "sn-pie-2",
+    "sn-pie-3",
+    "sn-pie-4"
+  ],
+  "not_selected": [],
+  "summary": [
+    {
+      "workload": "ret",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.586213,
+      "prove_seconds": 0.493768125,
+      "peak_rss_bytes": 917979136,
+      "peak_product_physical_footprint_bytes": 916653424,
+      "first_process_seconds": 0.623070625,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/ret-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "all-opcodes",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.854239333,
+      "prove_seconds": 0.752340375,
+      "peak_rss_bytes": 1511112704,
+      "peak_product_physical_footprint_bytes": 1508673456,
+      "first_process_seconds": 0.858245333,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/all-opcodes-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "bitwise",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.646773833,
+      "prove_seconds": 0.551229791,
+      "peak_rss_bytes": 909443072,
+      "peak_product_physical_footprint_bytes": 907904392,
+      "first_process_seconds": 0.650510875,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/bitwise-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "range96",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.556154,
+      "prove_seconds": 0.466611083,
+      "peak_rss_bytes": 919027712,
+      "peak_product_physical_footprint_bytes": 917505416,
+      "first_process_seconds": 0.562526208,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/range96-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "range128",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 1.324849416,
+      "prove_seconds": 1.236376292,
+      "peak_rss_bytes": 918781952,
+      "peak_product_physical_footprint_bytes": 917259632,
+      "first_process_seconds": 1.3160175,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/range128-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "poseidon",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.622077625,
+      "prove_seconds": 0.535689916,
+      "peak_rss_bytes": 915079168,
+      "peak_product_physical_footprint_bytes": 912573832,
+      "first_process_seconds": 0.620782833,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/poseidon-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "pedersen",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.616839292,
+      "prove_seconds": 0.528695667,
+      "peak_rss_bytes": 915521536,
+      "peak_product_physical_footprint_bytes": 913196448,
+      "first_process_seconds": 0.610411125,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/pedersen-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.957175833,
+      "prove_seconds": 0.910760583,
+      "peak_rss_bytes": 1190789120,
+      "peak_product_physical_footprint_bytes": 1184515776,
+      "first_process_seconds": 0.9776535,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/all-builtins-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "executable-add-one",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.545897458,
+      "prove_seconds": 0.448272416,
+      "peak_rss_bytes": 918568960,
+      "peak_product_physical_footprint_bytes": 916931952,
+      "first_process_seconds": 0.538317334,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/executable-add-one-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "fibonacci-pie",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 0.941017333,
+      "prove_seconds": 0.785431167,
+      "peak_rss_bytes": 1512456192,
+      "peak_product_physical_footprint_bytes": 1510360960,
+      "first_process_seconds": 0.948884166,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/fibonacci-pie-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 5.046968041,
+      "prove_seconds": 4.996126375,
+      "peak_rss_bytes": 11387338752,
+      "peak_product_physical_footprint_bytes": 11386151792,
+      "first_process_seconds": 5.076883459,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/all-builtins-canonical-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-1",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 69.06281325,
+      "prove_seconds": 64.584325583,
+      "peak_rss_bytes": 56190943232,
+      "peak_product_physical_footprint_bytes": 69458546288,
+      "first_process_seconds": 67.452072292,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/sn-pie-1-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-2",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 17.434111458,
+      "prove_seconds": 15.122721375,
+      "peak_rss_bytes": 41114533888,
+      "peak_product_physical_footprint_bytes": 41129508472,
+      "first_process_seconds": 17.476217459,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/sn-pie-2-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-3",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 69.756465792,
+      "prove_seconds": 65.390431084,
+      "peak_rss_bytes": 56972460032,
+      "peak_product_physical_footprint_bytes": 68461562904,
+      "first_process_seconds": 70.585683667,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/sn-pie-3-cpu-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-4",
+      "backend": "cpu",
+      "workers": null,
+      "status": "qualified",
+      "process_seconds": 22.524891958,
+      "prove_seconds": 18.656169875,
+      "peak_rss_bytes": 53387362304,
+      "peak_product_physical_footprint_bytes": 53408637560,
+      "first_process_seconds": 22.556517584,
+      "aggregation": "subsequent-trial median",
+      "proof_sha256": [
+        "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67"
+      ],
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/sn-pie-4-cpu-workers-auto/results.json"
+    }
+  ],
+  "backend_proof_parity": [
+    {
+      "workload": "ret",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-opcodes",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "bitwise",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "range96",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "range128",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "poseidon",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "pedersen",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-builtins",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "executable-add-one",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "fibonacci-pie",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-1",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-2",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-3",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-4",
+      "workers": null,
+      "status": "single-backend"
+    }
+  ],
+  "raw_result_path": "zig-out/cairo-completion-20260927/cairo-suite-cpu-v47/results.json"
+}

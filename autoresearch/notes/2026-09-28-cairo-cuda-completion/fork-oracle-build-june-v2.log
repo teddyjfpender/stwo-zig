@@ -1,0 +1,517 @@
+ Downloading crates ...
+  Downloaded ruint v1.16.0
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling cfg-if v1.0.5
+   Compiling autocfg v1.5.1
+   Compiling libc v0.2.189
+   Compiling zerocopy v0.8.59
+   Compiling version_check v0.9.5
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling syn v1.0.109
+   Compiling either v1.18.0
+   Compiling paste v1.0.15
+   Compiling rand_core v0.6.4
+   Compiling crossbeam-utils v0.8.23
+   Compiling lazy_static v1.5.0
+   Compiling once_cell v1.21.4
+   Compiling crossbeam-epoch v0.9.21
+   Compiling crossbeam-deque v0.8.8
+   Compiling itertools v0.10.5
+   Compiling equivalent v1.0.2
+   Compiling generic-array v0.14.7
+   Compiling hex v0.4.3
+   Compiling num-traits v0.2.19
+   Compiling crypto-bigint v0.5.5
+   Compiling tracing-core v0.1.36
+   Compiling hybrid-array v0.4.15
+   Compiling find-msvc-tools v0.1.14
+   Compiling thiserror v2.0.21
+   Compiling rayon-core v1.13.0
+   Compiling allocator-api2 v0.2.21
+   Compiling shlex v2.0.1
+   Compiling foldhash v0.1.5
+   Compiling cc v1.5.1
+   Compiling smallvec v1.16.2
+   Compiling arrayvec v0.7.8
+   Compiling parking_lot_core v0.9.12
+   Compiling blake3 v1.8.7
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling scopeguard v1.2.0
+   Compiling log v0.4.34
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling pin-project-lite v0.2.17
+   Compiling tracing-log v0.2.0
+   Compiling digest v0.11.3
+   Compiling blake2 v0.10.6
+   Compiling hmac v0.12.1
+   Compiling lock_api v0.4.14
+   Compiling rfc6979 v0.4.0
+   Compiling sharded-slab v0.1.7
+   Compiling thread_local v1.1.10
+   Compiling hashbrown v0.17.1
+   Compiling constant_time_eq v0.4.2
+   Compiling nu-ansi-term v0.50.3
+   Compiling hashbrown v0.14.5
+   Compiling tracing-subscriber v0.3.23
+   Compiling itertools v0.12.1
+   Compiling stwo-std-shims v1.0.0
+   Compiling fnv v1.0.7
+   Compiling utf8parse v0.2.2
+   Compiling colorchoice v1.0.5
+   Compiling anstyle-parse v1.0.0
+   Compiling anstyle v1.0.14
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling zmij v1.0.23
+   Compiling radium v0.7.0
+   Compiling crc32fast v1.5.2
+   Compiling anstyle-query v1.1.5
+   Compiling anstream v1.0.0
+   Compiling syn v3.0.6
+   Compiling syn v2.0.119
+   Compiling getrandom v0.2.17
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling cpufeatures v0.3.1
+   Compiling num-integer v0.1.47
+   Compiling keccak v0.2.2
+   Compiling keccak v0.1.6
+   Compiling sha3 v0.10.9
+   Compiling sha3 v0.11.0
+   Compiling adler2 v2.0.1
+   Compiling tap v1.0.1
+   Compiling simd-adler32 v0.3.10
+   Compiling heck v0.5.0
+   Compiling memchr v2.8.3
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.21
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling bytemuck_derive v1.12.1
+   Compiling enum-ordinalize v4.4.2
+   Compiling clap_lex v1.1.1
+   Compiling zeroize_derive v1.5.0
+   Compiling tracing-attributes v0.1.31
+   Compiling bytemuck v1.25.2
+   Compiling zeroize v1.9.0
+   Compiling derivative v2.2.0
+   Compiling num-bigint v0.4.8
+   Compiling ark-ff-asm v0.4.2
+   Compiling tracing v0.1.44
+   Compiling serde_json v1.0.151
+   Compiling itoa v1.0.18
+   Compiling ark-ff-macros v0.4.2
+   Compiling strsim v0.11.1
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling clap_builder v4.6.7
+   Compiling stwo-cairo-serialize-derive v1.2.2 (https://github.com/teddyjfpender/stwo-cairo?rev=dcd5834565b7a26a27a614e353c9c60109ebc1d9#dcd58345)
+   Compiling ark-std v0.4.0
+   Compiling ark-serialize v0.4.2
+   Compiling rayon v1.12.0
+   Compiling clap_derive v4.6.7
+   Compiling miniz_oxide v0.9.1
+   Compiling wyz v0.5.1
+   Compiling anyhow v1.0.104
+   Compiling funty v2.0.0
+   Compiling dashmap v6.2.1
+   Compiling ruint-macro v1.2.1
+   Compiling rust_decimal v1.43.0
+   Compiling ref-cast v1.0.27
+   Compiling ruint v1.16.0
+   Compiling indexmap v2.14.2
+   Compiling clap v4.6.7
+   Compiling ref-cast-impl v1.0.27
+   Compiling bitvec v1.1.1
+   Compiling bytes v1.12.1
+   Compiling flate2 v1.1.10
+   Compiling virtue v0.0.18
+   Compiling byteorder v1.5.0
+   Compiling minimal-lexical v0.2.1
+   Compiling stwo-backend-cuda-kernels v0.1.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling simdutf8 v0.1.5
+   Compiling nom v7.1.3
+   Compiling zip v0.6.6
+   Compiling bincode_derive v2.0.1
+   Compiling educe v0.5.11
+   Compiling itertools v0.13.0
+   Compiling sonic-number v0.1.3
+   Compiling sonic-simd v0.1.4
+   Compiling stwo-backend-cuda v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling indoc v2.0.7
+   Compiling bumpalo v3.20.3
+   Compiling ryu v1.0.23
+   Compiling unty v0.0.4
+   Compiling libbz2-rs-sys v0.1.3
+   Compiling memmap2 v0.9.11
+   Compiling stwo-air-utils-derive v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling bzip2 v0.5.2
+   Compiling ark-ff v0.4.2
+   Compiling hashbrown v0.15.5
+   Compiling serde_arrays v0.1.0
+   Compiling faststr v0.2.34
+   Compiling bincode v2.0.1
+   Compiling bincode v1.3.3
+   Compiling lru v0.12.5
+   Compiling lambdaworks-math v0.13.0
+   Compiling num-modular v0.5.1
+   Compiling num-prime v0.4.4
+   Compiling lambdaworks-crypto v0.13.0
+   Compiling starknet-types-core v0.2.4
+   Compiling starknet-curve v0.6.0
+   Compiling starknet-crypto v0.8.1
+   Compiling cairo-vm v3.2.0
+   Compiling sonic-rs v0.3.17
+   Compiling starknet-ff v0.3.7
+   Compiling starknet-curve v0.4.2
+   Compiling starknet-crypto-codegen v0.3.3
+   Compiling starknet-crypto v0.6.2
+   Compiling stwo v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling stwo-constraint-framework v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling stwo-cairo-serialize v1.2.2 (https://github.com/teddyjfpender/stwo-cairo?rev=dcd5834565b7a26a27a614e353c9c60109ebc1d9#dcd58345)
+   Compiling stwo-air-utils v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling stwo-cairo-common v1.2.2 (https://github.com/teddyjfpender/stwo-cairo?rev=dcd5834565b7a26a27a614e353c9c60109ebc1d9#dcd58345)
+   Compiling cairo-air v1.2.2 (https://github.com/teddyjfpender/stwo-cairo?rev=dcd5834565b7a26a27a614e353c9c60109ebc1d9#dcd58345)
+   Compiling stwo-cairo-adapter v1.2.2 (https://github.com/teddyjfpender/stwo-cairo?rev=dcd5834565b7a26a27a614e353c9c60109ebc1d9#dcd58345)
+   Compiling stwo-cairo-prover v1.2.2 (https://github.com/teddyjfpender/stwo-cairo?rev=dcd5834565b7a26a27a614e353c9c60109ebc1d9#dcd58345)
+error[E0432]: unresolved import `stwo_backend_cuda::blake_witness`
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/blake_g_witness_backend.rs:52:25
+   |
+52 | use stwo_backend_cuda::{blake_witness as device, BaseFieldVec, CudaBackend};
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^ no `blake_witness` in the root
+
+error[E0432]: unresolved import `stwo_backend_cuda::logup_pairs`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:168:28
+    |
+168 |     use stwo_backend_cuda::logup_pairs::{descriptors_for_fields, device_interaction_from_flats};
+    |                            ^^^^^^^^^^^ could not find `logup_pairs` in `stwo_backend_cuda`
+
+error[E0432]: unresolved import `stwo_backend_cuda::logup_pairs`
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/logup_descs.rs:22:24
+   |
+22 | use stwo_backend_cuda::logup_pairs::{LogupColDesc, MultSrc};
+   |                        ^^^^^^^^^^^ could not find `logup_pairs` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/witness_eval/recording.rs:21:24
+   |
+21 | use stwo_backend_cuda::jit_witness::isa::{DeduceKind, WitnessProgram};
+   |                        ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/witness_eval/recording.rs:22:24
+   |
+22 | use stwo_backend_cuda::jit_witness::recording::{Val, WitnessRecorder};
+   |                        ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0432]: unresolved import `stwo_backend_cuda::memory_witness`
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/memory_witness_backend.rs:59:25
+   |
+59 | use stwo_backend_cuda::{memory_witness as device, BaseFieldVec, CudaBackend};
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^ no `memory_witness` in the root
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:199:24
+    |
+199 |     stwo_backend_cuda::jit_witness::register_recorded_program(C::LABEL, recording.program);
+    |                        ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:211:37
+    |
+211 |     let tables = stwo_backend_cuda::exec_tables::exec_tables_cached(
+    |                                     ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:215:32
+    |
+215 |             stwo_backend_cuda::exec_tables::DeviceExecutionTables::upload(
+    |                                ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:223:39
+    |
+223 |     let launched = stwo_backend_cuda::exec_tables::launch_recorded_witness_for_prove(
+    |                                       ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `logup_pairs` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:331:38
+    |
+331 |         let out = stwo_backend_cuda::logup_pairs::device_interaction_from_flats(
+    |                                      ^^^^^^^^^^^ could not find `logup_pairs` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `logup_pairs` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:372:38
+    |
+372 |         let out = stwo_backend_cuda::logup_pairs::device_interaction_from_flats(
+    |                                      ^^^^^^^^^^^ could not find `logup_pairs` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:498:42
+    |
+498 |                 match stwo_backend_cuda::exec_tables::run_witness_feed_counts(
+    |                                          ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:797:24
+    |
+797 |     stwo_backend_cuda::jit_witness::isa::WitnessProgram,
+    |                        ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:801:28
+    |
+801 |         stwo_backend_cuda::jit_witness::isa::WitnessProgram,
+    |                            ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:807:28
+    |
+807 |         stwo_backend_cuda::jit_witness::isa::WitnessProgram,
+    |                            ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:987:24
+    |
+987 |     stwo_backend_cuda::jit_witness::register_recorded_program(C::LABEL, recording.program);
+    |                        ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:989:37
+    |
+989 |     let tables = stwo_backend_cuda::exec_tables::exec_tables_cached(
+    |                                     ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:993:32
+    |
+993 |             stwo_backend_cuda::exec_tables::DeviceExecutionTables::upload(
+    |                                ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+    --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:1012:32
+     |
+1012 |             stwo_backend_cuda::exec_tables::launch_recorded_builtin_for_prove(
+     |                                ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+    --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:1026:32
+     |
+1026 |             stwo_backend_cuda::exec_tables::launch_recorded_builtin_mixed(
+     |                                ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+    --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:1092:38
+     |
+1092 |             match stwo_backend_cuda::exec_tables::run_witness_feed_counts(
+     |                                      ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `pedersen_table` in `stwo_backend_cuda`
+    --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_prove_backend.rs:1159:24
+     |
+1159 |     stwo_backend_cuda::pedersen_table::register_borrowed_pedersen_table(n_rows, |c, buf| {
+     |                        ^^^^^^^^^^^^^^ could not find `pedersen_table` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:51:31
+   |
+51 |         && stwo_backend_cuda::jit_witness::witness_jit_lane_enabled(component)
+   |                               ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:70:48
+   |
+70 |         .filter(|component| stwo_backend_cuda::jit_witness::precompile_witness_kernel(component))
+   |                                                ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:177:37
+    |
+177 |     let tables = stwo_backend_cuda::exec_tables::exec_tables_cached(
+    |                                     ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:180:32
+    |
+180 |             stwo_backend_cuda::exec_tables::DeviceExecutionTables::upload(
+    |                                ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:201:36
+    |
+201 |                   stwo_backend_cuda::jit_witness::register_recorded_program(
+    |                                      ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+...
+308 | /     leg!(
+309 | |         add_opcode,
+310 | |         "add_opcode",
+311 | |         crate::witness::components::add_opcode::record_add_opcode,
+312 | |         &st.add_opcode
+313 | |     );
+    | |_____- in this macro invocation
+    |
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:213:42
+    |
+213 |                   match stwo_backend_cuda::exec_tables::launch_recorded_witness_for_prove(
+    |                                            ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+...
+308 | /     leg!(
+309 | |         add_opcode,
+310 | |         "add_opcode",
+311 | |         crate::witness::components::add_opcode::record_add_opcode,
+312 | |         &st.add_opcode
+313 | |     );
+    | |_____- in this macro invocation
+    |
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:201:36
+    |
+201 |                   stwo_backend_cuda::jit_witness::register_recorded_program(
+    |                                      ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+...
+314 | /     leg!(
+315 | |         assert_eq_opcode,
+316 | |         "assert_eq_opcode",
+317 | |         crate::witness::components::assert_eq_opcode::record_assert_eq_opcode,
+318 | |         &st.assert_eq_opcode
+319 | |     );
+    | |_____- in this macro invocation
+    |
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:213:42
+    |
+213 |                   match stwo_backend_cuda::exec_tables::launch_recorded_witness_for_prove(
+    |                                            ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+...
+314 | /     leg!(
+315 | |         assert_eq_opcode,
+316 | |         "assert_eq_opcode",
+317 | |         crate::witness::components::assert_eq_opcode::record_assert_eq_opcode,
+318 | |         &st.assert_eq_opcode
+319 | |     );
+    | |_____- in this macro invocation
+    |
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `jit_witness` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:201:36
+    |
+201 |                   stwo_backend_cuda::jit_witness::register_recorded_program(
+    |                                      ^^^^^^^^^^^ could not find `jit_witness` in `stwo_backend_cuda`
+...
+320 | /     leg!(
+321 | |         ret_opcode,
+322 | |         "ret_opcode",
+323 | |         crate::witness::components::ret_opcode::record_ret_opcode,
+324 | |         &st.ret_opcode
+325 | |     );
+    | |_____- in this macro invocation
+    |
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:213:42
+    |
+213 |                   match stwo_backend_cuda::exec_tables::launch_recorded_witness_for_prove(
+    |                                            ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+...
+320 | /     leg!(
+321 | |         ret_opcode,
+322 | |         "ret_opcode",
+323 | |         crate::witness::components::ret_opcode::record_ret_opcode,
+324 | |         &st.ret_opcode
+325 | |     );
+    | |_____- in this macro invocation
+    |
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0433]: failed to resolve: could not find `exec_tables` in `stwo_backend_cuda`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/pedersen_witness_backend.rs:417:51
+    |
+417 |                 let launched = stwo_backend_cuda::exec_tables::witness_edge_gather(
+    |                                                   ^^^^^^^^^^^ could not find `exec_tables` in `stwo_backend_cuda`
+
+error[E0425]: cannot find function `stwo_blake_g_inputs_from_sub` in module `stwo_backend_cuda_kernels::raw`
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/blake_g_witness_backend.rs:184:49
+    |
+184 |                 stwo_backend_cuda_kernels::raw::stwo_blake_g_inputs_from_sub(
+    |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `stwo_backend_cuda_kernels::raw`
+
+error[E0599]: no method named `set_stream_lde` found for struct `CommitmentSchemeProver` in the current scope
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/prover.rs:398:27
+    |
+398 |         commitment_scheme.set_stream_lde();
+    |                           ^^^^^^^^^^^^^^ method not found in `CommitmentSchemeProver<'_, B, MC>`
+
+error[E0277]: the size for values of type `[u32]` cannot be known at compilation time
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:220:46
+    |
+220 |                       Some((_cols, lookup_dev, lookup_flat, _sub_dev, _sub)) => {
+    |                                                ^^^^^^^^^^^ doesn't have a size known at compile-time
+...
+308 | /     leg!(
+309 | |         add_opcode,
+310 | |         "add_opcode",
+311 | |         crate::witness::components::add_opcode::record_add_opcode,
+312 | |         &st.add_opcode
+313 | |     );
+    | |_____- in this macro invocation
+    |
+    = help: the trait `Sized` is not implemented for `[u32]`
+    = note: all local variables must have a statically known size
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the size for values of type `[u32]` cannot be known at compilation time
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:220:46
+    |
+220 |                       Some((_cols, lookup_dev, lookup_flat, _sub_dev, _sub)) => {
+    |                                                ^^^^^^^^^^^ doesn't have a size known at compile-time
+...
+314 | /     leg!(
+315 | |         assert_eq_opcode,
+316 | |         "assert_eq_opcode",
+317 | |         crate::witness::components::assert_eq_opcode::record_assert_eq_opcode,
+318 | |         &st.assert_eq_opcode
+319 | |     );
+    | |_____- in this macro invocation
+    |
+    = help: the trait `Sized` is not implemented for `[u32]`
+    = note: all local variables must have a statically known size
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the size for values of type `[u32]` cannot be known at compilation time
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-cairo-238b8af0d9b1ef80/dcd5834/stwo_cairo_prover/crates/prover/src/witness/jit_witness_hook.rs:220:46
+    |
+220 |                       Some((_cols, lookup_dev, lookup_flat, _sub_dev, _sub)) => {
+    |                                                ^^^^^^^^^^^ doesn't have a size known at compile-time
+...
+320 | /     leg!(
+321 | |         ret_opcode,
+322 | |         "ret_opcode",
+323 | |         crate::witness::components::ret_opcode::record_ret_opcode,
+324 | |         &st.ret_opcode
+325 | |     );
+    | |_____- in this macro invocation
+    |
+    = help: the trait `Sized` is not implemented for `[u32]`
+    = note: all local variables must have a statically known size
+    = note: this error originates in the macro `leg` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+Some errors have detailed explanations: E0277, E0425, E0432, E0433, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `stwo-cairo-prover` (lib) due to 39 previous errors
+warning: build failed, waiting for other jobs to finish...

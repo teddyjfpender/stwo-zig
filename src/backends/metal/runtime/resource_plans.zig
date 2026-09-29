@@ -188,6 +188,9 @@ pub fn ResourcePlans(comptime MetalError: type) type {
             trace_log_size: u32,
             domain_log_size: u32,
             rc_base: u32,
+            /// Full evaluation domain for a bounded row dispatch. This host
+            /// planning field never enters the unchanged 14-word shader ABI.
+            evaluation_log_size: ?u32 = null,
         };
 
         pub const WitnessLayout = extern struct {
@@ -209,8 +212,12 @@ pub fn ResourcePlans(comptime MetalError: type) type {
         }
 
         pub fn evalArguments(layout: EvalLayout) MetalError![14]u32 {
-            if (layout.row_count < 2 or !std.math.isPowerOfTwo(layout.row_count) or layout.trace_log_size >= 32 or
-                layout.domain_log_size >= @ctz(layout.row_count)) return MetalError.PolynomialEvaluationFailed;
+            if (layout.row_count < 2 or !std.math.isPowerOfTwo(layout.row_count) or layout.trace_log_size >= 32)
+                return MetalError.PolynomialEvaluationFailed;
+            const dispatch_log: u32 = @ctz(layout.row_count);
+            const evaluation_log = layout.evaluation_log_size orelse dispatch_log;
+            if (evaluation_log > 31 or dispatch_log > evaluation_log or layout.domain_log_size >= evaluation_log)
+                return MetalError.PolynomialEvaluationFailed;
             return .{
                 layout.trace_offsets,   layout.interaction_offsets, layout.base_params,    layout.ext_params,
                 layout.random_coeffs,   layout.denom_inv,           layout.coordinates[0], layout.coordinates[1],
@@ -494,4 +501,21 @@ test "resource layouts retain host ABI invariants" {
     try std.testing.expectEqual(@as(usize, 0), @offsetOf(TestResources.WitnessLayout, "input_offsets"));
     try std.testing.expectEqual(10 * @sizeOf(u32), @offsetOf(TestResources.WitnessLayout, "poseidon_keys"));
     try std.testing.expectEqual(@as(usize, 2 * @sizeOf(usize)), @sizeOf(TestResources.MerkleParentChainPlan));
+}
+
+test "tiled evaluation validates full domain while keeping dispatch and shader ABI bounded" {
+    var layout: TestResources.EvalLayout = .{ .trace_offsets = 1, .interaction_offsets = 2, .base_params = 3, .ext_params = 4, .random_coeffs = 5, .denom_inv = 6, .coordinates = .{ 7, 8, 9, 10 }, .row_count = 1 << 16, .trace_log_size = 22, .domain_log_size = 22, .rc_base = 11, .evaluation_log_size = 25 };
+    const args = try TestResources.evalArguments(layout);
+    try std.testing.expectEqual(@as(usize, 56), @sizeOf(@TypeOf(args)));
+    try std.testing.expectEqual(@as(u32, 1 << 16), args[10]);
+    try std.testing.expectEqual(@as(u32, 22), args[11]);
+    try std.testing.expectEqual(@as(u32, 22), args[12]);
+    layout.evaluation_log_size = null;
+    try std.testing.expectError(error.PolynomialEvaluationFailed, TestResources.evalArguments(layout));
+    layout.evaluation_log_size = 15;
+    try std.testing.expectError(error.PolynomialEvaluationFailed, TestResources.evalArguments(layout));
+    layout.evaluation_log_size = 22;
+    try std.testing.expectError(error.PolynomialEvaluationFailed, TestResources.evalArguments(layout));
+    layout.evaluation_log_size = 32;
+    try std.testing.expectError(error.PolynomialEvaluationFailed, TestResources.evalArguments(layout));
 }

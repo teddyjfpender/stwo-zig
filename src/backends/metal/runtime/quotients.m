@@ -1,13 +1,21 @@
+#include "quotient_tiling.m"
+
 // Every private quotient buffer is admitted before device allocation. No-copy
 // input/output aliases retain their already charged host owners instead.
 static id<MTLBuffer> stwo_quotient_owned_buffer(
     id<MTLDevice> device, const void *bytes, NSUInteger length,
     MTLResourceOptions options, void *context, StwoZigExternalBudgetAdmitV1 admit
 ) {
+    // Zero-source quotient groups still require valid bound Metal buffers.
+    // Their logical counts remain zero, so shaders never read this sentinel.
+    // Charge the actual allocation and never read an empty host pointer.
+    if (length == 0u) { length = sizeof(uint32_t); bytes = NULL; }
     if (!admit(context, (size_t)length)) return nil;
     return bytes != NULL ? [device newBufferWithBytes:bytes length:length options:options]
                          : [device newBufferWithLength:length options:options];
 }
+
+#include "native_quotient_reduction.m"
 
 bool stwo_zig_metal_compute_quotients(
     void *runtime_ptr,
@@ -508,6 +516,8 @@ bool stwo_zig_metal_compute_quotients(
             [partials setBytes:&partial_group_count length:sizeof(partial_group_count) atIndex:7];
             [partials setBytes:&partial_total_rows length:sizeof(partial_total_rows) atIndex:8];
             [partials setBuffer:partial_buffer offset:0u atIndex:9];
+            const uint32_t accumulate = 0u;
+            [partials setBytes:&accumulate length:sizeof(accumulate) atIndex:10];
             NSUInteger partial_width = MIN(runtime.quotientPartialsRaw.maxTotalThreadsPerThreadgroup,
                                            runtime.quotientPartialsRaw.threadExecutionWidth * 8u);
             [partials dispatchThreads:MTLSizeMake(partial_total_rows, 1u, 1u)
@@ -533,8 +543,11 @@ bool stwo_zig_metal_compute_quotients(
                   threadsPerThreadgroup:MTLSizeMake(combine_width, 1u, 1u)];
             [combine endEncoding];
         } else if (gpu_raw_upload && !resident_multi_source) {
+            const uint32_t numerator_tile_rows = stwo_quotient_numerator_tile_rows(row_count, batch_count, quotient_parity_observer != NULL);
+            const bool tiled_numerators = numerator_tile_rows < row_count;
+            NSMutableData *segment_dispatches = [NSMutableData data];
             uint64_t numerator_bytes = 0u;
-            if (!stwo_zig_checked_mul_u64(batch_count, row_count, &numerator_bytes) ||
+            if (!stwo_zig_checked_mul_u64(batch_count, numerator_tile_rows, &numerator_bytes) ||
                 !stwo_zig_checked_mul_u64(numerator_bytes, 16u, &numerator_bytes) ||
                 numerator_bytes > SIZE_MAX) return false;
             id<MTLBuffer> numerators = stwo_quotient_owned_buffer(runtime.device, NULL, (NSUInteger)numerator_bytes, quotient_parity_observer != NULL
@@ -544,9 +557,36 @@ bool stwo_zig_metal_compute_quotients(
                 write_error(error_message, error_message_len, @"Metal quotient numerator allocation failed");
                 return false;
             }
-            id<MTLBlitCommandEncoder> clear = [command blitCommandEncoder];
-            [clear fillBuffer:numerators range:NSMakeRange(0, numerators.length) value:0u];
-            [clear endEncoding];
+            if (profile_quotient) fprintf(stderr, "Metal quotient numerator scratch: bytes=%llu tile_rows=%u domain_rows=%u tiles=%u parity_full_domain=%u\n",
+                (unsigned long long)numerator_bytes, numerator_tile_rows, row_count,
+                row_count / numerator_tile_rows, quotient_parity_observer != NULL);
+            if (!tiled_numerators) {
+                id<MTLBlitCommandEncoder> clear = [command blitCommandEncoder];
+                [clear fillBuffer:numerators range:NSMakeRange(0, numerators.length) value:0u];
+                [clear endEncoding];
+            }
+            // Diagnostic receipts retain their original per-segment execution
+            // contract. Ordinary proofs use the native-height reduction.
+            StwoZigNativeQuotientReduction *native_plan =
+                quotient_parity_observer == NULL && quotient_work_receipt == NULL &&
+                getenv("STWO_ZIG_METAL_DIRECT_SEGMENTED_QUOTIENT") == NULL
+                ? stwo_native_quotient_reduction_plan(views, view_count, batch_count, row_count) : nil;
+            id<MTLBuffer> native_partials = nil;
+            if (native_plan != nil) {
+                native_partials = stwo_quotient_owned_buffer(runtime.device, NULL,
+                    (NSUInteger)native_plan.partialWords * sizeof(uint32_t),
+                    MTLResourceStorageModePrivate, budget_context, budget_admit);
+                if (native_partials == nil) return false;
+                [raw_sources addObject:native_partials];
+                id<MTLBlitCommandEncoder> clear = [command blitCommandEncoder];
+                [clear fillBuffer:native_partials range:NSMakeRange(0, native_partials.length) value:0u];
+                [clear endEncoding];
+                if (profile_quotient) fprintf(stderr,
+                    "Metal native segmented reduction: views=%u reduced_views=%u planar_groups=%lu partial_bytes=%lu\n",
+                    view_count, native_plan.reducedViews,
+                    (unsigned long)(native_plan.syntheticViews.length / sizeof(StwoZigRawQuotientView)),
+                    (unsigned long)native_partials.length);
+            }
             size_t column = 0;
             size_t flat_offset = 0;
             size_t page_size = (size_t)getpagesize();
@@ -668,6 +708,23 @@ bool stwo_zig_metal_compute_quotients(
                         [run_view_data appendBytes:&view length:sizeof(view)];
                     }
                 }
+                if (native_plan != nil && !stwo_encode_native_quotient_run(runtime, command,
+                        native_plan, source, resident_run || alias_shared ? source_binding_offset : 0u,
+                        run_view_data, batch_count, row_count, native_partials, raw_sources,
+                        budget_context, budget_admit)) {
+                    write_error(error_message, error_message_len, @"Metal native quotient reduction failed");
+                    return false;
+                }
+                // The native reduction may have removed the previous endpoint
+                // batches from this run. Recompute its surviving batch range.
+                if (native_plan != nil) {
+                    min_batch = UINT32_MAX; max_batch = 0u;
+                    const StwoZigRawQuotientView *direct = run_view_data.bytes;
+                    for (size_t i = 0u; i < run_view_data.length / sizeof(*direct); ++i) {
+                        min_batch = MIN(min_batch, direct[i].batch);
+                        max_batch = MAX(max_batch, direct[i].batch);
+                    }
+                }
                 uint32_t run_view_count = (uint32_t)(run_view_data.length / sizeof(StwoZigRawQuotientView));
                 if (run_view_count != 0u) {
                     // A source run contributes only to its covered batch range.
@@ -680,26 +737,18 @@ bool stwo_zig_metal_compute_quotients(
                     for (uint32_t i = 0u; i < run_view_count; ++i)
                         dispatch_views[i].batch -= min_batch;
                     const uint32_t run_batch_count = max_batch - min_batch + 1u;
-                    const NSUInteger numerator_offset =
-                        (NSUInteger)min_batch * row_count * 4u * sizeof(uint32_t);
                     id<MTLBuffer> run_views = stwo_quotient_owned_buffer(runtime.device, dispatch_view_data.bytes, dispatch_view_data.length, MTLResourceStorageModeShared, budget_context, budget_admit);
+                    if (run_views == nil) return false;
                     [raw_sources addObject:run_views];
-                    id<MTLComputeCommandEncoder> numerator_encoder = [command computeCommandEncoder];
-                    [numerator_encoder setComputePipelineState:runtime.quotientNumerator];
-                    [numerator_encoder setBuffer:source
-                                           offset:resident_run || alias_shared
-                                               ? source_binding_offset : 0u
-                                          atIndex:0];
-                    [numerator_encoder setBuffer:run_views offset:0 atIndex:1];
-                    [numerator_encoder setBytes:&run_view_count length:sizeof(run_view_count) atIndex:2];
-                    [numerator_encoder setBuffer:numerators offset:numerator_offset atIndex:3];
-                    [numerator_encoder setBytes:&run_batch_count length:sizeof(run_batch_count) atIndex:4];
-                    [numerator_encoder setBytes:&row_count length:sizeof(row_count) atIndex:5];
-                    NSUInteger numerator_width = MIN(runtime.quotientNumerator.maxTotalThreadsPerThreadgroup,
-                                                     runtime.quotientNumerator.threadExecutionWidth * 8u);
-                    [numerator_encoder dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
-                                 threadsPerThreadgroup:MTLSizeMake(numerator_width, 1u, 1u)];
-                    [numerator_encoder endEncoding];
+                    const StwoZigQuotientSegmentDispatch dispatch = {
+                        .source = source, .views = run_views,
+                        .source_offset = resident_run || alias_shared ? source_binding_offset : 0u,
+                        .view_count = run_view_count, .first_batch = min_batch,
+                        .batch_count = run_batch_count,
+                    };
+                    if (tiled_numerators) [segment_dispatches appendBytes:&dispatch length:sizeof(dispatch)];
+                    else stwo_encode_quotient_numerator_tile(runtime, command, dispatch, numerators,
+                                                            row_count, row_count, 0u);
                     if (quotient_parity_observer != NULL) {
                         [command commit];
                         [command waitUntilCompleted];
@@ -795,21 +844,37 @@ bool stwo_zig_metal_compute_quotients(
                             @"Metal quotient parity source-run inventory mismatch");
                 return false;
             }
-            id<MTLComputeCommandEncoder> finalize = [command computeCommandEncoder];
-            [finalize setComputePipelineState:runtime.quotientFinalize];
-            [finalize setBuffer:numerators offset:0 atIndex:0];
-            [finalize setBuffer:sample_buffer offset:0 atIndex:1];
-            [finalize setBuffer:linear_buffer offset:0 atIndex:2];
-            [finalize setBytes:&batch_count length:sizeof(batch_count) atIndex:3];
-            [finalize setBuffer:x_buffer offset:x_offset atIndex:4];
-            [finalize setBuffer:y_buffer offset:y_offset atIndex:5];
-            [finalize setBuffer:output_buffer offset:0 atIndex:6];
-            [finalize setBytes:&row_count length:sizeof(row_count) atIndex:7];
-            NSUInteger finalize_width = MIN(runtime.quotientFinalize.maxTotalThreadsPerThreadgroup,
-                                            runtime.quotientFinalize.threadExecutionWidth * 8u);
-            [finalize dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
-                   threadsPerThreadgroup:MTLSizeMake(finalize_width, 1u, 1u)];
-            [finalize endEncoding];
+            if (native_plan != nil) {
+                id<MTLBuffer> basis_views = stwo_quotient_owned_buffer(runtime.device,
+                    native_plan.syntheticViews.bytes, native_plan.syntheticViews.length,
+                    MTLResourceStorageModeShared, budget_context, budget_admit);
+                if (basis_views == nil) return false;
+                [raw_sources addObject:basis_views];
+                const StwoZigQuotientSegmentDispatch dispatch = {
+                    .source = native_partials, .views = basis_views, .source_offset = 0u,
+                    .view_count = (uint32_t)(native_plan.syntheticViews.length / sizeof(StwoZigRawQuotientView)),
+                    .first_batch = 0u, .batch_count = batch_count, .planar = 1u,
+                };
+                if (tiled_numerators) [segment_dispatches appendBytes:&dispatch length:sizeof(dispatch)];
+                else stwo_encode_quotient_numerator_tile(runtime, command, dispatch,
+                    numerators, row_count, row_count, 0u);
+            }
+            if (tiled_numerators) {
+                const StwoZigQuotientSegmentDispatch *segments = segment_dispatches.bytes;
+                const size_t segment_count = segment_dispatches.length / sizeof(*segments);
+                for (uint32_t row_start = 0u; row_start < row_count; row_start += numerator_tile_rows) {
+                    id<MTLBlitCommandEncoder> clear = [command blitCommandEncoder];
+                    [clear fillBuffer:numerators range:NSMakeRange(0, numerators.length) value:0u];
+                    [clear endEncoding];
+                    for (size_t segment = 0u; segment < segment_count; ++segment)
+                        stwo_encode_quotient_numerator_tile(runtime, command, segments[segment], numerators,
+                                                            row_count, numerator_tile_rows, row_start);
+                    stwo_encode_quotient_finalize_tile(runtime, command, numerators, sample_buffer, linear_buffer,
+                        batch_count, x_buffer, x_offset, y_buffer, y_offset, output_buffer,
+                        row_count, numerator_tile_rows, row_start);
+                }
+            } else stwo_encode_quotient_finalize_tile(runtime, command, numerators, sample_buffer, linear_buffer,
+                batch_count, x_buffer, x_offset, y_buffer, y_offset, output_buffer, row_count, row_count, 0u);
             if (quotient_parity_observer != NULL) {
                 [command commit];
                 [command waitUntilCompleted];

@@ -238,6 +238,14 @@ test "Cairo CUDA terminal route rejects fabricated residency and malformed outpu
         ),
     );
     fixture.transport[1] ^= 1;
+    fixture.transport[15] = 1;
+    try std.testing.expectError(error.InvalidFriDegree, decode.CanonicalProof.decode(
+        allocator,
+        fixture.protocol,
+        fixture.transport,
+        fixture.evidence(),
+    ));
+    fixture.transport[15] = 0;
     const tail = section(
         fixture.descriptor,
         fixture.transport,

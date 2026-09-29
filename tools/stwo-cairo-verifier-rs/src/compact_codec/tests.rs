@@ -672,3 +672,19 @@ fn proof_mutations_fail_closed() {
     put_u32(&mut bytes, 4 * HASH_WORDS * 4, M31_PRIME);
     assert!(validate_compact_proof_v1(&bytes, &protocol, &statement).is_err());
 }
+
+#[test]
+fn diagnostic_prefix_does_not_relax_production_suffix_validation() {
+    let protocol = CompactProtocolV1::decode(&protocol(2, 4, 4000)).unwrap();
+    let statement = CompactStatementV1::decode(&statement(2)).unwrap();
+    let mut bytes = proof(&protocol);
+    let offsets = compact_proof_offsets(&protocol);
+    put_u32(&mut bytes, offsets.final_line_start * 4, M31_PRIME);
+    assert!(reconstruct_claims_v1(&bytes, &protocol, &statement).is_err());
+    assert!(reconstruct_claims_prefix_for_diagnostics_v1(&bytes, &protocol, &statement).is_ok());
+    put_u32(&mut bytes, offsets.interaction_start * 4, M31_PRIME);
+    assert!(reconstruct_claims_prefix_for_diagnostics_v1(&bytes, &protocol, &statement).is_err());
+    assert!(
+        reconstruct_claims_prefix_for_diagnostics_v1(&bytes[..16], &protocol, &statement).is_err()
+    );
+}

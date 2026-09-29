@@ -9,11 +9,21 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use stwo_cairo_adapter::adapter::adapt;
 
+mod compact;
 mod execution;
+
+#[derive(Clone, Copy)]
+enum InputFormat {
+    Json,
+    Compact,
+}
 
 const STWO_CAIRO_REVISION: &str = "82f21252a68ec006d73e299f5bf1ce6d4db0ee78";
 const STWO_REVISION: &str = "7b211edde786775016ef3eecb837a6240d8fe792";
 const CAIRO_VM_VERSION: &str = "3.2.0";
+const EXECUTION_RUNNER_REVISION: &str = "5a7c5ede4299c91a61df19a07cba4f7502c14230";
+const PIE_BOOTLOADER_SHA256: &str =
+    "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76";
 const MAX_PROGRAM_BYTES: u64 = 256 << 20;
 const MAX_ARGUMENT_BYTES: u64 = 64 << 20;
 
@@ -25,6 +35,7 @@ enum Command {
         arguments: Option<PathBuf>,
         output: PathBuf,
         overwrite: bool,
+        input_format: InputFormat,
     },
 }
 
@@ -45,9 +56,12 @@ fn run() -> Result<()> {
             serde_json::to_writer(
                 std::io::stdout().lock(),
                 &json!({
-                    "schema_version": 1,
+                    "schema_version": 2,
                     "name": "stwo-cairo-vm-adapter",
                     "program_types": execution::PROGRAM_TYPE_NAMES,
+                    "input_formats": ["json", "compact-v1"],
+                    "execution_runner_revision": EXECUTION_RUNNER_REVISION,
+                    "pie_bootloader_sha256": PIE_BOOTLOADER_SHA256,
                     "layout": "all_cairo_stwo",
                     "cairo_vm_version": CAIRO_VM_VERSION,
                     "cairo_language_version": execution::CAIRO_LANGUAGE_VERSION,
@@ -64,7 +78,15 @@ fn run() -> Result<()> {
             arguments,
             output,
             overwrite,
-        } => run_program(program_type, &program, arguments.as_deref(), &output, overwrite)?,
+            input_format,
+        } => run_program(
+            program_type,
+            &program,
+            arguments.as_deref(),
+            &output,
+            overwrite,
+            input_format,
+        )?,
     }
     Ok(())
 }
@@ -75,23 +97,39 @@ fn run_program(
     arguments_path: Option<&Path>,
     output_path: &Path,
     overwrite: bool,
+    input_format: InputFormat,
 ) -> Result<()> {
+    let profile = std::env::var_os("STWO_CAIRO_VM_PROFILE").is_some();
+    let started = std::time::Instant::now();
     let program_bytes = read_bounded_maybe_gzip(program_path, MAX_PROGRAM_BYTES)?;
     let argument_bytes = arguments_path
         .map(|path| read_bounded(path, MAX_ARGUMENT_BYTES))
         .transpose()?;
+    let loaded = std::time::Instant::now();
     let execution = execution::run(program_type, &program_bytes, argument_bytes.as_deref())?;
+    let executed = std::time::Instant::now();
     let mut prover_input =
         adapt(&execution.runner).context("official Stwo-Cairo adaptation failed")?;
     if let Some(public_segment_context) = execution.public_segment_context {
         prover_input.public_segment_context = public_segment_context;
     }
     prover_input.public_memory_addresses.sort_unstable();
+    let adapted = std::time::Instant::now();
     if overwrite {
-        write_json_overwrite(output_path, &prover_input)
+        write_input_overwrite(output_path, &prover_input, input_format)?;
     } else {
-        write_json_new(output_path, &prover_input)
+        write_input_new(output_path, &prover_input, input_format)?;
     }
+    if profile {
+        eprintln!(
+            "cairo_vm_profile load_ms={:.3} execute_ms={:.3} adapt_ms={:.3} publish_ms={:.3}",
+            loaded.duration_since(started).as_secs_f64() * 1000.0,
+            executed.duration_since(loaded).as_secs_f64() * 1000.0,
+            adapted.duration_since(executed).as_secs_f64() * 1000.0,
+            adapted.elapsed().as_secs_f64() * 1000.0,
+        );
+    }
+    Ok(())
 }
 
 /// Committed fixture programs may be gzip-compressed (`.json.gz`) to respect
@@ -118,7 +156,8 @@ fn read_bounded_maybe_gzip(path: &Path, limit: u64) -> Result<Vec<u8>> {
 }
 
 fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>> {
-    let metadata = path
+    let file = File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
+    let metadata = file
         .metadata()
         .with_context(|| format!("failed to stat {}", path.display()))?;
     anyhow::ensure!(
@@ -132,48 +171,80 @@ fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>> {
         path.display()
     );
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
-    File::open(path)
-        .with_context(|| format!("failed to open {}", path.display()))?
+    file.take(limit.saturating_add(1))
         .read_to_end(&mut bytes)
         .with_context(|| format!("failed to read {}", path.display()))?;
+    anyhow::ensure!(
+        bytes.len() as u64 <= limit,
+        "{} exceeds the {limit}-byte limit",
+        path.display()
+    );
     Ok(bytes)
 }
 
-/// Build-derived outputs (`zig build cairo-zkvm-fixtures`) regenerate on every
-/// invocation: write to a sibling temp file and rename over the target so a
-/// crash never leaves a truncated ProverInput behind.
-fn write_json_overwrite(path: &Path, value: &impl serde::Serialize) -> Result<()> {
-    let mut temp = path.as_os_str().to_owned();
-    temp.push(".tmp");
-    let temp = PathBuf::from(temp);
-    {
-        let file = File::create(&temp)
-            .with_context(|| format!("failed to create {}", temp.display()))?;
-        let mut writer = BufWriter::with_capacity(4 << 20, file);
-        serde_json::to_writer(&mut writer, value).context("failed to serialize ProverInput")?;
-        writer.flush().context("failed to flush ProverInput")?;
-        writer
-            .into_inner()
-            .context("failed to finish ProverInput")?
-            .sync_all()
-            .context("failed to sync ProverInput")?;
-    }
-    std::fs::rename(&temp, path)
-        .with_context(|| format!("failed to move {} into place", temp.display()))
+/// Publish only a complete, synced input document. A unique sibling file
+/// avoids collisions between adapters and is removed on serialization failure.
+fn write_input_overwrite(
+    path: &Path,
+    value: &stwo_cairo_adapter::ProverInput,
+    format: InputFormat,
+) -> Result<()> {
+    write_input_file(path, value, format, true)
 }
 
-fn write_json_new(path: &Path, value: &impl serde::Serialize) -> Result<()> {
-    let mut file = File::options()
-        .write(true)
-        .create_new(true)
-        .open(path)
-        .with_context(|| format!("refusing to replace {}", path.display()))?;
+fn write_input_new(
+    path: &Path,
+    value: &stwo_cairo_adapter::ProverInput,
+    format: InputFormat,
+) -> Result<()> {
+    write_input_file(path, value, format, false)
+}
+
+fn write_input_file(
+    path: &Path,
+    value: &stwo_cairo_adapter::ProverInput,
+    format: InputFormat,
+    overwrite: bool,
+) -> Result<()> {
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
     {
-        let mut writer = BufWriter::with_capacity(4 << 20, &mut file);
-        serde_json::to_writer(&mut writer, value).context("failed to serialize ProverInput")?;
+        let mut writer = BufWriter::with_capacity(4 << 20, temporary.as_file_mut());
+        write_input(&mut writer, value, format)?;
         writer.flush().context("failed to flush ProverInput")?;
     }
-    file.sync_all().context("failed to sync ProverInput")
+    temporary
+        .as_file()
+        .sync_all()
+        .context("failed to sync ProverInput")?;
+    if overwrite {
+        temporary
+            .persist(path)
+            .with_context(|| format!("failed to publish {}", path.display()))?;
+    } else {
+        temporary
+            .persist_noclobber(path)
+            .with_context(|| format!("refusing to replace {}", path.display()))?;
+    }
+    Ok(())
+}
+
+fn write_input(
+    writer: &mut impl Write,
+    input: &stwo_cairo_adapter::ProverInput,
+    format: InputFormat,
+) -> Result<()> {
+    match format {
+        InputFormat::Json => {
+            serde_json::to_writer(writer, input).context("failed to serialize ProverInput")
+        }
+        InputFormat::Compact => {
+            compact::write(writer, input).context("failed to encode compact ProverInput")
+        }
+    }
 }
 
 fn sha256_file(path: &Path) -> Result<String> {
@@ -205,6 +276,7 @@ where
     let mut arguments = None;
     let mut output = None;
     let mut overwrite = false;
+    let mut input_format = None;
     while let Some(flag) = args.next() {
         let flag = flag
             .into_string()
@@ -218,13 +290,21 @@ where
             .next()
             .ok_or_else(|| anyhow::anyhow!("missing value for {flag}"))?;
         match flag.as_str() {
+            "--input-format" if input_format.is_none() => {
+                input_format = Some(match utf8(Some(value), "missing input format")?.as_str() {
+                    "json" => InputFormat::Json,
+                    "compact" => InputFormat::Compact,
+                    other => bail!("unsupported input format {other:?}; expected json or compact"),
+                });
+            }
             "--program" if program.is_none() => program = Some(PathBuf::from(value)),
             "--program-type" if program_type.is_none() => {
                 program_type = Some(utf8(Some(value), "missing program type")?)
             }
             "--arguments" if arguments.is_none() => arguments = Some(PathBuf::from(value)),
             "--prover-input-out" if output.is_none() => output = Some(PathBuf::from(value)),
-            "--program" | "--program-type" | "--arguments" | "--prover-input-out" => {
+            "--program" | "--program-type" | "--arguments" | "--prover-input-out"
+            | "--input-format" => {
                 bail!("duplicate option {flag}")
             }
             _ => bail!("unknown option {flag}"),
@@ -237,6 +317,7 @@ where
         arguments,
         output: output.ok_or_else(|| anyhow::anyhow!("missing --prover-input-out"))?,
         overwrite,
+        input_format: input_format.unwrap_or(InputFormat::Json),
     })
 }
 

@@ -5,6 +5,7 @@
 //! shared frontend walker owns semantic instruction and coefficient order.
 
 const std = @import("std");
+const shapes = @import("stwo_cairo_frontend").codegen.field_shapes;
 const eval = @import("stwo_cairo_frontend").witness.eval_program;
 const shared = @import("stwo_cairo_frontend").codegen.eval_program;
 
@@ -111,15 +112,47 @@ pub fn generate(
     allocator: std.mem.Allocator,
     program: eval.Program,
 ) ![]u8 {
+    return generateBody(allocator, program, false, &.{});
+}
+
+/// Geometry-independent body. Constants are supplied by the authenticated
+/// live AIR template binding in `base_params`; they are never proof inputs.
+pub fn generateParametric(allocator: std.mem.Allocator, normalized: eval.Program, dynamic_constants: []const bool) ![]u8 {
+    return generateBodyMode(allocator, normalized, true, dynamic_constants, shared.instructionCount(normalized) > 8192);
+}
+
+pub fn generateMaterializedParity(allocator: std.mem.Allocator, program: eval.Program, dynamic_constants: []const bool) ![]u8 {
+    return generateBodyMode(allocator, program, true, dynamic_constants, true);
+}
+
+fn generateBody(allocator: std.mem.Allocator, program: eval.Program, parametric: bool, dynamic_constants: []const bool) ![]u8 {
+    return generateBodyMode(allocator, program, parametric, dynamic_constants, false);
+}
+
+fn generateBodyMode(allocator: std.mem.Allocator, program: eval.Program, parametric: bool, dynamic_constants: []const bool, materialized: bool) ![]u8 {
     try program.validate();
+    if (parametric) {
+        var constants: usize = 0;
+        for (program.base_insts) |inst| if (inst.op == .constant) {
+            constants += 1;
+        };
+        if (dynamic_constants.len != constants) return error.AirConstantExtentMismatch;
+    }
     var source = std.ArrayList(u8).empty;
     errdefer source.deinit(allocator);
     const writer = source.writer(allocator);
-    try writer.writeAll(preamble);
-    const name = try kernelName(
-        allocator,
-        program.header.semantic_hash,
-    );
+    if (parametric) {
+        // The translated provider has no libdevice __nv_brev. Keep NVIDIA's
+        // native instruction and supply exact u32 reversal for local checks.
+        const portable = try std.mem.replaceOwned(u8, allocator, preamble, "return bits == 0u ? 0u : __brev(value) >> (32u - bits);", portable_bit_reverse);
+        defer allocator.free(portable);
+        try writer.writeAll(portable);
+    } else try writer.writeAll(preamble);
+    if (materialized) try writer.writeAll(local_bank_support);
+    const name = if (parametric)
+        try std.fmt.allocPrint(allocator, "stwo_cairo_cuda_eval_v3_{x:0>16}", .{program.header.semantic_hash})
+    else
+        try kernelName(allocator, program.header.semantic_hash);
     defer allocator.free(name);
     try writer.print(
         \\extern "C" __global__ void __launch_bounds__(256)
@@ -133,9 +166,25 @@ pub fn generate(
         \\        row >= args->row_count) return;
         \\
     , .{name});
+    if (materialized) try writer.print("    volatile unsigned base_bank[{}];\n    volatile StwoCairoQm31 ext_bank[{}];\n", .{ @max(program.header.max_base_regs, 1), @max(program.header.max_ext_regs, 1) });
 
+    const facts = if (parametric) try shapes.Facts.init(allocator, program) else null;
+    defer if (facts) |value| value.deinit(allocator);
+    const last_writes = try allocator.alloc(usize, if (parametric) program.header.max_ext_regs else 0);
+    defer allocator.free(last_writes);
+    @memset(last_writes, 0);
+    if (parametric) {
+        for (program.ext_insts, 0..) |inst, index| last_writes[inst.dst] = index;
+        try writer.writeAll("    StwoCairoQm31 part_acc = { 0u, 0u, 0u, 0u };\n");
+    }
     var emitter = CudaProgramEmitter(@TypeOf(writer)){
         .writer = writer,
+        .parametric = parametric,
+        .materialized = materialized,
+        .dynamic_constants = dynamic_constants,
+        .facts = facts,
+        .last_writes = last_writes,
+        .roots = program.constraint_roots,
     };
     try shared.walk(allocator, program, 0, &emitter);
     try writer.writeAll(
@@ -164,53 +213,104 @@ pub fn generate(
 fn CudaProgramEmitter(comptime Writer: type) type {
     return struct {
         writer: Writer,
+        parametric: bool = false,
+        materialized: bool = false,
+        base_constant_cursor: u32 = 0,
+        dynamic_constants: []const bool = &.{},
+        facts: ?shapes.Facts = null,
+        last_writes: []const usize = &.{},
+        roots: []const u32 = &.{},
+        extension_cursor: usize = 0,
+        root_cursor: usize = 0,
+
+        fn baseRef(self: *@This(), register: u32, buffer: *[96]u8, read: bool) ![]const u8 {
+            if (self.materialized and read) {
+                if (self.facts.?.base[register]) |value|
+                    return std.fmt.bufPrint(buffer, "{}u", .{value});
+            }
+            return if (self.materialized) std.fmt.bufPrint(buffer, "base_bank[{}]", .{register}) else std.fmt.bufPrint(buffer, "b{}", .{register});
+        }
+
+        fn extRef(self: *@This(), register: u32, buffer: *[96]u8, scalar: bool) ![]const u8 {
+            if (self.materialized) return if (scalar)
+                std.fmt.bufPrint(buffer, "ext_bank[{}].a", .{register})
+            else
+                std.fmt.bufPrint(buffer, "stwo_local_load(ext_bank[{}])", .{register});
+            return if (scalar) std.fmt.bufPrint(buffer, "e{}.a", .{register}) else std.fmt.bufPrint(buffer, "e{}", .{register});
+        }
 
         pub fn base(self: *@This(), step: shared.BaseStep) !void {
             const inst = step.instruction;
-            const decl = if (step.declare) "unsigned " else "";
+            const decl = if (step.declare and !self.materialized) "unsigned " else "";
+            const known: ?u32 = if (self.parametric and inst.op == .constant and self.dynamic_constants[self.base_constant_cursor])
+                null
+            else if (self.facts) |facts| facts.baseValue(inst) else null;
+            if (self.materialized and known != null) {
+                // Every read of a known base value is emitted as its literal.
+                // Avoid private-memory stores for compile-time constants.
+                self.facts.?.base[inst.dst] = known;
+                if (inst.op == .constant) self.base_constant_cursor += 1;
+                return;
+            }
+            var destination: [96]u8 = undefined;
+            var left: [96]u8 = undefined;
+            var right: [96]u8 = undefined;
+            const dst = try self.baseRef(inst.dst, &destination, false);
+            const a = if (inst.op == .add or inst.op == .sub or inst.op == .mul or inst.op == .neg or inst.op == .inv)
+                try self.baseRef(inst.a, &left, true)
+            else
+                "";
+            const b = if (inst.op == .add or inst.op == .sub or inst.op == .mul)
+                try self.baseRef(inst.b, &right, true)
+            else
+                "";
             switch (inst.op) {
                 .trace_col, .preprocessed_col => try self.writer.print(
-                    "    {s}b{} = stwo_trace_value(arena, *args, {}u, {}u, row, {});\n",
+                    "    {s}{s} = stwo_trace_value(arena, *args, {}u, {}u, row, {});\n",
                     .{
                         decl,
-                        inst.dst,
+                        dst,
                         inst.interaction,
                         inst.a,
                         inst.imm,
                     },
                 ),
                 .param => try self.writer.print(
-                    "    {s}b{} = arena[args->base_params + {}u];\n",
-                    .{ decl, inst.dst, inst.a },
+                    "    {s}{s} = arena[args->base_params + {}u];\n",
+                    .{ decl, dst, inst.a },
                 ),
-                .constant => try self.writer.print(
-                    "    {s}b{} = {}u;\n",
-                    .{ decl, inst.dst, inst.a },
-                ),
+                .constant => {
+                    if (self.parametric and self.dynamic_constants[self.base_constant_cursor]) {
+                        try self.writer.print("    {s}{s} = arena[args->base_params + {}u];\n", .{ decl, dst, self.base_constant_cursor });
+                    } else try self.writer.print("    {s}{s} = {}u;\n", .{ decl, dst, inst.a });
+                    if (self.parametric) self.base_constant_cursor += 1;
+                },
                 .add => try self.writer.print(
-                    "    {s}b{} = stwo_m31_add(b{}, b{});\n",
-                    .{ decl, inst.dst, inst.a, inst.b },
+                    "    {s}{s} = stwo_m31_add({s}, {s});\n",
+                    .{ decl, dst, a, b },
                 ),
                 .sub => try self.writer.print(
-                    "    {s}b{} = stwo_m31_sub(b{}, b{});\n",
-                    .{ decl, inst.dst, inst.a, inst.b },
+                    "    {s}{s} = stwo_m31_sub({s}, {s});\n",
+                    .{ decl, dst, a, b },
                 ),
                 .mul => try self.writer.print(
-                    "    {s}b{} = stwo_m31_mul(b{}, b{});\n",
-                    .{ decl, inst.dst, inst.a, inst.b },
+                    "    {s}{s} = stwo_m31_mul({s}, {s});\n",
+                    .{ decl, dst, a, b },
                 ),
                 .neg => try self.writer.print(
-                    "    {s}b{} = stwo_m31_neg(b{});\n",
-                    .{ decl, inst.dst, inst.a },
+                    "    {s}{s} = stwo_m31_neg({s});\n",
+                    .{ decl, dst, a },
                 ),
                 .inv => try self.writer.print(
-                    "    {s}b{} = stwo_m31_inv(b{});\n",
-                    .{ decl, inst.dst, inst.a },
+                    "    {s}{s} = stwo_m31_inv({s});\n",
+                    .{ decl, dst, a },
                 ),
             }
+            if (self.facts) |facts| facts.base[inst.dst] = known;
         }
 
         pub fn extended(self: *@This(), step: shared.ExtStep) !void {
+            if (self.parametric) return self.extendedParametric(step);
             const inst = step.instruction;
             const decl = if (step.declare)
                 "StwoCairoQm31 "
@@ -232,17 +332,7 @@ fn CudaProgramEmitter(comptime Writer: type) type {
                     "    {s}e{} = stwo_load_qm31(arena, args->ext_params + {}u * 4u);\n",
                     .{ decl, inst.dst, inst.a },
                 ),
-                .constant => try self.writer.print(
-                    "    {s}e{} = {{ {}u, {}u, {}u, {}u }};\n",
-                    .{
-                        decl,
-                        inst.dst,
-                        inst.a,
-                        inst.b,
-                        inst.c,
-                        inst.d,
-                    },
-                ),
+                .constant => try self.writer.print("    {s}e{} = {{ {}u, {}u, {}u, {}u }};\n", .{ decl, inst.dst, inst.a, inst.b, inst.c, inst.d }),
                 .add => try self.writer.print(
                     "    {s}e{} = stwo_qm31_add(e{}, e{});\n",
                     .{ decl, inst.dst, inst.a, inst.b },
@@ -262,7 +352,86 @@ fn CudaProgramEmitter(comptime Writer: type) type {
             }
         }
 
+        fn extendedParametric(self: *@This(), step: shared.ExtStep) !void {
+            const i = step.instruction;
+            const facts = self.facts.?;
+            const kind = facts.extensionKind(i);
+            var left: [96]u8 = undefined;
+            var right: [96]u8 = undefined;
+            var left_scalar: [96]u8 = undefined;
+            var right_scalar: [96]u8 = undefined;
+            const a = try self.extRef(i.a, &left, false);
+            const b = try self.extRef(i.b, &right, false);
+            const a_scalar = try self.extRef(i.a, &left_scalar, true);
+            const b_scalar = try self.extRef(i.b, &right_scalar, true);
+            if (self.materialized) try self.writer.writeAll("    {\n    StwoCairoQm31 value = ") else try self.writer.print("    {s}e{} = ", .{ if (step.declare) "StwoCairoQm31 " else "", i.dst });
+            if (kind == .zero) {
+                try self.writer.writeAll("{ 0u, 0u, 0u, 0u }");
+            } else switch (i.op) {
+                .secure_col => {
+                    var ba: [96]u8 = undefined;
+                    var bb: [96]u8 = undefined;
+                    var bc: [96]u8 = undefined;
+                    var bd: [96]u8 = undefined;
+                    try self.writer.print("{{ {s}, {s}, {s}, {s} }}", .{
+                        try self.baseRef(i.a, &ba, true), try self.baseRef(i.b, &bb, true),
+                        try self.baseRef(i.c, &bc, true), try self.baseRef(i.d, &bd, true),
+                    });
+                },
+                .param => try self.writer.print("stwo_load_qm31(arena, args->ext_params + {}u * 4u)", .{i.a}),
+                .constant => try self.writer.print("{{ {}u, {}u, {}u, {}u }}", .{ i.a, i.b, i.c, i.d }),
+                .add, .sub, .mul => {
+                    const lhs = facts.extended[i.a];
+                    const rhs = facts.extended[i.b];
+                    if ((i.op == .add or i.op == .sub) and rhs == .zero) {
+                        try self.writer.writeAll(a);
+                    } else if ((i.op == .add and lhs == .zero) or (i.op == .mul and lhs == .one)) {
+                        try self.writer.writeAll(b);
+                    } else if (i.op == .mul and rhs == .one) {
+                        try self.writer.writeAll(a);
+                    } else if (i.op == .mul and lhs != .secure) {
+                        try self.writer.print("stwo_qm31_mul_base({s}, {s})", .{ b, a_scalar });
+                    } else if (i.op == .mul and rhs != .secure) {
+                        try self.writer.print("stwo_qm31_mul_base({s}, {s})", .{ a, b_scalar });
+                    } else try self.writer.print("{s}({s}, {s})", .{ switch (i.op) {
+                        .add => "stwo_qm31_add",
+                        .sub => "stwo_qm31_sub",
+                        else => "stwo_qm31_mul",
+                    }, a, b });
+                },
+                .neg => try self.writer.print("stwo_qm31_neg({s})", .{a}),
+            }
+            try self.writer.writeAll(";\n");
+            if (self.materialized) try self.writer.print("    stwo_local_store(ext_bank[{}], value);\n    }}\n", .{i.dst});
+            facts.extended[i.dst] = kind;
+            self.extension_cursor += 1;
+            // Keep canonical root/coefficient order and wait for the FINAL
+            // register write. This supports imperative register reuse while
+            // consuming completed constraints before the entire AIR finishes.
+            while (self.root_cursor < self.roots.len and self.last_writes[self.roots[self.root_cursor]] < self.extension_cursor) {
+                try self.emitParametricConstraint(self.roots[self.root_cursor], self.root_cursor);
+                self.root_cursor += 1;
+            }
+        }
+
+        fn emitParametricConstraint(self: *@This(), root: u32, offset: usize) !void {
+            var reference: [96]u8 = undefined;
+            var scalar: [96]u8 = undefined;
+            const e = try self.extRef(root, &reference, false);
+            const scalar_value = try self.extRef(root, &scalar, true);
+            switch (self.facts.?.extended[root]) {
+                .zero => {},
+                .one => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u));\n", .{offset}),
+                .base => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_qm31_mul_base(stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u), {s}));\n", .{ offset, scalar_value }),
+                .secure => try self.writer.print("    part_acc = stwo_qm31_add(part_acc, stwo_qm31_mul({s}, stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u)));\n", .{ e, offset }),
+            }
+        }
+
         pub fn beginConstraints(self: *@This()) !void {
+            if (self.parametric) {
+                if (self.root_cursor != self.roots.len) return error.UnemittedConstraint;
+                return;
+            }
             try self.writer.writeAll(
                 "    StwoCairoQm31 part_acc = { 0u, 0u, 0u, 0u };\n",
             );
@@ -272,6 +441,7 @@ fn CudaProgramEmitter(comptime Writer: type) type {
             self: *@This(),
             step: shared.ConstraintStep,
         ) !void {
+            if (self.parametric) return;
             try self.writer.print(
                 "    part_acc = stwo_qm31_add(part_acc, stwo_qm31_mul(e{}, stwo_load_qm31(arena, args->random_coeffs + (args->rc_base + {}u) * 4u)));\n",
                 .{ step.root, step.random_coefficient_offset },
@@ -303,6 +473,35 @@ fn hashUnsigned(
     std.mem.writeInt(T, &encoded, value, .little);
     hasher.update(&encoded);
 }
+
+// Large programs materialize registers explicitly. Volatile accesses prevent
+// scalar replacement from rebuilding an enormous register interference graph.
+// These are thread-private banks, not host transfers or shared proof state.
+const local_bank_support =
+    \\__device__ __forceinline__ StwoCairoQm31 stwo_local_load(
+    \\    const volatile StwoCairoQm31 &value) {
+    \\    return {value.a, value.b, value.c, value.d};
+    \\}
+    \\__device__ __forceinline__ void stwo_local_store(
+    \\    volatile StwoCairoQm31 &destination, StwoCairoQm31 value) {
+    \\    destination.a=value.a; destination.b=value.b;
+    \\    destination.c=value.c; destination.d=value.d;
+    \\}
+    \\
+;
+
+const portable_bit_reverse =
+    \\#if defined(STWO_CUMETAL)
+    \\    value = ((value >> 1u) & 0x55555555u) | ((value & 0x55555555u) << 1u);
+    \\    value = ((value >> 2u) & 0x33333333u) | ((value & 0x33333333u) << 2u);
+    \\    value = ((value >> 4u) & 0x0f0f0f0fu) | ((value & 0x0f0f0f0fu) << 4u);
+    \\    value = ((value >> 8u) & 0x00ff00ffu) | ((value & 0x00ff00ffu) << 8u);
+    \\    value = (value >> 16u) | (value << 16u);
+    \\    return bits == 0u ? 0u : value >> (32u - bits);
+    \\#else
+    \\    return bits == 0u ? 0u : __brev(value) >> (32u - bits);
+    \\#endif
+;
 
 const preamble =
     \\// stwo-zig Cairo CUDA evaluation codegen v1.

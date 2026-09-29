@@ -49,7 +49,10 @@ pub const Error = error{
 };
 
 pub fn check(status: c_int) Error!void {
-    if (status != 0) return error.CudaFailure;
+    if (status != 0) {
+        @import("std").debug.print("cuda runtime call failed status={}\n", .{status});
+        return error.CudaFailure;
+    }
 }
 
 test "only CUDA success status is accepted" {

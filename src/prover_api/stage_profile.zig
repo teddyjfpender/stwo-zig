@@ -125,6 +125,30 @@ pub const Recorder = struct {
         self.* = undefined;
     }
 
+    /// Moves completed stage trees and task graphs from a joined coordinator.
+    /// Both owners must use the same allocator. All admission and reservation
+    /// happen before ownership moves; the child remains independently reusable.
+    /// Exact-work capture uses the serial coordinator instead of this seam.
+    pub fn adoptJoined(self: *Recorder, child: *Recorder) !void {
+        if (self == child or self.allocator.ptr != child.allocator.ptr or
+            self.allocator.vtable != child.allocator.vtable or
+            self.capture_tasks != child.capture_tasks or self.capture_work or child.capture_work)
+            return error.IncompatibleJoinedRecorder;
+        if (child.stack.items.len != 0 or self.task_recorder.active_reservation != null or
+            child.task_recorder.active_reservation != null)
+            return error.JoinedRecorderStillActive;
+        const destination = if (self.stack.items.len == 0)
+            &self.roots
+        else
+            &self.stack.items[self.stack.items.len - 1].children;
+        try destination.ensureUnusedCapacity(self.allocator, child.roots.items.len);
+        try self.task_recorder.graphs.ensureUnusedCapacity(self.allocator, child.task_recorder.graphs.items.len);
+        destination.appendSliceAssumeCapacity(child.roots.items);
+        self.task_recorder.graphs.appendSliceAssumeCapacity(child.task_recorder.graphs.items);
+        child.roots.clearRetainingCapacity();
+        child.task_recorder.graphs.clearRetainingCapacity();
+    }
+
     pub fn snapshot(self: *const Recorder, allocator: std.mem.Allocator) !StageProfile {
         std.debug.assert(self.stack.items.len == 0);
         return .{
@@ -199,12 +223,16 @@ pub const Recorder = struct {
         node.* = MutableNode.init(id, label);
         errdefer self.allocator.destroy(node);
 
-        if (self.stack.items.len == 0) {
-            try self.roots.append(self.allocator, node);
-        } else {
-            try self.stack.items[self.stack.items.len - 1].children.append(self.allocator, node);
-        }
-        try self.stack.append(self.allocator, node);
+        const destination = if (self.stack.items.len == 0)
+            &self.roots
+        else
+            &self.stack.items[self.stack.items.len - 1].children;
+        // Reserve both lists before publishing. A failed stack allocation must
+        // not leave a root/child pointer to the node freed by this errdefer.
+        try self.stack.ensureUnusedCapacity(self.allocator, 1);
+        try destination.ensureUnusedCapacity(self.allocator, 1);
+        destination.appendAssumeCapacity(node);
+        self.stack.appendAssumeCapacity(node);
         return node;
     }
 
@@ -375,4 +403,67 @@ test "prover stage profile: exact work capability is independently opt in" {
 
 test {
     _ = @import("task_profile_reservation_test.zig");
+}
+
+test "joined recorder retains nested stages and completed task graph ownership" {
+    const allocator = std.testing.allocator;
+    var parent = Recorder.init(allocator, "zig", "joined");
+    defer parent.deinit();
+    var child = Recorder.init(allocator, "zig", "joined");
+    defer child.deinit();
+    var child_stage = try StageScope.begin(&child, "parallel", "Parallel");
+    child_stage.end();
+    var pending = try child.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    try child.publishTaskGraphAfterJoin(&pending, .{ .graph_id = "parallel-graph" }, .{});
+    var outer = try StageScope.begin(&parent, "parent", "Parent");
+    try parent.adoptJoined(&child);
+    outer.end();
+    try std.testing.expectEqual(@as(usize, 0), child.roots.items.len);
+    try std.testing.expectEqual(@as(usize, 0), child.task_recorder.graphs.items.len);
+    var stages = try parent.snapshot(allocator);
+    defer stages.deinit(allocator);
+    try std.testing.expectEqualStrings("parallel", stages.stages[0].children.?[0].id);
+    var tasks = try parent.taskSnapshot(allocator);
+    defer tasks.deinit(allocator);
+    try std.testing.expectEqualStrings("parallel-graph", tasks.graphs[0].graph_id);
+}
+
+test "joined recorder rejects live stages and reservations before transfer" {
+    const allocator = std.testing.allocator;
+    var parent = Recorder.init(allocator, "zig", "joined");
+    defer parent.deinit();
+    var child = Recorder.init(allocator, "zig", "joined");
+    defer child.deinit();
+    var stage = try StageScope.begin(&child, "active", "Active");
+    try std.testing.expectError(error.JoinedRecorderStillActive, parent.adoptJoined(&child));
+    stage.end();
+    var pending = try child.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    try std.testing.expectError(error.JoinedRecorderStillActive, parent.adoptJoined(&child));
+    try std.testing.expectEqual(@as(usize, 1), child.roots.items.len);
+    try std.testing.expectEqual(@as(usize, 0), parent.roots.items.len);
+    try pending.abort();
+    try parent.adoptJoined(&child);
+    try std.testing.expectError(error.IncompatibleJoinedRecorder, parent.adoptJoined(&parent));
+}
+
+fn exerciseJoinedAllocationFailure(allocator: std.mem.Allocator) !void {
+    var parent = Recorder.init(allocator, "zig", "joined");
+    defer parent.deinit();
+    var child = Recorder.init(allocator, "zig", "joined");
+    defer child.deinit();
+    var stage = try StageScope.begin(&child, "child", "Child");
+    stage.end();
+    var pending = try child.reserveTaskGraph(0, 0);
+    defer pending.deinit();
+    try child.publishTaskGraphAfterJoin(&pending, .{ .graph_id = "child" }, .{});
+    try parent.adoptJoined(&child);
+    try std.testing.expectEqual(@as(usize, 1), parent.roots.items.len);
+    try std.testing.expectEqual(@as(usize, 0), child.roots.items.len);
+    try std.testing.expectEqual(@as(usize, 1), parent.task_recorder.graphs.items.len);
+}
+
+test "joined recorder allocation failures leave every owner reclaimable" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, exerciseJoinedAllocationFailure, .{});
 }

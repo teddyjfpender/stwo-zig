@@ -1,0 +1,14 @@
+{
+  "schema": "stwo-zig-cairo-cuda-compile-experiment-v1",
+  "label": "EC deduction shared device function",
+  "provider": "cumetal",
+  "checkout_commit": "e74b377942f9d2db0f2dde14c5a1b51a9c678692",
+  "compile_exit_code": 0,
+  "compile_elapsed_seconds": 36.9246648340486,
+  "source_sha256": "4a9fe117a1eb0794365251ee400ac4b20d612a84a91424d7310c3f98a0b0920f",
+  "change": "__forceinline__ to __noinline__ on stwo_wit_deduce_partial_ec_mul_generic only",
+  "device_executed": false,
+  "nvidia_qualified": false,
+  "full_proof_verified": false,
+  "promoted_to_default": false
+}

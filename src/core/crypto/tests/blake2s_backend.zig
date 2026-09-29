@@ -1,4 +1,24 @@
 const std = @import("std");
+
+test "BLAKE2s plain four-message batches match the independent standard library" {
+    const Oracle = std.crypto.hash.blake2.Blake2s256;
+    var storage: [4][511]u8 = undefined;
+    for (&storage, 0..) |*message, lane| for (message, 0..) |*byte, index| {
+        byte.* = @truncate(lane * 137 + index * 29);
+    };
+    for ([_]usize{ 0, 1, 3, 15, 16, 31, 63, 64, 65, 127, 128, 129, 511 }) |len| {
+        var views: [4][]const u8 = undefined;
+        for (&views, 0..) |*view, lane| view.* = storage[lane][0..len];
+        for ([_]backend.BackendMode{ .scalar, .simd }) |mode| {
+            const actual = backend.Blake2sHasher.hashEqual4WithMode(mode, &views);
+            for (actual, views) |digest, message| {
+                var expected: [32]u8 = undefined;
+                Oracle.hash(message, &expected, .{});
+                try std.testing.expectEqualSlices(u8, &expected, &digest);
+            }
+        }
+    }
+}
 const backend = @import("../blake2s_backend.zig");
 
 const Blake2sHasher = backend.Blake2sHasher;

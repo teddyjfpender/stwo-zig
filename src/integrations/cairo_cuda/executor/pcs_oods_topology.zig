@@ -411,15 +411,32 @@ fn appendSample(
     const source = quotient.sources[source_index];
     if (source.tree_ordinal != tree_ordinal or
         source.local_column != local_column or
-        lifting_log < source.compact.log_size)
+        lifting_log <= source.compact.log_size)
     {
         return error.InvalidKernelDescriptor;
     }
     offsets[cursor.*] = .{ .x = offset.x.v, .y = offset.y.v };
-    folds[cursor.*] = lifting_log - source.compact.log_size;
+    folds[cursor.*] = try sampleFoldCount(lifting_log, source.compact.log_size);
     indices[cursor.*] = @intCast(cursor.*);
     sources[cursor.*] = source_index;
     cursor.* += 1;
+}
+
+// Rust PCS lifts LDE domains, whose logs include the blowup. Compact sources
+// contain coefficients. With the canonical one-bit blowup, the split
+// composition has evaluation_log - 1 coefficient bits and needs zero folds.
+fn sampleFoldCount(evaluation_log: u32, coefficient_log: u32) !u32 {
+    const degree_log = std.math.sub(u32, evaluation_log, 1) catch
+        return error.InvalidKernelDescriptor;
+    return std.math.sub(u32, degree_log, coefficient_log) catch
+        error.InvalidKernelDescriptor;
+}
+
+test "canonical CUDA OODS folds use coefficient degree rather than LDE height" {
+    try std.testing.expectEqual(@as(u32, 0), try sampleFoldCount(24, 23));
+    try std.testing.expectEqual(@as(u32, 17), try sampleFoldCount(24, 6));
+    try std.testing.expectError(error.InvalidKernelDescriptor, sampleFoldCount(24, 24));
+    try std.testing.expectError(error.InvalidKernelDescriptor, sampleFoldCount(0, 0));
 }
 
 fn validateTermSources(

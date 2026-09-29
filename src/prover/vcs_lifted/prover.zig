@@ -87,6 +87,15 @@ pub fn MerkleProverLifted(comptime H: type) type {
             allocator: std.mem.Allocator,
             log_size: u32,
         ) ![][]H.Hash {
+            return allocateLayersPruned(allocator, log_size, 0);
+        }
+
+        pub fn allocateLayersPruned(
+            allocator: std.mem.Allocator,
+            log_size: u32,
+            pruned_bottom_layers: u32,
+        ) ![][]H.Hash {
+            if (pruned_bottom_layers > log_size) return error.InvalidColumnSize;
             const layer_alloc = layerAllocator(allocator);
             const layers = try allocator.alloc([]H.Hash, @as(usize, log_size) + 1);
             var filled: usize = 0;
@@ -95,6 +104,10 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 allocator.free(layers);
             }
             while (filled < layers.len) : (filled += 1) {
+                if (filled > log_size - pruned_bottom_layers) {
+                    layers[filled] = &.{};
+                    continue;
+                }
                 layers[filled] = try layer_alloc.alloc(
                     H.Hash,
                     @as(usize, 1) << @intCast(filled),
@@ -477,36 +490,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
             }
         }
 
-        const QueryReader = struct {
-            tree: Self,
-            columns: []const ColumnRef,
-            pub fn maxLogSize(self: @This()) u32 {
-                return self.tree.maxLogSize();
-            }
-            fn node(self: @This(), layer: u32, index: usize) H.Hash {
-                if (self.tree.layers[layer].len != 0) return self.tree.layers[layer][index];
-                if (layer == self.maxLogSize()) {
-                    var hash = H.defaultWithInitialState();
-                    for (self.columns) |column| {
-                        const shift: std.math.Log2Int(usize) = @intCast(self.maxLogSize() - column.log_size + 1);
-                        const at = ((index >> shift) << 1) + (index & 1);
-                        hash.updateLeaf(column.values[at..][0..1]);
-                    }
-                    return hash.finalize();
-                }
-                return H.hashChildren(.{ .left = self.node(layer + 1, index * 2), .right = self.node(layer + 1, index * 2 + 1) });
-            }
-            pub fn readHashes(self: @This(), allocator: std.mem.Allocator, layer: u32, indices: []const u32) ![]H.Hash {
-                if (layer > self.maxLogSize()) return error.InvalidColumnSize;
-                const out = try allocator.alloc(H.Hash, indices.len);
-                errdefer allocator.free(out);
-                for (indices, out) |index, *destination| {
-                    if (index >= @as(usize, 1) << @intCast(layer)) return error.InvalidColumnSize;
-                    destination.* = self.node(layer, index);
-                }
-                return out;
-            }
-        };
+        const QueryReader = @import("query_reconstruction.zig").Reader(H, Self);
 
         pub fn decommit(
             self: Self,
@@ -519,7 +503,11 @@ pub fn MerkleProverLifted(comptime H: type) type {
             const sorted = try sortColumnsByLogSizeAsc(allocator, columns);
             defer allocator.free(sorted);
             if (sorted.len == 0 or sorted[sorted.len - 1].log_size != self.maxLogSize()) return error.InvalidColumnSize;
-            return decommit_mod.decommit(H, QueryReader{ .tree = self, .columns = sorted }, allocator, query_positions, columns);
+            var retained_log_size = self.maxLogSize();
+            while (self.layers[retained_log_size].len == 0) retained_log_size -= 1;
+            var reader = try QueryReader.init(allocator, self, sorted, retained_log_size, query_positions);
+            defer reader.deinit(allocator);
+            return decommit_mod.decommit(H, reader, allocator, query_positions, columns);
         }
 
         pub fn maxLogSize(self: Self) u32 {

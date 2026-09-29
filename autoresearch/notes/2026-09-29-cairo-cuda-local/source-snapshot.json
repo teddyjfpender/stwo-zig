@@ -1,0 +1,17 @@
+{
+  "schema": "stwo-zig-cuda-source-snapshot-v1",
+  "implementation_commit": "7e95ce3017c16be868f9c0ea883c3c5c112723d8",
+  "implementation_tree": "8643e2a01b54874f7a738d20e68f27a958cea75d",
+  "implementation_dirty": true,
+  "dirty_content_sha256": "afcd0fff7f92ac91b37db8436c5348491f07bec02a940e9bb865fb4d34550c0f",
+  "digest_algorithm": "SHA256 of sorted snapshot files, little-endian u64 path length/path/byte length/bytes",
+  "source_file_count": 8629,
+  "source.tar.gz": {
+    "sha256": "87fccc80cb97a5251d3da2b4b72150d91bbe38bb3c9dd8f1ed6f04b129be852d",
+    "bytes": 72480631
+  },
+  "inputs.tar.gz": {
+    "sha256": "db33f276f377fe5d6cac6f5b49a60cfbbbeba74d38c4a9cff597a976d535a168",
+    "bytes": 274672481
+  }
+}
