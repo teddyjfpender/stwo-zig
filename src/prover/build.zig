@@ -45,7 +45,15 @@ pub fn build(b: *std.Build) void {
         .root_module = deep_tests,
         .filters = &.{"prover vcs_lifted"},
     });
-    b.step("test-merkle", "Run existing lifted Merkle commitment and worker-path regressions").dependOn(&b.addRunArtifact(merkle_tests).step);
+    const merkle_step = b.step("test-merkle", "Run lifted Merkle commitment, continuation and worker-path regressions");
+    merkle_step.dependOn(&b.addRunArtifact(merkle_tests).step);
+    // Continuation implementation tests belong to the engine module itself;
+    // importing its source into the separate deep-test module duplicates files.
+    const merkle_engine_tests = b.addTest(.{
+        .root_module = prover,
+        .filters = &.{ "prover vcs_lifted", "prover lifted BLAKE2s" },
+    });
+    merkle_step.dependOn(&b.addRunArtifact(merkle_engine_tests).step);
     const test_step = b.step("test", "Compile and test the stwo_prover_engine package");
     test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_deep_tests.step);
@@ -54,6 +62,12 @@ pub fn build(b: *std.Build) void {
         .step = "test-blake3-prefix-reuse",
         .description = "Verify BLAKE3 bounded prefix reuse across budgets and worker counts",
         .root = "blake3_prefix_reuse_test_root.zig",
+    });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-coefficient-storage",
+        .description = "Qualify compact polynomial commitments, quotients, openings and failure custody",
+        .root = "coefficient_storage_test_root.zig",
+        .filters = &.{"coefficient storage"},
     });
     const air_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-air",
@@ -93,6 +107,12 @@ pub fn build(b: *std.Build) void {
         .step = "test-pcs-commitments",
         .description = "Run only prover PCS commitment tests",
         .root = "pcs_commitments_test_root.zig",
+    });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-cached-merkle",
+        .description = "Check authenticated owned-tree cache hits, openings and corrupt-load refusal",
+        .root = "pcs_commitments_test_root.zig",
+        .filters = &.{"cached owned Merkle"},
     });
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-sampled-values",

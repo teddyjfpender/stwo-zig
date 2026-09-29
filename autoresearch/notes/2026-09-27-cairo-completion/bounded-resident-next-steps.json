@@ -1,0 +1,17 @@
+{
+  "active_qualification": {
+    "session_id": 14541,
+    "out": "zig-out/cairo-completion-20260927/cairo-suite-bounded-resident-sn2-v3",
+    "product": "zig-out/cairo-completion-20260927/bounded-resident-products-v3/bin/stwo-cairo-metal",
+    "expected_device_components": 53,
+    "expected_host_components": 5,
+    "expected_proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+  },
+  "next": [
+    "Check corrected full GPU proof, component coverage and official acceptance.",
+    "Run three alternating SN2 pairs against sampled-wide-products after first-use pipeline qualification.",
+    "Qualify diverse smoke, canonical builtin and larger SN PIEs; record memory and stages.",
+    "If tiled staging erases gains, compress lifted mask slabs by native pair repetition rather than materializing repeated evaluation rows."
+  ],
+  "compressed_staging_idea": "Host offset-circle mapping followed by native lifting is constant over repeated pair blocks. Stage one pair per lifted source group, include per-column shifts in typed tile descriptors, and index compressed mask slabs on GPU. Prove this property against core offsets across mixed logs, masks, tile boundaries and tails before changing the shader."
+}

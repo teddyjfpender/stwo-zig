@@ -1,0 +1,160 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-suite-v1",
+  "status": "incomplete",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "manifest_sha256": "3546903e848bc14bef044f1c04e57d6ad645859505d759d4090acc465a1cab6f",
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "cache_mode": "retained",
+  "metal_pipeline_cache": "OS-managed and retained; admission time included in every process measurement",
+  "scheduling": "one benchmark product process at a time, including all worker sweeps",
+  "rss_scope": "largest process/descendant RSS, not sum of simultaneous allocations",
+  "manifest_workload_count": 15,
+  "selection": [
+    "sn-pie-1",
+    "sn-pie-3"
+  ],
+  "not_selected": [
+    "ret",
+    "all-opcodes",
+    "bitwise",
+    "range96",
+    "range128",
+    "poseidon",
+    "pedersen",
+    "all-builtins",
+    "executable-add-one",
+    "fibonacci-pie",
+    "all-builtins-canonical",
+    "sn-pie-2",
+    "sn-pie-4"
+  ],
+  "summary": [
+    {
+      "workload": "sn-pie-1",
+      "backend": "metal",
+      "workers": null,
+      "status": "failed",
+      "error": "product exited 1; see /Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-wide-large-v1/sn-pie-1-metal-workers-auto/trial-1.product.log"
+    },
+    {
+      "workload": "sn-pie-3",
+      "backend": "metal",
+      "workers": null,
+      "status": "failed",
+      "error": "product exited 1; see /Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-wide-large-v1/sn-pie-3-metal-workers-auto/trial-1.product.log"
+    }
+  ],
+  "backend_proof_parity": [
+    {
+      "workload": "sn-pie-1",
+      "workers": null,
+      "status": "single-backend"
+    },
+    {
+      "workload": "sn-pie-3",
+      "workers": null,
+      "status": "single-backend"
+    }
+  ],
+  "failed_measurements": [
+    {
+      "workload": "sn-pie-1",
+      "error": "product exited 1; see /Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-wide-large-v1/sn-pie-1-metal-workers-auto/trial-1.product.log",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "21d45b897f5267ac048e0a0c7bfc8c12defff9773c1f6a945913e07ad4082545",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+          "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {},
+        "status": "failed"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "status": "failed",
+          "phase": "product",
+          "process": {
+            "exit_code": 1,
+            "wall_ns": 61252063458,
+            "user_ns": 204194161000,
+            "system_ns": 55609947000,
+            "max_process_tree_rss_bytes": 44823199744,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "error": "product exited 1; see /Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-wide-large-v1/sn-pie-1-metal-workers-auto/trial-1.product.log",
+          "error_type": "RuntimeError"
+        }
+      ]
+    },
+    {
+      "workload": "sn-pie-3",
+      "error": "product exited 1; see /Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-wide-large-v1/sn-pie-3-metal-workers-auto/trial-1.product.log",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "21d45b897f5267ac048e0a0c7bfc8c12defff9773c1f6a945913e07ad4082545",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_3.zip",
+          "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {},
+        "status": "failed"
+      },
+      "trials": [
+        {
+          "index": 1,
+          "status": "failed",
+          "phase": "product",
+          "process": {
+            "exit_code": 1,
+            "wall_ns": 54522621083,
+            "user_ns": 206650545000,
+            "system_ns": 51459433000,
+            "max_process_tree_rss_bytes": 44065980416,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "error": "product exited 1; see /Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-wide-large-v1/sn-pie-3-metal-workers-auto/trial-1.product.log",
+          "error_type": "RuntimeError"
+        }
+      ]
+    }
+  ]
+}

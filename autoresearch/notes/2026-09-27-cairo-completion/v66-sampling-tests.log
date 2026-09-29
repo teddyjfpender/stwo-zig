@@ -1,0 +1,25 @@
+1/24 poly.circle.poly.test.prover poly circle poly: generic type preserves host representation...OK
+2/24 poly.circle.poly.test.prover poly circle poly: eval at point for constant polynomial...OK
+3/24 poly.circle.poly.test.prover poly circle poly: split-at-mid identity...OK
+4/24 poly.circle.poly.test.prover poly circle poly: eval at points folded batch matches scalar oracle...OK
+5/24 poly.circle.poly.test.prover poly circle poly: precomputed folded factors match scalar oracle...OK
+6/24 poly.circle.poly.test.prover poly circle poly: batched point evaluation matches scalar helper...OK
+7/24 poly.circle.poly.test.prover poly circle poly: evaluate on domain returns base values...OK
+8/24 poly.circle.poly.test.prover poly circle poly: interpolation roundtrip...OK
+9/24 poly.circle.poly.test.prover poly circle poly: evaluate with twiddles matches evaluate...OK
+10/24 poly.circle.poly.test.prover poly circle poly: interpolate with twiddles matches interpolate...OK
+11/24 poly.circle.poly.test.circle poly: row FFT waves match serial interpolation and extension...OK
+12/24 pcs.sampled_coefficient_plans.test.sampled coefficient native batches cover ragged columns with bounded workers...OK
+13/24 pcs.sampled_value_work.test.sampled work: optimized folds factors and iterative evaluation are exact...OK
+14/24 pcs.sampled_value_work.test.sampled work: high-block subset schedule counts executed recomputation...OK
+15/24 pcs.sampled_value_work.test.sampled work: barycentric context and evaluation match the live schedule...OK
+16/24 pcs.sampled_value_work.test.sampled work: shared barycentric weights remove over 99 percent of inversions...OK
+17/24 pcs.sampled_value_work.test.sampled work: merge is fail-closed...OK
+18/24 pcs.sampled_coefficient_ownership_test.test.sampled coefficient plan allocation failures release resized scratch exactly once...OK
+19/24 poly.circle.point_evaluation.test.point evaluation: packed high-block subset basis matches scalar products...OK
+20/24 poly.circle.point_evaluation.test.point evaluation: subset basis evaluation crosses packed high-block boundary...OK
+21/24 poly.circle.point_evaluation.test.circle point evaluation matches the monomial reference...OK
+22/24 poly.circle.point_evaluation.test.circle point evaluation iterative reduction matches recursive oracle...OK
+23/24 poly.circle.point_evaluation.test.point evaluation: singleton subset dot products retain coordinate edges and ragged tails...OK
+24/24 pcs.sampled_coefficient_split.test.sampled split bases match independent polynomial evaluation with ragged column batches...OK
+All 24 tests passed.

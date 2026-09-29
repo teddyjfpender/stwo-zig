@@ -219,16 +219,17 @@ kernel void stwo_zig_blake3_fri_fold_line(
         );
 }
 
-kernel void stwo_zig_blake2s_leaves(
-    device const uint *flat_columns [[buffer(0)]],
-    device const uint *column_offsets [[buffer(1)]],
-    device const uint *column_log_sizes [[buffer(2)]],
-    device uint *destination [[buffer(3)]],
-    constant uint &column_count [[buffer(4)]],
-    constant uint &lifting_log_size [[buffer(5)]],
-    constant uint *leaf_seed [[buffer(6)]],
-    constant uint &prefix_bytes [[buffer(7)]],
-    uint row [[thread_position_in_grid]]
+template<typename Offset>
+inline void stwo_blake2s_direct_leaves(
+    device const uint *flat_columns,
+    device const Offset *column_offsets,
+    device const uint *column_log_sizes,
+    device uint *destination,
+    uint column_count,
+    uint lifting_log_size,
+    constant uint *leaf_seed,
+    uint prefix_bytes,
+    uint row
 ) {
     uint row_count = 1u << lifting_log_size;
     if (row >= row_count) return;
@@ -264,6 +265,36 @@ kernel void stwo_zig_blake2s_leaves(
     }
     uint base = row * 8u;
     for (uint i = 0; i < 8u; ++i) destination[base + i] = state[i];
+}
+
+kernel void stwo_zig_blake2s_leaves(
+    device const uint *flat_columns [[buffer(0)]],
+    device const uint *column_offsets [[buffer(1)]],
+    device const uint *column_log_sizes [[buffer(2)]],
+    device uint *destination [[buffer(3)]],
+    constant uint &column_count [[buffer(4)]],
+    constant uint &lifting_log_size [[buffer(5)]],
+    constant uint *leaf_seed [[buffer(6)]],
+    constant uint &prefix_bytes [[buffer(7)]],
+    uint row [[thread_position_in_grid]]
+) {
+    stwo_blake2s_direct_leaves(flat_columns, column_offsets, column_log_sizes,
+        destination, column_count, lifting_log_size, leaf_seed, prefix_bytes, row);
+}
+
+kernel void stwo_zig_blake2s_leaves_wide(
+    device const uint *flat_columns [[buffer(0)]],
+    device const ulong *column_offsets [[buffer(1)]],
+    device const uint *column_log_sizes [[buffer(2)]],
+    device uint *destination [[buffer(3)]],
+    constant uint &column_count [[buffer(4)]],
+    constant uint &lifting_log_size [[buffer(5)]],
+    constant uint *leaf_seed [[buffer(6)]],
+    constant uint &prefix_bytes [[buffer(7)]],
+    uint row [[thread_position_in_grid]]
+) {
+    stwo_blake2s_direct_leaves(flat_columns, column_offsets, column_log_sizes,
+        destination, column_count, lifting_log_size, leaf_seed, prefix_bytes, row);
 }
 
 kernel void stwo_zig_blake2s_leaf_absorb_resident(
@@ -315,6 +346,71 @@ kernel void stwo_zig_blake2s_leaf_absorb_compact_resident(
     blake2s_compress(state, message, prefix_bytes + (first_column + column_count) * 4u, is_final != 0u);
     for (uint i = 0u; i < 8u; ++i)
         arena[destination_state_offset + row * 8u + i] = state[i];
+}
+
+// One canonical BLAKE2s block over independent column owners. Old prefix
+// states and the destination have independent custody, so a completed call
+// permits all input LDE buffers to retire without retaining their aliases.
+kernel void stwo_zig_blake2s_leaf_absorb_stream_v1(
+    device const uint *column0 [[buffer(0)]],
+    device const uint *column1 [[buffer(1)]],
+    device const uint *column2 [[buffer(2)]],
+    device const uint *column3 [[buffer(3)]],
+    device const uint *column4 [[buffer(4)]],
+    device const uint *column5 [[buffer(5)]],
+    device const uint *column6 [[buffer(6)]],
+    device const uint *column7 [[buffer(7)]],
+    device const uint *column8 [[buffer(8)]],
+    device const uint *column9 [[buffer(9)]],
+    device const uint *column10 [[buffer(10)]],
+    device const uint *column11 [[buffer(11)]],
+    device const uint *column12 [[buffer(12)]],
+    device const uint *column13 [[buffer(13)]],
+    device const uint *column14 [[buffer(14)]],
+    device const uint *column15 [[buffer(15)]],
+    device const uint *source_states [[buffer(16)]],
+    device uint *destination_states [[buffer(17)]],
+    constant uint *column_logs [[buffer(18)]],
+    constant uint *settings [[buffer(19)]],
+    constant uint *leaf_seed [[buffer(20)]],
+    uint row [[thread_position_in_grid]]
+) {
+    const uint count = settings[0], source_log = settings[1], destination_log = settings[2];
+    const uint first_column = settings[3], is_final = settings[4], prefix_bytes = settings[5];
+    if (row >= (1u << destination_log) || count == 0u || count > 16u) return;
+    uint state[8], message[16];
+    if (first_column == 0u) {
+        if (prefix_bytes == 0u) blake2s_init_hash(state);
+        else blake2s_init_seeded(state, leaf_seed);
+    } else {
+        const uint source_row = lifted_index(row, destination_log - source_log);
+        for (uint i = 0u; i < 8u; ++i) state[i] = source_states[source_row * 8u + i];
+    }
+    for (uint i = 0u; i < count; ++i) {
+        const uint index = lifted_index(row, destination_log - column_logs[i]);
+        switch (i) {
+            case 0u: message[i] = column0[index]; break;
+            case 1u: message[i] = column1[index]; break;
+            case 2u: message[i] = column2[index]; break;
+            case 3u: message[i] = column3[index]; break;
+            case 4u: message[i] = column4[index]; break;
+            case 5u: message[i] = column5[index]; break;
+            case 6u: message[i] = column6[index]; break;
+            case 7u: message[i] = column7[index]; break;
+            case 8u: message[i] = column8[index]; break;
+            case 9u: message[i] = column9[index]; break;
+            case 10u: message[i] = column10[index]; break;
+            case 11u: message[i] = column11[index]; break;
+            case 12u: message[i] = column12[index]; break;
+            case 13u: message[i] = column13[index]; break;
+            case 14u: message[i] = column14[index]; break;
+            case 15u: message[i] = column15[index]; break;
+            default: message[i] = 0u; break;
+        }
+    }
+    for (uint i = count; i < 16u; ++i) message[i] = 0u;
+    blake2s_compress(state, message, prefix_bytes + (first_column + count) * 4u, is_final != 0u);
+    for (uint i = 0u; i < 8u; ++i) destination_states[row * 8u + i] = state[i];
 }
 
 kernel void stwo_zig_blake2s_parents(

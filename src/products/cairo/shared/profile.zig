@@ -151,6 +151,22 @@ pub fn defaultManifestPath(allocator: std.mem.Allocator) ![]u8 {
     });
 }
 
+/// Select the smallest admitted official profile before constructing a witness.
+/// Only profile selection uses the known geometry; deferred distinct-key counts
+/// still resolve from the actual witness and are checked by template binding.
+/// Both variants use this authenticated all-family AIR library and assets.
+pub fn admitInput(paths: *Paths, input: *const cairo.adapter.ProverInput, library: cairo.air.template_library.Library, automatic: bool) !void {
+    if (paths.variant != .canonical_small) return;
+    var geometry = try cairo.claim_generator.deriveFromProverInput(paths.allocator, input, .{ .preprocessed_variant = .canonical_small });
+    defer geometry.deinit();
+    const selected = try cairo.air.preprocessed_admission.select(paths.allocator, &geometry, library, paths.variant, automatic);
+    if (selected == paths.variant) return;
+    const name = try paths.allocator.dupe(u8, canonical_profile);
+    paths.allocator.free(paths.profile);
+    paths.profile = name;
+    paths.variant = selected;
+}
+
 fn resolveAsset(
     allocator: std.mem.Allocator,
     directory: []const u8,

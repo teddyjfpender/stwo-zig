@@ -1,0 +1,17 @@
+1/16 witness.implicit_interaction_sources.test.Cairo witness final storage implicit tables preserve independent row formulas and guarded padding...OK
+2/16 witness.implicit_interaction_sources.test.Cairo witness final storage implicit parallel writes agree with independent limbs...OK
+3/16 proving.base_columns_test.test.Cairo witness final storage owns component placement across all allocation failures...OK
+4/16 proving.base_columns_test.test.Cairo witness final storage implicit reservation transfers values without copies across allocation failures...OK
+5/16 witness.final_storage_test.test.Cairo witness final storage retains borrowed columns through all allocation failures...OK
+6/16 witness.final_storage_test.test.Cairo witness final storage validates all destinations before writing...OK
+7/16 witness.final_storage_test.test.Cairo witness final storage matches owned outputs and accepts final-column lowering...OK
+8/16 witness.final_storage_test.test.Cairo witness final storage borrows immutable source columns across allocation failures...OK
+9/16 witness.gathered_materialization_test.test.Cairo witness final storage gather preserves full packs, multi-producer remainders and selectors...OK
+10/16 witness.gathered_materialization_test.test.Cairo witness final storage large gather matches serial ordering with joined column workers...OK
+11/16 witness.gathered_materialization_test.test.Cairo witness final storage gather releases output slabs when source admission allocation fails...OK
+12/16 witness.gathered_inputs.test.Cairo gathered inputs mirror resident gather padding and instance order...OK
+13/16 witness.gathered_inputs.test.Cairo gathered inputs derive exact live geometry...OK
+14/16 witness.gathered_inputs.test.Cairo gathered inputs place full SIMD packs before cross-instance remainders...OK
+15/16 witness.interaction_executor.test_0...OK
+16/16 witness.deductions.mod.test_0...OK
+All 16 tests passed.

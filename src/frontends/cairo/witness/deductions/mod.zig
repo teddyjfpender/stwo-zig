@@ -19,33 +19,14 @@ pub const Context = struct {
     pedersen_table: ?PedersenTable = null,
 };
 
-pub const Selector = enum(u32) {
-    blake_g = 0,
-    blake_round_sigma = 1,
-    partial_ec_mul_w18 = 2,
-    pedersen_points_table_w18 = 3,
-    felt_add = 4,
-    felt_sub = 5,
-    felt_mul = 6,
-    felt_div = 7,
-    poseidon_round_keys = 8,
-    poseidon_cube = 9,
-    poseidon_full_round_chain = 10,
-    poseidon_3_partial_rounds_chain = 11,
-    partial_ec_mul_w9 = 12,
-    pedersen_points_table_w9 = 13,
-    partial_ec_mul_generic = 14,
-    add_mod_is_zero = 15,
-    mul_mod_quotient = 16,
-    triple_xor_32 = 17,
-    blake_round = 18,
-};
+pub const Selector = @import("../deduction_contract.zig").Selector;
 
 pub fn context() program.DeduceContext {
     return .{
         .context = undefined,
         .call_fn = call,
         .table_call_fn = callWithTables,
+        .batch_call_fn = callBatchUnconfigured,
     };
 }
 
@@ -54,6 +35,7 @@ pub fn contextWithConfig(config: *const Context) program.DeduceContext {
         .context = @ptrCast(@constCast(config)),
         .call_fn = callConfigured,
         .table_call_fn = callWithTablesConfigured,
+        .batch_call_fn = callBatchConfigured,
     };
 }
 
@@ -163,6 +145,35 @@ fn dispatch(
     }
 }
 
+fn callBatchUnconfigured(_: *anyopaque, selector: u32, batch: program.DeduceBatch, tables: program.TableContext) !void {
+    return dispatchBatch(null, selector, batch, tables);
+}
+
+fn callBatchConfigured(raw_context: *anyopaque, selector: u32, batch: program.DeduceBatch, tables: program.TableContext) !void {
+    const config: *const Context = @ptrCast(@alignCast(raw_context));
+    return dispatchBatch(config, selector, batch, tables);
+}
+
+fn dispatchBatch(config: ?*const Context, raw_selector: u32, batch: program.DeduceBatch, tables: program.TableContext) !void {
+    const selector = std.meta.intToEnum(Selector, raw_selector) catch return error.UnsupportedDeduction;
+    switch (selector) {
+        .felt_div => return felt252.applyDivBatch(batch),
+        .partial_ec_mul_generic => return partial_ec_mul_generic.applyBatch(batch),
+        .partial_ec_mul_w18, .partial_ec_mul_w9 => if (config) |active| {
+            if (active.pedersen_table) |table| {
+                const expected_bits: u5 = if (selector == .partial_ec_mul_w18) 18 else 9;
+                if (table.window_bits != expected_bits) return error.InvalidPedersenTableWindow;
+                return if (selector == .partial_ec_mul_w18)
+                    pedersen.applyPartialEcMulBatchCached(batch, 18, table.points)
+                else
+                    pedersen.applyPartialEcMulBatchCached(batch, 9, table.points);
+            }
+        },
+        else => {},
+    }
+    for (0..batch.rows) |row| try dispatch(config, raw_selector, batch.rowArgs(row), batch.rowOutputs(row), tables);
+}
+
 fn partialEcMul(
     config: ?*const Context,
     args: []const u32,
@@ -212,6 +223,7 @@ fn pedersenPoints(
 }
 
 test {
+    _ = @import("batch_tests.zig");
     _ = felt252;
     _ = blake;
     _ = mod_biguint;

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import gzip
+import io
 import json
 import tomllib
+import zlib
 from pathlib import Path
 
 
@@ -21,6 +24,10 @@ EXECUTABLE_SCHEMA = "stwo_cairo_executable_program_vector_v1"
 EXECUTION_ADAPTER = "tools/stwo-cairo-vm-adapter-rs"
 EXECUTION_LAYOUT = "all_cairo_stwo"
 EXECUTION_PARAMS = "vectors/cairo/official/all_opcodes.params.json"
+PIE_RESOURCES = "tools/stwo-cairo-vm-adapter-rs/resources"
+RUNNER_REPOSITORY = "https://github.com/starkware-libs/proving"
+RUNNER_REVISION = "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+BOOTLOADER_SHA256 = "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76"
 
 
 def check(
@@ -69,6 +76,7 @@ def check(
             cairo_vm_version=cairo_vm_version,
         )
     )
+    errors.extend(_check_pie_resources(root))
     return errors
 
 
@@ -99,6 +107,9 @@ def _check_manifest(
         "stwo-revision": stwo_revision,
         "cairo-vm-version": cairo_vm_version,
         "cairo-language-version": cairo_language_version,
+        "execution-runner-repository": RUNNER_REPOSITORY,
+        "execution-runner-revision": RUNNER_REVISION,
+        "pie-bootloader-sha256": BOOTLOADER_SHA256,
     }
     errors = [
         f"{MANIFEST}: metadata {key!r} is {metadata.get(key)!r}, expected {expected!r}"
@@ -116,6 +127,9 @@ def _check_manifest(
             f"expected {cairo_repository!r}@{cairo_revision!r}"
         )
     cairo_vm = dependencies.get("cairo-vm")
+    runner = dependencies.get("cairo-program-runner-lib", {})
+    if not isinstance(runner, dict) or runner.get("git") != RUNNER_REPOSITORY or runner.get("rev") != RUNNER_REVISION:
+        errors.append(f"{MANIFEST}: PIE runner source pin drifted")
     if not isinstance(cairo_vm, dict) or cairo_vm.get("version") != f"={cairo_vm_version}":
         errors.append(
             f"{MANIFEST}: cairo-vm must be pinned exactly to '={cairo_vm_version}'"
@@ -137,6 +151,48 @@ def _check_manifest(
     for key in ("patch", "replace"):
         if key in manifest:
             errors.append(f"{MANIFEST}: [{key}] is forbidden in the execution adapter")
+    return errors
+
+
+def _check_pie_resources(root: Path) -> list[str]:
+    relative = f"{PIE_RESOURCES}/provenance.json"
+    try:
+        provenance = json.loads((root / relative).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{relative}: unable to read PIE authority: {error}"]
+    if not isinstance(provenance, dict):
+        return [f"{relative}: PIE authority must be an object"]
+    expected = {
+        "schema": "stwo-zig-cairo-pie-execution-authority-v1",
+        "source_repository": RUNNER_REPOSITORY,
+        "source_revision": RUNNER_REVISION,
+        "runner_crate": "cairo-program-runner-lib",
+        "vm_version": "3.2.0",
+        "layout": EXECUTION_LAYOUT,
+        "task_program_hash": "blake",
+        "bootloader_uncompressed_bytes": 25102387,
+        "bootloader_uncompressed_sha256": BOOTLOADER_SHA256,
+    }
+    errors = [f"{relative}: {key} drifted" for key, value in expected.items()
+              if provenance.get(key) != value]
+    assets = provenance.get("assets", {})
+    names = {"simple_bootloader_compiled.json.gz", "fibonacci_pie.zip"}
+    if not isinstance(assets, dict) or set(assets) != names:
+        return [*errors, f"{relative}: PIE asset roster drifted"]
+    for name in sorted(names):
+        try:
+            data = (root / PIE_RESOURCES / name).read_bytes()
+            artifact = assets[name]
+            if artifact.get("bytes") != len(data) or artifact.get("sha256") != hashlib.sha256(data).hexdigest():
+                errors.append(f"{relative}: asset {name} identity drifted")
+            if name.endswith(".gz"):
+                # Bound decompression even when inspecting a tampered asset.
+                with gzip.GzipFile(fileobj=io.BytesIO(data)) as stream:
+                    decoded = stream.read((32 << 20) + 1)
+                if len(decoded) != expected["bootloader_uncompressed_bytes"] or hashlib.sha256(decoded).hexdigest() != BOOTLOADER_SHA256:
+                    errors.append(f"{relative}: decoded bootloader identity drifted")
+        except (OSError, EOFError, ValueError, TypeError, AttributeError, zlib.error) as error:
+            errors.append(f"{relative}: unable to validate {name}: {error}")
     return errors
 
 

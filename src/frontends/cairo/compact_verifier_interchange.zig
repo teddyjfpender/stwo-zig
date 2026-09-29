@@ -198,6 +198,15 @@ pub const CompactProtocolV1 = struct {
             return Error.InvalidProtocolGeometry;
     }
 
+    /// Domain size of the committed quotient and first FRI layer. Degree and
+    /// evaluation size differ by the configured blowup, including explicit
+    /// lifting configurations whose degree bound is already lifted.
+    pub fn evaluationLogSize(self: CompactProtocolV1) Error!u32 {
+        try self.validate();
+        return std.math.add(u32, self.max_log_degree_bound, self.log_blowup_factor) catch
+            Error.InvalidProtocolGeometry;
+    }
+
     pub fn proofWordCount(self: CompactProtocolV1) Error!usize {
         try self.validate();
         var words = try mulLength(self.commitment_count, 8);

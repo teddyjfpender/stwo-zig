@@ -18,7 +18,12 @@ pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
+    if (args.len == 3 and std.mem.eql(u8, args[1], "--row-parity"))
+        return @import("row_parity.zig").generate(allocator, args[2]);
     if (args.len != 6) return error.InvalidArguments;
+    if (std.mem.eql(u8, args[1], "--canonical")) {
+        return @import("canonical.zig").generate(allocator, args[2], args[3], args[4], args[5]);
+    }
 
     var bundle = try model.Bundle.read(allocator, args[1]);
     defer bundle.deinit();
@@ -194,7 +199,7 @@ fn needsPedersen(program: model.Program) bool {
             model.DeduceKind,
             inst.imm,
         ) catch return false;
-        if (kind.needsPedersenModule()) return true;
+        if (cuda_writer.needsPedersenModule(kind)) return true;
     }
     return false;
 }

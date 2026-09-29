@@ -4,7 +4,7 @@ const std = @import("std");
 const graph = @import("../graph/modules.zig");
 
 pub const protocol_features =
-    "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
+    "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v3+proof-mode-pie-v1+compact-input-v1+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s";
 
 pub fn linkBzip2(
     b: *std.Build,

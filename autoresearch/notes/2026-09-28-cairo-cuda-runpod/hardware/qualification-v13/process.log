@@ -1,0 +1,32 @@
+cairo-cuda arena reservation bytes=80083325528 slots=142
+cairo-cuda arena slot=1 bytes=162102548 offset=37355892992 lifetime=ingress..trace_generation
+cairo-cuda arena slot=3 bytes=984886784 offset=36371006208 lifetime=ingress..trace_generation
+cairo-cuda arena slot=6 bytes=16624079040 offset=0 lifetime=trace_generation..trace_commit
+cairo-cuda arena slot=7 bytes=5741119556 offset=30629886464 lifetime=trace_generation..trace_generation
+cairo-cuda arena slot=17 bytes=5425139968 offset=60350661120 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=26 bytes=5972688896 offset=0 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=30 bytes=402651648 offset=6509559808 lifetime=constraint_evaluation..constraint_evaluation
+cairo-cuda arena slot=31 bytes=134217728 offset=79809200384 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=32 bytes=134217728 offset=79943418112 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=33 bytes=6442450944 offset=48483070208 lifetime=trace_commit..trace_commit
+cairo-cuda arena slot=34 bytes=2172402112 offset=74415572736 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=35 bytes=4344804224 offset=65775801088 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=38 bytes=4294967264 offset=70120605440 lifetime=ingress..proof_assembly
+cairo-cuda arena slot=41 bytes=7002903616 offset=41480166400 lifetime=trace_generation..oods
+cairo-cuda arena slot=42 bytes=14005807232 offset=16624079104 lifetime=trace_generation..decommit
+cairo-cuda arena slot=45 bytes=1073741792 offset=76587974912 lifetime=trace_commit..decommit
+cairo-cuda arena slot=48 bytes=5425139968 offset=54925521152 lifetime=trace_commit..oods
+cairo-cuda arena slot=49 bytes=10850279936 offset=30629886464 lifetime=trace_commit..decommit
+cairo-cuda arena slot=52 bytes=1073741792 offset=77661716736 lifetime=trace_commit..decommit
+cairo-cuda arena slot=55 bytes=268435456 offset=6912211456 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=56 bytes=536870912 offset=5972688896 lifetime=constraint_evaluation..decommit
+cairo-cuda arena slot=59 bytes=1073741792 offset=78735458560 lifetime=trace_commit..decommit
+cairo-cuda arena slot=74 bytes=400424960 offset=3203399680 lifetime=oods..oods
+cairo-cuda arena slot=75 bytes=3203399680 offset=0 lifetime=oods..oods
+cairo-cuda arena slot=90 bytes=335543552 offset=0 lifetime=quotient..quotient
+cairo-cuda arena slot=91 bytes=268435456 offset=1073741824 lifetime=quotient..decommit
+cairo-cuda arena slot=93 bytes=1073741792 offset=0 lifetime=fri_commit..decommit
+cairo-cuda arena slot=96 bytes=134217696 offset=1342177280 lifetime=fri_commit..decommit
+cairo-cuda terminal header index=0 expected=1129338707 actual=2052561192
+cairo-cuda phase=finish_proof failed: InvalidTerminalHeader
+error: InvalidTerminalHeader

@@ -56,13 +56,12 @@ test "controller validates ownership and executes dependency order" {
         [_]u8{5} ** 32,
         [_]u8{6} ** 32,
     };
-    const native_dependency = [_]schedule_module.Dependency{.{
-        .producer_component_index = 4,
-        .kind = .native_ec_workspace,
-        .word_base = 0,
-        .words_per_instance = 0,
-        .instances = 1,
-    }};
+    // The real EC composite includes both its workspace edge and a producer
+    // word edge. Both belong to one launch; the member must not launch twice.
+    const native_dependency = [_]schedule_module.Dependency{
+        .{ .producer_component_index = 4, .kind = .producer_words, .word_base = 0, .words_per_instance = 1, .instances = 1 },
+        .{ .producer_component_index = 4, .kind = .native_ec_workspace, .word_base = 0, .words_per_instance = 0, .instances = 1 },
+    };
     var entries = [_]schedule_module.Entry{
         entry(0, .recorded_aot, .recorded_witness_prepare, .standalone, 0, ids[0]),
         entry(1, .fixed_table, .fixed_table_materialize, .standalone, 1, ids[1]),
@@ -215,6 +214,21 @@ test "controller validates ownership and executes dependency order" {
             &bindings,
         ),
     );
+
+    // Reject a reversed internal edge: the composite root cannot consume
+    // member outputs before producing them, despite sharing a launch owner.
+    const reversed_edges = [_]schedule_module.Dependency{
+        .{ .producer_component_index = 5, .kind = .producer_words, .word_base = 0, .words_per_instance = 1, .instances = 1 },
+        native_dependency[0],
+        native_dependency[1],
+    };
+    var reversed_entries = entries;
+    reversed_entries[4].dependencies = reversed_edges[0..1];
+    reversed_entries[5].dependencies = reversed_edges[1..];
+    var reversed_schedule = schedule;
+    reversed_schedule.entries = &reversed_entries;
+    reversed_schedule.dependency_storage = @constCast(&reversed_edges);
+    try std.testing.expectError(error.TraceWriterBindingMismatch, controller.Prepared.init(std.testing.allocator, reversed_schedule, &bindings));
 
     const wrong_dependency = [_]schedule_module.Dependency{.{
         .producer_component_index = 3,

@@ -95,7 +95,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         /// Its owner must outlive proving and all prepared evaluators.
         quotient_values_allocator: ?std.mem.Allocator = null,
         /// Reuse lifted prefixes by default for full-width BLAKE3 commitments.
-        reuse_bounded_merkle_tail: bool = H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher,
+        reuse_bounded_merkle_tail: bool = H == @import("stwo_core").vcs_lifted.blake3_merkle.MerkleHasher or
+            @import("../vcs_lifted/blake2_stream4.zig").supports(H),
         /// Execution-only opt-in for adopting backends; keeps source and
         /// coefficient storage in the same aligned arena.
         pack_owned_source_by_log: bool = false,

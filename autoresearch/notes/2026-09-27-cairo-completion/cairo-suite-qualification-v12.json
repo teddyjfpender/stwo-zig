@@ -1,0 +1,203 @@
+{
+  "schema": "stwo-zig-cairo-suite-qualification-summary-v1",
+  "status": "qualified",
+  "timing_scope": "Single full product-process trials; first-use pipeline compilation retained; not paired medians",
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "suite_receipt": "zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/results.json",
+  "rows": [
+    {
+      "workload": "ret",
+      "status": "qualified",
+      "process_seconds": 1.46693275,
+      "prove_seconds": 0.380768375,
+      "peak_rss_bytes": 871317504,
+      "pipeline_prepare_seconds": 0.0012017488479614258,
+      "proof_sha256": "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/ret-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-opcodes",
+      "status": "qualified",
+      "process_seconds": 3.010134833,
+      "prove_seconds": 2.897209833,
+      "peak_rss_bytes": 2012446720,
+      "pipeline_prepare_seconds": 2.335115671157837,
+      "proof_sha256": "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/all-opcodes-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "bitwise",
+      "status": "qualified",
+      "process_seconds": 0.486924958,
+      "prove_seconds": 0.38816025,
+      "peak_rss_bytes": 883195904,
+      "pipeline_prepare_seconds": 0.0013529062271118164,
+      "proof_sha256": "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/bitwise-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "range96",
+      "status": "qualified",
+      "process_seconds": 0.458044084,
+      "prove_seconds": 0.359887167,
+      "peak_rss_bytes": 886587392,
+      "pipeline_prepare_seconds": 0.001366257667541504,
+      "proof_sha256": "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/range96-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "range128",
+      "status": "qualified",
+      "process_seconds": 0.562198708,
+      "prove_seconds": 0.465789292,
+      "peak_rss_bytes": 877281280,
+      "pipeline_prepare_seconds": 0.0014121532440185547,
+      "proof_sha256": "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/range128-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "poseidon",
+      "status": "qualified",
+      "process_seconds": 26.305489542,
+      "prove_seconds": 26.208291375,
+      "peak_rss_bytes": 998768640,
+      "pipeline_prepare_seconds": 25.775598168373108,
+      "proof_sha256": "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/poseidon-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "pedersen",
+      "status": "qualified",
+      "process_seconds": 79.426575916,
+      "prove_seconds": 79.335910083,
+      "peak_rss_bytes": 1099759616,
+      "pipeline_prepare_seconds": 78.9062979221344,
+      "proof_sha256": "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/pedersen-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins",
+      "status": "qualified",
+      "process_seconds": 4.595858291,
+      "prove_seconds": 4.535269916,
+      "peak_rss_bytes": 1827356672,
+      "pipeline_prepare_seconds": 3.7173097133636475,
+      "proof_sha256": "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/all-builtins-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "executable-add-one",
+      "status": "qualified",
+      "process_seconds": 0.450867375,
+      "prove_seconds": 0.360455625,
+      "peak_rss_bytes": 894730240,
+      "pipeline_prepare_seconds": 0.001576542854309082,
+      "proof_sha256": "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/executable-add-one-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "fibonacci-pie",
+      "status": "qualified",
+      "process_seconds": 0.768660959,
+      "prove_seconds": 0.601711416,
+      "peak_rss_bytes": 1551613952,
+      "pipeline_prepare_seconds": 0.002528071403503418,
+      "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/fibonacci-pie-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "status": "qualified",
+      "process_seconds": 71.736121042,
+      "prove_seconds": 71.6685045,
+      "peak_rss_bytes": 7627767808,
+      "pipeline_prepare_seconds": 66.7240252494812,
+      "proof_sha256": "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/all-builtins-canonical-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-1",
+      "status": "qualified",
+      "process_seconds": 44.352754708,
+      "prove_seconds": 39.805330084,
+      "peak_rss_bytes": 45600391168,
+      "pipeline_prepare_seconds": 0.037148237228393555,
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/sn-pie-1-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-2",
+      "status": "qualified",
+      "process_seconds": 16.140224042,
+      "prove_seconds": 13.627446,
+      "peak_rss_bytes": 27680391168,
+      "pipeline_prepare_seconds": 0.005116701126098633,
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/sn-pie-2-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-3",
+      "status": "qualified",
+      "process_seconds": 39.574236833,
+      "prove_seconds": 35.020383417,
+      "peak_rss_bytes": 45207371776,
+      "pipeline_prepare_seconds": 0.03548133373260498,
+      "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/sn-pie-3-metal-workers-auto/results.json"
+    },
+    {
+      "workload": "sn-pie-4",
+      "status": "qualified",
+      "process_seconds": 31.404405583,
+      "prove_seconds": 27.125157709,
+      "peak_rss_bytes": 36024287232,
+      "pipeline_prepare_seconds": 9.556183338165283,
+      "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67",
+      "official_exit_code": 0,
+      "cpu_fallbacks": 0,
+      "receipt": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-interaction-arena-v12/sn-pie-4-metal-workers-auto/results.json"
+    }
+  ]
+}

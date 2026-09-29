@@ -1,0 +1,392 @@
+    Updating crates.io index
+    Updating git repository `https://github.com/teddyjfpender/stwo-cairo`
+    Updating git repository `https://github.com/teddyjfpender/stwo`
+     Locking 312 packages to latest Rust 1.94.0-nightly compatible versions
+      Adding generic-array v0.14.7 (available: v0.14.9)
+      Adding sha2 v0.10.9 (available: v0.11.0)
+ Downloading crates ...
+  Downloaded smallvec v1.16.2
+  Downloaded find-msvc-tools v0.1.14
+  Downloaded cc v1.5.1
+  Downloaded rust_decimal v1.43.0
+  Downloaded zerocopy v0.8.59
+  Downloaded serde_with v3.24.0
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling cfg-if v1.0.5
+   Compiling libc v0.2.189
+   Compiling autocfg v1.5.1
+   Compiling version_check v0.9.5
+   Compiling zerocopy v0.8.59
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling subtle v2.6.1
+   Compiling syn v1.0.109
+   Compiling either v1.18.0
+   Compiling paste v1.0.15
+   Compiling rand_core v0.6.4
+   Compiling crossbeam-utils v0.8.23
+   Compiling crossbeam-epoch v0.9.21
+   Compiling lazy_static v1.5.0
+   Compiling equivalent v1.0.2
+   Compiling once_cell v1.21.4
+   Compiling allocator-api2 v0.2.21
+   Compiling generic-array v0.14.7
+   Compiling itertools v0.10.5
+   Compiling num-traits v0.2.19
+   Compiling crossbeam-deque v0.8.8
+   Compiling hex v0.4.3
+   Compiling hybrid-array v0.4.15
+   Compiling crypto-bigint v0.5.5
+   Compiling tracing-core v0.1.36
+   Compiling thiserror v2.0.21
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling rayon-core v1.13.0
+   Compiling cc v1.5.1
+   Compiling smallvec v1.16.2
+   Compiling parking_lot_core v0.9.12
+   Compiling arrayvec v0.7.8
+   Compiling crypto-common v0.2.2
+   Compiling blake3 v1.8.7
+   Compiling block-buffer v0.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling scopeguard v1.2.0
+   Compiling log v0.4.34
+   Compiling foldhash v0.2.0
+   Compiling lock_api v0.4.14
+   Compiling tracing-log v0.2.0
+   Compiling digest v0.11.3
+   Compiling sharded-slab v0.1.7
+   Compiling thread_local v1.1.10
+   Compiling hashbrown v0.14.5
+   Compiling nu-ansi-term v0.50.3
+   Compiling constant_time_eq v0.4.2
+   Compiling itertools v0.12.1
+   Compiling tracing-subscriber v0.3.23
+   Compiling fnv v1.0.7
+   Compiling stwo-std-shims v1.0.0
+   Compiling utf8parse v0.2.2
+   Compiling anstyle-parse v1.0.0
+   Compiling anstyle v1.0.14
+   Compiling colorchoice v1.0.5
+   Compiling anstyle-query v1.1.5
+   Compiling radium v0.7.0
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling zmij v1.0.23
+   Compiling crc32fast v1.5.2
+   Compiling syn v3.0.6
+   Compiling syn v2.0.119
+   Compiling hashbrown v0.17.1
+   Compiling anstream v1.0.0
+   Compiling getrandom v0.2.17
+   Compiling cpufeatures v0.2.17
+   Compiling cpufeatures v0.3.1
+   Compiling keccak v0.2.2
+   Compiling keccak v0.1.6
+   Compiling serde_derive v1.0.229
+   Compiling crypto-common v0.1.7
+   Compiling thiserror-impl v2.0.21
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling sha2 v0.10.9
+   Compiling ppv-lite86 v0.2.21
+   Compiling hmac v0.12.1
+   Compiling zeroize_derive v1.5.0
+   Compiling blake2 v0.10.6
+   Compiling derivative v2.2.0
+   Compiling rand_chacha v0.3.1
+   Compiling num-integer v0.1.47
+   Compiling ark-ff-asm v0.4.2
+   Compiling rand v0.8.8
+   Compiling rfc6979 v0.4.0
+   Compiling tracing-attributes v0.1.31
+   Compiling enum-ordinalize v4.4.2
+   Compiling zeroize v1.9.0
+   Compiling ark-std v0.4.0
+   Compiling bytemuck_derive v1.12.1
+   Compiling num-bigint v0.4.8
+   Compiling sha3 v0.10.9
+   Compiling sha3 v0.11.0
+   Compiling heck v0.5.0
+   Compiling tap v1.0.1
+   Compiling serde_json v1.0.151
+   Compiling foldhash v0.1.5
+   Compiling tracing v0.1.44
+   Compiling adler2 v2.0.1
+   Compiling itoa v1.0.18
+   Compiling simd-adler32 v0.3.10
+   Compiling memchr v2.8.3
+   Compiling strsim v0.11.1
+   Compiling clap_lex v1.1.1
+   Compiling ark-serialize v0.4.2
+   Compiling bytemuck v1.25.2
+   Compiling clap_builder v4.6.7
+   Compiling miniz_oxide v0.9.1
+   Compiling ark-ff-macros v0.4.2
+   Compiling hashbrown v0.15.5
+   Compiling rayon v1.12.0
+   Compiling clap_derive v4.6.7
+   Compiling dashmap v6.2.1
+   Compiling wyz v0.5.1
+   Compiling stwo-cairo-serialize-derive v1.2.2 (https://github.com/teddyjfpender/stwo-cairo?rev=dcd5834565b7a26a27a614e353c9c60109ebc1d9#dcd58345)
+   Compiling anyhow v1.0.104
+   Compiling funty v2.0.0
+   Compiling rust_decimal v1.43.0
+   Compiling ruint-macro v1.2.1
+   Compiling ref-cast v1.0.27
+   Compiling ruint v1.20.1
+   Compiling clap v4.6.7
+   Compiling lru v0.12.5
+   Compiling indexmap v2.14.2
+   Compiling ref-cast-impl v1.0.27
+   Compiling byteorder v1.5.0
+   Compiling flate2 v1.1.10
+   Compiling minimal-lexical v0.2.1
+   Compiling simdutf8 v0.1.5
+   Compiling bytes v1.12.1
+   Compiling stwo-backend-cuda-kernels v0.1.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling virtue v0.0.18
+   Compiling bitvec v1.1.1
+   Compiling zip v0.6.6
+   Compiling bincode_derive v2.0.1
+   Compiling educe v0.5.11
+   Compiling nom v7.1.3
+   Compiling itertools v0.13.0
+   Compiling ark-ff v0.4.2
+   Compiling sonic-number v0.1.3
+   Compiling sonic-simd v0.1.4
+   Compiling stwo-backend-cuda v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling unty v0.0.4
+   Compiling bumpalo v3.20.3
+   Compiling ryu v1.0.23
+   Compiling libbz2-rs-sys v0.1.3
+   Compiling indoc v2.0.7
+   Compiling stwo-air-utils-derive v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+   Compiling memmap2 v0.9.11
+   Compiling bzip2 v0.5.2
+   Compiling serde_arrays v0.1.0
+   Compiling faststr v0.2.34
+   Compiling bincode v1.3.3
+   Compiling bincode v2.0.1
+   Compiling lambdaworks-math v0.13.0
+   Compiling num-modular v0.5.1
+   Compiling num-prime v0.4.4
+   Compiling lambdaworks-crypto v0.13.0
+   Compiling starknet-types-core v0.2.4
+   Compiling starknet-curve v0.6.0
+   Compiling starknet-crypto v0.8.1
+   Compiling cairo-vm v3.2.0
+   Compiling sonic-rs v0.3.17
+   Compiling starknet-ff v0.3.7
+   Compiling starknet-curve v0.4.2
+   Compiling starknet-crypto-codegen v0.3.3
+   Compiling starknet-crypto v0.6.2
+   Compiling stwo v2.2.0 (https://github.com/teddyjfpender/stwo?rev=9d7e3d6fa0fc64a0d143a8b2fcb8ee952f4de8f2#9d7e3d6f)
+error[E0635]: unknown feature `array_chunks`
+ --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/lib.rs:9:13
+  |
+9 |     feature(array_chunks, iter_array_chunks, portable_simd, slice_ptr_get)
+  |             ^^^^^^^^^^^^
+
+error[E0599]: no method named `array_chunks` found for struct `Vec<M31>` in the current scope
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/cpu/circle.rs:264:14
+    |
+263 | /         twiddles
+264 | |             .array_chunks::<CHUNK_SIZE>()
+    | |             -^^^^^^^^^^^^ `Vec<M31>` is not an iterator
+    | |_____________|
+    |
+    |
+help: call `.into_iter()` first
+    |
+264 |             .into_iter().array_chunks::<CHUNK_SIZE>()
+    |              ++++++++++++
+
+error[E0599]: no method named `array_chunks_mut` found for struct `Vec<M31>` in the current scope
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/cpu/circle.rs:265:28
+    |
+265 |             .zip(itwiddles.array_chunks_mut::<CHUNK_SIZE>())
+    |                            ^^^^^^^^^^^^^^^^
+    |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+   --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+error[E0599]: `&Mle<CpuBackend, QM31>` is not an iterator
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/cpu/lookups/gkr.rs:234:21
+    |
+234 |     let res = layer.array_chunks().map(|&[a, b]| a * b).collect();
+    |                     ^^^^^^^^^^^^ `&Mle<CpuBackend, QM31>` is not an iterator
+    |
+   ::: /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/lookups/mle.rs:20:1
+    |
+ 20 | pub struct Mle<B: ColumnOps<F>, F: Field> {
+    | ----------------------------------------- doesn't satisfy `Mle<CpuBackend, QM31>: Iterator`
+    |
+    = note: the following trait bounds were not satisfied:
+            `&Mle<CpuBackend, QM31>: Iterator`
+            which is required by `&mut &Mle<CpuBackend, QM31>: Iterator`
+            `Mle<CpuBackend, QM31>: Iterator`
+            which is required by `&mut Mle<CpuBackend, QM31>: Iterator`
+            `Vec<QM31>: Iterator`
+            which is required by `&mut Vec<QM31>: Iterator`
+            `[QM31]: Iterator`
+            which is required by `&mut [QM31]: Iterator`
+note: the trait `Iterator` must be implemented
+   --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/iter/traits/iterator.rs:40:0
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the trait `Iterator` defines an item `array_chunks`, but is explicitly unimplemented
+
+error[E0599]: no method named `array_chunks` found for reference `&[PackedM31]` in the current scope
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/circle.rs:209:49
+    |
+209 |             for (i, coeff_chunk) in coeff_chunk.array_chunks::<N_LANES>().enumerate() {
+    |                                                 ^^^^^^^^^^^^ `&[PackedM31]` is not an iterator
+    |
+help: call `.into_iter()` first
+    |
+209 |             for (i, coeff_chunk) in coeff_chunk.into_iter().array_chunks::<N_LANES>().enumerate() {
+    |                                                 ++++++++++++
+
+error[E0308]: mismatched types
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/column.rs:150:16
+    |
+150 |         if let Some(remainder) = chunks.into_remainder() {
+    |                ^^^^^^^^^^^^^^^   ----------------------- this expression has type `std::array::IntoIter<M31, 16>`
+    |                |
+    |                expected `IntoIter<M31, 16>`, found `Option<_>`
+    |
+    = note: expected struct `std::array::IntoIter<M31, 16>`
+                 found enum `std::option::Option<_>`
+
+error[E0308]: mismatched types
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/column.rs:231:16
+    |
+231 |         if let Some(remainder) = chunks.into_remainder() {
+    |                ^^^^^^^^^^^^^^^   ----------------------- this expression has type `std::array::IntoIter<CM31, 16>`
+    |                |
+    |                expected `IntoIter<CM31, 16>`, found `Option<_>`
+    |
+    = note: expected struct `std::array::IntoIter<CM31, 16>`
+                 found enum `std::option::Option<_>`
+
+error[E0308]: mismatched types
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/column.rs:367:16
+    |
+367 |         if let Some(remainder) = chunks.into_remainder() {
+    |                ^^^^^^^^^^^^^^^   ----------------------- this expression has type `std::array::IntoIter<QM31, 16>`
+    |                |
+    |                expected `IntoIter<QM31, 16>`, found `Option<_>`
+    |
+    = note: expected struct `std::array::IntoIter<QM31, 16>`
+                 found enum `std::option::Option<_>`
+
+error[E0599]: no method named `array_chunks` found for struct `Vec<PackedQM31>` in the current scope
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/lookups/gkr.rs:137:10
+    |
+135 |       let data = layer
+    |  ________________-
+136 | |         .data
+137 | |         .array_chunks()
+    | |         -^^^^^^^^^^^^ `Vec<PackedQM31>` is not an iterator
+    | |_________|
+    |
+    |
+help: call `.into_iter()` first
+    |
+137 |         .into_iter().array_chunks()
+    |          ++++++++++++
+
+error[E0599]: no method named `array_chunks_mut` found for mutable reference `&mut [PackedM31]` in the current scope
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:36:46
+   |
+36 |     for ([l0, l1], [r0, r1]) in izip!(l_half.array_chunks_mut(), r_half.array_chunks_mut().rev()) {
+   |                                              ^^^^^^^^^^^^^^^^
+   |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+  --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+error[E0599]: no method named `array_chunks_mut` found for mutable reference `&mut [PackedM31]` in the current scope
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:36:73
+   |
+36 |     for ([l0, l1], [r0, r1]) in izip!(l_half.array_chunks_mut(), r_half.array_chunks_mut().rev()) {
+   |                                                                         ^^^^^^^^^^^^^^^^
+   |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+  --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+error[E0282]: type annotations needed
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:38:30
+   |
+38 |         let half_coset1_hi = half_coset1_hi_rev.reverse();
+   |                              ^^^^^^^^^^^^^^^^^^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:40:30
+   |
+40 |         let half_coset1_lo = half_coset1_lo_rev.reverse();
+   |                              ^^^^^^^^^^^^^^^^^^ cannot infer type
+
+error[E0599]: no method named `array_chunks_mut` found for mutable reference `&mut [PackedM31]` in the current scope
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:59:18
+   |
+59 |         zip(lows.array_chunks_mut(), highs.array_chunks())
+   |                  ^^^^^^^^^^^^^^^^
+   |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+  --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+error[E0599]: no method named `array_chunks` found for mutable reference `&mut [PackedM31]` in the current scope
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:59:44
+   |
+59 |         zip(lows.array_chunks_mut(), highs.array_chunks())
+   |                                            ^^^^^^^^^^^^ `&mut [PackedM31]` is not an iterator
+   |
+help: call `.into_iter()` first
+   |
+59 |         zip(lows.array_chunks_mut(), highs.into_iter().array_chunks())
+   |                                            ++++++++++++
+
+error[E0599]: no method named `array_chunks_mut` found for mutable reference `&mut [PackedM31]` in the current scope
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:87:18
+   |
+87 |         zip(lows.array_chunks_mut(), highs.array_chunks_mut())
+   |                  ^^^^^^^^^^^^^^^^
+   |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+  --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+error[E0599]: no method named `array_chunks_mut` found for mutable reference `&mut [PackedM31]` in the current scope
+  --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:87:44
+   |
+87 |         zip(lows.array_chunks_mut(), highs.array_chunks_mut())
+   |                                            ^^^^^^^^^^^^^^^^
+   |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+  --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+error[E0599]: no method named `array_chunks_mut` found for mutable reference `&mut [PackedM31]` in the current scope
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:101:46
+    |
+101 |     for ([l0, l1], [r0, r1]) in izip!(l_half.array_chunks_mut(), r_half.array_chunks_mut().rev()) {
+    |                                              ^^^^^^^^^^^^^^^^
+    |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+   --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+error[E0599]: no method named `array_chunks_mut` found for mutable reference `&mut [PackedM31]` in the current scope
+   --> /Users/theodorepender/.cargo/git/checkouts/stwo-fbc3c0379702244b/9d7e3d6/crates/stwo/src/prover/backend/simd/prefix_sum.rs:101:73
+    |
+101 |     for ([l0, l1], [r0, r1]) in izip!(l_half.array_chunks_mut(), r_half.array_chunks_mut().rev()) {
+    |                                                                         ^^^^^^^^^^^^^^^^
+    |
+help: there is a method `rchunks_mut` with a similar name, but with different arguments
+   --> /rustc/86a49fd71fecd25b0fd20247db0ba95eeceaba28/library/core/src/slice/mod.rs:1730:4
+
+Some errors have detailed explanations: E0282, E0308, E0599, E0635.
+For more information about an error, try `rustc --explain E0282`.
+error: could not compile `stwo` (lib) due to 19 previous errors
+warning: build failed, waiting for other jobs to finish...

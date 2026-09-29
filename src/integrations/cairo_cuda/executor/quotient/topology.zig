@@ -478,7 +478,7 @@ fn validateInputs(
     const verifier_log = bundle.verifierMaxLogDegreeBound() catch
         return Error.InvalidBundleGeometry;
     if (verifier_log != protocol.max_log_degree_bound or
-        program.quotient.evaluation_log_rows != verifier_log or
+        program.quotient.evaluation_log_rows != try protocol.evaluationLogSize() or
         program.quotient.evaluation_log_rows > 30 or
         program.quotient.term_count != bundle.total_constraints or
         program.quotient.group_count != bundle.components.len or

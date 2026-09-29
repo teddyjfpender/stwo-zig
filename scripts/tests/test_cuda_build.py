@@ -28,7 +28,8 @@ from cuda_build_lib.builder import (  # noqa: E402
     validate_aot_manifest,
     write_aot_carriers,
 )
-from cuda_device_smoke import compile_command  # noqa: E402
+from cuda_device_smoke import compile_command, run_command  # noqa: E402
+from cuda_build import parser as build_parser  # noqa: E402
 from scripts.tests.cuda_native_aot_fixture import native_aot_root  # noqa: E402
 
 
@@ -65,6 +66,7 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
     "constraint": {
         "constraints/powers.cu",
     },
+    "witness": {"witness/active_feeds.cu"},
     "transform": {
         "transform/b2n_retained.cu",
         "transform/composition_split.cu",
@@ -186,6 +188,22 @@ class CudaBuildTests(unittest.TestCase):
             ):
                 build_plan(config, probe_tools=False)
 
+    def test_cli_accepts_canonical_cairo_catalogue(self) -> None:
+        args = build_parser().parse_args([
+            '--frontend', 'cairo', '--aot-set', '.', '--aot-set', 'cairo_canonical_eval',
+            '--aot-set', 'cairo_witness', '--out-dir', '/tmp/plan',
+            '--nvcc', '/cuda/bin/nvcc', '--host-cxx', '/usr/bin/c++',
+            '--cuda-home', '/cuda', '--cuda-library-dir', '/cuda/lib64',
+            '--arch', 'sm_90', '--plan-only'])
+        self.assertEqual(['.', 'cairo_canonical_eval', 'cairo_witness'], args.aot_set)
+
+    def test_cairo_cannot_reactivate_legacy_sn2_air_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config = replace(self.config(Path(temporary)), frontend="cairo",
+                             aot_sets=(".", "cairo_eval", "cairo_witness"))
+            with self.assertRaisesRegex(BuildError, "has no canonical AOT selection"):
+                build_plan(config, probe_tools=False)
+
     def test_native_aot_source_bytes_change_the_build_identity(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -303,8 +321,8 @@ class CudaBuildTests(unittest.TestCase):
         self.assertEqual([], violations)
 
     def test_architecture_parser_is_canonical_and_fail_closed(self) -> None:
-        self.assertEqual((86, 89, 90), normalize_sms(["sm_90,86", "89"]))
-        for invalid in ([], [""], ["native"], ["compute_90"], ["sm_9"]):
+        self.assertEqual((86, 89, 90, 100, 120), normalize_sms(["sm_90,86", "89,sm_120,100", "120"]))
+        for invalid in ([], [""], ["native"], ["compute_90"], ["sm_9"], ["sm_090"], ["sm_120a"], ["sm_1000"]):
             with self.assertRaises(BuildError):
                 normalize_sms(invalid)
 
@@ -323,6 +341,17 @@ class CudaBuildTests(unittest.TestCase):
         self.assertIn("-lcudart", command)
         self.assertIn("-lcuda", command)
         self.assertEqual("/out/native_test_smoke", command[-1])
+
+    def test_device_smoke_binds_ec_and_matrix_fixtures(self) -> None:
+        root = Path("/repo")
+        for name, fixture in (
+            ("native_ec_op_composite_smoke", root / "vectors/cairo/ec_op_parity.bin"),
+            ("native_recorded_witness_matrix_smoke", root / "tests/cuda/fixtures/recorded_witness_matrix_fixture.bin"),
+        ):
+            source = root / "tests/cuda" / (name + ".cpp")
+            self.assertEqual(["/out/test", str(fixture)], run_command(source, Path("/out/test"), root))
+        command = compile_command(Path("c++"), root / "tests/cuda/native_ec_op_composite_smoke.cpp", Path("/out/test"), Path("archive.a"), Path("/cuda"))
+        self.assertIn("-lcrypto", command)
 
     def test_aot_carrier_is_binary_search_and_exact_arch_only(self) -> None:
         entries = [

@@ -48,6 +48,52 @@ test "SN2 resident inventory is identity-bound and fits the modeled H100 arena" 
         ingress,
     );
     defer plan.deinit(allocator);
+    const terminal_slot = plan.slot(.terminal_bundle, 0) orelse return error.MissingTerminalBundle;
+    try std.testing.expectEqual(@import("stwo_cuda_backend").runtime.telemetry.Stage.ingress, terminal_slot.live_from);
+    try std.testing.expectEqual(@import("stwo_cuda_backend").runtime.telemetry.Stage.proof_assembly, terminal_slot.live_through);
+    const Stage = @import("stwo_cuda_backend").runtime.telemetry.Stage;
+    for (plan.slots) |slot| {
+        if (slot.immutable) try std.testing.expectEqual(Stage.ingress, slot.live_from);
+    }
+    const ingress_tables = [_]subject.SlotKind{
+        .oods_offset_points,      .oods_fold_counts,       .oods_output_indices,
+        .quotient_prepared_terms, .quotient_group_offsets, .quotient_group_term_indices,
+        .quotient_batch_terms,    .quotient_group_logs,    .quotient_partial_logs,
+        .decommit_column_logs,
+    };
+    for (ingress_tables) |kind| {
+        const slot = plan.slot(kind, 0) orelse return error.MissingIngressTable;
+        try std.testing.expectEqual(Stage.ingress, slot.live_from);
+        const placement = try plan.request_arena.placement(slot.id);
+        // Each upload is live alongside every other upload. This checks the
+        // physical consequence as well as the slot declaration.
+        for (plan.slots) |other| {
+            if (other.id == slot.id or other.storage != .request_local or other.live_from != .ingress) continue;
+            const rhs = try plan.request_arena.placement(other.id);
+            try std.testing.expect((try placement.endWords()) <= rhs.offset_words or (try rhs.endWords()) <= placement.offset_words);
+        }
+    }
+    const claims_slot = plan.slot(.interaction_claims, 0) orelse return error.MissingInteractionClaims;
+    try std.testing.expectEqual(Stage.trace_commit, claims_slot.live_from);
+    const oods_parameter = plan.slot(.oods_parameter, 0) orelse return error.MissingOodsParameter;
+    try std.testing.expectEqual(Stage.constraint_evaluation, oods_parameter.live_from);
+    const quotient_challenge = plan.slot(.quotient_challenge, 0) orelse return error.MissingQuotientChallenge;
+    try std.testing.expectEqual(Stage.oods, quotient_challenge.live_from);
+    var retained_ingress = ingress;
+    retained_ingress.relation.retained_base_words = 76_808_192;
+    var retained_plan = try subject.Plan.init(allocator, program, protocol, bundle, retained_ingress);
+    defer retained_plan.deinit(allocator);
+    const retained_slot = retained_plan.slot(.relation_base_inputs, 0) orelse return error.MissingRetainedRelationInputs;
+    try std.testing.expectEqual(Stage.trace_commit, retained_slot.live_from);
+    try std.testing.expectEqual(Stage.trace_commit, retained_slot.live_through);
+    try std.testing.expectEqual(@as(usize, 76_808_192), retained_slot.words);
+    const retained_placement = try retained_plan.request_arena.placement(retained_slot.id);
+    for (retained_plan.slots) |other| {
+        if (other.id == retained_slot.id or other.storage != .request_local or
+            other.live_from.index() > Stage.trace_commit.index() or other.live_through.index() < Stage.trace_commit.index()) continue;
+        const rhs = try retained_plan.request_arena.placement(other.id);
+        try std.testing.expect((try retained_placement.endWords()) <= rhs.offset_words or (try rhs.endWords()) <= retained_placement.offset_words);
+    }
     const summary = plan.summary;
     try std.testing.expectEqual(
         @as(u64, 3_717_220_288),
@@ -171,6 +217,12 @@ test "SN2 resident inventory is identity-bound and fits the modeled H100 arena" 
             4,
         quotient_result.words,
     );
+
+    try std.testing.expectEqual(@import("stwo_cuda_backend").runtime.telemetry.Stage.decommit, quotient_result.live_through);
+    const openings = plan.slot(.decommit_assembly, 0) orelse return error.MissingDecommitAssembly;
+    const quotient_placement = try plan.request_arena.placement(quotient_result.id);
+    const opening_placement = try plan.request_arena.placement(openings.id);
+    try std.testing.expect((try quotient_placement.endWords()) <= opening_placement.offset_words or (try opening_placement.endWords()) <= quotient_placement.offset_words);
 
     std.debug.print(
         "SN2 CUDA resident plan: slots={} coefficient_cells={} " ++
@@ -335,7 +387,7 @@ pub fn sn2Program(
         .quotient = .{
             .term_count = @intCast(bundle.total_constraints),
             .group_count = @intCast(bundle.components.len),
-            .evaluation_log_rows = protocol.max_log_degree_bound,
+            .evaluation_log_rows = try protocol.evaluationLogSize(),
             .composition_degree_log = maxDegree(bundle),
         },
         .fri_layers = fri_layers,
@@ -379,7 +431,7 @@ fn traceColumns(
         output[cursor] = column(
             cursor,
             std.math.maxInt(u32) - 1,
-            protocol.max_log_degree_bound - 1,
+            protocol.max_log_degree_bound,
             .composition,
         );
         cursor += 1;
@@ -422,11 +474,11 @@ fn friLayers(
     protocol: compact.CompactProtocolV1,
 ) ![]proof_ir.FriLayer {
     const geometry = try core.fri.geometry.FriGeometry.initRuntime(
-        protocol.max_log_degree_bound,
+        try protocol.evaluationLogSize(),
         .{
             .round_count = protocol.fri_tree_count,
             .fold_step = protocol.fri_fold_step,
-            .final_log = protocol.log_last_layer_degree_bound + 1,
+            .final_log = protocol.log_last_layer_degree_bound + protocol.log_blowup_factor,
             .packed_log = core.fri.geometry.FriGeometry.packed_log,
         },
     );

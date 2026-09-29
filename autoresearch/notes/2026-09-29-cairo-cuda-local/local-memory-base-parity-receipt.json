@@ -1,0 +1,18 @@
+{
+  "schema": "stwo-cairo-cuda-local-memory-parity-v1",
+  "provider": "cumetal",
+  "evidence_class": "apple_gpu_translation",
+  "nvidia_qualified": false,
+  "full_proof_verified": false,
+  "accepted_benchmark": false,
+  "passed": true,
+  "rust_components": [
+    "memory_id_to_big[0]",
+    "memory_id_to_small"
+  ],
+  "rows_per_component": 16,
+  "air_columns_checked": 38,
+  "execution_log_sha256": "918d9961e2c640ad467aedefe4f76c45c71113498b99198a5b1474bc5c6ea21d",
+  "source_sha256": "7aa8695b0727bb2c04ec0ebcb574951cbba7c537076891df3efd8e49266125b7",
+  "fixture_sha256": "837430c971934a59cb8216b3647bf6c7a7cc54e4a9b6a60ddba7c62115e949e5"
+}

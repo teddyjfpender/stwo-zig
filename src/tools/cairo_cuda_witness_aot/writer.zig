@@ -3,6 +3,7 @@
 const std = @import("std");
 const model = @import("cairo_witness_model");
 const schedule_mod = @import("schedule.zig");
+const row_chunks = @import("row_chunks.zig");
 
 const support_files = [_][]const u8{
     "fp256_storage.cuh",
@@ -22,11 +23,19 @@ pub fn emit(
     program: model.Program,
     support_directory: std.fs.Dir,
 ) !void {
+    return emitMode(allocator, output, program, support_directory, false);
+}
+
+pub fn emitCanonical(allocator: std.mem.Allocator, output: *std.Io.Writer, program: model.Program, support_directory: std.fs.Dir) !void {
+    return emitMode(allocator, output, program, support_directory, true);
+}
+
+fn emitMode(allocator: std.mem.Allocator, output: *std.Io.Writer, program: model.Program, support_directory: std.fs.Dir, reuse_scratch: bool) !void {
     var schedule = try schedule_mod.build(allocator, program);
     defer schedule.deinit();
     try emitPreamble(output);
 
-    var kinds = [_]bool{false} ** 12;
+    var kinds = [_]bool{false} ** @typeInfo(model.DeduceKind).@"enum".fields.len;
     for (program.insts) |inst| {
         if (inst.op != .deduce_call) continue;
         const kind = std.meta.intToEnum(
@@ -40,20 +49,60 @@ pub fn emit(
     for (kinds, 0..) |used, raw| {
         if (!used) continue;
         const kind: model.DeduceKind = @enumFromInt(raw);
-        needs_fp256 = needs_fp256 or kind.needsFp256();
-        needs_pedersen = needs_pedersen or kind.needsPedersenModule();
+        needs_fp256 = needs_fp256 or needsFp256(kind);
+        needs_pedersen = needs_pedersen or needsPedersenModule(kind);
     }
     if (needs_fp256) {
         if (needs_pedersen)
             try output.writeAll("#define STWO_WIT_NEEDS_PEDERSEN 1\n");
         try emitFp256Support(allocator, output, support_directory);
     }
-    if (kinds[@intFromEnum(model.DeduceKind.blake_g)])
+    const blake_round = kinds[@intFromEnum(model.DeduceKind.blake_round)];
+    if (kinds[@intFromEnum(model.DeduceKind.blake_g)] or blake_round)
         try emitBlakeG(output);
-    if (kinds[@intFromEnum(model.DeduceKind.blake_round_sigma)])
+    if (kinds[@intFromEnum(model.DeduceKind.blake_round_sigma)] or blake_round)
         try emitBlakeSigma(output);
+    if (kinds[@intFromEnum(model.DeduceKind.add_mod_is_zero)] or
+        kinds[@intFromEnum(model.DeduceKind.mul_mod_quotient)])
+        try output.writeAll(@embedFile("deductions_integer.cuh"));
+    if (kinds[@intFromEnum(model.DeduceKind.partial_ec_mul_w9)] or
+        kinds[@intFromEnum(model.DeduceKind.pedersen_points_table_w9)] or
+        kinds[@intFromEnum(model.DeduceKind.partial_ec_mul_generic)])
+        try output.writeAll(@embedFile("deductions_curve.cuh"));
+    if (blake_round) try output.writeAll(@embedFile("deductions_blake.cuh"));
+    if (reuse_scratch and row_chunks.required(program)) {
+        try emitChunks(allocator, output, program, schedule);
+        return;
+    }
     try emitKernelPreamble(output, program.semantic_hash);
-    try emitBody(output, program, schedule);
+    try emitBody(output, program, schedule, reuse_scratch, 0, program.insts.len);
+    try output.writeAll("}\n");
+}
+
+fn emitChunks(allocator: std.mem.Allocator, output: *std.Io.Writer, program: model.Program, schedule: schedule_mod.Schedule) !void {
+    var plan = try row_chunks.build(allocator, program, schedule);
+    defer plan.deinit();
+    try emitRowSupport(output);
+    for (0..plan.boundaries.len - 1) |chunk| {
+        try output.print(
+            \\static __device__ __noinline__ void stwo_wit_row_{x:0>16}_{}(
+            \\    const unsigned *const *input_cols, const unsigned *const *table_bases,
+            \\    const unsigned *table_strides, unsigned *const *out_cols,
+            \\    unsigned *const *mult_counts, unsigned *lookup_words, unsigned *sub_words,
+            \\    unsigned row_count, unsigned row, unsigned *carry) {{
+            \\
+        , .{ program.semantic_hash, chunk });
+        for (plan.live[chunk], 0..) |register, slot|
+            try output.print("    unsigned r{} = carry[{}];\n", .{ register, slot });
+        try emitBody(output, program, schedule, true, plan.boundaries[chunk], plan.boundaries[chunk + 1]);
+        for (plan.live[chunk + 1], 0..) |register, slot|
+            try output.print("    carry[{}] = r{};\n", .{ slot, register });
+        try output.writeAll("}\n\n");
+    }
+    try emitEntryPreamble(output, program.semantic_hash);
+    try output.print("    unsigned carry[{}];\n", .{@max(plan.max_carry, 1)});
+    for (0..plan.boundaries.len - 1) |chunk|
+        try output.print("    stwo_wit_row_{x:0>16}_{}(input_cols, table_bases, table_strides, out_cols, mult_counts, lookup_words, sub_words, row_count, row, carry);\n", .{ program.semantic_hash, chunk });
     try output.writeAll("}\n");
 }
 
@@ -61,11 +110,25 @@ fn emitBody(
     output: *std.Io.Writer,
     program: model.Program,
     schedule: schedule_mod.Schedule,
+    reuse_scratch: bool,
+    start: usize,
+    end: usize,
 ) !void {
+    if (reuse_scratch) {
+        var max_args: usize = 0;
+        var max_outputs: usize = 0;
+        for (program.insts[start..end]) |inst| if (inst.op == .deduce_call) {
+            const kind = try std.meta.intToEnum(model.DeduceKind, inst.imm);
+            const shape = kind.shape();
+            max_args = @max(max_args, shape.args);
+            max_outputs = @max(max_outputs, shape.outputs);
+        };
+        if (max_args != 0) try output.print("    unsigned dargs0[{}];\n    unsigned douts0[{}];\n", .{ max_args, max_outputs });
+    }
     var deduce_args: std.ArrayList(u32) = .empty;
     defer deduce_args.deinit(std.heap.smp_allocator);
     var deduce_sequence: usize = 0;
-    for (program.insts, 0..) |inst, instruction| {
+    for (program.insts[start..end], start..) |inst, instruction| {
         switch (inst.op) {
             .col_write, .lookup_word, .sub_word => continue,
             .mult_push => {
@@ -95,20 +158,22 @@ fn emitBody(
                 const shape = kind.shape();
                 if (deduce_args.items.len != shape.args)
                     return error.InvalidDeduce;
-                const sequence = deduce_sequence;
+                const sequence = if (reuse_scratch) 0 else deduce_sequence;
                 deduce_sequence += 1;
-                try output.print(
-                    "    const unsigned dargs{}[{}] = {{ ",
-                    .{ sequence, shape.args },
-                );
-                for (deduce_args.items, 0..) |register, index| {
-                    if (index != 0) try output.writeAll(", ");
-                    try output.print("r{}", .{register});
+                if (reuse_scratch) {
+                    // Populate every input before any output/callback can reuse
+                    // its register. Calls execute serially; input and output
+                    // scratch remain disjoint and are overwritten per call.
+                    for (deduce_args.items, 0..) |register, index|
+                        try output.print("    dargs0[{}] = r{};\n", .{ index, register });
+                } else {
+                    try output.print("    const unsigned dargs{}[{}] = {{ ", .{ sequence, shape.args });
+                    for (deduce_args.items, 0..) |register, index| {
+                        if (index != 0) try output.writeAll(", ");
+                        try output.print("r{}", .{register});
+                    }
+                    try output.print(" }};\n    unsigned douts{}[{}];\n", .{ sequence, shape.outputs });
                 }
-                try output.print(
-                    " }};\n    unsigned douts{}[{}];\n",
-                    .{ sequence, shape.outputs },
-                );
                 try emitOutputs(
                     output,
                     schedule.after_deduce_arguments[instruction].items,
@@ -219,9 +284,22 @@ fn emitDeduceCall(
         .felt_mul => "stwo_wit_deduce_felt_mul",
         .felt_div => "stwo_wit_deduce_felt_div",
         .poseidon_round_keys => "stwo_wit_deduce_poseidon_round_keys",
-        .cube_252 => "stwo_wit_deduce_cube_252",
+        .poseidon_cube => "stwo_wit_deduce_cube_252",
         .poseidon_full_round_chain => "stwo_wit_deduce_poseidon_full_round_chain",
         .poseidon_3_partial_rounds_chain => "stwo_wit_deduce_poseidon_3_partial_rounds_chain",
+        .partial_ec_mul_w9 => "stwo_wit_deduce_partial_ec_mul_w9",
+        .pedersen_points_table_w9 => "stwo_wit_deduce_pedersen_points_w9",
+        .partial_ec_mul_generic => "stwo_wit_deduce_partial_ec_mul_generic",
+        .add_mod_is_zero => "stwo_wit_deduce_add_mod_is_zero",
+        .mul_mod_quotient => "stwo_wit_deduce_mul_mod_quotient",
+        .triple_xor_32 => {
+            try output.print("    douts{}[0] = dargs{}[0] ^ dargs{}[1] ^ dargs{}[2];\n", .{ sequence, sequence, sequence, sequence });
+            return;
+        },
+        .blake_round => {
+            try output.print("    stwo_wit_deduce_blake_round(table_bases, table_strides, dargs{}, douts{});\n", .{ sequence, sequence });
+            return;
+        },
         .blake_round_sigma => {
             try output.print(
                 "    for (int i = 0; i < 16; ++i) {{ douts{}[i] = STWO_WIT_BLAKE_SIGMA[dargs{}[0]][i]; }}\n",
@@ -344,6 +422,11 @@ fn emitBlakeSigma(output: *std.Io.Writer) !void {
 }
 
 fn emitKernelPreamble(output: *std.Io.Writer, semantic_hash: u64) !void {
+    try emitRowSupport(output);
+    try emitEntryPreamble(output, semantic_hash);
+}
+
+fn emitRowSupport(output: *std.Io.Writer) !void {
     try output.writeAll(
         \\static __device__ __forceinline__ unsigned stwo_m31_inverse(unsigned a) {
         \\    unsigned result = a;                 // consumes exponent bit 30
@@ -364,6 +447,9 @@ fn emitKernelPreamble(output: *std.Io.Writer, semantic_hash: u64) !void {
         \\
     );
     try output.writeByte('\n');
+}
+
+fn emitEntryPreamble(output: *std.Io.Writer, semantic_hash: u64) !void {
     try output.print(
         \\extern "C" __global__ void __launch_bounds__(256) stwo_jit_witness_{x:0>16}(
         \\    const unsigned *const *input_cols,   // [n_inputs][row]
@@ -426,4 +512,17 @@ fn emitPreamble(output: *std.Io.Writer) !void {
         \\
     );
     try output.writeByte('\n');
+}
+
+// CUDA embedding requirements are backend policy, not deduction ABI methods.
+pub fn needsPedersenModule(kind: model.DeduceKind) bool {
+    return kind == .partial_ec_mul_w18 or kind == .pedersen_points_table_w18 or
+        kind == .partial_ec_mul_w9 or kind == .pedersen_points_table_w9;
+}
+
+fn needsFp256(kind: model.DeduceKind) bool {
+    return switch (kind) {
+        .blake_g, .blake_round_sigma, .triple_xor_32, .blake_round, .add_mod_is_zero, .mul_mod_quotient => false,
+        else => true,
+    };
 }

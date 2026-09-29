@@ -1,5 +1,7 @@
 //! Canonical Stwo-Cairo preprocessed columns.
 
+pub const prepared_columns_cache = @import("prepared_columns_cache.zig");
+pub const coefficient_order = @import("coefficient_order.zig");
 pub const columns = @import("columns.zig");
 pub const pedersen_table = @import("pedersen_table.zig");
 pub const product_cache = @import("product_cache.zig");

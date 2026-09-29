@@ -1,0 +1,12 @@
+{
+  "schema": "stwo_cairo_canonical_cuda_witness_generation_v1",
+  "codegen_version": 13,
+  "bundle_sha256": "b2108615463b3c7003b07df20e800a42c4c7625344a681ed22e78e57238c90a6",
+  "cairo_revision": "82f21252a68ec006d73e299f5bf1ce6d4db0ee78",
+  "stwo_revision": "7b211edde786775016ef3eecb837a6240d8fe792",
+  "program_count": 64,
+  "deduction_count": 19,
+  "manifest_sha256": "ff3fa8706a446e491859fbf0044ffcf95b4d5de24f901357d05757cfb367cc79",
+  "device_qualified": false,
+  "full_proof_verified": false
+}

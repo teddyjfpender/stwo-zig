@@ -34,463 +34,510 @@ const QM31 = qm31_mod.QM31;
 ///
 /// Satisfies the full `backend.assertBackend` contract by delegating
 /// to the existing scalar implementations in `core/` and `prover/`.
-pub const CpuBackend = struct {
-    pub const capabilities: backend.Capabilities = .{
-        .host_batch_inverse = true,
-        .fri_folding = true,
-        .fri_multi_fold = true,
-    };
-    pub const combined_commit_min_columns: usize = 65;
-    pub const combined_commit_max_columns: usize = 256;
-    pub const combined_base_in_place = true;
-    pub const reuses_constant_merkle_parents = true;
-    pub const lazy_merkle_reuses_constant_parents = false;
-    /// The combined CPU LDE elides the degenerate first forward layer only for
-    /// an exact 2x extension. This declaration lets cold logical-work
-    /// accounting describe the implementation without entering FFT kernels.
-    pub fn combinedCircleLdeSkippedForwardLayers(
-        base_log_size: u32,
-        extended_log_size: u32,
-    ) u32 {
-        return if (extended_log_size > 2 and
-            extended_log_size > base_log_size and
-            extended_log_size - base_log_size == 1)
-            1
-        else
-            0;
-    }
+pub const CommitmentOptions = struct {
+    wide_preparation: bool = false,
+    source_trace_arena: bool = false,
+    preprocessed_preparation_cache: bool = false,
+    preprocessed_overlap: bool = false,
+    preparation_byte_budget: usize = 1024 * 1024 * 1024,
+};
+pub const CpuBackend = configured(.{});
 
-    pub fn warmup() !void {}
-
-    pub fn computeCompositionEvaluation(
-        allocator: std.mem.Allocator,
-        components: []const @import("stwo_prover_engine").air.component_prover.ComponentProver,
-        random_coeff: QM31,
-        trace: *const @import("stwo_prover_engine").air.component_prover.Trace,
-        residency_handles: []const ?*anyopaque,
-        composition_twiddles: ?@import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const M31),
-    ) !?@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
-        return computeCompositionEvaluationWithExecution(
-            allocator,
-            components,
-            random_coeff,
-            trace,
-            residency_handles,
-            composition_twiddles,
-            try prover_impl.air.composition_execution.Execution.resolve(null),
-        );
-    }
-
-    pub fn computeCompositionEvaluationWithExecution(
-        allocator: std.mem.Allocator,
-        components: []const prover_impl.air.component_prover.ComponentProver,
-        random_coeff: QM31,
-        trace: *const prover_impl.air.component_prover.Trace,
-        residency_handles: []const ?*anyopaque,
-        composition_twiddles: ?prover_impl.poly.twiddles.TwiddleTree([]const M31),
-        execution: prover_impl.air.composition_execution.Execution,
-    ) !?prover_impl.secure_column.SecureColumnByCoords {
-        _ = residency_handles;
-        _ = composition_twiddles;
-        // The recurrence fast path owns a direct joined row wave, not a
-        // ComponentTaskGraph. Keep it explicitly outside flat task telemetry
-        // until that executor has truthful per-task identities and accounting.
-        var recurrence_execution = execution;
-        recurrence_execution.task_recorder = null;
-        if (try secure_composition.evaluateLargeRecurrenceComposition(
-            allocator,
-            components,
-            random_coeff,
-            trace,
-            recurrence_execution,
-        )) |evaluation| return evaluation;
-        const adjusted = execution.adjustedForAvailablePool();
-        adjusted.validateCapacity() catch |err| {
-            prover_impl.engine.EvaluationDiagnostic.recordFirst(
-                execution.evaluation_diagnostic,
-                .{
-                    .stage = .plan,
-                    .cause = err,
-                    .actual = adjusted.worker_budget.count,
-                    .expected = adjusted.poolCapacity(),
-                },
-            );
-            return err;
+/// Product-owned commitment scheduling using the same CPU implementation.
+/// Other frontends retain their existing defaults; qualification can override
+/// the policy through the existing environment switch.
+pub fn configured(comptime options: CommitmentOptions) type {
+    return struct {
+        pub const capabilities: backend.Capabilities = .{
+            .host_batch_inverse = true,
+            .fri_folding = true,
+            .fri_multi_fold = true,
         };
-        return riscv_composition.evaluateWithExecution(
-            allocator,
-            components,
-            random_coeff,
-            trace,
-            .{
-                .worker_budget = adjusted.worker_budget,
-                .pool = adjusted.pool,
-                .byte_budget = adjusted.host_byte_budget,
-                .serial_on_contention = !execution.isStrict(),
-                .allow_unprepared_fallback = !execution.isStrict(),
-                .requested_worker_count = execution.requestedWorkerCount(),
-                .pool_capacity = execution.poolCapacity(),
-                .task_recorder = execution.task_recorder,
-                .work_capture = execution.composition_work_capture,
-                .evaluation_diagnostic = execution.evaluation_diagnostic,
-            },
-        );
-    }
+        pub const supports_preprocessed_overlap = true;
+        pub const supports_preprocessed_preparation_cache = options.preprocessed_preparation_cache;
+        pub const default_preprocessed_overlap = options.preprocessed_overlap;
+        pub const combined_commit_min_columns: usize = 65;
 
-    /// Process-wide structural evidence for the bounded RISC-V CPU composition
-    /// path. This is intentionally separate from hybrid-device telemetry.
-    pub fn riscvCompositionTelemetrySnapshot() riscv_composition.TelemetrySnapshot {
-        return riscv_composition.telemetrySnapshot();
-    }
-
-    /// Interpolates the four independent secure-field coordinates in place
-    /// on the existing prover pool. The generic path duplicates and transforms
-    /// them serially; owned composition evaluations need neither cost.
-    pub fn interpolateSecureComposition(
-        allocator: std.mem.Allocator,
-        values: *prover_impl.secure_column.SecureColumnByCoords,
-        domain: core_poly.circle.domain.CircleDomain,
-        twiddle_tree: prover_impl.poly.twiddles.TwiddleTree([]const M31),
-    ) !work_profile.M31InterpolationBackendResult {
-        _ = allocator;
-        if (values.representation == .coefficients)
-            return .already_coefficients;
-        for (values.columns) |coordinate| {
-            if (coordinate.len != domain.size()) return .declined;
+        /// The bounded streaming lane previously admitted too few large columns
+        /// for parallel FFTs. Qualification flag selects fused per-column jobs and
+        /// a product-bounded batch; source ownership and work receipts are unchanged.
+        pub fn combinedCommitMinimumColumns() usize {
+            return if (wideLdeEnabled()) 1 else combined_commit_min_columns;
+        }
+        pub fn residentColumnSkewMinimumColumns() usize {
+            return if (wideLdeEnabled()) 8 else 64;
+        }
+        pub fn streamingCommitByteBudget() usize {
+            return if (wideLdeEnabled()) options.preparation_byte_budget else 256 * 1024 * 1024;
+        }
+        fn wideLdeEnabled() bool {
+            const value = std.posix.getenv("STWO_CAIRO_CPU_WIDE_LDE") orelse return options.wide_preparation;
+            return std.mem.eql(u8, value, "1");
         }
 
-        const Job = struct {
-            values: []M31,
+        pub const combined_commit_max_columns: usize = 256;
+        pub const combined_base_in_place = true;
+        pub const adopts_source_trace_arena = options.source_trace_arena;
+        pub const reuses_constant_merkle_parents = true;
+        pub const lazy_merkle_reuses_constant_parents = false;
+        /// The combined CPU LDE elides the degenerate first forward layer only for
+        /// an exact 2x extension. This declaration lets cold logical-work
+        /// accounting describe the implementation without entering FFT kernels.
+        pub fn combinedCircleLdeSkippedForwardLayers(
+            base_log_size: u32,
+            extended_log_size: u32,
+        ) u32 {
+            return if (extended_log_size > 2 and
+                extended_log_size > base_log_size and
+                extended_log_size - base_log_size == 1)
+                1
+            else
+                0;
+        }
+
+        pub fn warmup() !void {}
+
+        pub fn computeCompositionEvaluation(
+            allocator: std.mem.Allocator,
+            components: []const @import("stwo_prover_engine").air.component_prover.ComponentProver,
+            random_coeff: QM31,
+            trace: *const @import("stwo_prover_engine").air.component_prover.Trace,
+            residency_handles: []const ?*anyopaque,
+            composition_twiddles: ?@import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const M31),
+        ) !?@import("stwo_prover_engine").secure_column.SecureColumnByCoords {
+            return computeCompositionEvaluationWithExecution(
+                allocator,
+                components,
+                random_coeff,
+                trace,
+                residency_handles,
+                composition_twiddles,
+                try prover_impl.air.composition_execution.Execution.resolve(null),
+            );
+        }
+
+        pub fn computeCompositionEvaluationWithExecution(
+            allocator: std.mem.Allocator,
+            components: []const prover_impl.air.component_prover.ComponentProver,
+            random_coeff: QM31,
+            trace: *const prover_impl.air.component_prover.Trace,
+            residency_handles: []const ?*anyopaque,
+            composition_twiddles: ?prover_impl.poly.twiddles.TwiddleTree([]const M31),
+            execution: prover_impl.air.composition_execution.Execution,
+        ) !?prover_impl.secure_column.SecureColumnByCoords {
+            _ = residency_handles;
+            _ = composition_twiddles;
+            // The recurrence fast path owns a direct joined row wave, not a
+            // ComponentTaskGraph. Keep it explicitly outside flat task telemetry
+            // until that executor has truthful per-task identities and accounting.
+            var recurrence_execution = execution;
+            recurrence_execution.task_recorder = null;
+            if (try secure_composition.evaluateLargeRecurrenceComposition(
+                allocator,
+                components,
+                random_coeff,
+                trace,
+                recurrence_execution,
+            )) |evaluation| return evaluation;
+            const adjusted = execution.adjustedForAvailablePool();
+            adjusted.validateCapacity() catch |err| {
+                prover_impl.engine.EvaluationDiagnostic.recordFirst(
+                    execution.evaluation_diagnostic,
+                    .{
+                        .stage = .plan,
+                        .cause = err,
+                        .actual = adjusted.worker_budget.count,
+                        .expected = adjusted.poolCapacity(),
+                    },
+                );
+                return err;
+            };
+            return riscv_composition.evaluateWithExecution(
+                allocator,
+                components,
+                random_coeff,
+                trace,
+                .{
+                    .worker_budget = adjusted.worker_budget,
+                    .pool = adjusted.pool,
+                    .byte_budget = adjusted.host_byte_budget,
+                    .serial_on_contention = !execution.isStrict(),
+                    .allow_unprepared_fallback = !execution.isStrict(),
+                    .requested_worker_count = execution.requestedWorkerCount(),
+                    .pool_capacity = execution.poolCapacity(),
+                    .task_recorder = execution.task_recorder,
+                    .work_capture = execution.composition_work_capture,
+                    .evaluation_diagnostic = execution.evaluation_diagnostic,
+                },
+            );
+        }
+
+        /// Process-wide structural evidence for the bounded RISC-V CPU composition
+        /// path. This is intentionally separate from hybrid-device telemetry.
+        pub fn riscvCompositionTelemetrySnapshot() riscv_composition.TelemetrySnapshot {
+            return riscv_composition.telemetrySnapshot();
+        }
+
+        /// Interpolates the four independent secure-field coordinates in place
+        /// on the existing prover pool. The generic path duplicates and transforms
+        /// them serially; owned composition evaluations need neither cost.
+        pub fn interpolateSecureComposition(
+            allocator: std.mem.Allocator,
+            values: *prover_impl.secure_column.SecureColumnByCoords,
             domain: core_poly.circle.domain.CircleDomain,
             twiddle_tree: prover_impl.poly.twiddles.TwiddleTree([]const M31),
-            failure: ?anyerror = null,
+        ) !work_profile.M31InterpolationBackendResult {
+            _ = allocator;
+            if (values.representation == .coefficients)
+                return .already_coefficients;
+            for (values.columns) |coordinate| {
+                if (coordinate.len != domain.size()) return .declined;
+            }
 
-            fn run(job: *@This()) void {
-                var batch = [_][]M31{job.values};
-                prover_impl.poly.circle.poly.interpolateBuffersWithTwiddles(
-                    &batch,
-                    job.domain,
-                    job.twiddle_tree,
-                ) catch |err| {
-                    job.failure = err;
+            const Job = struct {
+                values: []M31,
+                domain: core_poly.circle.domain.CircleDomain,
+                twiddle_tree: prover_impl.poly.twiddles.TwiddleTree([]const M31),
+                failure: ?anyerror = null,
+
+                fn run(job: *@This()) void {
+                    var batch = [_][]M31{job.values};
+                    prover_impl.poly.circle.poly.interpolateBuffersWithTwiddles(
+                        &batch,
+                        job.domain,
+                        job.twiddle_tree,
+                    ) catch |err| {
+                        job.failure = err;
+                    };
+                }
+            };
+
+            var jobs: [qm31_mod.SECURE_EXTENSION_DEGREE]Job = undefined;
+            for (values.columns, &jobs) |coordinate, *job| {
+                job.* = .{
+                    .values = coordinate,
+                    .domain = domain,
+                    .twiddle_tree = twiddle_tree,
                 };
             }
-        };
 
-        var jobs: [qm31_mod.SECURE_EXTENSION_DEGREE]Job = undefined;
-        for (values.columns, &jobs) |coordinate, *job| {
-            job.* = .{
-                .values = coordinate,
-                .domain = domain,
-                .twiddle_tree = twiddle_tree,
+            if (prover_impl.work_pool.getGlobalPool()) |pool| {
+                var wait_group: std.Thread.WaitGroup = .{};
+                for (jobs[1..]) |*job| pool.spawnWg(&wait_group, Job.run, .{job});
+                Job.run(&jobs[0]);
+                wait_group.wait();
+            } else {
+                for (&jobs) |*job| Job.run(job);
+            }
+            for (jobs) |job| if (job.failure) |err| return err;
+            values.representation = .coefficients;
+            return .{
+                .transformed = .{
+                    .log_size = domain.logSize(),
+                    .column_count = qm31_mod.SECURE_EXTENSION_DEGREE,
+                    // The CPU path runs four independent one-column jobs.
+                    .batch_count = qm31_mod.SECURE_EXTENSION_DEGREE,
+                },
             };
         }
 
-        if (prover_impl.work_pool.getGlobalPool()) |pool| {
-            var wait_group: std.Thread.WaitGroup = .{};
-            for (jobs[1..]) |*job| pool.spawnWg(&wait_group, Job.run, .{job});
-            Job.run(&jobs[0]);
-            wait_group.wait();
-        } else {
-            for (&jobs) |*job| Job.run(job);
-        }
-        for (jobs) |job| if (job.failure) |err| return err;
-        values.representation = .coefficients;
-        return .{
-            .transformed = .{
-                .log_size = domain.logSize(),
-                .column_count = qm31_mod.SECURE_EXTENSION_DEGREE,
-                // The CPU path runs four independent one-column jobs.
-                .batch_count = qm31_mod.SECURE_EXTENSION_DEGREE,
-            },
-        };
-    }
+        // ---------------------------------------------------------------
+        // ColumnOps
+        // ---------------------------------------------------------------
 
-    // ---------------------------------------------------------------
-    // ColumnOps
-    // ---------------------------------------------------------------
-
-    /// Column storage is a plain slice of field elements.
-    pub fn ColumnType(comptime F: type) type {
-        return []F;
-    }
-
-    // ---------------------------------------------------------------
-    // FieldOps
-    // ---------------------------------------------------------------
-
-    /// Montgomery batch inverse on a slice of field elements.
-    pub fn batchInverse(
-        comptime F: type,
-        allocator: std.mem.Allocator,
-        column: []const F,
-    ) ![]F {
-        return fields_mod.batchInverse(F, allocator, column);
-    }
-
-    /// Retains large CPU commitment columns in the same cache-skewed backing
-    /// layout used by the shared-memory Metal path while preserving one FFT
-    /// task per column on the global worker pool.
-    pub fn interpolateAndEvaluateCircleBuffers(
-        allocator: std.mem.Allocator,
-        source_values: []const []const M31,
-        base_values: []const []M31,
-        extended_values: []const []M31,
-        transform_buffer: []M31,
-        extended_start: usize,
-        extended_stride: usize,
-        base_domain: anytype,
-        base_twiddles: anytype,
-        extended_domain: anytype,
-        extended_twiddles: anytype,
-    ) !work_profile.M31CircleLdeExecution {
-        _ = transform_buffer;
-        _ = extended_start;
-        _ = extended_stride;
-        if (source_values.len == 0 or source_values.len != base_values.len or
-            base_values.len != extended_values.len)
-        {
-            return error.InvalidColumns;
+        /// Column storage is a plain slice of field elements.
+        pub fn ColumnType(comptime F: type) type {
+            return []F;
         }
 
-        const prover = @import("stwo_prover_engine");
-        const BaseDomain = @TypeOf(base_domain);
-        const BaseTwiddles = @TypeOf(base_twiddles);
-        const ExtendedDomain = @TypeOf(extended_domain);
-        const ExtendedTwiddles = @TypeOf(extended_twiddles);
-        const Job = struct {
-            base: []M31,
-            extended: []M31,
-            base_domain: BaseDomain,
-            base_twiddles: BaseTwiddles,
-            extended_domain: ExtendedDomain,
-            extended_twiddles: ExtendedTwiddles,
-            err: ?anyerror = null,
+        // ---------------------------------------------------------------
+        // FieldOps
+        // ---------------------------------------------------------------
 
-            fn run(job: *@This()) void {
-                var base_batch = [_][]M31{job.base};
-                prover.poly.circle.poly.interpolateBuffersWithTwiddles(
-                    &base_batch,
-                    job.base_domain,
-                    job.base_twiddles,
-                ) catch |err| {
-                    job.err = err;
-                    return;
-                };
-                @memcpy(job.extended[0..job.base.len], job.base);
-                var extended_batch = [_][]M31{job.extended};
-                const exact_double = job.extended.len % 2 == 0 and
-                    job.extended.len / 2 == job.base.len;
-                if (exact_double) {
-                    prover.poly.circle.poly.evaluateExtensionBuffersWithTwiddles(
+        /// Montgomery batch inverse on a slice of field elements.
+        pub fn batchInverse(
+            comptime F: type,
+            allocator: std.mem.Allocator,
+            column: []const F,
+        ) ![]F {
+            return fields_mod.batchInverse(F, allocator, column);
+        }
+
+        /// Retains large CPU commitment columns in the same cache-skewed backing
+        /// layout used by the shared-memory Metal path. Wide groups distribute
+        /// columns; narrow large groups distribute FFT row tuples instead.
+        pub fn interpolateAndEvaluateCircleBuffers(
+            allocator: std.mem.Allocator,
+            source_values: []const []const M31,
+            base_values: []const []M31,
+            extended_values: []const []M31,
+            transform_buffer: []M31,
+            extended_start: usize,
+            extended_stride: usize,
+            base_domain: anytype,
+            base_twiddles: anytype,
+            extended_domain: anytype,
+            extended_twiddles: anytype,
+        ) !work_profile.M31CircleLdeExecution {
+            _ = transform_buffer;
+            _ = extended_start;
+            _ = extended_stride;
+            if (source_values.len == 0 or source_values.len != base_values.len or
+                base_values.len != extended_values.len)
+            {
+                return error.InvalidColumns;
+            }
+
+            const prover = @import("stwo_prover_engine");
+            const BaseDomain = @TypeOf(base_domain);
+            const BaseTwiddles = @TypeOf(base_twiddles);
+            const ExtendedDomain = @TypeOf(extended_domain);
+            const ExtendedTwiddles = @TypeOf(extended_twiddles);
+            const Job = struct {
+                base: []M31,
+                extended: []M31,
+                base_domain: BaseDomain,
+                base_twiddles: BaseTwiddles,
+                extended_domain: ExtendedDomain,
+                extended_twiddles: ExtendedTwiddles,
+                err: ?anyerror = null,
+                row_pool: ?*prover.work_pool.WorkPool = null,
+
+                fn run(job: *@This()) void {
+                    var base_batch = [_][]M31{job.base};
+                    prover.poly.circle.poly.interpolateBuffersWithTwiddlesWithPool(
+                        &base_batch,
+                        job.base_domain,
+                        job.base_twiddles,
+                        job.row_pool,
+                    ) catch |err| {
+                        job.err = err;
+                        return;
+                    };
+                    @memcpy(job.extended[0..job.base.len], job.base);
+                    var extended_batch = [_][]M31{job.extended};
+                    const exact_double = job.extended.len % 2 == 0 and
+                        job.extended.len / 2 == job.base.len;
+                    if (exact_double) {
+                        prover.poly.circle.poly.evaluateExtensionBuffersWithTwiddlesWithPool(
+                            &extended_batch,
+                            job.extended_domain,
+                            job.extended_twiddles,
+                            job.row_pool,
+                        ) catch |err| {
+                            job.err = err;
+                        };
+                        return;
+                    }
+                    @memset(job.extended[job.base.len..], M31.zero());
+                    prover.poly.circle.poly.evaluateBuffersWithTwiddles(
                         &extended_batch,
                         job.extended_domain,
                         job.extended_twiddles,
                     ) catch |err| {
                         job.err = err;
                     };
-                    return;
                 }
-                @memset(job.extended[job.base.len..], M31.zero());
-                prover.poly.circle.poly.evaluateBuffersWithTwiddles(
-                    &extended_batch,
-                    job.extended_domain,
-                    job.extended_twiddles,
-                ) catch |err| {
-                    job.err = err;
+            };
+
+            const jobs = try allocator.alloc(Job, source_values.len);
+            defer allocator.free(jobs);
+            for (source_values, base_values, extended_values, jobs) |source, base, extended, *job| {
+                if (source.ptr != base.ptr) @memcpy(base, source);
+                job.* = .{
+                    .base = base,
+                    .extended = extended,
+                    .base_domain = base_domain,
+                    .base_twiddles = base_twiddles,
+                    .extended_domain = extended_domain,
+                    .extended_twiddles = extended_twiddles,
                 };
             }
-        };
 
-        const jobs = try allocator.alloc(Job, source_values.len);
-        defer allocator.free(jobs);
-        for (source_values, base_values, extended_values, jobs) |source, base, extended, *job| {
-            if (source.ptr != base.ptr) @memcpy(base, source);
-            job.* = .{
-                .base = base,
-                .extended = extended,
-                .base_domain = base_domain,
-                .base_twiddles = base_twiddles,
-                .extended_domain = extended_domain,
-                .extended_twiddles = extended_twiddles,
+            if (prover.work_pool.getGlobalPool()) |pool| {
+                if (wideLdeEnabled() and jobs.len < pool.workerCount() and jobs[0].base.len >= 1 << 20) {
+                    // A coordinator owns row waves; pool helpers never nest FFT waves.
+                    for (jobs) |*job| {
+                        job.row_pool = pool;
+                        Job.run(job);
+                    }
+                } else {
+                    var wait_group: std.Thread.WaitGroup = .{};
+                    for (jobs[1..]) |*job| pool.spawnWg(&wait_group, Job.run, .{job});
+                    Job.run(&jobs[0]);
+                    wait_group.wait();
+                }
+            } else {
+                for (jobs) |*job| Job.run(job);
+            }
+            for (jobs) |job| if (job.err) |err| return err;
+            return .{
+                .interpolation = .{
+                    .log_size = base_domain.logSize(),
+                    .column_count = @intCast(source_values.len),
+                    // Each CPU job interpolates one column independently.
+                    .batch_count = @intCast(source_values.len),
+                },
+                .forward = .{
+                    .log_size = extended_domain.logSize(),
+                    .column_count = @intCast(source_values.len),
+                    .skipped_layers = combinedCircleLdeSkippedForwardLayers(
+                        base_domain.logSize(),
+                        extended_domain.logSize(),
+                    ),
+                },
             };
         }
 
-        if (prover.work_pool.getGlobalPool()) |pool| {
-            var wait_group: std.Thread.WaitGroup = .{};
-            for (jobs[1..]) |*job| pool.spawnWg(&wait_group, Job.run, .{job});
-            Job.run(&jobs[0]);
-            wait_group.wait();
-        } else {
-            for (jobs) |*job| Job.run(job);
+        // ---------------------------------------------------------------
+        // FriOps — delegates to core/fri.zig fold functions
+        // ---------------------------------------------------------------
+
+        /// Fold a circle evaluation into a line evaluation.
+        pub fn foldCircleIntoLine(
+            allocator: std.mem.Allocator,
+            dst: []QM31,
+            src_columns: [qm31_mod.SECURE_EXTENSION_DEGREE][]const M31,
+            src_domain: anytype,
+            alpha: QM31,
+            workspace: *core_fri.FoldCircleWorkspace,
+        ) !void {
+            return core_fri.foldCircleColumnsIntoLineWithWorkspace(
+                allocator,
+                dst,
+                src_columns,
+                src_domain,
+                alpha,
+                workspace,
+            );
         }
-        for (jobs) |job| if (job.err) |err| return err;
-        return .{
-            .interpolation = .{
-                .log_size = base_domain.logSize(),
-                .column_count = @intCast(source_values.len),
-                // Each CPU job interpolates one column independently.
-                .batch_count = @intCast(source_values.len),
-            },
-            .forward = .{
-                .log_size = extended_domain.logSize(),
-                .column_count = @intCast(source_values.len),
-                .skipped_layers = combinedCircleLdeSkippedForwardLayers(
-                    base_domain.logSize(),
-                    extended_domain.logSize(),
-                ),
-            },
-        };
-    }
 
-    // ---------------------------------------------------------------
-    // FriOps — delegates to core/fri.zig fold functions
-    // ---------------------------------------------------------------
+        pub fn foldCircleIntoLineWithReceipt(
+            allocator: std.mem.Allocator,
+            dst: []QM31,
+            src_columns: [qm31_mod.SECURE_EXTENSION_DEGREE][]const M31,
+            src_domain: anytype,
+            alpha: QM31,
+            workspace: *core_fri.FoldCircleWorkspace,
+            ledger: *work_profile.FriFoldExecutionLedger,
+        ) !void {
+            try foldCircleIntoLine(
+                allocator,
+                dst,
+                src_columns,
+                src_domain,
+                alpha,
+                workspace,
+            );
+            const coset = src_domain.half_coset;
+            ledger.observe(.{
+                .kind = .circle_to_line,
+                .initial_count = src_columns[0].len,
+                .fold_count = 1,
+                .domain_log_size = coset.logSize(),
+                .domain_initial_index = @intCast(coset.initial_index.v),
+                .domain_step_size = @intCast(coset.step_size.v),
+                .inverse_path = .host_batch,
+                .alpha_squares = 1,
+                .domain_doubles = 0,
+            });
+        }
 
-    /// Fold a circle evaluation into a line evaluation.
-    pub fn foldCircleIntoLine(
-        allocator: std.mem.Allocator,
-        dst: []QM31,
-        src_columns: [qm31_mod.SECURE_EXTENSION_DEGREE][]const M31,
-        src_domain: anytype,
-        alpha: QM31,
-        workspace: *core_fri.FoldCircleWorkspace,
-    ) !void {
-        return core_fri.foldCircleColumnsIntoLineWithWorkspace(
-            allocator,
-            dst,
-            src_columns,
-            src_domain,
-            alpha,
-            workspace,
-        );
-    }
+        /// Fold a line evaluation to half its size.
+        pub fn foldLine(
+            allocator: std.mem.Allocator,
+            eval: []QM31,
+            domain: anytype,
+            alpha: QM31,
+            workspace: *core_fri.FoldLineWorkspace,
+        ) !core_fri.FoldLineResult {
+            return core_fri.foldLineInPlaceWithWorkspace(
+                allocator,
+                eval,
+                domain,
+                alpha,
+                workspace,
+            );
+        }
 
-    pub fn foldCircleIntoLineWithReceipt(
-        allocator: std.mem.Allocator,
-        dst: []QM31,
-        src_columns: [qm31_mod.SECURE_EXTENSION_DEGREE][]const M31,
-        src_domain: anytype,
-        alpha: QM31,
-        workspace: *core_fri.FoldCircleWorkspace,
-        ledger: *work_profile.FriFoldExecutionLedger,
-    ) !void {
-        try foldCircleIntoLine(
-            allocator,
-            dst,
-            src_columns,
-            src_domain,
-            alpha,
-            workspace,
-        );
-        const coset = src_domain.half_coset;
-        ledger.observe(.{
-            .kind = .circle_to_line,
-            .initial_count = src_columns[0].len,
-            .fold_count = 1,
-            .domain_log_size = coset.logSize(),
-            .domain_initial_index = @intCast(coset.initial_index.v),
-            .domain_step_size = @intCast(coset.step_size.v),
-            .inverse_path = .host_batch,
-            .alpha_squares = 1,
-            .domain_doubles = 0,
-        });
-    }
+        pub fn foldLineN(
+            allocator: std.mem.Allocator,
+            eval: []QM31,
+            domain: anytype,
+            alpha: QM31,
+            workspace: *core_fri.FoldLineWorkspace,
+            n_folds: u32,
+        ) !core_fri.FoldLineResult {
+            return core_fri.foldLineInPlaceNWithWorkspace(
+                allocator,
+                eval,
+                domain,
+                alpha,
+                workspace,
+                n_folds,
+            );
+        }
 
-    /// Fold a line evaluation to half its size.
-    pub fn foldLine(
-        allocator: std.mem.Allocator,
-        eval: []QM31,
-        domain: anytype,
-        alpha: QM31,
-        workspace: *core_fri.FoldLineWorkspace,
-    ) !core_fri.FoldLineResult {
-        return core_fri.foldLineInPlaceWithWorkspace(
-            allocator,
-            eval,
-            domain,
-            alpha,
-            workspace,
-        );
-    }
+        pub fn foldLineNWithReceipt(
+            allocator: std.mem.Allocator,
+            eval: []QM31,
+            domain: anytype,
+            alpha: QM31,
+            workspace: *core_fri.FoldLineWorkspace,
+            n_folds: u32,
+            ledger: *work_profile.FriFoldExecutionLedger,
+        ) !core_fri.FoldLineResult {
+            const result = try foldLineN(
+                allocator,
+                eval,
+                domain,
+                alpha,
+                workspace,
+                n_folds,
+            );
+            const coset = domain.coset();
+            ledger.observe(.{
+                .kind = .line,
+                .initial_count = eval.len,
+                .fold_count = n_folds,
+                .domain_log_size = domain.logSize(),
+                .domain_initial_index = @intCast(coset.initial_index.v),
+                .domain_step_size = @intCast(coset.step_size.v),
+                .inverse_path = .host_batch,
+                // The in-place implementation advances alpha after every step,
+                // including the final one.
+                .alpha_squares = n_folds,
+                .domain_doubles = n_folds,
+            });
+            return result;
+        }
 
-    pub fn foldLineN(
-        allocator: std.mem.Allocator,
-        eval: []QM31,
-        domain: anytype,
-        alpha: QM31,
-        workspace: *core_fri.FoldLineWorkspace,
-        n_folds: u32,
-    ) !core_fri.FoldLineResult {
-        return core_fri.foldLineInPlaceNWithWorkspace(
-            allocator,
-            eval,
-            domain,
-            alpha,
-            workspace,
-            n_folds,
-        );
-    }
+        // ---------------------------------------------------------------
+        // MerkleOps
+        // ---------------------------------------------------------------
 
-    pub fn foldLineNWithReceipt(
-        allocator: std.mem.Allocator,
-        eval: []QM31,
-        domain: anytype,
-        alpha: QM31,
-        workspace: *core_fri.FoldLineWorkspace,
-        n_folds: u32,
-        ledger: *work_profile.FriFoldExecutionLedger,
-    ) !core_fri.FoldLineResult {
-        const result = try foldLineN(
-            allocator,
-            eval,
-            domain,
-            alpha,
-            workspace,
-            n_folds,
-        );
-        const coset = domain.coset();
-        ledger.observe(.{
-            .kind = .line,
-            .initial_count = eval.len,
-            .fold_count = n_folds,
-            .domain_log_size = domain.logSize(),
-            .domain_initial_index = @intCast(coset.initial_index.v),
-            .domain_step_size = @intCast(coset.step_size.v),
-            .inverse_path = .host_batch,
-            // The in-place implementation advances alpha after every step,
-            // including the final one.
-            .alpha_squares = n_folds,
-            .domain_doubles = n_folds,
-        });
-        return result;
-    }
+        pub fn MerkleTree(comptime H: type) type {
+            return lifted_merkle.MerkleProverLifted(H);
+        }
 
-    // ---------------------------------------------------------------
-    // MerkleOps
-    // ---------------------------------------------------------------
+        pub fn commitMerkle(
+            comptime H: type,
+            allocator: std.mem.Allocator,
+            columns: []const []const M31,
+        ) !MerkleTree(H) {
+            return MerkleTree(H).commit(allocator, columns);
+        }
 
-    pub fn MerkleTree(comptime H: type) type {
-        return lifted_merkle.MerkleProverLifted(H);
-    }
-
-    pub fn commitMerkle(
-        comptime H: type,
-        allocator: std.mem.Allocator,
-        columns: []const []const M31,
-    ) !MerkleTree(H) {
-        return MerkleTree(H).commit(allocator, columns);
-    }
-
-    pub fn commitLazyMerkle(
-        comptime H: type,
-        allocator: std.mem.Allocator,
-        provider: anytype,
-        out_column: anytype,
-    ) !MerkleTree(H) {
-        return MerkleTree(H).commitWithLazyQuotients(allocator, provider, out_column);
-    }
-};
+        pub fn commitLazyMerkle(
+            comptime H: type,
+            allocator: std.mem.Allocator,
+            provider: anytype,
+            out_column: anytype,
+        ) !MerkleTree(H) {
+            return MerkleTree(H).commitWithLazyQuotients(allocator, provider, out_column);
+        }
+    };
+}
 
 // ---------------------------------------------------------------
 // Compile-time contract validation

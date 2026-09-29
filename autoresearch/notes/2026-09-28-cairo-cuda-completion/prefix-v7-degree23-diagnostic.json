@@ -1,0 +1,71 @@
+{
+  "composition_alpha": [
+    [
+      238991621,
+      252098946
+    ],
+    [
+      1927900773,
+      1316507567
+    ]
+  ],
+  "composition_oods_ok": false,
+  "cuda_degree_verdict": 1,
+  "expected_oods": [
+    [
+      767086579,
+      1656616342
+    ],
+    [
+      1309480189,
+      583079011
+    ]
+  ],
+  "full_proof_verified": false,
+  "interaction_pow_ok": true,
+  "lookup_sum": [
+    [
+      1350394712,
+      5226476
+    ],
+    [
+      1583857985,
+      922075935
+    ]
+  ],
+  "lookup_sum_ok": false,
+  "observed_oods": [
+    [
+      415444015,
+      139920049
+    ],
+    [
+      795025617,
+      584563297
+    ]
+  ],
+  "oods_point": {
+    "x": [
+      [
+        623667259,
+        1485286082
+      ],
+      [
+        1727425508,
+        1852698211
+      ]
+    ],
+    "y": [
+      [
+        1581072343,
+        460245014
+      ],
+      [
+        906906997,
+        1244126363
+      ]
+    ]
+  },
+  "schema": "stwo-cairo-cuda-prefix-oracle-v1",
+  "scope": "byte-exact prefix through OODS; FRI/queries/openings not verified; final polynomial omitted"
+}

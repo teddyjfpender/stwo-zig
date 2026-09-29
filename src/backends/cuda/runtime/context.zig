@@ -902,7 +902,8 @@ test "context owns buffers and accounts only explicit transfers" {
             return 0;
         }
         fn stwo_exec_context_lane_count(_: *anyopaque, out: *u32) c_int {
-            out.* = 4;
+            // Legacy create() uses the one-lane default in ContextOptions.
+            out.* = 1;
             return 0;
         }
         fn stwo_exec_context_alloc_u32(_: *anyopaque, _: usize, out: *?[*]u32) c_int {

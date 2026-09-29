@@ -34,12 +34,17 @@ pub const Request = struct {
     /// Log size of the committed domain; the layer set has `log_size + 1`
     /// layers, root first, with `layers[i].len == 1 << i`.
     log_size: u32,
+    /// Empty bottom layers are reconstructed from the retained columns during
+    /// openings, exactly as compactForQueries does after a fresh commitment.
+    pruned_bottom_layers: u32 = 0,
     /// Committed column log sizes, ascending, as the committer sorted them.
     column_log_sizes: []const u32,
 };
 
 pub const LayerSource = struct {
     ctx: *anyopaque,
+    /// Caller policy bounds payload admission before layer allocation.
+    max_payload_bytes: u64 = @import("std").math.maxInt(u64),
 
     /// Fills `layers` (root first, byte views over the prover's own storage)
     /// from an authenticated artifact. Returns `true` only when every byte was
@@ -50,7 +55,7 @@ pub const LayerSource = struct {
     store: *const fn (ctx: *anyopaque, request: Request, layers: []const []const u8) void,
 };
 
-var armed_source: ?LayerSource = null;
+threadlocal var armed_source: ?LayerSource = null;
 
 /// Arms a source for the immediately following commit on this thread.
 pub fn arm(source: LayerSource) void {
@@ -67,4 +72,31 @@ pub fn armed() ?LayerSource {
 
 test "the seam is inert until armed" {
     try std.testing.expect(armed() == null);
+}
+
+test "armed Merkle source belongs only to its coordinator thread" {
+    const Probe = struct {
+        inherited: bool = false,
+        local_admitted: bool = false,
+
+        fn load(_: *anyopaque, _: Request, _: []const []u8) bool {
+            return false;
+        }
+        fn store(_: *anyopaque, _: Request, _: []const []const u8) void {}
+        fn run(probe: *@This()) void {
+            probe.inherited = armed() != null;
+            arm(.{ .ctx = probe, .load = load, .store = store });
+            probe.local_admitted = armed().?.ctx == @as(*anyopaque, @ptrCast(probe));
+            disarm();
+        }
+    };
+    var parent_context: u8 = 0;
+    arm(.{ .ctx = &parent_context, .load = Probe.load, .store = Probe.store });
+    defer disarm();
+    var probe = Probe{};
+    const thread = try std.Thread.spawn(.{}, Probe.run, .{&probe});
+    thread.join();
+    try std.testing.expect(!probe.inherited);
+    try std.testing.expect(probe.local_admitted);
+    try std.testing.expect(armed().?.ctx == @as(*anyopaque, @ptrCast(&parent_context)));
 }

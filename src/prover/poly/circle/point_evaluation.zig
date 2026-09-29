@@ -287,27 +287,96 @@ pub inline fn evalBatchWithSubsetProductBasis(
 
     const zero: PackedM31 = @splat(0);
     var accumulator = packedQM31FromBase(zero);
-    for (basis, 0..) |basis_value, coefficient_index| {
+    var coefficient_index: usize = 0;
+    // Four canonical products fit exactly in u64. Reduce their sum once,
+    // using the shared field primitive instead of reducing each product and
+    // each intermediate addition in the sampled-value hot loop.
+    while (coefficient_index + 4 <= basis.len) : (coefficient_index += 4) {
+        var coefficients: [4]PackedM31 = undefined;
+        var factors: [4][4]PackedM31 = undefined;
+        inline for (0..4) |term| {
+            inline for (0..m31.PACK_WIDTH) |lane|
+                coefficients[term][lane] = coefficient_batches[lane][coefficient_index + term].v;
+            const coordinates = basis[coefficient_index + term].toM31Array();
+            inline for (0..4) |coordinate|
+                factors[coordinate][term] = m31.splatPacked(coordinates[coordinate]);
+        }
+        accumulator = addPackedQM31(accumulator, .{
+            .c0 = .{ .a = m31.dot4Packed(coefficients, factors[0]), .b = m31.dot4Packed(coefficients, factors[1]) },
+            .c1 = .{ .a = m31.dot4Packed(coefficients, factors[2]), .b = m31.dot4Packed(coefficients, factors[3]) },
+        });
+    }
+    while (coefficient_index < basis.len) : (coefficient_index += 1) {
         var packed_coefficients: PackedM31 = undefined;
         for (0..m31.PACK_WIDTH) |lane| {
             packed_coefficients[lane] = coefficient_batches[lane][coefficient_index].v;
         }
         accumulator = addPackedQM31(
             accumulator,
-            mulPackedQM31ByPackedM31(splatQM31(basis_value), packed_coefficients),
+            mulPackedQM31ByPackedM31(splatQM31(basis[coefficient_index]), packed_coefficients),
         );
     }
 
     return unpackQM31(accumulator);
 }
 
+/// Factor a long basis into cache-sized low blocks and a shared high basis.
+/// Only the accumulated block result needs an extension multiplication.
+pub inline fn evalBatchWithSplitProductBasis(coefficient_batches: [m31.PACK_WIDTH][]const M31, low: []const QM31, high: []const QM31) [m31.PACK_WIDTH]QM31 {
+    for (coefficient_batches) |column| std.debug.assert(column.len == low.len * high.len);
+    var accumulator = packedQM31FromBase(@splat(0));
+    for (high, 0..) |factor, block| {
+        var columns: [m31.PACK_WIDTH][]const M31 = undefined;
+        for (coefficient_batches, &columns) |column, *slice| slice.* = column[block * low.len ..][0..low.len];
+        const value = evalBatchWithSubsetProductBasis(columns, low);
+        accumulator = addPackedQM31(accumulator, mulPreparedPackedQM31(
+            preparePackedQM31(packQM31(value)),
+            preparePackedQM31(splatQM31(factor)),
+        ));
+    }
+    return unpackQM31(accumulator);
+}
+
+/// Independent ragged columns retain the same exact split factorization.
+pub inline fn evalWithSplitProductBasis(coefficients: []const M31, low: []const QM31, high: []const QM31) QM31 {
+    std.debug.assert(coefficients.len == low.len * high.len);
+    var result = QM31.zero();
+    for (high, 0..) |factor, block|
+        result = result.add(evalWithSubsetProductBasis(coefficients[block * low.len ..][0..low.len], low).mul(factor));
+    return result;
+}
+
 /// Scalar tail for `evalBatchWithSubsetProductBasis`.
 pub inline fn evalWithSubsetProductBasis(coefficients: []const M31, basis: []const QM31) QM31 {
     std.debug.assert(coefficients.len == basis.len);
     var value = QM31.zero();
-    for (coefficients, basis) |coefficient, basis_value| {
-        value = value.add(basis_value.mulM31(coefficient));
+    var index: usize = 0;
+    while (index + 4 <= coefficients.len) : (index += 4) {
+        const values: [4]M31 = coefficients[index..][0..4].*;
+        if (comptime m31.PACK_WIDTH == 4) {
+            // One SIMD lane per secure-field coordinate, rather than duplicating
+            // a singleton polynomial into four identical column lanes.
+            var scalars: [4]PackedM31 = undefined;
+            var weights: [4]PackedM31 = undefined;
+            inline for (0..4) |term| {
+                scalars[term] = @splat(values[term].v);
+                const coords = basis[index + term].toM31Array();
+                weights[term] = .{ coords[0].v, coords[1].v, coords[2].v, coords[3].v };
+            }
+            const sum = m31.dot4Packed(scalars, weights);
+            value = value.add(QM31.fromU32Unchecked(sum[0], sum[1], sum[2], sum[3]));
+        } else {
+            var sums: [4]M31 = undefined;
+            inline for (0..4) |coordinate| {
+                var weights: [4]M31 = undefined;
+                inline for (0..4) |term| weights[term] = basis[index + term].toM31Array()[coordinate];
+                sums[coordinate] = m31.dot4(values, weights);
+            }
+            value = value.add(QM31.fromM31Array(sums));
+        }
     }
+    while (index < coefficients.len) : (index += 1)
+        value = value.add(basis[index].mulM31(coefficients[index]));
     return value;
 }
 
@@ -589,5 +658,26 @@ test "circle point evaluation iterative reduction matches recursive oracle" {
             const recursive = evalAtPointRecursive(coeffs, factors, log_size);
             try std.testing.expect(iterative.eql(recursive));
         }
+    }
+}
+
+test "point evaluation: singleton subset dot products retain coordinate edges and ragged tails" {
+    var random_source = std.Random.DefaultPrng.init(0x96665);
+    const random = random_source.random();
+    var coefficients: [17]M31 = undefined;
+    var basis: [17]QM31 = undefined;
+    for (&coefficients, &basis, 0..) |*coefficient, *weight, index| {
+        coefficient.* = M31.fromCanonical(if (index < 4) m31.Modulus - 1 else random.uintLessThan(u32, m31.Modulus));
+        weight.* = if (index < 4) QM31.fromU32Unchecked(m31.Modulus - 1, 0, 1, m31.Modulus - 1) else QM31.fromU32Unchecked(
+            random.uintLessThan(u32, m31.Modulus),
+            random.uintLessThan(u32, m31.Modulus),
+            random.uintLessThan(u32, m31.Modulus),
+            random.uintLessThan(u32, m31.Modulus),
+        );
+    }
+    for (0..18) |length| {
+        var expected = QM31.zero();
+        for (coefficients[0..length], basis[0..length]) |coefficient, weight| expected = expected.add(weight.mulM31(coefficient));
+        try std.testing.expect(expected.eql(evalWithSubsetProductBasis(coefficients[0..length], basis[0..length])));
     }
 }

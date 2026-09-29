@@ -5,6 +5,10 @@ const runtime = @import("runtime.zig");
 
 pub const Event = enum {
     host_merkle_commit,
+    /// Authenticated fixed-data hash layers reused, with no fresh hash commit.
+    cached_merkle_artifact_adoption,
+    /// Upper layers of a fresh device tree retained after releasing its full hash storage.
+    compacted_merkle_layer_adoption,
     resident_merkle_commit,
     /// One resident tree whose leaves and parents were both dispatched through
     /// the exact Poseidon2-M31 commitment family rather than the BLAKE2s ABI.
@@ -17,6 +21,7 @@ pub const Event = enum {
     metal_framework_interaction_dispatch,
     metal_sampled_value_dispatch,
     metal_circle_transform_dispatch,
+    metal_coefficient_fold_dispatch,
     metal_circle_lde_dispatch,
     metal_fri_circle_fold_dispatch,
     metal_fri_line_fold_dispatch,
@@ -99,6 +104,8 @@ pub const Event = enum {
 
 pub const CounterValues = struct {
     host_merkle_commits: u64 = 0,
+    cached_merkle_artifact_adoptions: u64 = 0,
+    compacted_merkle_layer_adoptions: u64 = 0,
     resident_merkle_commits: u64 = 0,
     metal_poseidon2_merkle_commits: u64 = 0,
     metal_quotient_dispatches: u64 = 0,
@@ -108,6 +115,7 @@ pub const CounterValues = struct {
     metal_framework_interaction_dispatches: u64 = 0,
     metal_sampled_value_dispatches: u64 = 0,
     metal_circle_transform_dispatches: u64 = 0,
+    metal_coefficient_fold_dispatches: u64 = 0,
     metal_circle_lde_dispatches: u64 = 0,
     metal_fri_circle_fold_dispatches: u64 = 0,
     metal_fri_line_fold_dispatches: u64 = 0,
@@ -162,6 +170,7 @@ pub const CounterValues = struct {
             self.metal_framework_interaction_dispatches,
             self.metal_sampled_value_dispatches,
             self.metal_circle_transform_dispatches,
+            self.metal_coefficient_fold_dispatches,
             self.metal_circle_lde_dispatches,
             self.metal_fri_circle_fold_dispatches,
             self.metal_fri_line_fold_dispatches,
@@ -431,6 +440,8 @@ const AtomicCounter = std.atomic.Value(u64);
 
 const CounterBank = struct {
     host_merkle_commits: AtomicCounter = AtomicCounter.init(0),
+    cached_merkle_artifact_adoptions: AtomicCounter = AtomicCounter.init(0),
+    compacted_merkle_layer_adoptions: AtomicCounter = AtomicCounter.init(0),
     resident_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     metal_poseidon2_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     metal_quotient_dispatches: AtomicCounter = AtomicCounter.init(0),
@@ -440,6 +451,7 @@ const CounterBank = struct {
     metal_framework_interaction_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_sampled_value_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_circle_transform_dispatches: AtomicCounter = AtomicCounter.init(0),
+    metal_coefficient_fold_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_circle_lde_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_fri_circle_fold_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_fri_line_fold_dispatches: AtomicCounter = AtomicCounter.init(0),
@@ -485,6 +497,8 @@ pub fn recordN(event: Event, count: u64) void {
     if (count == 0) return;
     const counter = switch (event) {
         .host_merkle_commit => &counter_bank.host_merkle_commits,
+        .cached_merkle_artifact_adoption => &counter_bank.cached_merkle_artifact_adoptions,
+        .compacted_merkle_layer_adoption => &counter_bank.compacted_merkle_layer_adoptions,
         .resident_merkle_commit => &counter_bank.resident_merkle_commits,
         .metal_poseidon2_merkle_commit => &counter_bank.metal_poseidon2_merkle_commits,
         .metal_quotient_dispatch => &counter_bank.metal_quotient_dispatches,
@@ -494,6 +508,7 @@ pub fn recordN(event: Event, count: u64) void {
         .metal_framework_interaction_dispatch => &counter_bank.metal_framework_interaction_dispatches,
         .metal_sampled_value_dispatch => &counter_bank.metal_sampled_value_dispatches,
         .metal_circle_transform_dispatch => &counter_bank.metal_circle_transform_dispatches,
+        .metal_coefficient_fold_dispatch => &counter_bank.metal_coefficient_fold_dispatches,
         .metal_circle_lde_dispatch => &counter_bank.metal_circle_lde_dispatches,
         .metal_fri_circle_fold_dispatch => &counter_bank.metal_fri_circle_fold_dispatches,
         .metal_fri_line_fold_dispatch => &counter_bank.metal_fri_line_fold_dispatches,
@@ -656,6 +671,23 @@ test "Metal telemetry classification fails closed" {
     try std.testing.expectEqual(Classification.host_only, host.classification());
     try std.testing.expectError(error.NoMetalDispatch, host.requireMetalDispatch());
     try std.testing.expectError(error.NoMetalDispatch, host.requireAcceleratedWithoutFallbacks());
+}
+
+test "Metal telemetry cached artifacts count neither a dispatch nor a host hash commit" {
+    const cache_only = Delta{
+        .counters = .{ .cached_merkle_artifact_adoptions = 1, .compacted_merkle_layer_adoptions = 1 },
+        .pipeline_cache = .{},
+    };
+    try std.testing.expectEqual(@as(u64, 0), cache_only.counters.cpuFallbackTotal());
+    try std.testing.expectError(error.NoMetalDispatch, cache_only.requireAcceleratedWithoutFallbacks());
+    var accelerated = cache_only;
+    accelerated.counters.metal_sampled_value_dispatches = 1;
+    try accelerated.requireAcceleratedWithoutFallbacks();
+    accelerated.counters.cpu_sampled_value_evaluations = 1;
+    try std.testing.expectError(error.CpuFallbackObserved, accelerated.requireAcceleratedWithoutFallbacks());
+    accelerated.counters.cpu_sampled_value_evaluations = 0;
+    accelerated.counters.host_merkle_commits = 1;
+    try std.testing.expectError(error.CpuFallbackObserved, accelerated.requireAcceleratedWithoutFallbacks());
 }
 
 test "relation and composition dispatches count toward the Metal total" {

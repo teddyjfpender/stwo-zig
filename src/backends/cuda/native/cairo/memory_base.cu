@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace {
+namespace stwo::cuda::cairo_memory_base {
 
 constexpr std::uint32_t kBlockThreads = 256;
 constexpr std::uint32_t kMaximumColumns = 32;
@@ -50,10 +50,11 @@ __global__ void value_base(
         blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= row_count) return;
     for (std::uint32_t limb = 0; limb < limb_count; ++limb) {
-        outputs.values[limb][row] =
+        outputs.values[limb + 1u][row] =
             row < source_words ? sources.values[limb][row] : 0u;
     }
-    outputs.values[limb_count][row] = multiplicities[row];
+    // Current Cairo AIR commits the multiplicity before the value limbs.
+    outputs.values[0][row] = multiplicities[row];
 }
 
 __global__ void range_check_9_9_counts(
@@ -108,7 +109,9 @@ bool bind_sources(
     return true;
 }
 
-}  // namespace
+}  // namespace stwo::cuda::cairo_memory_base
+
+using namespace stwo::cuda::cairo_memory_base;
 
 extern "C" int stwo_cairo_memory_address_base_on(
     const std::uint32_t *address_ids,

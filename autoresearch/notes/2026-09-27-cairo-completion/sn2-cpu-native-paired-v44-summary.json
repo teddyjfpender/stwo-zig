@@ -1,0 +1,52 @@
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "variant_environment": {
+    "before": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+    },
+    "after": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944"
+    }
+  },
+  "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+  "backend": "cpu",
+  "summary": {
+    "before": {
+      "median_process_wall_ns": 32876009500,
+      "median_prove_ns": 30528027583,
+      "peak_process_rss_bytes": 41116549120,
+      "peak_product_physical_footprint_bytes": 41134816984,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    },
+    "after": {
+      "median_process_wall_ns": 17928607959,
+      "median_prove_ns": 15553732000,
+      "peak_process_rss_bytes": 41114959872,
+      "peak_product_physical_footprint_bytes": 41130065864,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    }
+  },
+  "process_speedup": 1.8337179091194606,
+  "prove_speedup": 1.9627461488342477,
+  "raw_records": "zig-out/cairo-completion-20260927/sn2-cpu-native-paired-v44/results.json"
+}

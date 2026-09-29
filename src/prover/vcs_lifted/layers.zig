@@ -130,7 +130,7 @@ pub fn Operations(comptime H: type) type {
                 if (comptime blake2_stream4.supports(H)) {
                     while (i_seeded + 8 <= out.len) : (i_seeded += 8) {
                         const children: *const [16]H.Hash = @ptrCast(&prev_layer[2 * i_seeded]);
-                        const hashes = blake2_stream4.hashChildren8(seed, children);
+                        const hashes = blake2_stream4.hashChildren8(H, seed, children);
                         inline for (0..8) |lane| out[i_seeded + lane] = hashes[lane];
                     }
                 }
@@ -357,7 +357,7 @@ pub fn Operations(comptime H: type) type {
             if (comptime blake2_stream4.supports(H)) {
                 while (i + 8 <= ctx.end) : (i += 8) {
                     const children: *const [16]H.Hash = @ptrCast(&ctx.prev_layer[2 * i]);
-                    const hashes = blake2_stream4.hashChildren8(ctx.seed, children);
+                    const hashes = blake2_stream4.hashChildren8(H, ctx.seed, children);
                     inline for (0..8) |lane| ctx.out[i + lane] = hashes[lane];
                 }
             }

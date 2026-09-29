@@ -13,11 +13,12 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from .aot_pack import ABI_SCHEMAS, AotPackError, write_aot_carriers, write_aot_pack
 from .errors import BuildError
 from .native_closure import load_native_closure
+from . import aot_cache, cubin_import
 from .product_selection import (
     MODULE_GLOBAL_REQUIREMENTS,
     ProductSelection,
@@ -32,7 +33,7 @@ RECEIPT_NAME = "cuda_build_receipt.json"
 PLAN_NAME = "cuda_build_plan.json"
 AOT_PACK_NAME = "cuda_aot_pack.bin"
 GENERATED = "generated"
-SM_RE = re.compile(r"^(?:sm_)?([1-9][0-9])$")
+SM_RE = re.compile(r"^(?:sm_)?([1-9][0-9]{1,2})$")
 ORDINARY_FIXED_FLAGS = (
     "-dc",
     "-O3",
@@ -85,6 +86,7 @@ class BuildConfig:
     frontend: str = "native"
     aot_sets: tuple[str, ...] = (".",)
     aot_set_roots: tuple[tuple[str, Path], ...] = ()
+    aot_cubin_import_root: Path | None = None
 
 
 def normalize_sms(values: Iterable[str]) -> tuple[int, ...]:
@@ -198,6 +200,12 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "device_link": ["-dlink", "-Xcompiler", "-fPIC"],
         "host": ["-std=c++17", "-O3", "-fPIC", "-c"],
     }
+    fixed["aot_units"] = []
+    for metadata, source in zip(product.aot_manifest, product.aot_sources, strict=True):
+        for sm in toolchain.sms:
+            command = aot_compile_command(toolchain, source, config.output_dir / 'identity-only.cubin', sm)
+            fixed["aot_units"].append({"cache_key": metadata['cache_key'], "sm": sm,
+                                       "flags": command[1:command.index(str(source))]})
     identity_input = {
         "schema": SCHEMA,
         "source_closure_sha256": closure.closure_sha256,
@@ -210,6 +218,10 @@ def build_plan(config: BuildConfig, probe_tools: bool) -> dict[str, object]:
         "target_sms": list(toolchain.sms),
         "fixed_flags": fixed,
     }
+    if config.aot_cubin_import_root is not None:
+        imported = cubin_import.Bundle(config.aot_cubin_import_root)
+        imported.validate_selection(product.aot_sources, product.aot_manifest, toolchain.sms)
+        identity_input["aot_cubin_import"] = imported.identity()
     build_identity = digest_json(identity_input)
     return {
         **identity_input,
@@ -261,12 +273,16 @@ def execute(config: BuildConfig) -> dict[str, object]:
     output.mkdir(parents=True, exist_ok=True)
     archive = output / ARCHIVE_NAME
     receipt_path = output / RECEIPT_NAME
-    if archive.is_file() and receipt_path.is_file():
-        previous = json.loads(receipt_path.read_text(encoding="utf-8"))
-        if previous.get("build_identity_sha256") == plan["build_identity_sha256"]:
-            if previous.get("archive_sha256") == sha256_file(archive):
-                print(f"reused CUDA archive {archive}")
-                return previous
+    shared_root = os.environ.get("STWO_CUDA_ARCHIVE_CACHE")
+    shared = (Path(shared_root).resolve() / str(plan["build_identity_sha256"])) if shared_root else None
+    previous = reusable_archive(output, str(plan["build_identity_sha256"]))
+    if previous is None and shared is not None:
+        previous = reusable_archive(shared, str(plan["build_identity_sha256"]))
+        if previous is not None:
+            copy_archive(shared, output)
+    if previous is not None:
+        print(f"reused CUDA archive {archive}")
+        return previous
 
     work = output / ".work" / str(plan["build_identity_sha256"])
     objects = work / "objects"
@@ -344,12 +360,51 @@ def execute(config: BuildConfig) -> dict[str, object]:
     }
     atomic_write(output / PLAN_NAME, json_bytes(plan))
     atomic_write(receipt_path, json_bytes(receipt))
+    if shared is not None:
+        copy_archive(output, shared)
     print(
         f"built {archive}: {len(ordinary_objects)} authority CUDA objects, "
         f"{len(native_cuda_objects)} Native CUDA objects, "
         f"{len(aot_entries)} AOT cubins"
     )
     return receipt
+
+
+
+def reusable_archive(directory: Path, identity: str) -> dict[str, object] | None:
+    """Only reuse the exact toolchain/source/SM closure and both hashed artifacts."""
+    receipt_path = directory / RECEIPT_NAME
+    if not receipt_path.is_file():
+        return None
+    try:
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if not isinstance(receipt, dict) or receipt.get("build_identity_sha256") != identity:
+            return None
+        for name, field in ((ARCHIVE_NAME, "archive"), (AOT_PACK_NAME, "aot_pack")):
+            artifact = directory / name
+            if receipt.get(field) != name or not artifact.is_file():
+                return None
+            if receipt.get(field + "_sha256") != sha256_file(artifact):
+                return None
+        return receipt
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def copy_archive(source: Path, destination: Path) -> None:
+    """Publish the receipt last; a interrupted copy can never authorize reuse."""
+    destination.mkdir(parents=True, exist_ok=True)
+    for name in (ARCHIVE_NAME, AOT_PACK_NAME, PLAN_NAME, RECEIPT_NAME):
+        with tempfile.NamedTemporaryFile(dir=destination, prefix=".cuda-cache-", delete=False) as staged:
+            temporary = Path(staged.name)
+            try:
+                with (source / name).open("rb") as original:
+                    shutil.copyfileobj(original, staged)
+                staged.flush()
+            except BaseException:
+                temporary.unlink(missing_ok=True)
+                raise
+        os.replace(temporary, destination / name)
 
 
 def compile_ordinary(
@@ -491,6 +546,14 @@ def compile_aot(
         raise BuildError("CUDA AOT product sources lost manifest order")
     jobs: list[tuple[list[str], Path]] = []
     entries: list[dict[str, object]] = []
+    unit_keys: dict[Path, str] = {}
+    shared_root = os.environ.get("STWO_CUDA_ARCHIVE_CACHE")
+    unit_cache = Path(shared_root).resolve() / "cubin-units-v1" if shared_root else None
+    imported = cubin_import.Bundle(config.aot_cubin_import_root) if config.aot_cubin_import_root is not None else None
+    if imported is not None:
+        imported.validate_selection(product.aot_sources, product.aot_manifest, config.toolchain.sms)
+        if imported.identity() != plan.get("aot_cubin_import"):
+            raise BuildError("imported cubin identity changed after planning")
     for metadata, source in zip(
         product.aot_manifest,
         product.aot_sources,
@@ -505,7 +568,18 @@ def compile_aot(
             ).hexdigest()[:24]
             destination = output / f"{source.stem}-sm_{sm}-{key}.cubin"
             command = aot_compile_command(config.toolchain, source, destination, sm)
-            if not destination.is_file():
+            external = imported.find(metadata, sm, command, source) if imported is not None else None
+            producer = {"producer_sha256": imported.producer_sha256, "producer": imported.document["producer"],
+                        "artifact_sha256": external[1]["cubin_sha256"]} if external is not None else None
+            unit_key = aot_cache.identity(source, sm, plan, command, producer=producer)
+            unit_keys[destination] = unit_key
+            reused = unit_cache is not None and aot_cache.restore(unit_cache, unit_key, destination)
+            if not reused and external is not None:
+                aot_cache.atomic_copy(external[0], destination)
+                if sha256_file(destination) != external[1]['cubin_sha256']:
+                    raise BuildError("imported cubin changed while staging")
+                reused = True
+            if not reused and not destination.is_file():
                 jobs.append((command, destination))
             entries.append(
                 {
@@ -520,7 +594,17 @@ def compile_aot(
                     "cubin": destination,
                 }
             )
-    run_parallel(jobs, config.toolchain.jobs)
+    if unit_cache is None:
+        run_parallel(jobs, config.toolchain.jobs)
+    else:
+        pending = {destination for _, destination in jobs}
+        for destination, unit_key in unit_keys.items():
+            if destination not in pending:
+                aot_cache.publish(unit_cache, unit_key, destination)
+        # Publish each successful unit immediately: one slow or failed compiler
+        # must not discard all completed work from an interrupted GPU session.
+        run_parallel(jobs, config.toolchain.jobs,
+                     on_complete=lambda destination: aot_cache.publish(unit_cache, unit_keys[destination], destination))
     entries.sort(key=lambda entry: (entry["cache_key"], entry["sm"]))
     return entries
 
@@ -542,6 +626,11 @@ def aot_compile_command(
         and source.stem.startswith("witness_poseidon_3_partial_rounds_chain_")
     ):
         command.append("-Xptxas=-O0")
+    elif source.stem.startswith("constraint_cairo_eval_") and source.is_file() and source.stat().st_size >= 256 * 1024:
+        # Large AIR bodies trigger pathological assembly optimization even
+        # below 1 MB (a 511 KB body exceeded six minutes and 6 GB locally).
+        # Keep arithmetic exact and bind this option into the per-unit cache.
+        command.append("-Xptxas=-O0" if source.stat().st_size >= 1_000_000 else "-Xptxas=-O1")
     command.extend((str(source), "-o", str(destination)))
     return command
 
@@ -630,7 +719,8 @@ def compile_native_runtime(
     return results
 
 
-def run_parallel(jobs: Sequence[tuple[list[str], Path]], workers: int) -> None:
+def run_parallel(jobs: Sequence[tuple[list[str], Path]], workers: int,
+                 on_complete: Callable[[Path], None] | None = None) -> None:
     def one(job: tuple[list[str], Path]) -> None:
         command, destination = job
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -643,6 +733,8 @@ def run_parallel(jobs: Sequence[tuple[list[str], Path]], workers: int) -> None:
         command[output_index] = str(staging)
         run(command)
         publish(staging, destination)
+        if on_complete is not None:
+            on_complete(destination)
 
     if not jobs:
         return

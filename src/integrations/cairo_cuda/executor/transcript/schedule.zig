@@ -94,7 +94,7 @@ pub const Schedule = struct {
             program.commitments.len != protocol.commitment_count or
             program.fri_layers.len != protocol.fri_tree_count or
             program.quotient.evaluation_log_rows !=
-                protocol.max_log_degree_bound or
+                try protocol.evaluationLogSize() or
             digestEmpty(program.semantic_digest) or
             digestEmpty(program.program_digest))
         {

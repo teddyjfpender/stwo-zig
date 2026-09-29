@@ -46,6 +46,9 @@ pub fn tryPrecommitted(
     work_recorder: ?*work_profile.Recorder(true),
 ) !?commitment_tree.CommitmentTreeProverForBackend(B, H) {
     if (comptime !@hasDecl(B, "prepareAndCommitOwned")) return null;
+    // An armed fixed-data cache must inspect the prepared columns before any
+    // fused device commit hashes them. Keep the ordinary LDE path available.
+    if (@import("merkle_layer_cache.zig").armed() != null) return null;
     // The public commit contract owns `owned_columns` on every error.  A
     // backend returns `null` without consuming them, but an allocation error
     // cannot fall through to the generic path and must release them here.

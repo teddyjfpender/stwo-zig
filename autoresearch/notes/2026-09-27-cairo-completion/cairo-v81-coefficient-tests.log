@@ -1,0 +1,11 @@
+1/10 pcs.coefficient_storage_test.test.coefficient storage openings preserve mixed columns, duplicates, pruned hashes and shared leases...OK
+2/10 pcs.coefficient_storage_test.test.coefficient storage cleans up every opening and compaction allocation failure...OK
+3/10 pcs.coefficient_storage_test.test.coefficient storage quotient folding matches full LDEs across domains and sample batches...OK
+4/10 pcs.coefficient_storage_test.test.coefficient storage lazy quotient pipeline matches bounded CPU including unsampled zero columns...OK
+5/10 pcs.coefficient_storage_test.test.coefficient storage incremental commitments match materialized roots and openings...OK
+6/10 pcs.coefficient_storage_test.test.coefficient storage BLAKE2s incremental commitments preserve plain and prefixed roots and openings...OK
+7/10 pcs.coefficient_storage_test.test.coefficient storage arena streaming retains original custody across batches and allocation failures...OK
+8/10 pcs.coefficient_storage_test.test.coefficient storage selected FFT matches full evaluation across heights, degrees and query tails...OK
+9/10 pcs.coefficient_storage_test.test.coefficient storage fixed cache preserves openings, rejects corrupt layers and owns failure cleanup...OK
+10/10 pcs.merkle_cached_tree.test_0...OK
+All 10 tests passed.

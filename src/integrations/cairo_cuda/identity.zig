@@ -36,7 +36,10 @@ pub const PackIdentity = struct {
     }
 
     pub fn digest(self: PackIdentity) ir.Digest {
-        var hash = canonicalHasher("stwo-zig/cairo/development-semantic-pack/v1");
+        var hash = canonicalHasher(if (self.provenance == .source_derived)
+            "stwo-zig/cairo/source-semantic-pack/v1"
+        else
+            "stwo-zig/cairo/development-semantic-pack/v1");
         hashInt(&hash, u8, @intFromEnum(self.provenance));
         inline for (.{
             self.manifest,

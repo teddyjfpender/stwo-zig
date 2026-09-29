@@ -51,6 +51,7 @@ pub const architecture_gaps = [_][]const u8{
 };
 
 pub const Plan = struct {
+    evaluation_codegen_version: u32 = 1,
     slots: []Slot,
     requirements: []arena.Requirement,
     request_arena: arena.Plan,
@@ -108,7 +109,9 @@ pub const Plan = struct {
             0,
             proof.total_words,
             64,
-            .proof_assembly,
+            // Header is uploaded at ingress; roots and samples are captured
+            // throughout proving, before the sole terminal read.
+            .ingress,
             .proof_assembly,
             .request_local,
             false,
@@ -130,6 +133,7 @@ pub const Plan = struct {
             protocol.decommitment_capacity_words,
         );
         return .{
+            .evaluation_codegen_version = if (ingress.evaluation.parametric_constants != 0) 2 else 1,
             .slots = slots,
             .requirements = requirements,
             .request_arena = request_arena,
@@ -190,8 +194,14 @@ const Builder = struct {
         try self.add(.writer_inputs, 0, try words(writer.input_words), 64, .ingress, .trace_generation, .request_local, false);
         try self.add(.writer_pointer_tables, 0, try words(writer.pointer_words), 2, .ingress, .trace_generation, .request_local, false);
         try self.add(.writer_descriptors, 0, try words(writer.descriptor_words), 8, .ingress, .trace_generation, .request_local, true);
-        try self.add(.writer_lookup_inputs, 0, try words(writer.lookup_words), 64, .trace_generation, .trace_commit, .request_local, false);
+        try self.add(.writer_lookup_inputs, 0, try words(writer.lookup_words), 64, .trace_generation, relationSourceLifetime(), .request_local, false);
         try self.add(.writer_scratch, 0, try words(writer.scratch_words), 64, .trace_generation, .trace_generation, .request_local, false);
+        if (std.posix.getenv("STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC") != null) {
+            const diagnostic_words = try std.math.add(u64, try std.math.add(u64, try std.math.mul(u64, self.bundle.total_constraints, 4), try std.math.mul(u64, evaluation.trace_offset_words, 24)), try std.math.add(u64, try std.math.mul(u64, evaluation.extended_parameter_words, 8), try std.math.mul(u64, self.bundle.components.len, 64)));
+            if (diagnostic_words > 8 * 1024 * 1024) return error.DiagnosticExtentTooLarge;
+            try self.add(.writer_scratch, 1, try words(diagnostic_words), 4, .constraint_evaluation, .proof_assembly, .request_local, false);
+        }
+
         try self.add(.fixed_writer_tables, 0, try words(writer.fixed_table_words), 2, .ingress, .trace_generation, .request_local, false);
         try self.add(.memory_writer_tables, 0, try words(writer.memory_table_words), 2, .ingress, .trace_generation, .request_local, false);
 
@@ -201,6 +211,10 @@ const Builder = struct {
         try self.add(.relation_geometry, 0, try words(relation.geometry_words), 4, .ingress, .trace_commit, .request_local, true);
         try self.add(.relation_challenges, 0, try words(relation.challenge_words), 4, .trace_commit, .constraint_evaluation, .request_local, false);
         try self.add(.relation_z, 0, 4, 4, .trace_commit, .constraint_evaluation, .request_local, false);
+        // Main commitment interpolates its writer outputs in place. Preserve
+        // only direct relation sources until the interaction trace consumes
+        // their original row values after the main root is transcript-bound.
+        if (relation.retained_base_words != 0) try self.add(.relation_base_inputs, 0, try words(relation.retained_base_words), 64, .trace_commit, relationSourceLifetime(), .request_local, false);
         try self.add(.relation_alpha_powers, 0, try words(relation.alpha_power_words), 4, .trace_commit, .constraint_evaluation, .request_local, false);
         try self.add(.relation_denominators, 0, try words(relation.denominator_words), 4, .trace_commit, .trace_commit, .request_local, false);
         try self.add(.relation_claimed_sums, 0, try words(relation.claimed_sum_words), 4, .trace_commit, .proof_assembly, .request_local, false);
@@ -214,7 +228,7 @@ const Builder = struct {
         try self.add(.eval_lde_descriptors, 0, try words(evaluation.lde_descriptor_words), 2, .ingress, .constraint_evaluation, .request_local, true);
         try self.add(.eval_lde_tile, 0, try words(evaluation.lde_tile_words), 64, .constraint_evaluation, .constraint_evaluation, .request_local, false);
         if (evaluation.base_parameter_words != 0) {
-            try self.add(.eval_base_parameters, 0, try words(evaluation.base_parameter_words), 4, .trace_commit, .constraint_evaluation, .request_local, false);
+            try self.add(.eval_base_parameters, 0, try words(evaluation.base_parameter_words), 4, .ingress, .constraint_evaluation, .request_local, true);
         }
         try self.add(.eval_extended_parameter_descriptors, 0, try words(evaluation.extended_parameter_descriptor_words), 4, .ingress, .constraint_evaluation, .request_local, true);
         try self.add(.eval_extended_parameters, 0, try words(evaluation.extended_parameter_words), 4, .trace_commit, .constraint_evaluation, .request_local, false);
@@ -299,7 +313,7 @@ const Builder = struct {
                 if (tree.role == .preprocessed) .process_cache else .request_local;
             const first = firstFor(tree.role);
             const coefficient_last: telemetry.Stage =
-                if (tree.role == .composition) .decommit else .oods;
+                if (std.posix.getenv("STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC") != null) .proof_assembly else if (tree.role == .composition) .decommit else .oods;
             try self.add(
                 if (tree.role == .composition)
                     .constraint_composition_output
@@ -331,7 +345,7 @@ const Builder = struct {
             );
         }
         try self.add(.transcript, 0, 64, 8, .ingress, .proof_assembly, .request_local, false);
-        try self.add(.interaction_claims, 0, try mul(self.protocol.interaction_sum_count, 4), 4, .constraint_evaluation, .proof_assembly, .request_local, false);
+        try self.add(.interaction_claims, 0, try mul(self.protocol.interaction_sum_count, 4), 4, .trace_commit, .proof_assembly, .request_local, false);
         try self.add(.composition_alpha, 0, 4, 4, .trace_commit, .constraint_evaluation, .request_local, false);
         try self.add(.constraint_random_powers, 0, try mul(self.program.quotient.term_count, 4), 4, .constraint_evaluation, .quotient, .request_local, false);
         try self.add(.constraint_denominators, 0, denominators, 4, .ingress, .quotient, .request_local, true);
@@ -343,10 +357,10 @@ const Builder = struct {
         const factors = try mul(try mul(samples, max_log), 4);
         const first_blocks = divCeil(try pow2usize(max_log), 4096);
         const reduce_blocks = divCeil(try pow2usize(max_log), 512);
-        try self.add(.oods_parameter, 0, 4, 4, .oods, .quotient, .request_local, false);
-        try self.add(.oods_offset_points, 0, try mul(samples, 2), 2, .oods, .oods, .request_local, false);
-        try self.add(.oods_fold_counts, 0, samples, 1, .oods, .oods, .request_local, false);
-        try self.add(.oods_output_indices, 0, samples, 1, .oods, .oods, .request_local, false);
+        try self.add(.oods_parameter, 0, 4, 4, .constraint_evaluation, .quotient, .request_local, false);
+        try self.add(.oods_offset_points, 0, try mul(samples, 2), 2, .oods, .oods, .request_local, true);
+        try self.add(.oods_fold_counts, 0, samples, 1, .oods, .oods, .request_local, true);
+        try self.add(.oods_output_indices, 0, samples, 1, .oods, .oods, .request_local, true);
         try self.add(.oods_sample_points, 0, try mul(samples, 8), 8, .oods, .quotient, .request_local, false);
         try self.add(.oods_evaluation_points, 0, try mul(samples, 8), 8, .oods, .quotient, .request_local, false);
         try self.add(.oods_folding_factors, 0, factors, 4, .oods, .oods, .request_local, false);
@@ -360,7 +374,7 @@ const Builder = struct {
         const groups = self.quotient.group_log_sizes.len;
         const sources = self.quotient.sources.len;
         const partial_rows = self.quotient.partial_offsets[groups];
-        try self.add(.quotient_challenge, 0, 4, 4, .quotient, .fri_commit, .request_local, false);
+        try self.add(.quotient_challenge, 0, 4, 4, .oods, .fri_commit, .request_local, false);
         try self.add(.quotient_prepared_terms, 0, try mul(terms, 5), 4, .quotient, .quotient, .request_local, true);
         try self.add(.quotient_group_offsets, 0, @as(usize, groups) + 1, 1, .quotient, .quotient, .request_local, true);
         try self.add(.quotient_group_term_indices, 0, terms, 1, .quotient, .quotient, .request_local, true);
@@ -392,7 +406,10 @@ const Builder = struct {
         try self.add(.quotient_group_points, 0, try mul(groups, 8), 8, .quotient, .quotient, .request_local, false);
         try self.add(.quotient_first_linear_terms, 0, try mul(groups, 4), 4, .quotient, .quotient, .request_local, false);
         try self.add(.quotient_partial_coordinates, 0, try words(try mul64(partial_rows, 4)), 64, .quotient, .quotient, .request_local, false);
-        try self.add(.quotient_result_coordinates, 0, try mul(try pow2usize(self.program.quotient.evaluation_log_rows), 4), 64, .quotient, .fri_commit, .request_local, false);
+        // FRI layer zero aliases this output and opens it during decommit.
+        // Retiring it at FRI commitment lets the opening arena overwrite the
+        // committed values before their authentication paths are assembled.
+        try self.add(.quotient_result_coordinates, 0, try mul(try pow2usize(self.program.quotient.evaluation_log_rows), 4), 64, .quotient, .decommit, .request_local, false);
     }
 
     fn addFri(self: *Builder) !void {
@@ -523,6 +540,10 @@ const Builder = struct {
         {
             return Error.UnsupportedGeometry;
         }
+        // Immutable metadata is uploaded once during ingress, even when its
+        // first kernel consumer belongs to a later stage. Its lifetime starts
+        // at the upload, so earlier work cannot alias those initialized bytes.
+        const first_live: telemetry.Stage = if (immutable) .ingress else live_from;
         const id = std.math.cast(u32, self.slots.items.len + 1) orelse
             return Error.GeometryOverflow;
         try self.slots.append(self.allocator, .{
@@ -531,7 +552,7 @@ const Builder = struct {
             .ordinal = ordinal,
             .words = slot_words,
             .alignment_words = alignment,
-            .live_from = live_from,
+            .live_from = first_live,
             .live_through = live_through,
             .storage = storage,
             .immutable = immutable,
@@ -542,7 +563,7 @@ const Builder = struct {
                 ordinal,
                 slot_words,
                 alignment,
-                live_from,
+                first_live,
                 live_through,
                 storage,
                 immutable,
@@ -813,4 +834,14 @@ fn hashInt(
     var bytes: [@sizeOf(T)]u8 = undefined;
     std.mem.writeInt(T, &bytes, @intCast(value), .little);
     hash.update(&bytes);
+}
+
+// An explicit diagnostic transaction retains these snapshots until its
+// terminal reads, then aborts without publishing a proof or timing receipt.
+// Normal proving keeps the bounded trace-commit lifetime.
+fn relationSourceLifetime() telemetry.Stage {
+    return if (std.posix.getenv("STWO_CAIRO_CUDA_SOURCE_DIAGNOSTIC") != null)
+        .proof_assembly
+    else
+        .trace_commit;
 }

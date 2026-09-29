@@ -1,0 +1,75 @@
+//! Group fixed feeds by destination and exact borrowed producer storage.
+//! A group never owns source words or a private histogram.
+const std = @import("std");
+
+pub fn Groups(comptime Feed: type) type {
+    return struct {
+        const Self = @This();
+        pub const Group = struct {
+            first: usize,
+            indices: std.ArrayList(usize) = .empty,
+        };
+        allocator: std.mem.Allocator,
+        items: std.ArrayList(Group) = .empty,
+
+        pub fn init(allocator: std.mem.Allocator, feeds: []const Feed, parallel: []const bool) !Self {
+            var result = Self{ .allocator = allocator };
+            errdefer result.deinit();
+            for (feeds, 0..) |feed, index| {
+                if (feed.table_index >= parallel.len) return error.FixedGeometryMismatch;
+                if (!parallel[feed.table_index]) continue;
+                var group_index: ?usize = null;
+                for (result.items.items, 0..) |group, candidate| {
+                    const first = feeds[group.first];
+                    if (first.table_index == feed.table_index and first.words.ptr == feed.words.ptr and
+                        first.words.len == feed.words.len and first.rows == feed.rows and first.stride == feed.stride)
+                    {
+                        if (first.plan.row_count != feed.plan.row_count or first.plan.columns != feed.plan.columns)
+                            return error.FixedGeometryMismatch;
+                        group_index = candidate;
+                        break;
+                    }
+                }
+                if (group_index == null) {
+                    try result.items.append(allocator, .{ .first = index });
+                    group_index = result.items.items.len - 1;
+                }
+                try result.items.items[group_index.?].indices.append(allocator, index);
+            }
+            return result;
+        }
+
+        pub fn deinit(self: *Self) void {
+            for (self.items.items) |*group| group.indices.deinit(self.allocator);
+            self.items.deinit(self.allocator);
+            self.* = undefined;
+        }
+    };
+}
+
+fn groupingFailureCase(allocator: std.mem.Allocator) !void {
+    const Feed = struct {
+        table_index: usize,
+        words: []const u32,
+        rows: usize,
+        stride: usize,
+        plan: struct { row_count: usize = 8, columns: usize = 2 } = .{},
+    };
+    const words = [_]u32{ 0, 1, 2, 3 };
+    const feeds = [_]Feed{
+        .{ .table_index = 0, .words = &words, .rows = 2, .stride = 2 },
+        .{ .table_index = 0, .words = &words, .rows = 2, .stride = 2 },
+        .{ .table_index = 1, .words = &words, .rows = 2, .stride = 2 },
+        .{ .table_index = 0, .words = &words, .rows = 1, .stride = 2 },
+        .{ .table_index = 0, .words = words[0..2], .rows = 2, .stride = 1 },
+    };
+    var groups = try Groups(Feed).init(allocator, &feeds, &.{ true, true });
+    defer groups.deinit();
+    try std.testing.expectEqual(@as(usize, 4), groups.items.items.len);
+    try std.testing.expectEqualSlices(usize, &.{ 0, 1 }, groups.items.items[0].indices.items);
+    try std.testing.expectEqual(@as(usize, 2), groups.items.items[1].first);
+}
+
+test "fixed feed groups preserve exact source geometry and allocation-failure ownership" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, groupingFailureCase, .{});
+}

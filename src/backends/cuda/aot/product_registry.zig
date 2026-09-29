@@ -11,6 +11,8 @@ pub const recorded_witness_identity_scheme =
 const product_manifest = @embedFile("native/aot_manifest.json");
 pub const cairo_eval_product_manifest =
     @embedFile("native/cairo_eval/aot_manifest.json");
+pub const canonical_cairo_eval_product_manifest = @embedFile("native/cairo_canonical_eval/aot_manifest.json");
+const canonical_cairo_witness_manifest = @embedFile("native/cairo_witness/aot_manifest.json");
 
 const Origin = enum {
     authenticated_product,
@@ -30,6 +32,7 @@ const WireEntry = struct {
     semantic_contract: ?[]const u8 = null,
     semantic_hash: []const u8,
     source_sha256: ?[]const u8 = null,
+    codegen_version: ?u64 = null,
 };
 
 pub const CanonicalWitness = struct {
@@ -57,6 +60,16 @@ pub const Registry = struct {
             product_manifest,
             .authenticated_product,
         );
+    }
+
+    pub fn initCanonicalCairo(allocator: std.mem.Allocator) !Registry {
+        var registry = try initFromManifest(allocator, canonical_cairo_witness_manifest, .authenticated_product);
+        errdefer registry.deinit();
+        if (registry.parsed.value.len != 64) return error.InvalidCanonicalCairoWitnessInventory;
+        for (registry.parsed.value) |entry| {
+            if (entry.codegen_version != 17) return error.InvalidCanonicalCairoWitnessGenerator;
+        }
+        return registry;
     }
 
     pub fn deinit(self: *Registry) void {

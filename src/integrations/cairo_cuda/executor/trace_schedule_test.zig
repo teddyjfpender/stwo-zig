@@ -9,6 +9,38 @@ const product_aot = @import("stwo_cuda_backend").aot.product_registry;
 const catalog_module = @import("../base_writer_plan/catalog.zig");
 const schedule_module = @import("trace_schedule.zig");
 
+test "trace schedule admits live component subsets without a native EC pair" {
+    const allocator = std.testing.allocator;
+    const rows = [_]proof_plan.TracePart{.{ .id = .main, .rows = .{ .real_rows = 16, .padded_rows = 16 } }};
+    const components = [_]proof_plan.Component{
+        .{ .name = "opcode", .canonical_ordinal = 0, .writer = .recorded_aot, .trace_parts = &rows, .producer_edges = &.{}, .capacity_feeds = &.{} },
+        .{ .name = "helper", .canonical_ordinal = 1, .writer = .recorded_aot, .trace_parts = &rows, .producer_edges = &.{.{ .producer = "opcode", .word_base = 0, .words_per_instance = 1, .instances = 1 }}, .capacity_feeds = &.{} },
+        .{ .name = "memory_id_to_big", .canonical_ordinal = 2, .writer = .memory_trace, .trace_parts = &rows, .producer_edges = &.{}, .capacity_feeds = &.{} },
+    };
+    var proof = try proof_plan.CairoProofPlan.init(allocator, &components);
+    defer proof.deinit();
+    var entries: [components.len]catalog_module.Entry = undefined;
+    var counts = [_]u32{0} ** std.meta.fields(proof_plan.WriterKind).len;
+    for (proof.components, &entries, 0..) |component, *entry, index| {
+        entry.* = .{ .component_index = @intCast(index), .name = component.name, .instance = component.instance, .writer = component.writer, .identity = [_]u8{1} ** 32 };
+        counts[@intFromEnum(component.writer)] += 1;
+    }
+    const catalog = catalog_module.Catalog{ .allocator = allocator, .entries = &entries, .writer_counts = counts, .identity = [_]u8{1} ** 32 };
+    var schedule = try schedule_module.compile(allocator, &proof, catalog);
+    defer schedule.deinit();
+    try std.testing.expectEqual(@as(usize, 3), schedule.entries.len);
+    try std.testing.expectEqual(@as(usize, 3), schedule.launch_order.len);
+    try std.testing.expectEqual(@as(usize, 1), schedule.find("helper", 0).?.dependencies.len);
+    var producer_position: usize = 99;
+    var helper_position: usize = 99;
+    for (schedule.launch_order, 0..) |component, index| {
+        if (component == 0) producer_position = index;
+        if (component == 1) helper_position = index;
+    }
+    try std.testing.expect(producer_position < helper_position);
+    try std.testing.expectEqual(schedule_module.PrepareApi.memory_value_base_big, schedule.find("memory_id_to_big", 0).?.prepare_api);
+}
+
 test "SN2 trace schedule is the exact canonical 58-entry graph" {
     const allocator = std.testing.allocator;
     const path = std.process.getEnvVarOwned(

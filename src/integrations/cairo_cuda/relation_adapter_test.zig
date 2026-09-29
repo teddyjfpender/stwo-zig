@@ -13,6 +13,36 @@ const relation_bundle = @import("stwo_cairo_frontend").witness.relation_bundle;
 const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const adapter = @import("relation_adapter.zig");
 
+test "canonical CUDA relations bind current opcode builtin and split memory families" {
+    const allocator = std.testing.allocator;
+    var programs = try witness_bundle.Bundle.readFile(allocator, "vectors/cairo/official/witness_programs_v1.bin");
+    defer programs.deinit();
+    var topology = try @import("stwo_cairo_frontend").witness.feed_topology.readOfficial(allocator, "vectors/cairo/official/witness_feed_topology_v1.json");
+    defer topology.deinit();
+    var implicit = try relation_bundle.Bundle.readFile(allocator, "vectors/cairo/cairo_relation_templates.bin");
+    defer implicit.deinit();
+    const names = [_][]const u8{ "add_ap_opcode", "add_mod_builtin", "blake_round", "partial_ec_mul_window_bits_9", "memory_address_to_id", "memory_id_to_big", "memory_id_to_small" };
+    const part = [_]proof_plan.TracePart{.{ .id = .main, .rows = .{ .real_rows = 16, .padded_rows = 16 } }};
+    var components: [names.len]proof_plan.Component = undefined;
+    for (names, &components, 0..) |name, *component, index| {
+        component.* = .{ .name = name, .canonical_ordinal = @intCast(index), .writer = if (index < 4) .recorded_aot else .memory_trace, .trace_parts = &part, .producer_edges = &.{}, .capacity_feeds = &.{} };
+    }
+    var proof = try proof_plan.CairoProofPlan.init(allocator, &components);
+    defer proof.deinit();
+    var plan = try adapter.Plan.compileCanonical(allocator, &proof, programs, topology, implicit);
+    defer plan.deinit();
+    try std.testing.expectEqual(names.len, plan.instances.len);
+    for (plan.instances[0..4]) |instance| {
+        const source = topology.find(instance.component).?;
+        try std.testing.expectEqual(source.logup_columns.len, instance.descriptors.len);
+        try std.testing.expectEqual(source.lookup_words_per_row, instance.lookup_word_columns);
+    }
+    try std.testing.expectEqual(@as(u32, 2), plan.instances[0].descriptors[0].first.multiplicity_kind);
+    try std.testing.expectEqual(relation_bundle.SourceLayout.memory_big, plan.instances[5].layout);
+    try std.testing.expectEqual(relation_bundle.SourceLayout.memory_small, plan.instances[6].layout);
+    try std.testing.expect(!std.mem.allEqual(u8, &plan.topology_identity, 0));
+}
+
 const Fixture = struct {
     allocator: std.mem.Allocator,
     composition: composition_bundle.Bundle,
@@ -114,6 +144,9 @@ test "SN2 relation adapter preserves canonical heterogeneous topology" {
     try std.testing.expectEqual(@as(u32, 58), shape.instance_count);
     try std.testing.expectEqual(@as(u32, 116), shape.top_level_pointer_words);
     try std.testing.expectEqual(@as(u64, 280), shape.source_pointer_words);
+    // Only XOR12 and the three memory trace families require their original
+    // rows after the main commitment interpolates its coefficient spans.
+    try std.testing.expectEqual(@as(u64, 76_808_192), shape.retained_base_words);
     try std.testing.expectEqual(@as(u64, 9_072), shape.descriptor_words);
     try std.testing.expectEqual(
         @as(u64, 4_536),

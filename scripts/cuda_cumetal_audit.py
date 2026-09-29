@@ -116,6 +116,17 @@ def read_ledger(path: Path) -> dict[str, object]:
         for path in (ROOT / "src/backends/cuda/native").rglob("*.cu")
         if path.is_file()
     }
+    # The historical 0.1.3 translation floor remains unchanged. New maintained
+    # CUDA sources are enrolled in the separately pinned current Cairo lane.
+    current_contract = json.loads((ROOT / "conformance/cuda-cumetal-cairo-local-v1.json").read_text())
+    if current_contract.get("schema") != "stwo-zig-cairo-cuda-local-contract-v1":
+        raise AuditError("current Cairo CuMetal enrollment is malformed")
+    for extension in current_contract.get("additional_maintained_sources", []):
+        source = extension.get("source")
+        if not isinstance(source, str) or source in sources or source not in maintained or \
+                digest_file(ROOT / source) != extension.get("sha256"):
+            raise AuditError("current Cairo CuMetal enrollment drifted")
+        sources.add(source)
     if sources != maintained:
         raise AuditError("CuMetal ledger does not cover the maintained CUDA closure")
     return ledger

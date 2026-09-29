@@ -1,0 +1,186 @@
+{
+  "compiler": "rustc 1.96.0 (ac68faa20 2026-05-25)\nbinary: rustc\ncommit-hash: ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96\ncommit-date: 2026-05-25\nhost: aarch64-apple-darwin\nrelease: 1.96.0\nLLVM version: 22.1.2\n",
+  "candidate_rustflags": "-C target-cpu=native",
+  "records": [
+    {
+      "workload": "sn-pie-2",
+      "pair": 1,
+      "variant": "before",
+      "wall_ns": 2041589959,
+      "input_sha256": "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=333.959 bootloader_prepare_ms=51.938 runner_ms=1249.896\ncairo_vm_profile load_ms=4.403 execute_ms=1635.838 adapt_ms=332.469 publish_ms=48.161\n"
+    },
+    {
+      "workload": "sn-pie-2",
+      "pair": 1,
+      "variant": "after",
+      "wall_ns": 2893527291,
+      "input_sha256": "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=354.223 bootloader_prepare_ms=52.044 runner_ms=1257.900\ncairo_vm_profile load_ms=5.276 execute_ms=1664.225 adapt_ms=329.348 publish_ms=52.918\n"
+    },
+    {
+      "workload": "sn-pie-2",
+      "pair": 2,
+      "variant": "after",
+      "wall_ns": 2085494708,
+      "input_sha256": "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=331.726 bootloader_prepare_ms=51.553 runner_ms=1258.832\ncairo_vm_profile load_ms=2.996 execute_ms=1642.139 adapt_ms=366.799 publish_ms=49.067\n"
+    },
+    {
+      "workload": "sn-pie-2",
+      "pair": 2,
+      "variant": "before",
+      "wall_ns": 2065033125,
+      "input_sha256": "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=334.360 bootloader_prepare_ms=52.006 runner_ms=1255.420\ncairo_vm_profile load_ms=3.008 execute_ms=1641.811 adapt_ms=348.959 publish_ms=46.786\n"
+    },
+    {
+      "workload": "sn-pie-2",
+      "pair": 3,
+      "variant": "before",
+      "wall_ns": 2047693166,
+      "input_sha256": "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=335.107 bootloader_prepare_ms=51.861 runner_ms=1251.717\ncairo_vm_profile load_ms=3.146 execute_ms=1638.713 adapt_ms=328.713 publish_ms=52.610\n"
+    },
+    {
+      "workload": "sn-pie-2",
+      "pair": 3,
+      "variant": "after",
+      "wall_ns": 2080290500,
+      "input_sha256": "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=335.107 bootloader_prepare_ms=51.986 runner_ms=1266.129\ncairo_vm_profile load_ms=3.090 execute_ms=1653.250 adapt_ms=350.065 publish_ms=48.681\n"
+    },
+    {
+      "workload": "sn-pie-1",
+      "pair": 1,
+      "variant": "before",
+      "wall_ns": 4043697542,
+      "input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=603.943 bootloader_prepare_ms=52.248 runner_ms=2622.604\ncairo_vm_profile load_ms=7.229 execute_ms=3278.823 adapt_ms=640.195 publish_ms=84.592\n"
+    },
+    {
+      "workload": "sn-pie-1",
+      "pair": 1,
+      "variant": "after",
+      "wall_ns": 4088299667,
+      "input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=606.395 bootloader_prepare_ms=52.575 runner_ms=2663.966\ncairo_vm_profile load_ms=5.630 execute_ms=3322.964 adapt_ms=646.496 publish_ms=79.322\n"
+    },
+    {
+      "workload": "sn-pie-1",
+      "pair": 2,
+      "variant": "after",
+      "wall_ns": 4060752667,
+      "input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=605.359 bootloader_prepare_ms=52.043 runner_ms=2648.966\ncairo_vm_profile load_ms=5.508 execute_ms=3306.399 adapt_ms=625.515 publish_ms=92.290\n"
+    },
+    {
+      "workload": "sn-pie-1",
+      "pair": 2,
+      "variant": "before",
+      "wall_ns": 4069771375,
+      "input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=608.429 bootloader_prepare_ms=52.573 runner_ms=2624.272\ncairo_vm_profile load_ms=5.435 execute_ms=3285.293 adapt_ms=653.523 publish_ms=86.006\n"
+    },
+    {
+      "workload": "sn-pie-1",
+      "pair": 3,
+      "variant": "before",
+      "wall_ns": 4078187875,
+      "input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=607.364 bootloader_prepare_ms=52.757 runner_ms=2641.447\ncairo_vm_profile load_ms=5.503 execute_ms=3301.597 adapt_ms=644.756 publish_ms=86.061\n"
+    },
+    {
+      "workload": "sn-pie-1",
+      "pair": 3,
+      "variant": "after",
+      "wall_ns": 4048235542,
+      "input_sha256": "f56794faf3bc3a383c355dca8242bfb92c16e093249da4157770b44c4de227d1",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=608.504 bootloader_prepare_ms=52.370 runner_ms=2626.752\ncairo_vm_profile load_ms=5.629 execute_ms=3287.652 adapt_ms=638.583 publish_ms=81.792\n"
+    },
+    {
+      "workload": "sn-pie-3",
+      "pair": 1,
+      "variant": "before",
+      "wall_ns": 3947481250,
+      "input_sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=594.478 bootloader_prepare_ms=52.519 runner_ms=2569.338\ncairo_vm_profile load_ms=6.090 execute_ms=3216.369 adapt_ms=609.343 publish_ms=79.180\n"
+    },
+    {
+      "workload": "sn-pie-3",
+      "pair": 1,
+      "variant": "after",
+      "wall_ns": 3959120709,
+      "input_sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=589.338 bootloader_prepare_ms=52.204 runner_ms=2597.831\ncairo_vm_profile load_ms=5.025 execute_ms=3239.403 adapt_ms=603.296 publish_ms=80.572\n"
+    },
+    {
+      "workload": "sn-pie-3",
+      "pair": 2,
+      "variant": "after",
+      "wall_ns": 3932365792,
+      "input_sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=593.534 bootloader_prepare_ms=52.260 runner_ms=2559.004\ncairo_vm_profile load_ms=5.093 execute_ms=3204.827 adapt_ms=606.772 publish_ms=84.550\n"
+    },
+    {
+      "workload": "sn-pie-3",
+      "pair": 2,
+      "variant": "before",
+      "wall_ns": 3953704791,
+      "input_sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=593.974 bootloader_prepare_ms=52.324 runner_ms=2576.190\ncairo_vm_profile load_ms=5.152 execute_ms=3222.524 adapt_ms=612.104 publish_ms=77.877\n"
+    },
+    {
+      "workload": "sn-pie-3",
+      "pair": 3,
+      "variant": "before",
+      "wall_ns": 3934265417,
+      "input_sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98",
+      "adapter_sha256": "d177d579914ce370a5ac6ef5d933c0fd2dddb2a4c52bce20a242285c5b715066",
+      "profile": "cairo_pie_profile decode_ms=594.033 bootloader_prepare_ms=52.547 runner_ms=2582.622\ncairo_vm_profile load_ms=5.097 execute_ms=3229.231 adapt_ms=592.419 publish_ms=78.498\n"
+    },
+    {
+      "workload": "sn-pie-3",
+      "pair": 3,
+      "variant": "after",
+      "wall_ns": 3948869708,
+      "input_sha256": "9f6226aad5480c5733c814dabb4a47d1aa36d0d9f7bde4fa954c81509fc67c98",
+      "adapter_sha256": "db9482018df72c23b1218032b3cf10db74ecff08f913b283677f1eaec2ae058e",
+      "profile": "cairo_pie_profile decode_ms=592.461 bootloader_prepare_ms=52.496 runner_ms=2559.971\ncairo_vm_profile load_ms=5.015 execute_ms=3204.959 adapt_ms=621.607 publish_ms=82.608\n"
+    }
+  ],
+  "summary": {
+    "sn-pie-1": {
+      "before": 4069771375,
+      "after": 4060752667
+    },
+    "sn-pie-2": {
+      "before": 2047693166,
+      "after": 2085494708
+    },
+    "sn-pie-3": {
+      "before": 3947481250,
+      "after": 3948869708
+    }
+  },
+  "schema": "stwo-zig-cairo-adapter-native-ablation-v1",
+  "decision": "not promoted; no meaningful gain",
+  "schedule": "three serial AB/BA pairs per PIE; exact compact input parity",
+  "scope": "adapter process only, excludes proving"
+}

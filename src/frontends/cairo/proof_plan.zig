@@ -7,6 +7,7 @@ const witness_bundle = @import("witness/bundle.zig");
 const composition_bundle = @import("witness/composition_bundle.zig");
 const feed_bundle = @import("witness/feed_bundle.zig");
 const fixed_table_bundle = @import("witness/fixed_table_bundle.zig");
+const claim_generator = @import("claim_generator.zig");
 
 pub const TracePartId = union(enum) {
     main,
@@ -49,6 +50,15 @@ pub const WriterKind = enum {
     fixed_table,
     memory_trace,
 };
+
+pub fn canonicalComponentName(name: []const u8, instance: u32) []const u8 {
+    const prefix = "memory_id_to_big[";
+    if (std.mem.startsWith(u8, name, prefix) and name.len > prefix.len and name[name.len - 1] == ']') {
+        const index = std.fmt.parseUnsigned(u32, name[prefix.len .. name.len - 1], 10) catch return name;
+        if (index == instance) return "memory_id_to_big";
+    }
+    return name;
+}
 
 /// Lookup slabs whose base writer is cheaper than replaying the same witness
 /// program during interaction and whose retained footprint fits the SN2 arena.
@@ -285,6 +295,44 @@ pub const CairoProofPlan = struct {
         return fromSeeds(allocator, seeds, feeds, false);
     }
 
+    /// Builds the current canonical dependency graph after exact input geometry
+    /// is resolved. All generated families, including EC, use their current
+    /// witness IR; optional backend composites are a subsequent lowering.
+    pub fn fromCanonicalGeometry(
+        allocator: std.mem.Allocator,
+        geometry: *const claim_generator.OwnedClaimGeometry,
+        active_rows: []const u32,
+        witnesses: witness_bundle.Bundle,
+        feeds: feed_bundle.Bundle,
+    ) !CairoProofPlan {
+        if (active_rows.len != geometry.components.len) return error.InvalidRowExtent;
+        const seeds = try allocator.alloc(ComponentSeed, geometry.components.len);
+        defer allocator.free(seeds);
+        for (geometry.components, active_rows, seeds) |component, active, *seed| {
+            const log = switch (component.log_size) {
+                .known => |value| value,
+                .deferred => return error.IncompleteClaimGeometry,
+            };
+            if (log < 4 or log > 30) return error.InvalidRowExtent;
+            const writer: WriterKind = if (claim_generator.isFixedComponent(component.name))
+                .fixed_table
+            else if (witnesses.find(component.name) != null)
+                .recorded_aot
+            else if (std.mem.eql(u8, component.name, "memory_address_to_id") or
+                std.mem.eql(u8, component.name, "memory_id_to_big") or
+                std.mem.eql(u8, component.name, "memory_id_to_small"))
+                .memory_trace
+            else return error.MissingCanonicalWriter;
+            seed.* = .{
+                .name = component.name, .instance = component.instance,
+                .writer = writer, .padded_rows = @as(u32, 1) << @intCast(log), .real_rows = active,
+            };
+            try (RowExtent{ .real_rows = active, .padded_rows = seed.padded_rows }).validate();
+        }
+        try validateFeedClosure(seeds, feeds);
+        return fromSeeds(allocator, seeds, feeds, false);
+    }
+
     fn fromSeeds(
         allocator: std.mem.Allocator,
         seeds: []const ComponentSeed,
@@ -443,7 +491,8 @@ pub const CairoProofPlan = struct {
         instance: u32,
     ) ?*const Component {
         for (self.components) |*component| {
-            if (component.instance == instance and std.mem.eql(u8, component.name, name))
+            if (component.instance == instance and std.mem.eql(u8,
+                canonicalComponentName(component.name, instance), canonicalComponentName(name, instance)))
                 return component;
         }
         return null;
@@ -521,7 +570,8 @@ fn validateFeedClosure(seeds: []const ComponentSeed, feeds: feed_bundle.Bundle) 
         }
         const producer_index = seedIndex(seeds, feed.producer) orelse
             return error.MissingMultiplicityProducer;
-        if (feed.row_count != seeds[producer_index].padded_rows)
+        if (feed.row_count != seeds[producer_index].padded_rows or
+            (feed.active_row_count != null and feed.active_row_count.? != seeds[producer_index].real_rows))
             return error.MultiplicityProducerGeometryMismatch;
         for (feed.destinations) |destination| {
             if (destination.words == 0) return error.InvalidMultiplicityDestination;

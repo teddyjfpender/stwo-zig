@@ -70,6 +70,16 @@ pub extern "c" fn stwo_witness_feed_counts_on(
     destinations: [*]const u64,
     stream: *anyopaque,
 ) c_int;
+pub extern "c" fn stwo_witness_feed_counts_active_on(
+    sub_words: [*]const u32,
+    padded_rows: u32,
+    active_rows: u32,
+    descriptors: [*]const u32,
+    descriptor_count: u32,
+    luts: [*]const u64,
+    destinations: [*]const u64,
+    stream: *anyopaque,
+) c_int;
 
 pub extern "c" fn stwo_witness_feed_clear_on(
     destinations: [*]const u64,

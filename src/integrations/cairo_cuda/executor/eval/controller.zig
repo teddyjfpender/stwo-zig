@@ -29,6 +29,8 @@ const NativeFinalize = struct {
 };
 
 pub const Slots = struct {
+    diagnostic: ?u32 = null,
+    base_parameters: ?u32 = null,
     args: u32,
     trace_offsets: u32,
     interaction_offsets: u32,
@@ -45,6 +47,7 @@ pub const Slots = struct {
 };
 
 pub const Prepared = struct {
+    constants: ?[]u32 = null,
     allocator: std.mem.Allocator,
     topology: topology_module.Topology,
     catalog: constraint_catalog.Catalog,
@@ -80,10 +83,8 @@ pub const Prepared = struct {
             preprocessed_logs,
         );
         errdefer topology.deinit();
-        var catalog = try constraint_catalog.Catalog.init(
-            allocator,
-            bundle,
-        );
+        const parametric = plan.evaluation_codegen_version == 2;
+        var catalog = if (parametric) try constraint_catalog.Catalog.initCanonical(allocator, bundle) else try constraint_catalog.Catalog.init(allocator, bundle);
         errdefer catalog.deinit();
         try validatePlan(plan, topology, catalog.catalog_identity);
         const slots = try locateSlots(plan);
@@ -111,6 +112,12 @@ pub const Prepared = struct {
         errdefer allocator.free(lde_descriptors);
         const denominators = try buildDenominators(allocator, bundle);
         errdefer allocator.free(denominators);
+        const constants = if (parametric) try buildConstants(allocator, bundle) else null;
+        errdefer if (constants) |table| allocator.free(table);
+        if (constants) |table| {
+            if ((try requireSlotKind(plan, .eval_base_parameters)).words != table.len)
+                return error.InvalidCairoConstantStorage;
+        }
         const arguments = try allocator.alloc(
             eval_stage.Args,
             topology.placements.len,
@@ -140,6 +147,7 @@ pub const Prepared = struct {
             arena_words,
             arguments,
             products,
+            parametric,
         );
         const identity = preparedIdentity(
             plan.identity,
@@ -150,6 +158,7 @@ pub const Prepared = struct {
             lde_descriptors,
         );
         return .{
+            .constants = constants,
             .allocator = allocator,
             .topology = topology,
             .catalog = catalog,
@@ -169,6 +178,7 @@ pub const Prepared = struct {
     }
 
     pub fn deinit(self: *Prepared) void {
+        if (self.constants) |table| self.allocator.free(table);
         for (self.products) |product|
             self.allocator.free(product.kernel_name);
         self.allocator.free(self.denominators);
@@ -186,6 +196,7 @@ pub const Prepared = struct {
         self: *const Prepared,
         transaction: anytype,
     ) !Bound {
+        if (self.constants) |table| try transaction.uploadResidentSlice(u32, self.slots.base_parameters orelse return error.MissingCairoConstantStorage, 0, table);
         try transaction.uploadResidentSlice(
             u32,
             self.slots.trace_offsets,
@@ -283,7 +294,7 @@ pub const Bound = struct {
                 self.prepared.topology.summary.accumulator_words,
             ),
         );
-        try stages.constraint_power.Native.expand(
+        try stages.constraint_power.Native.expandReversed(
             session,
             composition_alpha,
             bindings.composition.random_powers,
@@ -293,6 +304,12 @@ pub const Bound = struct {
             self.arena,
             self.prepared.parameters,
         );
+        var diagnostic_cursor: usize = 0;
+        if (self.prepared.slots.diagnostic) |id| {
+            const powers = try transaction.slot(self.prepared.slots.random_powers);
+            try session.context.copyDeviceSlice(u32, try (try transaction.slot(id)).sub(0, powers.len), powers);
+            diagnostic_cursor = powers.len;
+        }
         for (self.prepared.topology.components) |component| {
             try transform.Native.extendAddressed(
                 session,
@@ -307,12 +324,32 @@ pub const Bound = struct {
                 bindings.twiddles_forward,
                 false,
             );
+            if (self.prepared.slots.diagnostic) |id| {
+                const destination = try transaction.slot(id);
+                const descriptors = self.prepared.lde_descriptors[component.first_source..][0..component.source_count];
+                for (diagnosticRows(component.evaluation_log_size)) |sample_row| {
+                    for ([_]isize{ -1, 0, 1 }) |offset| {
+                        const row = @import("stwo_core").utils.offsetBitReversedCircleDomainIndex(sample_row, component.trace_log_size, component.evaluation_log_size, offset);
+                        for (descriptors) |descriptor| {
+                            try session.context.copyDeviceSlice(u32, try destination.sub(diagnostic_cursor, 1), try self.arena.sub(@intCast(descriptor.evaluation_offset_words + row), 1));
+                            diagnostic_cursor += 1;
+                        }
+                    }
+                    const count: usize = @as(usize, component.extended_parameter_count) * 4;
+                    if (count != 0) try session.context.copyDeviceSlice(u32, try destination.sub(diagnostic_cursor, count), try (try transaction.slot(self.prepared.slots.extended_parameters)).sub(component.first_extended_parameter, count));
+                    diagnostic_cursor += count;
+                    try captureAccumulator(session, transaction, self.prepared.slots, component, sample_row, &diagnostic_cursor);
+                }
+            }
             const first = component.first_placement;
             for (self.launches[first..][0..component.placement_count]) |
                 *launch,
             | {
                 try launch.launch(session);
             }
+            if (self.prepared.slots.diagnostic != null) for (diagnosticRows(component.evaluation_log_size)) |sample_row| {
+                try captureAccumulator(session, transaction, self.prepared.slots, component, sample_row, &diagnostic_cursor);
+            };
         }
         try finalize(
             NativeFinalize,
@@ -323,6 +360,21 @@ pub const Bound = struct {
         );
     }
 };
+
+fn diagnosticRows(log_size: u32) [8]usize {
+    const n = @as(usize, 1) << @intCast(log_size);
+    return .{ 0, 1, 2, 3, n / 4, n / 2, n - 2, n - 1 };
+}
+
+fn captureAccumulator(session: anytype, transaction: anytype, slots: Slots, component: topology_module.Component, row: usize, cursor: *usize) !void {
+    const destination = try transaction.slot(slots.diagnostic.?);
+    const source = try transaction.slot(slots.accumulators);
+    for (0..4) |coordinate| {
+        const offset: usize = @intCast(component.accumulator_offset + row + coordinate * (@as(u64, 1) << @intCast(component.evaluation_log_size)));
+        try session.context.copyDeviceSlice(u32, try destination.sub(cursor.*, 1), try source.sub(offset, 1));
+        cursor.* += 1;
+    }
+}
 
 fn finalize(
     comptime Ops: type,
@@ -567,6 +619,23 @@ fn buildDenominators(
     return output;
 }
 
+fn buildConstants(allocator: std.mem.Allocator, bundle: composition.Bundle) ![]u32 {
+    const parametric = @import("../../parametric_eval.zig");
+    var count: usize = 0;
+    for (bundle.components) |component| for (component.parts) |part| {
+        count = std.math.add(usize, count, try parametric.constantWordCount(part.program)) catch return error.InvalidKernelDescriptor;
+    };
+    const constants = try allocator.alloc(u32, count);
+    errdefer allocator.free(constants);
+    var cursor: usize = 0;
+    for (bundle.components) |component| for (component.parts) |part| {
+        const words = try parametric.constantWordCount(part.program);
+        try parametric.writeConstants(part.program, constants[cursor..][0..words]);
+        cursor += words;
+    };
+    return constants;
+}
+
 fn buildProductsAndArguments(
     allocator: std.mem.Allocator,
     physical: *const arena_module.Plan,
@@ -577,6 +646,7 @@ fn buildProductsAndArguments(
     arena_words: u64,
     arguments: []eval_stage.Args,
     products: []eval_stage.Product,
+    parametric: bool,
 ) !void {
     var initialized: usize = 0;
     errdefer for (products[0..initialized]) |product|
@@ -603,12 +673,15 @@ fn buildProductsAndArguments(
         physical,
         slots.accumulators,
     );
+    const constants = if (parametric) try physicalOffset(physical, slots.base_parameters orelse return error.MissingCairoConstantStorage) else 0;
+    var constant_cursor: u64 = 0;
     for (topology.placements, 0..) |placement, index| {
         const component = topology.components[
             placement.component_index
         ];
         const captured = bundle.components[placement.component_index];
         const part = captured.parts[placement.part_index];
+        const constant_words = if (parametric) try @import("../../parametric_eval.zig").constantWordCount(part.program) else 0;
         const resolved = try product_resolution.resolve(
             catalog,
             placement.component_index,
@@ -630,7 +703,7 @@ fn buildProductsAndArguments(
                 interaction_offsets,
                 component.first_interaction_offset,
             ),
-            .base_params = 0,
+            .base_params = if (parametric) try add64(constants, constant_cursor) else 0,
             .ext_params = try add64(
                 ext_params,
                 component.first_extended_parameter,
@@ -652,13 +725,13 @@ fn buildProductsAndArguments(
         const bounds = eval_stage.Bounds{
             .arena_words = arena_words,
             .trace_offset_count = component.source_count,
-            .base_param_count = part.program.header.n_base_params,
+            .base_param_count = if (parametric) constant_words else part.program.header.n_base_params,
             .ext_param_count = component.extended_parameter_count,
             .random_constraint_count = topology.summary.constraint_count,
             .denominator_count = component.denominator_count,
             .rc_count = placement.rc_count,
         };
-        if (bounds.base_param_count != 0)
+        if (part.program.header.n_base_params != 0)
             return error.UnsupportedCairoEvalBaseParameters;
         try args.validate(bounds);
         arguments[index] = args;
@@ -672,6 +745,7 @@ fn buildProductsAndArguments(
             .args = args,
             .bounds = bounds,
         };
+        constant_cursor = try add64(constant_cursor, constant_words);
         initialized += 1;
     }
 }
@@ -681,8 +755,7 @@ fn validatePlan(
     topology: topology_module.Topology,
     catalog_identity: proof_ir.Digest,
 ) !void {
-    if (topology.summary.placement_count !=
-        topology_module.expected_placement_count or
+    if (topology.summary.placement_count == 0 or
         topology.summary.argument_words !=
             (try requireSlotKind(plan, .eval_arguments)).words or
         topology.summary.trace_offset_words !=
@@ -711,6 +784,11 @@ fn validatePlan(
 
 fn locateSlots(plan: *const resident_plan.Plan) !Slots {
     return .{
+        .base_parameters = if (plan.evaluation_codegen_version == 2)
+            (try requireSlotKind(plan, .eval_base_parameters)).id
+        else
+            null,
+        .diagnostic = if (plan.slot(.writer_scratch, 1)) |slot| slot.id else null,
         .args = (try requireSlotKind(plan, .eval_arguments)).id,
         .trace_offsets = (try requireSlotKind(plan, .eval_trace_offsets)).id,
         .interaction_offsets = (try requireSlotKind(plan, .eval_interaction_offsets)).id,

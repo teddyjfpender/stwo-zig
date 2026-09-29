@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import os
 import shutil
 import subprocess
 import sys
@@ -31,6 +33,46 @@ NATIVE_AOT = native_aot_root()
 
 
 class CudaBuildCacheTests(unittest.TestCase):
+    def test_imported_manifest_and_cubin_are_outer_zig_cache_inputs(self) -> None:
+        zig = shutil.which('zig')
+        if zig is None:
+            self.skipTest('Zig compiler unavailable')
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            self._seed_project(project)
+            cache = project / 'cache'
+            bundle = project / 'imported'
+            bundle.mkdir()
+            metadata = next(e for e in json.loads((NATIVE_AOT/'aot_manifest.json').read_text())
+                            if e['label'] == 'constant_qm31')
+            header = bytearray(64)
+            header[:6] = b'\x7fELF\x02\x01'
+            header[18:20] = (190).to_bytes(2, 'little')
+            artifact = bundle / 'unit.cubin'
+            artifact.write_bytes(header)
+            entry = {key: metadata[key] for key in ('cache_key', 'kernel_name', 'abi_schema', 'module_globals')}
+            entry.update(sm=90, file='unit.cubin', flags=['-cubin', '-O3'],
+                         source_sha256=hashlib.sha256((NATIVE_AOT/metadata['file']).read_bytes()).hexdigest(),
+                         cubin_sha256=hashlib.sha256(header).hexdigest())
+            manifest = {'schema': 'stwo-cuda-native-cubin-bundle-v1',
+                        'producer': {'provider': 'nvidia_nvcc', **{key: 'ab'*32 for key in
+                                     ('nvcc_sha256', 'toolkit_manifest_sha256', 'host_cxx_sha256', 'host_cc1plus_sha256')}},
+                        'entries': [entry]}
+            path = bundle / 'manifest.json'
+            path.write_text(json.dumps(manifest))
+            environment = dict(os.environ, STWO_CUDA_AOT_CUBIN_IMPORT_ROOT=str(bundle))
+            self._run_plan(zig, project, cache, environment)
+            self.assertEqual(len(self._plan_outputs(cache)), 1)
+            manifest['producer']['nvcc_sha256'] = 'cd'*32
+            path.write_text(json.dumps(manifest))
+            self._run_plan(zig, project, cache, environment)
+            self.assertEqual(len(self._plan_outputs(cache)), 2)
+            # Alter only the cubin. A stale outer cache would silently succeed;
+            # the correct build reruns the importer and rejects its digest.
+            artifact.write_bytes(header + b'altered device code')
+            with self.assertRaisesRegex(AssertionError, 'differs from its digest'):
+                self._run_plan(zig, project, cache, environment)
+
     def test_generated_aot_set_must_match_its_pinned_manifest(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -130,6 +172,10 @@ class CudaBuildCacheTests(unittest.TestCase):
             target_is_directory=True,
         )
 
+        contract = project / "src/frontends/cairo/witness/deduction_contract.zig"
+        contract.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "src/frontends/cairo/witness/deduction_contract.zig", contract)
+
         cuda_root = project / "src/backends/cuda"
         cuda_root.mkdir(parents=True)
         (cuda_root / "active_source_manifest.json").symlink_to(
@@ -191,10 +237,11 @@ class CudaBuildCacheTests(unittest.TestCase):
         )
 
     @staticmethod
-    def _run_plan(zig: str, project: Path, cache: Path) -> None:
+    def _run_plan(zig: str, project: Path, cache: Path, env=None) -> None:
         completed = subprocess.run(
             [zig, "build", "plan", "--cache-dir", str(cache)],
             cwd=project,
+            env=env,
             text=True,
             capture_output=True,
             check=False,

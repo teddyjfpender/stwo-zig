@@ -1,8 +1,9 @@
 const std = @import("std");
-const stwo = @import("stwo");
+const frontend = @import("stwo_cairo_frontend");
+const integration = @import("stwo_cairo_metal_integration");
 const options_parser = @import("eval_source_options.zig");
-const codegen = stwo.integrations.cairo_metal.eval_codegen;
-const composition = stwo.frontends.cairo.witness.composition_bundle;
+const codegen = integration.eval_codegen;
+const composition = frontend.witness.composition_bundle;
 
 pub fn main() !void {
     var gpa = std.heap.DebugAllocator(.{}).init;
@@ -24,13 +25,25 @@ pub fn main() !void {
     );
     const trace_abi: codegen.TraceAbi = switch (options.trace_abi) {
         .eval_domain => .eval_domain,
-        .stored_domain => .stored_domain,
+        .stored_domain, .bounded => .stored_domain,
     };
-    var bundle = try composition.Bundle.readFile(allocator, args[1]);
-    defer bundle.deinit();
-    const component_limit = options.component_limit orelse bundle.components.len;
-    if (component_limit > bundle.components.len) return error.InvalidComponentLimit;
-    const components = bundle.components[0..component_limit];
+    var bundle: ?composition.Bundle = null;
+    defer if (bundle) |*owned| owned.deinit();
+    var library: ?frontend.air.template_library.Library = null;
+    defer if (library) |*owned| owned.deinit();
+    var all_components: std.ArrayList(composition.Component) = .empty;
+    defer all_components.deinit(allocator);
+    if (options.template_library) {
+        library = try frontend.air.template_library.Library.readFile(allocator, args[1]);
+        for (library.?.sources) |entry|
+            try all_components.appendSlice(allocator, entry.bundle.components);
+    } else {
+        bundle = try composition.Bundle.readFile(allocator, args[1]);
+        try all_components.appendSlice(allocator, bundle.?.components);
+    }
+    const component_limit = options.component_limit orelse all_components.items.len;
+    if (component_limit > all_components.items.len) return error.InvalidComponentLimit;
+    const components = all_components.items[0..component_limit];
     var output = try std.fs.cwd().createFile(args[2], .{});
     defer output.close();
     var buffer: [64 * 1024]u8 = undefined;
@@ -39,6 +52,23 @@ pub fn main() !void {
     try writer.writeAll(codegen.preambleSourceFor(trace_abi));
     var seen = std.AutoHashMap(u64, void).init(allocator);
     defer seen.deinit();
+    if (options.trace_abi == .bounded) {
+        try writer.writeAll(integration.eval_abi.tiled_domain_reader);
+        var count: usize = 0;
+        for (components) |component| for (component.parts) |part| {
+            const entry = try seen.getOrPut(part.semantic_hash);
+            if (entry.found_existing) continue;
+            for ([_]codegen.TraceAbi{ .stored_domain, .tiled_domain }) |abi| {
+                const source = try codegen.generateKernelFor(allocator, part.program, false, abi);
+                defer allocator.free(source);
+                try writer.writeAll(source);
+            }
+            count += 1;
+        };
+        try writer.flush();
+        std.debug.print("emitted {} unique AIR programs with native and bounded tiled readers over {} components\n", .{ count, components.len });
+        return;
+    }
     var seen_fused = std.AutoHashMap(u64, void).init(allocator);
     defer seen_fused.deinit();
     var programs: u32 = 0;
@@ -111,9 +141,9 @@ pub fn main() !void {
         .{
             programs,
             fused_programs,
-            bundle.plan_hash,
+            if (bundle) |value| value.plan_hash else 0,
             component_limit,
-            bundle.components.len,
+            all_components.items.len,
             @tagName(options.fusion_mode),
             options.fusion_cap,
             baseline_dispatches,
@@ -131,7 +161,7 @@ const usage =
     \\bundle, for offline compilation into a composition metallib.
     \\
     \\options:
-    \\  --trace-abi <eval-domain|stored-domain>
+    \\  --trace-abi <eval-domain|stored-domain|bounded>
     \\        Which trace-indexing ABI the emitted kernels implement.
     \\        eval-domain (default) indexes columns directly at
     \\        evaluation-domain length, so the host must lift each
@@ -144,6 +174,10 @@ const usage =
     \\        (stwo_zig_eval_ vs stwo_zig_eval_sd_) so a library-ABI mismatch is
     \\        a resolution failure, not silent corruption. They must be compiled
     \\        into separate metallibs.
+    \\  --template-library
+    \\        Read the authenticated three-source AIR template manifest.
+    \\  --trace-abi bounded
+    \\        Emit native and tiled kernels together, without unused fusion.
     \\  --fusion-cap <n>
     \\        Per-group emitted-operation ceiling for fused kernels.
     \\  --experimental-hybrid-source-diagnostic

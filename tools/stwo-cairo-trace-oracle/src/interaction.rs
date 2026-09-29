@@ -193,13 +193,25 @@ pub fn diagnostic_lookup_elements() -> Result<(CommonLookupElements, ChallengePr
 
     let mut channel = Blake2sChannel::default();
     channel.mix_u32s(&seed_words);
-    let elements = CommonLookupElements::draw(&mut channel);
+    lookup_elements_from_channel(channel, seed, false)
+}
 
-    // The relation macro deliberately hides its LookupElements field. Replay
-    // the same two channel draws independently so the receipt exposes the
-    // challenge without relying on non-upstream accessors.
-    let mut audit_channel = Blake2sChannel::default();
-    audit_channel.mix_u32s(&seed_words);
+/// Explicit failure-replay challenge. A supplied digest is not proof authority.
+pub fn replay_lookup_elements(
+    digest: [u8; 32],
+) -> Result<(CommonLookupElements, ChallengeProvenance)> {
+    let mut channel = Blake2sChannel::default();
+    channel.update_digest(stwo::core::vcs::blake2_hash::Blake2sHash(digest));
+    lookup_elements_from_channel(channel, digest, true)
+}
+
+fn lookup_elements_from_channel(
+    mut channel: Blake2sChannel,
+    seed: [u8; 32],
+    replay: bool,
+) -> Result<(CommonLookupElements, ChallengeProvenance)> {
+    let mut audit_channel = channel.clone();
+    let elements = CommonLookupElements::draw(&mut channel);
     let [z, alpha]: [SecureField; 2] = audit_channel.draw_secure_felts(2).try_into().unwrap();
     let mut current = SecureField::from_u32_unchecked(1, 0, 0, 0);
     let powers = (0..128)
@@ -213,11 +225,27 @@ pub fn diagnostic_lookup_elements() -> Result<(CommonLookupElements, ChallengePr
     let alpha_m31 = limbs(alpha);
     let digest = lookup_elements_digest(z_m31, &powers)?;
     let provenance = ChallengeProvenance {
-        purpose: "deterministic_cross_backend_interaction_trace_diagnostics",
+        purpose: if replay {
+            "supplied_channel_digest_failure_replay"
+        } else {
+            "deterministic_cross_backend_interaction_trace_diagnostics"
+        },
         is_proof_transcript: false,
-        warning: "fixed diagnostic lookup elements; not Fiat-Shamir proof-transcript challenges",
-        derivation: "sha256(domain) -> eight little-endian u32 -> Blake2sChannel::default().mix_u32s -> CommonLookupElements::draw; independent channel replay exposes z and alpha",
-        domain_hex: hex::encode(CHALLENGE_DOMAIN),
+        warning: if replay {
+            "caller-supplied channel digest; diagnostic replay only, not verified proof-transcript authority"
+        } else {
+            "fixed diagnostic lookup elements; not Fiat-Shamir proof-transcript challenges"
+        },
+        derivation: if replay {
+            "supplied digest -> Blake2sChannel::update_digest -> CommonLookupElements::draw; independent replay exposes z and alpha"
+        } else {
+            "sha256(domain) -> eight little-endian u32 -> Blake2sChannel::default().mix_u32s -> CommonLookupElements::draw; independent channel replay exposes z and alpha"
+        },
+        domain_hex: if replay {
+            String::new()
+        } else {
+            hex::encode(CHALLENGE_DOMAIN)
+        },
         seed_sha256: hex::encode(seed),
         z_m31,
         alpha_m31,

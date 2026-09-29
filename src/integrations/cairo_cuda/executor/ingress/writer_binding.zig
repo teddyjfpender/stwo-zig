@@ -13,6 +13,7 @@ const fixed_bundle = @import("stwo_cairo_frontend").witness.fixed_table_bundle;
 const witness_bundle = @import("stwo_cairo_frontend").witness.bundle;
 const native_ec = @import("../../native_ec.zig");
 const recorded_witness = @import("../../recorded_witness.zig");
+const recorded_binding = @import("../../recorded_binding.zig");
 const ec_contract = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op_contract;
 const cairo_ec_op = @import("stwo_cuda_backend").runtime.stages.cairo_ec_op;
 const request_compiler = @import("../../request_compiler.zig");
@@ -121,9 +122,16 @@ pub fn prepare(
         views.components.len,
     );
     for (views.components, feed_sources) |component, *source| {
+        const planned = proof.components[component.component_index];
+        const feed_words = if (std.mem.eql(u8, planned.name, "memory_id_to_big") or
+            std.mem.eql(u8, planned.name, "memory_id_to_small"))
+        blk: {
+            const entry = request.trace_dispatch.find(planned.name, planned.instance) orelse return error.MissingBaseTableSchedule;
+            break :blk (try controllers.main_commit.writerOutput(entry.canonical_ordinal)).storage;
+        } else component.sub_words;
         source.* = .{
             .component_index = component.component_index,
-            .words = component.sub_words,
+            .words = feed_words,
         };
     }
     var active_fixed = try fixed_plan.compile(
@@ -141,6 +149,7 @@ pub fn prepare(
         feeds,
         active_fixed,
         feed_sources,
+        input,
     );
     const memory_sources = try inputs.storage.sub(
         inputs_prepared.word_count,
@@ -203,6 +212,10 @@ pub fn prepare(
         request.trace_dispatch,
         views,
         controllers.main_commit,
+        if (request.resident.slot(.relation_base_inputs, 0) != null)
+            try exactSlot(provider, request, .relation_base_inputs)
+        else
+            .{ .address = 0, .len = 0, .owner = 0 },
     );
     const relation_prepared = try relation_binding.prepareAndUpload(
         allocator,
@@ -282,9 +295,14 @@ fn prepareLaunches(
     var descriptor_cursor: usize = 0;
     const recorded = try allocator.alloc(
         recorded_witness.PreparedLaunch,
-        32,
+        request.trace_dispatch.writer_counts[@intFromEnum(proof_plan.WriterKind.recorded_aot)],
     );
-    const native = try allocator.alloc(native_ec.Prepared, 1);
+    var native_roots: usize = 0;
+    for (request.trace_dispatch.entries) |entry| {
+        if (entry.execution == .composite_root) native_roots += 1;
+    }
+    if (native_roots > 1) return error.InvalidWriterLaunchInventory;
+    const native = try allocator.alloc(native_ec.Prepared, native_roots);
     const bindings = try allocator.alloc(
         trace_writer.Binding,
         request.trace_dispatch.launch_order.len,
@@ -295,10 +313,8 @@ fn prepareLaunches(
     var partial_component_index: ?u32 = null;
     var root_component_index: ?u32 = null;
 
-    const pedersen = try pedersenTable(
-        fixed,
-        &controllers.preprocessed_commit,
-    );
+    var pedersen: ?recorded_witness.PedersenW18Table = null;
+    var pedersen_requirement: product_aot.ModuleGlobals = .none;
     for (
         request.trace_dispatch.entries,
     ) |entry| {
@@ -310,6 +326,14 @@ fn prepareLaunches(
             .recorded_aot => {
                 const witness = witnesses.find(planned.name) orelse
                     return error.MissingRecordedWitnessLowering;
+                const globals = try recorded_binding.requiredModuleGlobals(witness.program);
+                if (globals != .none) {
+                    if (pedersen == null) {
+                        pedersen = try pedersenTable(fixed, &controllers.preprocessed_commit, globals);
+                        pedersen_requirement = globals;
+                    }
+                    if (globals != pedersen_requirement) return error.MixedPedersenWindowProfile;
+                }
                 const pointer_tables = try takeRecordedPointers(
                     pointer_storage,
                     &pointer_cursor,
@@ -412,146 +436,146 @@ fn prepareLaunches(
             .fixed_table, .memory_trace => {},
         }
     }
-    if (recorded_count != recorded.len or
-        native_buffers == null or
-        root_component_index == null or
-        partial_component_index == null)
-    {
+    if (recorded_count != recorded.len) return error.InvalidWriterLaunchInventory;
+    if (native.len != 0) {
+        if (native_buffers == null or root_component_index == null or partial_component_index == null)
+            return error.InvalidWriterLaunchInventory;
+        const root_index = root_component_index.?;
+        const partial_index = partial_component_index.?;
+        const root_planned = proof.components[root_index];
+        const partial_planned = proof.components[partial_index];
+        const root_component = components.components[root_index];
+        const partial_component = components.components[partial_index];
+        const root_view = views.find(root_index) orelse
+            return error.MissingWriterView;
+        const partial_view = views.find(partial_index) orelse
+            return error.MissingWriterView;
+        const partial_witness = witnesses.find(partial_planned.name) orelse
+            return error.MissingRecordedWitnessLowering;
+        const geometry = cairo_ec_op.Geometry{
+            .row_count = @intCast(componentRows(root_component)),
+            .n_addresses = try castU32(input.memory.address_to_id.len),
+            .n_big = try castU32(input.memory.f252_values.len),
+            .n_small = try castU32(input.memory.small_values.len),
+            .address_count_words = try castU32(
+                input.memory.address_to_id.len -| 1,
+            ),
+            .big_count_words = try castU32(input.memory.f252_values.len),
+            .small_count_words = try castU32(input.memory.small_values.len),
+            .range_check_8_count_words = 256,
+        };
+        const partial_rows = try geometry.partialRowCount();
+        const partial_columns = try splitColumns(
+            allocator,
+            views.find(root_index).?.sub_words,
+            partial_rows,
+        );
+        if (partial_columns.len != ec_contract.partial_input_column_count)
+            return error.InvalidNativeEcWorkspace;
+        const segment = input.builtin_segments.ec_op_builtin orelse
+            return error.MissingNativeEcSegment;
+        const adapted = try exactSlot(provider, request, .adapted_input);
+        const segment_start = try adapted.sub(0, 1);
+        const segment_word = [_]u32{try castU32(segment.begin_addr)};
+        try uploader.uploadSlice(u32, segment_start, &segment_word);
+        const address_counts_storage = feeds.destination(
+            "memory_address_to_id",
+        ) orelse return error.MissingMultiplicityDestination;
+        const big_counts_storage = feeds.destination(
+            "memory_id_to_big",
+        ) orelse return error.MissingMultiplicityDestination;
+        const small_counts_storage = feeds.destination(
+            "memory_id_to_big#small",
+        ) orelse return error.MissingMultiplicityDestination;
+        const range_check_8_counts_storage = feeds.destination(
+            "range_check_8",
+        ) orelse return error.MissingMultiplicityDestination;
+        const address_counts = try address_counts_storage.sub(
+            0,
+            geometry.address_count_words,
+        );
+        const big_counts = try big_counts_storage.sub(
+            0,
+            geometry.big_count_words,
+        );
+        const small_counts = try small_counts_storage.sub(
+            0,
+            geometry.small_count_words,
+        );
+        const range_check_8_counts = try range_check_8_counts_storage.sub(
+            0,
+            geometry.range_check_8_count_words,
+        );
+        const partial_inputs = partial_columns[0 .. ec_contract.partial_input_column_count - 1];
+        const partial_multiplicities = try allocator.alloc(
+            common.Words,
+            partial_witness.program.n_mult_tables,
+        );
+        native[0] = native_ec.prepare(
+            allocator,
+            session,
+            registry,
+            componentGeometry(root_planned, root_component),
+            componentGeometry(partial_planned, partial_component),
+            geometry,
+            .{
+                .execution_pointer_table = native_buffers.?.execution_pointer_table,
+                .execution_tables = &base.execution_tables,
+                .segment_start = segment_start,
+                .trace_columns = root_view.trace_columns,
+                .lookup_words_word_major = root_view.lookup_words,
+                .partial_input_columns = partial_columns,
+                .address_counts = address_counts,
+                .big_counts = big_counts,
+                .small_counts = small_counts,
+                .range_check_8_counts = range_check_8_counts,
+            },
+            partial_witness.semantic_hash,
+            partial_witness.program,
+            .{
+                .input_pointer_table = native_buffers.?.partial.input_pointer_table,
+                .input_columns = partial_inputs,
+                .execution_pointer_table = native_buffers.?.partial.execution_pointer_table,
+                .execution_tables = &base.execution_tables,
+                .execution_strides = native_buffers.?.partial.execution_strides,
+                .output_pointer_table = native_buffers.?.partial.output_pointer_table,
+                .output_columns = partial_view.trace_columns,
+                .multiplicity_pointer_table = native_buffers.?.partial.multiplicity_pointer_table,
+                .multiplicity_tables = partial_multiplicities,
+                .lookup_words_word_major = partial_view.lookup_words,
+                .sub_words_word_major = partial_view.sub_words,
+                .pedersen_w18 = if (partial_witness.program
+                    .deductionRequirements().pedersen_table)
+                    pedersen
+                else
+                    null,
+            },
+        ) catch |err| {
+            std.debug.print(
+                "cairo-cuda writer launch {s} failed: {s}\n",
+                .{ root_planned.name, @errorName(err) },
+            );
+            return err;
+        };
+        const root_entry = request.trace_dispatch.entries[
+            root_planned.canonical_ordinal
+        ];
+        const partial_entry = request.trace_dispatch.entries[
+            partial_planned.canonical_ordinal
+        ];
+        bindings[binding_count] = .{
+            .component_index = root_index,
+            .catalog_identity = root_entry.catalog_identity,
+            .body = .{ .native_ec = .{
+                .prepared = &native[0],
+                .member_component_index = partial_index,
+                .member_catalog_identity = partial_entry.catalog_identity,
+            } },
+        };
+        binding_count += 1;
+    } else if (native_buffers != null or root_component_index != null or partial_component_index != null) {
         return error.InvalidWriterLaunchInventory;
     }
-    const root_index = root_component_index.?;
-    const partial_index = partial_component_index.?;
-    const root_planned = proof.components[root_index];
-    const partial_planned = proof.components[partial_index];
-    const root_component = components.components[root_index];
-    const partial_component = components.components[partial_index];
-    const root_view = views.find(root_index) orelse
-        return error.MissingWriterView;
-    const partial_view = views.find(partial_index) orelse
-        return error.MissingWriterView;
-    const partial_witness = witnesses.find(partial_planned.name) orelse
-        return error.MissingRecordedWitnessLowering;
-    const geometry = cairo_ec_op.Geometry{
-        .row_count = @intCast(componentRows(root_component)),
-        .n_addresses = try castU32(input.memory.address_to_id.len),
-        .n_big = try castU32(input.memory.f252_values.len),
-        .n_small = try castU32(input.memory.small_values.len),
-        .address_count_words = try castU32(
-            input.memory.address_to_id.len -| 1,
-        ),
-        .big_count_words = try castU32(input.memory.f252_values.len),
-        .small_count_words = try castU32(input.memory.small_values.len),
-        .range_check_8_count_words = 256,
-    };
-    const partial_rows = try geometry.partialRowCount();
-    const partial_columns = try splitColumns(
-        allocator,
-        views.find(root_index).?.sub_words,
-        partial_rows,
-    );
-    if (partial_columns.len != ec_contract.partial_input_column_count)
-        return error.InvalidNativeEcWorkspace;
-    const segment = input.builtin_segments.ec_op_builtin orelse
-        return error.MissingNativeEcSegment;
-    const adapted = try exactSlot(provider, request, .adapted_input);
-    const segment_start = try adapted.sub(0, 1);
-    const segment_word = [_]u32{try castU32(segment.begin_addr)};
-    try uploader.uploadSlice(u32, segment_start, &segment_word);
-    const address_counts_storage = feeds.destination(
-        "memory_address_to_id",
-    ) orelse return error.MissingMultiplicityDestination;
-    const big_counts_storage = feeds.destination(
-        "memory_id_to_big",
-    ) orelse return error.MissingMultiplicityDestination;
-    const small_counts_storage = feeds.destination(
-        "memory_id_to_big#small",
-    ) orelse return error.MissingMultiplicityDestination;
-    const range_check_8_counts_storage = feeds.destination(
-        "range_check_8",
-    ) orelse return error.MissingMultiplicityDestination;
-    const address_counts = try address_counts_storage.sub(
-        0,
-        geometry.address_count_words,
-    );
-    const big_counts = try big_counts_storage.sub(
-        0,
-        geometry.big_count_words,
-    );
-    const small_counts = try small_counts_storage.sub(
-        0,
-        geometry.small_count_words,
-    );
-    const range_check_8_counts = try range_check_8_counts_storage.sub(
-        0,
-        geometry.range_check_8_count_words,
-    );
-    const partial_inputs = partial_columns[0 .. ec_contract.partial_input_column_count - 1];
-    const partial_multiplicities = try allocator.alloc(
-        common.Words,
-        partial_witness.program.n_mult_tables,
-    );
-    native[0] = native_ec.prepare(
-        allocator,
-        session,
-        registry,
-        componentGeometry(root_planned, root_component),
-        componentGeometry(partial_planned, partial_component),
-        geometry,
-        .{
-            .execution_pointer_table = native_buffers.?.execution_pointer_table,
-            .execution_tables = &base.execution_tables,
-            .segment_start = segment_start,
-            .trace_columns = root_view.trace_columns,
-            .lookup_words_word_major = root_view.lookup_words,
-            .partial_input_columns = partial_columns,
-            .address_counts = address_counts,
-            .big_counts = big_counts,
-            .small_counts = small_counts,
-            .range_check_8_counts = range_check_8_counts,
-        },
-        partial_witness.semantic_hash,
-        partial_witness.program,
-        .{
-            .input_pointer_table = native_buffers.?.partial.input_pointer_table,
-            .input_columns = partial_inputs,
-            .execution_pointer_table = native_buffers.?.partial.execution_pointer_table,
-            .execution_tables = &base.execution_tables,
-            .execution_strides = native_buffers.?.partial.execution_strides,
-            .output_pointer_table = native_buffers.?.partial.output_pointer_table,
-            .output_columns = partial_view.trace_columns,
-            .multiplicity_pointer_table = native_buffers.?.partial.multiplicity_pointer_table,
-            .multiplicity_tables = partial_multiplicities,
-            .lookup_words_word_major = partial_view.lookup_words,
-            .sub_words_word_major = partial_view.sub_words,
-            .pedersen_w18 = if (partial_witness.program
-                .deductionRequirements().pedersen_table)
-                pedersen
-            else
-                null,
-        },
-    ) catch |err| {
-        std.debug.print(
-            "cairo-cuda writer launch {s} failed: {s}\n",
-            .{ root_planned.name, @errorName(err) },
-        );
-        return err;
-    };
-    const root_entry = request.trace_dispatch.entries[
-        root_planned.canonical_ordinal
-    ];
-    const partial_entry = request.trace_dispatch.entries[
-        partial_planned.canonical_ordinal
-    ];
-    bindings[binding_count] = .{
-        .component_index = root_index,
-        .catalog_identity = root_entry.catalog_identity,
-        .body = .{ .native_ec = .{
-            .prepared = &native[0],
-            .member_component_index = partial_index,
-            .member_catalog_identity = partial_entry.catalog_identity,
-        } },
-    };
-    binding_count += 1;
     if (base.bindings.len + binding_count != bindings.len)
         return error.InvalidWriterLaunchInventory;
     @memcpy(
@@ -654,13 +678,14 @@ fn splitColumns(
 fn pedersenTable(
     fixed: fixed_bundle.Bundle,
     preprocessed: *const @import("../trace_commit.zig").Bound,
+    requirement: product_aot.ModuleGlobals,
 ) !recorded_witness.PedersenW18Table {
-    const entry = fixed.find(
-        "pedersen_points_table_window_bits_18",
-    ) orelse return error.MissingPedersenW18Table;
+    const rows = requirement.pedersenRows() orelse return error.InvalidPedersenTable;
+    const narrow = requirement == .pedersen_w9_columns_rows_v1;
+    const entry = fixed.find(if (narrow) "pedersen_points_table_window_bits_9" else "pedersen_points_table_window_bits_18") orelse return error.MissingPedersenTable;
     if (entry.preprocessed_sources.len !=
         module_globals.pedersen_w18_column_count + 1 or
-        !std.mem.eql(u8, entry.preprocessed_sources[0], "seq_23"))
+        !std.mem.eql(u8, entry.preprocessed_sources[0], if (narrow) "seq_15" else "seq_23"))
     {
         return error.InvalidPedersenW18Table;
     }
@@ -669,7 +694,7 @@ fn pedersenTable(
         .identity = undefined,
     };
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/cairo/cuda/pedersen-w18/v1\x00");
+    hash.update(if (narrow) "stwo-zig/cairo/cuda/pedersen-w9/v1\x00" else "stwo-zig/cairo/cuda/pedersen-w18/v1\x00");
     for (entry.preprocessed_sources[1..], &output.columns) |
         identity,
         *column,
@@ -677,7 +702,7 @@ fn pedersenTable(
         const ordinal = fixed.identityOrdinal(identity) orelse
             return error.MissingPedersenW18Table;
         column.* = try preprocessed.preprocessedBaseEvaluation(ordinal);
-        if (column.len != module_globals.pedersen_w18_row_count)
+        if (column.len != rows)
             return error.InvalidPedersenW18Table;
         hash.update(identity);
     }

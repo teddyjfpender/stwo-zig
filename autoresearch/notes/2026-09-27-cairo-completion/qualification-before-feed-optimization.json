@@ -1,0 +1,442 @@
+{
+  "schema": "stwo-zig-cairo-completion-qualification-v1",
+  "note": "single-run qualification except the explicitly recorded three-trial Metal median; full SN2 ran while product checks completed, not a controlled comparative median",
+  "runs": [
+    {
+      "case": "all-builtins-cpu-v7",
+      "schema": "stwo-zig-cairo-benchmark-v1",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "product_sha256": "747c8d5cb479d57f0d33c2ae7a11ae06d14b8435f801406219bb709bcd6b1355",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "prove",
+        "path": "vectors/cairo/official/all_builtins.prover_input.json",
+        "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+      },
+      "arguments_sha256": null,
+      "params_sha256": null,
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "wall_ns": 2285208542,
+            "user_ns": 9919494000,
+            "system_ns": 1005312000,
+            "max_process_tree_rss_bytes": 1176666112,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 26318458,
+            "proof_encode_ns": 6254708,
+            "request_until_publication_ns": 1686780500,
+            "execute_ns": 0,
+            "prove_ns": 1640771417,
+            "verify_ns": 11430167
+          },
+          "proof_sha256": "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475",
+          "official_verifier": {
+            "wall_ns": 476290084,
+            "user_ns": 456950000,
+            "system_ns": 4079000,
+            "max_process_tree_rss_bytes": 37126144,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical-small",
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0
+          }
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 2285208542,
+        "median_prove_ns": 1640771417,
+        "peak_process_rss_bytes": 1176666112
+      }
+    },
+    {
+      "case": "fibonacci-cpu-v4",
+      "schema": "stwo-zig-cairo-benchmark-v1",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "product_sha256": "37b34d12462b2c6b2b6ad7946104f062a0b987ee7efc944f70082de9bb138170",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "run-and-prove",
+        "path": "tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip",
+        "sha256": "06da79af56d26210135fbfdd1c900469f3246806910122311479f16d17749994"
+      },
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "wall_ns": 2083302000,
+            "user_ns": 12091401000,
+            "system_ns": 669316000,
+            "max_process_tree_rss_bytes": 1503297536,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 12044250,
+            "proof_encode_ns": 4487166,
+            "request_until_publication_ns": 2063051500,
+            "execute_ns": 76233625,
+            "prove_ns": 1438837250,
+            "verify_ns": 6734833
+          },
+          "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+          "official_verifier": {
+            "wall_ns": 329484167,
+            "user_ns": 312778000,
+            "system_ns": 3792000,
+            "max_process_tree_rss_bytes": 26787840,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical-small",
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0
+          }
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 2083302000,
+        "median_prove_ns": 1438837250,
+        "peak_process_rss_bytes": 1503297536
+      }
+    },
+    {
+      "case": "fibonacci-metal-v5",
+      "schema": "stwo-zig-cairo-benchmark-v1",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "product_sha256": "c0723c75c20f95ec33702fa6263a1a4aa87139ae6f11689e63eb5e1d7f4483f0",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "run-and-prove",
+        "path": "tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip",
+        "sha256": "06da79af56d26210135fbfdd1c900469f3246806910122311479f16d17749994"
+      },
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "wall_ns": 103401643208,
+            "user_ns": 2999252000,
+            "system_ns": 693875000,
+            "max_process_tree_rss_bytes": 1878376448,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 11586167,
+            "proof_encode_ns": 4333250,
+            "request_until_publication_ns": 102881937041,
+            "execute_ns": 77701167,
+            "prove_ns": 102717315041,
+            "verify_ns": 6661666
+          },
+          "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+          "official_verifier": {
+            "wall_ns": 336060917,
+            "user_ns": 310408000,
+            "system_ns": 3527000,
+            "max_process_tree_rss_bytes": 26722304,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical-small",
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 118,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 8,
+            "commit_source_arena_memcpys": 6,
+            "commit_source_uploads": 31
+          }
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 103401643208,
+        "median_prove_ns": 102717315041,
+        "peak_process_rss_bytes": 1878376448
+      }
+    },
+    {
+      "case": "fibonacci-metal-warm-v6",
+      "schema": "stwo-zig-cairo-benchmark-v1",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "product_sha256": "c0723c75c20f95ec33702fa6263a1a4aa87139ae6f11689e63eb5e1d7f4483f0",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "run-and-prove",
+        "path": "tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip",
+        "sha256": "06da79af56d26210135fbfdd1c900469f3246806910122311479f16d17749994"
+      },
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "wall_ns": 785640417,
+            "user_ns": 2201229000,
+            "system_ns": 597252000,
+            "max_process_tree_rss_bytes": 1539244032,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 12156166,
+            "proof_encode_ns": 4226875,
+            "request_until_publication_ns": 769462500,
+            "execute_ns": 76810166,
+            "prove_ns": 621447917,
+            "verify_ns": 6683875
+          },
+          "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+          "official_verifier": {
+            "wall_ns": 324717792,
+            "user_ns": 310460000,
+            "system_ns": 3588000,
+            "max_process_tree_rss_bytes": 26836992,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical-small",
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 118,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 8,
+            "commit_source_arena_memcpys": 6,
+            "commit_source_uploads": 31
+          }
+        },
+        {
+          "index": 2,
+          "process": {
+            "wall_ns": 760749458,
+            "user_ns": 2237214000,
+            "system_ns": 599265000,
+            "max_process_tree_rss_bytes": 1539457024,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 12328125,
+            "proof_encode_ns": 4235167,
+            "request_until_publication_ns": 747135250,
+            "execute_ns": 74673042,
+            "prove_ns": 600283583,
+            "verify_ns": 6770250
+          },
+          "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+          "official_verifier": {
+            "wall_ns": 327512292,
+            "user_ns": 310466000,
+            "system_ns": 3757000,
+            "max_process_tree_rss_bytes": 26591232,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical-small",
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 118,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 8,
+            "commit_source_arena_memcpys": 6,
+            "commit_source_uploads": 31
+          }
+        },
+        {
+          "index": 3,
+          "process": {
+            "wall_ns": 1339089125,
+            "user_ns": 2925803000,
+            "system_ns": 632374000,
+            "max_process_tree_rss_bytes": 1539915776,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 12034375,
+            "proof_encode_ns": 4338750,
+            "request_until_publication_ns": 841097000,
+            "execute_ns": 79027916,
+            "prove_ns": 672937708,
+            "verify_ns": 6583916
+          },
+          "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+          "official_verifier": {
+            "wall_ns": 320734792,
+            "user_ns": 307536000,
+            "system_ns": 3162000,
+            "max_process_tree_rss_bytes": 26705920,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical-small",
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 118,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 8,
+            "commit_source_arena_memcpys": 6,
+            "commit_source_uploads": 31
+          }
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 785640417,
+        "median_prove_ns": 621447917,
+        "peak_process_rss_bytes": 1539915776
+      }
+    },
+    {
+      "case": "sn2-cpu-v6",
+      "schema": "stwo-zig-cairo-benchmark-v1",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "product_sha256": "af3bd14dc2c72b40047772d28b7aff8dc9b258c4bc958d189d70d863ba9819bd",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "prove",
+        "path": "zig-out/cairo-completion-20260927/sn-pie-2.cpi",
+        "sha256": "fe78e1549f66c2c175d075fad5e0c1ea174df29f9331684e654ef9e9c8821704"
+      },
+      "arguments_sha256": null,
+      "params_sha256": null,
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "wall_ns": 137819639125,
+            "user_ns": 1160687102000,
+            "system_ns": 14926112000,
+            "max_process_tree_rss_bytes": 45154762752,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 122590042,
+            "proof_encode_ns": 9716417,
+            "request_until_publication_ns": 137802281417,
+            "execute_ns": 0,
+            "prove_ns": 137651703416,
+            "verify_ns": 15326166
+          },
+          "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+          "official_verifier": {
+            "wall_ns": 737104834,
+            "user_ns": 670004000,
+            "system_ns": 18593000,
+            "max_process_tree_rss_bytes": 39567360,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical",
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0
+          }
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 137819639125,
+        "median_prove_ns": 137651703416,
+        "peak_process_rss_bytes": 45154762752
+      }
+    },
+    {
+      "case": "sn2-e2e-cpu-v6",
+      "schema": "stwo-zig-cairo-benchmark-v1",
+      "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+      "product_sha256": "af3bd14dc2c72b40047772d28b7aff8dc9b258c4bc958d189d70d863ba9819bd",
+      "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+      "workload": {
+        "kind": "run-and-prove",
+        "path": "/Users/theodorepender/Downloads/SN_PIE_2.zip",
+        "sha256": "f10b70ca8af790a934ac36b3835136bbdc0cc47f62d6bc63169856dec3f0dc41"
+      },
+      "arguments_sha256": null,
+      "params_sha256": null,
+      "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+      "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+      "trials": [
+        {
+          "index": 1,
+          "process": {
+            "wall_ns": 110829422666,
+            "user_ns": 956136986000,
+            "system_ns": 14453637000,
+            "max_process_tree_rss_bytes": 45137985536,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "timing": {
+            "input_and_assets_ns": 130594083,
+            "proof_encode_ns": 9356250,
+            "request_until_publication_ns": 110816494917,
+            "execute_ns": 2154171167,
+            "prove_ns": 108448966334,
+            "verify_ns": 15126041
+          },
+          "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+          "official_verifier": {
+            "wall_ns": 636024833,
+            "user_ns": 612366000,
+            "system_ns": 5272000,
+            "max_process_tree_rss_bytes": 39485440,
+            "rss_is_simultaneous_process_tree_sum": false
+          },
+          "profile": "official-live-cairo-canonical",
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0
+          }
+        }
+      ],
+      "summary": {
+        "median_process_wall_ns": 110829422666,
+        "median_prove_ns": 108448966334,
+        "peak_process_rss_bytes": 45137985536
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 //! Authenticated generated-writer admission and native execution ABI.
 
+const std = @import("std");
 const program = @import("program.zig");
 
 pub const ConstColumnView = extern struct {
@@ -56,7 +57,20 @@ pub const NativeRangeExecution = extern struct {
         [*]u32,
         usize,
     ) callconv(.c) c_int,
+    deduce_batch_fn: *const fn (
+        *anyopaque,
+        u32,
+        [*]const u32,
+        usize,
+        usize,
+        [*]u32,
+        usize,
+        usize,
+        usize,
+    ) callconv(.c) c_int,
 };
+
+pub const native_abi_version = @import("deduction_contract.zig").native_abi_version;
 
 pub const NativeWriter = *const fn (
     *const NativeRangeExecution,
@@ -80,6 +94,7 @@ pub fn executeNative(writer: NativeWriter, run: RangeExecution) !void {
         .bridge_context = &bridge,
         .table_limb_fn = NativeBridge.tableLimb,
         .deduce_fn = NativeBridge.deduce,
+        .deduce_batch_fn = NativeBridge.deduceBatch,
     };
     if (writer(&native) != 0)
         return bridge.failure orelse error.GeneratedWriterFailed;
@@ -115,6 +130,53 @@ const NativeBridge = struct {
     ) callconv(.c) u32 {
         const self: *NativeBridge = @ptrCast(@alignCast(raw_context));
         return self.run.tables.limb(table, row, limb_index);
+    }
+
+    fn deduceBatch(
+        raw_context: *anyopaque,
+        selector: u32,
+        args: [*]const u32,
+        arg_count: usize,
+        arg_stride: usize,
+        outputs: [*]u32,
+        output_count: usize,
+        output_stride: usize,
+        rows: usize,
+    ) callconv(.c) c_int {
+        const self: *NativeBridge = @ptrCast(@alignCast(raw_context));
+        if (rows == 0) {
+            self.failure = error.InvalidDeduceBatch;
+            return 1;
+        }
+        const args_tail = std.math.mul(usize, rows - 1, arg_stride) catch {
+            self.failure = error.InvalidDeduceBatch;
+            return 1;
+        };
+        const output_tail = std.math.mul(usize, rows - 1, output_stride) catch {
+            self.failure = error.InvalidDeduceBatch;
+            return 1;
+        };
+        const args_len = std.math.add(usize, args_tail, arg_count) catch {
+            self.failure = error.InvalidDeduceBatch;
+            return 1;
+        };
+        const output_len = std.math.add(usize, output_tail, output_count) catch {
+            self.failure = error.InvalidDeduceBatch;
+            return 1;
+        };
+        self.run.deduce.callBatch(selector, .{
+            .rows = rows,
+            .args = args[0..args_len],
+            .arg_stride = arg_stride,
+            .arg_count = arg_count,
+            .outputs = outputs[0..output_len],
+            .output_stride = output_stride,
+            .output_count = output_count,
+        }, self.run.tables) catch |err| {
+            self.failure = err;
+            return 1;
+        };
+        return 0;
     }
 
     fn deduce(

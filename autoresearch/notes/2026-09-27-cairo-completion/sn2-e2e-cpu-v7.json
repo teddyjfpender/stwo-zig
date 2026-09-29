@@ -1,0 +1,60 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v1",
+  "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "product_sha256": "747c8d5cb479d57f0d33c2ae7a11ae06d14b8435f801406219bb709bcd6b1355",
+  "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+  "workload": {
+    "kind": "run-and-prove",
+    "path": "/Users/theodorepender/Downloads/SN_PIE_2.zip",
+    "sha256": "f10b70ca8af790a934ac36b3835136bbdc0cc47f62d6bc63169856dec3f0dc41"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "trials": [
+    {
+      "index": 1,
+      "process": {
+        "wall_ns": 85407780917,
+        "user_ns": 1093563371000,
+        "system_ns": 13381516000,
+        "max_process_tree_rss_bytes": 41785442304,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 116653875,
+        "proof_encode_ns": 9167750,
+        "request_until_publication_ns": 85395822792,
+        "execute_ns": 2064507250,
+        "prove_ns": 83135260916,
+        "verify_ns": 14707917
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "official_verifier": {
+        "wall_ns": 633251833,
+        "user_ns": 611767000,
+        "system_ns": 4001000,
+        "max_process_tree_rss_bytes": 39731200,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "profile": "official-live-cairo-canonical",
+      "backend_evidence": {
+        "execution": "cpu-simd",
+        "classification": "host-only",
+        "metal_dispatches": 0,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 0,
+        "runtime_shutdowns": 0,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 0
+      }
+    }
+  ],
+  "summary": {
+    "median_process_wall_ns": 85407780917,
+    "median_prove_ns": 83135260916,
+    "peak_process_rss_bytes": 41785442304
+  }
+}

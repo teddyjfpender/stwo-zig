@@ -1,0 +1,32 @@
+{
+  "schema": "stwo-zig-cairo-bounded-composition-provenance-v1",
+  "library": {
+    "path": "vectors/cairo/official/air_template_composition_bounded.metallib",
+    "sha256": "05f0bd7fd5c9cb591b52b4d41a50f7fedac21e2c736f7dcc291100eca1dfbb4d",
+    "bytes": 14018534
+  },
+  "source": {
+    "path": "zig-out/cairo-completion-20260927/bounded-composition-v1/air_template_composition_bounded.metal",
+    "sha256": "96599a54d3ca149389fcbbfe5af646983b3b9b0c82afa29c438dd8fad148c5d4",
+    "bytes": 8700452
+  },
+  "air_templates": {
+    "path": "vectors/cairo/official/air_template_library_v1.json",
+    "sha256": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec"
+  },
+  "programs": 69,
+  "kernels": 138,
+  "codegen_version": 3,
+  "reader_abis": [
+    "stored_domain",
+    "tiled_domain"
+  ],
+  "metal_flags": [
+    "-std=metal3.1",
+    "-fno-fast-math",
+    "-Werror"
+  ],
+  "toolchain": "Apple metal version 32023.883 (metalfe-32023.883)\nTarget: air64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v17.6.109.0.8hOpoD/Metal.xctoolchain/usr/metal/current/bin",
+  "semantic_qualification": "cancelled before the first tiled proof; opcode and Fibonacci native reader proofs accepted",
+  "frozen_library_path": "zig-out/cairo-completion-20260927/bounded-composition-products/share/stwo-zig/cairo/official/air_template_composition_bounded.metallib"
+}

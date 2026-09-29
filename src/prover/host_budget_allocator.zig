@@ -346,8 +346,9 @@ pub const SharedHostBudget = struct {
     /// Opt-in stage snapshots for callers already routing through this budget.
     /// Never interprets an unrelated allocator context.
     pub fn reportStage(a: std.mem.Allocator, stage: []const u8) void {
-        if (!std.process.hasEnvVarConstant("STWO_HOST_MEMORY_PROFILE") or !isAllocator(a)) return;
+        if (!std.process.hasEnvVarConstant("STWO_HOST_MEMORY_PROFILE")) return;
         @import("measurement/process_usage.zig").reportStage(stage);
+        if (!isAllocator(a)) return;
         const self: *SharedHostBudget = @ptrCast(@alignCast(a.ptr));
         const usage = self.snapshot();
         std.debug.print("HOST_MEMORY_STAGE {s} live={d} peak={d} heap={d} external={d} heap_peak={d} external_peak={d}\n", .{ stage, usage.live_bytes, usage.peak_live_bytes, usage.host_live_bytes, usage.external_live_bytes, usage.peak_host_bytes, usage.peak_external_bytes });

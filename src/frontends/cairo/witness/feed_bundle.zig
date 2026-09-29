@@ -6,6 +6,7 @@ pub const Destination = struct { name: []u8, words: u64 };
 pub const Feed = struct {
     producer: []u8,
     row_count: u32,
+    active_row_count: ?u32 = null,
     sub_words_per_row: u32,
     descriptors: []u32,
     luts: [][]u32,

@@ -1,0 +1,85 @@
+//! Device custody coverage for the indirect composition reader's source ABI.
+const std = @import("std");
+const metal = @import("stwo_metal_backend").runtime;
+
+extern fn stwo_zig_metal_eval_batch_bind_sources(
+    runtime: *anyopaque,
+    batch: *anyopaque,
+    columns: [*]const [*]const u32,
+    lengths: [*]const usize,
+    count: u32,
+    copy_budget: u64,
+    copied_bytes: *u64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+
+// A tiny device reader deliberately combines a borrowed page-aligned plane,
+// a misaligned copied plane, and a missing zero plane. It has the same 8-byte
+// source descriptor as pd5 but needs no Cairo semantic fixture or long proof.
+const source =
+    \\#include <metal_stdlib>
+    \\using namespace metal;
+    \\struct Source { device const uint *values; };
+    \\kernel void read_sources(device uint *arena [[buffer(0)]],
+    \\    constant uint *args [[buffer(1)]],
+    \\    device const Source *sources [[buffer(2)]],
+    \\    uint row [[thread_position_in_grid]]) {
+    \\    if (row>=args[10]) return;
+    \\    uint zero=sources[2].values[row&1u];
+    \\    arena[row]=sources[0].values[row]+sources[1].values[args[10]-1u-row]+zero;
+    \\}
+;
+
+test "indirect composition sources bound copies, retain borrowed planes, and clear between requests" {
+    var runtime = try metal.Runtime.init();
+    defer runtime.deinit();
+    var library = try runtime.compileEvalLibrary(source);
+    defer library.deinit();
+    var plan = try runtime.prepareEvalFromLibrary(library, "read_sources", .{
+        .trace_offsets = 0,
+        .interaction_offsets = 0,
+        .base_params = 0,
+        .ext_params = 0,
+        .random_coeffs = 0,
+        .denom_inv = 0,
+        .coordinates = .{ 0, 0, 0, 0 },
+        .row_count = 16,
+        .trace_log_size = 3,
+        .domain_log_size = 3,
+        .rc_base = 0,
+    });
+    defer plan.deinit();
+    var batch = try runtime.prepareEvalBatch(&.{plan});
+    defer batch.deinit();
+    var borrowed = try runtime.allocateResidentBuffer(1 << 16);
+    defer borrowed.deinit();
+    const borrowed_words: [*]u32 = @ptrCast(@alignCast(borrowed.contents));
+    for (0..16) |row| borrowed_words[row] = @intCast(3 * row);
+    var misaligned: [17]u32 align(16) = undefined;
+    for (&misaligned, 0..) |*word, row| word.* = @intCast(7 + row);
+    const pointers = [_][*]const u32{ borrowed_words, misaligned[1..].ptr, misaligned[0..].ptr };
+    const lengths = [_]usize{ (1 << 16) / 4, 16, 0 };
+    var message: [1024]u8 = @splat(0);
+    var copied: u64 = 0;
+    // Rejection cannot leave a partial binding that poisons a later request.
+    try std.testing.expect(!stwo_zig_metal_eval_batch_bind_sources(runtime.handle, batch.handle, &pointers, &lengths, 3, 63, &copied, &message, message.len));
+    copied = try runtime.bindEvalBatchSources(batch, &pointers, &lengths, 64);
+    defer runtime.clearEvalBatchSources(batch);
+    try std.testing.expectEqual(@as(u64, 64), copied);
+    // Mutating the borrowed plane before dispatch must be visible; the copied
+    // small plane must preserve its snapshot despite subsequent host mutation.
+    borrowed_words[0] = 101;
+    misaligned[16] = 999;
+    var output = try runtime.allocateResidentBuffer(16 * 4);
+    defer output.deinit();
+    _ = try runtime.evalBatchPrepared(output, batch);
+    const output_words: [*]const u32 = @ptrCast(@alignCast(output.contents));
+    for (0..16) |row| {
+        const expected = (if (row == 0) @as(u32, 101) else @as(u32, @intCast(3 * row))) + @as(u32, @intCast(23 - row));
+        try std.testing.expectEqual(expected, output_words[row]);
+    }
+    runtime.clearEvalBatchSources(batch);
+    // An explicit clear returns the batch to an unbound reusable state.
+    try std.testing.expectEqual(@as(u64, 64), try runtime.bindEvalBatchSources(batch, &pointers, &lengths, 64));
+}

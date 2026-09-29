@@ -1,0 +1,11 @@
+stwo-cairo-cuda
++- install stwo-cairo-cuda
+   +- compile exe stwo-cairo-cuda ReleaseFast native
+      +- run python3 (stwo-native-cuda-runtime)
+         +- run exe cairo-cuda-eval-aot (cairo-cuda-eval-aot) stderr
+generated 271 authenticated bodies for 279 exact SN2 placements
+
+Build Summary: 2/2 steps succeeded
+stwo-cairo-cuda success
++- run /opt/zig/zig-x86_64-linux-0.15.2/zig success 1m MaxRSS:644M
+

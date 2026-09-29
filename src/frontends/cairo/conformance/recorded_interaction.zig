@@ -10,6 +10,7 @@ const feed_topology = @import("../witness/feed_topology.zig");
 const interaction_topology = @import("../witness/interaction_topology.zig");
 const interaction_trace = @import("../witness/interaction_trace.zig");
 const work_pool = @import("stwo_prover_engine").work_pool;
+const row_ranges = @import("../witness/row_ranges.zig");
 
 pub const MismatchKind = enum {
     lookup_geometry,
@@ -159,7 +160,16 @@ pub fn compareTrace(
 }
 
 /// Rows per parallel evaluation batch.
-const batch_rows: usize = 1 << 15;
+const default_batch_rows: usize = 1 << 13;
+const maximum_batch_rows: usize = 1 << 15;
+
+fn selectedBatchRows(value: ?[]const u8) usize {
+    const text = value orelse return default_batch_rows;
+    const rows = std.fmt.parseInt(usize, text, 10) catch return default_batch_rows;
+    if (rows < 256 or rows > maximum_batch_rows or !std.math.isPowerOfTwo(rows))
+        return default_batch_rows;
+    return rows;
+}
 
 pub fn materializeTrace(
     allocator: std.mem.Allocator,
@@ -278,6 +288,7 @@ fn evaluateRanges(
     alpha_powers: []const QM31,
     sink: anytype,
 ) !QM31 {
+    const batch_rows = selectedBatchRows(std.posix.getenv("STWO_CAIRO_INTERACTION_BATCH_ROWS"));
     if (source.rows() > batch_rows) {
         if (try evaluateRangesParallel(
             allocator,
@@ -286,14 +297,16 @@ fn evaluateRanges(
             z,
             alpha_powers,
             sink,
+            batch_rows,
         )) |claimed_sum| return claimed_sum;
     }
-    return evaluateRangesSerial(reference, sink);
+    return evaluateRangesSerial(reference, sink, batch_rows);
 }
 
 fn evaluateRangesSerial(
     reference: *interaction_trace.Reference,
     sink: anytype,
+    batch_rows: usize,
 ) !QM31 {
     var claimed_sum = QM31.zero();
     var first_row: usize = 0;
@@ -315,6 +328,7 @@ fn evaluateRangesParallel(
     z: QM31,
     alpha_powers: []const QM31,
     sink: anytype,
+    batch_rows: usize,
 ) !?QM31 {
     const pool = work_pool.getGlobalPool() orelse return null;
     const batch_count = std.math.divCeil(usize, source.rows(), batch_rows) catch
@@ -326,6 +340,11 @@ fn evaluateRangesParallel(
         batch_count,
         worker_count,
     ) catch unreachable;
+    const dynamic = if (std.posix.getenv("STWO_CAIRO_INTERACTION_DYNAMIC_RANGES")) |value|
+        std.mem.eql(u8, value, "1")
+    else
+        true;
+    var tickets = row_ranges.Queue{ .row_count = source.rows(), .grain = batch_rows };
 
     const Worker = struct {
         allocator: std.mem.Allocator,
@@ -336,6 +355,8 @@ fn evaluateRangesParallel(
         sink: @TypeOf(sink),
         first_row: usize,
         end_row: usize,
+        batch_rows: usize,
+        queue: ?*row_ranges.Queue,
         claimed_sum: QM31 = QM31.zero(),
         failure: ?anyerror = null,
 
@@ -352,19 +373,27 @@ fn evaluateRangesParallel(
             };
             defer reference.deinit();
 
-            var first_row = self.first_row;
-            while (first_row < self.end_row) : (first_row += batch_rows) {
-                const rows = @min(batch_rows, self.end_row - first_row);
-                const batch_sum = reference.evaluateRangeInto(
-                    first_row,
-                    rows,
-                    self.sink,
-                ) catch |err| {
-                    self.failure = err;
-                    return;
-                };
-                self.claimed_sum = self.claimed_sum.add(batch_sum);
+            if (self.queue) |queue| {
+                while (queue.take()) |range| {
+                    self.evaluate(&reference, range.start, range.end - range.start) catch |err| {
+                        self.failure = err;
+                        return;
+                    };
+                }
+            } else {
+                var first_row = self.first_row;
+                while (first_row < self.end_row) : (first_row += self.batch_rows) {
+                    self.evaluate(&reference, first_row, @min(self.batch_rows, self.end_row - first_row)) catch |err| {
+                        self.failure = err;
+                        return;
+                    };
+                }
             }
+        }
+
+        fn evaluate(self: *@This(), reference: *interaction_trace.Reference, first_row: usize, rows: usize) !void {
+            const batch_sum = try reference.evaluateRangeInto(first_row, rows, self.sink);
+            self.claimed_sum = self.claimed_sum.add(batch_sum);
         }
     };
 
@@ -372,7 +401,7 @@ fn evaluateRangesParallel(
     var active_workers: usize = 0;
     for (0..worker_count) |worker_index| {
         const first_batch = worker_index * batches_per_worker;
-        if (first_batch >= batch_count) break;
+        if (!dynamic and first_batch >= batch_count) break;
         const end_batch = @min(batch_count, first_batch + batches_per_worker);
         workers[active_workers] = .{
             .allocator = allocator,
@@ -383,6 +412,8 @@ fn evaluateRangesParallel(
             .sink = sink,
             .first_row = first_batch * batch_rows,
             .end_row = @min(source.rows(), end_batch * batch_rows),
+            .batch_rows = batch_rows,
+            .queue = if (dynamic) &tickets else null,
         };
         active_workers += 1;
     }
@@ -401,6 +432,16 @@ fn evaluateRangesParallel(
         claimed_sum = claimed_sum.add(worker.claimed_sum);
     }
     return claimed_sum;
+}
+
+test "Cairo interaction batch bounds preserve complete native inversion packs" {
+    try std.testing.expectEqual(default_batch_rows, selectedBatchRows(null));
+    for ([_][]const u8{ "0", "255", "1025", "65536", "bad", "-1", "184467440737095516160" }) |value|
+        try std.testing.expectEqual(default_batch_rows, selectedBatchRows(value));
+    for ([_]usize{ 256, 4096, 8192, 16384, 32768 }) |rows| {
+        var text: [32]u8 = undefined;
+        try std.testing.expectEqual(rows, selectedBatchRows(try std.fmt.bufPrint(&text, "{d}", .{rows})));
+    }
 }
 
 fn secureFields(

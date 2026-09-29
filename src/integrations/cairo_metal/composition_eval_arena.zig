@@ -56,9 +56,8 @@ pub const Error = error{
 /// The production ceiling on one proof's eval arena, in bytes. The arena is the
 /// peak *single component* requirement, not the sum. Keeping this below the
 /// shared commitment residency budget prevents one large builtin from asking
-/// Metal for a multi-gigabyte allocation before the row-tiled evaluator lands.
-/// A plan above the cap is declined before allocation and remains on the exact
-/// host evaluator.
+/// Metal for a multi-gigabyte allocation. Native plans above this limit use the
+/// bounded row-tiled composition reader instead.
 pub const default_byte_cap: usize = 512 * 1024 * 1024;
 /// Diagnostic-only override. The authenticated product ignores this process
 /// setting so a benchmark cannot silently enlarge its admitted working set.
@@ -141,6 +140,16 @@ pub fn expressible(component: composition.Component) bool {
 }
 
 pub fn plan(allocator: std.mem.Allocator, component: composition.Component) !Plan {
+    return planLayout(allocator, component, true);
+}
+
+/// Shared validated geometry, without reserving expanded column storage. Native
+/// callers replace the placement offsets from actual committed column lengths.
+pub fn nativeGeometry(allocator: std.mem.Allocator, component: composition.Component) !Plan {
+    return planLayout(allocator, component, false);
+}
+
+fn planLayout(allocator: std.mem.Allocator, component: composition.Component, expanded: bool) !Plan {
     if (!expressible(component)) return Error.InvalidCompositionComponent;
     const eval_log = component.evaluation_log_size;
     const trace_log = component.trace_log_size;
@@ -177,7 +186,7 @@ pub fn plan(allocator: std.mem.Allocator, component: composition.Component) !Pla
 
     var next: u64 = 0;
     const column_base = next;
-    next += @as(u64, columns) * eval_rows;
+    if (expanded) next += @as(u64, columns) * eval_rows;
     const trace_offsets = next;
     next += columns;
     const interaction_offsets = next;

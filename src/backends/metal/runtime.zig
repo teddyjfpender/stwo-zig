@@ -8,10 +8,11 @@ const command_epoch = @import("command_epoch.zig");
 const shader_manifest = @import("shaders/manifest.zig");
 
 comptime {
-    if (shader_manifest.core_shader_abi != 24) @compileError("Metal core shader ABI drift");
+    if (shader_manifest.core_shader_abi != 27) @compileError("Metal core shader ABI drift");
 }
 
 pub const CommandEpoch = command_epoch.CommandEpoch;
+pub const Blake2LeafStream = @import("runtime/blake2_leaf_stream.zig").Stream;
 pub const CommandEpochStats = command_epoch.Stats;
 pub const ArenaCopyRange = abi.ArenaCopyRange;
 pub const DecommitFriRoundParams = abi.DecommitFriRoundParams;

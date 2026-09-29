@@ -10,6 +10,11 @@ const batch_byte_limit = 128 * 1024 * 1024;
 const traversal = @import("../vcs_lifted/decommit.zig");
 
 pub fn decommit(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
+    return decommitForBackend(void, H, a, tree, queries);
+}
+
+pub fn decommitForBackend(comptime B: type, comptime H: type, a: std.mem.Allocator, tree: anytype, queries: []const usize) !traversal.DecommitmentResult(H) {
+    const native_expansion = comptime B != void and @hasDecl(B, "evaluateCircleBuffers");
     const max_log = tree.commitment.maxLogSize();
     const size = @as(usize, 1) << @intCast(max_log);
     for (queries, 0..) |query, i| {
@@ -77,17 +82,63 @@ pub fn decommit(comptime H: type, a: std.mem.Allocator, tree: anytype, queries: 
             bytes = try std.math.add(usize, bytes, required);
         }
         var jobs: [work_pool.MAX_WORKERS]Expansion = undefined;
+        var native_owners: [work_pool.MAX_WORKERS][]align(std.heap.page_size_max) M31 = undefined;
+        var native_owner_count: usize = 0;
+        defer for (native_owners[0..native_owner_count]) |owner| a.free(owner);
         var initialized_jobs: usize = 0;
-        defer for (jobs[0..initialized_jobs]) |job| if (job.column.coefficient_values != null) a.free(job.values);
+        defer for (jobs[0..initialized_jobs]) |job| {
+            if (!native_expansion and job.column.coefficient_values != null) a.free(job.values);
+            a.free(job.positions);
+        };
         for (indices[next..end], jobs[0 .. end - next]) |index, *job| {
             const column = tree.columns[index];
-            job.* = .{ .column = column, .values = if (column.coefficient_values != null)
-                try a.alloc(M31, @as(usize, 1) << @intCast(column.log_size))
+            const positions = if (!native_expansion and column.coefficient_values != null) blk: {
+                const out = try a.alloc(usize, try std.math.add(usize, queries.len, leaves.items.len));
+                const shift: std.math.Log2Int(usize) = @intCast(max_log - column.log_size + 1);
+                for (queries, out[0..queries.len]) |position, *target| target.* = ((position >> shift) << 1) + (position & 1);
+                for (leaves.items, out[queries.len..]) |position, *target| target.* = ((position >> shift) << 1) + (position & 1);
+                std.sort.heap(usize, out, {}, std.sort.asc(usize));
+                break :blk out;
+            } else &.{};
+            errdefer a.free(positions);
+            job.* = .{ .column = column, .positions = positions, .values = if (column.coefficient_values != null)
+                if (native_expansion) &.{} else try a.alloc(M31, @as(usize, 1) << @intCast(column.log_size))
             else
                 @constCast(column.values), .transform = .{ .root_coset = transform.root_coset, .twiddles = transform.twiddles, .itwiddles = transform.itwiddles } };
             initialized_jobs += 1;
         }
-        if (pool) |active| {
+        if (native_expansion) {
+            var first: usize = 0;
+            while (first < initialized_jobs) {
+                if (jobs[first].column.coefficient_values == null) {
+                    first += 1;
+                    continue;
+                }
+                const log = jobs[first].column.log_size;
+                var last = first + 1;
+                while (last < initialized_jobs and jobs[last].column.log_size == log) : (last += 1) {}
+                var count: usize = 0;
+                for (jobs[first..last]) |job| if (job.column.coefficient_values != null) {
+                    count += 1;
+                };
+                const rows = @as(usize, 1) << @intCast(log);
+                const owner = try a.alignedAlloc(M31, comptime std.mem.Alignment.fromByteUnits(std.heap.page_size_max), try std.math.mul(usize, rows, count));
+                native_owners[native_owner_count] = owner;
+                native_owner_count += 1;
+                var buffers: [work_pool.MAX_WORKERS][]M31 = undefined;
+                count = 0;
+                for (jobs[first..last]) |*job| {
+                    const coefficients = job.column.coefficient_values orelse continue;
+                    job.values = owner[count * rows ..][0..rows];
+                    @memcpy(job.values[0..coefficients.len], coefficients);
+                    @memset(job.values[coefficients.len..], M31.zero());
+                    buffers[count] = job.values;
+                    count += 1;
+                }
+                _ = try B.evaluateCircleBuffers(a, buffers[0..count], poly.CanonicCoset.new(log).circleDomain(), try jobs[first].transform.subtree(log - 1));
+                first = last;
+            }
+        } else if (pool) |active| {
             var group: std.Thread.WaitGroup = .{};
             for (jobs[1..initialized_jobs]) |*job| active.spawnWg(&group, Expansion.run, .{job});
             jobs[0].run();
@@ -159,6 +210,7 @@ const Expansion = struct {
     column: Column,
     values: []M31,
     transform: twiddles.TwiddleTree([]const M31),
+    positions: []const usize,
     failure: ?anyerror = null,
     fn run(self: *@This()) void {
         self.evaluate() catch |err| {
@@ -169,11 +221,12 @@ const Expansion = struct {
         const coefficients = self.column.coefficient_values orelse return;
         const domain = poly.CanonicCoset.new(self.column.log_size).circleDomain();
         @memcpy(self.values[0..coefficients.len], coefficients);
-        if (coefficients.len * 2 == self.values.len) {
-            try poly.poly.evaluateExtensionBuffersWithTwiddles(&.{self.values}, domain, self.transform);
-        } else {
-            @memset(self.values[coefficients.len..], M31.zero());
-            try poly.poly.evaluateBuffersWithTwiddles(&.{self.values}, domain, self.transform);
-        }
+        try @import("../poly/circle/transforms.zig").evaluateSelectedBufferWithTwiddles(
+            self.values,
+            coefficients.len,
+            domain,
+            self.transform,
+            self.positions,
+        );
     }
 };

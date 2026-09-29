@@ -1,0 +1,13 @@
+    Finished `release` profile [optimized] target(s) in 0.22s
+Native core metallib accepted: 233 exact kernel exports, zero function constants, AOT/JIT kernel parity
+    Finished `release` profile [optimized] target(s) in 0.23s
+
+Build Summary: 7/7 steps succeeded
+stwo-cairo-cpu success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 23s MaxRSS:1G
+stwo-cairo-metal success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 32s MaxRSS:1G
+   +- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 376ms MaxRSS:55M
+test-stwo-prover-coefficient-storage success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 20s MaxRSS:783M
+

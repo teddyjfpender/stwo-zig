@@ -1,0 +1,51 @@
+thread 294 panic: invalid canonical identity stwo-cairo-cuda: MissingSourceTree
+/workspace/stwo-zig/build_support/graph/identity.zig:72:46: 0x14cc2c4 in validate (internal_build.zig)
+        const tree = self.source_tree orelse return error.MissingSourceTree;
+                                             ^
+/workspace/stwo-zig/build_support/graph/identity.zig:84:9: 0x14cca95 in digest (internal_build.zig)
+        try self.validate();
+        ^
+/workspace/stwo-zig/build_support/graph/identity.zig:215:75: 0x14cdcf7 in productOptionsWithRuntime (internal_build.zig)
+    const identity_digest = canonical.digest() catch |err| std.debug.panic(
+                                                                          ^
+/workspace/stwo-zig/build_support/products/cairo_cuda.zig:262:49: 0x150b07d in createProductModule (internal_build.zig)
+        graph_identity.productOptionsWithRuntime(
+                                                ^
+/workspace/stwo-zig/build_support/products/cairo_cuda.zig:114:37: 0x143e731 in addProduct (internal_build.zig)
+    const root = createProductModule(context, descriptor.product, stwo);
+                                    ^
+/workspace/stwo-zig/build_support/products/matrix.zig:67:49: 0x1355431 in construct (internal_build.zig)
+            .cairo_cuda => cairo_cuda.addProduct(.{
+                                                ^
+/workspace/stwo-zig/build_support/internal_build.zig:199:43: 0x12f5fa3 in constructProduct (internal_build.zig)
+    const constructed = products.construct(.{
+                                          ^
+/workspace/stwo-zig/build_support/internal_build.zig:60:150: 0x12ab9b7 in build (internal_build.zig)
+        .core, .prover, .native_cpu, .native_cuda, .native_metal, .riscv_cpu, .riscv_metal, .cairo_cpu, .cairo_metal, .cairo_cuda => constructProduct(
+                                                                                                                                                     ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/std/Build.zig:2214:33: 0x127d0da in runBuild__anon_23831 (std.zig)
+        .void => build_zig.build(b),
+                                ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/compiler/build_runner.zig:366:29: 0x1262ff1 in main (build_runner.zig)
+        try builder.runBuild(root);
+                            ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/std/start.zig:627:37: 0x1269c69 in posixCallMainAndExit (std.zig)
+            const result = root.main() catch |err| {
+                                    ^
+/opt/zig/zig-x86_64-linux-0.15.2/lib/std/start.zig:232:5: 0x1248351 in _start (std.zig)
+    asm volatile (switch (native_arch) {
+    ^
+???:?:?: 0x0 in ??? (???)
+error: the following build command crashed:
+.zig-cache/products/cairo_cuda/o/c0fa79e27babeab0665be154d22aeca0/build /opt/zig/zig-x86_64-linux-0.15.2/zig /opt/zig/zig-x86_64-linux-0.15.2/lib /workspace/stwo-zig/build_support .zig-cache/products/cairo_cuda /root/.cache/zig --seed 0x34153cdc -Z88053a1639fa7804 stwo-cairo-cuda -p /workspace/stwo-zig/zig-out -Drepository-root=/workspace/stwo-zig -Dproduct-scope=cairo_cuda -Doptimize=ReleaseFast -Dcuda-nvcc=/usr/local/cuda/bin/nvcc -Dcuda-host-cxx=/usr/bin/g++ -Dcuda-host-runtime=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -Dcuda-host-unwind-runtime=/usr/lib/x86_64-linux-gnu/libgcc_s.so.1 -Dcuda-ar=/usr/bin/ar -Dcuda-home=/usr/local/cuda -Dcuda-library-dir=/usr/local/cuda/lib64 -Dcuda-arch=sm_90 -Dcuda-build-jobs=8 -Dimplementation-commit=7e95ce3017c16be868f9c0ea883c3c5c112723d8 -Dimplementation-dirty=true -Dimplementation-dirty-content-sha256=df33eb098bce5f60e193c6806fe50953e7c4da2fbb2b1efbff3767b21c34ae71
+stwo-cairo-cuda
++- run /opt/zig/zig-x86_64-linux-0.15.2/zig failure
+error: the following command exited with error code 1:
+/opt/zig/zig-x86_64-linux-0.15.2/zig build stwo-cairo-cuda --build-file /workspace/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/cairo_cuda -p /workspace/stwo-zig/zig-out -Drepository-root=/workspace/stwo-zig -Dproduct-scope=cairo_cuda -Doptimize=ReleaseFast -Dcuda-nvcc=/usr/local/cuda/bin/nvcc -Dcuda-host-cxx=/usr/bin/g++ -Dcuda-host-runtime=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -Dcuda-host-unwind-runtime=/usr/lib/x86_64-linux-gnu/libgcc_s.so.1 -Dcuda-ar=/usr/bin/ar -Dcuda-home=/usr/local/cuda -Dcuda-library-dir=/usr/local/cuda/lib64 -Dcuda-arch=sm_90 -Dcuda-build-jobs=8 -Dimplementation-commit=7e95ce3017c16be868f9c0ea883c3c5c112723d8 -Dimplementation-dirty=true -Dimplementation-dirty-content-sha256=df33eb098bce5f60e193c6806fe50953e7c4da2fbb2b1efbff3767b21c34ae71
+
+Build Summary: 0/2 steps succeeded; 1 failed
+stwo-cairo-cuda transitive failure
++- run /opt/zig/zig-x86_64-linux-0.15.2/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/2f5afdb1a88b1c649d333ba1801a630b/build /opt/zig/zig-x86_64-linux-0.15.2/zig /opt/zig/zig-x86_64-linux-0.15.2/lib /workspace/stwo-zig .zig-cache /root/.cache/zig --seed 0x7e12e14f -Z2a35ef2fb51ab52f stwo-cairo-cuda -Doptimize=ReleaseFast -Dimplementation-commit=7e95ce3017c16be868f9c0ea883c3c5c112723d8 -Dimplementation-dirty=true -Dimplementation-dirty-content-sha256=df33eb098bce5f60e193c6806fe50953e7c4da2fbb2b1efbff3767b21c34ae71 -Dcuda-nvcc=/usr/local/cuda/bin/nvcc -Dcuda-host-cxx=/usr/bin/g++ -Dcuda-host-runtime=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 -Dcuda-host-unwind-runtime=/usr/lib/x86_64-linux-gnu/libgcc_s.so.1 -Dcuda-ar=/usr/bin/ar -Dcuda-home=/usr/local/cuda -Dcuda-library-dir=/usr/local/cuda/lib64 -Dcuda-arch=sm_90 -Dcuda-build-jobs=8 -j2 --summary all

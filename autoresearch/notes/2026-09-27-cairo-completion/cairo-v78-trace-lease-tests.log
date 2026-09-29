@@ -1,0 +1,4 @@
+1/3 proving.air.trace_lease_test.test.Cairo trace lease reconstructs only mask columns and preserves borrowed sources...OK
+2/3 proving.air.trace_lease_test.test.Cairo trace lease releases every reconstruction allocation failure...OK
+3/3 proving.air.trace_lease_test.test.Cairo trace lease parallel reconstruction matches serial polynomial values...OK
+All 3 tests passed.

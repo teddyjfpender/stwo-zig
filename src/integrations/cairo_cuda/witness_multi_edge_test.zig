@@ -43,8 +43,8 @@ const FakeApi = struct {
             const edge = descriptors[edge_index];
             const local_row = source_global_row -
                 edge.destination_row_offset;
-            const instance = local_row / edge.producer_rows;
-            const producer_row = local_row % edge.producer_rows;
+            const instance = local_row / edge.activeRows();
+            const producer_row = local_row % edge.activeRows();
             for (0..input_width) |word| {
                 const source_word = @as(u64, edge.word_base) +
                     @as(u64, instance) * input_width + word;
@@ -289,7 +289,7 @@ test "multi-edge topology rejects order, width, source, and reserved drift" {
         ),
     );
     changed = valid;
-    changed[0].reserved = 1;
+    changed[0].active_rows = changed[0].producer_rows + 1;
     try std.testing.expectError(
         error.InvalidKernelDescriptor,
         witness.prepareMultiEdgeTopology(
@@ -345,4 +345,29 @@ test "multi-edge executor rejects output alias and stage drift" {
             matrix(&producer, 32),
         ),
     );
+}
+
+test "multi-edge gather separates active rows from physical column stride" {
+    var producer: [160]u32 = undefined;
+    for (&producer, 0..) |*value, index| value.* = @intCast(10000 + index);
+    const edges = [_]witness.MultiEdgeDescriptor{
+        .{ .source_offset_words = 0, .producer_rows = 16, .active_rows = 5, .word_base = 1, .words_per_instance = 2, .instance_count = 1, .destination_row_offset = 0 },
+        .{ .source_offset_words = 64, .producer_rows = 32, .active_rows = 11, .word_base = 0, .words_per_instance = 2, .instance_count = 1, .destination_row_offset = 5 },
+    };
+    var device_edges: [2]witness.MultiEdgeDescriptor = undefined;
+    var outputs = [_]u32{999} ** 48;
+    var session = FakeSession{};
+    const topology = try witness.prepareMultiEdgeTopology(&session, &edges, view(witness.MultiEdgeDescriptor, &device_edges), producer.len, true, false);
+    try std.testing.expectEqual(@as(u32, 16), topology.total_real_rows);
+    try std.testing.expectEqual(@as(u32, 16), topology.consumer_rows);
+    FakeApi.expected_stream = session.context.stream;
+    session.context.active_stage = .trace_generation;
+    try witness.OpsFor(FakeApi).gatherEdges(&session, topology, words(&producer), matrix(&outputs, 16));
+    for (0..16) |row| {
+        const first = if (row < 5) producer[16 + row] else producer[64 + row - 5];
+        const second = if (row < 5) producer[32 + row] else producer[96 + row - 5];
+        try std.testing.expectEqual(first, outputs[row]);
+        try std.testing.expectEqual(second, outputs[16 + row]);
+        try std.testing.expectEqual(@as(u32, 1), outputs[32 + row]);
+    }
 }

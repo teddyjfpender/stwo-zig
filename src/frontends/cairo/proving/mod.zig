@@ -17,3 +17,5 @@ test {
     _ = transaction;
     _ = transcript;
 }
+
+pub const trace_commit = @import("trace_commit.zig");

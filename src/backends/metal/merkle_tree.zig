@@ -12,6 +12,7 @@ const hash_domain = @import("hash_domain.zig");
 const runtime_mod = @import("runtime.zig");
 const shared_runtime = @import("shared_runtime.zig");
 const telemetry = @import("telemetry.zig");
+const cached_columns = @import("runtime/cached_column_views.zig");
 
 const M31 = m31.M31;
 
@@ -109,15 +110,31 @@ pub fn MetalMerkleTree(comptime H: type) type {
                 return result;
             }
         };
+        /// Borrow authenticated host layers for coefficient-backed query reconstruction.
+        /// This does not transfer any tree or resident-column ownership.
+        pub fn coefficientOpeningCommitment(self: *const Self) !HostTree {
+            return switch (self.storage) {
+                .host => |tree| tree,
+                .cached => |cached| cached.hashes,
+                .resident => error.UnsupportedCompactPolynomialStorage,
+            };
+        }
+
         const Storage = union(enum) {
             host: HostTree,
             resident: ResidentTree,
+            cached: struct { hashes: HostTree, columns: cached_columns.View },
         };
 
         pub const DecommitmentResult = decommit_mod.DecommitmentResult(H);
 
         pub fn fromHost(tree: HostTree) Self {
             return .{ .storage = .{ .host = tree } };
+        }
+
+        pub fn fromCached(tree: HostTree, columns: cached_columns.View) Self {
+            shared_runtime.retainResidentResource();
+            return .{ .storage = .{ .cached = .{ .hashes = tree, .columns = columns } } };
         }
 
         pub fn fromResident(tree: runtime_mod.Tree) !Self {
@@ -233,6 +250,13 @@ pub fn MetalMerkleTree(comptime H: type) type {
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
             switch (self.storage) {
+                .cached => |cached| {
+                    var hashes = cached.hashes;
+                    hashes.deinit(allocator);
+                    var columns = cached.columns;
+                    columns.deinit();
+                    shared_runtime.releaseResidentResource();
+                },
                 .host => |tree_value| {
                     var tree = tree_value;
                     tree.deinit(allocator);
@@ -249,6 +273,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
         pub fn root(self: Self) H.Hash {
             return switch (self.storage) {
                 .host => |tree| tree.root(),
+                .cached => |cached| cached.hashes.root(),
                 .resident => |resident| resident.root_hash,
             };
         }
@@ -256,8 +281,29 @@ pub fn MetalMerkleTree(comptime H: type) type {
         pub fn maxLogSize(self: Self) u32 {
             return switch (self.storage) {
                 .host => |tree| tree.maxLogSize(),
+                .cached => |cached| cached.hashes.maxLogSize(),
                 .resident => |resident| resident.tree.log_size,
             };
+        }
+
+        /// Match the host's bounded query reconstruction policy. Resident
+        /// column bindings survive compaction for AIR/quotient evaluation.
+        pub fn compactForQueries(self: *Self) void {
+            if (self.maxLogSize() < 20) return;
+            self.pruneBottomLayers(4);
+        }
+
+        /// A large cascade shares one hash arena across all its trees. Detach
+        /// every tree, including its small tail, before releasing that arena.
+        pub fn pruneBottomLayers(self: *Self, count: u32) void {
+            switch (self.storage) {
+                .host => |*tree| tree.pruneBottomLayers(count),
+                .cached => |*cached| cached.hashes.pruneBottomLayers(count),
+                .resident => |*resident| {
+                    if (resident.tree.pruneBottomLayers(count))
+                        telemetry.record(.compacted_merkle_layer_adoption);
+                },
+            }
         }
 
         /// Returns a borrowed handle only when this commitment is backed by a
@@ -265,6 +311,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
         pub fn quotientResidencyHandle(self: Self) ?*anyopaque {
             return switch (self.storage) {
                 .host => null,
+                .cached => |cached| cached.columns.handle,
                 .resident => |resident| resident.tree.handle,
             };
         }
@@ -277,6 +324,7 @@ pub fn MetalMerkleTree(comptime H: type) type {
         ) (std.mem.Allocator.Error || error{InvalidColumnSize})![]H.Hash {
             return switch (self.storage) {
                 .host => |tree| tree.readHashes(allocator, layer_log_size, indices),
+                .cached => |cached| cached.hashes.readHashes(allocator, layer_log_size, indices),
                 .resident => |resident| blk: {
                     if (@sizeOf(H.Hash) != @sizeOf([32]u8)) {
                         return error.InvalidColumnSize;
@@ -305,8 +353,18 @@ pub fn MetalMerkleTree(comptime H: type) type {
             columns: []const []const M31,
         ) (std.mem.Allocator.Error || error{InvalidColumnSize})!DecommitmentResult {
             return switch (self.storage) {
-                .host => |tree| decommit_mod.decommit(H, tree, allocator, query_positions, columns),
-                .resident => |resident| decommit_mod.decommit(
+                .host => |tree| tree.decommit(allocator, query_positions, columns),
+                .cached => |cached| cached.hashes.decommit(allocator, query_positions, columns),
+                .resident => |resident| if (resident.tree.pruned_bottom_layers != 0) blk: {
+                    const sorted = try HostTree.sortColumnsByLogSizeAsc(allocator, columns);
+                    defer allocator.free(sorted);
+                    if (sorted.len == 0 or sorted[sorted.len - 1].log_size != self.maxLogSize())
+                        return error.InvalidColumnSize;
+                    const Reader = @import("stwo_prover_engine").vcs_lifted.query_reconstruction.Reader(H, Self);
+                    var reader = try Reader.init(allocator, self, sorted, self.maxLogSize() - resident.tree.pruned_bottom_layers, query_positions);
+                    defer reader.deinit(allocator);
+                    break :blk try decommit_mod.decommit(H, reader, allocator, query_positions, columns);
+                } else decommit_mod.decommit(
                     H,
                     ResidentBatchReader{ .tree = resident.tree },
                     allocator,

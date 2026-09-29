@@ -1,0 +1,26 @@
+{
+  "harness": "row_chunks_execution.cu",
+  "operation": "default",
+  "source_sha256": "1382915e94d69db0a872168b473c0a4a8769986feb4fc509709daf9a9196d961",
+  "passed": true,
+  "source_dependencies": [
+    {
+      "name": "kernel.cu",
+      "sha256": "4866bc3ce2c4d4ee968d8e98dd2c2d445111ef63fcd299bdc335abc49da5663e"
+    },
+    {
+      "name": "row_fixtures.cuh",
+      "sha256": "3548ac4c483fc79f499add5432fc15dbd41f10ff18875050ab136b610bb1be33"
+    },
+    {
+      "name": "row_parity.zig",
+      "sha256": "a7be721184b835261543a85a4ee2581adbd3f6f930ae074c1351fc4b4804f947"
+    },
+    {
+      "name": "row_chunks.zig",
+      "sha256": "f4e963ef5e44a5394d536d7f0a701f1b7166e76688d2173bdbc6501875418981"
+    }
+  ],
+  "apple_gpu_launch": true,
+  "exit_code": 0
+}

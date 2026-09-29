@@ -17,6 +17,7 @@ const request_compiler = @import("../request_compiler.zig");
 const resident_plan = @import("resident_plan.zig");
 const trace_writer = @import("trace_writer_controller.zig");
 const trace_commit = @import("trace_commit.zig");
+const relation_binding = @import("ingress/relation_binding.zig");
 const eval_controller = @import("eval/controller.zig");
 const pcs_types = @import("pcs_hooks_types.zig");
 const oods_controller = @import("pcs_oods_controller.zig");
@@ -50,6 +51,7 @@ pub const Controllers = struct {
     evaluation: *const eval_controller.Bound,
     pcs_bindings: pcs_types.Bindings,
     relation: *const relation_stage.PreparedPlan,
+    relation_sources: *const relation_binding.SourceRegistry,
     oods: *oods_controller.Prepared,
     quotient: *const quotient_controller.Prepared,
     fri: *fri_controller.Prepared,
@@ -317,6 +319,8 @@ pub const Prepared = struct {
         plan: *const resident_plan.Plan,
         protocol: compact.CompactProtocolV1,
     ) !decommit_controller.TerminalRoute {
+        var phase: []const u8 = "validate_session";
+        errdefer std.debug.print("cairo-cuda proof phase={s} failed\n", .{phase});
         try self.validate(plan, protocol);
         if (self.state != .prepared)
             return error.InvalidProofSessionState;
@@ -354,7 +358,11 @@ pub const Prepared = struct {
         };
 
         try transaction.beginStage(.trace_commit);
+        phase = "retain_relation_inputs";
+        try self.controllers.relation_sources.captureBaseInputs(session);
+        phase = "preprocessed_commit";
         try self.controllers.preprocessed_commit.execute(session);
+        phase = "main_commit";
         try self.controllers.main_commit.execute(session);
         try proof_capture.captureStaticTraceRoot(
             session,
@@ -368,6 +376,7 @@ pub const Prepared = struct {
             1,
             self.controllers.main_commit.root,
         );
+        phase = "transcript_bootstrap";
         try transcript_controller.initialize(
             runtime_stages.transcript.Native,
             session,
@@ -390,6 +399,7 @@ pub const Prepared = struct {
                 source,
             );
         }
+        phase = "interaction_pow";
         try transcript_controller.executePow(
             runtime_stages.fri.Native,
             runtime_stages.transcript.Native,
@@ -416,6 +426,7 @@ pub const Prepared = struct {
             1,
             self.bindings.relation_elements,
         );
+        phase = "relation_trace";
         try relation_stage.TraceCommitNative.execute(
             session,
             self.controllers.relation,
@@ -427,6 +438,7 @@ pub const Prepared = struct {
                 self.controllers.relation,
             ),
         );
+        phase = "interaction_commit";
         try self.controllers.interaction_commit.execute(session);
         try proof_capture.captureTraceRoot(
             session,
@@ -473,12 +485,14 @@ pub const Prepared = struct {
         try transaction.endStage(.trace_commit);
 
         try transaction.beginStage(.constraint_evaluation);
+        phase = "constraint_evaluation";
         try self.controllers.evaluation.execute(
             transaction,
             self.controllers.pcs_bindings,
             self.bindings.composition_alpha,
         );
         try common.requireStage(session, .constraint_evaluation);
+        phase = "composition_commit";
         try self.controllers.composition_commit.execute(session);
         try proof_capture.captureTraceRoot(
             session,
@@ -504,6 +518,7 @@ pub const Prepared = struct {
         try transaction.endStage(.constraint_evaluation);
 
         try transaction.beginStage(.oods);
+        phase = "oods";
         try self.controllers.oods.execute(
             session,
             self.transcript,
@@ -512,10 +527,12 @@ pub const Prepared = struct {
         try transaction.endStage(.oods);
 
         try transaction.beginStage(.quotient);
+        phase = "quotient";
         try self.controllers.quotient.execute(session);
         try transaction.endStage(.quotient);
 
         try transaction.beginStage(.fri_commit);
+        phase = "fri";
         try self.controllers.fri.execute(
             session,
             self.transcript,
@@ -543,6 +560,7 @@ pub const Prepared = struct {
         try transaction.endStage(.pow);
 
         try transaction.beginStage(.decommit);
+        phase = "decommit";
         const route = try self.controllers.decommit.execute(
             session,
             plan,

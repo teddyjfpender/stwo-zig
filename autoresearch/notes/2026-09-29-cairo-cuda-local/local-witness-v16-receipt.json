@@ -1,0 +1,119 @@
+{
+  "schema": "stwo-zig-cairo-cuda-local-v1",
+  "provider": "cumetal",
+  "evidence_class": "apple_gpu_translation",
+  "nvidia_qualified": false,
+  "full_proof_verified": false,
+  "checkout_commit": "e74b377942f9d2db0f2dde14c5a1b51a9c678692",
+  "checkout_patch_sha256": "6dc5fc7075ed35f2e242489a0c84551c9dbc02e809f41dcb414ca708ebbdb8cb",
+  "compiler_sha256": "26063393ad803513cf699054014d29748ccaba4242c4daa21dfdada40948aafa",
+  "clang_sha256": "305697d3868243dca6e4aabf4f628df7de135d701eb4fd78f6a5d7528fef4395",
+  "complete_inventory": false,
+  "inline_threshold": null,
+  "retry_receipt_sha256": null,
+  "runtime_sha256": "44e7c686dd33980782ec2ceaa9d54d310b160fe1757b772158710cc3447c18b5",
+  "selected_entries": 1,
+  "compile_passed": 1,
+  "compilations": [
+    {
+      "label": "ec_op_builtin",
+      "kernel": "stwo_jit_witness_becbbf6f2f210ad9",
+      "kind": "witness",
+      "source_sha256": "590625f76c5c4681924f28aedb2e2f6c632ab12db86bd8deeeffb261aacfa4ac",
+      "cache_key": "03e706cb53ccd54d",
+      "exit_code": 0,
+      "compiled": true,
+      "device_executed": false,
+      "elapsed_s": 32.4008608328877,
+      "diagnostic_sha256": "1cba849c66f99f5938fe5f2c8611d0853b7bce80b4ba6f63ceabbd41c0ed5f2b"
+    }
+  ],
+  "numerical": [
+    {
+      "harness": "powers_execution.cu",
+      "operation": "default",
+      "source_sha256": "9f9879199848a8d09c9d97f8e4ea56d5f1fc1a16fe9c35586c833a7ff8fdb344",
+      "passed": true,
+      "source_dependencies": [
+        {
+          "name": "powers.cu",
+          "sha256": "eb14bf504d07afe1b34b4ee158c6e99e394a6a8bae1d749e47de07f5f6ecfa77"
+        }
+      ],
+      "apple_gpu_launch": true,
+      "exit_code": 0
+    },
+    {
+      "harness": "active_feeds_execution.cu",
+      "operation": "default",
+      "source_sha256": "9fe26c949a43ebc05fbae4ae19e96270a2a3315555461b523882ce52085e43ad",
+      "passed": true,
+      "source_dependencies": [
+        {
+          "name": "active_feeds.cu",
+          "sha256": "97ced4ded1bbc869aaf3814a3b29fdc2a002dbf55af4aa92bd5988f3c91e8259"
+        }
+      ],
+      "apple_gpu_launch": true,
+      "exit_code": 0
+    },
+    {
+      "harness": "felt252_execution.cu",
+      "operation": "default",
+      "source_sha256": "346f10165559f95eae1eb112a27ea9f4311e3204e9cf9365fdf24b7a813ae11f",
+      "passed": true,
+      "source_dependencies": [
+        {
+          "name": "witness_cube_252_7f009abde6c86ba6.cu",
+          "sha256": "300795f1682e5ad34a8f45f70c04930fd248838089e93d499473f16ecaf3d1d6"
+        },
+        {
+          "name": "felt252_fixtures.cuh",
+          "sha256": "bc23ad886aed4544bbaf5f566b5865c5b078f02c575bae4e2ee6f2126fbb274a"
+        }
+      ],
+      "apple_gpu_launch": true,
+      "exit_code": 0
+    },
+    {
+      "harness": "parametric_air_execution.cu",
+      "operation": "default",
+      "source_sha256": "8697b109916f18117b2c13d4aa719e3c51ccefd3c0c00f8e885132d28d9d8402",
+      "passed": true,
+      "source_dependencies": [
+        {
+          "name": "kernel.cu",
+          "sha256": "ad1d6d3c5a8c97366b3cdbab5725bc91e20c3e9a24e0bb676cadedc1a04af42d"
+        },
+        {
+          "name": "air_fixtures.cuh",
+          "sha256": "97fca5d236b3a4d6766e8a5921d3a0200c13dc776d117de113c183024a108f22"
+        },
+        {
+          "name": "eval_codegen_parity.zig",
+          "sha256": "3c93a3d0642dd181efb75be1e6c54568c9bc182f1d7baf936197635269456b17"
+        }
+      ],
+      "apple_gpu_launch": true,
+      "exit_code": 0
+    },
+    {
+      "harness": "felt252_execution.cu",
+      "operation": "inverse",
+      "source_sha256": "346f10165559f95eae1eb112a27ea9f4311e3204e9cf9365fdf24b7a813ae11f",
+      "passed": true,
+      "source_dependencies": [
+        {
+          "name": "witness_partial_ec_mul_generic_d2f86f9bba4edf22.cu",
+          "sha256": "57784a6509acb2cce01887de18bd5b51dc03286a1ed1b9d0af395aaaf1563572"
+        },
+        {
+          "name": "felt252_inverse_fixtures.cuh",
+          "sha256": "a5acb640c5597e4cb2d05cf48c0ce2bcf98555bb77fd6e49ec561ec2142a5d7e"
+        }
+      ],
+      "apple_gpu_launch": true,
+      "exit_code": 0
+    }
+  ]
+}

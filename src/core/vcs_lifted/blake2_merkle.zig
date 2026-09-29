@@ -144,13 +144,12 @@ fn Blake2sMerkleHasherProtocolGeneric(
                 }
                 return InnerHasher.hashFinal64FromSeed4WithMode(mode, seed, &payloads);
             }
-            var out: [4]Hash = undefined;
-            for (&out, 0..) |*digest, lane| digest.* = InnerHasher.concatAndHashWithMode(
-                mode,
-                children[2 * lane],
-                children[2 * lane + 1],
-            );
-            return out;
+            var payloads: [4][64]u8 = undefined;
+            for (&payloads, 0..) |*payload, lane| {
+                @memcpy(payload[0..32], children[2 * lane][0..]);
+                @memcpy(payload[32..64], children[2 * lane + 1][0..]);
+            }
+            return InnerHasher.hashFixedSingleBlock4WithMode(64, mode, &payloads);
         }
 
         pub fn hashPackedLeavesWithSeed4(seed: NodeSeed, messages: *const [4][]const u8) [4]Hash {
@@ -164,9 +163,7 @@ fn Blake2sMerkleHasherProtocolGeneric(
         ) [4]Hash {
             if (comptime hash_protocol == .domain_prefixed)
                 return InnerHasher.hashEqualFromSeed4WithMode(mode, seed, messages);
-            var out: [4]Hash = undefined;
-            for (&out, messages) |*digest, message| digest.* = InnerHasher.hashWithMode(mode, message);
-            return out;
+            return InnerHasher.hashEqual4WithMode(mode, messages);
         }
 
         pub fn hashDirectM31LeavesWithSeed4(
@@ -188,6 +185,10 @@ fn Blake2sMerkleHasherProtocolGeneric(
                 columns,
                 position,
             );
+        }
+
+        pub fn hashDirectLiftedM31LeavesWithSeed4(seed: NodeSeed, columns: anytype, position: usize, max_log_size: u32) [4]Hash {
+            return InnerHasher.hashLiftedM31Columns4WithMode(defaultMode(), if (hash_protocol == .domain_prefixed) seed else null, columns, position, max_log_size);
         }
 
         pub fn updateLeaf(self: *Self, column_values: []const M31) void {
@@ -422,4 +423,32 @@ test "vcs_lifted blake2: hashChildrenWithSeed matches fixed parent hash" {
     );
     const direct = Blake2sMerkleHasher.hashChildren(.{ .left = left, .right = right });
     try std.testing.expect(std.mem.eql(u8, seeded[0..], direct[0..]));
+}
+
+test "BLAKE2s direct mixed-height SIMD leaves match independent scalar messages" {
+    const Column = struct { values: []const M31, log_size: u32 };
+    var storage: [127][256]M31 = undefined;
+    var columns: [127]Column = undefined;
+    for (&storage, &columns, 0..) |*values, *column, index| {
+        const log_size: u32 = @intCast(1 + index % 8);
+        for (values, 0..) |*value, row| value.* = M31.fromCanonical(@intCast((index * 71 + row * 19) % 2147483647));
+        column.* = .{ .values = values[0 .. @as(usize, 1) << @intCast(log_size)], .log_size = log_size };
+    }
+    inline for (.{ Blake2sMerkleHasher, Blake2sPlainMerkleHasher }) |H| {
+        for ([_]usize{ 1, 15, 16, 17, 31, 32, 33, 65, 127 }) |count| {
+            var position: usize = 0;
+            while (position < 256) : (position += 4) {
+                const actual = H.hashDirectLiftedM31LeavesWithSeed4(H.leafSeed(), columns[0..count], position, 8);
+                for (actual, 0..) |digest, lane| {
+                    var scalar = H.defaultWithInitialStateWithMode(.scalar);
+                    for (columns[0..count]) |column| {
+                        const shift: std.math.Log2Int(usize) = @intCast(8 - column.log_size + 1);
+                        const source = (((position + lane) >> shift) << 1) + ((position + lane) & 1);
+                        scalar.updateLeaf(column.values[source..][0..1]);
+                    }
+                    try std.testing.expectEqualSlices(u8, &scalar.finalize(), &digest);
+                }
+            }
+        }
+    }
 }

@@ -68,11 +68,11 @@ test "Ethereum AOT profile preserves exact core authority and admits five separa
     try std.testing.expectEqualStrings(core_source, Profile.core_v2.source());
     try std.testing.expectEqualDeep(manifest.nativeAmalgamatedSourceDigest(), Profile.core_v2.sourceDigest());
     // Pin the reviewed core source including BLAKE3 PoW, parents, direct/staged and packed FRI leaves.
-    try std.testing.expectEqualStrings("2908f52d54516a3b3586a6502799b050e051957a7c2622111b5f65ced4ba9e07", &std.fmt.bytesToHex(Profile.core_v2.sourceDigest(), .lower));
-    try std.testing.expectEqual(@as(usize, 199), Profile.core_v2.exports().len);
+    try std.testing.expectEqualStrings("74061bdfca03753b626480f634dfc6b6c9c727887d65981c5dfbc3ff69dce95d", &std.fmt.bytesToHex(Profile.core_v2.sourceDigest(), .lower));
+    try std.testing.expectEqual(@as(usize, 234), Profile.core_v2.exports().len);
     try std.testing.expectEqualDeep(manifest.native_exports[0..], Profile.core_v2.exports());
     try std.testing.expectEqualDeep(abi.native_kernel_abi[0..], Profile.core_v2.kernelAbi());
-    try std.testing.expectEqual(@as(usize, 204), Profile.ethereum_fixed_program_narrow_v1.exports().len);
+    try std.testing.expectEqual(@as(usize, 239), Profile.ethereum_fixed_program_narrow_v1.exports().len);
     try std.testing.expect(!std.meta.eql(Profile.core_v2.sourceDigest(), Profile.ethereum_fixed_program_narrow_v1.sourceDigest()));
     inline for (generated.entries) |entry| {
         const digest = try @import("abi_declaration_digest.zig").declarationDigestHex(ethereum_extension_source, entry.name);

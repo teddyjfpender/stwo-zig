@@ -1,0 +1,231 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-suite-v1",
+  "status": "qualified",
+  "selection": [
+    "fibonacci-pie",
+    "sn-pie-1",
+    "sn-pie-2",
+    "sn-pie-3"
+  ],
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "records": [
+    {
+      "workload": "fibonacci-pie",
+      "status": "qualified",
+      "product_sha256": "ca523489dba7a64385e9c7d49b966b2cbbef006bb8aabb8e24bd2571da077cb5",
+      "summary": {
+        "median_process_wall_ns": 1829165083,
+        "median_prove_ns": 621687208,
+        "peak_process_rss_bytes": 1551351808
+      },
+      "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-sampled-wide-v1/fibonacci-pie-metal-workers-auto/results.json",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 312430958,
+        "user_ns": 290223000,
+        "system_ns": 9326000,
+        "max_process_tree_rss_bytes": 26689536,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 40,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.0024003982543945312,
+          "library_preparation_seconds": 0.014763951301574707
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 531500272
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 118,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 8,
+        "commit_source_arena_memcpys": 6,
+        "commit_source_uploads": 31
+      }
+    },
+    {
+      "workload": "sn-pie-1",
+      "status": "qualified",
+      "product_sha256": "ca523489dba7a64385e9c7d49b966b2cbbef006bb8aabb8e24bd2571da077cb5",
+      "summary": {
+        "median_process_wall_ns": 163512677750,
+        "median_prove_ns": 159050786792,
+        "peak_process_rss_bytes": 44621889536
+      },
+      "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-sampled-wide-v1/sn-pie-1-metal-workers-auto/results.json",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 702092084,
+        "user_ns": 623396000,
+        "system_ns": 19713000,
+        "max_process_tree_rss_bytes": 39895040,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 40,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.018586039543151855,
+          "library_preparation_seconds": 0.02895498275756836
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 531500272
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 134,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 58
+      }
+    },
+    {
+      "workload": "sn-pie-2",
+      "status": "qualified",
+      "product_sha256": "ca523489dba7a64385e9c7d49b966b2cbbef006bb8aabb8e24bd2571da077cb5",
+      "summary": {
+        "median_process_wall_ns": 18168456417,
+        "median_prove_ns": 15714261292,
+        "peak_process_rss_bytes": 27052982272
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-sampled-wide-v1/sn-pie-2-metal-workers-auto/results.json",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 631210875,
+        "user_ns": 609029000,
+        "system_ns": 5818000,
+        "max_process_tree_rss_bytes": 39354368,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 42,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.0028585195541381836,
+          "library_preparation_seconds": 0.010161995887756348
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 531500272
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 141,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 60
+      }
+    },
+    {
+      "workload": "sn-pie-3",
+      "status": "qualified",
+      "product_sha256": "ca523489dba7a64385e9c7d49b966b2cbbef006bb8aabb8e24bd2571da077cb5",
+      "summary": {
+        "median_process_wall_ns": 162805675709,
+        "median_prove_ns": 158289766875,
+        "peak_process_rss_bytes": 43966300160
+      },
+      "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-sampled-wide-v1/sn-pie-3-metal-workers-auto/results.json",
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 693768791,
+        "user_ns": 622946000,
+        "system_ns": 17803000,
+        "max_process_tree_rss_bytes": 39632896,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 39,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.011071085929870605,
+          "library_preparation_seconds": 0.08776795864105225
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 531500272
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 135,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 58
+      }
+    }
+  ]
+}

@@ -3,6 +3,8 @@ const fft = @import("stwo_core").fft;
 const m31 = @import("stwo_core").fields.m31;
 const domain_mod = @import("stwo_core").poly.circle.domain;
 const fft_kernels = @import("fft_kernels.zig");
+const radix8 = @import("fft_radix8.zig");
+const WorkPool = @import("../../work_pool.zig").WorkPool;
 const twiddles_mod = @import("../twiddles.zig");
 
 const M31 = m31.M31;
@@ -57,58 +59,71 @@ fn scaleM31(values: []M31, scalar: M31) void {
     }
 }
 
-fn forwardBottomLayers(
+fn bottomLayersRange(
     values: []M31,
     line_log_size: u32,
     twiddles: []const M31,
     layer_count: u32,
+    first: usize,
+    end: usize,
+    comptime inverse_transform: bool,
 ) void {
-    const t01s = layerTwiddles(twiddles, line_log_size, 1);
-    const t2s = layerTwiddles(twiddles, line_log_size, 2);
+    const t01s = layerTwiddles(twiddles, line_log_size, 1)[first / 4 .. end / 4];
+    const t2s = layerTwiddles(twiddles, line_log_size, 2)[first / 8 .. end / 8];
+    const kernel3 = if (inverse_transform) fft_kernels.fftBottomThreeLayersInverseM31 else fft_kernels.fftBottomThreeLayersForwardM31;
+    const kernel4 = if (inverse_transform) fft_kernels.fftBottomFourLayersInverseM31 else fft_kernels.fftBottomFourLayersForwardM31;
+    const kernel5 = if (inverse_transform) fft_kernels.fftBottomFiveLayersInverseM31 else fft_kernels.fftBottomFiveLayersForwardM31;
     switch (layer_count) {
-        3 => fft_kernels.fftBottomThreeLayersForwardM31(values, t2s, t01s),
-        4 => fft_kernels.fftBottomFourLayersForwardM31(
-            values,
-            layerTwiddles(twiddles, line_log_size, 3),
-            t2s,
-            t01s,
-        ),
-        5 => fft_kernels.fftBottomFiveLayersForwardM31(
-            values,
-            layerTwiddles(twiddles, line_log_size, 4),
-            layerTwiddles(twiddles, line_log_size, 3),
-            t2s,
-            t01s,
-        ),
+        3 => kernel3(values[first..end], t2s, t01s),
+        4 => kernel4(values[first..end], layerTwiddles(twiddles, line_log_size, 3)[first / 16 .. end / 16], t2s, t01s),
+        5 => kernel5(values[first..end], layerTwiddles(twiddles, line_log_size, 4)[first / 32 .. end / 32], layerTwiddles(twiddles, line_log_size, 3)[first / 16 .. end / 16], t2s, t01s),
         else => unreachable,
     }
 }
 
-fn inverseBottomLayers(
+fn forwardBottomLayers(values: []M31, line_log_size: u32, twiddles: []const M31, layer_count: u32) void {
+    bottomLayersRange(values, line_log_size, twiddles, layer_count, 0, values.len, false);
+}
+
+fn inverseBottomLayers(values: []M31, line_log_size: u32, twiddles: []const M31, layer_count: u32) void {
+    bottomLayersRange(values, line_log_size, twiddles, layer_count, 0, values.len, true);
+}
+
+/// Contiguous tail blocks are independent; slice their twiddles with the same
+/// global offsets as the values. Only a coordinator submits these joined waves.
+fn bottomLayersWithPool(
     values: []M31,
     line_log_size: u32,
-    itwiddles: []const M31,
+    twiddles: []const M31,
     layer_count: u32,
+    comptime inverse_transform: bool,
+    optional_pool: ?*WorkPool,
 ) void {
-    const it01s = layerTwiddles(itwiddles, line_log_size, 1);
-    const it2s = layerTwiddles(itwiddles, line_log_size, 2);
-    switch (layer_count) {
-        3 => fft_kernels.fftBottomThreeLayersInverseM31(values, it2s, it01s),
-        4 => fft_kernels.fftBottomFourLayersInverseM31(
-            values,
-            layerTwiddles(itwiddles, line_log_size, 3),
-            it2s,
-            it01s,
-        ),
-        5 => fft_kernels.fftBottomFiveLayersInverseM31(
-            values,
-            layerTwiddles(itwiddles, line_log_size, 4),
-            layerTwiddles(itwiddles, line_log_size, 3),
-            it2s,
-            it01s,
-        ),
-        else => unreachable,
-    }
+    const pool = optional_pool orelse return bottomLayersRange(values, line_log_size, twiddles, layer_count, 0, values.len, inverse_transform);
+    const tile_rows = 16384;
+    const workers = @min(pool.workerCount(), (values.len + tile_rows - 1) / tile_rows);
+    if (workers <= 1) return bottomLayersRange(values, line_log_size, twiddles, layer_count, 0, values.len, inverse_transform);
+    const Work = struct {
+        values: []M31,
+        line_log_size: u32,
+        twiddles: []const M31,
+        layer_count: u32,
+        cursor: *std.atomic.Value(usize),
+        fn execute(work: *const @This()) void {
+            while (true) {
+                const first = work.cursor.fetchAdd(tile_rows, .monotonic);
+                if (first >= work.values.len) return;
+                bottomLayersRange(work.values, work.line_log_size, work.twiddles, work.layer_count, first, @min(first + tile_rows, work.values.len), inverse_transform);
+            }
+        }
+    };
+    var cursor = std.atomic.Value(usize).init(0);
+    var work: [@import("../../work_pool.zig").MAX_WORKERS]Work = undefined;
+    for (work[0..workers]) |*item| item.* = .{ .values = values, .line_log_size = line_log_size, .twiddles = twiddles, .layer_count = layer_count, .cursor = &cursor };
+    var group: std.Thread.WaitGroup = .{};
+    for (work[1..workers]) |*item| pool.spawnWg(&group, Work.execute, .{@as(*const Work, item)});
+    Work.execute(&work[0]);
+    group.wait();
 }
 
 pub const PolyError = error{
@@ -245,6 +260,66 @@ fn evaluateBufferTailLayers(
     }
 }
 
+/// Reconstruct only the FFT branches needed for sorted output positions.
+/// Scratch remains one coefficient/LDE buffer; no other output is promised.
+/// Dense top passes and the selected contiguous tails use the ordinary packed
+/// kernels, preserving twiddle indexing and butterfly order exactly.
+pub fn evaluateSelectedBufferWithTwiddles(
+    values: []M31,
+    coefficient_count: usize,
+    domain: CircleDomain,
+    tree: M31TwiddleTree,
+    positions: []const usize,
+) PolyError!void {
+    if (values.len != domain.size() or coefficient_count == 0 or
+        !std.math.isPowerOfTwo(coefficient_count) or coefficient_count > values.len)
+        return PolyError.InvalidLength;
+    for (positions, 0..) |position, i| {
+        if (position >= values.len or (i != 0 and position < positions[i - 1]))
+            return PolyError.InvalidLength;
+    }
+    if (positions.len == 0) return;
+    const log = domain.logSize();
+    const double = coefficient_count == values.len / 2;
+    if (log <= 5 or positions.len >= values.len / 8) {
+        if (double) evaluateExtensionBufferWithTwiddles(values, domain, tree) else {
+            @memset(values[coefficient_count..], M31.zero());
+            evaluateBufferWithTwiddles(values, domain, tree);
+        }
+        return;
+    }
+    if (double) @memcpy(values[coefficient_count..], values[0..coefficient_count]) else @memset(values[coefficient_count..], M31.zero());
+    var stage = log - 1 - @as(u32, @intFromBool(double));
+    while (stage >= 5) {
+        // Before pruning becomes useful, retain the fused radix-8 full passes.
+        // This covers the dense frontier without turning packed FFTs scalar.
+        if (stage >= 7 and (values.len >> @intCast(stage - 1)) <= 64 and
+            fft_kernels.canFuseThreeLayersPacked(stage - 2))
+        {
+            fft_kernels.fftThreeLayersForwardPackedM31(values, log, stage, tree.twiddles);
+            stage -= 3;
+            continue;
+        }
+        const tw = layerTwiddles(tree.twiddles, log - 1, stage);
+        var previous: ?usize = null;
+        for (positions) |position| {
+            const block = position >> @intCast(stage + 1);
+            if (previous != null and previous.? == block) continue;
+            previous = block;
+            fft_kernels.fftLayerLoopForwardM31(values, stage, block, tw[block]);
+        }
+        stage -= 1;
+    }
+    // Every selected 32-row tail is independent of all other tails.
+    var previous: ?usize = null;
+    for (positions) |position| {
+        const block = position >> 5;
+        if (previous != null and previous.? == block) continue;
+        previous = block;
+        bottomLayersRange(values, log - 1, tree.twiddles, 5, block * 32, (block + 1) * 32, false);
+    }
+}
+
 /// Interpolates one evaluation buffer into coefficients in place.
 pub fn interpolateIntoBufferWithTwiddles(
     coeffs: []M31,
@@ -365,6 +440,15 @@ pub fn interpolateBuffersWithTwiddles(
     domain: CircleDomain,
     twiddle_tree: M31TwiddleTree,
 ) PolyError!void {
+    return interpolateBuffersWithTwiddlesWithPool(coeffs_batch, domain, twiddle_tree, null);
+}
+
+pub fn interpolateBuffersWithTwiddlesWithPool(
+    coeffs_batch: []const []M31,
+    domain: CircleDomain,
+    twiddle_tree: M31TwiddleTree,
+    pool: ?*WorkPool,
+) PolyError!void {
     const log_size = domain.logSize();
     if (log_size == 1) {
         const y = domain.half_coset.initial.y;
@@ -419,7 +503,7 @@ pub fn interpolateBuffersWithTwiddles(
     var layer_idx: u32 = 0;
     if (fuse_bottom) {
         for (coeffs_batch) |coeffs| {
-            inverseBottomLayers(coeffs, line_log_size, twiddle_tree.itwiddles, bottom_layers);
+            bottomLayersWithPool(coeffs, line_log_size, twiddle_tree.itwiddles, bottom_layers, true, pool);
         }
         layer_idx = bottom_layers - 1;
     } else {
@@ -451,7 +535,7 @@ pub fn interpolateBuffersWithTwiddles(
         {
             if (lowest_stage + 2 == line_log_size) {
                 for (coeffs_batch) |coeffs| {
-                    fft_kernels.fftThreeLayersInversePackedM31Normalized(
+                    if (pool) |active| radix8.withPool(coeffs, domain.logSize(), lowest_stage, twiddle_tree.itwiddles, true, true, n_inv, false, active) else fft_kernels.fftThreeLayersInversePackedM31Normalized(
                         coeffs,
                         domain.logSize(),
                         lowest_stage,
@@ -462,7 +546,7 @@ pub fn interpolateBuffersWithTwiddles(
                 normalization_fused = true;
             } else {
                 for (coeffs_batch) |coeffs| {
-                    fft_kernels.fftThreeLayersInversePackedM31(
+                    if (pool) |active| radix8.withPool(coeffs, domain.logSize(), lowest_stage, twiddle_tree.itwiddles, true, false, M31.one(), false, active) else fft_kernels.fftThreeLayersInversePackedM31(
                         coeffs,
                         domain.logSize(),
                         lowest_stage,
@@ -531,7 +615,7 @@ pub fn evaluateBuffersWithTwiddles(
         return;
     }
 
-    try evaluateBuffersTailLayers(values_batch, domain, twiddle_tree, 0, false);
+    try evaluateBuffersTailLayers(values_batch, domain, twiddle_tree, 0, false, null);
 }
 
 /// Batched forward evaluation for buffers whose upper halves are known to be
@@ -544,6 +628,15 @@ pub fn evaluateExtensionBuffersWithTwiddles(
     domain: CircleDomain,
     twiddle_tree: M31TwiddleTree,
 ) PolyError!void {
+    return evaluateExtensionBuffersWithTwiddlesWithPool(values_batch, domain, twiddle_tree, null);
+}
+
+pub fn evaluateExtensionBuffersWithTwiddlesWithPool(
+    values_batch: []const []M31,
+    domain: CircleDomain,
+    twiddle_tree: M31TwiddleTree,
+    pool: ?*WorkPool,
+) PolyError!void {
     if (!domain.half_coset.isDoublingOf(twiddle_tree.root_coset)) return PolyError.InvalidLogSize;
     if (domain.logSize() <= 2) {
         for (values_batch) |values| {
@@ -552,7 +645,7 @@ pub fn evaluateExtensionBuffersWithTwiddles(
         }
         return evaluateBuffersWithTwiddles(values_batch, domain, twiddle_tree);
     }
-    try evaluateBuffersTailLayers(values_batch, domain, twiddle_tree, 1, true);
+    try evaluateBuffersTailLayers(values_batch, domain, twiddle_tree, 1, true, pool);
 }
 
 fn evaluateBuffersTailLayers(
@@ -561,6 +654,7 @@ fn evaluateBuffersTailLayers(
     twiddle_tree: M31TwiddleTree,
     skip_layers: u32,
     duplicate_upper_from_lower: bool,
+    pool: ?*WorkPool,
 ) PolyError!void {
     const line_log_size = domain.half_coset.logSize();
     const twiddle_len = twiddle_tree.twiddles.len;
@@ -591,14 +685,14 @@ fn evaluateBuffersTailLayers(
         {
             for (values_batch) |values| {
                 if (expand_on_first_radix) {
-                    fft_kernels.fftThreeLayersForwardPackedM31FromDuplicatedHalf(
+                    if (pool) |active| radix8.withPool(values, domain.logSize(), layer_idx, twiddle_tree.twiddles, false, false, M31.one(), true, active) else fft_kernels.fftThreeLayersForwardPackedM31FromDuplicatedHalf(
                         values,
                         domain.logSize(),
                         layer_idx,
                         twiddle_tree.twiddles,
                     );
                 } else {
-                    fft_kernels.fftThreeLayersForwardPackedM31(
+                    if (pool) |active| radix8.withPool(values, domain.logSize(), layer_idx, twiddle_tree.twiddles, false, false, M31.one(), false, active) else fft_kernels.fftThreeLayersForwardPackedM31(
                         values,
                         domain.logSize(),
                         layer_idx,
@@ -625,7 +719,7 @@ fn evaluateBuffersTailLayers(
 
     if (fuse_bottom) {
         for (values_batch) |values| {
-            forwardBottomLayers(values, line_log_size, twiddle_tree.twiddles, bottom_layers);
+            bottomLayersWithPool(values, line_log_size, twiddle_tree.twiddles, bottom_layers, false, pool);
         }
         return;
     }

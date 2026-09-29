@@ -58,6 +58,7 @@ test "api signature: Cairo facade preserves statement and prover entry points" {
 }
 
 test {
+    _ = witness.deductions;
     _ = @import("witness/resident_geometry.zig");
     _ = @import("witness/resident_proof.zig");
     _ = @import("witness/resident_types.zig");

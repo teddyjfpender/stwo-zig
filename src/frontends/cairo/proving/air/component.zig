@@ -4,9 +4,10 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const composition = @import("../../witness/composition_bundle.zig");
-const geometry = @import("../../witness/resident_geometry.zig");
 const verifier_runtime = @import("../../witness/resident_verifier.zig");
+const native = @import("native_evaluator.zig");
 const simd = @import("simd_evaluator.zig");
+const trace_lease = @import("trace_lease.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -18,6 +19,8 @@ const DomainAccumulator = prover.air.accumulation.DomainEvaluationAccumulator;
 
 pub const Component = struct {
     runtime: verifier_runtime.RuntimeComponent,
+    native_executor: ?native.Executor = null,
+    recorder: ?*prover.stage_profile.Recorder = null,
 
     const Adapter = core.air.derive.ComponentAdapter(
         @This(),
@@ -49,6 +52,10 @@ pub const Component = struct {
     pub fn asProverComponent(self: *const Component) ComponentProver {
         var component = Adapter.asProverComponent(self);
         component.domain_parallel_evaluator = evaluateDomainParallelAdapter;
+        // Multiple expensive Cairo AIRs need their own row split. Giving the
+        // pool to each domain in turn avoids leaving a long one-core tail
+        // after the default component-parallel scheduler drains its small jobs.
+        component.pool_exclusive_domain = self.native_executor != null;
         return component;
     }
 
@@ -137,6 +144,8 @@ pub const Component = struct {
         accumulator: *DomainAccumulator,
         maybe_pool: ?*prover.work_pool.WorkPool,
     ) !void {
+        var scope = try prover.stage_profile.StageScope.begin(self.recorder, "cpu_composition_component", stableProfileLabel(self.runtime.captured.label));
+        defer scope.end();
         const captured = self.runtime.captured;
         const requests = [_]prover.air.accumulation.ColumnRequest{.{
             .log_size = captured.evaluation_log_size,
@@ -153,12 +162,14 @@ pub const Component = struct {
             column.random_coeff_powers,
         );
         defer accumulator.allocator.free(coefficients);
+        var lease = try trace_lease.Lease.init(accumulator.allocator, trace, captured);
+        defer lease.deinit();
         const context = TraceContext{
-            .trace = trace,
+            .trace = lease.trace(),
             .captured = captured,
             .evaluation_log_size = captured.evaluation_log_size,
         };
-        const evaluation = EvaluationContext{
+        var evaluation = EvaluationContext{
             .allocator = accumulator.allocator,
             .captured = captured,
             .trace = &context,
@@ -167,6 +178,25 @@ pub const Component = struct {
             .column = column,
         };
         const row_count = try checkedPow2(captured.evaluation_log_size);
+        const prepared: ?[]?native.Prepared = if (self.native_executor != null)
+            try accumulator.allocator.alloc(?native.Prepared, captured.parts.len)
+        else
+            null;
+        if (prepared) |parts| @memset(parts, null);
+        defer if (prepared) |parts| {
+            for (parts) |*part| if (part.*) |*plan| plan.deinit(accumulator.allocator);
+            accumulator.allocator.free(parts);
+        };
+        for (captured.parts, 0..) |part, index| {
+            if (self.native_executor) |executor| {
+                if (executor.resolve(native.identity(part.program))) |kernel|
+                    prepared.?[index] = try native.Prepared.init(accumulator.allocator, kernel, part.program, evaluation.inputFor(part), column.col.columns);
+            }
+            const compiled = if (prepared) |parts| parts[index] != null else false;
+            var marker = try prover.stage_profile.StageScope.begin(self.recorder, if (compiled) "cpu_native_air_part" else "cpu_ir_air_part", if (compiled) "Authenticated native AIR" else "SIMD AIR interpreter");
+            marker.end();
+        }
+        evaluation.native_parts = prepared;
         // A composition column can be shared by several components. The first
         // writer stores directly and publishes `next_fresh_index`; every later
         // writer must accumulate. The serial path has to honour the same
@@ -179,7 +209,10 @@ pub const Component = struct {
         }
         const pool = serial_pool;
 
-        const worker_count = @min(pool.workerCount(), row_count / simd.lane_count);
+        const dynamic = self.native_executor != null;
+        const chunk_rows: usize = 8192;
+        var cursor = std.atomic.Value(usize).init(0);
+        const worker_count = @min(pool.workerCount(), if (dynamic) std.math.divCeil(usize, row_count, chunk_rows) catch unreachable else row_count / simd.lane_count);
         const workers = try accumulator.allocator.alloc(RangeWorker, worker_count);
         defer accumulator.allocator.free(workers);
         const row_groups = row_count / simd.lane_count;
@@ -187,8 +220,10 @@ pub const Component = struct {
         for (workers, 0..) |*worker, index| {
             worker.* = .{
                 .evaluation = evaluation,
-                .row_start = (row_groups * index / worker_count) * simd.lane_count,
-                .row_end = (row_groups * (index + 1) / worker_count) * simd.lane_count,
+                .row_start = if (dynamic) 0 else (row_groups * index / worker_count) * simd.lane_count,
+                .row_end = if (dynamic) row_count else (row_groups * (index + 1) / worker_count) * simd.lane_count,
+                .cursor = if (dynamic) &cursor else null,
+                .chunk_rows = chunk_rows,
                 .additive = !direct_store,
             };
         }
@@ -242,6 +277,19 @@ const EvaluationContext = struct {
     parameters: []const QM31,
     coefficients: []const QM31,
     column: *prover.air.accumulation.ColumnAccumulator,
+    native_parts: ?[]const ?native.Prepared = null,
+
+    fn inputFor(self: EvaluationContext, part: composition.Part) simd.Input {
+        return .{
+            .evaluation_log_size = self.captured.evaluation_log_size,
+            .trace_log_size = self.captured.trace_log_size,
+            .trace = .{ .context = self.trace, .resolve = resolveTrace },
+            .extension_parameters = self.parameters,
+            .random_coefficients = self.coefficients,
+            .constraint_base = part.rc_base,
+            .denominator_inverses = self.captured.denominator_inverses,
+        };
+    }
 
     fn evaluateRange(
         self: EvaluationContext,
@@ -253,23 +301,14 @@ const EvaluationContext = struct {
             .column = self.column.col,
             .additive = additive,
         };
-        for (self.captured.parts) |part| {
-            try simd.evaluatePartRange(
-                self.allocator,
-                part.program,
-                .{
-                    .evaluation_log_size = self.captured.evaluation_log_size,
-                    .trace_log_size = self.captured.trace_log_size,
-                    .trace = .{ .context = self.trace, .resolve = resolveTrace },
-                    .extension_parameters = self.parameters,
-                    .random_coefficients = self.coefficients,
-                    .constraint_base = part.rc_base,
-                    .denominator_inverses = self.captured.denominator_inverses,
-                },
-                output,
-                row_start,
-                row_end,
-            );
+        for (self.captured.parts, 0..) |part, index| {
+            if (self.native_parts) |parts| {
+                if (parts[index]) |*prepared| {
+                    try prepared.evaluateRange(row_start, row_end, additive);
+                    continue;
+                }
+            }
+            try simd.evaluatePartRange(self.allocator, part.program, self.inputFor(part), output, row_start, row_end);
         }
     }
 };
@@ -293,8 +332,22 @@ const RangeWorker = struct {
     row_end: usize,
     additive: bool,
     err: ?anyerror = null,
+    cursor: ?*std.atomic.Value(usize) = null,
+    chunk_rows: usize = 8192,
 
     fn run(self: *RangeWorker) void {
+        // Faster cores take more disjoint row tiles. Every tile keeps the full
+        // constraint order, and all writers join before freshness is published.
+        if (self.cursor) |cursor| {
+            while (true) {
+                const first = cursor.fetchAdd(self.chunk_rows, .monotonic);
+                if (first >= self.row_end) return;
+                self.evaluation.evaluateRange(first, @min(first + self.chunk_rows, self.row_end), self.additive) catch |err| {
+                    self.err = err;
+                    return;
+                };
+            }
+        }
         self.evaluation.evaluateRange(
             self.row_start,
             self.row_end,
@@ -330,32 +383,8 @@ pub fn resolveTrace(
     local_column: u32,
 ) !simd.ResolvedColumn {
     const context: *const TraceContext = @ptrCast(@alignCast(raw_context));
-    if (context.trace.polys.items.len < 3) return error.InvalidTraceShape;
-    const column = switch (interaction) {
-        0 => blk: {
-            if (local_column >= context.captured.preprocessed_indices.len)
-                return error.InvalidTraceShape;
-            const global = context.captured.preprocessed_indices[local_column];
-            if (global >= context.trace.polys.items[0].len)
-                return error.InvalidTraceShape;
-            break :blk context.trace.polys.items[0][global];
-        },
-        1, 2 => blk: {
-            const span = try geometry.componentSpan(
-                context.captured.*,
-                interaction,
-            );
-            const global = std.math.add(
-                usize,
-                span.start,
-                local_column,
-            ) catch return error.InvalidTraceShape;
-            if (global >= span.end or global >= context.trace.polys.items[interaction].len)
-                return error.InvalidTraceShape;
-            break :blk context.trace.polys.items[interaction][global];
-        },
-        else => return error.InvalidTraceShape,
-    };
+    const key = try trace_lease.address(context.trace, context.captured, interaction, local_column);
+    const column = context.trace.polys.items[key.tree][key.column];
 
     try column.validate();
     if (column.log_size > context.evaluation_log_size)
@@ -397,4 +426,13 @@ test "Cairo coefficients preserve point-accumulator order" {
     try std.testing.expect(ordered[0].eql(values[2]));
     try std.testing.expect(ordered[1].eql(values[1]));
     try std.testing.expect(ordered[2].eql(values[0]));
+}
+
+/// Recorder labels outlive the owned captured bundle: borrow only canonical
+/// static registry names, including a stable name for repeated memory slots.
+fn stableProfileLabel(label: []const u8) []const u8 {
+    const registry = @import("../../air/official_claim_registry.zig");
+    for (registry.enable_slots) |entry| if (std.mem.eql(u8, entry.name, label)) return entry.name;
+    for (registry.claim_fields) |entry| if (std.mem.startsWith(u8, label, entry.name)) return entry.name;
+    return "Captured Cairo AIR";
 }

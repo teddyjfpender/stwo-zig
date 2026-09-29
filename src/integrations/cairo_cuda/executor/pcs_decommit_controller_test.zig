@@ -231,7 +231,7 @@ const FakeDecommit = struct {
         _: anytype,
     ) !void {
         try session.require(.decommit);
-        if (source_log < tree_log or tree_log != leaf_log)
+        if (source_log == 0 or tree_log != leaf_log)
             return error.InvalidTraceProjection;
         session.trace_prepares += 1;
     }

@@ -1,0 +1,27 @@
+test-leaf-stream
++- run test
+   +- compile test ReleaseFast native 1 errors
+tests/coefficient_fold.zig:52:33: error: root source file struct 'telemetry' has no member named 'captureCounters'
+        const before = telemetry.captureCounters();
+                       ~~~~~~~~~^~~~~~~~~~~~~~~~
+telemetry.zig:1:1: note: struct declared here
+//! Low-overhead evidence that a generic proof used the intended Metal paths.
+^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    comptime: leaf_stream_test_root.zig:3:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -cflags -fobjc-arc -fblocks -DSTWO_ZIG_RUNTIME_SOURCE_SHA256=edd68724356a298bb60dd947ec698954bde7c7b96b09124f3375c273b614f42f -- /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/runtime.m -lobjc -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal/leaf_stream_test_root.zig -OReleaseFast -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseFast --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -OReleaseFast --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -framework Foundation -framework Metal -lc --test-filter "metal: streaming BLAKE2s" --test-filter "metal: native coefficient fold" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 6/9 steps succeeded; 1 failed; 10/10 tests passed
+test-leaf-stream transitive failure
++- run test transitive failure
+   +- compile test ReleaseFast native 1 errors
+test-shader-authority success
++- run test 8 passed 565ms MaxRSS:8M
+   +- compile test ReleaseFast native success 5s MaxRSS:492M
+test-runtime-source-closure success
++- run test 2 passed 4ms MaxRSS:1M
+   +- compile test ReleaseFast native cached 45ms MaxRSS:34M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0271fff5e8f464220813fe003d1f6834/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x24ff3e2e -Zaa39c12247cae894 test-leaf-stream test-shader-authority test-runtime-source-closure -Doptimize=ReleaseFast -j1 --summary all

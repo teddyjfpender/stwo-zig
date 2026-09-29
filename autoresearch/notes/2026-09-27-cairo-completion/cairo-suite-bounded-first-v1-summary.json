@@ -1,0 +1,70 @@
+{
+  "status": "cancelled",
+  "reason": "Largest first-use tiled pipeline compilation exceeded 12 minutes; replace repeated dynamic mask loops with compile-time-selected direct slots. No tiled full-proof or speed qualification claimed.",
+  "selection": [
+    "all-opcodes",
+    "fibonacci-pie",
+    "all-builtins-canonical",
+    "sn-pie-2"
+  ],
+  "records": [
+    {
+      "workload": "all-opcodes",
+      "status": "qualified",
+      "summary": {
+        "median_process_wall_ns": 137449857083,
+        "median_prove_ns": 136321023000,
+        "peak_process_rss_bytes": 2086420480
+      },
+      "proof_sha256": "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310",
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 0,
+        "binary_archive_misses": 46,
+        "direct_compiles": 46,
+        "archive_populations": 46,
+        "archive_serializations": 46,
+        "pipeline_preparation_seconds": 135.70586490631104,
+        "library_preparation_seconds": 0.01980602741241455
+      }
+    },
+    {
+      "workload": "fibonacci-pie",
+      "status": "qualified",
+      "summary": {
+        "median_process_wall_ns": 775559834,
+        "median_prove_ns": 615432333,
+        "peak_process_rss_bytes": 1558609920
+      },
+      "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f",
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 40,
+        "binary_archive_misses": 0,
+        "direct_compiles": 0,
+        "archive_populations": 0,
+        "archive_serializations": 0,
+        "pipeline_preparation_seconds": 0.002552032470703125,
+        "library_preparation_seconds": 0.011758923530578613
+      }
+    },
+    {
+      "workload": "all-builtins-canonical",
+      "status": "cancelled",
+      "summary": null,
+      "proof_sha256": null,
+      "pipeline_cache": null
+    },
+    {
+      "workload": "sn-pie-2",
+      "status": "not-run",
+      "summary": null,
+      "proof_sha256": null,
+      "pipeline_cache": null
+    }
+  ]
+}

@@ -159,7 +159,7 @@ pub const Topology = struct {
         if (program.fri_layers.len == 0 or
             program.fri_layers.len != protocol.fri_tree_count or
             program.quotient.evaluation_log_rows !=
-                protocol.max_log_degree_bound or
+                try protocol.evaluationLogSize() or
             protocol.final_line_coefficient_count !=
                 try pow2u32(protocol.log_last_layer_degree_bound))
         {
@@ -190,7 +190,7 @@ pub const Topology = struct {
             if (declared.tree_id != ordinal or
                 declared.cumulative_fold != cumulative or
                 declared.evaluation_log_rows !=
-                    protocol.max_log_degree_bound - cumulative or
+                    (try protocol.evaluationLogSize()) - cumulative or
                 declared.fold_step == 0 or declared.fold_step > 3 or
                 declared.fold_step > declared.evaluation_log_rows or
                 declared.evaluation_log_rows < packed_leaf_log or
@@ -241,7 +241,7 @@ pub const Topology = struct {
         }
         const last = layers[layers.len - 1];
         const final_log = last.evaluation_log_rows - last.fold_step;
-        if (final_log != protocol.log_last_layer_degree_bound + 1 or
+        if (final_log != protocol.log_last_layer_degree_bound + protocol.log_blowup_factor or
             descriptor_cursor != descriptor_storage.len)
         {
             return error.InvalidFriControllerTopology;

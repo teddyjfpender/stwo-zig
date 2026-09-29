@@ -143,7 +143,8 @@ pub fn addProducts(context: Context) void {
     metal_eval_prepare_step.dependOn(&install_metal_eval_prepare.step);
 
     const metal_eval_source_module = consumer(context, "src/tools/cairo_metal_codegen/eval_source.zig");
-    metal_eval_source_module.addImport("stwo", stwo_module);
+    metal_eval_source_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
+    metal_eval_source_module.addImport("stwo_cairo_metal_integration", context.cairo_metal_integration);
     const metal_eval_source = b.addExecutable(.{
         .name = "metal-eval-source",
         .root_module = metal_eval_source_module,

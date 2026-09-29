@@ -461,8 +461,19 @@ pub fn SessionForProvider(
             arguments: []const ?*anyopaque,
             publication: kernel_module.PedersenW18Publication,
         ) runtime_error.Error!void {
+            if (publication.requirement != .pedersen_w18_columns_rows_v1)
+                return error.InvalidKernelDescriptor;
+            return self.launchKernelWithPedersen(kernel, arguments, publication);
+        }
+
+        pub fn launchKernelWithPedersen(
+            self: *Self,
+            kernel: kernel_module.Kernel,
+            arguments: []const ?*anyopaque,
+            publication: kernel_module.PedersenPublication,
+        ) runtime_error.Error!void {
             try publication.validate();
-            if (kernel.module_globals != .pedersen_w18_columns_rows_v1)
+            if (kernel.module_globals != publication.requirement)
                 return error.InvalidKernelDescriptor;
             return self.launchKernelWithGlobals(
                 kernel,
@@ -586,12 +597,14 @@ pub fn SessionForProvider(
                     if (publication != null)
                         return error.InvalidKernelDescriptor;
                 },
-                .pedersen_w18_columns_rows_v1 => {
+                .pedersen_w18_columns_rows_v1, .pedersen_w9_columns_rows_v1 => {
                     const pedersen = publication orelse
                         return error.StrictAotViolation;
+                    if (pedersen.requirement != kernel.module_globals)
+                        return error.InvalidKernelDescriptor;
                     var receipt = types.NativeAotModuleGlobalsReceipt{};
                     try runtime_error.check(
-                        AotApi.stwo_native_aot_function_publish_pedersen_w18(
+                        AotApi.stwo_native_aot_function_publish_pedersen(
                             function.handle,
                             &pedersen.columns,
                             pedersen.row_count,

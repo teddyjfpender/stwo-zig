@@ -5,7 +5,6 @@ const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const adapter = @import("../adapter/mod.zig");
 const claim_generator = @import("../claim_generator.zig");
-const fixed_trace = @import("../conformance/fixed_trace.zig");
 const recorded_interaction = @import("../conformance/recorded_interaction.zig");
 const pedersen_table = @import("../preprocessed/pedersen_table.zig");
 const cpu_memory = @import("../witness/cpu_memory_multiplicity.zig");
@@ -19,6 +18,7 @@ const interaction_executor = @import("../witness/interaction_executor.zig");
 const memory_tables = @import("../witness/memory_tables.zig");
 const relation_bundle = @import("../witness/relation_bundle.zig");
 const base_trace = @import("base_trace.zig");
+const trace_arena = @import("trace_arena.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -31,9 +31,13 @@ pub const InteractionTrace = struct {
     columns: []ColumnEvaluation,
     claimed_sums: []QM31,
     component_sum: QM31,
+    arena_backed: bool = false,
 
     pub fn deinit(self: *InteractionTrace) void {
-        deinitColumns(self.allocator, self.columns);
+        if (self.arena_backed)
+            self.allocator.free(self.columns)
+        else
+            deinitColumns(self.allocator, self.columns);
         if (self.claimed_sums.len != 0) self.allocator.free(self.claimed_sums);
         self.* = undefined;
     }
@@ -51,18 +55,21 @@ pub const InteractionTrace = struct {
     }
 };
 
+/// Consumes each generated lookup feed after its last use. Fixed and memory
+/// multiplicities already own their separate tables; no later stage rereads it.
 pub fn build(
     allocator: std.mem.Allocator,
     input: *const adapter.ProverInput,
     topology: feed_topology.Loaded,
     fixed: *const fixed_tables.Bundle,
     relations: *const relation_bundle.Bundle,
-    base: *const base_trace.BaseTrace,
+    base: *base_trace.BaseTrace,
     lookup_z: QM31,
     lookup_alpha: QM31,
     pedersen: ?*const pedersen_table.Table,
     executor: ?interaction_executor.Executor,
     recorder: ?*prover.stage_profile.Recorder,
+    arena: ?*trace_arena.Arena,
 ) !InteractionTrace {
     const alpha_powers = deriveAlphaPowers(lookup_alpha);
     var collector = try Collector.init(
@@ -70,10 +77,11 @@ pub fn build(
         &base.geometry,
         executor,
         recorder,
+        arena,
     );
     defer collector.deinit();
 
-    for (base.execution.producers) |producer| {
+    for (base.execution.producers) |*producer| {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
             producer.label,
@@ -103,24 +111,13 @@ pub fn build(
             lookup_z,
             &alpha_powers,
         );
+        producer.releaseLookupWords(allocator);
     }
 
-    var multiplicities = blk: {
-        var stage = try prover.stage_profile.StageScope.begin(
-            recorder,
-            "interaction_fixed_multiplicities",
-            "Fixed-table multiplicities",
-        );
-        defer stage.end();
-        break :blk try fixed_trace.populateLiveTopology(
-            allocator,
-            input,
-            topology,
-            base.execution.producers,
-            fixed,
-        );
-    };
-    defer multiplicities.deinit();
+    // Multiplicities are challenge-independent. The base trace already derived
+    // them from this exact input/topology; borrow that single owned result.
+    // They stay alive until the caller releases the witness feeds.
+    const multiplicities = &base.fixed_multiplicities;
     for (fixed.entries) |entry| {
         if (collector.componentIndex(entry.component) == null) continue;
         var stage = try prover.stage_profile.StageScope.begin(
@@ -137,7 +134,7 @@ pub fn build(
             var columns = try implicit.fixedMultiplicities(
                 allocator,
                 entry,
-                &multiplicities,
+                multiplicities,
             );
             defer columns.deinit();
             const source = try columns.xor12View();
@@ -152,7 +149,7 @@ pub fn build(
         } else {
             var lookup = fixed_lookup.Source{
                 .entry = entry,
-                .tables = &multiplicities,
+                .tables = multiplicities,
                 .pedersen = pedersen,
             };
             const source = try interaction_trace.SourceView.lookupWords(
@@ -170,25 +167,11 @@ pub fn build(
         }
     }
 
-    var counts = blk: {
-        var stage = try prover.stage_profile.StageScope.begin(
-            recorder,
-            "interaction_memory_multiplicities",
-            "Memory multiplicities",
-        );
-        defer stage.end();
-        break :blk try cpu_memory.collectTopology(
-            allocator,
-            input,
-            topology,
-            base.execution.producers,
-        );
-    };
-    defer counts.deinit();
+    const counts = &base.memory_counts;
     try captureMemoryAddress(
         allocator,
         input,
-        &counts,
+        counts,
         relations,
         &collector,
         lookup_z,
@@ -198,7 +181,7 @@ pub fn build(
     try captureMemoryBig(
         allocator,
         input,
-        &counts,
+        counts,
         relations,
         &collector,
         lookup_z,
@@ -208,7 +191,7 @@ pub fn build(
     try captureMemorySmall(
         allocator,
         input,
-        &counts,
+        counts,
         relations,
         &collector,
         lookup_z,
@@ -318,12 +301,14 @@ const Collector = struct {
     components: []?ComponentColumns,
     executor: ?interaction_executor.Executor,
     recorder: ?*prover.stage_profile.Recorder,
+    arena: ?*trace_arena.Arena,
 
     fn init(
         allocator: std.mem.Allocator,
         geometry: *const claim_generator.OwnedClaimGeometry,
         executor: ?interaction_executor.Executor,
         recorder: ?*prover.stage_profile.Recorder,
+        arena: ?*trace_arena.Arena,
     ) !Collector {
         const components = try allocator.alloc(?ComponentColumns, geometry.components.len);
         @memset(components, null);
@@ -333,13 +318,17 @@ const Collector = struct {
             .components = components,
             .executor = executor,
             .recorder = recorder,
+            .arena = arena,
         };
     }
 
     fn deinit(self: *Collector) void {
         for (self.components) |maybe_component| {
             if (maybe_component) |component|
-                deinitColumns(self.allocator, component.columns);
+                if (self.arena != null)
+                    self.allocator.free(component.columns)
+                else
+                    deinitColumns(self.allocator, component.columns);
         }
         self.allocator.free(self.components);
         self.* = undefined;
@@ -427,8 +416,14 @@ const Collector = struct {
             recorded_interaction.columnCount(descriptors) * 4,
             row_count,
             log_size,
+            self.arena,
+            component_index,
         );
-        errdefer deinitColumns(self.allocator, allocated.columns);
+        defer self.allocator.free(allocated.planes);
+        errdefer if (self.arena != null)
+            self.allocator.free(allocated.columns)
+        else
+            deinitColumns(self.allocator, allocated.columns);
 
         const claimed_sum = blk: {
             var stage = try prover.stage_profile.StageScope.begin(
@@ -437,10 +432,8 @@ const Collector = struct {
                 "Interaction fraction materialization",
             );
             defer stage.end();
-            // Default path, and the configuration both products ship: the
-            // relation evaluator writes the committed base-field coordinate
-            // planes directly, so no secure column-major intermediate is ever
-            // materialized (campaign 1 increment 2).
+            // Write committed coordinate planes directly on both CPU and
+            // resident device paths; legacy executors lower their secure ABI.
             const executor = self.executor orelse break :blk try recorded_interaction.materializeCoordinates(
                 self.allocator,
                 descriptors,
@@ -449,29 +442,13 @@ const Collector = struct {
                 alpha_powers,
                 allocated.planes,
             );
-            // Opt-in backend executor. Its ABI returns a secure column-major
-            // trace, so it is lowered into the same pre-allocated planes rather
-            // than into a second column allocation. `lowerLastColumn` is the
-            // generic secure-to-four-plane primitive, applied per column.
-            var materialized = try executor.execute(self.allocator, .{
+            break :blk try executor.materializeCoordinates(self.allocator, .{
                 .descriptors = descriptors,
                 .source = source,
                 .z = lookup_z,
                 .alpha_powers = alpha_powers,
-            });
-            defer materialized.deinit();
-            if (materialized.row_count != row_count or
-                materialized.column_count * 4 != allocated.planes.len)
-                return error.InvalidInteractionGeometry;
-            for (0..materialized.column_count) |column| {
-                interaction_trace.lowerLastColumn(
-                    allocated.planes[column * 4 ..][0..4],
-                    materialized.column(column),
-                );
-            }
-            break :blk materialized.claimed_sum;
+            }, allocated.planes);
         };
-        self.allocator.free(allocated.planes);
         self.components[component_index] = .{
             .columns = allocated.columns,
             .claimed_sum = claimed_sum,
@@ -509,6 +486,7 @@ const Collector = struct {
             .columns = columns,
             .claimed_sums = claimed_sums,
             .component_sum = global_sum,
+            .arena_backed = self.arena != null,
         };
     }
 };
@@ -531,17 +509,29 @@ fn allocateCoordinateColumns(
     column_count: usize,
     row_count: usize,
     log_size: u32,
+    arena: ?*trace_arena.Arena,
+    component_index: usize,
 ) !AllocatedColumns {
+    if (arena) |ready| {
+        if (component_index >= ready.layout.component_widths.len or
+            ready.layout.component_widths[component_index] != column_count)
+            return error.ArenaPlanMismatch;
+    }
     const columns = try allocator.alloc(ColumnEvaluation, column_count);
     var initialized: usize = 0;
     errdefer {
-        for (columns[0..initialized]) |column| allocator.free(column.values);
+        if (arena == null)
+            for (columns[0..initialized]) |column| allocator.free(column.values);
         allocator.free(columns);
     }
     const planes = try allocator.alloc([]M31, column_count);
     errdefer allocator.free(planes);
     while (initialized < column_count) : (initialized += 1) {
-        const values = try allocator.alloc(M31, row_count);
+        const values = if (arena) |ready|
+            try ready.columnValues(ready.layout.component_starts[component_index] + initialized)
+        else
+            try allocator.alloc(M31, row_count);
+        if (values.len != row_count) return error.ArenaPlanMismatch;
         columns[initialized] = .{ .log_size = @intCast(log_size), .values = values };
         planes[initialized] = values;
     }

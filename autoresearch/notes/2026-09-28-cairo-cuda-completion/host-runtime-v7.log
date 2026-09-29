@@ -1,0 +1,13 @@
+test
++- run test stderr
+cuda runtime call failed status=1
+cuda runtime call failed status=-1
+cuda runtime call failed status=1
+cuda runtime call failed status=1
+cairo-cuda ec buffer lookup_words[null] failed: InvalidKernelDescriptor address=33554432 len=7807 owner=7 generation=11
+
+Build Summary: 3/3 steps succeeded; 163/163 tests passed
+test success
++- run test 163 passed 494ms MaxRSS:2M
+   +- compile test ReleaseFast native success 10s MaxRSS:680M
+

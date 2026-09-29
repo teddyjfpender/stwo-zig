@@ -1,0 +1,31 @@
+{
+  "schema": "stwo-zig-cairo-planned-storage-v91-assessment-v1",
+  "performance_gate_passed": false,
+  "default_changed": false,
+  "comparison": {
+    "before": {
+      "median_process_wall_ns": 19615813375,
+      "median_prove_ns": 15193822917,
+      "peak_process_rss_bytes": 45708984320,
+      "peak_product_physical_footprint_bytes": 50848074192,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    },
+    "after": {
+      "median_process_wall_ns": 37579606167,
+      "median_prove_ns": 33220999750,
+      "peak_process_rss_bytes": 41182511104,
+      "peak_product_physical_footprint_bytes": 41302899192,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    }
+  },
+  "peak_reduction_percent": 18.771949875540727,
+  "proving_slowdown": 2.18648064621247,
+  "conclusion": "Same frozen binary and canonical security: experimental compact storage saves 18.77% physical peak but costs 2.187 times ordinary median proving. Memory reduction while maintaining speed remains unmet.",
+  "full_suite_receipt": "cairo-suite-metal-compact-v91-summary.json",
+  "proof_count": 21,
+  "full_suite_proof_parity": true,
+  "pair_proof_parity": true,
+  "ordinary_timing_comparison": "The 15.194 s ordinary median is a new observation, not an isolated speed improvement over previous ordinary binaries."
+}

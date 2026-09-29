@@ -1,8 +1,8 @@
 //! Backend-neutral reference construction for Cairo lookup interaction traces.
 //!
 //! Relation descriptors and layout-specific source columns are borrowed from the caller. The
-//! evaluator owns only O(relation columns) scratch and can therefore stream
-//! rows into checkpoint digests without materializing the complete trace.
+//! evaluator owns row scratch and a reusable batch workspace and can stream
+//! bounded ranges without materializing the complete trace.
 
 const std = @import("std");
 const fields = @import("stwo_core").fields;
@@ -152,6 +152,11 @@ pub const Reference = struct {
     terms: []Term,
     uses: []UsePlan,
     column_plans: []ColumnPlan,
+    range_denominators: []QM31 = &.{},
+    range_inverses: []QM31 = &.{},
+    range_multiplicities: []M31 = &.{},
+    range_cumulative: []QM31 = &.{},
+    norm_scaled: bool = false,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -233,10 +238,15 @@ pub const Reference = struct {
             .terms = terms,
             .uses = uses,
             .column_plans = column_plans,
+            .norm_scaled = if (std.posix.getenv("STWO_CAIRO_NORM_LOGUP")) |flag| std.mem.eql(u8, flag, "1") else true,
         };
     }
 
     pub fn deinit(self: *Reference) void {
+        self.allocator.free(self.range_denominators);
+        self.allocator.free(self.range_inverses);
+        self.allocator.free(self.range_multiplicities);
+        self.allocator.free(self.range_cumulative);
         self.allocator.free(self.numerators);
         self.allocator.free(self.denominators);
         self.allocator.free(self.denominator_prefixes);
@@ -244,6 +254,31 @@ pub const Reference = struct {
         self.allocator.free(self.uses);
         self.allocator.free(self.column_plans);
         self.* = undefined;
+    }
+
+    /// A worker reuses its largest evaluated batch. Publish the replacement
+    /// only after every allocation succeeds so failed growth leaves a valid
+    /// owner for cleanup or a later smaller batch.
+    fn ensureRangeScratch(self: *Reference, fractions: usize, cumulative: usize) Error!void {
+        if (self.range_denominators.len >= fractions and self.range_cumulative.len >= cumulative)
+            return;
+        const capacity = @max(fractions, self.range_denominators.len);
+        const denominator_storage = try self.allocator.alloc(QM31, capacity);
+        errdefer self.allocator.free(denominator_storage);
+        const inverse_storage = try self.allocator.alloc(QM31, capacity);
+        errdefer self.allocator.free(inverse_storage);
+        const multiplicity_storage = try self.allocator.alloc(M31, capacity);
+        errdefer self.allocator.free(multiplicity_storage);
+        const cumulative_storage = try self.allocator.alloc(QM31, @max(cumulative, self.range_cumulative.len));
+        errdefer self.allocator.free(cumulative_storage);
+        self.allocator.free(self.range_denominators);
+        self.allocator.free(self.range_inverses);
+        self.allocator.free(self.range_multiplicities);
+        self.allocator.free(self.range_cumulative);
+        self.range_denominators = denominator_storage;
+        self.range_inverses = inverse_storage;
+        self.range_multiplicities = multiplicity_storage;
+        self.range_cumulative = cumulative_storage;
     }
 
     pub fn columnCount(self: Reference) usize {
@@ -340,12 +375,10 @@ pub const Reference = struct {
         const uses_per_row = self.uses.len;
         const fraction_count = std.math.mul(usize, uses_per_row, row_count) catch
             return Error.InvalidTraceShape;
-        const denominators = try self.allocator.alloc(QM31, fraction_count);
-        defer self.allocator.free(denominators);
-        const inverses = try self.allocator.alloc(QM31, fraction_count);
-        defer self.allocator.free(inverses);
-        const multiplicities = try self.allocator.alloc(M31, fraction_count);
-        defer self.allocator.free(multiplicities);
+        try self.ensureRangeScratch(fraction_count, @min(consume_rows, row_count));
+        const denominators = self.range_denominators[0..fraction_count];
+        const inverses = self.range_inverses[0..fraction_count];
+        const multiplicities = self.range_multiplicities[0..fraction_count];
 
         for (self.uses, 0..) |use, use_index| {
             const span = use_index * row_count;
@@ -356,11 +389,19 @@ pub const Reference = struct {
                 multiplicities[span..][0..row_count],
             );
         }
-        fields.batchInverseInPlace(QM31, denominators, inverses) catch
-            return Error.DivisionByZero;
+        if (self.norm_scaled) {
+            fields.qm31_norm_batch.invertScaledOwned(denominators, inverses, multiplicities) catch |err| return switch (err) {
+                error.InvalidBatchGeometry => Error.InvalidTraceShape,
+                error.DivisionByZero => Error.DivisionByZero,
+            };
+            return self.consumeRange(first_row, row_count, inverses, multiplicities, sink, true);
+        }
+        fields.batchInverseInPlace(QM31, denominators, inverses) catch return Error.DivisionByZero;
+        return self.consumeRange(first_row, row_count, inverses, multiplicities, sink, false);
+    }
 
-        const cumulative = try self.allocator.alloc(QM31, @min(consume_rows, row_count));
-        defer self.allocator.free(cumulative);
+    fn consumeRange(self: *Reference, first_row: usize, row_count: usize, inverses: []const QM31, multiplicities: []const M31, sink: anytype, comptime scaled: bool) Error!QM31 {
+        const cumulative = self.range_cumulative[0..@min(consume_rows, row_count)];
 
         var claimed_sum = QM31.zero();
         var tile_start: usize = 0;
@@ -374,13 +415,13 @@ pub const Reference = struct {
                     const second = first + row_count;
                     for (totals, 0..) |*total, index| {
                         total.* = total.*
-                            .add(inverses[first + index].mulM31(multiplicities[first + index]))
-                            .add(inverses[second + index].mulM31(multiplicities[second + index]));
+                            .add(if (scaled) inverses[first + index] else inverses[first + index].mulM31(multiplicities[first + index]))
+                            .add(if (scaled) inverses[second + index] else inverses[second + index].mulM31(multiplicities[second + index]));
                     }
                 } else {
                     for (totals, 0..) |*total, index| {
                         total.* = total.*
-                            .add(inverses[first + index].mulM31(multiplicities[first + index]));
+                            .add(if (scaled) inverses[first + index] else inverses[first + index].mulM31(multiplicities[first + index]));
                     }
                 }
                 sink.emit(column, first_row + tile_start, totals);
@@ -622,6 +663,40 @@ test "Cairo interaction reference batches paired fractions and cumulative column
     try std.testing.expect(QM31.eql(second_row[0], range_values[1]));
     try std.testing.expect(QM31.eql(cumulative[1], range_values[2]));
     try std.testing.expect(QM31.eql(second_row[1], range_values[3]));
+    // A final partial batch must read only its active scratch span, even
+    // after the same worker has evaluated a larger batch.
+    const retained = reference.range_denominators.ptr;
+    var tail_values: [4]QM31 = undefined;
+    const tail_sum = try reference.evaluateRange(1, 1, &tail_values);
+    try std.testing.expect(QM31.eql(expected_second, tail_sum));
+    try std.testing.expect(QM31.eql(second_row[0], tail_values[1]));
+    try std.testing.expect(QM31.eql(second_row[1], tail_values[3]));
+    try std.testing.expectEqual(retained, reference.range_denominators.ptr);
+    reference.norm_scaled = true;
+    var norm_values: [4]QM31 = undefined;
+    const norm_sum = try reference.evaluateRange(0, 2, &norm_values);
+    try std.testing.expect(norm_sum.eql(range_sum));
+    for (range_values, norm_values) |want, got| try std.testing.expect(want.eql(got));
+    const norm_tail_sum = try reference.evaluateRange(1, 1, &norm_values);
+    try std.testing.expect(norm_tail_sum.eql(tail_sum));
+    try std.testing.expect(norm_values[1].eql(tail_values[1]));
+    try std.testing.expect(norm_values[3].eql(tail_values[3]));
+}
+
+test "Cairo interaction range scratch releases failed growth allocations" {
+    const Exercise = struct {
+        fn run(allocator: std.mem.Allocator) !void {
+            const words = [_]u32{ 90, 91, 4, 5 };
+            const descriptor = singleDescriptor(13, 0, 2, null, false);
+            const powers = [_]QM31{ base(3), base(11) };
+            var reference = try Reference.init(allocator, &descriptor, try SourceView.lookupWords(try LookupColumns.init(&words, 2), 2), base(101), &powers);
+            defer reference.deinit();
+            var values: [2]QM31 = undefined;
+            _ = try reference.evaluateRange(0, 1, &values);
+            _ = try reference.evaluateRange(0, 2, &values);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, Exercise.run, .{});
 }
 
 test "Cairo interaction reference scans the final column in circle order" {
@@ -739,10 +814,20 @@ test "Cairo interaction reference accepts every generated relation template" {
                 std.testing.allocator,
                 trace.descriptors,
                 source,
-                base(2),
+                QM31.fromU32Unchecked(7, 11, 17, 19),
                 &alpha_powers,
             );
-            reference.deinit();
+            defer reference.deinit();
+            const baseline = try std.testing.allocator.alloc(QM31, rows * reference.columnCount());
+            defer std.testing.allocator.free(baseline);
+            const norm = try std.testing.allocator.alloc(QM31, baseline.len);
+            defer std.testing.allocator.free(norm);
+            reference.norm_scaled = false;
+            const baseline_sum = try reference.evaluateRange(0, rows, baseline);
+            reference.norm_scaled = true;
+            const norm_sum = try reference.evaluateRange(0, rows, norm);
+            try std.testing.expect(baseline_sum.eql(norm_sum));
+            for (baseline, norm) |want, got| try std.testing.expect(want.eql(got));
             trace_count += 1;
         }
     }

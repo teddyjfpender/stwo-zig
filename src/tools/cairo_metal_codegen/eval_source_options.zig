@@ -17,6 +17,7 @@ pub const TraceAbiSelector = enum {
     /// product's lifting map itself, reading each column's `shift_amt` out of the
     /// runtime base-parameter block, so no host lift is needed.
     stored_domain,
+    bounded,
 };
 
 pub const Options = struct {
@@ -24,6 +25,7 @@ pub const Options = struct {
     fusion_mode: FusionMode = .capped,
     fusion_cap: usize,
     selected_only: bool = false,
+    template_library: bool = false,
     component_limit: ?usize = null,
 };
 
@@ -68,6 +70,9 @@ pub fn parse(
             argument_index += 1;
             options.trace_abi = try parseTraceAbi(arguments[argument_index]);
             trace_abi_explicit = true;
+        } else if (std.mem.eql(u8, argument, "--template-library")) {
+            if (options.template_library) return error.InvalidArguments;
+            options.template_library = true;
         } else if (std.mem.eql(u8, argument, "--selected-only")) {
             if (options.selected_only) return error.InvalidArguments;
             options.selected_only = true;
@@ -87,12 +92,15 @@ pub fn parse(
     }
     if (options.fusion_mode == .experimental_hybrid_source_diagnostic and fusion_cap_explicit)
         return error.HybridFusionConflictsWithCap;
+    if (options.trace_abi == .bounded and (options.selected_only or fusion_mode_explicit or fusion_cap_explicit))
+        return error.BoundedEmissionConflictsWithFusion;
     return options;
 }
 
 fn parseTraceAbi(encoded: []const u8) !TraceAbiSelector {
     if (std.mem.eql(u8, encoded, "eval-domain")) return .eval_domain;
     if (std.mem.eql(u8, encoded, "stored-domain")) return .stored_domain;
+    if (std.mem.eql(u8, encoded, "bounded")) return .bounded;
     return error.InvalidTraceAbi;
 }
 
@@ -151,4 +159,11 @@ test "Metal eval source options select the stored-domain trace ABI" {
         error.InvalidArguments,
         parse(&.{ "--trace-abi", "stored-domain", "--trace-abi", "eval-domain" }, 512, 4096),
     );
+}
+
+test "bounded Metal emission covers both native and tiled readers without unused fusion" {
+    const options = try parse(&.{ "--template-library", "--trace-abi", "bounded" }, 512, 4096);
+    try std.testing.expect(options.template_library);
+    try std.testing.expectEqual(TraceAbiSelector.bounded, options.trace_abi);
+    try std.testing.expectError(error.BoundedEmissionConflictsWithFusion, parse(&.{ "--trace-abi", "bounded", "--selected-only" }, 512, 4096));
 }

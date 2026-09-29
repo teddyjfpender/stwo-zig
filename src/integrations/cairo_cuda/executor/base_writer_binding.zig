@@ -648,7 +648,10 @@ fn exactResident(
     expected: usize,
 ) !layout.Resident(u32) {
     try capability.include(value);
-    if (value.len != expected) return error.TraceWriterBindingMismatch;
+    if (value.len != expected) {
+        std.debug.print("cairo-cuda writer resident extent expected={} actual={}\n", .{ expected, value.len });
+        return error.TraceWriterBindingMismatch;
+    }
     return layout.resident(session, u32, value, expected);
 }
 

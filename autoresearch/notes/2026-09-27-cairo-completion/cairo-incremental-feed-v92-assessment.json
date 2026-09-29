@@ -1,0 +1,913 @@
+{
+  "schema": "stwo-zig-cairo-incremental-feed-assessment-v1",
+  "status": "qualified-opt-in-memory-gate-unmet",
+  "security": {
+    "queries": 70,
+    "pow_bits": 26
+  },
+  "control": "STWO_CAIRO_INCREMENTAL_MULTIPLICITIES",
+  "default_enabled": false,
+  "memory_gate": "failed: lifetime peak unchanged on CPU and Metal",
+  "performance_claim": "No robust speedup claimed; small mixed median differences, all initial trials retained. Metal baseline initial trial had two fixed-table cache misses; subsequent trials had two hits.",
+  "pairs": {
+    "cpu": {
+      "receipt": "sn3-cpu-incremental-feed-paired-v92-summary.json",
+      "summary": {
+        "before": {
+          "median_process_wall_ns": 26858698792,
+          "median_prove_ns": 22474830666,
+          "peak_process_rss_bytes": 50228412416,
+          "peak_product_physical_footprint_bytes": 50250257104,
+          "physical_footprint_sample_count": 3,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        },
+        "after": {
+          "median_process_wall_ns": 27013794291,
+          "median_prove_ns": 22641132875,
+          "peak_process_rss_bytes": 50225692672,
+          "peak_product_physical_footprint_bytes": 50247783480,
+          "physical_footprint_sample_count": 3,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      },
+      "prove_speedup": 0.992654863609602,
+      "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+      "trials": [
+        {
+          "pair": 1,
+          "variant": "before",
+          "prove_ns": 23325779333,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 0,
+            "misses": 2,
+            "stores": 2,
+            "evictions": 4,
+            "loaded_bytes": 0,
+            "stored_bytes": 805306592,
+            "evicted_bytes": 815792576,
+            "directory_bytes": 5926553696,
+            "eviction_ns": 4446792
+          },
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "pipeline_cache": null,
+            "archive_store": null,
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0,
+            "cached_merkle_artifact_adoptions": 0,
+            "compacted_merkle_layer_adoptions": 0
+          }
+        },
+        {
+          "pair": 1,
+          "variant": "after",
+          "prove_ns": 22464103583,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "pipeline_cache": null,
+            "archive_store": null,
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0,
+            "cached_merkle_artifact_adoptions": 0,
+            "compacted_merkle_layer_adoptions": 0
+          }
+        },
+        {
+          "pair": 2,
+          "variant": "after",
+          "prove_ns": 22641132875,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "pipeline_cache": null,
+            "archive_store": null,
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0,
+            "cached_merkle_artifact_adoptions": 0,
+            "compacted_merkle_layer_adoptions": 0
+          }
+        },
+        {
+          "pair": 2,
+          "variant": "before",
+          "prove_ns": 22474830666,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "pipeline_cache": null,
+            "archive_store": null,
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0,
+            "cached_merkle_artifact_adoptions": 0,
+            "compacted_merkle_layer_adoptions": 0
+          }
+        },
+        {
+          "pair": 3,
+          "variant": "before",
+          "prove_ns": 22158149333,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "pipeline_cache": null,
+            "archive_store": null,
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0,
+            "cached_merkle_artifact_adoptions": 0,
+            "compacted_merkle_layer_adoptions": 0
+          }
+        },
+        {
+          "pair": 3,
+          "variant": "after",
+          "prove_ns": 24566682542,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "cpu-simd",
+            "pipeline_cache": null,
+            "archive_store": null,
+            "classification": "host-only",
+            "metal_dispatches": 0,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 0,
+            "runtime_shutdowns": 0,
+            "commit_source_arena_aliases": 0,
+            "commit_source_arena_memcpys": 0,
+            "commit_source_uploads": 0,
+            "cached_merkle_artifact_adoptions": 0,
+            "compacted_merkle_layer_adoptions": 0
+          }
+        }
+      ]
+    },
+    "metal": {
+      "receipt": "sn3-metal-incremental-feed-paired-v92-summary.json",
+      "summary": {
+        "before": {
+          "median_process_wall_ns": 19338211250,
+          "median_prove_ns": 14833440666,
+          "peak_process_rss_bytes": 45703823360,
+          "peak_product_physical_footprint_bytes": 50847451504,
+          "physical_footprint_sample_count": 3,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        },
+        "after": {
+          "median_process_wall_ns": 19037259917,
+          "median_prove_ns": 14589622625,
+          "peak_process_rss_bytes": 45708345344,
+          "peak_product_physical_footprint_bytes": 50847828216,
+          "physical_footprint_sample_count": 3,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      },
+      "prove_speedup": 1.0167117441805662,
+      "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+      "trials": [
+        {
+          "pair": 1,
+          "variant": "before",
+          "prove_ns": 19735275375,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 0,
+            "misses": 2,
+            "stores": 2,
+            "evictions": 2,
+            "loaded_bytes": 0,
+            "stored_bytes": 805306592,
+            "evicted_bytes": 805306592,
+            "directory_bytes": 5937039680,
+            "eviction_ns": 4390166
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.010634183883666992,
+              "library_preparation_seconds": 0.028192996978759766
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 344,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 0,
+            "compacted_merkle_layer_adoptions": 27
+          }
+        },
+        {
+          "pair": 1,
+          "variant": "after",
+          "prove_ns": 14569988834,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.01120615005493164,
+              "library_preparation_seconds": 0.028730034828186035
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 343,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 1,
+            "compacted_merkle_layer_adoptions": 26
+          }
+        },
+        {
+          "pair": 2,
+          "variant": "after",
+          "prove_ns": 14589622625,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.010724663734436035,
+              "library_preparation_seconds": 0.028481006622314453
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 343,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 1,
+            "compacted_merkle_layer_adoptions": 26
+          }
+        },
+        {
+          "pair": 2,
+          "variant": "before",
+          "prove_ns": 14715742334,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.0062351226806640625,
+              "library_preparation_seconds": 0.02849900722503662
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 343,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 1,
+            "compacted_merkle_layer_adoptions": 26
+          }
+        },
+        {
+          "pair": 3,
+          "variant": "before",
+          "prove_ns": 14833440666,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.010778069496154785,
+              "library_preparation_seconds": 0.0285189151763916
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 343,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 1,
+            "compacted_merkle_layer_adoptions": 26
+          }
+        },
+        {
+          "pair": 3,
+          "variant": "after",
+          "prove_ns": 15159927459,
+          "cache_evidence": {
+            "enabled": true,
+            "budget_bytes": 6442450944,
+            "hits": 2,
+            "misses": 0,
+            "stores": 0,
+            "evictions": 0,
+            "loaded_bytes": 805306592,
+            "stored_bytes": 0,
+            "evicted_bytes": 0,
+            "directory_bytes": 0,
+            "eviction_ns": 0
+          },
+          "backend_evidence": {
+            "execution": "metal-pcs",
+            "pipeline_cache": {
+              "library_hits": 0,
+              "library_misses": 1,
+              "pipeline_hits": 0,
+              "binary_archive_hits": 52,
+              "binary_archive_misses": 0,
+              "direct_compiles": 0,
+              "archive_populations": 0,
+              "archive_serializations": 0,
+              "pipeline_preparation_seconds": 0.010606765747070312,
+              "library_preparation_seconds": 0.028793931007385254
+            },
+            "archive_store": {
+              "disk_hits": 1,
+              "disk_misses": 0,
+              "bytes_published": 0,
+              "publication_failures": 0,
+              "persistence_bypasses": 0,
+              "disk_bytes": 512125760
+            },
+            "classification": "accelerated_without_fallbacks",
+            "metal_dispatches": 343,
+            "cpu_fallbacks": 0,
+            "runtime_initializations": 1,
+            "runtime_shutdowns": 1,
+            "commit_source_arena_aliases": 42,
+            "commit_source_arena_memcpys": 4,
+            "commit_source_uploads": 83,
+            "cached_merkle_artifact_adoptions": 1,
+            "compacted_merkle_layer_adoptions": 26
+          }
+        }
+      ]
+    }
+  },
+  "focused_tests": {
+    "passed": 4,
+    "executed_binary": ".zig-cache/products/cairo_cpu/o/6c7ac2d136d049c8bcf2ab27053eec58/test"
+  },
+  "builds": {
+    "cpu": "ReleaseFast passed",
+    "metal": "ReleaseFast passed"
+  },
+  "implementation": [
+    "Count fixed/memory multiplicities during each joined producer callback.",
+    "Retire subcomponent feed owners after the last authoritative graph consumer; retain independent interaction lookups.",
+    "Failure-safe memory count allocation and producer ownership transfer."
+  ],
+  "source_sha256": {
+    "src/frontends/cairo/proving/incremental_multiplicities.zig": "937a7ae48afb837547a9a4d5ba60e47b51076afd9c993f177e0b8983334706d2",
+    "src/frontends/cairo/proving/base_trace.zig": "069ca81d1ee1cc17ff3820fdedb9afe3c742efc4390a6307e5168b49121ddfa2",
+    "src/frontends/cairo/witness/live_graph.zig": "575a804fe9a4e561c1ca4c9b3532d06dfd1627aa4b33454ea28cf5186c427598",
+    "src/frontends/cairo/witness/cpu_memory_multiplicity.zig": "bee443e4508dd11e5f3efde70fb7e04f12eb36825cbb846c26f61047edf4edef",
+    "src/frontends/cairo/conformance/fixed_trace.zig": "dab6f5e93a82c5b7a0d002b0172c2998667724695ace3615af9ca66a4655ada6",
+    "src/frontends/cairo/proving/incremental_multiplicities_test.zig": "1335c1f4bb475edb3ca4362e2cf3acb9622dd4602028a48dd30537bbbb5d1011"
+  },
+  "suite": {
+    "receipt": "cairo-suite-metal-incremental-feed-v92-summary.json",
+    "qualified_workloads": 15,
+    "ordinary_v77_proof_parity": [
+      {
+        "workload": "ret",
+        "status": "identical",
+        "proof_sha256": "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07"
+      },
+      {
+        "workload": "all-opcodes",
+        "status": "identical",
+        "proof_sha256": "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310"
+      },
+      {
+        "workload": "bitwise",
+        "status": "identical",
+        "proof_sha256": "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e"
+      },
+      {
+        "workload": "range96",
+        "status": "identical",
+        "proof_sha256": "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b"
+      },
+      {
+        "workload": "range128",
+        "status": "identical",
+        "proof_sha256": "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8"
+      },
+      {
+        "workload": "poseidon",
+        "status": "identical",
+        "proof_sha256": "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20"
+      },
+      {
+        "workload": "pedersen",
+        "status": "identical",
+        "proof_sha256": "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638"
+      },
+      {
+        "workload": "all-builtins",
+        "status": "identical",
+        "proof_sha256": "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475"
+      },
+      {
+        "workload": "executable-add-one",
+        "status": "identical",
+        "proof_sha256": "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742"
+      },
+      {
+        "workload": "fibonacci-pie",
+        "status": "identical",
+        "proof_sha256": "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f"
+      },
+      {
+        "workload": "all-builtins-canonical",
+        "status": "identical",
+        "proof_sha256": "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348"
+      },
+      {
+        "workload": "sn-pie-1",
+        "status": "identical",
+        "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111"
+      },
+      {
+        "workload": "sn-pie-2",
+        "status": "identical",
+        "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+      },
+      {
+        "workload": "sn-pie-3",
+        "status": "identical",
+        "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+      },
+      {
+        "workload": "sn-pie-4",
+        "status": "identical",
+        "proof_sha256": "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67"
+      }
+    ],
+    "cpu_fallbacks": 0,
+    "summary": [
+      {
+        "workload": "ret",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.4933955,
+        "prove_seconds": 0.403392417,
+        "peak_rss_bytes": 786251776,
+        "peak_product_physical_footprint_bytes": 1302824472,
+        "first_process_seconds": 0.4933955,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "0261cf9ecb1d33abecb60479e7bbbd5fc5901e73078da8b064ba653b21b48d07"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/ret-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "all-opcodes",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.636459542,
+        "prove_seconds": 0.534677459,
+        "peak_rss_bytes": 1441529856,
+        "peak_product_physical_footprint_bytes": 1928415080,
+        "first_process_seconds": 0.636459542,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "79ae76e1ac0c48b1e3b06810ddb1fed8aabe5dfb10d028e879105b79716cb310"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/all-opcodes-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "bitwise",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.48730375,
+        "prove_seconds": 0.39324275,
+        "peak_rss_bytes": 787398656,
+        "peak_product_physical_footprint_bytes": 1303512648,
+        "first_process_seconds": 0.48730375,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "3b86383712e8b7425021419ac1a935eef9a197d5e8fc73d4042301631546470e"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/bitwise-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "range96",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.446662666,
+        "prove_seconds": 0.354698917,
+        "peak_rss_bytes": 787021824,
+        "peak_product_physical_footprint_bytes": 1235961296,
+        "first_process_seconds": 0.446662666,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "35dbf85ce05e24738c8881d6704d57358202601abb1238f2a2b542ca803b247b"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/range96-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "range128",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.550967583,
+        "prove_seconds": 0.45854875,
+        "peak_rss_bytes": 786808832,
+        "peak_product_physical_footprint_bytes": 1235731944,
+        "first_process_seconds": 0.550967583,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "9f2f861d3d9e89a92115083bd818d24e3356ce7a339980b8559e071aa2cce2f8"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/range128-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "poseidon",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.495924,
+        "prove_seconds": 0.399068958,
+        "peak_rss_bytes": 802947072,
+        "peak_product_physical_footprint_bytes": 1534264880,
+        "first_process_seconds": 0.495924,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "9a434f2e2134125c0df68af4e13b32f34cbee56780fd22bbacfc4c0c7eceac20"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/poseidon-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "pedersen",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.494789459,
+        "prove_seconds": 0.399734792,
+        "peak_rss_bytes": 817250304,
+        "peak_product_physical_footprint_bytes": 1808238104,
+        "first_process_seconds": 0.494789459,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "e6b201fc285cb6c3dcfd98afdbffed81d60c4143086a361005889b33baa96638"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/pedersen-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "all-builtins",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.754648,
+        "prove_seconds": 0.698019166,
+        "peak_rss_bytes": 1016266752,
+        "peak_product_physical_footprint_bytes": 2994652888,
+        "first_process_seconds": 0.754648,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "095b0c478f805c505c0a8d8ffccb5a6fc9df35f96bdbc21f45298b6b4a03e475"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/all-builtins-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "executable-add-one",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.432323041,
+        "prove_seconds": 0.34247475,
+        "peak_rss_bytes": 787169280,
+        "peak_product_physical_footprint_bytes": 1252640208,
+        "first_process_seconds": 0.432323041,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "6560fcf8c53e74294f9e2284b7ea041c2a0a9bf7c2efc096cde4d850c061c742"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/executable-add-one-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "fibonacci-pie",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 0.731683417,
+        "prove_seconds": 0.575690083,
+        "peak_rss_bytes": 1448263680,
+        "peak_product_physical_footprint_bytes": 1880197016,
+        "first_process_seconds": 0.731683417,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "f288e3efd48c4d0e49ec5336f156f00e7205d26929adc20321cff88e153b543f"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/fibonacci-pie-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "all-builtins-canonical",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 4.739477541,
+        "prove_seconds": 4.678705542,
+        "peak_rss_bytes": 7332298752,
+        "peak_product_physical_footprint_bytes": 12757768696,
+        "first_process_seconds": 4.739477541,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/all-builtins-canonical-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "sn-pie-1",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 21.849315916,
+        "prove_seconds": 17.313879458,
+        "peak_rss_bytes": 46120992768,
+        "peak_product_physical_footprint_bytes": 51525356344,
+        "first_process_seconds": 21.849315916,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-1-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "sn-pie-2",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 13.5235195,
+        "prove_seconds": 11.09235875,
+        "peak_rss_bytes": 27436220416,
+        "peak_product_physical_footprint_bytes": 32198317536,
+        "first_process_seconds": 13.5235195,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-2-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "sn-pie-3",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 19.95300875,
+        "prove_seconds": 15.574131041,
+        "peak_rss_bytes": 45708951552,
+        "peak_product_physical_footprint_bytes": 50847959432,
+        "first_process_seconds": 19.95300875,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-3-metal-workers-auto/results.json"
+      },
+      {
+        "workload": "sn-pie-4",
+        "backend": "metal",
+        "workers": null,
+        "status": "qualified",
+        "process_seconds": 16.712889625,
+        "prove_seconds": 12.71366475,
+        "peak_rss_bytes": 35669032960,
+        "peak_product_physical_footprint_bytes": 40435363056,
+        "first_process_seconds": 16.712889625,
+        "aggregation": "single trial",
+        "proof_sha256": [
+          "32bfca5687b3c0b70a7b9f04d427a0736a99626f7fbc47a6beb07e8b03a8eb67"
+        ],
+        "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-metal-incremental-feed-v92/sn-pie-4-metal-workers-auto/results.json"
+      }
+    ]
+  }
+}

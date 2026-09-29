@@ -1,0 +1,114 @@
+{
+  "schema": "stwo-zig-cairo-diagnostic-profile-v1",
+  "workload": "SN PIE 3",
+  "backend": "CPU",
+  "instrumented": true,
+  "exclude_from_performance_comparisons": true,
+  "delay_before_sampling_s": 22,
+  "requested_sampling_duration_s": 35,
+  "sampling_interval_ms": 10,
+  "top_collapsed_frames": [
+    {
+      "frame": "__ulock_wait2  (in libsystem_kernel.dylib)",
+      "sample_count": 13663
+    },
+    {
+      "frame": "cairo_cpu_air_56  (in stwo-cairo-cpu)",
+      "sample_count": 6251
+    },
+    {
+      "frame": "pcs.sampled_coefficient_split.Work.run  (in stwo-cairo-cpu)",
+      "sample_count": 5419
+    },
+    {
+      "frame": "crypto.blake2s_backend.Blake2sHasher.compressWords  (in stwo-cairo-cpu)",
+      "sample_count": 3673
+    },
+    {
+      "frame": "cairo_cpu_air_54  (in stwo-cairo-cpu)",
+      "sample_count": 3242
+    },
+    {
+      "frame": "cairo_cpu_air_22  (in stwo-cairo-cpu)",
+      "sample_count": 2646
+    },
+    {
+      "frame": "cairo_cpu_air_61  (in stwo-cairo-cpu)",
+      "sample_count": 2234
+    },
+    {
+      "frame": "cairo_cpu_air_57  (in stwo-cairo-cpu)",
+      "sample_count": 2232
+    },
+    {
+      "frame": "cairo_cpu_air_21  (in stwo-cairo-cpu)",
+      "sample_count": 1720
+    },
+    {
+      "frame": "cairo_cpu_air_1  (in stwo-cairo-cpu)",
+      "sample_count": 1530
+    },
+    {
+      "frame": "cairo_cpu_air_5  (in stwo-cairo-cpu)",
+      "sample_count": 792
+    },
+    {
+      "frame": "cairo_cpu_air_11  (in stwo-cairo-cpu)",
+      "sample_count": 738
+    },
+    {
+      "frame": "vcs_lifted.streaming_committer.StreamingCommitter(vcs_lifted.blake2_merkle.Blake2sMerkleHasherProtocolGeneric(false,.plain),vcs_lifted.prover.MerkleProverLifted(vcs_lifted.blake2_merkle.Blake2sMerkleHasherProtocolGeneric(false,.plain))).finalizeBoundedTailRangeReusing  (in stwo-cairo-cpu)",
+      "sample_count": 713
+    },
+    {
+      "frame": "proving.air.component.EvaluationContext.evaluateRange  (in stwo-cairo-cpu)",
+      "sample_count": 579
+    },
+    {
+      "frame": "poly.circle.transforms.bottomLayersRange__anon_58702  (in stwo-cairo-cpu)",
+      "sample_count": 444
+    },
+    {
+      "frame": "cairo_cpu_air_25  (in stwo-cairo-cpu)",
+      "sample_count": 430
+    },
+    {
+      "frame": "cairo_cpu_air_28  (in stwo-cairo-cpu)",
+      "sample_count": 404
+    },
+    {
+      "frame": "poly.circle.transforms.evaluateBuffersTailLayers  (in stwo-cairo-cpu)",
+      "sample_count": 400
+    },
+    {
+      "frame": "cairo_cpu_air_17  (in stwo-cairo-cpu)",
+      "sample_count": 389
+    },
+    {
+      "frame": "cairo_cpu_air_3  (in stwo-cairo-cpu)",
+      "sample_count": 306
+    },
+    {
+      "frame": "crypto.blake2s_backend.compressParallel4  (in stwo-cairo-cpu)",
+      "sample_count": 296
+    },
+    {
+      "frame": "cairo_cpu_air_59  (in stwo-cairo-cpu)",
+      "sample_count": 281
+    },
+    {
+      "frame": "cairo_cpu_air_63  (in stwo-cairo-cpu)",
+      "sample_count": 234
+    },
+    {
+      "frame": "cairo_cpu_air_8  (in stwo-cairo-cpu)",
+      "sample_count": 234
+    },
+    {
+      "frame": "_platform_memmove  (in libsystem_platform.dylib)",
+      "sample_count": 188
+    }
+  ],
+  "raw_profile_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn3-cpu-profile-v66/sample.txt",
+  "diagnostic_proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9"
+}

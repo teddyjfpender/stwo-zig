@@ -1,0 +1,22 @@
+prover: .zig-cache/products/prover/o/ebdf2cb53a200b1deca105d56f027b85/test
+1/12 pcs.coefficient_storage_test.test.coefficient storage openings preserve mixed columns, duplicates, pruned hashes and shared leases...OK
+2/12 pcs.coefficient_storage_test.test.coefficient storage cleans up every opening and compaction allocation failure...OK
+3/12 pcs.coefficient_storage_test.test.coefficient storage quotient folding matches full LDEs across domains and sample batches...OK
+4/12 pcs.coefficient_storage_test.test.coefficient storage lazy quotient pipeline matches bounded CPU including unsampled zero columns...OK
+5/12 pcs.coefficient_storage_test.test.coefficient storage incremental commitments match materialized roots and openings...OK
+6/12 pcs.coefficient_storage_test.test.coefficient storage BLAKE2s incremental commitments preserve plain and prefixed roots and openings...OK
+7/12 pcs.coefficient_storage_test.test.coefficient storage arena streaming retains original custody across batches and allocation failures...OK
+8/12 pcs.coefficient_storage_test.test.coefficient storage selected FFT matches full evaluation across heights, degrees and query tails...OK
+9/12 pcs.coefficient_storage_test.test.coefficient storage fixed cache preserves openings, rejects corrupt layers and owns failure cleanup...OK
+10/12 pcs.coefficient_storage_test.test.coefficient storage hybrid bounded quotients preserve raw columns and parallel output parity...OK
+11/12 pcs.coefficient_storage_test.test.coefficient storage sparse terminal columns spill a full hash block without final-height state...OK
+12/12 pcs.merkle_cached_tree.test_0...OK
+All 12 tests passed.
+cairo_cpu: .zig-cache/products/cairo_cpu/o/dbb2bdd5383423baded5cec26d620d24/test
+1/6 proving.air.trace_lease_test.test.Cairo trace lease reconstructs only mask columns and preserves borrowed sources...OK
+2/6 proving.air.trace_lease_test.test.Cairo trace lease releases every reconstruction allocation failure...OK
+3/6 proving.air.trace_lease_test.test.Cairo trace lease parallel reconstruction matches serial polynomial values...OK
+4/6 proving.air.trace_lease_test.test.Cairo trace lease injected reconstruction preserves contiguous domain owners and failure custody...OK
+5/6 preprocessed.trace.test.Cairo preprocessed source batching preserves identities and values across mixed heights...OK
+6/6 preprocessed.trace.test.Cairo preprocessed source batching cleans up every materialization allocation failure...OK
+All 6 tests passed.

@@ -1,4 +1,6 @@
+pub const eval_program_identity = @import("eval_program_identity.zig");
 pub const program = @import("program.zig");
+pub const deduction_contract = @import("deduction_contract.zig");
 pub const generated_executor = @import("generated_executor.zig");
 pub const interaction_executor = @import("interaction_executor.zig");
 pub const interaction_residency = @import("interaction_residency.zig");
@@ -10,6 +12,7 @@ pub const compact_inputs = @import("compact_inputs.zig");
 pub const component_executor = @import("component_executor.zig");
 pub const component_layout = @import("component_layout.zig");
 pub const live_graph = @import("live_graph.zig");
+pub const pool_split = @import("pool_split.zig");
 pub const producer_output = @import("producer_output.zig");
 pub const cpu_memory_multiplicity = @import("cpu_memory_multiplicity.zig");
 pub const deductions = @import("deductions/mod.zig");
@@ -40,6 +43,7 @@ pub const checkpoint = @import("../conformance/checkpoint.zig");
 pub const checkpoint_receipt = @import("../conformance/receipt.zig");
 
 test {
+    _ = @import("column_lowering.zig");
     _ = @import("relation_cuda_fixture_test.zig");
     _ = execution_tables;
     _ = verify_instruction_inputs;

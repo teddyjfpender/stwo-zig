@@ -1,0 +1,27 @@
+{
+  "schema": "stwo-zig-cairo-native-fold-aligned-v90-assessment-v1",
+  "comparison": {
+    "before": {
+      "median_process_wall_ns": 43528291667,
+      "median_prove_ns": 39158943375,
+      "peak_process_rss_bytes": 41102999552,
+      "peak_product_physical_footprint_bytes": 41097345504,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    },
+    "after": {
+      "median_process_wall_ns": 36878725666,
+      "median_prove_ns": 32571652542,
+      "peak_process_rss_bytes": 41964240896,
+      "peak_product_physical_footprint_bytes": 42619436208,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    }
+  },
+  "median_proving_reduction_percent": 16.821932016698604,
+  "speedup": 1.2022399945629385,
+  "performance_gate_passed": false,
+  "default_changed": false,
+  "qualification": "Six officially accepted canonical SN PIE 3 proofs, exact proof bytes, zero CPU fallbacks; 13 native Metal, 12 PCS and 6 Cairo lease/source tests.",
+  "conclusion": "GPU weighted coefficient reduction and aligned, ordered native FFT scratch improve the experimental compact path by 16.82%; ordinary storage remains faster. Lifetime physical peak is 42.619 GB including a fixed-table cache-miss trial, against 41.097 GB for prior compact storage. No new peak-memory reduction is claimed."
+}

@@ -16,8 +16,9 @@ pub fn write(writer: anytype) !void {
         .frontend = .{
             .name = "stwo-cairo",
             .input_schema = "official-prover-input-json",
-            .commands = &[_][]const u8{ "prove", "run-and-prove" },
-            .program_types = &[_][]const u8{ "json", "executable" },
+            .input_formats = &[_][]const u8{ "json", "compact-v1" },
+            .commands = &[_][]const u8{ "inspect", "prove", "run-and-prove" },
+            .program_types = &[_][]const u8{ "json", "executable", "pie" },
             .execution_layout = "all_cairo_stwo",
         },
         .channels = &[_][]const u8{"blake2s"},

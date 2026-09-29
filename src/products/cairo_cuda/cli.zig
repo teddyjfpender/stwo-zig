@@ -58,6 +58,9 @@ pub fn parse(argv: []const []const u8) !Parsed {
     if (!seen_backend) return error.MissingBackend;
     const proof_output = output orelse return error.MissingOutput;
     const report_output = report orelse return error.MissingReportOutput;
+    if (input) |input_path| {
+        if (std.mem.eql(u8, input_path, proof_output) or std.mem.eql(u8, input_path, report_output)) return error.OutputPathCollision;
+    }
     if (std.mem.eql(u8, proof_output, report_output))
         return error.OutputPathCollision;
     return .{ .prove = .{

@@ -1,0 +1,355 @@
+{
+  "schema": "stwo-zig-cairo-cuda-runpod-hardware-diagnostic-v1",
+  "started_utc": "2026-09-28T15:16:14.225583+00:00",
+  "command": [
+    "/workspace/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/workspace/sn2-official.stwzcpi",
+    "--output",
+    "/workspace/qualification-v14/proof.envelope",
+    "--report-out",
+    "/workspace/qualification-v14/backend-report.json",
+    "--repeat",
+    "1"
+  ],
+  "status": "failed",
+  "exit_code": 1,
+  "process_wall_ns": 8220480242,
+  "host_max_rss_bytes": 1018310656,
+  "highest_sampled_device_used_bytes": 81720573952,
+  "gpu_memory_scope": "whole device NVML samples at 100ms; observed lower bound on peak, includes driver allocations",
+  "samples": [
+    {
+      "monotonic_ns": 10531092483230650,
+      "used_bytes": 503316480
+    },
+    {
+      "monotonic_ns": 10531092583528304,
+      "used_bytes": 503382016
+    },
+    {
+      "monotonic_ns": 10531092708439269,
+      "used_bytes": 503382016
+    },
+    {
+      "monotonic_ns": 10531092809192190,
+      "used_bytes": 506724352
+    },
+    {
+      "monotonic_ns": 10531092911595199,
+      "used_bytes": 506724352
+    },
+    {
+      "monotonic_ns": 10531093012700635,
+      "used_bytes": 526450688
+    },
+    {
+      "monotonic_ns": 10531093112837427,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093212967695,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093313111507,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093413244331,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093513402448,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093613544340,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093713666840,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093813808815,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531093913935994,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094014102257,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094114235101,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094214395000,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094314544348,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094414686415,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094514775770,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094614867413,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094714984834,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094815119080,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531094915270863,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095015412723,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095115541915,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095215654743,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095315802766,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095415946449,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095516101516,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095616259649,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095716389535,
+      "used_bytes": 1055719424
+    },
+    {
+      "monotonic_ns": 10531095819463686,
+      "used_bytes": 1122828288
+    },
+    {
+      "monotonic_ns": 10531095923995285,
+      "used_bytes": 42361225216
+    },
+    {
+      "monotonic_ns": 10531096024117145,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096124228296,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096224358334,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096324510975,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096424634620,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096524756730,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096624881741,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096725025297,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096825173996,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531096925325671,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531097025464674,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531097125613553,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531097225765928,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531097325921451,
+      "used_bytes": 81150148608
+    },
+    {
+      "monotonic_ns": 10531097426065844,
+      "used_bytes": 81217257472
+    },
+    {
+      "monotonic_ns": 10531097526179137,
+      "used_bytes": 81668145152
+    },
+    {
+      "monotonic_ns": 10531097626330883,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531097726471100,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531097826621107,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531097926772765,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098026926299,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098127072244,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098227199848,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098327357924,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098427495843,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098527639109,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098627801737,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098727961116,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098828081873,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531098928222687,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531099028360983,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531099128495612,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531099228624377,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531099328751048,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531099428898090,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531099529058226,
+      "used_bytes": 81670242304
+    },
+    {
+      "monotonic_ns": 10531099629174851,
+      "used_bytes": 81680728064
+    },
+    {
+      "monotonic_ns": 10531099729305460,
+      "used_bytes": 81682825216
+    },
+    {
+      "monotonic_ns": 10531099829428444,
+      "used_bytes": 81684922368
+    },
+    {
+      "monotonic_ns": 10531099929559426,
+      "used_bytes": 81701699584
+    },
+    {
+      "monotonic_ns": 10531100029702786,
+      "used_bytes": 81707991040
+    },
+    {
+      "monotonic_ns": 10531100129849323,
+      "used_bytes": 81710088192
+    },
+    {
+      "monotonic_ns": 10531100229995264,
+      "used_bytes": 81720573952
+    },
+    {
+      "monotonic_ns": 10531100330177788,
+      "used_bytes": 81720573952
+    },
+    {
+      "monotonic_ns": 10531100430340816,
+      "used_bytes": 67206184960
+    },
+    {
+      "monotonic_ns": 10531100530509462,
+      "used_bytes": 18317377536
+    },
+    {
+      "monotonic_ns": 10531100631037142,
+      "used_bytes": 1606811648
+    }
+  ],
+  "product_sha256": "472b916bfa1b04c41d3bbf9e0928a43ead28f6108ee5cd52dfe2dcf1e32e1e54"
+}

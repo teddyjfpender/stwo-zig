@@ -194,6 +194,15 @@ test "metal: resident barycentric epoch matches CPU across trees and points" {
     );
     defer second_tree.deinit(allocator);
 
+    var cached_view = try @import("../runtime/cached_column_views.zig").create(
+        &runtime,
+        allocator,
+        &first_slices,
+        null,
+        log_size,
+    );
+    defer cached_view.deinit();
+
     const first_columns = [_]prover_api.ColumnEvaluation{
         .{ .log_size = log_size, .values = &first_values },
         .{ .log_size = log_size, .values = &second_values },
@@ -247,9 +256,12 @@ test "metal: resident barycentric epoch matches CPU across trees and points" {
         },
     };
 
-    for (0..2) |route| {
+    for (0..3) |route| {
         // Mixed resident/host trees deliberately select the explicit host API.
         if (route == 1) tree_plans[0].resident_tree = null;
+        // Cached hash layers retain an independent resident column owner.
+        // Two independently copied buffers exercise the per-column map.
+        if (route == 2) tree_plans[0].resident_tree = cached_view.handle;
         const result = try runtime.evaluateBarycentricTreePlans(
             allocator,
             &tree_plans,

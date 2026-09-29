@@ -50,6 +50,11 @@ pub const Error = error{
 /// at the composition bundle's `max_evaluation_log_size = 24` and 4,000 columns
 /// is 256 GiB short of this, so the bound only catches corrupt geometry.
 pub const max_arena_words: usize = 1 << 31;
+/// Interaction storage replaces the same-sized fragmented source, and the
+/// adopting backend transforms it in place. Permit the full 32-bit word
+/// address space used by device relation/column bindings, without changing
+/// the conservative pre-execution base-plus-reservation bound.
+pub const max_interaction_arena_words: usize = 1 << 32;
 
 /// Minimum planned base words below which the arena is not worth its page
 /// padding. Small proofs keep the fragmented path; this is a structural size
@@ -112,7 +117,24 @@ pub fn plan(
     allocator: std.mem.Allocator,
     components: []const composition_bundle.Component,
 ) Error!Layout {
+    return planTree(allocator, components, 1);
+}
+
+/// The challenge-dependent tree has its own independently bounded allocation.
+pub fn planInteraction(
+    allocator: std.mem.Allocator,
+    components: []const composition_bundle.Component,
+) Error!Layout {
+    return planTree(allocator, components, 2);
+}
+
+fn planTree(
+    allocator: std.mem.Allocator,
+    components: []const composition_bundle.Component,
+    tree: u32,
+) Error!Layout {
     if (components.len == 0) return Error.UnsupportedArenaGeometry;
+    const word_limit = if (tree == 2) max_interaction_arena_words else max_arena_words;
     const page_words = pageWords();
 
     const component_starts = allocator.alloc(usize, components.len) catch
@@ -124,7 +146,7 @@ pub fn plan(
 
     var total_columns: usize = 0;
     for (components, component_starts, component_widths) |component, *start, *width| {
-        const span = resident_geometry.componentSpan(component, 1) catch
+        const span = resident_geometry.componentSpan(component, tree) catch
             return Error.UnsupportedArenaGeometry;
         if (span.start != total_columns or span.end <= span.start)
             return Error.UnsupportedArenaGeometry;
@@ -173,10 +195,10 @@ pub fn plan(
         const span = std.math.mul(usize, group.column_count, rows) catch
             return Error.ArenaTooLarge;
         cursor = std.math.add(usize, cursor, span) catch return Error.ArenaTooLarge;
-        if (cursor > max_arena_words) return Error.ArenaTooLarge;
+        if (cursor > word_limit) return Error.ArenaTooLarge;
     }
     const base_words = std.mem.alignForward(usize, cursor, page_words);
-    if (base_words > max_arena_words) return Error.ArenaTooLarge;
+    if (base_words > word_limit) return Error.ArenaTooLarge;
     if (base_words < min_arena_words) return Error.UnsupportedArenaGeometry;
 
     // Assign each flat column its offset inside its group, in ascending flat
@@ -198,7 +220,7 @@ pub fn plan(
     // Reserve the interaction region from the same claim. Interaction columns
     // are written after the base commit, so this is a reservation only.
     var interaction_words: usize = 0;
-    for (components) |component| {
+    for (if (tree == 1) components else components[0..0]) |component| {
         const span = resident_geometry.componentSpan(component, 2) catch
             return Error.UnsupportedArenaGeometry;
         if (span.end < span.start) return Error.UnsupportedArenaGeometry;
@@ -212,7 +234,7 @@ pub fn plan(
     const interaction_offset = base_words;
     const total = std.math.add(usize, interaction_offset, interaction_words) catch
         return Error.ArenaTooLarge;
-    if (total > max_arena_words) return Error.ArenaTooLarge;
+    if (total > word_limit) return Error.ArenaTooLarge;
 
     const owned_groups = groups.toOwnedSlice(allocator) catch return Error.ArenaTooLarge;
     return .{
@@ -266,6 +288,16 @@ pub const Arena = struct {
 /// materialized: the reserved interaction region is written after the base
 /// commit and is allocated by whoever writes it.
 pub fn allocate(allocator: std.mem.Allocator, layout: Layout) !Arena {
+    return allocateInitialized(allocator, layout, true);
+}
+
+/// Each admitted writer must cover every committed coordinate or initialize
+/// its unwritten outputs before execution; arena page padding is never committed.
+pub fn allocateUninitialized(allocator: std.mem.Allocator, layout: Layout) !Arena {
+    return allocateInitialized(allocator, layout, false);
+}
+
+fn allocateInitialized(allocator: std.mem.Allocator, layout: Layout, zero: bool) !Arena {
     var owned = layout;
     errdefer owned.deinit();
     const words = try allocator.alloc(M31, owned.base_words);
@@ -273,7 +305,7 @@ pub fn allocate(allocator: std.mem.Allocator, layout: Layout) !Arena {
     // exposes fewer rows than its declared log size would otherwise publish
     // uninitialized words to the Merkle leaf hash. Zero first; the cost is one
     // linear pass over an arena the witness is about to fill anyway.
-    @memset(words, M31.zero());
+    if (zero) @memset(words, M31.zero());
     const page = std.heap.pageSize();
     return .{
         .allocator = allocator,
@@ -291,12 +323,11 @@ pub fn tryPrepare(
     components: []const composition_bundle.Component,
 ) ?Arena {
     const layout = plan(allocator, components) catch return null;
-    return allocate(allocator, layout) catch |err| {
-        var owned = layout;
-        owned.deinit();
-        if (err == error.OutOfMemory) return null;
-        return null;
-    };
+    // Generated writers initialize unwritten output columns; implicit capture
+    // overwrites complete columns. Collector.finish rejects missing components
+    // before any commitment, so a separate whole-arena zero pass is redundant.
+    // allocateUninitialized owns the layout, including error-path teardown.
+    return allocateUninitialized(allocator, layout) catch return null;
 }
 
 /// Asserts that the flat column list a commit path is about to receive really

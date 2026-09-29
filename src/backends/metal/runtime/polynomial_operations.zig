@@ -379,7 +379,7 @@ fn computeQuotientsConfigured(
     defer allocation_scope.deinit();
     var retained_external_bytes: usize = 0;
     var total_timer = try std.time.Timer.start();
-    const raw_views = provider.raw_columns.len != 0;
+    const raw_views = provider.raw_columns.len != 0 and provider.prepared.contribution_plan.active_column_indices.len != 0;
     const view_count = if (raw_views)
         provider.prepared.contribution_plan.contributions.len
     else

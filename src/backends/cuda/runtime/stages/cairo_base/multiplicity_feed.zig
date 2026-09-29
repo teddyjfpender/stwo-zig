@@ -22,6 +22,7 @@ pub const Clear = struct {
 pub const Feed = struct {
     sub_words_word_major: common.Words,
     column_length: u32,
+    active_rows: ?u32 = null,
     descriptors: common.Words,
     descriptor_count: u32,
     lut_pointer_table: common.Words,
@@ -79,6 +80,7 @@ pub fn OpsFor(comptime Api: type) type {
             const stage = telemetry.Stage.trace_generation;
             try common.requireStage(session, stage);
             if (prepared.column_length == 0 or
+                (prepared.active_rows != null and prepared.active_rows.? > prepared.column_length) or
                 prepared.descriptor_count == 0 or
                 prepared.destination_count == 0 or
                 prepared.sub_words_word_major.len % prepared.column_length !=
@@ -125,7 +127,13 @@ pub fn OpsFor(comptime Api: type) type {
                 },
                 &.{},
             );
-            const status = Api.stwo_witness_feed_counts_on(
+            const status = if (prepared.active_rows) |active_rows|
+                Api.stwo_witness_feed_counts_active_on(
+                    source.pointer, prepared.column_length, active_rows,
+                    descriptors.pointer, prepared.descriptor_count, luts.pointer,
+                    destinations.pointer, session.context.stream,
+                )
+            else Api.stwo_witness_feed_counts_on(
                 source.pointer,
                 prepared.column_length,
                 descriptors.pointer,

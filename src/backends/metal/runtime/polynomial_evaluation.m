@@ -106,7 +106,7 @@ static bool sampled_coefficient_evaluate_v2(
         stream_policy->run_bytes % 4u != 0u || stream_policy->wave_bytes == 0u ||
         stream_policy->dispatches == 0u ||
         runtime_ptr == NULL || coefficients == NULL || coefficient_lengths == NULL ||
-        coefficient_column_count == 0u || coefficient_count == 0u || coefficient_count > UINT32_MAX ||
+        coefficient_column_count == 0u || coefficient_count == 0u || coefficient_count > SIZE_MAX / sizeof(uint32_t) ||
         (factor_word_count != 0u && factors == NULL) || factor_word_count > SIZE_MAX / 4u ||
         basis_tasks == NULL || basis_task_count == 0u || basis_count == 0u ||
         tasks == NULL || task_columns == NULL || task_count == 0u || output == NULL ||
@@ -117,7 +117,8 @@ static bool sampled_coefficient_evaluate_v2(
     size_t actual_words = 0u;
     for (uint32_t i = 0u; i < coefficient_column_count; ++i) {
         if (coefficients[i] == NULL || coefficient_lengths[i] == 0u ||
-            coefficient_lengths[i] > UINT32_MAX - actual_words) return false;
+            coefficient_lengths[i] > UINT32_MAX ||
+            coefficient_lengths[i] > SIZE_MAX / sizeof(uint32_t) - actual_words) return false;
         actual_words += coefficient_lengths[i];
     }
     if (actual_words != coefficient_count) return false;
@@ -233,7 +234,15 @@ static bool sampled_coefficient_evaluate_v2(
                         const uint32_t task_column = task_columns[i];
                         if (task_column >= run_start && task_column < column) {
                             StwoZigPolynomialEvalTask task = all_tasks[i];
-                            task.coefficient_offset = (uint32_t)(coefficients[task_column] - coefficients[run_start]);
+                            const uintptr_t source_begin = (uintptr_t)coefficients[run_start];
+                            const uintptr_t task_begin = (uintptr_t)coefficients[task_column];
+                            if (task_begin < source_begin || (task_begin - source_begin) % sizeof(uint32_t) != 0u)
+                                return false;
+                            const size_t local_offset = (task_begin - source_begin) / sizeof(uint32_t);
+                            if (local_offset > UINT32_MAX || local_offset > run_words ||
+                                task.coefficient_length > run_words - local_offset)
+                                return false;
+                            task.coefficient_offset = (uint32_t)local_offset;
                             run_task_words[at++] = task;
                         }
                     }

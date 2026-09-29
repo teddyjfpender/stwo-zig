@@ -9,6 +9,10 @@
 
 extern "C" int stwo_exec_context_create(void **out_handle);
 extern "C" int stwo_exec_context_destroy(void *handle);
+extern "C" int stwo_exec_context_alloc_u32(
+    void *handle, std::size_t count, std::uint32_t **out_pointer);
+extern "C" int stwo_exec_context_free_u32(
+    void *handle, std::uint32_t *pointer);
 
 namespace {
 
@@ -45,21 +49,20 @@ bool run() {
         return false;
     }
 
-    constexpr std::size_t column_bytes =
-        static_cast<std::size_t>(STWO_NATIVE_PEDERSEN_W18_ROW_COUNT) *
-        sizeof(std::uint32_t);
-    std::array<CUdeviceptr, STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT>
+    std::array<std::uint32_t *, STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT>
         allocations{};
     std::array<std::uint64_t, STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT>
         columns{};
     std::size_t allocated = 0;
     for (; allocated < allocations.size(); ++allocated) {
         if (!check(
-                cuMemAlloc(&allocations[allocated], column_bytes),
+                static_cast<CUresult>(stwo_exec_context_alloc_u32(
+                    context, STWO_NATIVE_PEDERSEN_W18_ROW_COUNT,
+                    &allocations[allocated])),
                 "allocate Pedersen column")) {
             break;
         }
-        columns[allocated] = allocations[allocated];
+        columns[allocated] = reinterpret_cast<std::uintptr_t>(allocations[allocated]);
     }
 
     void *loader = nullptr;
@@ -146,7 +149,7 @@ bool run() {
     while (allocated != 0) {
         --allocated;
         passed = check(
-            cuMemFree(allocations[allocated]),
+            static_cast<CUresult>(stwo_exec_context_free_u32(context, allocations[allocated])),
             "free Pedersen column") && passed;
     }
     passed = check(

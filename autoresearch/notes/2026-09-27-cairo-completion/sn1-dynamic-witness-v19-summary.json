@@ -1,0 +1,631 @@
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "variant_environment": {
+    "before": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_WITNESS_DYNAMIC_RANGES": "0"
+    },
+    "after": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_WITNESS_DYNAMIC_RANGES": "1"
+    }
+  },
+  "records": [
+    {
+      "pair": 1,
+      "variant": "before",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-before/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "a6b02927efb438ea93b2131b896c3a399f8f9956a191954277cdf5f4b8181525",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+          "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_WITNESS_DYNAMIC_RANGES": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "command": [
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/dynamic-witness-products-v19/bin/stwo-cairo-metal",
+              "run-and-prove",
+              "--program",
+              "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+              "--program-type",
+              "pie",
+              "--proof",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-before/trial-1.proof.json",
+              "--report-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-before/trial-1.report.json",
+              "--stage-profile-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-before/trial-1.stages.json",
+              "--verify"
+            ],
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 34525386750,
+              "user_ns": 137199580000,
+              "system_ns": 34286926000,
+              "max_process_tree_rss_bytes": 46033174528,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 698423583,
+              "user_ns": 632328000,
+              "system_ns": 19576000,
+              "max_process_tree_rss_bytes": 39616512,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 197066709,
+              "proof_encode_ns": 10954625,
+              "request_until_publication_ns": 34462086666,
+              "execute_ns": 4057105708,
+              "prove_ns": 30077500583,
+              "verify_ns": 16400291
+            },
+            "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.03603982925415039,
+                "library_preparation_seconds": 0.03291606903076172
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512378880
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 267,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 14,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 40,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 61208382624,
+              "current_physical_footprint_bytes": 3634220080,
+              "process_cpu_ns": 165587122166,
+              "energy_nj": 445551142445,
+              "instructions": 981572082953,
+              "cycles": 704216304207,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 34525386750,
+          "median_prove_ns": 30077500583,
+          "peak_process_rss_bytes": 46033174528,
+          "peak_product_physical_footprint_bytes": 61208382624,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 1,
+      "variant": "after",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-after/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "a6b02927efb438ea93b2131b896c3a399f8f9956a191954277cdf5f4b8181525",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+          "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_WITNESS_DYNAMIC_RANGES": "1"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "command": [
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/dynamic-witness-products-v19/bin/stwo-cairo-metal",
+              "run-and-prove",
+              "--program",
+              "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+              "--program-type",
+              "pie",
+              "--proof",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-after/trial-1.proof.json",
+              "--report-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-after/trial-1.report.json",
+              "--stage-profile-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-1-after/trial-1.stages.json",
+              "--verify"
+            ],
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 31756648500,
+              "user_ns": 142570119000,
+              "system_ns": 34726329000,
+              "max_process_tree_rss_bytes": 46260944896,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 749804250,
+              "user_ns": 673994000,
+              "system_ns": 21637000,
+              "max_process_tree_rss_bytes": 39600128,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 209170625,
+              "proof_encode_ns": 18293500,
+              "request_until_publication_ns": 31700070459,
+              "execute_ns": 4292524958,
+              "prove_ns": 27066554334,
+              "verify_ns": 18620792
+            },
+            "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.036383748054504395,
+                "library_preparation_seconds": 0.033001065254211426
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512378880
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 267,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 14,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 40,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 61208071280,
+              "current_physical_footprint_bytes": 4278979584,
+              "process_cpu_ns": 171058966791,
+              "energy_nj": 430822344751,
+              "instructions": 968464626113,
+              "cycles": 707925324732,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 31756648500,
+          "median_prove_ns": 27066554334,
+          "peak_process_rss_bytes": 46260944896,
+          "peak_product_physical_footprint_bytes": 61208071280,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "variant": "after",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-after/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "a6b02927efb438ea93b2131b896c3a399f8f9956a191954277cdf5f4b8181525",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+          "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_WITNESS_DYNAMIC_RANGES": "1"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "command": [
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/dynamic-witness-products-v19/bin/stwo-cairo-metal",
+              "run-and-prove",
+              "--program",
+              "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+              "--program-type",
+              "pie",
+              "--proof",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-after/trial-1.proof.json",
+              "--report-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-after/trial-1.report.json",
+              "--stage-profile-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-after/trial-1.stages.json",
+              "--verify"
+            ],
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 31989005334,
+              "user_ns": 146609052000,
+              "system_ns": 35151043000,
+              "max_process_tree_rss_bytes": 46292926464,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 733334917,
+              "user_ns": 656902000,
+              "system_ns": 20512000,
+              "max_process_tree_rss_bytes": 39911424,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 215548333,
+              "proof_encode_ns": 10795750,
+              "request_until_publication_ns": 31930387000,
+              "execute_ns": 4354133958,
+              "prove_ns": 27234536417,
+              "verify_ns": 18664834
+            },
+            "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.035437703132629395,
+                "library_preparation_seconds": 0.03369402885437012
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512378880
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 267,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 14,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 40,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 61208235048,
+              "current_physical_footprint_bytes": 4285369296,
+              "process_cpu_ns": 175567272416,
+              "energy_nj": 403677306783,
+              "instructions": 966127900324,
+              "cycles": 701706604202,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 31989005334,
+          "median_prove_ns": 27234536417,
+          "peak_process_rss_bytes": 46292926464,
+          "peak_product_physical_footprint_bytes": 61208235048,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "variant": "before",
+      "status": "qualified",
+      "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-before/results.json",
+      "result": {
+        "schema": "stwo-zig-cairo-benchmark-v2",
+        "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+        "host_details": {
+          "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+          "cpu": "Apple M5 Max",
+          "logical_cpus": 18
+        },
+        "product_sha256": "a6b02927efb438ea93b2131b896c3a399f8f9956a191954277cdf5f4b8181525",
+        "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+        "workload": {
+          "kind": "run-and-prove",
+          "path": "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+          "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee"
+        },
+        "arguments_sha256": null,
+        "params_sha256": null,
+        "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+        "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+        "controlled_environment": {
+          "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+          "STWO_CAIRO_WITNESS_DYNAMIC_RANGES": "0"
+        },
+        "status": "qualified",
+        "trials": [
+          {
+            "index": 1,
+            "status": "qualified",
+            "phase": "complete",
+            "command": [
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/dynamic-witness-products-v19/bin/stwo-cairo-metal",
+              "run-and-prove",
+              "--program",
+              "/Users/theodorepender/Downloads/SN_PIE_1.zip",
+              "--program-type",
+              "pie",
+              "--proof",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-before/trial-1.proof.json",
+              "--report-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-before/trial-1.report.json",
+              "--stage-profile-out",
+              "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/sn1-dynamic-witness-paired-v19/pair-2-before/trial-1.stages.json",
+              "--verify"
+            ],
+            "process": {
+              "exit_code": 0,
+              "wall_ns": 31895283708,
+              "user_ns": 148452873000,
+              "system_ns": 34280313000,
+              "max_process_tree_rss_bytes": 46289027072,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "official_verifier": {
+              "exit_code": 0,
+              "wall_ns": 746266292,
+              "user_ns": 672721000,
+              "system_ns": 19464000,
+              "max_process_tree_rss_bytes": 39927808,
+              "rss_is_simultaneous_process_tree_sum": false
+            },
+            "timing": {
+              "input_and_assets_ns": 213321084,
+              "proof_encode_ns": 26113666,
+              "request_until_publication_ns": 31827450417,
+              "execute_ns": 4334861667,
+              "prove_ns": 27145976416,
+              "verify_ns": 17614834
+            },
+            "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+            "profile": "official-live-cairo-canonical",
+            "backend": "metal",
+            "backend_evidence": {
+              "execution": "metal-pcs",
+              "pipeline_cache": {
+                "library_hits": 0,
+                "library_misses": 1,
+                "pipeline_hits": 0,
+                "binary_archive_hits": 52,
+                "binary_archive_misses": 0,
+                "direct_compiles": 0,
+                "archive_populations": 0,
+                "archive_serializations": 0,
+                "pipeline_preparation_seconds": 0.03584611415863037,
+                "library_preparation_seconds": 0.033039093017578125
+              },
+              "archive_store": {
+                "disk_hits": 1,
+                "disk_misses": 0,
+                "bytes_published": 0,
+                "publication_failures": 0,
+                "persistence_bypasses": 0,
+                "disk_bytes": 512378880
+              },
+              "classification": "accelerated_without_fallbacks",
+              "metal_dispatches": 267,
+              "cpu_fallbacks": 0,
+              "runtime_initializations": 1,
+              "runtime_shutdowns": 1,
+              "commit_source_arena_aliases": 14,
+              "commit_source_arena_memcpys": 4,
+              "commit_source_uploads": 40,
+              "cached_merkle_artifact_adoptions": 1,
+              "compacted_merkle_layer_adoptions": 0
+            },
+            "cache_evidence": {
+              "enabled": true,
+              "budget_bytes": 6442450944,
+              "hits": 2,
+              "misses": 0,
+              "stores": 0,
+              "evictions": 0,
+              "loaded_bytes": 805306592,
+              "stored_bytes": 0,
+              "evicted_bytes": 0,
+              "directory_bytes": 0,
+              "eviction_ns": 0
+            },
+            "prover_process_usage": {
+              "source": "darwin_proc_pid_rusage_v6",
+              "lifetime_peak_physical_footprint_bytes": 61208677608,
+              "current_physical_footprint_bytes": 3639479392,
+              "process_cpu_ns": 176375986958,
+              "energy_nj": 396854406467,
+              "instructions": 964909672245,
+              "cycles": 699623919400,
+              "unavailable_reason": null
+            }
+          }
+        ],
+        "summary": {
+          "median_process_wall_ns": 31895283708,
+          "median_prove_ns": 27145976416,
+          "peak_process_rss_bytes": 46289027072,
+          "peak_product_physical_footprint_bytes": 61208677608,
+          "physical_footprint_sample_count": 1,
+          "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+        }
+      }
+    }
+  ],
+  "proof_sha256": "656ea4b920cbc13ffc8c9c1ae3bf55ddf4d8bb9c544390f028826117c0e50111",
+  "backend": "metal",
+  "summary": {
+    "before": {
+      "median_process_wall_ns": 33210335229.0,
+      "median_prove_ns": 28611738499.5,
+      "peak_process_rss_bytes": 46289027072,
+      "peak_product_physical_footprint_bytes": 61208677608,
+      "physical_footprint_sample_count": 2,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    },
+    "after": {
+      "median_process_wall_ns": 31872826917.0,
+      "median_prove_ns": 27150545375.5,
+      "peak_process_rss_bytes": 46292926464,
+      "peak_product_physical_footprint_bytes": 61208235048,
+      "physical_footprint_sample_count": 2,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    }
+  },
+  "process_speedup": 1.041963905978061,
+  "prove_speedup": 1.0538181868463883
+}

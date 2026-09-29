@@ -1,0 +1,313 @@
+{
+  "schema": "stwo-zig-cairo-sn2-bounded-optimization-experiments-v1",
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "paired_experiments": [
+    {
+      "receipt": "zig-out/cairo-completion-20260927/sn2-native-pair-v3-v4-pair/results.json",
+      "status": "qualified",
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "summary": {
+        "before": {
+          "median_process_wall_ns": 17284835084,
+          "median_prove_ns": 14882749500,
+          "peak_process_rss_bytes": 27664580608
+        },
+        "after": {
+          "median_process_wall_ns": 16876252208,
+          "median_prove_ns": 14444512041,
+          "peak_process_rss_bytes": 27665612800
+        }
+      },
+      "process_speedup": 1.0242105220379627,
+      "prove_speedup": 1.0303393744112703
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/sn2-pedersen-transpose-v4-v5-pair/results.json",
+      "status": "qualified",
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "summary": {
+        "before": {
+          "median_process_wall_ns": 17688899584,
+          "median_prove_ns": 15126930583,
+          "peak_process_rss_bytes": 27665858560
+        },
+        "after": {
+          "median_process_wall_ns": 17669377083,
+          "median_prove_ns": 15089949542,
+          "peak_process_rss_bytes": 27665301504
+        }
+      },
+      "process_speedup": 1.0011048777163052,
+      "prove_speedup": 1.0024507067367634
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/sn2-batch256-v5-v6-pair/results.json",
+      "status": "qualified",
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "summary": {
+        "before": {
+          "median_process_wall_ns": 17393383583,
+          "median_prove_ns": 14832777625,
+          "peak_process_rss_bytes": 27665154048
+        },
+        "after": {
+          "median_process_wall_ns": 17259581375,
+          "median_prove_ns": 14775316208,
+          "peak_process_rss_bytes": 27668873216
+        }
+      },
+      "process_speedup": 1.007752343761582,
+      "prove_speedup": 1.0038890143663313
+    }
+  ],
+  "qualifications": [
+    {
+      "receipt": "zig-out/cairo-completion-20260927/cairo-suite-bounded-resident-sn2-v3/results.json",
+      "status": "qualified",
+      "summary": [
+        {
+          "workload": "sn-pie-2",
+          "backend": "metal",
+          "workers": null,
+          "status": "qualified",
+          "process_seconds": 620.385898791,
+          "prove_seconds": 617.0319415,
+          "peak_rss_bytes": 28039118848,
+          "first_process_seconds": 620.385898791,
+          "aggregation": "single trial",
+          "proof_sha256": [
+            "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+          ],
+          "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-bounded-resident-sn2-v3/sn-pie-2-metal-workers-auto/results.json"
+        }
+      ],
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 42,
+        "binary_archive_misses": 10,
+        "direct_compiles": 10,
+        "archive_populations": 10,
+        "archive_serializations": 10,
+        "pipeline_preparation_seconds": 602.5493031740189,
+        "library_preparation_seconds": 0.01948404312133789
+      },
+      "official_verifier_exit_code": 0
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/cairo-suite-bounded-resident-sn2-v3-warm/results.json",
+      "status": "qualified",
+      "summary": [
+        {
+          "workload": "sn-pie-2",
+          "backend": "metal",
+          "workers": null,
+          "status": "qualified",
+          "process_seconds": 16.022138125,
+          "prove_seconds": 13.679676125,
+          "peak_rss_bytes": 27664842752,
+          "first_process_seconds": 16.022138125,
+          "aggregation": "single trial",
+          "proof_sha256": [
+            "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+          ],
+          "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-bounded-resident-sn2-v3-warm/sn-pie-2-metal-workers-auto/results.json"
+        }
+      ],
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 52,
+        "binary_archive_misses": 0,
+        "direct_compiles": 0,
+        "archive_populations": 0,
+        "archive_serializations": 0,
+        "pipeline_preparation_seconds": 0.00478971004486084,
+        "library_preparation_seconds": 0.012408971786499023
+      },
+      "official_verifier_exit_code": 0
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/cairo-suite-native-pairs-sn2-v4/results.json",
+      "status": "qualified",
+      "summary": [
+        {
+          "workload": "sn-pie-2",
+          "backend": "metal",
+          "workers": null,
+          "status": "qualified",
+          "process_seconds": 679.928787083,
+          "prove_seconds": 676.686484709,
+          "peak_rss_bytes": 28696428544,
+          "first_process_seconds": 679.928787083,
+          "aggregation": "single trial",
+          "proof_sha256": [
+            "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+          ],
+          "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-native-pairs-sn2-v4/sn-pie-2-metal-workers-auto/results.json"
+        }
+      ],
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 0,
+        "binary_archive_misses": 52,
+        "direct_compiles": 52,
+        "archive_populations": 52,
+        "archive_serializations": 52,
+        "pipeline_preparation_seconds": 662.0872540473938,
+        "library_preparation_seconds": 0.009631037712097168
+      },
+      "official_verifier_exit_code": 0
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/cairo-suite-native-pairs-sn2-v4-warm/results.json",
+      "status": "qualified",
+      "summary": [
+        {
+          "workload": "sn-pie-2",
+          "backend": "metal",
+          "workers": null,
+          "status": "qualified",
+          "process_seconds": 16.252820542,
+          "prove_seconds": 13.824260709,
+          "peak_rss_bytes": 27665448960,
+          "first_process_seconds": 16.252820542,
+          "aggregation": "single trial",
+          "proof_sha256": [
+            "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+          ],
+          "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-native-pairs-sn2-v4-warm/sn-pie-2-metal-workers-auto/results.json"
+        }
+      ],
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 52,
+        "binary_archive_misses": 0,
+        "direct_compiles": 0,
+        "archive_populations": 0,
+        "archive_serializations": 0,
+        "pipeline_preparation_seconds": 0.0048618316650390625,
+        "library_preparation_seconds": 0.012596964836120605
+      },
+      "official_verifier_exit_code": 0
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/cairo-suite-transpose-sn2-v5/results.json",
+      "status": "qualified",
+      "summary": [
+        {
+          "workload": "sn-pie-2",
+          "backend": "metal",
+          "workers": null,
+          "status": "qualified",
+          "process_seconds": 18.274406334,
+          "prove_seconds": 14.844157458,
+          "peak_rss_bytes": 27665334272,
+          "first_process_seconds": 18.274406334,
+          "aggregation": "single trial",
+          "proof_sha256": [
+            "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+          ],
+          "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-transpose-sn2-v5/sn-pie-2-metal-workers-auto/results.json"
+        }
+      ],
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 52,
+        "binary_archive_misses": 0,
+        "direct_compiles": 0,
+        "archive_populations": 0,
+        "archive_serializations": 0,
+        "pipeline_preparation_seconds": 0.0049315690994262695,
+        "library_preparation_seconds": 0.01291191577911377
+      },
+      "official_verifier_exit_code": 0
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/cairo-suite-batch256-sn2-v6/results.json",
+      "status": "qualified",
+      "summary": [
+        {
+          "workload": "sn-pie-2",
+          "backend": "metal",
+          "workers": null,
+          "status": "qualified",
+          "process_seconds": 18.40446375,
+          "prove_seconds": 15.00442675,
+          "peak_rss_bytes": 27668398080,
+          "first_process_seconds": 18.40446375,
+          "aggregation": "single trial",
+          "proof_sha256": [
+            "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+          ],
+          "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-batch256-sn2-v6/sn-pie-2-metal-workers-auto/results.json"
+        }
+      ],
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 52,
+        "binary_archive_misses": 0,
+        "direct_compiles": 0,
+        "archive_populations": 0,
+        "archive_serializations": 0,
+        "pipeline_preparation_seconds": 0.005017876625061035,
+        "library_preparation_seconds": 0.013208985328674316
+      },
+      "official_verifier_exit_code": 0
+    },
+    {
+      "receipt": "zig-out/cairo-completion-20260927/cairo-suite-blocked-transpose-sn2-v7-diag/results.json",
+      "status": "qualified",
+      "summary": [
+        {
+          "workload": "sn-pie-2",
+          "backend": "metal",
+          "workers": null,
+          "status": "qualified",
+          "process_seconds": 17.850168333,
+          "prove_seconds": 14.56822675,
+          "peak_rss_bytes": 27669184512,
+          "first_process_seconds": 17.850168333,
+          "aggregation": "single trial",
+          "proof_sha256": [
+            "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545"
+          ],
+          "result_path": "/Users/theodorepender/code/cryptography/stwo-zig/zig-out/cairo-completion-20260927/cairo-suite-blocked-transpose-sn2-v7-diag/sn-pie-2-metal-workers-auto/results.json"
+        }
+      ],
+      "pipeline_cache": {
+        "library_hits": 0,
+        "library_misses": 1,
+        "pipeline_hits": 0,
+        "binary_archive_hits": 52,
+        "binary_archive_misses": 0,
+        "direct_compiles": 0,
+        "archive_populations": 0,
+        "archive_serializations": 0,
+        "pipeline_preparation_seconds": 0.03001081943511963,
+        "library_preparation_seconds": 0.02388596534729004
+      },
+      "official_verifier_exit_code": 0
+    }
+  ],
+  "decision": "Pedersen transpose removed after neutral paired timing and a measured 0.046s materialization phase. Large fixed-table scatter is the next candidate. Native-pair reader remains qualified but its SN2 stage saving is negligible; broader PIE measurement remains required."
+}

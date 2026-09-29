@@ -10,34 +10,7 @@ const work_pool = prover.work_pool;
 const M31 = core.fields.m31.M31;
 const ColumnEvaluation = prover.pcs.ColumnEvaluation;
 
-pub const Variant = enum {
-    canonical,
-    canonical_without_pedersen,
-    canonical_small,
-
-    pub fn columnCount(self: Variant) usize {
-        return switch (self) {
-            .canonical => 161,
-            .canonical_without_pedersen => 105,
-            .canonical_small => 156,
-        };
-    }
-
-    pub fn traceCellCount(self: Variant) u64 {
-        return switch (self) {
-            .canonical => 543_100_528,
-            .canonical_without_pedersen => 73_338_480,
-            .canonical_small => 10_161_776,
-        };
-    }
-
-    pub fn maxLogSize(self: Variant) u32 {
-        return switch (self) {
-            .canonical, .canonical_without_pedersen => 25,
-            .canonical_small => 20,
-        };
-    }
-};
+pub const Variant = @import("variant.zig").Variant;
 
 pub const Column = struct {
     identity: []u8,
@@ -215,6 +188,15 @@ pub const Spec = struct {
         allocator: std.mem.Allocator,
         pedersen: ?*const pedersen_table.Table,
     ) ![]ColumnEvaluation {
+        return self.materializeColumnRangeWithPedersen(allocator, pedersen, 0, self.columns.len);
+    }
+
+    /// Materialize a sorted native-height batch without allocating the complete
+    /// public source trace. Identity and field values are unchanged.
+    pub fn materializeColumnRangeWithPedersen(self: Spec, allocator: std.mem.Allocator, pedersen: ?*const pedersen_table.Table, start: usize, end: usize) ![]ColumnEvaluation {
+        if (start > end or end > self.columns.len) return error.InvalidPreprocessedTrace;
+        var range = self;
+        range.columns = self.columns[start..end];
         switch (self.variant) {
             .canonical_without_pedersen => if (pedersen != null)
                 return error.InvalidPreprocessedTrace,
@@ -223,13 +205,13 @@ pub const Spec = struct {
             .canonical_small => if (pedersen == null or pedersen.?.window != .small)
                 return error.InvalidPreprocessedTrace,
         }
-        const result = try allocator.alloc(ColumnEvaluation, self.columns.len);
+        const result = try allocator.alloc(ColumnEvaluation, range.columns.len);
         var initialized: usize = 0;
         errdefer {
             for (result[0..initialized]) |column| allocator.free(column.values);
             allocator.free(result);
         }
-        for (self.columns, result) |column, *evaluation| {
+        for (range.columns, result) |column, *evaluation| {
             const rows = @as(usize, 1) << @intCast(column.log_size);
             const values = try allocator.alloc(M31, rows);
             errdefer allocator.free(values);
@@ -241,7 +223,7 @@ pub const Spec = struct {
         }
         try materializeValues(
             allocator,
-            self,
+            range,
             pedersen,
             result,
         );
@@ -313,6 +295,8 @@ fn materializeValues(
             });
         }
     }
+
+    if (tasks.items.len == 0) return;
 
     const active_pool = work_pool.getGlobalPool();
     const worker_count = if (active_pool) |pool|
@@ -456,4 +440,44 @@ test "official Cairo preprocessed indices project by identity" {
         error.PreprocessedColumnMissingFromVariant,
         canonical.projectIndices(std.testing.allocator, small, &missing),
     );
+}
+
+fn checkColumnRanges(a: std.mem.Allocator) !void {
+    var metadata = [_]Column{
+        .{ .identity = @constCast("seq_4"), .log_size = 4, .source_ordinal = 0 },
+        .{ .identity = @constCast("seq_6"), .log_size = 6, .source_ordinal = 1 },
+        .{ .identity = @constCast("bitwise_xor_4_0"), .log_size = 8, .source_ordinal = 2 },
+        .{ .identity = @constCast("bitwise_xor_4_1"), .log_size = 8, .source_ordinal = 3 },
+        .{ .identity = @constCast("bitwise_xor_4_2"), .log_size = 8, .source_ordinal = 4 },
+    };
+    const spec = Spec{ .allocator = a, .variant = .canonical_without_pedersen, .columns = &metadata };
+    const complete = try spec.materializeWithPedersen(a, null);
+    defer {
+        for (complete) |column| a.free(column.values);
+        a.free(complete);
+    }
+    const boundaries = [_]usize{ 0, 1, 3, 5 };
+    for (boundaries[0 .. boundaries.len - 1], boundaries[1..]) |start, end| {
+        const batch = try spec.materializeColumnRangeWithPedersen(a, null, start, end);
+        defer {
+            for (batch) |column| a.free(column.values);
+            a.free(batch);
+        }
+        for (batch, complete[start..end], metadata[start..end]) |actual, expected, source| {
+            try std.testing.expectEqual(expected.log_size, actual.log_size);
+            try std.testing.expectEqualSlices(M31, expected.values, actual.values);
+            const plan = try columns.Plan.init(source.identity);
+            for (actual.values, 0..) |value, row|
+                try std.testing.expectEqual(try plan.value(@intCast(row)), value.v);
+        }
+    }
+    try std.testing.expectError(error.InvalidPreprocessedTrace, spec.materializeColumnRangeWithPedersen(a, null, 4, 3));
+    try std.testing.expectError(error.InvalidPreprocessedTrace, spec.materializeColumnRangeWithPedersen(a, null, 0, 6));
+}
+
+test "Cairo preprocessed source batching preserves identities and values across mixed heights" {
+    try checkColumnRanges(std.testing.allocator);
+}
+test "Cairo preprocessed source batching cleans up every materialization allocation failure" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, checkColumnRanges, .{});
 }

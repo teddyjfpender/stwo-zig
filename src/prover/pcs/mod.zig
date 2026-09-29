@@ -16,6 +16,7 @@ pub const ColumnEvaluation = scheme.ColumnEvaluation;
 pub const ColumnSource = @import("column_source.zig").ColumnSource;
 pub const BackingTeardownToken = @import("commitment_tree.zig").BackingTeardownToken;
 pub const merkle_layer_cache = @import("merkle_layer_cache.zig");
+pub const column_preparation_cache = @import("column_preparation_cache.zig");
 pub const residency_estimate = @import("residency_estimate.zig");
 pub const residency_shard_plan = @import("residency_shard_plan.zig");
 pub const shell_work_profile = @import("shell_work_profile.zig");

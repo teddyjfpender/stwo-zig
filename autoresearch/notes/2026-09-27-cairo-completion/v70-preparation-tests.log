@@ -1,0 +1,6 @@
+1/5 pcs.columns.preparation.test.column preparation: combined backend receipts are bound to request geometry...OK
+2/5 pcs.columns.preparation_cache_test.test.column preparation: cache publication waits for device completion and audits bypass reuse...OK
+3/5 pcs.columns.preparation_cache_test.test.column preparation: adopted in-place coefficient subcolumns borrow arena custody...OK
+4/5 pcs.columns.preparation_cache_test.test.column preparation: bounded epochs preserve final arena and allocation-failure custody...OK
+5/5 pcs.columns.preparation_cache_test.test.column preparation: bounded cache publication follows each joined epoch...OK
+All 5 tests passed.

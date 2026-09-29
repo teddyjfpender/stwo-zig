@@ -109,20 +109,22 @@ pub fn memoryAddress(
         memory_tables.address_column_count,
     );
     errdefer result.deinit();
-    for (0..memory_tables.address_split) |chunk| {
-        const ids = result.mutableColumn(chunk * 2);
-        const multiplicities = result.mutableColumn(chunk * 2 + 1);
-        for (0..rows) |row| {
-            const flat = chunk * rows + row;
-            ids[row] = if (flat < input.memory.address_to_id.len -| 1)
-                input.memory.address_to_id[flat + 1].raw
-            else
-                0;
-            multiplicities[row] =
-                if (flat < counts.address.len) counts.address[flat] else 0;
-        }
-    }
+    var destinations: [memory_tables.address_column_count][]u32 = undefined;
+    for (&destinations, 0..) |*destination, index| destination.* = result.mutableColumn(index);
+    try memoryAddressInto(input, counts, &destinations);
     return result;
+}
+
+/// Fill disjoint final columns in the canonical interaction source order.
+/// The caller retains all storage, including on validation failure.
+pub fn memoryAddressInto(
+    input: *const adapter.ProverInput,
+    counts: *const cpu_memory_multiplicity.Counts,
+    columns: []const []u32,
+) !void {
+    const rows = try memory_tables.addressRowCount(input);
+    try validateDestinations(columns, memory_tables.address_column_count, rows);
+    try fillColumns(.address, input, counts, 0, columns, rows);
 }
 
 pub fn memoryBig(
@@ -134,19 +136,20 @@ pub fn memoryBig(
     const rows: u32 = @intCast(try memory_tables.bigRowCount(input, component));
     var result = try initOwned(allocator, rows, memory_tables.big_column_count);
     errdefer result.deinit();
-    for (0..memory_tables.big_limb_count) |column|
-        try memory_tables.writeBigValueColumn(
-            input,
-            component,
-            column,
-            result.mutableColumn(column),
-        );
-    const offset = std.math.mul(usize, component, memory_tables.max_big_rows) catch
-        return error.AllocationSizeOverflow;
-    const multiplicities = result.mutableColumn(memory_tables.big_limb_count);
-    for (multiplicities, 0..) |*value, row|
-        value.* = if (offset + row < counts.big.len) counts.big[offset + row] else 0;
+    var destinations: [memory_tables.big_column_count][]u32 = undefined;
+    for (&destinations, 0..) |*destination, index| destination.* = result.mutableColumn(index);
+    try memoryBigInto(input, counts, component, &destinations);
     return result;
+}
+
+pub fn memoryBigInto(
+    input: *const adapter.ProverInput,
+    counts: *const cpu_memory_multiplicity.Counts,
+    component: usize,
+    columns: []const []u32,
+) !void {
+    try validateDestinations(columns, memory_tables.big_column_count, try memory_tables.bigRowCount(input, component));
+    try fillColumns(.big, input, counts, component, columns, columns[0].len);
 }
 
 pub fn memorySmall(
@@ -157,16 +160,102 @@ pub fn memorySmall(
     const rows: u32 = @intCast(try memory_tables.smallRowCount(input));
     var result = try initOwned(allocator, rows, memory_tables.small_column_count);
     errdefer result.deinit();
-    for (0..memory_tables.small_limb_count) |column|
-        try memory_tables.writeSmallValueColumn(
-            input,
-            column,
-            result.mutableColumn(column),
-        );
-    const multiplicities = result.mutableColumn(memory_tables.small_limb_count);
-    for (multiplicities, 0..) |*value, row|
-        value.* = if (row < counts.small.len) counts.small[row] else 0;
+    var destinations: [memory_tables.small_column_count][]u32 = undefined;
+    for (&destinations, 0..) |*destination, index| destination.* = result.mutableColumn(index);
+    try memorySmallInto(input, counts, &destinations);
     return result;
+}
+
+pub fn memorySmallInto(
+    input: *const adapter.ProverInput,
+    counts: *const cpu_memory_multiplicity.Counts,
+    columns: []const []u32,
+) !void {
+    try validateDestinations(columns, memory_tables.small_column_count, try memory_tables.smallRowCount(input));
+    try fillColumns(.small, input, counts, 0, columns, columns[0].len);
+}
+
+const Table = enum { address, big, small };
+
+/// Writers own disjoint columns. Parallelism adds only stack job descriptors,
+/// never another table slab or private multiplicity histogram.
+fn fillColumns(
+    table: Table,
+    input: *const adapter.ProverInput,
+    counts: *const cpu_memory_multiplicity.Counts,
+    component: usize,
+    columns: []const []u32,
+    rows: usize,
+) !void {
+    const split = @import("pool_split.zig");
+    const units = if (table == .address) memory_tables.address_split else columns.len;
+    const workers = @min(@min(units, 8), split.workerCount(.{ .rows = rows * units, .min_rows_per_worker = 1 << 17 }));
+    const Work = struct {
+        table: Table,
+        input: *const adapter.ProverInput,
+        counts: *const cpu_memory_multiplicity.Counts,
+        component: usize,
+        columns: []const []u32,
+        rows: usize,
+        range: split.Span,
+        failure: ?anyerror = null,
+
+        pub fn run(self: *@This()) void {
+            self.fill() catch |err| {
+                self.failure = err;
+            };
+        }
+
+        fn fill(self: *@This()) !void {
+            for (self.range.start..self.range.end) |index| switch (self.table) {
+                .address => {
+                    const ids = self.columns[index * 2];
+                    const multiplicities = self.columns[index * 2 + 1];
+                    for (ids, multiplicities, 0..) |*id, *count, row| {
+                        const flat = index * self.rows + row;
+                        id.* = if (flat < self.input.memory.address_to_id.len -| 1)
+                            self.input.memory.address_to_id[flat + 1].raw
+                        else
+                            0;
+                        count.* = if (flat < self.counts.address.len) self.counts.address[flat] else 0;
+                    }
+                },
+                .big => {
+                    if (index < memory_tables.big_limb_count) {
+                        try memory_tables.writeBigValueColumn(self.input, self.component, index, self.columns[index]);
+                    } else {
+                        const offset = std.math.mul(usize, self.component, memory_tables.max_big_rows) catch return error.AllocationSizeOverflow;
+                        for (self.columns[index], 0..) |*count, row|
+                            count.* = if (offset + row < self.counts.big.len) self.counts.big[offset + row] else 0;
+                    }
+                },
+                .small => {
+                    if (index < memory_tables.small_limb_count) {
+                        try memory_tables.writeSmallValueColumn(self.input, index, self.columns[index]);
+                    } else {
+                        for (self.columns[index], 0..) |*count, row|
+                            count.* = if (row < self.counts.small.len) self.counts.small[row] else 0;
+                    }
+                },
+            };
+        }
+    };
+    var jobs: [8]Work = undefined;
+    for (jobs[0..workers], 0..) |*job, index| job.* = .{
+        .table = table,
+        .input = input,
+        .counts = counts,
+        .component = component,
+        .columns = columns,
+        .rows = rows,
+        .range = split.span(units, index, workers),
+    };
+    try split.dispatch(Work, jobs[0..workers]);
+}
+
+fn validateDestinations(columns: []const []u32, width: usize, rows: usize) !void {
+    if (columns.len != width) return error.InvalidBaseTraceGeometry;
+    for (columns) |column| if (column.len != rows) return error.InvalidBaseTraceGeometry;
 }
 
 fn initOwned(
@@ -187,5 +276,103 @@ fn initOwned(
         .storage = storage,
         .columns = columns,
         .rows = rows,
+    };
+}
+
+fn testFinalTables(allocator: std.mem.Allocator) !void {
+    const mem = @import("../common/memory.zig");
+    var ids: [18]mem.EncodedMemoryValueId = undefined;
+    for (&ids, 0..) |*id, index| id.* = mem.EncodedMemoryValueId.small(@intCast(index));
+    var big: [17]mem.F252 = undefined;
+    for (&big, 0..) |*value, index| {
+        value.* = [_]u32{0} ** 8;
+        value[0] = @intCast(index * 1027);
+        value[7] = 0x08000000;
+    }
+    var small: [17]u128 = undefined;
+    for (&small, 0..) |*value, index| value.* = (@as(u128, 1) << 65) + index * 513;
+    var input: adapter.ProverInput = undefined;
+    input.memory = .{ .config = .{}, .address_to_id = &ids, .f252_values = &big, .small_values = &small };
+    var address_counts = [_]u32{13} ** 17;
+    var big_counts = [_]u32{19} ** 17;
+    var small_counts = [_]u32{23} ** 17;
+    const counts = cpu_memory_multiplicity.Counts{ .allocator = allocator, .address = &address_counts, .big = &big_counts, .small = &small_counts };
+    // A column slab with guards catches writes past padded domains. Expected
+    // limbs are extracted independently from the raw 252-bit input.
+    const rows: usize = 32;
+    const width = memory_tables.big_column_count;
+    const slab = try allocator.alloc(u32, width * (rows + 2));
+    defer allocator.free(slab);
+    @memset(slab, 0xdeadbeef);
+    var natural: [width][]u32 = undefined;
+    for (&natural, 0..) |*column, index| column.* = slab[index * (rows + 2) + 1 ..][0..rows];
+    try memoryBigInto(&input, &counts, 0, &natural);
+    for (0..width) |column| {
+        try std.testing.expectEqual(@as(u32, 0xdeadbeef), slab[column * (rows + 2)]);
+        try std.testing.expectEqual(@as(u32, 0xdeadbeef), slab[(column + 1) * (rows + 2) - 1]);
+        for (natural[column], 0..) |value, row| {
+            const expected: u32 = if (row >= big.len) 0 else if (column == memory_tables.big_limb_count)
+                19
+            else blk: {
+                const shift: u8 = @intCast(column * 9);
+                var raw: u256 = 0;
+                for (big[row], 0..) |word, limb| raw |= @as(u256, word) << @as(u8, @intCast(limb * 32));
+                break :blk @intCast((raw >> shift) & 511);
+            };
+            try std.testing.expectEqual(expected, value);
+        }
+    }
+    var address_slab: [memory_tables.address_column_count][16]u32 = undefined;
+    var address_columns: [memory_tables.address_column_count][]u32 = undefined;
+    for (&address_slab, &address_columns) |*values, *column| column.* = values;
+    try memoryAddressInto(&input, &counts, &address_columns);
+    for (0..memory_tables.address_split) |chunk| for (0..16) |row| {
+        const flat = chunk * 16 + row;
+        try std.testing.expectEqual(if (flat < 17) @as(u32, @intCast(flat + 1)) else 0, address_columns[chunk * 2][row]);
+        try std.testing.expectEqual(if (flat < 17) @as(u32, 13) else 0, address_columns[chunk * 2 + 1][row]);
+    };
+    try memorySmallInto(&input, &counts, natural[0..memory_tables.small_column_count]);
+    for (natural[0..memory_tables.small_column_count], 0..) |column, index| for (column, 0..) |value, row| {
+        const expected: u32 = if (row >= small.len) 0 else if (index == memory_tables.small_limb_count)
+            23
+        else
+            @intCast((small[row] >> @as(u7, @intCast(index * 9))) & 511);
+        try std.testing.expectEqual(expected, value);
+    };
+    try std.testing.expectError(error.InvalidBaseTraceGeometry, memoryBigInto(&input, &counts, 0, natural[0 .. width - 1]));
+    var malformed = natural;
+    malformed[0] = malformed[0][0..31];
+    try std.testing.expectError(error.InvalidBaseTraceGeometry, memoryBigInto(&input, &counts, 0, &malformed));
+    try std.testing.expectError(error.InvalidComponent, memoryBigInto(&input, &counts, 1, &natural));
+    small[0] = @as(u128, 1) << 72;
+    try std.testing.expectError(error.InvalidEncoding, memorySmallInto(&input, &counts, natural[0..memory_tables.small_column_count]));
+}
+
+test "Cairo witness final storage implicit tables preserve independent row formulas and guarded padding" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, testFinalTables, .{});
+}
+
+test "Cairo witness final storage implicit parallel writes agree with independent limbs" {
+    const prover = @import("stwo_prover_engine");
+    var pool: prover.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 4 });
+    defer pool.deinit();
+    var binding = try prover.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    const a = std.testing.allocator;
+    const values = try a.alloc(u128, 1 << 17);
+    defer a.free(values);
+    for (values, 0..) |*value, row| value.* = (@as(u128, 1) << 65) + row * 513;
+    var input: adapter.ProverInput = undefined;
+    input.memory = .{ .config = .{}, .address_to_id = &.{}, .f252_values = &.{}, .small_values = values };
+    const counts = cpu_memory_multiplicity.Counts{ .allocator = a, .address = &.{}, .big = &.{}, .small = &.{} };
+    var output = try initOwned(a, @intCast(values.len), memory_tables.small_column_count);
+    defer output.deinit();
+    var destinations: [memory_tables.small_column_count][]u32 = undefined;
+    for (&destinations, 0..) |*destination, index| destination.* = output.mutableColumn(index);
+    try memorySmallInto(&input, &counts, &destinations);
+    for (destinations, 0..) |column, index| for (column, 0..) |value, row| {
+        const expected: u32 = if (index == memory_tables.small_limb_count) 0 else @intCast((values[row] >> @as(u7, @intCast(index * 9))) & 511);
+        try std.testing.expectEqual(expected, value);
     };
 }

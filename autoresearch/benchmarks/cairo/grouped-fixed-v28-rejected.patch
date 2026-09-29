@@ -1,0 +1,143 @@
+--- src/frontends/cairo/conformance/multiplicity_tables.zig
++++ src/frontends/cairo/conformance/multiplicity_tables.zig
+@@ -6,6 +6,7 @@
+ const fixed_table_bundle = @import("../witness/fixed_table_bundle.zig");
+ const fixed_feed_plan = @import("fixed_feed_plan.zig");
+ const pool_split = @import("../witness/pool_split.zig");
++const feed_groups = @import("fixed_feed_groups.zig");
+ 
+ const max_fixed_rows: u32 = 1 << 24;
+ const max_dense_words: usize = 1 << 27;
+@@ -203,7 +204,7 @@
+     }
+ };
+ 
+-const AtomicTask = struct { feed_index: usize, begin: usize, end: usize };
++const AtomicTask = struct { feed_index: usize, begin: usize, end: usize, group: ?[]const usize = null };
+ const AtomicWork = struct {
+     tables: []const Table,
+     feeds: []const PreparedFeed,
+@@ -227,24 +228,37 @@
+             const cached_rows = 256;
+             const cached_relations = 16;
+             var small_counts: [cached_rows * cached_relations]u32 = @splat(0);
+-            for (task.begin..task.end) |row| {
+-                const base = row * feed.stride + feed.word_base;
+-                const key = feed.plan.key(feed.words[base..][0..feed.plan.word_count]) catch |err| {
+-                    self.failure = err;
+-                    return;
+-                };
+-                const index = @as(usize, key.relation) * feed.plan.row_count + key.row;
+-                if (index >= dense.len) {
+-                    self.failure = error.FixedGeometryMismatch;
+-                    return;
++            const singleton = [_]usize{task.feed_index};
++            const indices = task.group orelse &singleton;
++            // Each source tile fits at most 32 KiB, alongside the hot-bin
++            // cache. Revisit its feeds while row records are still resident.
++            const tile_rows = if (task.group != null) @max(@as(usize, 1), @min(@as(usize, 16), (8 * 1024) / @max(@as(usize, 1), feed.stride))) else task.end - task.begin;
++            var tile_start = task.begin;
++            while (tile_start < task.end) {
++                const tile_end = tile_start + @min(tile_rows, task.end - tile_start);
++                for (indices) |feed_index| {
++                    const source = self.feeds[feed_index];
++                    for (tile_start..tile_end) |row| {
++                        const base = row * source.stride + source.word_base;
++                        const key = source.plan.key(source.words[base..][0..source.plan.word_count]) catch |err| {
++                            self.failure = err;
++                            return;
++                        };
++                        const index = @as(usize, key.relation) * feed.plan.row_count + key.row;
++                        if (index >= dense.len) {
++                            self.failure = error.FixedGeometryMismatch;
++                            return;
++                        }
++                        if (key.row < cached_rows and key.relation < cached_relations)
++                            small_counts[@as(usize, key.relation) * cached_rows + key.row] += 1
++                        else
++                            atomicAddChecked(&dense[index], 1) catch |err| {
++                                self.failure = err;
++                                return;
++                            };
++                    }
+                 }
+-                if (key.row < cached_rows and key.relation < cached_relations)
+-                    small_counts[@as(usize, key.relation) * cached_rows + key.row] += 1
+-                else
+-                    atomicAddChecked(&dense[index], 1) catch |err| {
+-                        self.failure = err;
+-                        return;
+-                    };
++                tile_start = tile_end;
+             }
+             for (0..@min(feed.plan.columns, cached_relations)) |relation|
+                 for (0..@min(feed.plan.row_count, cached_rows)) |row| {
+@@ -300,13 +314,36 @@
+     }
+     var tasks: std.ArrayList(AtomicTask) = .empty;
+     defer tasks.deinit(allocator);
+-    for (feeds, 0..) |feed, index| {
+-        if (!parallel_tables[feed.table_index]) continue;
+-        var begin: usize = 0;
+-        while (begin < feed.rows) {
+-            const end = begin + @min(@as(usize, 1 << 18), feed.rows - begin);
+-            try tasks.append(allocator, .{ .feed_index = index, .begin = begin, .end = end });
+-            begin = end;
++    const grouped = if (std.posix.getenv("STWO_CAIRO_GROUP_FIXED_FEEDS")) |value|
++        std.mem.eql(u8, value, "1")
++    else
++        false;
++    var groups: ?feed_groups.Groups(PreparedFeed) = null;
++    defer if (groups) |*owned| owned.deinit();
++    if (grouped) {
++        groups = try feed_groups.Groups(PreparedFeed).init(allocator, feeds, parallel_tables);
++        for (groups.?.items.items) |group| {
++            const feed = feeds[group.first];
++            // Bound both work and cached-bin counts per task, even if every
++            // grouped feed targets the same hot bin.
++            if (group.indices.items.len > std.math.maxInt(u32)) return error.GeometryTooLarge;
++            const row_budget = @max(@as(usize, 1), (1 << 18) / group.indices.items.len);
++            var begin: usize = 0;
++            while (begin < feed.rows) {
++                const end = begin + @min(row_budget, feed.rows - begin);
++                try tasks.append(allocator, .{ .feed_index = group.first, .group = group.indices.items, .begin = begin, .end = end });
++                begin = end;
++            }
++        }
++    } else {
++        for (feeds, 0..) |feed, index| {
++            if (!parallel_tables[feed.table_index]) continue;
++            var begin: usize = 0;
++            while (begin < feed.rows) {
++                const end = begin + @min(@as(usize, 1 << 18), feed.rows - begin);
++                try tasks.append(allocator, .{ .feed_index = index, .begin = begin, .end = end });
++                begin = end;
++            }
+         }
+     }
+     const worker_count = @min(tables.len, pool_workers);
+@@ -434,10 +471,22 @@
+         try std.testing.expectEqual(@as(u32, 0), histograms[0][512 + key]);
+         try std.testing.expectEqual(@as(u32, 0), histograms[1][key]);
+     }
++    @memset(&histograms[0], 0);
++    @memset(&histograms[1], 0);
++    const shared = [_]usize{ 0, 1 };
++    const grouped_tasks = [_]AtomicTask{
++        .{ .feed_index = 0, .group = &shared, .begin = 0, .end = row_count },
++        .{ .feed_index = 2, .group = &.{2}, .begin = 0, .end = row_count },
++    };
++    try accumulateAtomic(&tables, &feeds, &grouped_tasks, 3);
++    for (expected, 0..) |count, key| {
++        try std.testing.expectEqual(2 * count, histograms[0][key]);
++        try std.testing.expectEqual(count, histograms[1][512 + key]);
++    }
+     histograms[0][0] = std.math.maxInt(u32);
+-    try std.testing.expectError(error.MultiplicityOverflow, accumulateAtomic(&tables, &feeds, &tasks, 3));
++    try std.testing.expectError(error.MultiplicityOverflow, accumulateAtomic(&tables, &feeds, &grouped_tasks, 3));
+     @memset(&histograms[0], 0);
+     @memset(&histograms[1], 0);
+     words[0] = 512;
+-    try std.testing.expectError(error.InvalidMultiplicityKey, accumulateAtomic(&tables, &feeds, &tasks, 3));
++    try std.testing.expectError(error.InvalidMultiplicityKey, accumulateAtomic(&tables, &feeds, &grouped_tasks, 3));
+ }

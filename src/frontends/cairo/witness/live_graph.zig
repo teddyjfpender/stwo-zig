@@ -51,9 +51,18 @@ pub const Execution = struct {
 };
 
 /// Scoped access to one materialized generated component. The execution storage
-/// is valid only for the duration of `visit`.
+/// is valid only for the duration of `visit`, unless `destination` lends
+/// proof-owned columns whose owner outlives the complete graph execution.
 pub const ComponentObserver = struct {
     context: *anyopaque,
+    /// Consume fixed/memory multiplicities synchronously. With this callback,
+    /// subcomponent words can retire after their final graph consumer; lookup
+    /// slabs retain their separate interaction-epoch ownership.
+    consume: ?*const fn (context: *anyopaque, producer: *const ProducerOutput) anyerror!void = null,
+    /// Optional final placement, before the component allocates its outputs.
+    /// Slice headers are allocated with the supplied allocator and freed after
+    /// execution; the pointed-to column storage remains owned by the observer.
+    destination: ?*const fn (context: *anyopaque, allocator: std.mem.Allocator, layout: component_layout.ComponentLayout) anyerror!?[][]u32 = null,
     visit: *const fn (
         context: *anyopaque,
         layout: component_layout.ComponentLayout,
@@ -185,9 +194,20 @@ pub fn execute(
             );
             return Error.IncompleteWitnessGraph;
         };
-        errdefer result.producer.deinit(allocator);
+        var owns_producer = true;
+        errdefer if (owns_producer) result.producer.deinit(allocator);
         try components.append(allocator, result.component);
         try producers.append(allocator, result.producer);
+        owns_producer = false;
+        @import("stwo_prover_engine").measurement.process_usage.reportStage(result.producer.label);
+        if (observer) |active| if (active.consume) |consume| {
+            {
+                var counts_stage = try stage_profile.StageScope.begin(recorder, "witness_feed_counts", "Joined fixed and memory feed counts");
+                defer counts_stage.end();
+                try consume(active.context, &producers.items[producers.items.len - 1]);
+            }
+            retireConsumedFeeds(allocator, producers.items, geometry.components[ordinal + 1 ..]);
+        };
 
         if (claim_component.log_size == .deferred) try feeds.append(allocator, .{
             .name = claim_component.name,
@@ -202,6 +222,24 @@ pub fn execute(
         .components = try components.toOwnedSlice(allocator),
         .producers = try producers.toOwnedSlice(allocator),
     };
+}
+
+/// Dependency geometry is authoritative for both gathered and compact inputs.
+/// Only callers that already consumed both multiplicity families may use this.
+pub fn retireConsumedFeeds(allocator: std.mem.Allocator, producers: []ProducerOutput, remaining: []const claim_generator.ComponentGeometry) void {
+    for (producers) |*producer| {
+        var needed = false;
+        for (remaining) |component| {
+            for (proof_plan.canonicalProducerEdges(component.name)) |edge| {
+                if (std.mem.eql(u8, edge.producer, producer.label)) {
+                    needed = true;
+                    break;
+                }
+            }
+            if (needed) break;
+        }
+        if (!needed) producer.releaseSubcomponentWords(allocator);
+    }
 }
 
 const ComponentResult = struct {
@@ -233,7 +271,13 @@ fn executeComponent(
     };
     try validateClaimGeometry(claim_component, layout);
 
-    var execution = try component_executor.execute(
+    const destination: ?[][]u32 = if (observer) |active| blk: {
+        if (active.destination) |reserve| break :blk try reserve(active.context, allocator, layout);
+        break :blk null;
+    } else null;
+    defer if (destination) |columns| allocator.free(columns);
+
+    var execution = try component_executor.executeInto(
         allocator,
         input,
         witness_program,
@@ -244,6 +288,7 @@ fn executeComponent(
         layout,
         pedersen_table,
         recorder,
+        destination,
     );
     defer execution.deinit();
     if (observer) |active| {

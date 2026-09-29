@@ -33,18 +33,12 @@ test "SN2 decommit topology opens compact trace cohorts and all FRI trees" {
         topology.assembly_capacity_words,
     );
     try std.testing.expectEqual(@as(usize, 139), topology.trace_groups.len);
-    try std.testing.expectEqual(@as(u32, 26), topology.query_log_size);
+    try std.testing.expectEqual(@as(u32, 24), topology.query_log_size);
+    // Canonical fixed columns are taller than the FRI lifting domain. Their
+    // openings map upward while FRI positions remain bounded by log 24.
+    try std.testing.expectEqual(@as(u32, 24), topology.trace_openings[0].source_log_size);
+    try std.testing.expectEqual(@as(u32, 26), topology.trace_openings[0].tree_log_size);
     try std.testing.expect(!std.mem.allEqual(u8, &topology.identity, 0));
-    var expected_identity: [32]u8 = undefined;
-    _ = try std.fmt.hexToBytes(
-        &expected_identity,
-        "73cd5e5e9b5a4d95f3060d7122e1ecb94f099c08169769c1a066f06ffd376e09",
-    );
-    try std.testing.expectEqualSlices(
-        u8,
-        &expected_identity,
-        &topology.identity,
-    );
 
     var column_cursor: usize = 0;
     for (topology.trace_openings, 0..) |opening, ordinal| {

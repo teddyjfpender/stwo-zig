@@ -91,8 +91,7 @@ pub const Prepared = struct {
         if (std.mem.allEqual(u8, &plan.identity, 0) or
             (schedule != null and
                 (std.mem.allEqual(u8, &schedule.?.identity, 0) or
-                    schedule.?.entries.len !=
-                        trace_schedule.expected_entry_count)))
+                    schedule.?.entries.len == 0)))
         {
             return error.InvalidTraceCommitPlan;
         }
@@ -112,8 +111,6 @@ pub const Prepared = struct {
         const tree = located.tree;
         const tree_ordinal: u32 = @intCast(located.ordinal);
         const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
-        if (role == .main and !mixedHeight(columns))
-            return error.TraceCommitTreeNotMixedHeight;
 
         const geometry = try geometry_compiler.compile(allocator, columns, tree);
         errdefer geometry.deinit(allocator);
@@ -380,12 +377,12 @@ pub const Bound = struct {
                 prepared.slots.root,
                 1,
             ),
-            .twiddles_forward = try prefixWords(
+            .twiddles_forward = try suffixWords(
                 provider,
                 prepared.slots.twiddles_forward,
                 prepared.tree_size / 2,
             ),
-            .twiddles_inverse = try prefixWords(
+            .twiddles_inverse = try suffixWords(
                 provider,
                 prepared.slots.twiddles_inverse,
                 prepared.tree_size / 2,
@@ -433,36 +430,42 @@ pub const Bound = struct {
         session: anytype,
         stage: telemetry.Stage,
     ) !void {
+        return self.materializeBaseEvaluationsWith(NativeOps, session, stage);
+    }
+
+    fn materializeBaseEvaluationsWith(
+        self: *Bound,
+        comptime Ops: type,
+        session: anytype,
+        stage: telemetry.Stage,
+    ) !void {
         if (self.prepared.input_form != .coefficients or
             self.base_evaluations_materialized)
         {
             return error.InvalidTraceCommitState;
         }
         for (self.prepared.cohorts) |cohort| {
-            try NativeOps.Transform.extend(
+            const coefficients = try self.coefficients.sub(
+                cohort.coefficient_offset_words,
+                cohort.coefficient_words,
+            );
+            const evaluations = try self.evaluations.sub(
+                cohort.evaluation_offset_words,
+                cohort.coefficient_words,
+            );
+            // A base-domain transform consumes all N coefficients. The LDE
+            // staging ABI caps its source at half the evaluation domain and
+            // is only appropriate when extending into a larger domain.
+            try session.context.copyDeviceSlice(u32, evaluations, coefficients);
+            try Ops.Transform.forwardInPlace(
                 session,
                 stage,
                 .{
-                    .storage = try self.coefficients.sub(
-                        cohort.coefficient_offset_words,
-                        cohort.coefficient_words,
-                    ),
-                    .column_stride_words = @as(usize, 1) << @intCast(cohort.trace_log_rows),
-                },
-                try self.column_logs.sub(
-                    cohort.first_column,
-                    cohort.column_count,
-                ),
-                .{
-                    .storage = try self.evaluations.sub(
-                        cohort.evaluation_offset_words,
-                        cohort.coefficient_words,
-                    ),
+                    .storage = evaluations,
                     .column_stride_words = @as(usize, 1) << @intCast(cohort.trace_log_rows),
                 },
                 cohort.trace_log_rows,
                 self.twiddles_forward,
-                false,
             );
         }
         self.base_evaluations_materialized = true;
@@ -507,7 +510,11 @@ pub const Bound = struct {
         comptime Ops: type,
         session: anytype,
     ) !void {
+        var phase: []const u8 = "transform";
+        var active_log: u32 = 0;
+        errdefer std.debug.print("cairo-cuda commitment tree={} phase={s} log={} failed\n", .{ self.prepared.tree_ordinal, phase, active_log });
         for (self.prepared.cohorts) |cohort| {
+            active_log = cohort.evaluation_log_rows;
             const coefficients = common.WordMatrix{
                 .storage = try self.coefficients.sub(
                     cohort.coefficient_offset_words,
@@ -547,6 +554,7 @@ pub const Bound = struct {
                 false,
             );
         }
+        phase = "merkle";
         const Builder = commit_tree.BuilderFor(Ops.Commitment);
         const root = if (self.progressive_states) |states|
             try Builder.baseFieldLiftedSegmented(
@@ -658,14 +666,6 @@ fn findTree(
     return null;
 }
 
-fn mixedHeight(columns: []const proof_ir.TraceColumn) bool {
-    if (columns.len < 2) return false;
-    for (columns[1..]) |trace_column| {
-        if (trace_column.log_rows != columns[0].log_rows) return true;
-    }
-    return false;
-}
-
 fn requiresProgressive(
     cohorts: []const Cohort,
     tree_size: u32,
@@ -704,6 +704,80 @@ fn prefixWords(provider: anytype, id: u32, words: usize) !common.Words {
     const output = try provider.slot(id);
     if (output.len < words) return error.InvalidResidentSlotExtent;
     return output.sub(0, words);
+}
+
+// Twiddle trees are stored largest layer first. A smaller canonical domain
+// lives at the tail, whereas Merkle layers and ordinary arrays use prefixes.
+fn suffixWords(provider: anytype, id: u32, words: usize) !common.Words {
+    const output = try provider.slot(id);
+    if (output.len < words) return error.InvalidResidentSlotExtent;
+    return output.sub(output.len - words, words);
+}
+
+test "canonical CUDA preprocessed base reconstruction preserves the full coefficient domain" {
+    const Context = struct {
+        calls: usize = 0,
+        pub fn copyDeviceSlice(_: *@This(), comptime T: type, destination: common.Words, source: common.Words) !void {
+            if (destination.len != source.len) return error.SizeOverflow;
+            const output: [*]T = @ptrFromInt(destination.address);
+            const input: [*]const T = @ptrFromInt(source.address);
+            @memcpy(output[0..destination.len], input[0..source.len]);
+        }
+    };
+    const Ops = struct {
+        const Transform = struct {
+            pub fn forwardInPlace(session: anytype, stage: telemetry.Stage, columns: common.WordMatrix, log_n: u32, _: common.Words) !void {
+                try std.testing.expectEqual(telemetry.Stage.ingress, stage);
+                try std.testing.expectEqual(@as(u32, 4), log_n);
+                try std.testing.expectEqual(@as(usize, 16), columns.column_stride_words);
+                const values: [*]const u32 = @ptrFromInt(columns.storage.address);
+                // Two full columns, including the coefficients the LDE ABI
+                // would truncate when asked for a base-domain reconstruction.
+                for (values[0..columns.storage.len], 0..) |value, i|
+                    try std.testing.expectEqual(@as(u32, @intCast(i + 1)), value);
+                session.context.calls += 1;
+            }
+        };
+    };
+    var input: [32]u32 = undefined;
+    for (&input, 0..) |*value, i| value.* = @intCast(i + 1);
+    var output = [_]u32{0} ** 64;
+    var cohorts = [_]Cohort{.{ .first_column = 0, .column_count = 2, .trace_log_rows = 4, .evaluation_log_rows = 5, .coefficient_offset_words = 0, .coefficient_words = 32, .evaluation_offset_words = 0, .evaluation_words = 64 }};
+    var prepared: Prepared = undefined;
+    prepared.input_form = .coefficients;
+    prepared.cohorts = &cohorts;
+    var bound: Bound = undefined;
+    bound.prepared = &prepared;
+    bound.coefficients = .{ .address = @intFromPtr(&input), .len = input.len, .owner = 1, .generation = 1 };
+    bound.evaluations = .{ .address = @intFromPtr(&output), .len = output.len, .owner = 1, .generation = 1 };
+    bound.twiddles_forward = .{ .address = 1, .len = 16, .owner = 1, .generation = 1 };
+    bound.base_evaluations_materialized = false;
+    var context = Context{};
+    try bound.materializeBaseEvaluationsWith(Ops, .{ .context = &context }, .ingress);
+    try std.testing.expectEqual(@as(usize, 1), context.calls);
+    try std.testing.expect(bound.base_evaluations_materialized);
+    try std.testing.expectEqualSlices(u32, &input, output[0..32]);
+    try std.testing.expectError(error.InvalidTraceCommitState, bound.materializeBaseEvaluationsWith(Ops, .{ .context = &context }, .ingress));
+}
+
+test "canonical CUDA smaller twiddle views match separately computed domains" {
+    const core = @import("stwo_core");
+    const twiddle = @import("stwo_prover_engine").poly.twiddles;
+    var large = try twiddle.precomputeM31(std.testing.allocator, core.poly.circle.CanonicCoset.new(8).circleDomain().half_coset);
+    defer twiddle.deinitM31(std.testing.allocator, &large);
+    var small = try twiddle.precomputeM31(std.testing.allocator, core.poly.circle.CanonicCoset.new(4).circleDomain().half_coset);
+    defer twiddle.deinitM31(std.testing.allocator, &small);
+    const Provider = struct {
+        words: common.Words,
+        fn slot(self: @This(), _: u32) !common.Words {
+            return self.words;
+        }
+    };
+    for ([_][]const core.fields.m31.M31{ large.twiddles, large.itwiddles }, [_][]const core.fields.m31.M31{ small.twiddles, small.itwiddles }) |all, expected| {
+        const view = try suffixWords(Provider{ .words = .{ .address = @intFromPtr(all.ptr), .len = all.len, .owner = 1, .generation = 1 } }, 0, expected.len);
+        const actual: [*]const core.fields.m31.M31 = @ptrFromInt(view.address);
+        try std.testing.expectEqualSlices(core.fields.m31.M31, expected, actual[0..expected.len]);
+    }
 }
 
 fn exactAs(

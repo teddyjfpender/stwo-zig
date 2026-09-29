@@ -38,46 +38,8 @@ pub const Op = enum(u8) {
     deduce_call = 27,
 };
 
-pub const DeduceKind = enum(u32) {
-    blake_g = 0,
-    blake_round_sigma = 1,
-    partial_ec_mul_w18 = 2,
-    pedersen_points_table_w18 = 3,
-    felt_add = 4,
-    felt_sub = 5,
-    felt_mul = 6,
-    felt_div = 7,
-    poseidon_round_keys = 8,
-    cube_252 = 9,
-    poseidon_full_round_chain = 10,
-    poseidon_3_partial_rounds_chain = 11,
-
-    pub fn shape(self: DeduceKind) struct { args: usize, outputs: usize } {
-        return switch (self) {
-            .blake_g => .{ .args = 6, .outputs = 4 },
-            .blake_round_sigma => .{ .args = 1, .outputs = 16 },
-            .partial_ec_mul_w18 => .{ .args = 72, .outputs = 72 },
-            .pedersen_points_table_w18 => .{ .args = 1, .outputs = 56 },
-            .felt_add, .felt_sub, .felt_mul, .felt_div => .{ .args = 56, .outputs = 28 },
-            .poseidon_round_keys => .{ .args = 1, .outputs = 30 },
-            .cube_252 => .{ .args = 10, .outputs = 10 },
-            .poseidon_full_round_chain => .{ .args = 32, .outputs = 32 },
-            .poseidon_3_partial_rounds_chain => .{ .args = 42, .outputs = 42 },
-        };
-    }
-
-    pub fn needsPedersenModule(self: DeduceKind) bool {
-        return self == .partial_ec_mul_w18 or
-            self == .pedersen_points_table_w18;
-    }
-
-    pub fn needsFp256(self: DeduceKind) bool {
-        return switch (self) {
-            .blake_g, .blake_round_sigma => false,
-            else => true,
-        };
-    }
-};
+pub const deduction_contract = @import("cairo_deduction_contract");
+pub const DeduceKind = deduction_contract.Selector;
 
 pub const Inst = struct {
     op: Op,

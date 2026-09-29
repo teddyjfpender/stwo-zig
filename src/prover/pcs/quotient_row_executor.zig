@@ -31,9 +31,14 @@ pub const LiftingColumnView = struct {
 
 pub const CombinedContributionView = struct {
     coordinates: [qm31.SECURE_EXTENSION_DEGREE][]M31,
+    coordinate_backing: ?[]align(std.heap.page_size_max) M31 = null,
+
     batch_index: usize,
     shift_amt: std.math.Log2Int(usize),
     is_direct: bool,
+    pub fn deinitCoordinates(self: @This(), a: std.mem.Allocator) void {
+        if (self.coordinate_backing) |owner| a.free(owner) else for (self.coordinates) |coordinate| a.free(coordinate);
+    }
 };
 
 pub const ColumnContribution = struct {

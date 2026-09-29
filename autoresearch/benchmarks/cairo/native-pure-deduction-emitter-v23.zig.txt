@@ -1,0 +1,32 @@
+//! Inline only total, exact-shape, table-independent witness deductions.
+const std = @import("std");
+const model = @import("model.zig");
+
+pub fn emit(writer: *std.Io.Writer, inst: model.Inst, arguments: usize) !bool {
+    const kind = std.meta.intToEnum(model.DeduceKind, inst.imm) catch return false;
+    const shape = kind.shape();
+    if (arguments != shape.args or inst.b != shape.outputs) return false;
+    switch (kind) {
+        .blake_g => try writer.print("        witness_blake_g(deduce_args, &registers[{}]);\n", .{inst.dst}),
+        .triple_xor_32 => try writer.print("        registers[{}] = deduce_args[0] ^ deduce_args[1] ^ deduce_args[2];\n", .{inst.dst}),
+        else => return false,
+    }
+    return true;
+}
+
+pub fn preamble(writer: *std.Io.Writer) !void {
+    try writer.writeAll(
+        \\static inline uint32_t witness_rotr32(uint32_t x, unsigned n) {
+        \\    return (x >> n) | (x << (32u - n));
+        \\}
+        \\static inline void witness_blake_g(const uint32_t *i, uint32_t *o) {
+        \\    uint32_t a = i[0], b = i[1], c = i[2], d = i[3];
+        \\    a += b + i[4]; d = witness_rotr32(d ^ a, 16u);
+        \\    c += d; b = witness_rotr32(b ^ c, 12u);
+        \\    a += b + i[5]; d = witness_rotr32(d ^ a, 8u);
+        \\    c += d; b = witness_rotr32(b ^ c, 7u);
+        \\    o[0] = a; o[1] = b; o[2] = c; o[3] = d;
+        \\}
+        \\
+    );
+}

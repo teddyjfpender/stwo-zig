@@ -451,10 +451,12 @@ pub fn evaluateManyWithTwiddles(
 }
 
 pub const interpolateBuffersWithTwiddles = transforms.interpolateBuffersWithTwiddles;
+pub const interpolateBuffersWithTwiddlesWithPool = transforms.interpolateBuffersWithTwiddlesWithPool;
 
 pub const evaluateBuffersWithTwiddles = transforms.evaluateBuffersWithTwiddles;
 
 pub const evaluateExtensionBuffersWithTwiddles = transforms.evaluateExtensionBuffersWithTwiddles;
+pub const evaluateExtensionBuffersWithTwiddlesWithPool = transforms.evaluateExtensionBuffersWithTwiddlesWithPool;
 
 fn checkedPow2(log_size: u32) PolyError!usize {
     if (log_size >= @bitSizeOf(usize)) return PolyError.InvalidLogSize;
@@ -754,4 +756,49 @@ test "prover poly circle poly: interpolate with twiddles matches interpolate" {
         interpolated_direct.coefficients(),
         interpolated_with_twiddles.coefficients(),
     );
+}
+
+test "circle poly: row FFT waves match serial interpolation and extension" {
+    const allocator = std.testing.allocator;
+    const WorkPool = @import("../../work_pool.zig").WorkPool;
+    const TestCoset = @import("stwo_core").poly.circle.canonic.CanonicCoset;
+    var rng = std.Random.DefaultPrng.init(0x7f812025);
+    const random = rng.random();
+    for ([_]usize{ 2, 7 }) |workers| {
+        var pool: WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{ .worker_count = workers });
+        defer pool.deinit();
+        for ([_]u32{ 6, 7, 8, 9, 10, 13, 16, 17, 18 }) |log_size| {
+            const domain = TestCoset.new(log_size).circleDomain();
+            const extended_domain = TestCoset.new(log_size + 1).circleDomain();
+            var tree = try twiddles_mod.precomputeM31(allocator, extended_domain.half_coset);
+            defer twiddles_mod.deinitM31(allocator, &tree);
+            const borrowed: M31TwiddleTree = .{ .root_coset = tree.root_coset, .twiddles = tree.twiddles, .itwiddles = tree.itwiddles };
+            const rows = @as(usize, 1) << @intCast(log_size);
+            const serial = try allocator.alloc(M31, rows);
+            defer allocator.free(serial);
+            for (serial) |*value| value.* = M31.fromCanonical(random.uintLessThan(u32, m31.Modulus));
+            const parallel = try allocator.dupe(M31, serial);
+            defer allocator.free(parallel);
+            var serial_batch = [_][]M31{serial};
+            var parallel_batch = [_][]M31{parallel};
+            try interpolateBuffersWithTwiddles(&serial_batch, domain, borrowed);
+            try interpolateBuffersWithTwiddlesWithPool(&parallel_batch, domain, borrowed, &pool);
+            try std.testing.expectEqualSlices(M31, serial, parallel);
+            const serial_extended = try allocator.alloc(M31, 2 * rows);
+            defer allocator.free(serial_extended);
+            const parallel_extended = try allocator.alloc(M31, 2 * rows);
+            defer allocator.free(parallel_extended);
+            @memcpy(serial_extended[0..rows], serial);
+            @memcpy(parallel_extended[0..rows], parallel);
+            // The untouched half must be initialized by the joined expansion.
+            @memset(serial_extended[rows..], M31.fromCanonical(23));
+            @memset(parallel_extended[rows..], M31.fromCanonical(47));
+            var serial_extended_batch = [_][]M31{serial_extended};
+            var parallel_extended_batch = [_][]M31{parallel_extended};
+            try evaluateExtensionBuffersWithTwiddles(&serial_extended_batch, extended_domain, borrowed);
+            try evaluateExtensionBuffersWithTwiddlesWithPool(&parallel_extended_batch, extended_domain, borrowed, &pool);
+            try std.testing.expectEqualSlices(M31, serial_extended, parallel_extended);
+        }
+    }
 }

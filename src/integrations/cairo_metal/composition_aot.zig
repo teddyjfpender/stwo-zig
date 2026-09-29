@@ -75,10 +75,9 @@ pub const ApprovedMetallib = struct {
 /// `vectors/cairo/official/air_template_composition_{eval,stored}_domain.metallib`,
 /// emitted from the AIR template library's own program bundles over all three
 /// portfolio program bundles so one entry covers the whole portfolio. The
-/// eval-domain library is Option A and is what the 3.8 hook resolves against;
-/// the stored-domain library is the Option-B ABI of 3.10 and **nothing loads it
-/// yet** — its consumption (trace-domain placement plus the shift table in
-/// `composition_eval_arena`) is a later increment. Digests were measured from
+/// eval-domain artifact remains an authenticated diagnostic reference. The
+/// product uses the stored-domain ABI with native column placement and an
+/// explicit shift table (`composition_stored_arena`). Digests were measured from
 /// the checked-in blobs; per issue #124's closing comments they are *not*
 /// byte-reproducible across Xcode versions, so these are artifact identities,
 /// not build-recipe identities.
@@ -86,6 +85,15 @@ pub const eval_domain_label = "air_template_composition_eval_domain_v1";
 pub const eval_domain_sha256_hex =
     "06435e82fcae331f952e2eab66dfd58ecb4166b1197b554b336c033f845bacfb";
 pub const eval_domain_length: u64 = 5933764;
+pub const stored_domain_label = "air_template_composition_stored_domain_v1";
+pub const stored_domain_sha256_hex = "6a71c368c4d974c4f665a7124a17836ffc894dcb6829b869531fbc22d62ee329";
+pub const stored_domain_length: u64 = 6335107;
+
+/// Native and compressed native-pair row-tiled readers, emitted from all
+/// authenticated AIR template sources by codegen v5. See the provenance record.
+pub const bounded_label = "air_template_composition_bounded_v4";
+pub const bounded_sha256_hex = "a11c91fc929fc1cf978e7b3ce5db03cdb5ce11cc88fa1fcf1d46df4f87cab9d1";
+pub const bounded_length: u64 = 10121115;
 
 pub const approved_metallibs = [_]ApprovedMetallib{
     .{
@@ -94,10 +102,11 @@ pub const approved_metallibs = [_]ApprovedMetallib{
         .length = eval_domain_length,
     },
     .{
-        .label = "air_template_composition_stored_domain_v1",
-        .sha256_hex = "6a71c368c4d974c4f665a7124a17836ffc894dcb6829b869531fbc22d62ee329",
-        .length = 6335107,
+        .label = stored_domain_label,
+        .sha256_hex = stored_domain_sha256_hex,
+        .length = stored_domain_length,
     },
+    .{ .label = bounded_label, .sha256_hex = bounded_sha256_hex, .length = bounded_length },
 };
 
 /// How much authority a caller grants over which library may load.
@@ -247,8 +256,7 @@ test "non-canonical digest encodings are rejected" {
     );
 }
 
-/// The library the product actually opens, and therefore the one the
-/// authentication regressions below are written against.
+/// Authenticated evaluation-domain reference used by diagnostic regressions.
 const eval_domain_path =
     "vectors/cairo/official/air_template_composition_eval_domain.metallib";
 
@@ -431,8 +439,41 @@ pub fn authenticateEvalDomainForProduct(path: []const u8) !Admission {
     };
 }
 
+/// The product's native-height reader has a distinct authenticated artifact;
+/// admitting the old evaluation-domain library here would change its ABI.
+pub fn authenticateStoredDomainForProduct(path: []const u8) !Admission {
+    const expected = parseDigest(stored_domain_sha256_hex) catch unreachable;
+    return authenticate(path, .{ .pinned_digest = expected }) catch |err| {
+        recordRejection(path, err);
+        return err;
+    };
+}
+
+/// Both reader ABIs are bound to the one exact product artifact. Neither a
+/// legacy single-reader library nor an arbitrary approved diagnostic replaces it.
+pub fn authenticateBoundedForProduct(path: []const u8) !Admission {
+    const expected = parseDigest(bounded_sha256_hex) catch unreachable;
+    return authenticate(path, .{ .pinned_digest = expected }) catch |err| {
+        recordRejection(path, err);
+        return err;
+    };
+}
+
+test "bounded composition product admits only its native and tiled artifact" {
+    const path = "vectors/cairo/official/air_template_composition_bounded.metallib";
+    const admitted = try authenticateBoundedForProduct(path);
+    try std.testing.expectEqual(bounded_length, admitted.measurement.length);
+    try std.testing.expectEqualStrings(bounded_sha256_hex, &admitted.measurement.hex());
+    try std.testing.expectError(Error.CompositionMetallibDigestMismatch, authenticate("vectors/cairo/official/air_template_composition_stored_domain.metallib", .{ .pinned_digest = try parseDigest(bounded_sha256_hex) }));
+}
+
+// Deliberate negative tests assert rejection and telemetry without making the
+// Zig test runner treat their expected diagnostic as an unexpected test error.
+var expected_test_rejection = false;
+
 fn recordRejection(path: []const u8, err: anyerror) void {
     telemetry.record(.cpu_composition_evaluation);
+    if (@import("builtin").is_test and expected_test_rejection) return;
     std.log.err("composition metallib rejected: {s} ({t})", .{ path, err });
 }
 
@@ -446,6 +487,8 @@ test "the process policy defaults to the manifest" {
 }
 
 test "process-aware admission rejection enters no-fallback evidence" {
+    expected_test_rejection = true;
+    defer expected_test_rejection = false;
     const empty_cache = @import("stwo_metal_backend").runtime.PipelineCacheStats.zero();
     const before = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
     try std.testing.expectError(
@@ -460,6 +503,8 @@ test "process-aware admission rejection enters no-fallback evidence" {
 }
 
 test "product admission pins eval-domain identity, not the whole approved manifest" {
+    expected_test_rejection = true;
+    defer expected_test_rejection = false;
     const admission = try authenticateEvalDomainForProduct(eval_domain_path);
     try std.testing.expectEqualStrings(eval_domain_label, admission.label.?);
     try std.testing.expectEqual(eval_domain_length, admission.measurement.length);
@@ -474,4 +519,21 @@ test "product admission pins eval-domain identity, not the whole approved manife
     );
     const after = telemetry.capture(empty_cache).counters.cpu_composition_evaluations;
     try std.testing.expectEqual(before + 1, after);
+}
+
+test "stored composition product admission pins native ABI and rejects substitution" {
+    const stored_path = "vectors/cairo/official/air_template_composition_stored_domain.metallib";
+    const admitted = try authenticateStoredDomainForProduct(stored_path);
+    try std.testing.expectEqual(stored_domain_length, admitted.measurement.length);
+    try std.testing.expectEqualStrings(stored_domain_sha256_hex, &admitted.measurement.hex());
+    try std.testing.expectError(Error.CompositionMetallibDigestMismatch, authenticate(eval_domain_path, .{ .pinned_digest = try parseDigest(stored_domain_sha256_hex) }));
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const bytes = try std.fs.cwd().readFileAlloc(std.testing.allocator, stored_path, 16 * 1024 * 1024);
+    defer std.testing.allocator.free(bytes);
+    bytes[bytes.len / 2] ^= 1;
+    try temporary.dir.writeFile(.{ .sub_path = "substituted.metallib", .data = bytes });
+    const path = try temporary.dir.realpathAlloc(std.testing.allocator, "substituted.metallib");
+    defer std.testing.allocator.free(path);
+    try std.testing.expectError(Error.CompositionMetallibDigestMismatch, authenticate(path, .{ .pinned_digest = try parseDigest(stored_domain_sha256_hex) }));
 }

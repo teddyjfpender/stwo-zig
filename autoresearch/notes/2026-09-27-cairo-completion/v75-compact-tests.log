@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 2/2 tests passed
+test-merkle-compact success
++- run test 2 passed 511ms MaxRSS:72M
+   +- compile test ReleaseFast native success 9s MaxRSS:507M
+

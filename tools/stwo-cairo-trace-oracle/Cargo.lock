@@ -2424,6 +2424,7 @@ dependencies = [
  "stwo-cairo-adapter",
  "stwo-cairo-common",
  "stwo-cairo-prover",
+ "stwo-constraint-framework",
 ]
 
 [[package]]

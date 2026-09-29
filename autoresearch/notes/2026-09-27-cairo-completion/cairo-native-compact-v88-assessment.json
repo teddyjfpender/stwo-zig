@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-zig-cairo-native-compact-v88-assessment-v1",
+  "paired_receipt": "sn3-metal-native-compact-paired-v88-summary.json",
+  "performance_gate_passed": false,
+  "default_changed": false,
+  "comparison": {
+    "before": {
+      "median_process_wall_ns": 21821318167,
+      "median_prove_ns": 17348987833,
+      "peak_process_rss_bytes": 45708771328,
+      "peak_product_physical_footprint_bytes": 50848598504,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    },
+    "after": {
+      "median_process_wall_ns": 44016903708,
+      "median_prove_ns": 39649927625,
+      "peak_process_rss_bytes": 41182281728,
+      "peak_product_physical_footprint_bytes": 41302718920,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    }
+  },
+  "conclusion": "Compact Metal reduces lifetime peak by 18.77%, but median proving is 2.285 times slower. Memory reduction while maintaining time is not achieved.",
+  "qualification": "Three alternating pairs, same frozen binary, canonical 70 queries / 26 PoW bits; official acceptance and identical SN PIE 3 proof bytes; no CPU fallbacks."
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "stwo-zig-cairo-indirect-composition-provenance-v4",
+  "programs": 69,
+  "kernels": 207,
+  "codegen_version": 5,
+  "reader_abis": [
+    "stored_domain",
+    "tiled_domain td3_",
+    "indirect_domain pd4_"
+  ],
+  "metal_flags": [
+    "-std=metal3.1",
+    "-fno-fast-math",
+    "-Werror"
+  ],
+  "qualification": "pending; opt-in STWO_CAIRO_INDIRECT_COMPOSITION=1",
+  "source": {
+    "path": "zig-out/cairo-completion-20260927/indirect-source-v32/composition.metal",
+    "sha256": "4af2db13e509625e12e0ceeba8a1408fa8156fe04db0b8e8626208725bfd2b83",
+    "bytes": 13308235
+  },
+  "library": {
+    "path": "zig-out/cairo-completion-20260927/indirect-source-v32/composition.metallib",
+    "sha256": "04761efd19e2f5889aa368bbf97ba937ef17aadf2b24ec128d33b587d7ea704e",
+    "bytes": 19432963
+  }
+}

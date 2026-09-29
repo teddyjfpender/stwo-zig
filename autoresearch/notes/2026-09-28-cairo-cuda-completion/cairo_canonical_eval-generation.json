@@ -1,0 +1,10 @@
+{
+  "schema": "stwo_cairo_canonical_cuda_air_generation_v1",
+  "source_authority_sha256": "550200479d03f3cc5df12d3795cfe4645824bd96368f3cd6e70c0df8669c62ec",
+  "family_count": 68,
+  "body_count": 58,
+  "template_placement_count": 142,
+  "codegen_version": 2,
+  "device_qualified": false,
+  "full_proof_verified": false
+}

@@ -1,0 +1,5 @@
+1/4 proving.incremental_multiplicities_test.test.Cairo incremental feeds preserve multiplicities, public seeds and active row padding...OK
+2/4 proving.incremental_multiplicities_test.test.Cairo incremental feeds close every allocation failure and transfer both count owners...OK
+3/4 proving.incremental_multiplicities_test.test.Cairo incremental feeds preserve parallel scatter collision counts...OK
+4/4 proving.incremental_multiplicities_test.test.Cairo incremental feeds retire after the last gathered consumer and retain independent lookups...OK
+All 4 tests passed.

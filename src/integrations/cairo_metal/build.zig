@@ -46,10 +46,15 @@ pub fn build(b: *std.Build) void {
         ).step);
         return;
     }
-    const tests = b.addTest(.{ .root_module = integration });
+    const filter = b.option([]const u8, "test-filter", "Run only matching Cairo Metal integration tests");
+    const tests = b.addTest(.{ .root_module = integration, .filters = if (filter) |value| &.{value} else &.{} });
     tests.linkLibC();
     tests.linkFramework("Foundation");
     tests.linkFramework("Metal");
     tests.linkSystemLibrary("objc");
     test_step.dependOn(&tests.step);
+    const run_tests = b.addRunArtifact(tests);
+    run_tests.setCwd(.{ .cwd_relative = b.pathFromRoot("../../..") });
+    b.step("test-run", "Run Cairo Metal integration tests, optionally filtered")
+        .dependOn(&run_tests.step);
 }

@@ -74,6 +74,32 @@ pub fn reconstruct_claims_v1(
     statement: &CompactStatementV1,
 ) -> Result<ReconstructedClaimsV1, CompactCodecError> {
     validate_compact_proof_v1(proof_bytes, protocol, statement)?;
+    reconstruct_claims_prefix_for_diagnostics_v1(proof_bytes, protocol, statement)
+}
+
+/// Reconstructs only the public and interaction claims for failure localization.
+/// Does not validate OODS, FRI or openings, and cannot establish proof validity.
+/// Production verification must use `reconstruct_claims_v1` instead.
+pub fn reconstruct_claims_prefix_for_diagnostics_v1(
+    proof_bytes: &[u8],
+    protocol: &CompactProtocolV1,
+    statement: &CompactStatementV1,
+) -> Result<ReconstructedClaimsV1, CompactCodecError> {
+    if protocol.interaction_sum_count as usize != statement.component_log_sizes.len() {
+        return Err(invalid_proof("interaction count does not match statement"));
+    }
+    let prefix_words = protocol.commitment_count as usize * HASH_WORDS
+        + protocol.interaction_sum_count as usize * 4
+        + NONCE_WORDS;
+    if proof_bytes.len() < prefix_words * 4 {
+        return Err(invalid_proof("truncated diagnostic claim prefix"));
+    }
+    validate_canonical_m31(
+        proof_bytes,
+        protocol.commitment_count as usize * HASH_WORDS,
+        protocol.interaction_sum_count as usize * 4,
+        "interaction claim",
+    )?;
 
     let mut claim_fields = Map::new();
     claim_fields.insert(

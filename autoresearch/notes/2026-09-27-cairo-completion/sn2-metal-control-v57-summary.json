@@ -1,0 +1,222 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v2",
+  "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "product_sha256": "cc11c11ac0996f4f197dcbd40527987eb4ef3d9a9d46a17f86d639262d0066ba",
+  "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+  "workload": {
+    "kind": "run-and-prove",
+    "path": "/Users/theodorepender/Downloads/SN_PIE_2.zip",
+    "sha256": "f10b70ca8af790a934ac36b3835136bbdc0cc47f62d6bc63169856dec3f0dc41"
+  },
+  "arguments_sha256": null,
+  "params_sha256": null,
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "controlled_environment": {
+    "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+    "STWO_CAIRO_PREPROCESSED_COLUMNS": "0"
+  },
+  "status": "qualified",
+  "trials": [
+    {
+      "index": 1,
+      "status": "qualified",
+      "phase": "complete",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 14072342459,
+        "user_ns": 59692403000,
+        "system_ns": 12552588000,
+        "max_process_tree_rss_bytes": 27950907392,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 119888333,
+        "proof_encode_ns": 8386834,
+        "request_until_publication_ns": 13546741000,
+        "execute_ns": 2117215500,
+        "prove_ns": 11131076958,
+        "verify_ns": 14253541
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend": "metal",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 52,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.03575289249420166,
+          "library_preparation_seconds": 0.03706204891204834
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 536598048
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 211,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 14,
+        "commit_source_arena_memcpys": 5,
+        "commit_source_uploads": 41,
+        "cached_merkle_artifact_adoptions": 0,
+        "compacted_merkle_layer_adoptions": 1
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 6442450944,
+        "hits": 0,
+        "misses": 2,
+        "stores": 2,
+        "evictions": 0,
+        "loaded_bytes": 0,
+        "stored_bytes": 805306592,
+        "evicted_bytes": 0,
+        "directory_bytes": 6308234432,
+        "eviction_ns": 130916
+      },
+      "prover_process_usage": {
+        "source": "darwin_proc_pid_rusage_v6",
+        "lifetime_peak_physical_footprint_bytes": 37152612040,
+        "current_physical_footprint_bytes": 4142009224,
+        "process_cpu_ns": 69030531333,
+        "energy_nj": 211077059556,
+        "instructions": 803614122942,
+        "cycles": 291072791793,
+        "unavailable_reason": null
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 629169667,
+        "user_ns": 609098000,
+        "system_ns": 5397000,
+        "max_process_tree_rss_bytes": 39321600,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    },
+    {
+      "index": 2,
+      "status": "qualified",
+      "phase": "complete",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 12757300334,
+        "user_ns": 45296127000,
+        "system_ns": 12401789000,
+        "max_process_tree_rss_bytes": 27950759936,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 123937875,
+        "proof_encode_ns": 8359458,
+        "request_until_publication_ns": 12735182292,
+        "execute_ns": 2121563583,
+        "prove_ns": 10357929208,
+        "verify_ns": 14162708
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend": "metal",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 52,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.004977107048034668,
+          "library_preparation_seconds": 0.01701498031616211
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 536598048
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 210,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 14,
+        "commit_source_arena_memcpys": 5,
+        "commit_source_uploads": 41,
+        "cached_merkle_artifact_adoptions": 1,
+        "compacted_merkle_layer_adoptions": 0
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 6442450944,
+        "hits": 2,
+        "misses": 0,
+        "stores": 0,
+        "evictions": 0,
+        "loaded_bytes": 805306592,
+        "stored_bytes": 0,
+        "evicted_bytes": 0,
+        "directory_bytes": 0,
+        "eviction_ns": 0
+      },
+      "prover_process_usage": {
+        "source": "darwin_proc_pid_rusage_v6",
+        "lifetime_peak_physical_footprint_bytes": 37152792264,
+        "current_physical_footprint_bytes": 3983674176,
+        "process_cpu_ns": 54504514666,
+        "energy_nj": 148824461685,
+        "instructions": 536563694022,
+        "cycles": 226377048919,
+        "unavailable_reason": null
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 633865208,
+        "user_ns": 611806000,
+        "system_ns": 5788000,
+        "max_process_tree_rss_bytes": 39731200,
+        "rss_is_simultaneous_process_tree_sum": false
+      }
+    }
+  ],
+  "summary": {
+    "median_process_wall_ns": 13414821396.5,
+    "median_prove_ns": 10744503083.0,
+    "peak_process_rss_bytes": 27950907392,
+    "peak_product_physical_footprint_bytes": 37152792264,
+    "physical_footprint_sample_count": 2,
+    "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+  },
+  "subsequent_trials_summary": {
+    "indices": [
+      2
+    ],
+    "median_process_wall_ns": 12757300334,
+    "median_prove_ns": 10357929208,
+    "peak_process_rss_bytes": 27950759936,
+    "cache_state_inferred": false,
+    "peak_product_physical_footprint_bytes": 37152792264,
+    "physical_footprint_sample_count": 1,
+    "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+  },
+  "raw_results": "zig-out/cairo-completion-20260927/sn2-metal-control-v57/results.json"
+}

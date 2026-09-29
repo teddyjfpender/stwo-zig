@@ -29,9 +29,39 @@ flowchart LR
     Eval --> Diagnostic[Development executor]
 ```
 
-No production CUDA runtime is exposed by this facade today. The emitter is
-explicitly limited to proof-derived development semantics. Product descriptors
-and host tests must not be interpreted as release admission.
+The staged CLI now derives witness geometry, relations, AIR constants and PCS
+controllers directly from the authenticated source input. The SN2 proof-derived
+path remains a compatibility diagnostic. Production admission still requires
+real NVIDIA proofs accepted by the pinned official Rust verifier; host tests and
+CuMetal translation do not satisfy that requirement.
+
+## Canonical source path
+
+`canonical_source.Prepared` owns the input and derives the complete proof plan
+from the pinned Stwo-Cairo AIR library. The canonical archive selects 64 witness
+kernels and 68 parametric AIR bodies, in addition to the 48 common Native entries.
+It excludes the 271 legacy SN2 evaluation bodies. CPU, Metal and CUDA share the
+preprocessed profile admission policy: the small profile automatically upgrades
+to canonical when the input requires it; an explicitly undersized profile fails.
+
+The protocol matches the CPU/Metal suite: 70 queries, 26 query PoW bits,
+24 interaction PoW bits, blowup 1, FRI fold step 1, final degree bound 0,
+no lifting and channel salt 0. CUDA verifies the decoded proof independently in
+Zig before publishing official Rust proof JSON. Publication alone does not
+establish official Rust acceptance.
+
+Compile the complete CLI locally, including Linux code, without a GPU:
+
+```sh
+zig build check-cairo-cuda-local -Doptimize=ReleaseFast
+zig build check-cairo-cuda-local -Doptimize=ReleaseFast -Dtarget=x86_64-linux-gnu
+```
+
+On NVIDIA, `scripts/benchmark_cairo_cuda.py` qualifies all four SN PIEs with
+an isolated pinned Rust verifier and records proof digests, ingress, proving,
+adapted-input wall time, host RSS and sampled whole-device memory. Inputs are
+already adapted: these measurements exclude PIE execution and queueing.
+It rejects noncanonical security, changed proof files and unverified results.
 
 ## Public API
 
@@ -108,3 +138,20 @@ wrong-statement/mutation corpora, stable telemetry, and zero fallback.
 - [Native CUDA integration](../native_cuda/README.md)
 - [CUDA system architecture goal](../../../conformance/2026-07-24-cuda-system-architecture-goal.md)
 - [Cairo production-port goal](../../../conformance/2026-07-26-stwo-cairo-production-port-goal.md)
+
+
+Canonical AIR codegen v3 classifies dynamic base constants using the authenticated
+source templates. Fixed base/extension literals remain executable constants;
+segment and memory-stride values remain request parameters, including zero/one
+segment addresses. Scalar operations use the shared frontend field-shape facts.
+Constraint accumulation follows canonical root order after each register's final
+write, reducing live ranges without assuming that registers are written once.
+The `cuda-cairo-local-parity` fixture checks these rules on the Apple GPU against
+independent Python field arithmetic; it does not qualify an NVIDIA proof.
+Canonical witness codegen v17 shares generic EC deductions and felt inversion,
+and reuses disjoint input/output scratch across serial deduction calls. Inputs
+are populated before output callbacks and copied results keep their original
+register/store schedule. Long deduction chains use bounded device functions
+with a compact carry bank derived from scheduled reads and writes. AIR programs
+exceeding 8,192 instructions materialize thread-private register banks to bound
+compiler memory; numerical checks include imperative register rewrites.

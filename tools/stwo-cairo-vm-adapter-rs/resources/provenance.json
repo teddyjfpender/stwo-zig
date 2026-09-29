@@ -1,0 +1,23 @@
+{
+  "schema": "stwo-zig-cairo-pie-execution-authority-v1",
+  "source_repository": "https://github.com/starkware-libs/proving",
+  "source_revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230",
+  "runner_crate": "cairo-program-runner-lib",
+  "vm_version": "3.2.0",
+  "layout": "all_cairo_stwo",
+  "task_program_hash": "blake",
+  "bootloader_source_path": "crates/cairo-program-runner-lib/resources/compiled_programs/bootloaders/simple_bootloader_compiled.json",
+  "bootloader_uncompressed_bytes": 25102387,
+  "bootloader_uncompressed_sha256": "f6d235eb6a7f97038105ed9b6e0e083b11def61c664a17fe157135f9615efc76",
+  "fixture_source_path": "crates/cairo-program-runner-lib/resources/compiled_programs/test_programs/fibonacci_pie.zip",
+  "assets": {
+    "simple_bootloader_compiled.json.gz": {
+      "bytes": 715983,
+      "sha256": "4885fb9385038a1db9368fd9b0f0ab45d6339491f12bed783d9b8aecae18f2c5"
+    },
+    "fibonacci_pie.zip": {
+      "bytes": 1872,
+      "sha256": "06da79af56d26210135fbfdd1c900469f3246806910122311479f16d17749994"
+    }
+  }
+}

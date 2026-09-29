@@ -1,0 +1,65 @@
+{
+  "schema": "stwo-zig-cairo-benchmark-v1",
+  "host": "macOS-26.7-arm64-arm-64bit-Mach-O",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "product_sha256": "8550a722e883693ff75eb79e9e0612593c6ec59931c78d597a1be54b413a96ac",
+  "oracle_sha256": "598a8a44d8f46510f41573c23539f7d23feed9b2cbc399f30eefb284249cc142",
+  "workload": {
+    "kind": "prove",
+    "path": "vectors/cairo/official/all_builtins.prover_input.json",
+    "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+  },
+  "arguments_sha256": null,
+  "params_sha256": "bcdb2f7be67b815413c566619fdf7632974cf1fe8b9f61fd07e93aa20348309e",
+  "timing_scope": "product process, including execution when requested, input/assets, proving, Zig verification and publication; official verification measured separately",
+  "cache_policy": "existing product cache retained; fresh product process for each recorded trial",
+  "trials": [
+    {
+      "index": 1,
+      "process": {
+        "wall_ns": 799902527834,
+        "user_ns": 12141501000,
+        "system_ns": 3453639000,
+        "max_process_tree_rss_bytes": 7310655488,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 14132125,
+        "proof_encode_ns": 6839792,
+        "request_until_publication_ns": 799884055291,
+        "execute_ns": 0,
+        "prove_ns": 799829633042,
+        "verify_ns": 12117083
+      },
+      "proof_sha256": "66768d31c69f7a637461b4cfe786cd4f13bcb55a8b7ebee02c1eba5475382348",
+      "official_verifier": {
+        "wall_ns": 528096333,
+        "user_ns": 500057000,
+        "system_ns": 4439000,
+        "max_process_tree_rss_bytes": 37634048,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "profile": "official-live-cairo-canonical",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 134,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 50
+      }
+    }
+  ],
+  "summary": {
+    "median_process_wall_ns": 799902527834,
+    "median_prove_ns": 799829633042,
+    "peak_process_rss_bytes": 7310655488
+  }
+}

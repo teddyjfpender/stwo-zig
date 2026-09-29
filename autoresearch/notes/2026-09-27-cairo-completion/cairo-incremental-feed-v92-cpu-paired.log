@@ -1,0 +1,63 @@
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 28485237250, "user_ns": 291282579000, "system_ns": 29022164000, "max_process_tree_rss_bytes": 50225741824, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 665802833, "user_ns": 643456000, "system_ns": 6669000, "max_process_tree_rss_bytes": 39911424, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 201872000, "proof_encode_ns": 9812208, "request_until_publication_ns": 27729700916, "execute_ns": 4080966833, "prove_ns": 23325779333, "verify_ns": 16247500}, "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9", "profile": "official-live-cairo-canonical", "backend": "cpu", "backend_evidence": {"execution": "cpu-simd", "pipeline_cache": null, "archive_store": null, "classification": "host-only", "metal_dispatches": 0, "cpu_fallbacks": 0, "runtime_initializations": 0, "runtime_shutdowns": 0, "commit_source_arena_aliases": 0, "commit_source_arena_memcpys": 0, "commit_source_uploads": 0, "cached_merkle_artifact_adoptions": 0, "compacted_merkle_layer_adoptions": 0}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 0, "misses": 2, "stores": 2, "evictions": 4, "loaded_bytes": 0, "stored_bytes": 805306592, "evicted_bytes": 815792576, "directory_bytes": 5926553696, "eviction_ns": 4446792}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 50247832680, "current_physical_footprint_bytes": 331270520, "process_cpu_ns": 314383376458, "energy_nj": 818239816857, "instructions": 3067351252012, "cycles": 1230931947239, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 26808305333, "user_ns": 269136404000, "system_ns": 28948351000, "max_process_tree_rss_bytes": 50225643520, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 666710667, "user_ns": 644834000, "system_ns": 5698000, "max_process_tree_rss_bytes": 39714816, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 199388958, "proof_encode_ns": 9716167, "request_until_publication_ns": 26792086708, "execute_ns": 4030410709, "prove_ns": 22464103583, "verify_ns": 16310417}, "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9", "profile": "official-live-cairo-canonical", "backend": "cpu", "backend_evidence": {"execution": "cpu-simd", "pipeline_cache": null, "archive_store": null, "classification": "host-only", "metal_dispatches": 0, "cpu_fallbacks": 0, "runtime_initializations": 0, "runtime_shutdowns": 0, "commit_source_arena_aliases": 0, "commit_source_arena_memcpys": 0, "commit_source_uploads": 0, "cached_merkle_artifact_adoptions": 0, "compacted_merkle_layer_adoptions": 0}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 50247717920, "current_physical_footprint_bytes": 332319024, "process_cpu_ns": 292402710791, "energy_nj": 687426389926, "instructions": 2675208035668, "cycles": 1105302029891, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 27013794291, "user_ns": 270610978000, "system_ns": 29465552000, "max_process_tree_rss_bytes": 50225659904, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 673410333, "user_ns": 651504000, "system_ns": 4378000, "max_process_tree_rss_bytes": 39763968, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 197666208, "proof_encode_ns": 9947084, "request_until_publication_ns": 26998795125, "execute_ns": 4061183209, "prove_ns": 22641132875, "verify_ns": 16298834}, "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9", "profile": "official-live-cairo-canonical", "backend": "cpu", "backend_evidence": {"execution": "cpu-simd", "pipeline_cache": null, "archive_store": null, "classification": "host-only", "metal_dispatches": 0, "cpu_fallbacks": 0, "runtime_initializations": 0, "runtime_shutdowns": 0, "commit_source_arena_aliases": 0, "commit_source_arena_memcpys": 0, "commit_source_uploads": 0, "cached_merkle_artifact_adoptions": 0, "compacted_merkle_layer_adoptions": 0}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 50247750712, "current_physical_footprint_bytes": 332319000, "process_cpu_ns": 294263157333, "energy_nj": 679741116684, "instructions": 2675117625900, "cycles": 1104085496016, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 26858698792, "user_ns": 271421644000, "system_ns": 29420853000, "max_process_tree_rss_bytes": 50228412416, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 665795208, "user_ns": 645181000, "system_ns": 6479000, "max_process_tree_rss_bytes": 39632896, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 199417125, "proof_encode_ns": 9855375, "request_until_publication_ns": 26844162458, "execute_ns": 4067510375, "prove_ns": 22474830666, "verify_ns": 16372250}, "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9", "profile": "official-live-cairo-canonical", "backend": "cpu", "backend_evidence": {"execution": "cpu-simd", "pipeline_cache": null, "archive_store": null, "classification": "host-only", "metal_dispatches": 0, "cpu_fallbacks": 0, "runtime_initializations": 0, "runtime_shutdowns": 0, "commit_source_arena_aliases": 0, "commit_source_arena_memcpys": 0, "commit_source_uploads": 0, "cached_merkle_artifact_adoptions": 0, "compacted_merkle_layer_adoptions": 0}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 50250257104, "current_physical_footprint_bytes": 332171664, "process_cpu_ns": 294975257541, "energy_nj": 678400957849, "instructions": 2674786271038, "cycles": 1106096198205, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 26584833167, "user_ns": 267848755000, "system_ns": 28949934000, "max_process_tree_rss_bytes": 50225577984, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 669749250, "user_ns": 649338000, "system_ns": 6047000, "max_process_tree_rss_bytes": 39600128, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 197021625, "proof_encode_ns": 10277333, "request_until_publication_ns": 26568205042, "execute_ns": 4109101709, "prove_ns": 22158149333, "verify_ns": 16816083}, "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9", "profile": "official-live-cairo-canonical", "backend": "cpu", "backend_evidence": {"execution": "cpu-simd", "pipeline_cache": null, "archive_store": null, "classification": "host-only", "metal_dispatches": 0, "cpu_fallbacks": 0, "runtime_initializations": 0, "runtime_shutdowns": 0, "commit_source_arena_aliases": 0, "commit_source_arena_memcpys": 0, "commit_source_uploads": 0, "cached_merkle_artifact_adoptions": 0, "compacted_merkle_layer_adoptions": 0}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 50247553936, "current_physical_footprint_bytes": 332401184, "process_cpu_ns": 290908357666, "energy_nj": 693178869426, "instructions": 2674796199579, "cycles": 1107091986139, "unavailable_reason": null}}
+{"index": 1, "status": "qualified", "phase": "complete", "process": {"exit_code": 0, "wall_ns": 28962156750, "user_ns": 292768113000, "system_ns": 31612694000, "max_process_tree_rss_bytes": 50225692672, "rss_is_simultaneous_process_tree_sum": false}, "official_verifier": {"exit_code": 0, "wall_ns": 645081833, "user_ns": 623342000, "system_ns": 6333000, "max_process_tree_rss_bytes": 39895040, "rss_is_simultaneous_process_tree_sum": false}, "timing": {"input_and_assets_ns": 197603625, "proof_encode_ns": 9407333, "request_until_publication_ns": 28945560417, "execute_ns": 4083634583, "prove_ns": 24566682542, "verify_ns": 14637208}, "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9", "profile": "official-live-cairo-canonical", "backend": "cpu", "backend_evidence": {"execution": "cpu-simd", "pipeline_cache": null, "archive_store": null, "classification": "host-only", "metal_dispatches": 0, "cpu_fallbacks": 0, "runtime_initializations": 0, "runtime_shutdowns": 0, "commit_source_arena_aliases": 0, "commit_source_arena_memcpys": 0, "commit_source_uploads": 0, "cached_merkle_artifact_adoptions": 0, "compacted_merkle_layer_adoptions": 0}, "cache_evidence": {"enabled": true, "budget_bytes": 6442450944, "hits": 2, "misses": 0, "stores": 0, "evictions": 0, "loaded_bytes": 805306592, "stored_bytes": 0, "evicted_bytes": 0, "directory_bytes": 0, "eviction_ns": 0}, "prover_process_usage": {"source": "darwin_proc_pid_rusage_v6", "lifetime_peak_physical_footprint_bytes": 50247783480, "current_physical_footprint_bytes": 331368752, "process_cpu_ns": 318405652541, "energy_nj": 584924745352, "instructions": 2675043261898, "cycles": 1095713019953, "unavailable_reason": null}}
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "variant_environment": {
+    "before": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_PREPROCESSED_COLUMNS": "0",
+      "STWO_CAIRO_COMPACT_POLYNOMIALS": "0",
+      "STWO_CAIRO_INCREMENTAL_MULTIPLICITIES": "0"
+    },
+    "after": {
+      "STWO_CAIRO_PREPROCESSED_CACHE_BUDGET": "6442450944",
+      "STWO_CAIRO_PREPROCESSED_COLUMNS": "0",
+      "STWO_CAIRO_COMPACT_POLYNOMIALS": "0",
+      "STWO_CAIRO_INCREMENTAL_MULTIPLICITIES": "1"
+    }
+  },
+  "proof_sha256": "831d4eb1fd711a9b91ed8a403782da2f08ffb1cd815f0171ad501ae8f076ddf9",
+  "backend": "cpu",
+  "summary": {
+    "before": {
+      "median_process_wall_ns": 26858698792,
+      "median_prove_ns": 22474830666,
+      "peak_process_rss_bytes": 50228412416,
+      "peak_product_physical_footprint_bytes": 50250257104,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    },
+    "after": {
+      "median_process_wall_ns": 27013794291,
+      "median_prove_ns": 22641132875,
+      "peak_process_rss_bytes": 50225692672,
+      "peak_product_physical_footprint_bytes": 50247783480,
+      "physical_footprint_sample_count": 3,
+      "physical_footprint_scope": "prover product process lifetime peak; includes Metal memory; excludes adapter child"
+    }
+  },
+  "process_speedup": 0.9942586555102453,
+  "prove_speedup": 0.992654863609602
+}

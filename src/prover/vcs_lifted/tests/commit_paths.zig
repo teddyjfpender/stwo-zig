@@ -8,6 +8,106 @@ const work_pool = @import("stwo_prover_engine").work_pool;
 const M31 = m31.M31;
 const MerkleProverLifted = prover_mod.MerkleProverLifted;
 
+/// Independent scalar oracle: no packed, seeded or SIMD entry points.
+const PlainScalarHasher = struct {
+    inner: std.crypto.hash.blake2.Blake2s256,
+    pub const Hash = [32]u8;
+    pub const NodeSeed = void;
+
+    pub fn nodeSeed() void {}
+
+    pub fn hashChildrenWithSeed(_: void, children: struct { left: Hash, right: Hash }) Hash {
+        return hashChildren(.{ .left = children.left, .right = children.right });
+    }
+
+    pub fn defaultWithInitialState() @This() {
+        return .{ .inner = .init(.{}) };
+    }
+
+    pub fn hashChildren(children: struct { left: Hash, right: Hash }) Hash {
+        var hasher = defaultWithInitialState();
+        hasher.inner.update(&children.left);
+        hasher.inner.update(&children.right);
+        return hasher.finalize();
+    }
+
+    pub fn updateLeaf(self: *@This(), values: []const M31) void {
+        for (values) |value| {
+            var bytes: [4]u8 = undefined;
+            std.mem.writeInt(u32, &bytes, value.v, .little);
+            self.inner.update(&bytes);
+        }
+    }
+
+    pub fn finalize(self: *@This()) Hash {
+        var digest: Hash = undefined;
+        self.inner.final(&digest);
+        return digest;
+    }
+};
+
+test "prover vcs_lifted: plain SIMD streaming and bounded tails match independent scalar tree" {
+    const H = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
+    const Prover = MerkleProverLifted(H);
+    const Oracle = MerkleProverLifted(PlainScalarHasher);
+    const alloc = std.testing.allocator;
+    // One case fits the sparse final block; the other crosses multiple
+    // compression boundaries and retains a partially absorbed lifted prefix.
+    for ([_]usize{ 13, 33 }) |prefix_width| {
+        const width = prefix_width + 2;
+        const columns = try alloc.alloc([]const M31, width);
+        defer alloc.free(columns);
+        var initialized: usize = 0;
+        defer for (columns[0..initialized]) |column| alloc.free(column);
+        for (columns, 0..) |*column, index| {
+            const n: usize = if (index < prefix_width) 16 else if (index == prefix_width) 32 else 256;
+            const values = try alloc.alloc(M31, n);
+            column.* = values;
+            initialized += 1;
+            for (values, 0..) |*value, row| value.* = M31.fromCanonical(@intCast(3 + index * 101 + row * 17));
+        }
+        var oracle = try Oracle.testing.commitWithWorkerOverride(alloc, columns, 1);
+        defer oracle.deinit(alloc);
+        const sorted = try Prover.sortColumnsByLogSizeAsc(alloc, columns);
+        defer alloc.free(sorted);
+        for ([_]usize{ 1, 4 }) |workers| {
+            var candidate = try Prover.testing.commitWithWorkerOverride(alloc, columns, workers);
+            defer candidate.deinit(alloc);
+            try std.testing.expectEqual(oracle.layers.len, candidate.layers.len);
+            for (oracle.layers, candidate.layers) |expected, actual|
+                try std.testing.expectEqualSlices(H.Hash, expected, actual);
+            const queries = [_]usize{ 0, 9, 255 };
+            var original_opening = try oracle.decommit(alloc, &queries, columns);
+            defer original_opening.deinit(alloc);
+            candidate.pruneBottomLayers(4);
+            var compact_opening = try candidate.decommit(alloc, &queries, columns);
+            defer compact_opening.deinit(alloc);
+            try std.testing.expectEqualSlices(H.Hash, original_opening.decommitment.decommitment.hash_witness, compact_opening.decommitment.decommitment.hash_witness);
+            for (original_opening.queried_values, compact_opening.queried_values) |expected, actual|
+                try std.testing.expectEqualSlices(M31, expected, actual);
+        }
+        var sparse = Prover.StreamingCommitter.init(alloc);
+        errdefer sparse.deinit();
+        var sparse_tree = try sparse.commitColumnsWithSparseTail(sorted);
+        defer sparse_tree.deinit(alloc);
+        for (oracle.layers, sparse_tree.layers) |expected, actual|
+            try std.testing.expectEqualSlices(H.Hash, expected, actual);
+        for ([_]usize{ 2 * @sizeOf(H), 16 * @sizeOf(H) }) |budget| {
+            inline for (.{ false, true }) |reuse| {
+                var bounded = Prover.StreamingCommitter.init(alloc);
+                errdefer bounded.deinit();
+                var tree = if (reuse)
+                    try bounded.commitColumnsWithReusedBoundedPrefix(sorted, budget, null)
+                else
+                    try bounded.commitColumnsWithBoundedPrefix(sorted, budget, null);
+                defer tree.deinit(alloc);
+                for (oracle.layers, tree.layers) |expected, actual|
+                    try std.testing.expectEqualSlices(H.Hash, expected, actual);
+            }
+        }
+    }
+}
+
 /// Deliberately omits the packed-byte leaf API so commitment tests exercise
 /// the generic incremental path used by the recursion Poseidon2 hasher.
 const GenericLeafHasher = struct {

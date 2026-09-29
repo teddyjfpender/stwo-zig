@@ -11,8 +11,10 @@ extern "C" {
 #define STWO_NATIVE_AOT_FUNCTION_RECEIPT_ABI_VERSION 3u
 #define STWO_NATIVE_AOT_MODULE_GLOBALS_NONE 0u
 #define STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W18_COLUMNS_ROWS_V1 1u
+#define STWO_NATIVE_AOT_MODULE_GLOBALS_PEDERSEN_W9_COLUMNS_ROWS_V1 2u
 #define STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT 56u
 #define STWO_NATIVE_PEDERSEN_W18_ROW_COUNT (1u << 23)
+#define STWO_NATIVE_PEDERSEN_W9_ROW_COUNT (1u << 15)
 
 typedef struct {
     uint64_t aot_loads;
@@ -127,6 +129,14 @@ int stwo_native_aot_function_bind_with_globals(
     StwoNativeAotFunctionReceipt *out_receipt);
 
 int stwo_native_aot_function_publish_pedersen_w18(
+    void *function,
+    const uint64_t columns[STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT],
+    uint32_t row_count,
+    const uint8_t table_identity[32],
+    StwoNativeAotModuleGlobalsReceipt *out_receipt);
+
+// Window geometry is authenticated by the bound module's requirement.
+int stwo_native_aot_function_publish_pedersen(
     void *function,
     const uint64_t columns[STWO_NATIVE_PEDERSEN_W18_COLUMN_COUNT],
     uint32_t row_count,

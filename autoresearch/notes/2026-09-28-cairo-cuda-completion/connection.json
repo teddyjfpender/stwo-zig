@@ -1,0 +1,6 @@
+{
+  "host": "103.207.149.65",
+  "port": 11460,
+  "user": "root",
+  "ssh_key_path": "/Users/theodorepender/.runpod/ssh/runpodctl-ssh-key"
+}

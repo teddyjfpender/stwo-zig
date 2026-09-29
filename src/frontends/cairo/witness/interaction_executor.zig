@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const M31 = @import("stwo_core").fields.m31.M31;
 const interaction_trace = @import("interaction_trace.zig");
 const residency = @import("interaction_residency.zig");
 
@@ -47,6 +48,41 @@ pub const Executor = struct {
         allocator: std.mem.Allocator,
         request: Request,
     ) anyerror!MaterializedTrace,
+    /// Write canonical coordinate planes directly. Backends with planar
+    /// outputs avoid a secure-field allocation and two full transposes.
+    execute_coordinates_fn: ?*const fn (
+        context: ?*anyopaque,
+        allocator: std.mem.Allocator,
+        request: Request,
+        planes: []const []M31,
+    ) anyerror!QM31 = null,
+
+    pub fn materializeCoordinates(
+        self: Executor,
+        allocator: std.mem.Allocator,
+        request: Request,
+        planes: []const []M31,
+    ) !QM31 {
+        if (request.descriptors.len == 0 or
+            request.descriptors.len % interaction_trace.descriptor_words != 0 or
+            planes.len != request.descriptors.len / interaction_trace.descriptor_words * 4)
+            return error.InvalidInteractionGeometry;
+        for (planes) |plane| if (plane.len != request.source.rows())
+            return error.InvalidInteractionGeometry;
+        if (self.execute_coordinates_fn) |execute_coordinates|
+            return execute_coordinates(self.context, allocator, request, planes);
+        var materialized = try self.execute(allocator, request);
+        defer materialized.deinit();
+        if (materialized.row_count != request.source.rows() or
+            materialized.column_count * 4 != planes.len)
+            return error.InvalidInteractionGeometry;
+        for (0..materialized.column_count) |column_index|
+            interaction_trace.lowerLastColumn(
+                planes[column_index * 4 ..][0..4],
+                materialized.column(column_index),
+            );
+        return materialized.claimed_sum;
+    }
 
     pub fn execute(
         self: Executor,
@@ -65,3 +101,7 @@ pub const Executor = struct {
         return allocate(self.context, allocator, request);
     }
 };
+
+test {
+    _ = @import("interaction_executor_test.zig");
+}

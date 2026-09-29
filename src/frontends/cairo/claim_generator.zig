@@ -310,8 +310,6 @@ fn activateBuiltinClosures(
         const field = findField(name) orelse return Error.UnknownClaimComponent;
         known_logs[field.field_index] = try builtinLog(segment, 3);
     }
-    if (segments.ec_op_builtin != null and variant == .canonical_small)
-        return Error.UnsupportedPreprocessedVariant;
     return count;
 }
 

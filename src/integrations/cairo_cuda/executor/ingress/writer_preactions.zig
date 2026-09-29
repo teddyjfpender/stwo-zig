@@ -17,8 +17,6 @@ const writer_inputs = @import("writer_inputs.zig");
 const preaction_geometry = @import("writer_preaction_geometry.zig");
 const writer_views = @import("writer_views.zig");
 
-const expected_gather_actions = 8;
-const expected_compact_actions = 3;
 const pointer_words = @sizeOf(u64) / @sizeOf(u32);
 const compact_descriptor_words = 6;
 
@@ -51,6 +49,23 @@ pub const Bound = struct {
         return null;
     }
 };
+
+/// Check logical gather extents during source admission, before any device
+/// allocation. Physical producer columns can contain additional padded rows.
+pub fn validateGatherGeometry(proof: *const proof_plan.CairoProofPlan) !void {
+    for (proof.components) |component| {
+        if (component.writer != .recorded_aot or component.producer_edges.len == 0 or
+            proof_plan.compactGeometry(component.name) != null) continue;
+        var active: u32 = 0;
+        for (component.producer_edges) |edge| {
+            const index = uniqueComponent(proof, edge.producer) orelse return error.MissingWriterPreactionProducer;
+            const rows = componentMainRows(proof.components[index]) orelse return error.InvalidWriterPreactionProducer;
+            active = try preaction_geometry.addU32(active, try preaction_geometry.mulU32(rows.real_rows orelse rows.padded_rows, edge.instances));
+        }
+        if (try preaction_geometry.canonicalRows(active) != try componentRows(component))
+            return error.InvalidWriterPreactionLayout;
+    }
+}
 
 pub fn prepare(
     allocator: std.mem.Allocator,
@@ -91,8 +106,6 @@ pub fn prepare(
     }
 
     var action_count: usize = 0;
-    var gather_count: usize = 0;
-    var compact_count: usize = 0;
     for (proof.components) |component| {
         if (component.writer != .recorded_aot or
             component.producer_edges.len == 0)
@@ -100,17 +113,6 @@ pub fn prepare(
             continue;
         }
         action_count = try add(action_count, 1);
-        if (proof_plan.compactGeometry(component.name) == null) {
-            gather_count = try add(gather_count, 1);
-        } else {
-            compact_count = try add(compact_count, 1);
-        }
-    }
-    if (gather_count != expected_gather_actions or
-        compact_count != expected_compact_actions or
-        action_count != expected_gather_actions + expected_compact_actions)
-    {
-        return error.InvalidWriterPreactionInventory;
     }
 
     const actions = try allocator.alloc(Action, action_count);
@@ -251,6 +253,7 @@ fn prepareGather(
         descriptor.* = .{
             .source_offset_words = source.offset_words,
             .producer_rows = source.padded_rows,
+            .active_rows = source.real_rows orelse source.padded_rows,
             .word_base = edge.word_base,
             .words_per_instance = edge.words_per_instance,
             .instance_count = edge.instances,
@@ -258,7 +261,7 @@ fn prepareGather(
         };
         destination_row = try preaction_geometry.addU32(
             destination_row,
-            try preaction_geometry.mulU32(source.padded_rows, edge.instances),
+            try preaction_geometry.mulU32(source.real_rows orelse source.padded_rows, edge.instances),
         );
     }
     if (destination_row > consumer_rows or

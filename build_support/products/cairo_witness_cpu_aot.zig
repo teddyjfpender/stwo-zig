@@ -22,6 +22,11 @@ pub fn createModule(
             .optimize = .ReleaseFast,
         }),
     });
+    generator.root_module.addImport("cairo_deduction_contract", b.createModule(.{
+        .root_source_file = b.path("src/frontends/cairo/witness/deduction_contract.zig"),
+        .target = b.graph.host,
+        .optimize = .ReleaseFast,
+    }));
     const generate = b.addRunArtifact(generator);
     generate.addFileArg(b.path(bundle_path));
     const source_directory = generate.addOutputDirectoryArg(

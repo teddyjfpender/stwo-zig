@@ -3,7 +3,8 @@ const eval = @import("stwo_cairo_frontend").witness.eval_program;
 const shared = @import("stwo_cairo_frontend").codegen.eval_program;
 const eval_abi = @import("eval_abi.zig");
 
-pub const codegen_version: u64 = 2;
+pub const codegen_version: u64 = 6;
+const shapes = @import("stwo_cairo_frontend").codegen.field_shapes;
 pub const default_fused_instruction_cap: usize = 512;
 pub const max_fused_instruction_cap: usize = 4096;
 pub const hybrid_fusion_source_cap: usize = 90 * 1024;
@@ -385,6 +386,7 @@ pub fn preambleSourceFor(abi: TraceAbi) []const u8 {
     return switch (abi) {
         .eval_domain => preamble,
         .stored_domain => preamble ++ eval_abi.stored_domain_reader,
+        .tiled_domain => preamble ++ eval_abi.tiled_domain_reader,
     };
 }
 
@@ -414,13 +416,14 @@ pub fn generateKernelFor(
         \\
     , .{name});
 
+    try emitRowMapping(writer, abi);
     try emitProgramBody(allocator, writer, program, 0, abi);
     try writer.writeAll(
         \\    Qm31 result = qm_mul_base(part_acc, arena[args.denom_inv + (row >> args.trace_log_size)]);
-        \\    arena[args.coord_0 + row] = m31_add(arena[args.coord_0 + row], result.a);
-        \\    arena[args.coord_1 + row] = m31_add(arena[args.coord_1 + row], result.b);
-        \\    arena[args.coord_2 + row] = m31_add(arena[args.coord_2 + row], result.c);
-        \\    arena[args.coord_3 + row] = m31_add(arena[args.coord_3 + row], result.d);
+        \\    arena[args.coord_0 + coordinate_row] = m31_add(arena[args.coord_0 + coordinate_row], result.a);
+        \\    arena[args.coord_1 + coordinate_row] = m31_add(arena[args.coord_1 + coordinate_row], result.b);
+        \\    arena[args.coord_2 + coordinate_row] = m31_add(arena[args.coord_2 + coordinate_row], result.c);
+        \\    arena[args.coord_3 + coordinate_row] = m31_add(arena[args.coord_3 + coordinate_row], result.d);
         \\}
         \\
     );
@@ -483,13 +486,16 @@ fn emitFusedKernel(
         \\    constant EvalArgs &args [[buffer(1)]],
         \\    uint row [[thread_position_in_grid]]) {{
         \\    if (row >= args.row_count) return;
-        \\    uint denominator = arena[args.denom_inv + (row >> args.trace_log_size)];
-        \\    Qm31 cumulative = {{
-        \\        arena[args.coord_0 + row], arena[args.coord_1 + row],
-        \\        arena[args.coord_2 + row], arena[args.coord_3 + row]
-        \\    }};
-        \\
     , .{name});
+    try emitRowMapping(writer, abi);
+    try writer.writeAll(
+        \\    uint denominator = arena[args.denom_inv + (row >> args.trace_log_size)];
+        \\    Qm31 cumulative = {
+        \\        arena[args.coord_0 + coordinate_row], arena[args.coord_1 + coordinate_row],
+        \\        arena[args.coord_2 + coordinate_row], arena[args.coord_3 + coordinate_row]
+        \\    };
+        \\
+    );
     const first_rc_base = parts[0].rc_base;
     for (parts) |part| {
         try writer.writeAll("    {\n");
@@ -500,14 +506,20 @@ fn emitFusedKernel(
         );
     }
     try writer.writeAll(
-        \\    arena[args.coord_0 + row] = cumulative.a;
-        \\    arena[args.coord_1 + row] = cumulative.b;
-        \\    arena[args.coord_2 + row] = cumulative.c;
-        \\    arena[args.coord_3 + row] = cumulative.d;
+        \\    arena[args.coord_0 + coordinate_row] = cumulative.a;
+        \\    arena[args.coord_1 + coordinate_row] = cumulative.b;
+        \\    arena[args.coord_2 + coordinate_row] = cumulative.c;
+        \\    arena[args.coord_3 + coordinate_row] = cumulative.d;
         \\}
         \\
     );
     return source.toOwnedSlice(allocator);
+}
+
+fn emitRowMapping(writer: anytype, abi: TraceAbi) !void {
+    try writer.writeAll("    uint coordinate_row = row;\n");
+    if (abi == .tiled_domain)
+        try writer.writeAll("    row += arena[args.trace_offsets];\n");
 }
 
 fn emitProgramBody(
@@ -517,10 +529,13 @@ fn emitProgramBody(
     rc_offset: u32,
     abi: TraceAbi,
 ) !void {
+    const facts = try shapes.Facts.init(allocator, program);
+    defer facts.deinit(allocator);
     var emitter = MetalProgramEmitter(@TypeOf(writer)){
         .writer = writer,
         .abi = abi,
         .n_base_params = program.header.n_base_params,
+        .facts = facts,
     };
     try shared.walk(allocator, program, rc_offset, &emitter);
 }
@@ -530,9 +545,11 @@ fn MetalProgramEmitter(comptime Writer: type) type {
         writer: Writer,
         abi: TraceAbi = .eval_domain,
         n_base_params: u32 = 0,
+        facts: shapes.Facts,
 
         pub fn base(self: *@This(), step: shared.BaseStep) !void {
             const inst = step.instruction;
+            const known = self.facts.baseValue(inst);
             const decl = if (step.declare) "uint " else "";
             switch (inst.op) {
                 .trace_col, .preprocessed_col => switch (self.abi) {
@@ -542,6 +559,19 @@ fn MetalProgramEmitter(comptime Writer: type) type {
                     ),
                     // The shift table sits immediately after this program's own
                     // base parameters, so its base is a compile-time constant.
+                    .tiled_domain => {
+                        const slot: ?u32 = switch (inst.imm) {
+                            0 => 0,
+                            -1 => 1,
+                            1 => 2,
+                            else => null,
+                        };
+                        if (slot) |fast| {
+                            try self.writer.print("    {s}b{} = trace_value_tiled_fast(arena, args, {}u, {}u, row, {}u);\n", .{ decl, inst.dst, inst.interaction, inst.a, fast });
+                        } else {
+                            try self.writer.print("    {s}b{} = trace_value_tiled(arena, args, {}u, {}u, row, {});\n", .{ decl, inst.dst, inst.interaction, inst.a, inst.imm });
+                        }
+                    },
                     .stored_domain => try self.writer.print(
                         "    {s}b{} = trace_value_stored(arena, args, {}u, {}u, row, {}, args.base_params + {}u);\n",
                         .{ decl, inst.dst, inst.interaction, inst.a, inst.imm, self.n_base_params },
@@ -555,20 +585,44 @@ fn MetalProgramEmitter(comptime Writer: type) type {
                 .neg => try self.writer.print("    {s}b{} = m31_neg(b{});\n", .{ decl, inst.dst, inst.a }),
                 .inv => try self.writer.print("    {s}b{} = m31_inv(b{});\n", .{ decl, inst.dst, inst.a }),
             }
+            self.facts.base[inst.dst] = known;
         }
 
         pub fn extended(self: *@This(), step: shared.ExtStep) !void {
-            const inst = step.instruction;
-            const decl = if (step.declare) "Qm31 " else "";
-            switch (inst.op) {
-                .secure_col => try self.writer.print("    {s}e{} = {{ b{}, b{}, b{}, b{} }};\n", .{ decl, inst.dst, inst.a, inst.b, inst.c, inst.d }),
-                .param => try self.writer.print("    {s}e{} = load_qm31(arena, args.ext_params + {}u * 4u);\n", .{ decl, inst.dst, inst.a }),
-                .constant => try self.writer.print("    {s}e{} = {{ {}u, {}u, {}u, {}u }};\n", .{ decl, inst.dst, inst.a, inst.b, inst.c, inst.d }),
-                .add => try self.writer.print("    {s}e{} = qm_add(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-                .sub => try self.writer.print("    {s}e{} = qm_sub(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-                .mul => try self.writer.print("    {s}e{} = qm_mul(e{}, e{});\n", .{ decl, inst.dst, inst.a, inst.b }),
-                .neg => try self.writer.print("    {s}e{} = qm_neg(e{});\n", .{ decl, inst.dst, inst.a }),
+            const i = step.instruction;
+            const kind = self.facts.extensionKind(i);
+            try self.writer.print("    {s}e{} = ", .{ if (step.declare) "Qm31 " else "", i.dst });
+            if (kind == .zero) {
+                try self.writer.writeAll("{ 0u, 0u, 0u, 0u }");
+            } else switch (i.op) {
+                .secure_col => try self.writer.print("{{ b{}, b{}, b{}, b{} }}", .{ i.a, i.b, i.c, i.d }),
+                .param => try self.writer.print("load_qm31(arena, args.ext_params + {}u * 4u)", .{i.a}),
+                .constant => try self.writer.print("{{ {}u, {}u, {}u, {}u }}", .{ i.a, i.b, i.c, i.d }),
+                .add, .sub, .mul => {
+                    const lhs = self.facts.extended[i.a];
+                    const rhs = self.facts.extended[i.b];
+                    if ((i.op == .add or i.op == .sub) and rhs == .zero) {
+                        try self.writer.print("e{}", .{i.a});
+                    } else if (i.op == .add and lhs == .zero) {
+                        try self.writer.print("e{}", .{i.b});
+                    } else if (i.op == .mul and lhs == .one) {
+                        try self.writer.print("e{}", .{i.b});
+                    } else if (i.op == .mul and rhs == .one) {
+                        try self.writer.print("e{}", .{i.a});
+                    } else if (i.op == .mul and lhs != .secure) {
+                        try self.writer.print("qm_mul_base(e{}, e{}.a)", .{ i.b, i.a });
+                    } else if (i.op == .mul and rhs != .secure) {
+                        try self.writer.print("qm_mul_base(e{}, e{}.a)", .{ i.a, i.b });
+                    } else try self.writer.print("{s}(e{}, e{})", .{ switch (i.op) {
+                        .add => "qm_add",
+                        .sub => "qm_sub",
+                        else => "qm_mul",
+                    }, i.a, i.b });
+                },
+                .neg => try self.writer.print("qm_neg(e{})", .{i.a}),
             }
+            try self.writer.writeAll(";\n");
+            self.facts.extended[i.dst] = kind;
         }
 
         pub fn beginConstraints(self: *@This()) !void {
@@ -581,10 +635,13 @@ fn MetalProgramEmitter(comptime Writer: type) type {
             self: *@This(),
             step: shared.ConstraintStep,
         ) !void {
-            try self.writer.print(
-                "    part_acc = qm_add(part_acc, qm_mul(e{}, load_qm31(arena, args.random_coeffs + (args.rc_base + {}u) * 4u)));\n",
-                .{ step.root, step.random_coefficient_offset },
-            );
+            const offset = step.random_coefficient_offset;
+            switch (self.facts.extended[step.root]) {
+                .zero => {},
+                .one => try self.writer.print("    part_acc = qm_add(part_acc, load_qm31(arena, args.random_coeffs + (args.rc_base + {}u) * 4u));\n", .{offset}),
+                .base => try self.writer.print("    part_acc = qm_add(part_acc, qm_mul_base(load_qm31(arena, args.random_coeffs + (args.rc_base + {}u) * 4u), e{}.a));\n", .{ offset, step.root }),
+                .secure => try self.writer.print("    part_acc = qm_add(part_acc, qm_mul(e{}, load_qm31(arena, args.random_coeffs + (args.rc_base + {}u) * 4u)));\n", .{ step.root, offset }),
+            }
         }
     };
 }
@@ -646,21 +703,26 @@ const preamble =
     \\    uint rc_base;
     \\};
     \\inline uint m31_reduce(ulong v) { v = (v & M31_P) + (v >> 31); v = (v & M31_P) + (v >> 31); return v == M31_P ? 0u : uint(v); }
-    \\inline uint m31_add(uint a, uint b) { return m31_reduce(ulong(a) + b); }
+    \\inline uint m31_add(uint a, uint b) { uint sum=a+b; return sum >= M31_P ? sum-M31_P : sum; }
     \\inline uint m31_sub(uint a, uint b) { return a >= b ? a - b : a + M31_P - b; }
-    \\inline uint m31_mul(uint a, uint b) { return m31_reduce(ulong(a) * b); }
+    \\inline uint m31_mul(uint a, uint b) { ulong product=ulong(a)*b; uint folded=uint((product & M31_P)+(product >> 31)); return folded >= M31_P ? folded-M31_P : folded; }
     \\inline uint m31_neg(uint a) { return a == 0u ? 0u : M31_P - a; }
     \\inline uint m31_inv(uint v) { uint r = 1u, b = v, e = M31_P - 2u; while (e != 0u) { if (e & 1u) r = m31_mul(r, b); b = m31_mul(b, b); e >>= 1u; } return r; }
     \\inline Qm31 qm_add(Qm31 l, Qm31 r) { return { m31_add(l.a,r.a), m31_add(l.b,r.b), m31_add(l.c,r.c), m31_add(l.d,r.d) }; }
     \\inline Qm31 qm_sub(Qm31 l, Qm31 r) { return { m31_sub(l.a,r.a), m31_sub(l.b,r.b), m31_sub(l.c,r.c), m31_sub(l.d,r.d) }; }
     \\inline Qm31 qm_neg(Qm31 v) { return { m31_neg(v.a), m31_neg(v.b), m31_neg(v.c), m31_neg(v.d) }; }
     \\inline Qm31 qm_mul_base(Qm31 v, uint s) { return { m31_mul(v.a,s), m31_mul(v.b,s), m31_mul(v.c,s), m31_mul(v.d,s) }; }
+    \\struct Cm31 { uint a; uint b; };
+    \\inline Cm31 cm_add(Cm31 l, Cm31 r) { return { m31_add(l.a,r.a), m31_add(l.b,r.b) }; }
+    \\inline Cm31 cm_sub(Cm31 l, Cm31 r) { return { m31_sub(l.a,r.a), m31_sub(l.b,r.b) }; }
+    \\inline Cm31 cm_mul(Cm31 l, Cm31 r) {
+    \\    uint ac=m31_mul(l.a,r.a), bd=m31_mul(l.b,r.b), sum=m31_mul(m31_add(l.a,l.b),m31_add(r.a,r.b));
+    \\    return { m31_sub(ac,bd), m31_sub(m31_sub(sum,ac),bd) };
+    \\}
     \\inline Qm31 qm_mul(Qm31 l, Qm31 r) {
-    \\    uint x0=m31_sub(m31_mul(l.a,r.a),m31_mul(l.b,r.b)), x1=m31_add(m31_mul(l.a,r.b),m31_mul(l.b,r.a));
-    \\    uint y0=m31_sub(m31_mul(l.c,r.c),m31_mul(l.d,r.d)), y1=m31_add(m31_mul(l.c,r.d),m31_mul(l.d,r.c));
-    \\    uint c0=m31_sub(m31_mul(l.a,r.c),m31_mul(l.b,r.d)), c1=m31_add(m31_mul(l.a,r.d),m31_mul(l.b,r.c));
-    \\    uint c2=m31_sub(m31_mul(l.c,r.a),m31_mul(l.d,r.b)), c3=m31_add(m31_mul(l.c,r.b),m31_mul(l.d,r.a));
-    \\    return { m31_add(x0,m31_sub(m31_add(y0,y0),y1)), m31_add(x1,m31_add(y0,m31_add(y1,y1))), m31_add(c0,c2), m31_add(c1,c3) };
+    \\    Cm31 a={l.a,l.b}, b={l.c,l.d}, c={r.a,r.b}, d={r.c,r.d};
+    \\    Cm31 ac=cm_mul(a,c), bd=cm_mul(b,d), cross=cm_sub(cm_sub(cm_mul(cm_add(a,b),cm_add(c,d)),ac),bd);
+    \\    return { m31_add(ac.a,m31_sub(m31_add(bd.a,bd.a),bd.b)), m31_add(ac.b,m31_add(bd.a,m31_add(bd.b,bd.b))), cross.a, cross.b };
     \\}
     \\inline Qm31 load_qm31(device uint *arena, uint off) { return { arena[off], arena[off+1u], arena[off+2u], arena[off+3u] }; }
     \\inline uint bit_reverse(uint i, uint bits) { return bits == 0u ? 0u : reverse_bits(i) >> (32u-bits); }
@@ -703,7 +765,7 @@ test "Metal evaluation codegen: emits fused arena kernel" {
     defer std.testing.allocator.free(source);
     try std.testing.expect(std.mem.indexOf(u8, source, "b2 = m31_mul(b0, b1)") != null);
     try std.testing.expect(std.mem.indexOf(u8, source, "qm_mul(e0, e1)") != null);
-    try std.testing.expect(std.mem.indexOf(u8, source, "args.coord_3 + row") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, "args.coord_3 + coordinate_row") != null);
 
     const kernel_only = try generateKernel(
         std.testing.allocator,
@@ -717,6 +779,7 @@ test "Metal evaluation codegen: emits fused arena kernel" {
         \\    constant EvalArgs &args [[buffer(1)]],
         \\    uint row [[thread_position_in_grid]]) {
         \\    if (row >= args.row_count) return;
+        \\    uint coordinate_row = row;
         \\    uint b0 = trace_value(arena, args, 0u, 2u, row, -1);
         \\    uint b1 = 7u;
         \\    uint b2 = m31_mul(b0, b1);
@@ -726,10 +789,10 @@ test "Metal evaluation codegen: emits fused arena kernel" {
         \\    Qm31 part_acc = { 0u, 0u, 0u, 0u };
         \\    part_acc = qm_add(part_acc, qm_mul(e2, load_qm31(arena, args.random_coeffs + (args.rc_base + 0u) * 4u)));
         \\    Qm31 result = qm_mul_base(part_acc, arena[args.denom_inv + (row >> args.trace_log_size)]);
-        \\    arena[args.coord_0 + row] = m31_add(arena[args.coord_0 + row], result.a);
-        \\    arena[args.coord_1 + row] = m31_add(arena[args.coord_1 + row], result.b);
-        \\    arena[args.coord_2 + row] = m31_add(arena[args.coord_2 + row], result.c);
-        \\    arena[args.coord_3 + row] = m31_add(arena[args.coord_3 + row], result.d);
+        \\    arena[args.coord_0 + coordinate_row] = m31_add(arena[args.coord_0 + coordinate_row], result.a);
+        \\    arena[args.coord_1 + coordinate_row] = m31_add(arena[args.coord_1 + coordinate_row], result.b);
+        \\    arena[args.coord_2 + coordinate_row] = m31_add(arena[args.coord_2 + coordinate_row], result.c);
+        \\    arena[args.coord_3 + coordinate_row] = m31_add(arena[args.coord_3 + coordinate_row], result.d);
         \\}
         \\
     ,
@@ -756,6 +819,14 @@ test "Metal evaluation codegen: option B reads the stored column at its own shif
         .ext_insts = &ext,
         .constraint_roots = &roots,
     };
+
+    const tiled = try generateKernelFor(std.testing.allocator, program, true, .tiled_domain);
+    defer std.testing.allocator.free(tiled);
+    try std.testing.expect(std.mem.indexOf(u8, tiled, "stwo_zig_eval_td3_0000000000001234") != null);
+    try std.testing.expect(std.mem.indexOf(u8, tiled, "row += arena[args.trace_offsets];") != null);
+    try std.testing.expect(std.mem.indexOf(u8, tiled, "trace_value_tiled_fast(arena, args, 0u, 2u, row, 1u)") != null);
+    try std.testing.expect(std.mem.indexOf(u8, tiled, "args.coord_0 + coordinate_row") != null);
+    try std.testing.expect(std.mem.indexOf(u8, tiled, "args.denom_inv + (row >> args.trace_log_size)") != null);
 
     const stored = try generateKernelFor(std.testing.allocator, program, false, .stored_domain);
     defer std.testing.allocator.free(stored);
@@ -814,7 +885,7 @@ test "Metal evaluation codegen: fuses adjacent parts with one accumulator store"
     const name = try fusedKernelName(std.testing.allocator, &parts);
     defer std.testing.allocator.free(name);
     try std.testing.expect(std.mem.indexOf(u8, source, name) != null);
-    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, source, "arena[args.coord_0 + row] ="));
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, source, "arena[args.coord_0 + coordinate_row] ="));
     try std.testing.expectEqual(@as(usize, 2), std.mem.count(u8, source, "Qm31 part_result"));
     try std.testing.expect(std.mem.indexOf(u8, source, "args.rc_base + 1u") != null);
 }

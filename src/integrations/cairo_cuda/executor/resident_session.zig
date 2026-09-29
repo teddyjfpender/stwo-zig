@@ -32,8 +32,9 @@ pub const Prepared = struct {
     ) !Prepared {
         if (std.mem.allEqual(u8, &plan.identity, 0) or
             std.mem.allEqual(u8, &schedule.identity, 0) or
-            schedule.entries.len != trace_schedule.expected_entry_count or
-            schedule.launch_order.len != trace_schedule.expected_launch_count)
+            schedule.entries.len == 0 or
+            schedule.launch_order.len == 0 or
+            schedule.launch_order.len > schedule.entries.len)
         {
             return error.InvalidResidentSession;
         }

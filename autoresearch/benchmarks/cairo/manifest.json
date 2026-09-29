@@ -1,0 +1,172 @@
+{
+  "schema": "stwo-zig-cairo-suite-manifest-v1",
+  "description": "Independent CPU/Metal proofs, actual execution for program inputs, pinned workload bytes and canonical 70-query/26-bit security. External PIE archives are supplied locally, not distributed here.",
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "workloads": [
+    {
+      "id": "ret",
+      "family": "opcodes",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/test_prove_verify_ret_opcode/compiled.json",
+      "sha256": "d4381c90ee04f717aeb6c5ead5a599c4029b8a38faf56d066c865ffe89273d57",
+      "program_type": "json"
+    },
+    {
+      "id": "all-opcodes",
+      "family": "opcodes",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/all_opcodes.compiled.json",
+      "sha256": "727c4f6aa68b17d70098e50fcbe39619d07a1dc0b1966fd55dd127006e8a3e95",
+      "program_type": "json"
+    },
+    {
+      "id": "bitwise",
+      "family": "bitwise",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/test_prove_verify_bitwise_builtin/compiled.json",
+      "sha256": "92049e724dc0d5578bb036d55261c45a801f7b53754a02af3f3e464824251eff",
+      "program_type": "json"
+    },
+    {
+      "id": "range96",
+      "family": "range-check",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/test_prove_verify_range_check_bits_96_builtin/compiled.json",
+      "sha256": "86cdb3ce554996099490ce28001e5f6bd33bc63d13c6512f6f5dc28f333ed9da",
+      "program_type": "json"
+    },
+    {
+      "id": "range128",
+      "family": "range-check",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/test_prove_verify_range_check_bits_128_builtin/compiled.json",
+      "sha256": "f14e91e258c25a9ebd780e0070a06b78d8b8715c1b1f6f81f374d89457387850",
+      "program_type": "json"
+    },
+    {
+      "id": "poseidon",
+      "family": "semantic-hash",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/test_prove_verify_poseidon_builtin/compiled.json",
+      "sha256": "e10c31f78bf2fcbd24e80af1acb51bff2d6a270a939c4f3485df1f84df4c4d23",
+      "program_type": "json"
+    },
+    {
+      "id": "pedersen",
+      "family": "elliptic-curve-hash",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/test_prove_verify_pedersen_builtin/compiled.json",
+      "sha256": "02eee8181d7daa5148344d1b2faeb83505a6de955fb224cb0a6d05ae4591c071",
+      "program_type": "json"
+    },
+    {
+      "id": "all-builtins",
+      "family": "mixed-builtins",
+      "tier": "smoke",
+      "kind": "prover-input",
+      "source": "repository",
+      "path": "vectors/cairo/official/all_builtins.prover_input.json",
+      "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1"
+    },
+    {
+      "id": "executable-add-one",
+      "family": "cairo-executable",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "vectors/cairo/programs/executable/add_one.executable.json",
+      "sha256": "5e3e01819c1078a2768715b0e63be7ade9c6a8ea149ee0bc8b325cb013a1e23a",
+      "program_type": "executable",
+      "arguments": {
+        "path": "vectors/cairo/programs/executable/add_one.arguments.json",
+        "sha256": "06cf6beb6e226f69df36ef04e4b8c27ddd113aa28f585e6043ea897dea4a8734"
+      }
+    },
+    {
+      "id": "fibonacci-pie",
+      "family": "bootloader-pie",
+      "tier": "smoke",
+      "kind": "program",
+      "source": "repository",
+      "path": "tools/stwo-cairo-vm-adapter-rs/resources/fibonacci_pie.zip",
+      "sha256": "06da79af56d26210135fbfdd1c900469f3246806910122311479f16d17749994",
+      "program_type": "pie"
+    },
+    {
+      "id": "all-builtins-canonical",
+      "family": "mixed-builtins",
+      "tier": "canonical",
+      "kind": "prover-input",
+      "source": "repository",
+      "path": "vectors/cairo/official/all_builtins.prover_input.json",
+      "sha256": "d7e902c3b8584a79b466ef0c384208ad95ea75340f0b0590ea0ba765c54acac1",
+      "params": {
+        "path": "vectors/cairo/official/all_builtins.params.json",
+        "sha256": "bcdb2f7be67b815413c566619fdf7632974cf1fe8b9f61fd07e93aa20348309e"
+      }
+    },
+    {
+      "id": "sn-pie-1",
+      "family": "starknet-pie",
+      "tier": "large",
+      "kind": "program",
+      "source": "external-pie",
+      "path": "SN_PIE_1.zip",
+      "sha256": "dbdda06ffb2cee7ee7c499b7805e9b9a20eba20518b301998edfb195ea2da0ee",
+      "program_type": "pie"
+    },
+    {
+      "id": "sn-pie-2",
+      "family": "starknet-pie",
+      "tier": "large",
+      "kind": "program",
+      "source": "external-pie",
+      "path": "SN_PIE_2.zip",
+      "sha256": "f10b70ca8af790a934ac36b3835136bbdc0cc47f62d6bc63169856dec3f0dc41",
+      "program_type": "pie"
+    },
+    {
+      "id": "sn-pie-3",
+      "family": "starknet-pie",
+      "tier": "large",
+      "kind": "program",
+      "source": "external-pie",
+      "path": "SN_PIE_3.zip",
+      "sha256": "673212f6fcc64b2c4fe3817a041756ddaa2386712fc971e3bd2dd7fca7b4aea4",
+      "program_type": "pie"
+    },
+    {
+      "id": "sn-pie-4",
+      "family": "starknet-pie",
+      "tier": "large",
+      "kind": "program",
+      "source": "external-pie",
+      "path": "SN_PIE_4.zip",
+      "sha256": "991eff7c3323e1b6b6cb2bb2d7df1704b1e31f4854c00c60d7413603fe455603",
+      "program_type": "pie"
+    }
+  ]
+}

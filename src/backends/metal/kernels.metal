@@ -487,6 +487,7 @@ kernel void stwo_zig_quotient_partials_raw(
     constant uint &group_count [[buffer(7)]],
     constant uint &total_group_rows [[buffer(8)]],
     device uint *partials [[buffer(9)]],
+    constant uint &accumulate [[buffer(10)]],
     uint gid [[thread_position_in_grid]]
 ) {
     if (gid >= total_group_rows) return;
@@ -505,16 +506,25 @@ kernel void stwo_zig_quotient_partials_raw(
     uint view_end = group.view_start + group.view_count;
     for (uint view_index = group.view_start; view_index < view_end; ++view_index) {
         ResidentRawQuotientView view = views[view_index];
-        uint value = quotient_resident_source_value(
+        // Coefficient-basis groups can have shorter sources than their padded
+        // output. Ordinary native-height quotient groups retain equal lengths.
+        uint value = row < view.length ? quotient_resident_source_value(
             source_0, source_1, source_2, source_3,
             view.source_slot, view.offset + row
-        );
+        ) : 0u;
         accumulator = qm_add(accumulator, {
             m31_mul(value, view.coeff_a), m31_mul(value, view.coeff_b),
             m31_mul(value, view.coeff_c), m31_mul(value, view.coeff_d),
         });
     }
     uint base = group.partial_offset;
+    // Separate serial encoders provide the dependency between source runs;
+    // each thread owns one unique bucket row, so no atomics are needed.
+    if (accumulate != 0u) accumulator = qm_add(accumulator, {
+        partials[base + row], partials[base + group.row_count + row],
+        partials[base + 2u * group.row_count + row],
+        partials[base + 3u * group.row_count + row],
+    });
     partials[base + row] = accumulator.a;
     partials[base + group.row_count + row] = accumulator.b;
     partials[base + 2u * group.row_count + row] = accumulator.c;
@@ -585,24 +595,36 @@ kernel void stwo_zig_quotient_numerator_raw(
     device Qm31Value *numerators [[buffer(3)]],
     constant uint &batch_count [[buffer(4)]],
     constant uint &row_count [[buffer(5)]],
-    uint row [[thread_position_in_grid]]
+    constant uint &tile_rows [[buffer(6)]],
+    constant uint &row_start [[buffer(7)]],
+    constant uint &planar [[buffer(8)]],
+    uint local_row [[thread_position_in_grid]]
 ) {
-    if (row >= row_count) return;
+    if (local_row >= tile_rows || row_start >= row_count || local_row >= row_count - row_start) return;
+    const uint row = row_start + local_row;
     for (uint batch = 0; batch < batch_count; ++batch) {
-        Qm31Value sum = numerators[batch * row_count + row];
+        Qm31Value sum = numerators[batch * tile_rows + local_row];
         for (uint view_index = 0; view_index < view_count; ++view_index) {
             RawQuotientView view = views[view_index];
             if (view.batch != batch) continue;
             uint source = view.direct != 0u
                 ? row
                 : ((row >> view.shift) << 1u) | (row & 1u);
-            uint value = flat_columns[view.offset + source];
-            sum = qm_add(sum, {
-                m31_mul(value, view.coeff_a), m31_mul(value, view.coeff_b),
-                m31_mul(value, view.coeff_c), m31_mul(value, view.coeff_d),
-            });
+            if (planar != 0u) {
+                uint base = view.offset + source;
+                sum = qm_add(sum, {
+                    flat_columns[base], flat_columns[base + view.length],
+                    flat_columns[base + 2u * view.length], flat_columns[base + 3u * view.length],
+                });
+            } else {
+                uint value = flat_columns[view.offset + source];
+                sum = qm_add(sum, {
+                    m31_mul(value, view.coeff_a), m31_mul(value, view.coeff_b),
+                    m31_mul(value, view.coeff_c), m31_mul(value, view.coeff_d),
+                });
+            }
         }
-        numerators[batch * row_count + row] = sum;
+        numerators[batch * tile_rows + local_row] = sum;
     }
 }
 
@@ -615,9 +637,12 @@ kernel void stwo_zig_quotient_finalize(
     device const uint *domain_y [[buffer(5)]],
     device uint *output [[buffer(6)]],
     constant uint &row_count [[buffer(7)]],
-    uint row [[thread_position_in_grid]]
+    constant uint &tile_rows [[buffer(8)]],
+    constant uint &row_start [[buffer(9)]],
+    uint local_row [[thread_position_in_grid]]
 ) {
-    if (row >= row_count) return;
+    if (local_row >= tile_rows || row_start >= row_count || local_row >= row_count - row_start) return;
+    const uint row = row_start + local_row;
     Qm31Value accumulator = { 0u, 0u, 0u, 0u };
     for (uint batch = 0; batch < batch_count; ++batch) {
         uint sample_base = batch * 8u;
@@ -630,7 +655,7 @@ kernel void stwo_zig_quotient_finalize(
         Qm31Value sum_b = { linear_terms[linear_base + 4u], linear_terms[linear_base + 5u],
                             linear_terms[linear_base + 6u], linear_terms[linear_base + 7u] };
         Qm31Value numerator = qm_sub(
-            numerators[batch * row_count + row],
+            numerators[batch * tile_rows + local_row],
             qm_add(qm_mul_m31(sum_a, domain_y[row]), sum_b)
         );
         accumulator = qm_add(accumulator, qm_mul_cm(numerator, cm_inv(denominator)));

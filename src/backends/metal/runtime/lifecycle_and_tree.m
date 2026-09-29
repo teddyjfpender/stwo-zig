@@ -158,14 +158,10 @@ void *stwo_zig_metal_merkle_commit_v2(
                                            deallocator:nil]
             : [runtime.device newBufferWithLength:flat_bytes
                                            options:gpu_upload ? MTLResourceStorageModePrivate : MTLResourceStorageModeShared];
-        // The direct Poseidon Tree1 commitment can span more than 2^32 M31
-        // words even though each individual column remains below log 31.  Its
-        // dedicated leaf kernel consumes u64 offsets.  Compact resident
-        // commitments retain the established u32 ABI and Blake direct
-        // commitments continue to reject an unaddressable layout.
-        bool wide_column_offsets =
-            hash_family == StwoZigCommitmentHashFamilyPoseidon2M31V1 ||
-            hash_family == StwoZigCommitmentHashFamilyBlake3V1;
+        // Direct commitments can span more than 2^32 M31 words, or cover a
+        // sparse span in a shared backing arena. All three hash families use
+        // u64 offsets here; compact resident plans retain their bounded u32 ABI.
+        const bool wide_column_offsets = true;
         size_t offset_entry_bytes = wide_column_offsets
             ? sizeof(uint64_t) : sizeof(uint32_t);
         if ((size_t)column_count > SIZE_MAX / offset_entry_bytes) {
@@ -471,7 +467,7 @@ bool stwo_zig_metal_tree_copy_layers(
         StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
         StwoZigMetalTree *tree = (__bridge StwoZigMetalTree *)tree_ptr;
         size_t required = ((((size_t)1u) << (tree.logSize + 1u)) - 1u) * 32u;
-        if (destination_len != required) {
+        if (tree.prunedBottomLayers != 0u || destination_len != required) {
             write_error(error_message, error_message_len, @"Metal layer readback size mismatch");
             return false;
         }
@@ -506,6 +502,8 @@ bool stwo_zig_metal_tree_copy_layers(
     }
 }
 
+#include "compact_tree.m"
+
 bool stwo_zig_metal_tree_copy_hashes(
     void *runtime_ptr,
     void *tree_ptr,
@@ -520,7 +518,7 @@ bool stwo_zig_metal_tree_copy_hashes(
     @autoreleasepool {
         StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
         StwoZigMetalTree *tree = (__bridge StwoZigMetalTree *)tree_ptr;
-        if (layer_log_size > tree.logSize) {
+        if (layer_log_size > tree.logSize - tree.prunedBottomLayers) {
             write_error(error_message, error_message_len, @"Invalid Metal layer log size");
             return false;
         }
@@ -594,7 +592,7 @@ bool stwo_zig_metal_tree_copy_hashes_batch(
         for (uint32_t request = 0u; request < request_count; ++request) {
             uint32_t layer_log_size = layer_log_sizes[request];
             uint32_t index_count = index_counts[request];
-            if (layer_log_size >= 31u || layer_log_size > tree.logSize ||
+            if (layer_log_size >= 31u || layer_log_size > tree.logSize - tree.prunedBottomLayers ||
                 (index_count != 0u && (indices[request] == NULL || destinations[request] == NULL))) {
                 write_error(error_message, error_message_len, @"Invalid Metal hash-read batch");
                 return false;

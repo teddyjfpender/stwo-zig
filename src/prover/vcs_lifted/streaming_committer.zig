@@ -1,11 +1,13 @@
 //! Streaming lifted-Merkle commitment construction.
 
 const std = @import("std");
+const builtin = @import("builtin");
 const work_pool_mod = @import("../work_pool.zig");
 const leaves_mod = @import("leaves.zig");
 const expand_mod = @import("expand.zig");
 const layers_mod = @import("layers.zig");
 const parameters = @import("parameters.zig");
+const blake2_stream4 = @import("blake2_stream4.zig");
 
 pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
     const Self = Tree;
@@ -401,7 +403,8 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
         const TailGroup = struct { columns: []const ColumnRef, shift: std.math.Log2Int(usize) };
         const tail_cache_bytes_per_worker = @bitSizeOf(usize) *
             (@sizeOf(TailGroup) + 2 * @sizeOf(H) + 2 * @sizeOf(usize)) +
-            64 * @sizeOf(@import("stwo_core").fields.m31.M31);
+            64 * @sizeOf(@import("stwo_core").fields.m31.M31) +
+            @import("bounded_blake2_tail.zig").cacheBytes(H, ColumnRef);
 
         fn absorbColumnsAt(hasher: *H, columns: []const ColumnRef, index: usize, comptime bulk: bool) void {
             if (!bulk) {
@@ -421,6 +424,10 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
         fn finalizeBoundedTailRangeReusing(range: *BoundedTailRange) void {
             if (std.process.hasEnvVarConstant("STWO_ZIG_SCALAR_TAIL_UPDATES")) {
                 return finalizeBoundedTailRangeReusingImpl(range, false);
+            }
+            if (@import("bounded_blake2_tail.zig").finalize(H, range)) |absorptions| {
+                range.absorptions = absorptions;
+                return;
             }
             return finalizeBoundedTailRangeReusingImpl(range, true);
         }
@@ -448,24 +455,45 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             var indices = [_][2]usize{.{ std.math.maxInt(usize), std.math.maxInt(usize) }} ** @bitSizeOf(usize);
             const base_shift: std.math.Log2Int(usize) = @intCast(range.final_log_size - range.base_log_size + 1);
             var absorptions: usize = 0;
-            for (range.start..range.end) |position| {
-                const parity = position & 1;
-                const base_index = ((position >> base_shift) << 1) + parity;
-                var hasher = range.base_hashers[base_index];
-                for (groups[0..group_count], 0..) |group, ordinal| {
-                    const index = ((position >> group.shift) << 1) + parity;
-                    if (indices[ordinal][parity] != index) {
-                        absorbColumnsAt(&hasher, group.columns, index, bulk);
-                        states[ordinal][parity] = hasher;
-                        indices[ordinal][parity] = index;
-                        absorptions += group.columns.len;
-                    } else {
-                        hasher = states[ordinal][parity];
+            const batch_width = if (comptime bulk and blake2_stream4.supports(H)) 4 else 1;
+            var position = range.start;
+            while (position < range.end) : (position += batch_width) {
+                var batch: [batch_width]H = undefined;
+                const count = @min(batch_width, range.end - position);
+                for (batch[0..count], 0..) |*hasher, lane| {
+                    const row = position + lane;
+                    const parity = row & 1;
+                    const base_index = ((row >> base_shift) << 1) + parity;
+                    hasher.* = range.base_hashers[base_index];
+                    for (groups[0..group_count], 0..) |group, ordinal| {
+                        const index = ((row >> group.shift) << 1) + parity;
+                        if (indices[ordinal][parity] != index) {
+                            absorbColumnsAt(hasher, group.columns, index, bulk);
+                            states[ordinal][parity] = hasher.*;
+                            indices[ordinal][parity] = index;
+                            absorptions += group.columns.len;
+                        } else {
+                            hasher.* = states[ordinal][parity];
+                        }
                     }
                 }
-                absorbColumnsAt(&hasher, range.tail_columns[begin..], position, bulk);
-                absorptions += range.tail_columns.len - begin;
-                range.leaves[position] = hasher.finalize();
+                if (comptime batch_width == 4) {
+                    if (count == 4) {
+                        // Final-height columns have adjacent source rows and
+                        // equal counters; compress them as four independent
+                        // messages without transposing a complete row slab.
+                        blake2_stream4.updateM31Columns4(&batch, range.tail_columns[begin..], position);
+                        const hashes = blake2_stream4.finalize4(&batch);
+                        @memcpy(range.leaves[position..][0..4], &hashes);
+                        absorptions += 4 * (range.tail_columns.len - begin);
+                        continue;
+                    }
+                }
+                for (batch[0..count], 0..) |*hasher, lane| {
+                    absorbColumnsAt(hasher, range.tail_columns[begin..], position + lane, bulk);
+                    absorptions += range.tail_columns.len - begin;
+                    range.leaves[position + lane] = hasher.finalize();
+                }
             }
             range.absorptions = absorptions;
         }
@@ -475,6 +503,35 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                 range.final_log_size - range.base_log_size + 1,
             );
             var position = range.start;
+            if (comptime blake2_stream4.supports(H) and builtin.cpu.arch.endian() == .little) {
+                while (position + 4 <= range.end) : (position += 4) {
+                    var batch: [4]H = undefined;
+                    for (&batch, 0..) |*hasher, lane| {
+                        const row = position + lane;
+                        hasher.* = range.base_hashers[((row >> base_shift) << 1) + (row & 1)];
+                    }
+                    var start: usize = 0;
+                    while (start < range.tail_columns.len) {
+                        const count = @min(@as(usize, 64), range.tail_columns.len - start);
+                        var values: [4][64]@import("stwo_core").fields.m31.M31 = undefined;
+                        var bytes: [4][]const u8 = undefined;
+                        for (&values, &bytes, 0..) |*row_values, *row_bytes, lane| {
+                            const row = position + lane;
+                            for (range.tail_columns[start..][0..count], row_values[0..count]) |column, *value| {
+                                const shift: std.math.Log2Int(usize) = @intCast(range.final_log_size - column.log_size + 1);
+                                value.* = column.values[((row >> shift) << 1) + (row & 1)];
+                            }
+                            row_bytes.* = std.mem.sliceAsBytes(row_values[0..count]);
+                        }
+                        // This byte view follows the native M31 little-endian
+                        // fast path; big-endian targets retain the scalar path.
+                        blake2_stream4.updatePacked4(&batch, &bytes);
+                        start += count;
+                    }
+                    const hashes = blake2_stream4.finalize4(&batch);
+                    @memcpy(range.leaves[position..][0..4], &hashes);
+                }
+            }
             while (position < range.end) : (position += 1) {
                 const base_index = ((position >> base_shift) << 1) + (position & 1);
                 var hasher = range.base_hashers[base_index];
@@ -490,9 +547,9 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             }
         }
 
-        fn liftedTailStart(columns: []const ColumnRef) ?usize {
+        pub fn liftedTailStart(columns: []const ColumnRef) ?usize {
             if (comptime !@hasDecl(H, "domainPrefixBytes")) return null;
-            if (H.domainPrefixBytes() != 64 or columns.len < 2) return null;
+            if ((H.domainPrefixBytes() != 64 and H.domainPrefixBytes() != 0) or columns.len < 2) return null;
 
             const final_log_size = columns[columns.len - 1].log_size;
             var group_start: usize = 0;
@@ -522,7 +579,26 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             return null;
         }
 
-        fn finalizeLiftedTail(
+        /// Compact streams prefer bounded prefix state even when the terminal
+        /// columns spill into another BLAKE2s block. The four-way continuation
+        /// handles that spill without expanding persistent state to final height.
+        pub fn compactLiftedTailStart(columns: []const ColumnRef) ?usize {
+            if (comptime !@hasDecl(H, "domainPrefixBytes")) return null;
+            if ((H.domainPrefixBytes() != 64 and H.domainPrefixBytes() != 0) or columns.len < 2) return null;
+            const final_log = columns[columns.len - 1].log_size;
+            var next: usize = 0;
+            while (next < columns.len) {
+                const log = columns[next].log_size;
+                var end = next + 1;
+                while (end < columns.len and columns[end].log_size == log) end += 1;
+                if (end == columns.len) return null;
+                if (final_log > log and columns.len - end <= LeafOps.max_lifted_tail_columns) return end;
+                next = end;
+            }
+            return null;
+        }
+
+        pub fn finalizeLiftedTail(
             self: *Committer,
             tail_columns: []const ColumnRef,
         ) !Self {
@@ -557,12 +633,15 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             const worker_override = merkleWorkerOverride(allocator);
             const reuse_pool = merklePoolReuseEnabled(allocator);
 
+            var leaf_live = true;
+            errdefer if (leaf_live) layer_alloc.free(leaves);
             var layers_bottom_up = std.ArrayList([]H.Hash).empty;
             defer layers_bottom_up.deinit(allocator);
             errdefer {
                 for (layers_bottom_up.items) |layer| layer_alloc.free(layer);
             }
             try layers_bottom_up.append(allocator, leaves);
+            leaf_live = false;
 
             if (leaves.len > 1) {
                 std.debug.assert(std.math.isPowerOfTwo(leaves.len));
@@ -580,7 +659,10 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                         &executor,
                         worker_override,
                     );
-                    try layers_bottom_up.append(allocator, next_layer);
+                    layers_bottom_up.append(allocator, next_layer) catch |err| {
+                        layer_alloc.free(next_layer);
+                        return err;
+                    };
                 }
             }
 

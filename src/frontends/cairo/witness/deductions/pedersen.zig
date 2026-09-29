@@ -5,7 +5,7 @@ const felt252 = @import("felt252.zig");
 const stark_curve = @import("stark_curve.zig");
 
 const default_window_bits: u5 = 18;
-const default_window_count: u32 = 252 / default_window_bits;
+const default_window_count: u32 = @as(u32, 252) / default_window_bits;
 const default_rows_per_window: u32 = 1 << default_window_bits;
 const default_section_rows: u32 = default_window_count * default_rows_per_window;
 const real_table_rows: u32 = 2 * default_section_rows;
@@ -130,6 +130,10 @@ fn applyPartialEcMulForWindow(
     };
     const sum = try stark_curve.addAffine(accumulator, table_point);
 
+    finishPartialOutput(args, outputs, requested_window_count, sum);
+}
+
+fn finishPartialOutput(args: []const u32, outputs: []u32, requested_window_count: usize, sum: stark_curve.AffinePoint) void {
     outputs[0] = args[0];
     outputs[1] = args[1] + 1;
     @memcpy(
@@ -145,6 +149,42 @@ fn applyPartialEcMulForWindow(
         sum.y,
         outputs[2 + requested_window_count + felt252.word_count ..][0..felt252.word_count],
     );
+}
+
+pub fn applyPartialEcMulBatchCached(
+    batch: @import("../program.zig").DeduceBatch,
+    comptime window_bits: u5,
+    points: []const stark_curve.AffinePoint,
+) !void {
+    try batch.validate();
+    const window_count: usize = 252 / @as(usize, window_bits);
+    const words = 2 + window_count + point_words;
+    if (batch.arg_count != words or batch.output_count != words) return error.InvalidWordCount;
+    const capacity = @import("../deduction_contract.zig").max_batch_rows;
+    var accumulators: [capacity]stark_curve.AffinePoint = undefined;
+    var table_points: [capacity]stark_curve.AffinePoint = undefined;
+    var sums: [capacity]stark_curve.AffinePoint = undefined;
+    var prefixes: [capacity]u256 = undefined;
+    var numerators: [capacity]u256 = undefined;
+    var denominators: [capacity]u256 = undefined;
+    var start: usize = 0;
+    while (start < batch.rows) {
+        const count = @min(capacity, batch.rows - start);
+        for (0..count) |row| {
+            const args = batch.rowArgs(start + row);
+            if (args[1] >= 2 * window_count) return error.InvalidRound;
+            if (args[2] >= @as(u32, 1) << window_bits) return error.InvalidWindow;
+            const table_row = args[1] * (@as(u32, 1) << window_bits) + args[2];
+            table_points[row] = try resolveTablePoint(table_row, window_bits, points);
+            accumulators[row] = .{
+                .x = try felt252.decode(args[2 + window_count ..][0..felt252.word_count]),
+                .y = try felt252.decode(args[2 + window_count + felt252.word_count ..][0..felt252.word_count]),
+            };
+        }
+        try stark_curve.batchAddAffine(accumulators[0..count], table_points[0..count], sums[0..count], prefixes[0..count], numerators[0..count], denominators[0..count]);
+        for (0..count) |row| finishPartialOutput(batch.rowArgs(start + row), batch.rowOutputs(start + row), window_count, sums[row]);
+        start += count;
+    }
 }
 
 fn resolveTablePoint(

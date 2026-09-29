@@ -12,8 +12,7 @@ bool stwo_zig_metal_eval_prepared(
         [encoder setComputePipelineState:plan.pipeline];
         [encoder setBuffer:arena offset:0 atIndex:0];
         [encoder setBuffer:plan.arguments offset:0 atIndex:1];
-        NSUInteger width = MIN((NSUInteger)256u, MIN((NSUInteger)plan.rowCount, plan.pipeline.maxTotalThreadsPerThreadgroup));
-        [encoder dispatchThreads:MTLSizeMake(plan.rowCount, 1u, 1u) threadsPerThreadgroup:MTLSizeMake(width, 1u, 1u)];
+        [encoder dispatchThreads:MTLSizeMake(plan.rowCount, 1u, 1u) threadsPerThreadgroup:MTLSizeMake(plan.dispatchWidth, 1u, 1u)];
         [encoder endEncoding]; [command commit]; [command waitUntilCompleted];
         if (command.status == MTLCommandBufferStatusError) {
             write_error(error_message, error_message_len, command.error.localizedDescription); return false;
@@ -191,6 +190,8 @@ bool stwo_zig_metal_relation_prepared(
         id<MTLBuffer> arena = (__bridge id<MTLBuffer>)arena_ptr;
         StwoZigRelationPlan *plan = (__bridge StwoZigRelationPlan *)plan_ptr;
         uint32_t instances = plan.instanceCount, blocks = plan.totalBlocks;
+        bool profile_relation = getenv("STWO_METAL_PROFILE_RELATION") != NULL;
+        CFAbsoluteTime started = profile_relation ? CFAbsoluteTimeGetCurrent() : 0;
         id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
         id<MTLComputeCommandEncoder> fused = [command computeCommandEncoder];
         [fused setComputePipelineState:runtime.relationFused];
@@ -220,7 +221,18 @@ bool stwo_zig_metal_relation_prepared(
         [finalize setBuffer:plan.outputOffsets offset:0 atIndex:2]; [finalize setBuffer:arena offset:plan.scratchByteOffset atIndex:3];
         [finalize setBytes:&instances length:sizeof(instances) atIndex:4];
         [finalize dispatchThreads:MTLSizeMake((NSUInteger)blocks * 256u, 1u, 1u) threadsPerThreadgroup:MTLSizeMake(256u, 1u, 1u)];
-        [finalize endEncoding]; [command commit]; [command waitUntilCompleted];
+        [finalize endEncoding];
+        CFAbsoluteTime encoded = profile_relation ? CFAbsoluteTimeGetCurrent() : 0;
+        [command commit];
+        CFAbsoluteTime committed = profile_relation ? CFAbsoluteTimeGetCurrent() : 0;
+        [command waitUntilCompleted];
+        if (profile_relation) {
+            CFAbsoluteTime completed = CFAbsoluteTimeGetCurrent();
+            fprintf(stderr, "metal_relation_wall blocks=%u encode_ms=%.3f commit_ms=%.3f wait_ms=%.3f kernel_ms=%.3f gpu_ms=%.3f\n",
+                blocks, (encoded - started) * 1000.0, (committed - encoded) * 1000.0,
+                (completed - committed) * 1000.0, (command.kernelEndTime - command.kernelStartTime) * 1000.0,
+                (command.GPUEndTime - command.GPUStartTime) * 1000.0);
+        }
         if (command.status == MTLCommandBufferStatusError) { write_error(error_message, error_message_len, command.error.localizedDescription); return false; }
         if (gpu_milliseconds) *gpu_milliseconds = (command.GPUEndTime - command.GPUStartTime) * 1000.0;
         return true;

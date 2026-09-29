@@ -1,0 +1,39 @@
+{
+  "schema": "stwo-cairo-cuda-component-correctness-v1",
+  "created_utc": "2026-09-28T15:13:13.860488+00:00",
+  "tests": [
+    {
+      "name": "native_quotient_smoke",
+      "compile_exit_code": 0,
+      "source_sha256": "88bca6a1b58c8877fc154bf622e97443c86203b67b2c62e2e443acbbeab9664a",
+      "archive_sha256": "72d65f57461752602599b1077286424571634f22c39ba38b31776407726f5c22",
+      "exit_code": 0,
+      "diagnostic_wall_ns": 760090368,
+      "executable_sha256": "137a4aba56c68ea7b9fdd847c6051b9030bc5ad6bc0b77d860139d7008c3a397",
+      "stdout": "Native CUDA quotient smoke passed: six resident paths, including multi-arena sources, match independent CPU references\n",
+      "stderr": ""
+    },
+    {
+      "name": "native_oods_smoke",
+      "compile_exit_code": 0,
+      "source_sha256": "1687760291b63b58b217746e0d03decf16b9f88e895d0b0bd344b828e34c9379",
+      "archive_sha256": "72d65f57461752602599b1077286424571634f22c39ba38b31776407726f5c22",
+      "exit_code": 0,
+      "diagnostic_wall_ns": 542610562,
+      "executable_sha256": "a115fdce5e70a746136d4dae1b775199aaadae88cad8ad881e1550aaa541c8f0",
+      "stdout": "native CUDA OODS smoke passed\n",
+      "stderr": ""
+    },
+    {
+      "name": "native_fri_pow_smoke",
+      "compile_exit_code": 0,
+      "source_sha256": "ef6929da340365aeb28cbd0a8d715a1232fb1520cf4ec62208a36480798492ce",
+      "archive_sha256": "72d65f57461752602599b1077286424571634f22c39ba38b31776407726f5c22",
+      "exit_code": 0,
+      "diagnostic_wall_ns": 604862168,
+      "executable_sha256": "72934811db786168e5f17174427e7212b56beb7605d3ff7fcf0ebf48261fa45a",
+      "stdout": "native CUDA FRI/PoW smoke passed: contiguous folds, final IFFT, bounded deterministic grind\n",
+      "stderr": ""
+    }
+  ]
+}

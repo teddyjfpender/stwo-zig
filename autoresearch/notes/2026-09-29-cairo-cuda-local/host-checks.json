@@ -1,0 +1,22 @@
+{
+  "schema": "stwo-zig-cairo-cuda-local-host-checks-v1",
+  "nvidia_qualified": false,
+  "full_proof_verified": false,
+  "checks": {
+    "full_cli_macos_and_archive_plan": "passed (witness v16 / AIR v3)",
+    "full_cli_linux_and_archive_plan": "passed (witness v15 / AIR v3)",
+    "all_four_sn_pie_source_controller_plans": "passed (ReleaseFast, 0.47\u20130.74 seconds each; proving not measured)",
+    "compact_writer_rust_byte_parity": "5/5 passed",
+    "cuda_builder": "22/22 passed across aggregate and focused new CLI case",
+    "cuda_build_cache": "3/3 passed, including outer Zig manifest/artifact invalidation",
+    "benchmark_receipt_identity_security_mutations": "6/6 passed",
+    "cuda_product_closure": "passed",
+    "cuda_source_closure": "passed",
+    "legacy_cumetal_ledger": "passed",
+    "parametric_mutable_boundary_and_fixed_literal_mutation": "passed",
+    "cuda_cubin_cache": "4/4 passed, including partial compiler failure",
+    "cuda_cairo_local": "v15 full matrix 128/132; v16 EC compilation and five numerical checks passed",
+    "cuda_cubin_import": "6/6 passed; full real 180-source imported plan passed",
+    "full_cli_macos_imported_archive_plan": "passed (actual imported cubins bound into outer Zig cache)"
+  }
+}

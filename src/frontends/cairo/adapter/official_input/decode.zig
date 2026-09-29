@@ -43,7 +43,7 @@ pub fn fromWire(
     try validateMemory(input.memory);
     try validateSegments(input.builtin_segments, input.memory.address_to_id.len);
     try validatePublicAddresses(input.public_memory_addresses, input.memory.address_to_id);
-    try validatePublicContext(input.public_segment_context, input.state_transitions);
+    try validatePublicContext(input.public_segment_context.present, input.state_transitions.initial_state.ap, input.state_transitions.final_state.ap);
 
     var pc_set = std.AutoHashMap(u32, void).init(allocator);
     defer pc_set.deinit();
@@ -187,6 +187,62 @@ fn validateMemory(memory: wire.Memory) Error!void {
     }
 }
 
+/// Admit a directly decoded compact input without allocating a JSON object
+/// graph or copying its memory tables. Both transports share the same memory,
+/// segment, public-address and public-context rules.
+pub fn validateOwned(
+    allocator: std.mem.Allocator,
+    input: *const adapter.ProverInput,
+    limits: Limits,
+) !void {
+    const memory_ids: []const u32 = std.mem.bytesAsSlice(
+        u32,
+        std.mem.sliceAsBytes(input.memory.address_to_id),
+    );
+    const memory = wire.Memory{
+        .config = .{
+            .small_max = input.memory.config.small_max,
+            .log_small_value_capacity = input.memory.config.log_small_value_capacity,
+        },
+        .address_to_id = memory_ids,
+        .f252_values = input.memory.f252_values,
+        .small_values = input.memory.small_values,
+    };
+    if (memory_ids.len > limits.max_memory_addresses or
+        memory.f252_values.len > limits.max_memory_values or
+        memory.small_values.len > limits.max_memory_values or
+        input.public_memory_addresses.len > limits.max_public_memory_addresses)
+        return Error.InputTooLarge;
+    try validateMemory(memory);
+    try validateSegments(input.builtin_segments, memory_ids.len);
+    try validatePublicAddresses(input.public_memory_addresses, memory_ids);
+    const initial = try ownedState(input.state_transitions.initial_state);
+    const final = try ownedState(input.state_transitions.final_state);
+    try validatePublicContext(input.public_segment_context, initial.ap, final.ap);
+    var pcs = std.AutoHashMap(u32, void).init(allocator);
+    defer pcs.deinit();
+    var total: usize = 0;
+    for (input.state_transitions.casm_states_by_opcode.states) |list| {
+        total = std.math.add(usize, total, list.items.len) catch return Error.LengthOverflow;
+        if (total > limits.max_states) return Error.InputTooLarge;
+        for (list.items) |state| {
+            const decoded = try ownedState(state);
+            try pcs.put(decoded.pc, {});
+        }
+    }
+    if (pcs.count() != input.pc_count) return Error.InvalidPcCount;
+}
+
+fn ownedState(state: cpu.CasmState) Error!wire.CasmState {
+    const raw = wire.CasmState{
+        .pc = state.pc.v,
+        .ap = state.ap.v,
+        .fp = state.fp.v,
+    };
+    _ = try decodeState(raw);
+    return raw;
+}
+
 fn isCanonicalF252(value: [8]u32) bool {
     const prime = [8]u32{ 1, 0, 0, 0, 0, 0, 0x11, 0x0800_0000 };
     var index: usize = value.len;
@@ -206,20 +262,19 @@ fn validatePublicAddresses(addresses: []const u32, memory_ids: []const u32) Erro
 }
 
 fn validatePublicContext(
-    context: wire.PublicSegmentContext,
-    states: wire.StateTransitions,
+    present_segments: [11]bool,
+    initial_ap: u32,
+    final_ap: u32,
 ) Error!void {
-    if (!context.present[0]) return Error.InvalidPublicSegmentContext;
+    if (!present_segments[0]) return Error.InvalidPublicSegmentContext;
     var count: u32 = 0;
-    for (context.present) |present| count += @intFromBool(present);
-    if (states.initial_state.ap > cpu.MEMORY_ADDRESS_BOUND - count or
-        states.final_state.ap < count)
-    {
+    for (present_segments) |present| count += @intFromBool(present);
+    if (initial_ap > cpu.MEMORY_ADDRESS_BOUND - count or final_ap < count) {
         return Error.InvalidPublicSegmentContext;
     }
 }
 
-fn validateSegments(segments: wire.BuiltinSegments, memory_len: usize) Error!void {
+fn validateSegments(segments: anytype, memory_len: usize) Error!void {
     try validateSegment(segments.add_mod_builtin, memory_len, 7, true);
     try validateSegment(segments.bitwise_builtin, memory_len, 5, true);
     try validateSegment(segments.output, memory_len, 1, false);
@@ -232,7 +287,7 @@ fn validateSegments(segments: wire.BuiltinSegments, memory_len: usize) Error!voi
 }
 
 fn validateSegment(
-    segment: ?wire.MemorySegmentAddresses,
+    segment: anytype,
     memory_len: usize,
     cells_per_instance: usize,
     requires_power_of_two: bool,

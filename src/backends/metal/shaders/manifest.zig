@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const core_shader_abi: u32 = 24;
+pub const core_shader_abi: u32 = 27;
 pub const witness_codegen_support_version: u64 = 6;
 
 pub const CompileProfile = struct {
@@ -52,6 +52,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_transcript_draw_secure_resident", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_draw_queries_resident", .owner = .transcript },
     .{ .name = "stwo_zig_blake2s_leaves", .owner = .commitments },
+    .{ .name = "stwo_zig_blake2s_leaves_wide", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_pow_search", .owner = .commitments },
     .{ .name = "stwo_zig_blake3_pow_search", .owner = .commitments },
     .{ .name = "stwo_zig_blake3_parent_tail_sparse", .owner = .transcript },
@@ -65,6 +66,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_blake3_parents", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_resident", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_compact_resident", .owner = .commitments },
+    .{ .name = "stwo_zig_blake2s_leaf_absorb_stream_v1", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parents", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parents_sparse", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parent_tail_sparse", .owner = .commitments },

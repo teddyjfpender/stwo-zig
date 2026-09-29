@@ -1,0 +1,37 @@
+{
+  "schema": "cairo-felt-multiplication-pair-v1",
+  "values_per_trial": 65536,
+  "canonical_conversion_included": true,
+  "trials": [
+    {
+      "wide_modulo_ns": 75762583,
+      "standard_field_ns": 5995666,
+      "checksum_match": true
+    },
+    {
+      "wide_modulo_ns": 75679083,
+      "standard_field_ns": 6015709,
+      "checksum_match": true
+    },
+    {
+      "wide_modulo_ns": 75605792,
+      "standard_field_ns": 5980791,
+      "checksum_match": true
+    },
+    {
+      "wide_modulo_ns": 75511583,
+      "standard_field_ns": 5985500,
+      "checksum_match": true
+    },
+    {
+      "wide_modulo_ns": 75569208,
+      "standard_field_ns": 5984625,
+      "checksum_match": true
+    }
+  ],
+  "host": "Apple M5 Max",
+  "optimization": "ReleaseFast",
+  "timing_scope": "standalone canonical field multiplication including representation conversion",
+  "prover_speedup_claim": false,
+  "production_wide_modulo_speedup": 12.631491437640966
+}

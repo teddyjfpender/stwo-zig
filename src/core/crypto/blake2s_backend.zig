@@ -423,20 +423,34 @@ pub const Blake2sHasher = struct {
         seed: Fixed64Seed,
         data: *const [4][]const u8,
     ) [4]Blake2sHash {
-        // All lanes must have one non-zero common length. Inputs are read-only,
+        std.debug.assert(data[0].len > 0);
+        return hashEqualFromState4WithMode(mode, seed, 64, data);
+    }
+
+    /// Four independent plain BLAKE2s streams, including empty messages.
+    pub fn hashEqual4WithMode(mode: BackendMode, data: *const [4][]const u8) [4]Blake2sHash {
+        return hashEqualFromState4WithMode(mode, Self.initWithMode(mode).h, 0, data);
+    }
+
+    fn hashEqualFromState4WithMode(
+        mode: BackendMode,
+        seed: Fixed64Seed,
+        initial_counter: u32,
+        data: *const [4][]const u8,
+    ) [4]Blake2sHash {
+        // All lanes must have one common length. Inputs are read-only,
         // need only byte alignment, and may overlap or alias exactly. The last
         // partial block is zero-padded in fixed-size stack scratch.
         const len = data[0].len;
         for (data[1..]) |message| std.debug.assert(message.len == len);
-        std.debug.assert(len > 0);
-        std.debug.assert(len <= std.math.maxInt(u32) - 64);
+        std.debug.assert(len <= std.math.maxInt(u32) - initial_counter);
 
         if (selectBackend(mode).effective == .scalar) {
             var out: [4]Blake2sHash = undefined;
             for (&out, data) |*digest, message| {
                 var hasher = Self.initWithMode(.scalar);
                 hasher.h = seed;
-                hasher.t0 = 64;
+                hasher.t0 = initial_counter;
                 hasher.update(message);
                 digest.* = hasher.finalize();
             }
@@ -447,7 +461,7 @@ pub const Blake2sHasher = struct {
         for (0..8) |word_index| states[word_index] = @splat(seed[word_index]);
 
         var at: usize = 0;
-        var counter: u32 = 64;
+        var counter: u32 = initial_counter;
         while (at + 64 < len) : (at += 64) {
             var blocks: [4][64]u8 = undefined;
             for (0..4) |lane| @memcpy(blocks[lane][0..], data[lane][at .. at + 64]);
@@ -531,6 +545,8 @@ pub const Blake2sHasher = struct {
             64,
             columns,
             position,
+            false,
+            0,
         );
     }
 
@@ -546,7 +562,13 @@ pub const Blake2sHasher = struct {
             0,
             columns,
             position,
+            false,
+            0,
         );
+    }
+
+    pub fn hashLiftedM31Columns4WithMode(mode: BackendMode, seed: ?Fixed64Seed, columns: anytype, position: usize, max_log_size: u32) [4]Blake2sHash {
+        return hashM31Columns4FromStateWithMode(mode, seed orelse Self.initWithMode(mode).h, if (seed != null) 64 else 0, columns, position, true, max_log_size);
     }
 
     fn hashM31Columns4FromStateWithMode(
@@ -555,10 +577,16 @@ pub const Blake2sHasher = struct {
         initial_counter: u32,
         columns: anytype,
         position: usize,
+        comptime lifted: bool,
+        max_log_size: u32,
     ) [4]Blake2sHash {
         std.debug.assert(columns.len != 0);
+        if (lifted) std.debug.assert(position % 4 == 0);
         for (columns) |column| {
-            std.debug.assert(position + 4 <= column.values.len);
+            if (lifted) {
+                std.debug.assert(column.log_size > 0 and column.log_size <= max_log_size);
+                std.debug.assert(position + 4 <= (@as(usize, 1) << @intCast(max_log_size)));
+            } else std.debug.assert(position + 4 <= column.values.len);
         }
 
         if (selectBackend(mode).effective == .scalar or
@@ -571,7 +599,8 @@ pub const Blake2sHasher = struct {
                 hasher.t0 = initial_counter;
                 for (columns) |column| {
                     var encoded: [4]u8 = undefined;
-                    std.mem.writeInt(u32, &encoded, column.values[position + lane].v, .little);
+                    const index = if (lifted) (((position + lane) >> @as(std.math.Log2Int(usize), @intCast(max_log_size - column.log_size + 1))) << 1) + ((position + lane) & 1) else position + lane;
+                    std.mem.writeInt(u32, &encoded, column.values[index].v, .little);
                     hasher.update(&encoded);
                 }
                 digest.* = hasher.finalize();
@@ -587,10 +616,7 @@ pub const Blake2sHasher = struct {
         while (column_at + 16 < columns.len) : (column_at += 16) {
             var messages: [16]V4 = undefined;
             inline for (0..16) |word| {
-                const values: *const [4]u32 = @ptrCast(
-                    columns[column_at + word].values.ptr + position,
-                );
-                messages[word] = values.*;
+                messages[word] = loadM31Column4(columns[column_at + word], position, lifted, max_log_size);
             }
             counter +%= 64;
             compressParallel4(&states, &messages, counter, 0, 0);
@@ -599,14 +625,26 @@ pub const Blake2sHasher = struct {
         var final_messages: [16]V4 = @splat(@splat(0));
         const remaining = columns.len - column_at;
         for (0..remaining) |word| {
-            const values: *const [4]u32 = @ptrCast(
-                columns[column_at + word].values.ptr + position,
-            );
-            final_messages[word] = values.*;
+            final_messages[word] = loadM31Column4(columns[column_at + word], position, lifted, max_log_size);
         }
         counter +%= @intCast(remaining * @sizeOf(u32));
         compressParallel4(&states, &final_messages, counter, 0, 0xFFFF_FFFF);
         return parallelStatesToDigests(&states);
+    }
+
+    fn loadM31Column4(column: anytype, position: usize, comptime lifted: bool, max_log_size: u32) V4 {
+        if (lifted) {
+            if (column.log_size < max_log_size) {
+                const shift: std.math.Log2Int(usize) = @intCast(max_log_size - column.log_size + 1);
+                const index = (position >> shift) << 1;
+                // Four aligned lifted leaves repeat the same parity pair.
+                const a = column.values[index].v;
+                const b = column.values[index + 1].v;
+                return .{ a, b, a, b };
+            }
+        }
+        const values: *const [4]u32 = @ptrCast(column.values.ptr + position);
+        return values.*;
     }
 
     fn addCounter(self: *Self, inc: u32) void {

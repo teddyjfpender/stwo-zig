@@ -168,9 +168,11 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             for (columns.items) |tree| for (tree) |column| {
                 coefficient_input = coefficient_input or column.coefficient_values != null;
             };
-            if (coefficient_input and requested_mode == .raw_backend)
+            const native_compact = comptime B != void and @hasDecl(B, "supportsCompactQuotientInputs") and B.supportsCompactQuotientInputs;
+            if (coefficient_input and requested_mode == .raw_backend and !native_compact)
                 return error.UnsupportedCompactPolynomialStorage;
-            const input_mode: InputMode = if (coefficient_input) .combined_compatibility else requested_mode;
+            const input_mode: InputMode = if (coefficient_input and requested_mode != .raw_backend and
+                !(requested_mode == .bounded_cpu and lifting_log_size >= 13)) .combined_compatibility else requested_mode;
             // The existing logical work model does not count coefficient folding/FFT.
             if (coefficient_input) if (work_recorder) |recorder| recorder.markIncomplete();
             if (columns.items.len != sampled_points.items.len) return QuotientOpsError.ShapeMismatch;
@@ -191,7 +193,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
             defer column_log_sizes.deinitDeep(allocator);
 
             const domain_size = try column_geometry.checkedPow2(lifting_log_size);
-            const flat_columns = try column_geometry.flattenColumnsBorrowed(allocator, columns);
+            var flat_columns = try column_geometry.flattenColumnsBorrowed(allocator, columns);
             errdefer allocator.free(flat_columns);
 
             var prepared = try planning.prepareContext(
@@ -252,13 +254,24 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                     combined_views = combined_plan.views;
                 },
                 .bounded_cpu => {
+                    const direct_nonzero = if (coefficient_input) try allocator.dupe(bool, nonzero_columns) else nonzero_columns;
+                    defer if (coefficient_input) allocator.free(direct_nonzero);
+                    if (coefficient_input) {
+                        const coefficient_nonzero = try allocator.dupe(bool, nonzero_columns);
+                        defer allocator.free(coefficient_nonzero);
+                        for (flat_columns, direct_nonzero, coefficient_nonzero) |column, *direct, *coefficient| {
+                            if (column.coefficient_values != null) direct.* = false else coefficient.* = false;
+                        }
+                        const plan = try planning.buildCombinedContributionPlan(allocator, flat_columns, prepared.contribution_plan.active_column_indices, prepared.contribution_plan.ranges, prepared.contribution_plan.contributions, coefficient_nonzero, lifting_log_size);
+                        combined_views = plan.views;
+                    }
                     const optional_compact_plan = try planning.buildCompactContributionPlan(
                         allocator,
                         flat_columns,
                         prepared.contribution_plan.active_column_indices,
                         prepared.contribution_plan.ranges,
                         prepared.contribution_plan.contributions,
-                        nonzero_columns,
+                        direct_nonzero,
                         lifting_log_size,
                         COMPACT_GROUP_MIN_SHIFT,
                         MAX_COMPACT_GROUP_BYTES,
@@ -270,7 +283,7 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                         flat_columns,
                         prepared.contribution_plan.active_column_indices,
                         prepared.contribution_plan.ranges,
-                        nonzero_columns,
+                        direct_nonzero,
                         lifting_log_size,
                         if (compact_admitted) COMPACT_GROUP_MIN_SHIFT else null,
                     );
@@ -290,6 +303,20 @@ pub fn InitOps(comptime Owner: type, comptime InputMode: type) type {
                     }
                 },
                 .raw_backend => {
+                    if (coefficient_input) {
+                        const selected = try allocator.dupe(bool, nonzero_columns);
+                        defer allocator.free(selected);
+                        for (flat_columns, selected) |column, *enabled| if (column.coefficient_values == null) {
+                            enabled.* = false;
+                        };
+                        const folded = try planning.buildCombinedContributionPlanForBackend(B, allocator, flat_columns, prepared.contribution_plan.active_column_indices, prepared.contribution_plan.ranges, prepared.contribution_plan.contributions, selected, lifting_log_size);
+                        combined_views = folded.views;
+                        const promoted = try @import("native_coefficient_inputs.zig").promote(allocator, flat_columns, prepared.contribution_plan, combined_views);
+                        allocator.free(flat_columns);
+                        flat_columns = promoted.columns;
+                        prepared.contribution_plan.deinit(allocator);
+                        prepared.contribution_plan = promoted.plan;
+                    }
                     if (work_recorder != null)
                         row_work_contribution_count = prepared.contribution_plan.contributions.len;
                 },

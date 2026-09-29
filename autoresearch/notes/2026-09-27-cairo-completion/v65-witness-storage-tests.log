@@ -1,0 +1,8 @@
+1/7 proving.base_columns_test.test.Cairo witness final storage owns component placement across all allocation failures...OK
+2/7 witness.final_storage_test.test.Cairo witness final storage retains borrowed columns through all allocation failures...OK
+3/7 witness.final_storage_test.test.Cairo witness final storage validates all destinations before writing...OK
+4/7 witness.final_storage_test.test.Cairo witness final storage matches owned outputs and accepts final-column lowering...OK
+5/7 witness.final_storage_test.test.Cairo witness final storage borrows immutable source columns across allocation failures...OK
+6/7 witness.interaction_executor.test_0...OK
+7/7 witness.deductions.mod.test_0...OK
+All 7 tests passed.

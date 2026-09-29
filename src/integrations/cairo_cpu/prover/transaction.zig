@@ -3,7 +3,7 @@
 const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
-const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
+const CpuBackend = @import("stwo_cpu_backend").configured(.{ .wide_preparation = true, .source_trace_arena = true, .preprocessed_preparation_cache = true, .preprocessed_overlap = true, .preparation_byte_budget = 2 * 1024 * 1024 * 1024 });
 const adapter = @import("stwo_cairo_frontend").adapter;
 const generic = @import("stwo_cairo_frontend").proving.transaction;
 const preprocessed = @import("stwo_cairo_frontend").preprocessed;

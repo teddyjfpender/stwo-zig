@@ -6,8 +6,7 @@ const prover = @import("stwo_prover_engine");
 const adapter = @import("../adapter/mod.zig");
 const claim_generator = @import("../claim_generator.zig");
 const fixed_trace = @import("../conformance/fixed_trace.zig");
-const component_executor = @import("../witness/component_executor.zig");
-const component_layout = @import("../witness/component_layout.zig");
+const multiplicity_tables = @import("../conformance/multiplicity_tables.zig");
 const cpu_memory = @import("../witness/cpu_memory_multiplicity.zig");
 const feed_topology = @import("../witness/feed_topology.zig");
 const fixed_tables = @import("../witness/fixed_table_bundle.zig");
@@ -20,13 +19,29 @@ const trace_arena = @import("trace_arena.zig");
 const M31 = core.fields.m31.M31;
 const ColumnEvaluation = prover.pcs.ColumnEvaluation;
 
-/// Storage the caller has already planned and allocated. When present every
-/// generated and implicit base column is written directly at its final arena
-/// offset, so no column is ever moved after execution. The arena and the claim
-/// geometry both stay owned by the caller.
-pub const Prepared = struct {
-    geometry: *claim_generator.OwnedClaimGeometry,
-    arena: *const trace_arena.Arena,
+pub const Prepared = @import("base_columns.zig").Prepared;
+const Collector = @import("base_columns.zig").Collector;
+const base_columns = @import("base_columns.zig");
+const incremental_multiplicities = @import("incremental_multiplicities.zig");
+
+const FeedCollector = struct {
+    columns: *Collector,
+    multiplicities: *incremental_multiplicities.State,
+
+    fn destination(raw: *anyopaque, a: std.mem.Allocator, layout: @import("../witness/component_layout.zig").ComponentLayout) !?[][]u32 {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        return base_columns.reserveGenerated(self.columns, a, layout);
+    }
+
+    fn visit(raw: *anyopaque, layout: @import("../witness/component_layout.zig").ComponentLayout, execution: *const @import("../witness/component_executor.zig").Execution) !void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        return base_columns.observeGenerated(self.columns, layout, execution);
+    }
+
+    fn consume(raw: *anyopaque, producer: *const live_graph.ProducerOutput) !void {
+        const self: *@This() = @ptrCast(@alignCast(raw));
+        try self.multiplicities.consume(producer);
+    }
 };
 
 pub const BaseTrace = struct {
@@ -34,6 +49,8 @@ pub const BaseTrace = struct {
     columns: []ColumnEvaluation,
     geometry: claim_generator.OwnedClaimGeometry,
     execution: live_graph.Execution,
+    fixed_multiplicities: multiplicity_tables.Tables,
+    memory_counts: cpu_memory.Counts,
     /// Column values borrow a caller-owned arena and must not be freed here.
     arena_backed: bool = false,
     /// True when the caller supplied both the geometry and the arena.
@@ -42,6 +59,10 @@ pub const BaseTrace = struct {
     execution_owned: bool = true,
 
     pub fn deinit(self: *BaseTrace) void {
+        if (self.execution_owned) {
+            self.fixed_multiplicities.deinit();
+            self.memory_counts.deinit();
+        }
         if (self.arena_backed) {
             self.allocator.free(self.columns);
             if (self.execution_owned) self.execution.deinit();
@@ -63,6 +84,8 @@ pub const BaseTrace = struct {
 
     pub fn releaseWitnessFeeds(self: *BaseTrace) void {
         if (!self.execution_owned) return;
+        self.fixed_multiplicities.deinit();
+        self.memory_counts.deinit();
         self.execution.deinit();
         self.execution_owned = false;
     }
@@ -176,6 +199,16 @@ fn buildWithCollector(
     collector: *Collector,
     borrowed: bool,
 ) !BaseTrace {
+    // Qualification control only. The new lifetime policy remains opt-in until
+    // CPU and Metal measurements pass the memory and timing gates.
+    const incremental = if (std.posix.getenv("STWO_CAIRO_INCREMENTAL_MULTIPLICITIES")) |value| std.mem.eql(u8, value, "1") else false;
+    var counts_state: ?incremental_multiplicities.State = if (incremental)
+        try incremental_multiplicities.State.init(allocator, input, topology, fixed)
+    else
+        null;
+    defer if (counts_state) |*state| state.deinit();
+    var observer_context: FeedCollector = undefined;
+    if (counts_state) |*state| observer_context = .{ .columns = collector, .multiplicities = state };
     var execution = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
@@ -191,9 +224,15 @@ fn buildWithCollector(
             interaction_executor,
             topology,
             geometry,
-            .{
+            if (incremental) .{
+                .context = &observer_context,
+                .destination = FeedCollector.destination,
+                .visit = FeedCollector.visit,
+                .consume = FeedCollector.consume,
+            } else .{
                 .context = collector,
-                .visit = observeGenerated,
+                .destination = base_columns.reserveGenerated,
+                .visit = base_columns.observeGenerated,
             },
             pedersen_table,
             recorder,
@@ -208,6 +247,12 @@ fn buildWithCollector(
             "Fixed-table multiplicities",
         );
         defer stage.end();
+        if (counts_state) |*state| {
+            var tables = try state.takeTables();
+            errdefer tables.deinit();
+            try fixed_trace.addMemoryRangeChecksLive(input, &tables);
+            break :blk tables;
+        }
         break :blk try fixed_trace.populateLiveTopology(
             allocator,
             input,
@@ -216,7 +261,7 @@ fn buildWithCollector(
             fixed,
         );
     };
-    defer multiplicities.deinit();
+    errdefer multiplicities.deinit();
     var max_fixed_rows: usize = 0;
     for (fixed.entries) |entry| {
         max_fixed_rows = @max(max_fixed_rows, entry.row_count);
@@ -237,42 +282,63 @@ fn buildWithCollector(
         try collector.captureNamed(entry.component, 0, source_columns);
     }
 
-    {
+    var memory_counts = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
             recorder,
             "base_memory_tables",
             "Memory-table construction",
         );
         defer stage.end();
-        var counts = try cpu_memory.collectTopology(
+        var counts = if (counts_state) |*state| try state.takeCounts() else try cpu_memory.collectTopology(
             allocator,
             input,
             topology,
             execution.producers,
         );
-        defer counts.deinit();
-        var address = try implicit.memoryAddress(allocator, input, &counts);
-        defer address.deinit();
-        try collector.captureNamed("memory_address_to_id", 0, address.columns);
-        const big_component_count = try @import("../witness/memory_tables.zig")
-            .bigComponentCount(input);
+        errdefer counts.deinit();
+        // Graph consumers, fixed multiplicities, and memory counts have all
+        // joined. Retire their subcomponent feeds before allocating memory
+        // columns; interaction generation needs only the separate lookup slab.
+        for (execution.producers) |*producer| producer.releaseSubcomponentWords(allocator);
+        const tables = @import("../witness/memory_tables.zig");
+        const address = try collector.reserveNamed(
+            "memory_address_to_id",
+            0,
+            tables.address_column_count,
+            try tables.addressRowCount(input),
+        );
+        defer allocator.free(address);
+        try implicit.memoryAddressInto(input, &counts, address);
+        const big_component_count = try tables.bigComponentCount(input);
         for (0..big_component_count) |component_index| {
-            var big = try implicit.memoryBig(allocator, input, &counts, component_index);
-            defer big.deinit();
-            const big_base_columns = try memoryBaseOrder(allocator, big.columns);
-            defer allocator.free(big_base_columns);
-            try collector.captureNamed(
+            const big = try collector.reserveNamed(
                 "memory_id_to_big",
                 @intCast(component_index),
-                big_base_columns,
+                tables.big_column_count,
+                try tables.bigRowCount(input, component_index),
             );
+            defer allocator.free(big);
+            // Base AIR places multiplicity first; interaction sources place it
+            // last. Reorder headers alone, never the underlying field columns.
+            var source_order: [tables.big_column_count][]u32 = undefined;
+            @memcpy(source_order[0..tables.big_limb_count], big[1..]);
+            source_order[tables.big_limb_count] = big[0];
+            try implicit.memoryBigInto(input, &counts, component_index, &source_order);
         }
-        var small = try implicit.memorySmall(allocator, input, &counts);
-        defer small.deinit();
-        const small_base_columns = try memoryBaseOrder(allocator, small.columns);
-        defer allocator.free(small_base_columns);
-        try collector.captureNamed("memory_id_to_small", 0, small_base_columns);
-    }
+        const small = try collector.reserveNamed(
+            "memory_id_to_small",
+            0,
+            tables.small_column_count,
+            try tables.smallRowCount(input),
+        );
+        defer allocator.free(small);
+        var source_order: [tables.small_column_count][]u32 = undefined;
+        @memcpy(source_order[0..tables.small_limb_count], small[1..]);
+        source_order[tables.small_limb_count] = small[0];
+        try implicit.memorySmallInto(input, &counts, &source_order);
+        break :blk counts;
+    };
+    errdefer memory_counts.deinit();
 
     const columns = blk: {
         var stage = try prover.stage_profile.StageScope.begin(
@@ -288,176 +354,11 @@ fn buildWithCollector(
         .columns = columns,
         .geometry = geometry.*,
         .execution = execution,
+        .fixed_multiplicities = multiplicities,
+        .memory_counts = memory_counts,
         .arena_backed = collector.arena != null,
         .borrowed_geometry = borrowed,
     };
-}
-
-const Collector = struct {
-    allocator: std.mem.Allocator,
-    geometry: *const claim_generator.OwnedClaimGeometry,
-    components: []?[]ColumnEvaluation,
-    /// When set every captured column is written at its planned arena offset
-    /// and no column values are owned by this collector.
-    arena: ?*const trace_arena.Arena = null,
-
-    fn initPrepared(
-        allocator: std.mem.Allocator,
-        prepared: Prepared,
-    ) !Collector {
-        var collector = try Collector.init(allocator, prepared.geometry);
-        collector.arena = prepared.arena;
-        return collector;
-    }
-
-    fn init(
-        allocator: std.mem.Allocator,
-        geometry: *const claim_generator.OwnedClaimGeometry,
-    ) !Collector {
-        const components = try allocator.alloc(?[]ColumnEvaluation, geometry.components.len);
-        @memset(components, null);
-        return .{
-            .allocator = allocator,
-            .geometry = geometry,
-            .components = components,
-        };
-    }
-
-    fn deinit(self: *Collector) void {
-        for (self.components) |maybe_columns| {
-            if (maybe_columns) |columns| {
-                if (self.arena == null)
-                    deinitColumns(self.allocator, columns)
-                else
-                    self.allocator.free(columns);
-            }
-        }
-        self.allocator.free(self.components);
-        self.* = undefined;
-    }
-
-    fn captureNamed(
-        self: *Collector,
-        name: []const u8,
-        instance: u32,
-        source_columns: []const []const u32,
-    ) !void {
-        const component_index = self.findIndex(name, instance) orelse
-            return error.UnknownBaseComponent;
-        try self.capture(component_index, source_columns);
-    }
-
-    fn capture(
-        self: *Collector,
-        component_index: usize,
-        source_columns: []const []const u32,
-    ) !void {
-        if (component_index >= self.components.len or
-            self.components[component_index] != null or source_columns.len == 0)
-            return error.InvalidBaseTraceGeometry;
-        const evaluations = try self.allocator.alloc(
-            ColumnEvaluation,
-            source_columns.len,
-        );
-        var initialized: usize = 0;
-        errdefer {
-            if (self.arena == null) {
-                for (evaluations[0..initialized]) |evaluation| {
-                    self.allocator.free(evaluation.values);
-                }
-            }
-            self.allocator.free(evaluations);
-        }
-        // A planned arena fixes each column's destination before execution, so
-        // the plan's predicted width for this component must match what the
-        // witness actually produced. A mismatch is a planning bug, not a
-        // fallback condition: fail closed rather than write outside a range.
-        const arena_base: ?usize = if (self.arena) |arena| blk: {
-            if (component_index >= arena.layout.component_widths.len or
-                arena.layout.component_widths[component_index] != source_columns.len)
-                return trace_arena.Error.ArenaPlanMismatch;
-            break :blk arena.layout.component_starts[component_index];
-        } else null;
-        for (source_columns, evaluations, 0..) |source, *evaluation, column| {
-            if (source.len < 16 or !std.math.isPowerOfTwo(source.len))
-                return error.InvalidBaseTraceGeometry;
-            const values = if (arena_base) |base|
-                try self.arena.?.columnValues(base + column)
-            else
-                try self.allocator.alloc(M31, source.len);
-            errdefer if (arena_base == null) self.allocator.free(values);
-            if (values.len != source.len) return trace_arena.Error.ArenaPlanMismatch;
-            for (source, values) |raw, *value| {
-                value.* = M31.fromCanonical(raw);
-            }
-            evaluation.* = .{
-                .log_size = @intCast(std.math.log2_int(usize, source.len)),
-                .values = values,
-            };
-            initialized += 1;
-        }
-        self.components[component_index] = evaluations;
-    }
-
-    fn findIndex(self: *const Collector, name: []const u8, instance: u32) ?usize {
-        for (self.geometry.components, 0..) |component, index| {
-            if (component.instance == instance and
-                std.mem.eql(u8, component.name, name))
-                return index;
-        }
-        return null;
-    }
-
-    fn finish(self: *Collector) ![]ColumnEvaluation {
-        var total: usize = 0;
-        for (self.components, 0..) |maybe_columns, component_index| {
-            const columns = maybe_columns orelse return error.MissingBaseComponent;
-            const component = self.geometry.components[component_index];
-            const expected_log = switch (component.log_size) {
-                .known => |value| value,
-                .deferred => return error.UnresolvedBaseTraceGeometry,
-            };
-            if (columns.len == 0 or columns[0].log_size != expected_log)
-                return error.InvalidBaseTraceGeometry;
-            total = std.math.add(usize, total, columns.len) catch
-                return error.BaseTraceTooLarge;
-        }
-        const flattened = try self.allocator.alloc(ColumnEvaluation, total);
-        var cursor: usize = 0;
-        for (self.components) |*maybe_columns| {
-            const columns = maybe_columns.*.?;
-            @memcpy(flattened[cursor..][0..columns.len], columns);
-            cursor += columns.len;
-            self.allocator.free(columns);
-            maybe_columns.* = null;
-        }
-        return flattened;
-    }
-};
-
-fn observeGenerated(
-    raw_context: *anyopaque,
-    layout: component_layout.ComponentLayout,
-    execution: *const component_executor.Execution,
-) !void {
-    const collector: *Collector = @ptrCast(@alignCast(raw_context));
-    const columns = try collector.allocator.alloc(
-        []const u32,
-        execution.output_columns.len,
-    );
-    defer collector.allocator.free(columns);
-    for (execution.output_columns, columns) |source, *destination| {
-        destination.* = source;
-    }
-    const component_index: usize = layout.ordinal;
-    if (component_index >= collector.components.len or
-        !std.mem.eql(
-            u8,
-            layout.label,
-            collector.geometry.components[component_index].name,
-        ))
-        return error.InvalidBaseTraceGeometry;
-    try collector.capture(component_index, columns);
 }
 
 fn deinitColumns(
@@ -467,15 +368,4 @@ fn deinitColumns(
     if (columns.len == 0) return;
     for (columns) |column| allocator.free(column.values);
     allocator.free(columns);
-}
-
-fn memoryBaseOrder(
-    allocator: std.mem.Allocator,
-    source: []const []const u32,
-) ![][]const u32 {
-    if (source.len < 2) return error.InvalidBaseTraceGeometry;
-    const ordered = try allocator.alloc([]const u32, source.len);
-    ordered[0] = source[source.len - 1];
-    @memcpy(ordered[1..], source[0 .. source.len - 1]);
-    return ordered;
 }

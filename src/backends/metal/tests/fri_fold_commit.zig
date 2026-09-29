@@ -589,8 +589,15 @@ fn checkLineCascade(comptime blake3: bool, comptime H: type, comptime MC: type, 
     @memcpy(@constCast(backend_source.values), source_values);
     var backend_channel = initial_channel;
     var backend_result = (try MetalBackend.commitFriLineCascade(
-        H, allocator, backend_source, &backend_channel, &fold_workspace,
-        final_count, 1, null, null,
+        H,
+        allocator,
+        backend_source,
+        &backend_channel,
+        &fold_workspace,
+        final_count,
+        1,
+        null,
+        null,
     )) orelse return error.MissingBackendCascade;
     defer backend_result.deinit(allocator);
     for (backend_result.trees, expected_roots) |tree, root| {
@@ -675,16 +682,16 @@ fn checkLineCascade(comptime blake3: bool, comptime H: type, comptime MC: type, 
     try std.testing.expectEqual(@as(u64, expected_channel.n_draws), actual_draws);
     try std.testing.expectEqual(@as(u32, 0), channel_state[if (blake3) 10 else 9]);
 
-    var hit_channel_state = [_]u32{0} ** (if (blake3) 11 else 10);
+    var repeat_channel_state = [_]u32{0} ** (if (blake3) 11 else 10);
     for (0..8) |word| {
-        hit_channel_state[word] = std.mem.readInt(
+        repeat_channel_state[word] = std.mem.readInt(
             u32,
             initial_channel.digest[word * 4 ..][0..4],
             .little,
         );
     }
-    hit_channel_state[8] = @truncate(initial_channel.n_draws);
-    const hit_result = try cascade(
+    repeat_channel_state[8] = @truncate(initial_channel.n_draws);
+    const repeat_result = try cascade(
         &runtime,
         allocator,
         source.handle,
@@ -697,21 +704,22 @@ fn checkLineCascade(comptime blake3: bool, comptime H: type, comptime MC: type, 
         params.leaf_seed,
         params.node_seed,
         params.domain_prefix_bytes,
-        &hit_channel_state,
+        &repeat_channel_state,
     );
     defer {
-        for (hit_result.trees) |*tree| tree.deinit();
-        allocator.free(hit_result.trees);
+        for (repeat_result.trees) |*tree| tree.deinit();
+        allocator.free(repeat_result.trees);
     }
-    try std.testing.expectEqual(@as(u32, 0), hit_result.inverse_generation_mask);
-    if (source_log == 10) try std.testing.expectEqual(@as(u64, 20), hit_result.stats.dispatches);
-    try std.testing.expectEqual(result.stats.dispatches - layer_count, hit_result.stats.dispatches);
-    for (hit_result.trees, expected_roots) |tree, expected_root| {
+    // Ordinary unbudgeted calls own transient inverse buffers. A second call
+    // regenerates them; cache hits require the separate shared-budget API.
+    try std.testing.expectEqual(@as(u32, 2), repeat_result.inverse_generation_mask);
+    try std.testing.expectEqual(result.stats.dispatches, repeat_result.stats.dispatches);
+    for (repeat_result.trees, expected_roots) |tree, expected_root| {
         const actual_root = try tree.root();
         try std.testing.expectEqualSlices(u8, &expected_root, &actual_root.hash);
     }
     try std.testing.expectEqualSlices(QM31, expected_values, actual_final[0..final_count]);
-    try std.testing.expectEqualSlices(u32, &channel_state, &hit_channel_state);
+    try std.testing.expectEqualSlices(u32, &channel_state, &repeat_channel_state);
 }
 
 const CpuFriReference = struct {
@@ -776,8 +784,10 @@ fn checkCircleFri(comptime lazy: bool, comptime blake3: bool) !void {
         var quotient = try quotient_ops.computeFriQuotients(allocator, ct, pt, st, alpha, log_size, 1);
         defer quotient.deinit(allocator);
         for (values, 0..) |*value, i| value.* = QM31.fromU32Unchecked(
-            quotient.columns[0][i].v, quotient.columns[1][i].v,
-            quotient.columns[2][i].v, quotient.columns[3][i].v,
+            quotient.columns[0][i].v,
+            quotient.columns[1][i].v,
+            quotient.columns[2][i].v,
+            quotient.columns[3][i].v,
         );
     }
     const cpu_column = try secure_column.SecureColumnByCoords.fromSecureSlice(allocator, values);
@@ -789,8 +799,10 @@ fn checkCircleFri(comptime lazy: bool, comptime blake3: bool) !void {
     var cpu_channel = C{};
     var gpu_channel = C{};
     const config = core_fri.FriConfig{
-        .log_blowup_factor = 1, .log_last_layer_degree_bound = 2,
-        .n_queries = 3, .fold_step = 1,
+        .log_blowup_factor = 1,
+        .log_last_layer_degree_bound = 2,
+        .n_queries = 3,
+        .fold_step = 1,
     };
     var cpu = try Cpu.commit(allocator, &cpu_channel, config, domain, cpu_column);
     const before = try MetalBackend.telemetrySnapshot();
@@ -821,7 +833,10 @@ fn checkCircleFri(comptime lazy: bool, comptime blake3: bool) !void {
     try std.testing.expectEqualDeep(expected.proof, actual.proof);
     var verifier_channel = C{};
     var verifier = try core_fri.FriVerifier(b3.MerkleHasher, b3.MerkleChannel).commit(
-        allocator, &verifier_channel, config, actual.proof,
+        allocator,
+        &verifier_channel,
+        config,
+        actual.proof,
         core_fri.CirclePolyDegreeBound.init(log_size - config.log_blowup_factor),
     );
     defer verifier.deinit(allocator);

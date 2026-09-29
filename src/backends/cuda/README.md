@@ -176,6 +176,41 @@ tool, source, diagnostic, metallib, and execution-provenance hashes. Adding
 translated outputs to source control, accepting a smaller floor, or using
 translated timings as CUDA evidence is not permitted.
 
+### Current Cairo local development lane
+
+The current Cairo translation lane uses CuMetal commit
+`e74b377942f9d2db0f2dde14c5a1b51a9c678692` (v0.6.0) with the exact
+[pointer-select compatibility patch](../../../conformance/cuda-cumetal-cairo-v0.6-pointer-select.patch).
+It is independent of the older Native portability pin and its 33-source floor.
+[The extension contract](../../../conformance/cuda-cumetal-cairo-local-v1.json)
+also authenticates the maintained active-feed kernel without changing that floor.
+
+`scripts/cuda_cairo_local.py` checks all 64 canonical witness and 68 canonical
+AIR sources against their manifests before translating them. Numerical harnesses
+execute the actual QM31 powers, active feeds, felt252 cube/inversion helpers and
+generated parametric AIR on the Apple GPU against independent host/Python oracles.
+Seven numerical operations include the long deduction-chain carry and both
+scalar-register and bank-backed AIR modes.
+Generate the register-rewrite fixture with `zig build cuda-cairo-local-parity` and
+pass its output directory using `--air-parity-dir`. Generate the long-chain
+fixture with `zig build cuda-cairo-witness-parity` and pass `--row-parity-dir`.
+Receipts record source, patch,
+compiler and runtime identities. Timeouts kill the complete compiler process
+group. Partial retries are explicitly recorded as partial coverage.
+
+`scripts/cuda_aot_local_native.py` can assemble NVIDIA cubins in a local ARM64
+Linux CPU container. `STWO_CUDA_AOT_CUBIN_IMPORT_ROOT` feeds its authenticated
+bundle into the regular archive builder. Exact source, ABI, SM, flags, toolchain
+and artifact identities are validated, and the producing compiler stays explicit
+in cache identities. Large AIR bodies use bounded assembly optimization to avoid
+pathological compiler memory/time. Native cubin assembly requires no GPU;
+execution, proof acceptance and performance qualification still do.
+
+Local compilation and arithmetic parity are development evidence. NVIDIA proof
+verification, timing, memory and scheduling still need NVIDIA hardware. The
+complete staged Cairo CLI can be cross-compiled locally with
+`zig build check-cairo-cuda-local -Dtarget=x86_64-linux-gnu`.
+
 ### Generated Cairo evaluation sources
 
 The 33 recorded-witness bodies in the 48-entry Native catalogue are emitted by
@@ -187,7 +222,10 @@ The 271 exact SN2 Cairo evaluation bodies are likewise emitted into the build
 cache from `vectors/cairo/sn_pie_2_composition.bin`. Checked manifests remain
 the authentication pins, and an archive is rejected unless each generated
 manifest matches exactly. Native archives select only the Native catalogue,
-avoiding 271 unnecessary `nvcc` compilations per target SM.
+avoiding 271 unnecessary `nvcc` compilations per target SM. The current Cairo
+archive also excludes those legacy bodies and instead selects 64 source-derived
+witness bodies and 68 parametric canonical AIR bodies. Only the compatibility
+generator retains the old SN2 catalogue.
 
 The host-independent generator can be inspected directly with:
 

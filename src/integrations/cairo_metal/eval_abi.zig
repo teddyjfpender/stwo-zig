@@ -1,4 +1,4 @@
-//! The two trace-indexing ABIs an emitted composition kernel can implement.
+//! The trace-indexing ABIs an emitted composition kernel can implement.
 //!
 //! Increment 3.7 §3 recorded the mismatch this file exists to close: the
 //! compiled kernels read columns at *evaluation-domain* length and the product
@@ -33,21 +33,24 @@ const eval = @import("stwo_cairo_frontend").witness.eval_program;
 pub const TraceAbi = enum {
     eval_domain,
     stored_domain,
+    /// Exact host-mapped mask slabs for a bounded range of evaluation rows.
+    tiled_domain,
 
-    /// Kernels of the two ABIs read different arena shapes out of the same
+    /// Kernels of the different ABIs read different arena shapes out of the same
     /// offsets, so they are named apart: a library-ABI mismatch then surfaces as
     /// a by-name resolution failure instead of as silent corruption.
     pub fn nameInfix(self: TraceAbi) []const u8 {
         return switch (self) {
             .eval_domain => "",
             .stored_domain => "sd_",
+            .tiled_domain => "td3_",
         };
     }
 
     /// Where a part's shift table starts, given the part's own parameter count.
     pub fn shiftTableOffset(self: TraceAbi, base_params: u32, program: eval.Program) u32 {
         return switch (self) {
-            .eval_domain => base_params,
+            .eval_domain, .tiled_domain => base_params,
             .stored_domain => base_params + program.header.n_base_params,
         };
     }
@@ -66,6 +69,34 @@ pub const stored_domain_reader =
     \\    uint global=arena[args.interaction_offsets+interaction]+column;
     \\    uint index=((target>>arena[shift_base+global])<<1)+(target&1u);
     \\    return arena[arena[args.trace_offsets+global]+index];
+    \\}
+    \\
+;
+
+/// Tile metadata starts with the global row base, followed by one descriptor
+/// pointer per global column. Descriptors contain fast slots for 0/-1/+1,
+/// then the native-pair shift, a count, and (mask, slab)
+/// pairs; the planner includes every authenticated AIR read exactly once.
+pub const tiled_domain_reader =
+    \\inline uint trace_value_tiled_fast(device uint *arena, constant EvalArgs &args, uint interaction, uint column, uint row, uint slot) {
+    \\    uint global=arena[args.interaction_offsets+interaction]+column;
+    \\    uint descriptor=arena[args.trace_offsets+1u+global];
+    \\    uint shift=arena[descriptor+3u];
+    \\    uint local=(((row>>shift)-(arena[args.trace_offsets]>>shift))<<1u)+(row&1u);
+    \\    return arena[arena[descriptor+slot]+local];
+    \\}
+    \\inline uint trace_value_tiled(device uint *arena, constant EvalArgs &args, uint interaction, uint column, uint row, int offset) {
+    \\    uint global=arena[args.interaction_offsets+interaction]+column;
+    \\    uint descriptor=arena[args.trace_offsets+1u+global];
+    \\    uint shift=arena[descriptor+3u];
+    \\    uint local=(((row>>shift)-(arena[args.trace_offsets]>>shift))<<1u)+(row&1u);
+    \\    uint count=arena[descriptor+4u];
+    \\    for (uint i=0; i<count; ++i) {
+    \\        uint pair=descriptor+5u+2u*i;
+    \\        if (as_type<int>(arena[pair])==offset)
+    \\            return arena[arena[pair+1u]+local];
+    \\    }
+    \\    return 0u;
     \\}
     \\
 ;

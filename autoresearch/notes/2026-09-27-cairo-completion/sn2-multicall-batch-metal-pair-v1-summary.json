@@ -1,0 +1,418 @@
+{
+  "schema": "stwo-zig-cairo-paired-benchmark-v1",
+  "status": "qualified",
+  "host_details": {
+    "platform": "macOS-26.7-arm64-arm-64bit-Mach-O",
+    "cpu": "Apple M5 Max",
+    "logical_cpus": 18
+  },
+  "security": {
+    "pow_bits": 26,
+    "fri_config": {
+      "n_queries": 70,
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "fold_step": 1
+    },
+    "min_lifting_log_size": 0
+  },
+  "schedule": "AB, BA, AB, ...; serial product processes; all initial trials retained",
+  "cache_policy": "existing artifact and Metal pipeline caches retained, with per-trial evidence",
+  "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+  "backend": "metal",
+  "summary": {
+    "before": {
+      "median_process_wall_ns": 19596485459,
+      "median_prove_ns": 17149637125,
+      "peak_process_rss_bytes": 27049115648
+    },
+    "after": {
+      "median_process_wall_ns": 18722192875,
+      "median_prove_ns": 16274968000,
+      "peak_process_rss_bytes": 27052851200
+    }
+  },
+  "process_speedup": 1.0466981934134145,
+  "prove_speedup": 1.053743216269304,
+  "raw_pair_path": "zig-out/cairo-completion-20260927/sn2-multicall-batch-metal-pair-v1/results.json",
+  "trials": [
+    {
+      "pair": 1,
+      "variant": "before",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 19079076208,
+        "user_ns": 122135370000,
+        "system_ns": 11076738000,
+        "max_process_tree_rss_bytes": 27048460288,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 117920333,
+        "proof_encode_ns": 8659708,
+        "request_until_publication_ns": 19056892250,
+        "execute_ns": 2067379375,
+        "prove_ns": 16786126417,
+        "verify_ns": 14520875
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 625422625,
+        "user_ns": 608112000,
+        "system_ns": 6209000,
+        "max_process_tree_rss_bytes": 39550976,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 141,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 60
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 2147483648,
+        "hits": 0,
+        "misses": 1,
+        "stores": 1,
+        "evictions": 1,
+        "loaded_bytes": 0,
+        "stored_bytes": 536871008,
+        "evicted_bytes": 536871008,
+        "directory_bytes": 1891631840,
+        "eviction_ns": 2624917
+      }
+    },
+    {
+      "pair": 1,
+      "variant": "after",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 18363957500,
+        "user_ns": 102278255000,
+        "system_ns": 11656073000,
+        "max_process_tree_rss_bytes": 27052261376,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 121377833,
+        "proof_encode_ns": 8715709,
+        "request_until_publication_ns": 18342366959,
+        "execute_ns": 2204627166,
+        "prove_ns": 15930103417,
+        "verify_ns": 14329250
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 625247834,
+        "user_ns": 608351000,
+        "system_ns": 5168000,
+        "max_process_tree_rss_bytes": 39354368,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 42,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.0029093027114868164,
+          "library_preparation_seconds": 0.01056206226348877
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 531500272
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 141,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 60
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 2147483648,
+        "hits": 1,
+        "misses": 0,
+        "stores": 0,
+        "evictions": 0,
+        "loaded_bytes": 536871008,
+        "stored_bytes": 0,
+        "evicted_bytes": 0,
+        "directory_bytes": 0,
+        "eviction_ns": 0
+      }
+    },
+    {
+      "pair": 2,
+      "variant": "after",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 18722192875,
+        "user_ns": 106356256000,
+        "system_ns": 11685388000,
+        "max_process_tree_rss_bytes": 27052474368,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 123554542,
+        "proof_encode_ns": 8635292,
+        "request_until_publication_ns": 18699508791,
+        "execute_ns": 2198051792,
+        "prove_ns": 16274968000,
+        "verify_ns": 14066083
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 629705000,
+        "user_ns": 611762000,
+        "system_ns": 3848000,
+        "max_process_tree_rss_bytes": 39337984,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 42,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.002811908721923828,
+          "library_preparation_seconds": 0.009969949722290039
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 531500272
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 141,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 60
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 2147483648,
+        "hits": 1,
+        "misses": 0,
+        "stores": 0,
+        "evictions": 0,
+        "loaded_bytes": 536871008,
+        "stored_bytes": 0,
+        "evicted_bytes": 0,
+        "directory_bytes": 0,
+        "eviction_ns": 0
+      }
+    },
+    {
+      "pair": 2,
+      "variant": "before",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 19596485459,
+        "user_ns": 118984418000,
+        "system_ns": 11996013000,
+        "max_process_tree_rss_bytes": 27049115648,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 123661875,
+        "proof_encode_ns": 10131250,
+        "request_until_publication_ns": 19577725959,
+        "execute_ns": 2201268500,
+        "prove_ns": 17149637125,
+        "verify_ns": 15255917
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 660111792,
+        "user_ns": 642820000,
+        "system_ns": 4271000,
+        "max_process_tree_rss_bytes": 39436288,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 141,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 60
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 2147483648,
+        "hits": 1,
+        "misses": 0,
+        "stores": 0,
+        "evictions": 0,
+        "loaded_bytes": 536871008,
+        "stored_bytes": 0,
+        "evicted_bytes": 0,
+        "directory_bytes": 0,
+        "eviction_ns": 0
+      }
+    },
+    {
+      "pair": 3,
+      "variant": "before",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 19879114542,
+        "user_ns": 122016545000,
+        "system_ns": 12165677000,
+        "max_process_tree_rss_bytes": 27048574976,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 125142250,
+        "proof_encode_ns": 9012625,
+        "request_until_publication_ns": 19859595125,
+        "execute_ns": 2181403209,
+        "prove_ns": 17465029167,
+        "verify_ns": 17251500
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 669444458,
+        "user_ns": 651385000,
+        "system_ns": 5819000,
+        "max_process_tree_rss_bytes": 39469056,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 141,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 60
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 2147483648,
+        "hits": 1,
+        "misses": 0,
+        "stores": 0,
+        "evictions": 0,
+        "loaded_bytes": 536871008,
+        "stored_bytes": 0,
+        "evicted_bytes": 0,
+        "directory_bytes": 0,
+        "eviction_ns": 0
+      }
+    },
+    {
+      "pair": 3,
+      "variant": "after",
+      "process": {
+        "exit_code": 0,
+        "wall_ns": 19671026917,
+        "user_ns": 115647183000,
+        "system_ns": 12438787000,
+        "max_process_tree_rss_bytes": 27052851200,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "timing": {
+        "input_and_assets_ns": 127551542,
+        "proof_encode_ns": 8789084,
+        "request_until_publication_ns": 19649296334,
+        "execute_ns": 2245324958,
+        "prove_ns": 17145283750,
+        "verify_ns": 14684833
+      },
+      "official_verifier": {
+        "exit_code": 0,
+        "wall_ns": 652474667,
+        "user_ns": 629559000,
+        "system_ns": 6227000,
+        "max_process_tree_rss_bytes": 39436288,
+        "rss_is_simultaneous_process_tree_sum": false
+      },
+      "proof_sha256": "ddf5b47bb928a75b699d0297b75fd0c3fb40ad6679f4ab26c32d2dfee9149545",
+      "backend_evidence": {
+        "execution": "metal-pcs",
+        "pipeline_cache": {
+          "library_hits": 0,
+          "library_misses": 1,
+          "pipeline_hits": 0,
+          "binary_archive_hits": 42,
+          "binary_archive_misses": 0,
+          "direct_compiles": 0,
+          "archive_populations": 0,
+          "archive_serializations": 0,
+          "pipeline_preparation_seconds": 0.0029592514038085938,
+          "library_preparation_seconds": 0.010599970817565918
+        },
+        "archive_store": {
+          "disk_hits": 1,
+          "disk_misses": 0,
+          "bytes_published": 0,
+          "publication_failures": 0,
+          "persistence_bypasses": 0,
+          "disk_bytes": 531500272
+        },
+        "classification": "accelerated_without_fallbacks",
+        "metal_dispatches": 141,
+        "cpu_fallbacks": 0,
+        "runtime_initializations": 1,
+        "runtime_shutdowns": 1,
+        "commit_source_arena_aliases": 0,
+        "commit_source_arena_memcpys": 0,
+        "commit_source_uploads": 60
+      },
+      "cache_evidence": {
+        "enabled": true,
+        "budget_bytes": 2147483648,
+        "hits": 1,
+        "misses": 0,
+        "stores": 0,
+        "evictions": 0,
+        "loaded_bytes": 536871008,
+        "stored_bytes": 0,
+        "evicted_bytes": 0,
+        "directory_bytes": 0,
+        "eviction_ns": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "stwo-zig-cairo-cuda-runpod-hardware-diagnostic-v1",
+  "started_utc": "2026-09-28T14:46:29.079364+00:00",
+  "command": [
+    "/workspace/stwo-zig/zig-out/bin/stwo-cairo-cuda",
+    "prove",
+    "--backend",
+    "cuda",
+    "--input",
+    "/workspace/sn2-official.stwzcpi",
+    "--output",
+    "/workspace/qualification-v6/proof.envelope",
+    "--report-out",
+    "/workspace/qualification-v6/backend-report.json",
+    "--repeat",
+    "1"
+  ],
+  "status": "failed",
+  "exit_code": 1,
+  "process_wall_ns": 7334153639,
+  "host_max_rss_bytes": 902950912,
+  "highest_sampled_device_used_bytes": 81670242304,
+  "gpu_memory_scope": "whole device NVML samples at 100ms; observed lower bound on peak, includes driver allocations",
+  "product_sha256": "0eb995d8f73320e40653a2ca1fc04557d1b23a2b1333f577f610178dfc95ebfd"
+}

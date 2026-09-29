@@ -1,0 +1,12 @@
+
+Build Summary: 9/9 steps succeeded; 14/14 tests passed
+test-merkle-compact success
++- run test 2 passed 542ms MaxRSS:72M
+   +- compile test ReleaseFast native success 6s MaxRSS:505M
+test-merkle-host success
++- run test 2 passed 7ms MaxRSS:6M
+   +- compile test ReleaseFast native cached 65ms MaxRSS:35M
+test-blake3-fri-cascade success
++- run test 10 passed 753ms MaxRSS:96M
+   +- compile test ReleaseFast native success 13s MaxRSS:901M
+

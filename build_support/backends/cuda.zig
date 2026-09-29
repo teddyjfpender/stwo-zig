@@ -60,7 +60,7 @@ pub fn addArchive(
     b: *std.Build,
     toolchain: Toolchain,
     product: AotProduct,
-    cairo_eval_root: ?std.Build.LazyPath,
+    cairo_eval_root: ?cuda_aot.GeneratedSet,
 ) Archive {
     require(toolchain);
     const command = buildCommand(
@@ -86,6 +86,22 @@ pub fn addPlan(b: *std.Build, toolchain: Toolchain) *std.Build.Step.Run {
         null,
     );
     _ = command.addOutputDirectoryArg("stwo-native-cuda-plan");
+    return command;
+}
+
+/// Exercise the exact Cairo archive selection and generator arguments locally.
+/// Plan-only mode deliberately does not discover or execute NVIDIA tools.
+pub fn addCairoPlan(b: *std.Build, generated: cuda_aot.GeneratedSet) *std.Build.Step.Run {
+    const command = buildCommand(b, .{
+        .nvcc = "/cuda-plan-only/bin/nvcc",
+        .host_cxx = "/cuda-plan-only/bin/c++",
+        .archiver = "/cuda-plan-only/bin/ar",
+        .cuda_home = "/cuda-plan-only",
+        .library_dir = "/cuda-plan-only/lib64",
+        .architectures = "sm_90",
+    }, true, .cairo, generated);
+    _ = command.addOutputDirectoryArg("cairo-cuda-local-plan");
+    _ = command.captureStdOut();
     return command;
 }
 
@@ -124,12 +140,18 @@ fn buildCommand(
     toolchain: Toolchain,
     plan_only: bool,
     product: AotProduct,
-    cairo_eval_root: ?std.Build.LazyPath,
+    cairo_eval_root: ?cuda_aot.GeneratedSet,
 ) *std.Build.Step.Run {
     const native_aot = cuda_aot.addNative(b);
     const command = b.addSystemCommand(&.{"python3"});
     command.addFileArg(b.path(build_script));
     addDirectoryInputs(b, command, build_script_root);
+    if (b.graph.env_map.get("STWO_CUDA_AOT_CUBIN_IMPORT_ROOT")) |import_root| {
+        const absolute_root = b.pathFromRoot(import_root);
+        command.addArg("--aot-cubin-import-root");
+        command.addDirectoryArg(.{ .cwd_relative = absolute_root });
+        addImportedCubinInputs(b, command, absolute_root);
+    }
     command.addArg("--source-root");
     command.addDirectoryArg(b.path(source_root));
     addDirectoryInputs(b, command, source_root);
@@ -151,9 +173,11 @@ fn buildCommand(
         const generated = cairo_eval_root orelse @panic(
             "Cairo CUDA archive requires generated eval AOT sources",
         );
-        command.addArgs(&.{ "--aot-set", "cairo_eval" });
-        command.addArgs(&.{ "--aot-set-root", "cairo_eval" });
-        command.addDirectoryArg(generated);
+        command.addArgs(&.{ "--aot-set", "cairo_canonical_eval" });
+        command.addArgs(&.{ "--aot-set-root", "cairo_canonical_eval" });
+        command.addDirectoryArg(generated.canonical_eval orelse @panic("Current Cairo AIR product is absent"));
+        command.addArgs(&.{ "--aot-set", "cairo_witness", "--aot-set-root", "cairo_witness" });
+        command.addDirectoryArg(generated.canonical_witness orelse @panic("Current Cairo witness product is absent"));
     } else if (cairo_eval_root != null) {
         @panic("Native CUDA archive cannot consume Cairo AOT sources");
     }
@@ -206,6 +230,30 @@ fn addDirectoryInputs(
             relative_root,
             relative_path,
         })));
+    }
+}
+
+/// The outer Zig cache must bind imported artifacts as well as the Python
+/// archive identity. An inherited environment variable alone is not an input.
+fn addImportedCubinInputs(b: *std.Build, command: *std.Build.Step.Run, root: []const u8) void {
+    const manifest = b.pathJoin(&.{ root, "manifest.json" });
+    command.addFileInput(.{ .cwd_relative = manifest });
+    const bytes = std.fs.cwd().readFileAlloc(b.allocator, manifest, 8 << 20) catch |err|
+        std.debug.panic("cannot read imported CUDA manifest: {s}", .{@errorName(err)});
+    defer b.allocator.free(bytes);
+    const parsed = std.json.parseFromSlice(std.json.Value, b.allocator, bytes, .{}) catch
+        @panic("invalid imported CUDA manifest");
+    defer parsed.deinit();
+    if (parsed.value != .object) @panic("invalid imported CUDA manifest");
+    const entries = parsed.value.object.get("entries") orelse @panic("missing imported CUDA entries");
+    if (entries != .array) @panic("invalid imported CUDA entries");
+    for (entries.array.items) |entry| {
+        if (entry != .object) @panic("invalid imported CUDA entry");
+        const file = entry.object.get("file") orelse @panic("missing imported CUDA artifact");
+        if (file != .string or !std.mem.eql(u8, file.string, std.fs.path.basename(file.string)) or
+            std.mem.eql(u8, file.string, ".") or std.mem.eql(u8, file.string, ".."))
+            @panic("invalid imported CUDA artifact path");
+        command.addFileInput(.{ .cwd_relative = b.pathJoin(&.{ root, file.string }) });
     }
 }
 
