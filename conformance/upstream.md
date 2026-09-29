@@ -18,6 +18,13 @@ checkers.
 - Pinned commit: `a8fcf4bdde3778ae72f1e6cfe61a38e2911648d2`
 - Pin date: `2026-02-07`
 
+Proof-of-work nonce order: every BLAKE2s grinder follows Stwo `7b211ed` SimdBackend order,
+the smallest `(hi << 32) | lo` with `lo < 2^20`, searched hi-major
+(`src/core/channel/blake2s_pow_order.zig`). That is the order the official stwo-cairo prover
+uses. The Native pin above grinds in natural order (`nonce = (hi << 20) + low`), so Native proofs
+match it only when the smallest valid nonce is below `2^20`. Committed Native vectors use
+`pow_bits <= 10`, where the two orders coincide.
+
 ## RISC-V Formal ISA Lane
 
 This lane governs RV32IM decode and architectural retirement semantics. Sail is the normative
