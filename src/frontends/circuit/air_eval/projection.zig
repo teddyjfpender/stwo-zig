@@ -5,7 +5,10 @@
 //! (its module doc is the grammar) and independently decoded by
 //! `scripts/upstream_pins_lib/circuit_recursion.py`; this reader follows the
 //! Python `_Reader` step for step. Every function record is authenticated by
-//! its SHA-256 before it is decoded, and any unknown tag, invalid flag or
+//! the SHA-256 of its canonical form (format version 2: the record with every
+//! string written inline as `u32:len utf8` instead of as a string-table
+//! index), which the decoder hashes while it reads the record; a record is
+//! used only once its digest matches. Any unknown tag, invalid flag or
 //! out-of-range string index is an error.
 //!
 //! Strings borrow the input bytes. Expressions, steps and name lists are
@@ -19,7 +22,7 @@
 const std = @import("std");
 
 pub const magic = "STWOCAIR";
-pub const version: u32 = 1;
+pub const version: u32 = 2;
 const modulus: u32 = 0x7fff_ffff;
 
 pub const Error = error{
@@ -232,11 +235,19 @@ const Decoder = struct {
     /// Per source, in source order.
     pending_calls: std.ArrayList([]const PendingCall) = .empty,
     calls: std.ArrayList(PendingCall) = .empty,
+    /// While a function record is read: the hash of its canonical form.
+    canonical: ?std.crypto.hash.sha2.Sha256 = null,
 
-    fn take(d: *Decoder, len: usize) Error![]const u8 {
+    fn takeRaw(d: *Decoder, len: usize) Error![]const u8 {
         if (len > d.bytes.len - d.position) return error.Truncated;
         defer d.position += len;
         return d.bytes[d.position..][0..len];
+    }
+
+    fn take(d: *Decoder, len: usize) Error![]const u8 {
+        const chunk = try d.takeRaw(len);
+        if (d.canonical) |*hasher| hasher.update(chunk);
+        return chunk;
     }
 
     fn byte(d: *Decoder) Error!u8 {
@@ -256,8 +267,15 @@ const Decoder = struct {
     }
 
     fn string(d: *Decoder) Error!Str {
-        const index = try d.word();
+        const index = std.mem.readInt(u32, (try d.takeRaw(4))[0..4], .little);
         if (index >= d.strings.len) return error.StringIndexOutOfRange;
+        if (d.canonical) |*hasher| {
+            // Strings are table entries, so their length fits in a u32.
+            var len: [4]u8 = undefined;
+            std.mem.writeInt(u32, &len, @intCast(d.strings[index].len), .little);
+            hasher.update(&len);
+            hasher.update(d.strings[index]);
+        }
         return index;
     }
 
@@ -306,13 +324,14 @@ const Decoder = struct {
             const len = try d.word();
             const digest = try d.take(32);
             const start = d.position;
-            const record = try d.take(len);
-            var actual: [32]u8 = undefined;
-            std.crypto.hash.sha2.Sha256.hash(record, &actual, .{});
-            if (!std.mem.eql(u8, &actual, digest)) return error.RecordDigestMismatch;
-            d.position = start;
+            if (len > d.bytes.len - start) return error.Truncated;
+            d.canonical = std.crypto.hash.sha2.Sha256.init(.{});
             function.* = try d.functionRecord();
+            var actual: [32]u8 = undefined;
+            d.canonical.?.final(&actual);
+            d.canonical = null;
             if (d.position != start + len) return error.RecordLengthMismatch;
+            if (!std.mem.eql(u8, &actual, digest)) return error.RecordDigestMismatch;
         }
         try d.pending_calls.append(d.allocator, try d.calls.toOwnedSlice(d.allocator));
         return .{ .label = label, .slots = slots, .hand_written = hand_written, .functions = functions };
