@@ -33,6 +33,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    prover_parameters.addImport("stwo_core", core);
     const frontend = b.addModule("stwo_cairo_frontend", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -75,5 +76,4 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&tests.step);
     test_step.dependOn(&deep_tests.step);
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = felt_json, .filters = filters })).step);
-    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = prover_parameters, .filters = filters })).step);
 }

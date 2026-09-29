@@ -11,6 +11,7 @@
     "stwo_core": "../../core"
   },
   "injected_modules": [
+    "interop_cairo_prover_parameters",
     "interop_felt_json"
   ],
   "api_surface": [

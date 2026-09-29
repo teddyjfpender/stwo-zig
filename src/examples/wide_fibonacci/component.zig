@@ -109,6 +109,19 @@ pub const Component = struct {
         evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
         _: u32,
     ) !void {
+        return self.evaluateConstraintQuotientsAtPointOver(point, mask, evaluation_accumulator, self.statement.log_n_rows);
+    }
+
+    /// As `evaluateConstraintQuotientsAtPoint`, dividing by the vanishing
+    /// polynomial of the canonic coset of `vanishing_log_size` (the trace
+    /// domain, or the committed height when a prover lifts the tree).
+    pub fn evaluateConstraintQuotientsAtPointOver(
+        self: *const @This(),
+        point: CirclePointQM31,
+        mask: *const core_air_components.MaskValues,
+        evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
+        vanishing_log_size: u32,
+    ) !void {
         if (mask.items.len <= 1) return error.InvalidProofShape;
         const main = mask.items[1];
         const n_cols: usize = @intCast(self.statement.sequence_len);
@@ -119,7 +132,7 @@ pub const Component = struct {
 
         const denominator = core_constraints.cosetVanishing(
             QM31,
-            canonic.CanonicCoset.new(self.statement.log_n_rows).coset(),
+            canonic.CanonicCoset.new(vanishing_log_size).coset(),
             point,
         );
         const denominator_inv = try denominator.inv();

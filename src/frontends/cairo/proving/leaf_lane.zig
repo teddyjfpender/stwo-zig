@@ -26,7 +26,8 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
-/// The shared `ProverParameters` definition (`src/interop/cairo_prover_parameters.zig`).
+/// The shared `ProverParameters` definition (`src/interop/cairo_prover_parameters.zig`),
+/// read from a circuit registry by the circuit-recursion wire package's `registry.zig`.
 pub const parameters = @import("interop_cairo_prover_parameters");
 const preprocessed_variant = @import("../preprocessed/variant.zig");
 
@@ -64,9 +65,14 @@ pub const Lane = struct {
         };
         if (!params.include_all_preprocessed_columns) return Error.LeafLaneRequiresAllPreprocessedColumns;
         const fri = params.fri_config;
-        const count: ?usize = if (params.opt_n_id_to_big_components) |n| n else null;
-        if (count) |n| if (n == 0) return Error.InvalidIdToBigComponentCount;
+        const count: ?usize = if (params.opt_n_id_to_big_components) |n|
+            if (n == 0) return Error.InvalidIdToBigComponentCount else std.math.cast(usize, n) orelse
+                return Error.InvalidIdToBigComponentCount
+        else
+            null;
         return .{
+            // The registry reader takes the config as written; `FriConfig::new`'s
+            // range checks apply here, before anything is proved.
             .fri_config = try FriConfigV2.init(
                 fri.pow_bits,
                 fri.log_last_layer_degree_bound,

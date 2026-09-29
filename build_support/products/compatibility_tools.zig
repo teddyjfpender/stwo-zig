@@ -245,6 +245,16 @@ pub fn addProducts(context: Context) void {
     cairo_leaf_proof_test_root.addImport("stwo_cairo_frontend", cairo_frontend);
     cairo_leaf_proof_test_root.addImport("stwo_cairo_cpu_integration", cairo_cpu);
     cairo_leaf_proof_test_root.addImport("stwo_native_examples", native_examples);
+    // The registry reader (`registry.parseRegistry`) that loads the lane's
+    // `cairo_prover_params`.
+    cairo_leaf_proof_test_root.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+        b,
+        protocol,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        cairo_frontend,
+    ));
     const cairo_leaf_proof_tests = context.b.addTest(.{
         .root_module = cairo_leaf_proof_test_root,
     });

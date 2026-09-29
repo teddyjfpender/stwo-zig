@@ -18,7 +18,7 @@
 const std = @import("std");
 const cairo = @import("stwo_cairo_frontend");
 const leaf = @import("stwo_cairo_cpu_integration").prover.leaf_transaction;
-const parameters = cairo.proving.transaction.leaf_lane.parameters;
+const registry_format = @import("stwo_circuit_recursion_wire").registry;
 
 const registry_path = "vectors/circuit/official/registries/leaf_prover_canonical_small.json";
 
@@ -120,7 +120,7 @@ test "R10c: leaf Cairo proofs match proving@5a7c5ed prove_cairo" {
     // AtLeastPreprocessed these programs commit every tree at its own height
     // (their 2^20-row tables fill the preprocessed domain), and `Fixed(22)`
     // lifts every tree, the pruned preprocessed one included.
-    const Policy = parameters.LiftingSizePolicy;
+    const Policy = registry_format.LiftingSizePolicy;
     inline for (.{
         .{ "all_opcodes", "vectors/cairo/official/all_opcodes.prover_input.json", @as(?Policy, null) },
         .{ "all_builtins", "vectors/cairo/official/all_builtins.prover_input.json", @as(?Policy, null) },
@@ -135,7 +135,7 @@ test "R10c: leaf Cairo proofs match proving@5a7c5ed prove_cairo" {
     }
 }
 
-fn proveAndCompare(input_path: []const u8, checkpoint_path: []const u8, policy: ?parameters.LiftingSizePolicy) !void {
+fn proveAndCompare(input_path: []const u8, checkpoint_path: []const u8, policy: ?registry_format.LiftingSizePolicy) !void {
     const allocator = std.testing.allocator;
 
     const checkpoint_bytes = try readFile(allocator, checkpoint_path);
@@ -146,10 +146,9 @@ fn proveAndCompare(input_path: []const u8, checkpoint_path: []const u8, policy: 
     // The registry's `cairo_prover_params`, as the leaf prover reads them.
     const registry_bytes = try readFile(allocator, registry_path);
     defer allocator.free(registry_bytes);
-    const registry = try std.json.parseFromSlice(std.json.Value, allocator, registry_bytes, .{});
+    var registry = try registry_format.parseRegistry(allocator, registry_bytes);
     defer registry.deinit();
-    var params = try parameters.fromValue(allocator, registry.value.object.get("cairo_prover_params") orelse
-        return error.MissingProverParameters);
+    var params = registry.registry.cairo_prover_params;
     if (policy) |override| params.lifting_size_policy = override;
 
     var input = try cairo.adapter.official_input.readFile(allocator, input_path);
@@ -304,21 +303,8 @@ const LiftedWideFibonacci = struct {
         accumulator: *core.air.accumulation.PointEvaluationAccumulator,
         max_log_degree_bound: u32,
     ) !void {
-        const main = mask.items[1];
-        const inverse = try core.constraints.cosetVanishing(
-            core.fields.qm31.QM31,
-            core.poly.circle.canonic.CanonicCoset.new(max_log_degree_bound).coset(),
-            point,
-        ).inv();
-        var a = main[0][0];
-        var b = main[1][0];
-        for (main[2..]) |column| {
-            const c = column[0];
-            accumulator.accumulate(c.sub(a.square().add(b.square())).mul(inverse));
-            a = b;
-            b = c;
-        }
-        _ = self;
+        // The lifted proof's OODS quotient divides by the committed domain.
+        return self.inner.evaluateConstraintQuotientsAtPointOver(point, mask, accumulator, max_log_degree_bound);
     }
 };
 
