@@ -19,6 +19,7 @@ pub const fri = @import("fri.zig");
 pub const pcs = @import("pcs/mod.zig");
 pub const proof = @import("proof.zig");
 pub const proof_suites = @import("proof_suites.zig");
+pub const protocol_revision = @import("protocol_revision.zig");
 pub const proof_json = @import("proof_json.zig");
 pub const test_utils = @import("test_utils.zig");
 pub const verifier_types = @import("verifier_types.zig");

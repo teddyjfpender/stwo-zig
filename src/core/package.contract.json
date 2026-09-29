@@ -27,6 +27,7 @@
     "proof",
     "proof_json",
     "proof_of_work",
+    "protocol_revision",
     "queries",
     "test_utils",
     "utils",

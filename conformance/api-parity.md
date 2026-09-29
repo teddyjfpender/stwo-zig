@@ -119,6 +119,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/core/channel/mod.zig"
     },
+    "stwo.core.channel.blake2s_grind": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; Blake2s PoW search orders, including the SimdBackend hi-major order of prover/backend/simd/grind.rs there.",
+      "rust_path": null,
+      "source": "src/core/channel/mod.zig"
+    },
     "stwo.core.channel.transcript": {
       "kind": "const",
       "rationale": null,
@@ -227,6 +233,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/prover/backend/simd/blake2s.rs",
       "source": "src/core/crypto/mod.zig"
     },
+    "stwo.core.crypto.chacha20_rng": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; rand_chacha 0.3 ChaCha20Rng used for circuit ZK blinding (crates/circuit_common/src/finalize.rs there).",
+      "rust_path": null,
+      "source": "src/core/crypto/mod.zig"
+    },
     "stwo.core.crypto.hash256": {
       "kind": "const",
       "rationale": null,
@@ -281,6 +293,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/core/fields/mod.zig"
     },
+    "stwo.core.fields.qm31_pointwise": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; coordinate-wise QM31 helpers of crates/circuits/src/ivalue.rs there.",
+      "rust_path": null,
+      "source": "src/core/fields/mod.zig"
+    },
     "stwo.core.fraction": {
       "kind": "const",
       "rationale": null,
@@ -333,6 +351,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
+      "source": "src/core/pcs/mod.zig"
+    },
+    "stwo.core.pcs.config_v2": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; FriConfig with pow_bits, two-felt mix and per-tree lifting heights (crates/stwo/src/core/{fri,pcs/mod}.rs there).",
+      "rust_path": null,
       "source": "src/core/pcs/mod.zig"
     },
     "stwo.core.pcs.quotients": {
@@ -393,6 +417,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
+      "source": "src/core/mod.zig"
+    },
+    "stwo.core.protocol_revision": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; selects the PcsConfig type, config mix and Merkle tree-height law per lane at comptime.",
+      "rust_path": null,
       "source": "src/core/mod.zig"
     },
     "stwo.core.queries": {
@@ -495,6 +525,18 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "kind": "const",
       "rationale": null,
       "rust_path": "crates/stwo/src/lib.rs",
+      "source": "src/core/vcs_lifted/mod.zig"
+    },
+    "stwo.core.vcs_lifted.channel_profile": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; pairs each upstream MerkleChannel with its channel, plain Merkle hasher, mix_hash and grind order.",
+      "rust_path": null,
+      "source": "src/core/vcs_lifted/mod.zig"
+    },
+    "stwo.core.vcs_lifted.lifted_height_vectors": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; Rust-oracle vectors for lifted Merkle commitments at explicit heights, shared by core and prover tests.",
+      "rust_path": null,
       "source": "src/core/vcs_lifted/mod.zig"
     },
     "stwo.core.vcs_lifted.merkle_hasher": {
