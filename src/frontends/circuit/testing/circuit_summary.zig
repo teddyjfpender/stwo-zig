@@ -16,6 +16,8 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const circuit_frontend = @import("stwo_circuit_frontend");
 
+const fixture = @import("fixture_json.zig");
+
 const builder = circuit_frontend.builder;
 const QM31 = stwo_core.fields.qm31.QM31;
 const Sha256 = std.crypto.hash.sha2.Sha256;
@@ -100,36 +102,90 @@ pub fn visitGates(circuit: *const builder.Circuit, start: [kind_names.len]usize,
     for (circuit.output.items[start[9]..]) |in0| visitor.gate(9, .{ .fields = &.{in0} });
 }
 
+/// The gate-list part of a summary: the oracle's `GateSummary`.
+pub const GateSummary = struct {
+    n_vars: u64,
+    kinds: [kind_names.len]KindSummary,
+    gate_list_sha256: [32]u8,
+};
+
+/// Summarizes a circuit whose gates are only ever appended, one prefix at a
+/// time: each `mark` hashes the gates added since the previous one, so the
+/// summaries after every stage of a build cost one pass over the circuit.
+pub const Summarizer = struct {
+    hashers: [kind_names.len]KindHasher,
+    visited: [kind_names.len]usize = @splat(0),
+
+    pub fn init() Summarizer {
+        var hashers: [kind_names.len]KindHasher = undefined;
+        for (&hashers, kind_names) |*h, name| h.* = .{ .kind = name };
+        return .{ .hashers = hashers };
+    }
+
+    /// The summary of `circuit`, which must extend the circuit of the
+    /// previous `mark`.
+    pub fn mark(self: *Summarizer, circuit: *const builder.Circuit) GateSummary {
+        const Recorder = struct {
+            hashers: *[kind_names.len]KindHasher,
+            pub fn gate(recorder: @This(), kind: usize, g: Gate) void {
+                switch (g) {
+                    .fields => |fields| recorder.hashers[kind].record(fields),
+                    .lists => |lists| recorder.hashers[kind].recordList(lists.inputs, lists.outputs),
+                }
+            }
+        };
+        visitGates(circuit, self.visited, Recorder{ .hashers = &self.hashers });
+        self.visited = gateCounts(circuit);
+
+        var summary: GateSummary = undefined;
+        summary.n_vars = circuit.n_vars;
+        var list = Sha256.init(.{});
+        list.update("STWO_CIRCUIT_GATE_LIST_V1\x00");
+        list.update(&std.mem.toBytes(std.mem.nativeToLittle(u64, summary.n_vars)));
+        for (&summary.kinds, self.hashers) |*kind, h| {
+            // Finish a copy, so the running record hash keeps accumulating.
+            var copy = h;
+            kind.* = copy.finish();
+            list.update(&kind.sha256);
+        }
+        summary.gate_list_sha256 = list.finalResult();
+        return summary;
+    }
+};
+
+/// The gate summary of `circuit` alone.
+pub fn gateSummary(circuit: *const builder.Circuit) GateSummary {
+    var summarizer = Summarizer.init();
+    return summarizer.mark(circuit);
+}
+
 /// Summarizes `circuit` under the contract above.
 pub fn summarize(gpa: std.mem.Allocator, circuit: *const builder.Circuit) !Summary {
-    var hashers: [kind_names.len]KindHasher = undefined;
-    for (&hashers, kind_names) |*h, name| h.* = .{ .kind = name };
-    const Recorder = struct {
-        hashers: *[kind_names.len]KindHasher,
-        pub fn gate(self: @This(), kind: usize, g: Gate) void {
-            switch (g) {
-                .fields => |fields| self.hashers[kind].record(fields),
-                .lists => |lists| self.hashers[kind].recordList(lists.inputs, lists.outputs),
-            }
-        }
+    const gates = gateSummary(circuit);
+    var summary: Summary = .{
+        .n_vars = gates.n_vars,
+        .kinds = gates.kinds,
+        .gate_list_sha256 = gates.gate_list_sha256,
+        .debug_text_sha256 = undefined,
     };
-    visitGates(circuit, @splat(0), Recorder{ .hashers = &hashers });
-
-    var summary: Summary = undefined;
-    summary.n_vars = circuit.n_vars;
-    var list = Sha256.init(.{});
-    list.update("STWO_CIRCUIT_GATE_LIST_V1\x00");
-    list.update(&std.mem.toBytes(std.mem.nativeToLittle(u64, summary.n_vars)));
-    for (&summary.kinds, &hashers) |*kind, *h| {
-        kind.* = h.finish();
-        list.update(&kind.sha256);
-    }
-    summary.gate_list_sha256 = list.finalResult();
-
     const text = try builder.debug_format.circuitText(gpa, circuit);
     defer gpa.free(text);
     Sha256.hash(text, &summary.debug_text_sha256, .{});
     return summary;
+}
+
+/// Compares a fixture `GateSummary` object (`n_vars`, `kinds`,
+/// `gate_list_sha256`) with `actual`.
+pub fn expectGateSummary(expected: std.json.Value, actual: GateSummary) !void {
+    try std.testing.expectEqual(try fixture.unsigned(u64, try fixture.field(expected, "n_vars")), actual.n_vars);
+    const kinds = try fixture.array(try fixture.field(expected, "kinds"));
+    try std.testing.expectEqual(kind_names.len, kinds.len);
+    for (kinds, actual.kinds, kind_names) |kind, summary, name| {
+        try std.testing.expectEqualStrings(name, try fixture.string(try fixture.field(kind, "kind")));
+        try std.testing.expectEqual(try fixture.unsigned(u64, try fixture.field(kind, "count")), summary.count);
+        try std.testing.expectEqual(try fixture.digest(try fixture.field(kind, "sha256")), summary.sha256);
+    }
+    try std.testing.expectEqual(try fixture.digest(try fixture.field(expected, "gate_list_sha256")), actual.gate_list_sha256);
 }
 
 /// `values_sha256`.

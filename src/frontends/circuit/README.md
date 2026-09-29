@@ -56,20 +56,28 @@ being filled milestone by milestone. Today it holds:
   columns are built by the prover engine's `air.logup_columns`. The proving
   transcript and the constraint evaluation live in
   [`stwo_circuit_cpu_integration`](../../integrations/circuit_cpu/README.md).
-- `stark_verifier`: `ProofConfig`, `ProofInfo` (the proof size model),
-  `N_COMPOSITION_COLUMNS`, `pack_into_qm31s`, the composition accumulator
-  (`constraint_eval`), `logup` and the `test_utils` harness data.
-- `statements`: `circuit_verifier_proof_config`, `CircuitConfig`,
-  `SharedConfig` and the fold shared config of `CanonicalCircuit::build`;
-  `cairo_statement` (M6, the port of `CairoStatement`, see below) and
+- `stark_verifier` (M5, design §5.1): the in-circuit STARK verifier, one
+  file per Rust file of `crates/stark_verifier`: `channel`, `circle`,
+  `merkle`, `sort_queries`, `select_queries`, `fri`, `oods`,
+  `constraint_eval` (the accumulator, `ComponentData`,
+  `compute_composition_polynomial`), `logup` and `verify`. `proof` holds
+  `ProofConfig`, `ProofInfo` (the proof size model) and `Proof(T)` for
+  values, topology placeholders and wires, with its one `guess` traversal
+  and `emptyProof`. `verify` takes a stage observer (`NoStages` ignores it).
+- `statements`: `CircuitStatement` (the circuit-verifier statement over the
+  11 circuit evaluators), `circuit_verifier_proof_config`, `CircuitConfig`;
+  `multiverifier` (`SharedConfig`, the fold shared config of
+  `CanonicalCircuit::build`, `buildMultiverifierCircuit` and its topology
+  form); `cairo_statement` (M6, the port of `CairoStatement`, see below) and
   `cairo_leaf_config` (`leaf_verifier_config`: enabled components and the
   leaf `ProofConfig` over the projection's Cairo slot table).
 
-The gate-emitting verifier gadgets (channel, Merkle, FRI, OODS, composition,
-the statements' `guess` traversals and `build_*_circuit`) come next and sit on
-top of these modules. The R3 rung drives every evaluator through `builder.Context`,
-and summarizes gate lists, values and statement traces with the shared
-test-only `testing/circuit_summary.zig`.
+The R3 rung drives every evaluator through `builder.Context`; R4 builds the
+multiverifier stage by stage. The rungs share the test-only `testing/`
+module (`circuit_testing`): the fixture reader, the gate-list and value
+digests (`circuit_summary`, with an incremental `Summarizer` for stage
+prefixes), the oracle's `prover_test.rs` circuits (`contexts`, also used by
+the circuit integration's R7) and the R4 multiverifier (`verifier_stages`).
 
 ```mermaid
 flowchart TD
@@ -113,9 +121,8 @@ the order lint. Where this port and the design text differ:
   `std.sort.pdq` and `std.sort.heap`, and it runs as `zig build circuit-lint`.
 - Upstream's `debug_info` map (diagnostics for `circuit_analysis`) is not
   ported; it never affects numbering.
-- The `circuit_hash` R2 case replays `compute_circuit_hash` of
-  `crates/circuit_verifier` in the test harness. The production gadget
-  belongs to the circuit-verifier statement (M5).
+- The `circuit_hash` R2 case runs the production in-circuit
+  `compute_circuit_hash` (`common.circuit_hash.circuitHash`).
 
 ### The Cairo statement (M6)
 
@@ -172,7 +179,8 @@ const statement = try Statement.init(arena, &ctx, inputs);
 | Composition | `stark_verifier.constraint_eval` (`CompositionConstraintAccumulator`, `InteractionAtOods`), `stark_verifier.logup` |
 | Harness data | `stark_verifier.test_utils.TestComponentData` |
 | Utilities | `common.component_utils.seqOfComponentSize` |
-| Statements | `statements.circuit_statement`, `statements.multiverifier`, `statements.cairo_statement`, `statements.cairo_leaf_config` |
+| In-circuit verifier | `stark_verifier.verify` (`verify`, `Stage`, `NoStages`), `stark_verifier.proof` (`Proof`, `guess`, `emptyProof`), `stark_verifier.{channel,circle,merkle,sort_queries,select_queries,fri,oods}` |
+| Statements | `statements.circuit_statement` (`CircuitStatement`), `statements.multiverifier` (`buildMultiverifierCircuit`, `buildMultiverifierTopology`), `statements.cairo_statement`, `statements.cairo_leaf_config` |
 
 Every evaluator is generic over a builder context type `Ctx` exposing `Var`,
 `zero`, `one`, `constant`, `add`, `sub`, `mul`, `eq`, `inv` and `newVar` with
@@ -205,7 +213,9 @@ asserts the slot order equals `official_claim_registry.enable_slots`.
 ```sh
 zig build test --build-file src/frontends/circuit/build.zig -Doptimize=ReleaseFast -j2
 zig build circuit-parity-r3 --build-file src/frontends/circuit/build.zig -j2
-zig build circuit-parity-r6-fold --build-file src/frontends/circuit/build.zig
+zig build circuit-parity-r4 --build-file src/frontends/circuit/build.zig -Doptimize=ReleaseSafe -j2
+zig build circuit-parity-r5 --build-file src/frontends/circuit/build.zig -j2
+zig build circuit-parity-r6-fold --build-file src/frontends/circuit/build.zig -Doptimize=ReleaseSafe -j2
 zig build circuit-air-projection-check --build-file src/frontends/circuit/build.zig -j2
 zig build circuit-parity-r1 --build-file src/frontends/circuit/build.zig
 zig build circuit-parity-r2 --build-file src/frontends/circuit/build.zig
@@ -222,11 +232,25 @@ Tests that read `vectors/circuit` run from the repository root.
   `vectors/circuit/r3/components.json`, the two upstream
   `sample_evaluations.json` files and the per-stage statement trace
   `vectors/circuit/r3/statement_trace.json`.
-- The fold topology rung (`conformance/fold_topology_test.zig`) checks the
-  45-column layout, every committed registry's circuit hash, the R0
-  circuit-hash vectors, the static component facts against the R3 fixture,
-  and `ProofInfo.totalBytes` against the 182,884-byte multiverifier
-  `proof.bin`.
+- `circuit-parity-r4` (`conformance/verifier_stages_test.zig`, labelled
+  large: a 2^21-row multiverifier, about 2.5 GB) builds the multiverifier of
+  `circuit_multiverifier/src/verify_test.rs` in topology mode and compares
+  the gate summary after each of its 52 stages with
+  `vectors/circuit/r4/verifier_stages.json`, then the padded circuit's
+  preprocessed root. The value half, over the committed proofs, is
+  `circuit-parity-r4-values` of the circuit CPU integration.
+- `circuit-parity-r5` rebuilds the `prover_test.rs` circuits in value and
+  topology mode through `finalize_constants`, guess finalization, per-kind
+  padding and ZK blinding against `vectors/circuit/r5/finalize.json`.
+- `circuit-parity-r6-fold` runs the oracle-free fold checks
+  (`conformance/fold_topology_test.zig`: the 45-column layout, every
+  committed registry's circuit hash, the R0 circuit-hash vectors, the static
+  component facts, and `ProofInfo.totalBytes` against the 182,884-byte
+  multiverifier `proof.bin`), then rebuilds each registry's multiverifier
+  (`conformance/fold_rebuild_test.zig`, labelled large: 2^23-row targets,
+  about 3.5 GB) and requires its layout, component log sizes, preprocessed
+  root and circuit hash to equal the registry's and
+  `vectors/circuit/r6/topology.json`'s.
 - The Cairo leaf host inputs and R10b roots are gated from the Cairo side
   (`zig build test-cairo-frontend`, `zig build test-cairo-leaf-proof`).
 
@@ -270,7 +294,11 @@ Tests that read `vectors/circuit` run from the repository root.
   malformed views fail with `VariableOutOfRange` where upstream panics, and
   addresses `>= P` fail with `AddressOutOfField` where upstream reduces.
 - Sorting is stable (`std.sort.insertion`), and no hash-map iteration
-  order reaches an output.
+  order reaches an output; `compute_fri_input` groups OODS responses in an
+  insertion-ordered `ArrayHashMap`, as upstream's `IndexMap`.
+- `verify`, `CircuitStatement.init`, `guess` and `buildMultiverifierCircuit`
+  emit their builder calls in the Rust order; topology mode (`emptyProof`)
+  and value mode build identical gate lists.
 
 ## Change checklist
 
@@ -283,7 +311,8 @@ Tests that read `vectors/circuit` run from the repository root.
   `cairo_components.zig` or `circuit_components.zig`.
 - Keep each file's builder calls in upstream order; `eval!` expressions expand
   left subtree, right subtree, operation.
-- Run the focused CI commands above, `circuit-parity-r3` and
+- Run the focused CI commands above, the rungs your change touches
+  (`circuit-parity-r3` to `circuit-parity-r6-fold`) and
   `python3 scripts/lint_circuit_frontend.py`.
 
 ## Related documentation
