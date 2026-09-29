@@ -11,6 +11,7 @@ const M31 = core.fields.m31.M31;
 const ColumnEvaluation = prover.pcs.ColumnEvaluation;
 
 pub const Variant = @import("variant.zig").Variant;
+const layout = @import("stwo_core").cairo_air_layout;
 
 pub const Column = struct {
     identity: []u8,
@@ -23,80 +24,30 @@ pub const Spec = struct {
     variant: Variant,
     columns: []Column,
 
+    /// Owns the ordered ids of `stwo_core.cairo_air_layout.preprocessedColumns`,
+    /// the one builder shared with circuit recursion.
     pub fn init(allocator: std.mem.Allocator, variant: Variant) !Spec {
-        var builder = Builder.init(allocator);
-        defer builder.deinit();
-
-        const max_sequence_log: u32 = switch (variant) {
-            .canonical, .canonical_without_pedersen => 25,
-            .canonical_small => 20,
-        };
-        for (4..max_sequence_log + 1) |log_size| {
-            try builder.add(try std.fmt.allocPrint(
-                allocator,
-                "seq_{}",
-                .{log_size},
-            ), @intCast(log_size));
+        var ids: [layout.max_preprocessed_columns]layout.ColumnId = undefined;
+        const sorted = try layout.preprocessedColumns(variant, &ids);
+        const owned = try allocator.alloc(Column, sorted.len);
+        var filled: usize = 0;
+        errdefer {
+            for (owned[0..filled]) |column| allocator.free(column.identity);
+            allocator.free(owned);
         }
-        for ([_]u32{ 4, 7, 8, 9, 10 }) |bits| {
-            for (0..3) |column| {
-                try builder.add(try std.fmt.allocPrint(
-                    allocator,
-                    "bitwise_xor_{}_{}",
-                    .{ bits, column },
-                ), bits * 2);
-            }
+        for (sorted, owned) |*id, *column| {
+            column.* = .{
+                .identity = try allocator.dupe(u8, id.name()),
+                .log_size = id.log_size,
+                .source_ordinal = id.source_ordinal,
+            };
+            filled += 1;
         }
-        inline for (range_shapes) |range_shape| {
-            for (0..range_shape.widths.len) |column| {
-                try builder.add(try std.fmt.allocPrint(
-                    allocator,
-                    "range_check_{s}_column_{}",
-                    .{ range_shape.name, column },
-                ), range_shape.log_size);
-            }
-        }
-        for (0..30) |column| {
-            try builder.add(try std.fmt.allocPrint(
-                allocator,
-                "poseidon_round_keys_{}",
-                .{column},
-            ), 6);
-        }
-        for (0..16) |column| {
-            try builder.add(try std.fmt.allocPrint(
-                allocator,
-                "blake_sigma_{}",
-                .{column},
-            ), 4);
-        }
-        switch (variant) {
-            .canonical_without_pedersen => {},
-            .canonical => for (0..56) |column| {
-                try builder.add(try std.fmt.allocPrint(
-                    allocator,
-                    "pedersen_points_{}",
-                    .{column},
-                ), 23);
-            },
-            .canonical_small => for (0..56) |column| {
-                try builder.add(try std.fmt.allocPrint(
-                    allocator,
-                    "pedersen_points_small_{}",
-                    .{column},
-                ), 15);
-            },
-        }
-
-        const owned = try builder.list.toOwnedSlice(allocator);
-        builder.list = .empty;
-        std.mem.sort(Column, owned, {}, lessThan);
-        var result = Spec{
+        const result = Spec{
             .allocator = allocator,
             .variant = variant,
             .columns = owned,
         };
-        errdefer result.deinit();
         try result.validate();
         return result;
     }
@@ -346,62 +297,6 @@ pub fn deinitMaterialized(
 ) void {
     for (evaluations) |evaluation| allocator.free(evaluation.values);
     allocator.free(evaluations);
-}
-
-const RangeShape = struct {
-    name: []const u8,
-    widths: []const u5,
-    log_size: u32,
-};
-
-const range_shapes = [_]RangeShape{
-    shape("4_3", &.{ 4, 3 }),
-    shape("4_4", &.{ 4, 4 }),
-    shape("9_9", &.{ 9, 9 }),
-    shape("7_2_5", &.{ 7, 2, 5 }),
-    shape("3_6_6_3", &.{ 3, 6, 6, 3 }),
-    shape("4_4_4_4", &.{ 4, 4, 4, 4 }),
-    shape("3_3_3_3_3", &.{ 3, 3, 3, 3, 3 }),
-};
-
-fn shape(name: []const u8, widths: []const u5) RangeShape {
-    var log_size: u32 = 0;
-    for (widths) |width| log_size += width;
-    return .{ .name = name, .widths = widths, .log_size = log_size };
-}
-
-const Builder = struct {
-    allocator: std.mem.Allocator,
-    list: std.ArrayList(Column),
-    next_ordinal: u32,
-
-    fn init(allocator: std.mem.Allocator) Builder {
-        return .{
-            .allocator = allocator,
-            .list = .empty,
-            .next_ordinal = 0,
-        };
-    }
-
-    fn deinit(self: *Builder) void {
-        for (self.list.items) |column| self.allocator.free(column.identity);
-        self.list.deinit(self.allocator);
-    }
-
-    fn add(self: *Builder, identity: []u8, log_size: u32) !void {
-        errdefer self.allocator.free(identity);
-        try self.list.append(self.allocator, .{
-            .identity = identity,
-            .log_size = log_size,
-            .source_ordinal = self.next_ordinal,
-        });
-        self.next_ordinal += 1;
-    }
-};
-
-fn lessThan(_: void, lhs: Column, rhs: Column) bool {
-    return lhs.log_size < rhs.log_size or
-        (lhs.log_size == rhs.log_size and lhs.source_ordinal < rhs.source_ordinal);
 }
 
 test "official Cairo preprocessed variants preserve source geometry" {

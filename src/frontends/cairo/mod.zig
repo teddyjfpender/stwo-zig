@@ -19,6 +19,8 @@
 
 pub const adapter = @import("adapter/mod.zig");
 pub const air = @import("air/mod.zig");
+/// The dependency-free Cairo AIR layout shared with circuit recursion.
+pub const air_layout = @import("stwo_core").cairo_air_layout;
 pub const common = @import("common/mod.zig");
 pub const preprocessed = @import("preprocessed/mod.zig");
 pub const proving = @import("proving/mod.zig");

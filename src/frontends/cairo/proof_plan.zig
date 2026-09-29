@@ -1,6 +1,7 @@
 const std = @import("std");
 const adapter = @import("adapter/mod.zig");
 const opcodes = @import("adapter/opcodes.zig");
+const BuiltinCells = @import("stwo_core").cairo_air_layout.Builtin;
 const dependencies = @import("proof_plan/dependencies.zig");
 pub const semantic_authority = @import("proof_plan/semantic_authority.zig");
 const witness_bundle = @import("witness/bundle.zig");
@@ -541,10 +542,10 @@ fn directRealRows(input: *const adapter.ProverInput, component: []const u8, padd
     }
     const Builtin = struct { name: []const u8, segment: ?adapter.MemorySegmentAddresses, cells: u32 };
     const builtins = [_]Builtin{
-        .{ .name = "bitwise_builtin", .segment = input.builtin_segments.bitwise_builtin, .cells = 5 },
-        .{ .name = "range_check_builtin", .segment = input.builtin_segments.range_check_builtin, .cells = 1 },
-        .{ .name = "pedersen_builtin", .segment = input.builtin_segments.pedersen_builtin, .cells = 3 },
-        .{ .name = "poseidon_builtin", .segment = input.builtin_segments.poseidon_builtin, .cells = 6 },
+        .{ .name = "bitwise_builtin", .segment = input.builtin_segments.bitwise_builtin, .cells = BuiltinCells.bitwise.memoryCells() },
+        .{ .name = "range_check_builtin", .segment = input.builtin_segments.range_check_builtin, .cells = BuiltinCells.range_check.memoryCells() },
+        .{ .name = "pedersen_builtin", .segment = input.builtin_segments.pedersen_builtin, .cells = BuiltinCells.pedersen.memoryCells() },
+        .{ .name = "poseidon_builtin", .segment = input.builtin_segments.poseidon_builtin, .cells = BuiltinCells.poseidon.memoryCells() },
     };
     for (builtins) |builtin| {
         if (!std.mem.eql(u8, component, builtin.name)) continue;

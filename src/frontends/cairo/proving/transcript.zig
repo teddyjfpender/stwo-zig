@@ -27,15 +27,32 @@ pub fn mixChannelSalt(channel: anytype, channel_salt: u32) void {
     });
 }
 
+/// `FlatClaim::mix_into` for the Cairo lane's `Blake2sMerkleChannel`.
 pub fn mixClaim(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    statement: *const statement_bootstrap.OwnedStatementBootstrap,
+) !void {
+    return mixClaimWith(Blake2sMerkleChannel, allocator, channel, statement);
+}
+
+/// `FlatClaim::mix_into::<MC>` over statement ordinals 10 through 16: the
+/// enable-bit count, the enable bits, the component log sizes, the program
+/// length and the public claim as packed QM31s, then `MC::mix_hash` of the
+/// output and program roots. The roots are committed with the plain Blake2s
+/// Merkle hasher on both lanes (`Blake2sM31MerkleChannel::H` is
+/// `Blake2sMerkleHasher`); only `mix_hash` differs, so the leaf lane
+/// instantiates `Blake2sM31MerkleChannel` here without re-deriving the claim.
+pub fn mixClaimWith(
+    comptime MerkleChannel: type,
     allocator: std.mem.Allocator,
     channel: anytype,
     statement: *const statement_bootstrap.OwnedStatementBootstrap,
 ) !void {
     for ([_]u32{ 10, 11, 12, 13, 14 }) |ordinal|
         try mixPackedWords(allocator, channel, statement.words(ordinal).?);
-    Blake2sMerkleChannel.mixRoot(channel, rootBytes(statement.words(15).?));
-    Blake2sMerkleChannel.mixRoot(channel, rootBytes(statement.words(16).?));
+    MerkleChannel.mixRoot(channel, rootBytes(statement.words(15).?));
+    MerkleChannel.mixRoot(channel, rootBytes(statement.words(16).?));
 }
 
 pub fn grindInteraction(channel: anytype) u64 {

@@ -3,6 +3,7 @@
 const std = @import("std");
 const cairo_adapter = @import("../adapter/mod.zig");
 const cairo_opcodes = @import("../adapter/opcodes.zig");
+const Builtin = @import("stwo_core").cairo_air_layout.Builtin;
 const CasmState = @import("../common/cpu.zig").CasmState;
 
 pub const Error = error{
@@ -112,22 +113,22 @@ pub fn resolve(input: *const cairo_adapter.ProverInput, component: []const u8) E
         cells_per_instance: u32,
     };
     const segment = if (std.mem.eql(u8, component, "add_mod_builtin"))
-        Segment{ .addresses = input.builtin_segments.add_mod_builtin, .cells_per_instance = 7 }
+        Segment{ .addresses = input.builtin_segments.add_mod_builtin, .cells_per_instance = Builtin.add_mod.memoryCells() }
     else if (std.mem.eql(u8, component, "bitwise_builtin"))
-        Segment{ .addresses = input.builtin_segments.bitwise_builtin, .cells_per_instance = 5 }
+        Segment{ .addresses = input.builtin_segments.bitwise_builtin, .cells_per_instance = Builtin.bitwise.memoryCells() }
     else if (std.mem.eql(u8, component, "ec_op_builtin"))
-        Segment{ .addresses = input.builtin_segments.ec_op_builtin, .cells_per_instance = 7 }
+        Segment{ .addresses = input.builtin_segments.ec_op_builtin, .cells_per_instance = Builtin.ec_op.memoryCells() }
     else if (std.mem.eql(u8, component, "mul_mod_builtin"))
-        Segment{ .addresses = input.builtin_segments.mul_mod_builtin, .cells_per_instance = 7 }
+        Segment{ .addresses = input.builtin_segments.mul_mod_builtin, .cells_per_instance = Builtin.mul_mod.memoryCells() }
     else if (std.mem.eql(u8, component, "range_check96_builtin"))
-        Segment{ .addresses = input.builtin_segments.range_check96_builtin, .cells_per_instance = 1 }
+        Segment{ .addresses = input.builtin_segments.range_check96_builtin, .cells_per_instance = Builtin.range_check96.memoryCells() }
     else if (std.mem.eql(u8, component, "range_check_builtin"))
-        Segment{ .addresses = input.builtin_segments.range_check_builtin, .cells_per_instance = 1 }
+        Segment{ .addresses = input.builtin_segments.range_check_builtin, .cells_per_instance = Builtin.range_check.memoryCells() }
     else if (std.mem.eql(u8, component, "pedersen_builtin") or
         std.mem.eql(u8, component, "pedersen_builtin_narrow_windows"))
-        Segment{ .addresses = input.builtin_segments.pedersen_builtin, .cells_per_instance = 3 }
+        Segment{ .addresses = input.builtin_segments.pedersen_builtin, .cells_per_instance = Builtin.pedersen.memoryCells() }
     else if (std.mem.eql(u8, component, "poseidon_builtin"))
-        Segment{ .addresses = input.builtin_segments.poseidon_builtin, .cells_per_instance = 6 }
+        Segment{ .addresses = input.builtin_segments.poseidon_builtin, .cells_per_instance = Builtin.poseidon.memoryCells() }
     else
         return null;
     const addresses = segment.addresses orelse return Error.MissingBinding;

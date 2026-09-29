@@ -5,6 +5,7 @@ const core = @import("stwo_core");
 const adapter = @import("../adapter/mod.zig");
 const memory = @import("../common/memory.zig");
 const public_data = @import("public_data.zig");
+const Felt252 = @import("../common/felt252.zig").Felt252;
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -233,16 +234,7 @@ fn appendMemoryEntryValue(
 
 fn splitF252(value: memory.MemoryValue, output: []M31) void {
     std.debug.assert(output.len == big_limb_count);
-    const dense = public_data.memoryValueWords(value);
-    for (output, 0..) |*limb, index| {
-        const bit_offset = index * 9;
-        const word = bit_offset / 32;
-        const shift: u5 = @intCast(bit_offset % 32);
-        var raw = dense[word] >> shift;
-        if (shift > 23 and word + 1 < dense.len)
-            raw |= dense[word + 1] << @intCast(32 - @as(u6, shift));
-        limb.* = M31.fromCanonical(raw & 0x1ff);
-    }
+    output[0..big_limb_count].* = Felt252.fromU32x8(public_data.memoryValueWords(value)).limbs9();
 }
 
 fn combine(
