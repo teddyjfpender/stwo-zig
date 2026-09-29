@@ -40,6 +40,15 @@ ORACLE_ARTIFACTS = (
 # (fixture, rung, adapted ProverInput under the repository root, registry in the proving
 # checkout) for `prove-cairo`, the leaf-lane Cairo proofs (R10c). The inputs are the
 # stwo-cairo 82f2125 fixtures authenticated by vectors/cairo/official provenance.
+# (fixture, rung, compiled program in the proving checkout) for `adapt-program`: the
+# leaf prover's own VM run and adapter (prove_leaf.rs steps 1-2), emitted as ProverInput JSON.
+ADAPTED_PROGRAMS = (
+    (
+        f"{VECTORS}/r10/use_all_opcodes_and_builtins.prover_input.json",
+        "r10c",
+        "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
+    ),
+)
 CAIRO_PROOF_REGISTRY = "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json"
 CAIRO_PROOF_ARTIFACTS = tuple(
     (
@@ -49,6 +58,13 @@ CAIRO_PROOF_ARTIFACTS = tuple(
         CAIRO_PROOF_REGISTRY,
     )
     for name in ("all_opcodes", "all_builtins")
+) + (
+    (
+        f"{VECTORS}/r10/use_all_opcodes_and_builtins.prove_cairo.json",
+        "r10c",
+        ADAPTED_PROGRAMS[0][0],
+        CAIRO_PROOF_REGISTRY,
+    ),
 )
 PROJECTION = ORACLE_ARTIFACTS[3][0]
 COMPONENTS = ORACLE_ARTIFACTS[2][0]
@@ -73,9 +89,24 @@ UPSTREAM_COPIES = (
 )
 MANAGED = (
     tuple(path for path, *_ in ORACLE_ARTIFACTS)
+    + tuple(path for path, *_ in ADAPTED_PROGRAMS)
     + tuple(path for path, *_ in CAIRO_PROOF_ARTIFACTS)
     + tuple(path for path, _ in UPSTREAM_COPIES)
 )
+
+
+def adapt_program_command(path: str, program: str) -> list[str]:
+    """The recorded `adapt-program` invocation of an adapted ProverInput fixture."""
+    return [
+        "stwo-circuit-oracle",
+        "adapt-program",
+        "--proving-root",
+        PROVING_ROOT_PLACEHOLDER,
+        "--program",
+        program,
+        "--output",
+        path,
+    ]
 
 
 def cairo_proof_command(path: str, prover_input: str, registry: str) -> list[str]:
@@ -428,6 +459,10 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
             errors.append(f"{path}: provenance command is not {command}")
         if path.endswith(".json"):
             errors.extend(_check_checkpoint(root, path, rung, subcommand, revision))
+    for path, _rung, program in ADAPTED_PROGRAMS:
+        command = adapt_program_command(path, program)
+        if by_path.get(path, {}).get("command") != command:
+            errors.append(f"{path}: provenance command is not {command}")
     for path, rung, prover_input, registry in CAIRO_PROOF_ARTIFACTS:
         command = cairo_proof_command(path, prover_input, registry)
         if by_path.get(path, {}).get("command") != command:

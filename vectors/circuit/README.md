@@ -19,7 +19,8 @@ rejects any drift. Regenerate only with
 | `official/compiled_air_constraints_v1.bin` | R3 | constraints-only projection of the compiled AIR |
 | `official/compiled_{casm,circuit}_air.sample_evaluations.json` | R3 | upstream `outputs/*/sample_evaluations.json`: the evaluator assignments |
 | `official/registries/*.json` | R0, R6 | the two checked-in canonical_small circuit registries |
-| `r10/{all_opcodes,all_builtins}.prove_cairo.json` | R10c | leaf-lane Cairo proofs (`prove_cairo::<Blake2sM31MerkleChannel>` under the canonical_small leaf registry's `cairo_prover_params`) of the stwo-cairo 82f2125 `vectors/cairo/official` inputs: proof byte digests and per-stage transcript values |
+| `r10/use_all_opcodes_and_builtins.prover_input.json` | R10c | the leaf prover's test program (`crates/leaf_prover/tests/data`) run and adapted by upstream `prove_leaf.rs` steps 1-2 |
+| `r10/{all_opcodes,all_builtins,use_all_opcodes_and_builtins}.prove_cairo.json` | R10c | leaf-lane Cairo proofs (`prove_cairo::<Blake2sM31MerkleChannel>` under the canonical_small leaf registry's `cairo_prover_params`) of the stwo-cairo 82f2125 `vectors/cairo/official` inputs and the adapted leaf-prover program: proof byte digests and per-stage transcript values |
 
 ## Encodings
 

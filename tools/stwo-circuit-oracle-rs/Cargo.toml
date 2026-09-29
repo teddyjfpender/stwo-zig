@@ -28,6 +28,8 @@ air_code_gen = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5
 air_common = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 air_compile = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 cairo-air = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+cairo-program-runner-lib = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
+cairo-vm = { version = "3.2.0", default-features = false, features = ["extensive_hints", "mod_builtin", "clap"] }
 circuit-cairo-verifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 circuit-common = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }
 circuit-verifier = { git = "https://github.com/starkware-libs/proving", rev = "5a7c5ede4299c91a61df19a07cba4f7502c14230" }

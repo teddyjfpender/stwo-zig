@@ -4,9 +4,9 @@
 Builds `tools/stwo-circuit-oracle-rs` from its lockfile, locates the `proving`
 checkout Cargo resolved for the pinned revision, runs every oracle subcommand,
 copies the upstream goldens the rungs consume, and writes the provenance record
-that `scripts/check_upstream_pins.py` authenticates. Every command but
-`prove-cairo` only builds circuits or hashes data; `prove-cairo` proves two small
-Cairo programs (all_opcodes, all_builtins), so everything runs on a laptop.
+that `scripts/check_upstream_pins.py` authenticates. Every command except
+`adapt-program` and `prove-cairo` only builds circuits or hashes data; those two
+run and prove three small Cairo programs, so everything runs on a laptop.
 """
 
 from __future__ import annotations
@@ -85,14 +85,26 @@ def generate(staging: Path, oracle: Path, proving: Path) -> list[dict]:
         artifacts.append(
             artifact_record(staging, path, rung=rung, command=recorded + ["--output", path])
         )
+    for path, rung, program in lane.ADAPTED_PROGRAMS:
+        (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            [str(oracle), "adapt-program", "--proving-root", str(proving), "--program", program,
+             "--output", str(staging / path)],
+            check=True,
+        )
+        artifacts.append(
+            artifact_record(staging, path, rung=rung, command=lane.adapt_program_command(path, program))
+        )
+    adapted = {path for path, *_ in lane.ADAPTED_PROGRAMS}
     for path, rung, prover_input, registry in lane.CAIRO_PROOF_ARTIFACTS:
-        # Leaf-lane Cairo proofs of small programs: seconds and about 2 GB each.
+        # Leaf-lane Cairo proofs of small programs: seconds and about 2 GB each. An input
+        # adapted above is read from the staging tree, under the same relative path.
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(
             [str(oracle), "prove-cairo", "--prover-input", prover_input, "--params", registry,
              "--proving-root", str(proving), "--output", str(staging / path)],
             check=True,
-            cwd=ROOT,
+            cwd=staging if prover_input in adapted else ROOT,
         )
         artifacts.append(
             artifact_record(

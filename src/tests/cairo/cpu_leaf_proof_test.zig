@@ -116,11 +116,13 @@ fn compareStages(expected: Stages, result: *const leaf.Result) !void {
 }
 
 test "R10c: leaf Cairo proofs match proving@5a7c5ed prove_cairo" {
-    inline for (.{ "all_opcodes", "all_builtins" }) |name| {
-        proveAndCompare(
-            "vectors/cairo/official/" ++ name ++ ".prover_input.json",
-            "vectors/circuit/r10/" ++ name ++ ".prove_cairo.json",
-        ) catch |err| {
+    inline for (.{
+        .{ "all_opcodes", "vectors/cairo/official/all_opcodes.prover_input.json" },
+        .{ "all_builtins", "vectors/cairo/official/all_builtins.prover_input.json" },
+        .{ "use_all_opcodes_and_builtins", "vectors/circuit/r10/use_all_opcodes_and_builtins.prover_input.json" },
+    }) |case| {
+        const name = case[0];
+        proveAndCompare(case[1], "vectors/circuit/r10/" ++ name ++ ".prove_cairo.json") catch |err| {
             std.debug.print("R10c case {s} failed\n", .{name});
             return err;
         };
