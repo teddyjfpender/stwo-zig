@@ -5,10 +5,21 @@ const core = @import("stwo_core");
 const prover_mod = @import("stwo_prover_engine").vcs_lifted.prover;
 
 const M31 = core.fields.m31.M31;
-const vectors = core.vcs_lifted.lifted_height_vectors;
+const vectors = @import("lifted_height_vectors");
 const Hasher = core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
 const Prover = prover_mod.MerkleProverLifted(Hasher);
 const Verifier = core.vcs_lifted.verifier.MerkleVerifierLifted(Hasher);
+
+/// Fills `storage` with the oracle columns and returns views into it.
+fn oracleColumns(storage: *[vectors.column_log_sizes.len][8]M31) [vectors.column_log_sizes.len][]const M31 {
+    var views: [vectors.column_log_sizes.len][]const M31 = undefined;
+    for (storage, &views, vectors.column_log_sizes, 0..) |*values, *view, log_size, column| {
+        const len = @as(usize, 1) << @intCast(log_size);
+        for (values[0..len], 0..) |*value, row| value.* = M31.fromCanonical(vectors.columnValue(column, row));
+        view.* = values[0..len];
+    }
+    return views;
+}
 
 fn sortedUnique(positions: []const usize, buffer: []usize) []const usize {
     @memcpy(buffer[0..positions.len], positions);
@@ -25,7 +36,7 @@ fn sortedUnique(positions: []const usize, buffer: []usize) []const usize {
 test "prover vcs_lifted: explicit heights reproduce proving@5a7c5ed roots and decommitments" {
     const alloc = std.testing.allocator;
     var storage: [vectors.column_log_sizes.len][8]M31 = undefined;
-    const columns = vectors.columns(&storage);
+    const columns = oracleColumns(&storage);
 
     for (vectors.cases) |case| {
         var tree = try Prover.commitLifted(alloc, &columns, case.height);
@@ -59,7 +70,7 @@ test "prover vcs_lifted: explicit heights reproduce proving@5a7c5ed roots and de
 test "prover vcs_lifted: the largest-column height is the existing commitment" {
     const alloc = std.testing.allocator;
     var storage: [vectors.column_log_sizes.len][8]M31 = undefined;
-    const columns = vectors.columns(&storage);
+    const columns = oracleColumns(&storage);
     var legacy = try Prover.commit(alloc, &columns);
     defer legacy.deinit(alloc);
     var explicit = try Prover.commitLifted(alloc, &columns, 3);
@@ -71,7 +82,7 @@ test "prover vcs_lifted: the largest-column height is the existing commitment" {
 test "prover vcs_lifted: explicit heights reject short and non-empty-zero trees" {
     const alloc = std.testing.allocator;
     var storage: [vectors.column_log_sizes.len][8]M31 = undefined;
-    const columns = vectors.columns(&storage);
+    const columns = oracleColumns(&storage);
     try std.testing.expectError(error.InvalidTreeHeight, Prover.commitLifted(alloc, &columns, 2));
     try std.testing.expectError(error.InvalidTreeHeight, Prover.commitLifted(alloc, &.{}, 1));
 
@@ -141,7 +152,7 @@ test "prover vcs_lifted: lifted commitment equals committing explicitly lifted c
 test "prover vcs_lifted: a lifted tree with pruned leaves refuses to decommit" {
     const alloc = std.testing.allocator;
     var storage: [vectors.column_log_sizes.len][8]M31 = undefined;
-    const columns = vectors.columns(&storage);
+    const columns = oracleColumns(&storage);
     var tree = try Prover.commitLifted(alloc, &columns, 6);
     defer tree.deinit(alloc);
     tree.pruneBottomLayers(1);

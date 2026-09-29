@@ -1,5 +1,11 @@
 //! Lifted Merkle commitments at explicit heights, from the pinned Rust oracle.
 //!
+//! Test data only: this file is not part of the `stwo_core` API and no file
+//! of the `stwo_core` module may import it (Zig rejects a file that belongs
+//! to two modules). The core `test-revision` root imports it by path; the
+//! prover package's tests receive it as the injected module
+//! `lifted_height_vectors`. It imports nothing but `std` for the same reason.
+//!
 //! Oracle: https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230, crates/stwo with feature `prover`:
 //! `MerkleProverLifted::<CpuBackend, Blake2sMerkleHasher>::commit(columns, height, 0)`,
@@ -12,20 +18,13 @@
 //! heights 4 and 6 lift every column further.
 
 const std = @import("std");
-const M31 = @import("../fields/m31.zig").M31;
 
 pub const column_log_sizes = [_]u32{ 3, 2, 3 };
 const column_seeds = [_]u32{ 1, 2, 3 };
 
-/// Fills `storage` with the oracle columns and returns views into it.
-pub fn columns(storage: *[column_log_sizes.len][8]M31) [column_log_sizes.len][]const M31 {
-    var views: [column_log_sizes.len][]const M31 = undefined;
-    for (storage, &views, column_log_sizes, column_seeds) |*values, *view, log_size, seed| {
-        const len = @as(usize, 1) << @intCast(log_size);
-        for (values[0..len], 0..) |*value, row| value.* = M31.fromCanonical(seed * 1000 + @as(u32, @intCast(row)) * 7 + 1);
-        view.* = values[0..len];
-    }
-    return views;
+/// Canonical M31 value at `row` of oracle column `column`.
+pub fn columnValue(column: usize, row: usize) u32 {
+    return column_seeds[column] * 1000 + @as(u32, @intCast(row)) * 7 + 1;
 }
 
 pub const Case = struct {

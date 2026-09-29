@@ -78,6 +78,8 @@ frontend: `crypto.blake_sigma.BLAKE_SIGMA` (the BLAKE2s message schedule, also
 used by the native BLAKE2s hashers) and `preprocessed_tables` (the row
 formulas of the `seq_*` and `bitwise_xor_*` preprocessed columns). The Cairo
 frontend consumes both, so its bytes do not depend on where they are defined.
+Oracle data used only by tests lives under `vcs_lifted/testdata/` and is not
+exported; the prover package receives it as an injected test module.
 
 `ColumnVec(T)` and `ComponentVec(T)` construct typed `std.ArrayList` wrappers.
 Proof objects own nested allocations according to the deinitialization

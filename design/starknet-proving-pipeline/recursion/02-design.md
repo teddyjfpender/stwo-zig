@@ -173,7 +173,9 @@ prover → core) and §Module and directory design: `mod.zig` is a map, files ar
     `[(pow, blowup, nq, last), (fold_step, 0, 0, 0)]`;
   - `treeHeight(rev, tree, cfg, max_col)`: under 5a7c5ed tree 0 uses the
     preprocessed lifting height and every other tree uses the trace lifting
-    height, with `height ≥ max_col` asserted and 0 for an empty tree;
+    height, with `height ≥ max_col` asserted; an empty tree is valid only
+    when its configured height is already 0 (upstream asserts
+    `lifting_log_size == 0`, it does not substitute 0), else an error;
   - `finalLiftingCheck`.
 - `src/core/pcs/config_v2.zig` (new) with `PcsConfigV2 { fri: FriConfigV2
   {pow_bits, log_blowup, log_last_layer, n_queries, fold_step},

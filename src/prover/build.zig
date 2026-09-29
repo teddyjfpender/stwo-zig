@@ -10,7 +10,8 @@ pub fn build(b: *std.Build) void {
     ) orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
 
-    const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
+    const core_package = b.dependency("stwo_core", dependency_options);
+    const core = core_package.module("stwo_core");
     const backend_contracts = b.dependency(
         "stwo_backend_contracts",
         dependency_options,
@@ -38,6 +39,12 @@ pub fn build(b: *std.Build) void {
     deep_tests.addImport("stwo_core", core);
     deep_tests.addImport("stwo_prover_engine", prover);
     deep_tests.addImport("stwo_prover_api", prover_api);
+    // Test-only Rust-oracle data owned by core, outside the stwo_core API.
+    deep_tests.addImport("lifted_height_vectors", b.createModule(.{
+        .root_source_file = core_package.path("vcs_lifted/testdata/lifted_height_vectors.zig"),
+        .target = target,
+        .optimize = optimize,
+    }));
     const run_deep_tests = b.addRunArtifact(b.addTest(.{
         .root_module = deep_tests,
     }));

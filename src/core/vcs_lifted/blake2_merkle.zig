@@ -90,6 +90,7 @@ fn Blake2sMerkleHasherProtocolGeneric(
         pub fn domainPrefixBytes() u32 {
             return @intFromEnum(hash_protocol);
         }
+
         /// Pre-hashed node-domain separator state used to avoid reprocessing
         /// `NODE_PREFIX` for every parent hash on one Merkle layer.
         pub fn nodeSeed() NodeSeed {

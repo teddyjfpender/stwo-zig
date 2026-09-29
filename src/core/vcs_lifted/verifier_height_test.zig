@@ -3,7 +3,7 @@
 const std = @import("std");
 const M31 = @import("../fields/m31.zig").M31;
 const verifier = @import("verifier.zig");
-const vectors = @import("lifted_height_vectors.zig");
+const vectors = @import("testdata/lifted_height_vectors.zig");
 const Hasher = @import("blake2_merkle.zig").Blake2sPlainMerkleHasher;
 
 const Verifier = verifier.MerkleVerifierLifted(Hasher);

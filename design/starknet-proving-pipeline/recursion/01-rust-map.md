@@ -499,7 +499,7 @@ transcript digest after each §1.3 step, and per-component trace SHA-256s
   |---|---|
   | `FriConfig{pow_bits, log_blowup_factor, log_last_layer_degree_bound, n_queries, fold_step}`. `mix_into` **always** mixes `[(pow, blowup, nq, last), (fold_step, 0, 0, 0)]` | `core/fri.rs:75` |
   | `PcsConfig{fri_config, trace_lifting_log_size, preprocessed_lifting_log_size}`, with no `mix_into`. `lifting_log_size(tree_idx)` returns the preprocessed size for tree 0 and the trace size otherwise | `core/pcs/mod.rs:43` |
-  | The Merkle height is exactly the lifting size (asserted ≥ the max column; 0 for an empty tree) | `core/vcs_lifted/verifier.rs` |
+  | The Merkle height is exactly the lifting size (asserted ≥ the max column; asserted == 0 for an empty tree) | `core/vcs_lifted/verifier.rs` |
   | Final lifting uses the trace lifting size and errors if it is below the preprocessed size | `core/verifier.rs` |
   | New `Hasher` trait (`hash_u32s`, `hash_u32s_followed_by_digest`) | `core/vcs_lifted/hasher.rs` |
   | `mix_root` renamed to `mix_hash`, same bytes. Batch inverse, barycentric pooling and blake2s_lifted changes are byte-neutral | — |

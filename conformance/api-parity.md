@@ -545,12 +545,6 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": null,
       "source": "src/core/vcs_lifted/mod.zig"
     },
-    "stwo.core.vcs_lifted.lifted_height_vectors": {
-      "kind": "const",
-      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; Rust-oracle vectors for lifted Merkle commitments at explicit heights, shared by core and prover tests.",
-      "rust_path": null,
-      "source": "src/core/vcs_lifted/mod.zig"
-    },
     "stwo.core.vcs_lifted.merkle_hasher": {
       "kind": "const",
       "rationale": null,

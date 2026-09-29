@@ -13,6 +13,7 @@
     "stwo_prover_api": "../prover_api"
   },
   "injected_modules": [
+    "lifted_height_vectors",
     "native_resource_admission",
     "stwo"
   ],

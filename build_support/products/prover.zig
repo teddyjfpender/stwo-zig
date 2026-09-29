@@ -21,6 +21,7 @@ const source_closure = product_policy.SourceClosure{
         .{ .name = "stwo_prover_api", .source = "src/prover_api/mod.zig" },
         .{ .name = "stwo_prover_engine", .source = "src/prover/mod.zig" },
         .{ .name = "stwo_prover", .source = "src/products/prover/root.zig" },
+        .{ .name = "lifted_height_vectors", .source = "src/core/vcs_lifted/testdata/lifted_height_vectors.zig" },
     },
     .allowed_prefixes = &.{
         "src/core",
@@ -119,6 +120,8 @@ pub fn addProduct(context: Context) Result {
     context.b.step("test-stwo-prover-sampling", "Test sampled values and independent circle polynomial evaluation").dependOn(&context.b.addRunArtifact(sampling_tests).step);
     const merkle_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/merkle_test_root.zig", .target = context.target, .optimize = context.optimize });
     protocol.addImports(merkle_root);
+    // Test-only Rust-oracle data owned by core, outside the stwo_core API.
+    merkle_root.addImport("lifted_height_vectors", graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/core/vcs_lifted/testdata/lifted_height_vectors.zig", .target = context.target, .optimize = context.optimize }));
     const merkle_tests = context.b.addTest(.{ .root_module = merkle_root, .filters = &.{ "vcs_lifted", "MerkleProverLifted" } });
     context.b.step("test-stwo-prover-merkle", "Test lifted Merkle commitment paths and allocation custody").dependOn(&context.b.addRunArtifact(merkle_tests).step);
     const preparation_root = graph.create(context.b, .{ .product = graph.proverProduct(.@"test"), .root_source_file = "src/prover/focused_test_root.zig", .target = context.target, .optimize = context.optimize });
