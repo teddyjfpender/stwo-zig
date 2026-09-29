@@ -56,21 +56,25 @@ inline void fri_store_coordinates_and_leaf(
     for (uint word = 0u; word < 8u; ++word) leaves[index * 8u + word] = state[word];
 }
 
-// Exhaustively checks one host-selected nonce interval. The host advances to
-// the next interval only after this dispatch completes with no match, so the
-// result is the protocol's exact lowest nonce rather than merely any nonce.
+// Exhaustively checks one host-selected window of the canonical Stwo search
+// index space. Index i maps to nonce ((i >> 20) << 32) | (i & (2^20 - 1)),
+// the SimdBackend lattice (see core/channel/blake2s_pow_order.zig); the map
+// is strictly increasing, so the minimum local index is the minimum nonce in
+// the window. The host advances to the next window only after this dispatch
+// completes with no match, so the result is exactly Rust Stwo's nonce.
 kernel void stwo_zig_blake2s_pow_search(
     constant uint *prefix [[buffer(0)]],
     constant uint *round_zero_columns [[buffer(1)]],
-    constant ulong &nonce_base [[buffer(2)]],
-    constant uint &nonce_count [[buffer(3)]],
+    constant ulong &index_base [[buffer(2)]],
+    constant uint &index_count [[buffer(3)]],
     constant uint &pow_bits [[buffer(4)]],
     device atomic_uint &first_match [[buffer(5)]],
-    uint local_nonce [[thread_position_in_grid]]
+    uint local_index [[thread_position_in_grid]]
 ) {
-    if (local_nonce >= nonce_count) return;
+    if (local_index >= index_count || pow_bits == 0u || pow_bits > 32u) return;
 
-    ulong nonce = nonce_base + (ulong)local_nonce;
+    ulong index = index_base + (ulong)local_index;
+    ulong nonce = ((index >> 20u) << 32u) | (index & 0xffffful);
     uint state[8], message[16], compression_state[16];
     for (uint word = 0u; word < 8u; ++word) message[word] = prefix[word];
     message[8] = (uint)nonce;
@@ -98,17 +102,10 @@ kernel void stwo_zig_blake2s_pow_search(
     for (uint word = 0u; word < 8u; ++word)
         state[word] ^= compression_state[word] ^ compression_state[word + 8u];
 
-    uint zero_bits = 0u;
-    for (uint word = 0u; word < 8u; ++word) {
-        if (state[word] == 0u) {
-            zero_bits += 32u;
-            continue;
-        }
-        zero_bits += ctz(state[word]);
-        break;
-    }
-    if (zero_bits >= pow_bits)
-        atomic_fetch_min_explicit(&first_match, local_nonce, memory_order_relaxed);
+    // pow_bits <= 32: Stwo's predicate reads only the first output word.
+    uint mask = pow_bits == 32u ? 0xffffffffu : ((1u << pow_bits) - 1u);
+    if ((state[0] & mask) == 0u)
+        atomic_fetch_min_explicit(&first_match, local_index, memory_order_relaxed);
 }
 
 kernel void stwo_zig_qm31_to_coordinates(

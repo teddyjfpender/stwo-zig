@@ -1082,7 +1082,7 @@ pub const MetalCommitBackend = struct {
     pub const foldLineN = host_primitives.foldLineN;
 };
 
-test "metal proof of work returns the protocol lowest nonce" {
+test "metal proof of work returns the canonical Stwo nonce" {
     const core = @import("stwo_core");
     const Channel = core.channel.blake2s.Blake2sChannel;
     const Hasher = core.crypto.blake2s_backend.Blake2sHasher;
@@ -1103,6 +1103,29 @@ test "metal proof of work returns the protocol lowest nonce" {
     const actual = try MetalCommitBackend.grindBlake2sProofOfWork(prefix, pow_bits);
     try std.testing.expectEqual(expected, actual);
     try std.testing.expect(channel.verifyPowNonce(pow_bits, actual));
+
+    // Known answers from Rust Stwo 7b211ed `SimdBackend::grind` on
+    // `Blake2sChannel::default().mix_u64(seed)`: the canonical lattice nonce
+    // with hi > 0, where natural order returns 2279942 and 25492719.
+    const vectors = [_]struct { seed: u64, bits: u32, nonce: u64 }{
+        .{ .seed = 1, .bits = 20, .nonce = 12885063745 }, // hi 3, lo 161857
+        .{ .seed = 0, .bits = 26, .nonce = 34360584583 }, // hi 8, lo 846215
+    };
+    for (vectors) |vector| {
+        var seeded = Channel{};
+        seeded.mixU64(vector.seed);
+        std.mem.writeInt(u32, prefix_input[48..52], vector.bits, .little);
+        @memcpy(prefix_input[16..48], seeded.digestBytes()[0..]);
+        const seeded_prefix = Hasher.hashFixedSingleBlock(prefix_input.len, &prefix_input);
+        try std.testing.expectEqual(
+            vector.nonce,
+            try MetalCommitBackend.grindBlake2sProofOfWork(seeded_prefix, vector.bits),
+        );
+    }
+    try std.testing.expectError(
+        error.ProofOfWorkFailed,
+        MetalCommitBackend.grindBlake2sProofOfWork(prefix, 33),
+    );
 }
 
 test "Metal commit backend exposes telemetry without constructing a runtime" {

@@ -414,7 +414,7 @@ pub fn build(b: *std.Build) void {
     addImports(proof_of_work_root, core, backend_contracts, prover_api, prover);
     const proof_of_work_tests = b.addTest(.{
         .root_module = proof_of_work_root,
-        .filters = &.{ "metal proof of work returns the protocol lowest nonce", "metal BLAKE3 proof of work matches canonical nonces with device dispatch" },
+        .filters = &.{ "metal proof of work returns the canonical Stwo nonce", "metal BLAKE3 proof of work matches canonical nonces with device dispatch" },
     });
     linkRuntime(b, proof_of_work_tests);
     const run_proof_of_work_tests = b.addRunArtifact(proof_of_work_tests);

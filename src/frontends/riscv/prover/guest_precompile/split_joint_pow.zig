@@ -64,7 +64,7 @@ pub const PreparedJointChallengeV1 = struct {
     }
 };
 
-/// Mine the canonical lowest nonce for the complete manifest, mix it, and
+/// Mine the canonical Stwo-order nonce for the complete manifest, mix it, and
 /// only then derive the one `(z, alpha)` pair shared by every split leaf.
 pub fn prepare(
     session: *const aggregation_manifest.PreparedSessionV1,
