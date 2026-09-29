@@ -7,12 +7,30 @@
   "oracle": {
     "manifest": "tools/stwo-circuit-oracle-rs/Cargo.toml",
     "toolchain": "nightly-2026-01-15",
-    "source_sha256": "c7113f90ac4b2c6606a96a6c014a23f5d16a104eb80b79273c363346dc723355"
+    "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
+    "lock_sha256": "549a2cee45a1e64ad223855894a426d5ee6cf4a331298bcb65bcaed4155faac5",
+    "source_sha256": "e0285506004c2a9a60bfbe9e9dc6269b52f2fffce7248efb71e29db386ca60f4"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-29",
-  "host": "Darwin arm64",
   "artifacts": [
+    {
+      "path": "vectors/circuit/official/circuit_air.air_programs_v1.bin",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "air-programs",
+        "--output",
+        "vectors/circuit/official/circuit_air.air_programs_v1.bin"
+      ],
+      "format": "STWZEVA/1",
+      "component_count": 11,
+      "constraint_count": 57,
+      "max_evaluation_log": 24,
+      "plan_hash": "9e409a3fb6c71bbb",
+      "bytes": 47875,
+      "sha256": "7b8022b09d84db371cc433aa0fcf132f7687f2720e05e4dc9a7650c575dc02c2"
+    },
     {
       "path": "vectors/circuit/official/compiled_air_constraints_v1.bin",
       "rung": "r3",
@@ -25,7 +43,7 @@
         "vectors/circuit/official/compiled_air_constraints_v1.bin"
       ],
       "bytes": 476520,
-      "sha256": "8acdc72dd2bde0eb41ee0b35ee378902a1f3e825d68e0480c736a783876695bb"
+      "sha256": "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83adcb8be7e09"
     },
     {
       "path": "vectors/circuit/official/compiled_casm_air.sample_evaluations.json",
@@ -60,8 +78,8 @@
         "--output",
         "vectors/circuit/r0/primitives.json"
       ],
-      "bytes": 126786,
-      "sha256": "12a2e4bd78b8b44f09b9405c99fb628c49745f720e96125ee2925a0ae46c0a5a"
+      "bytes": 135847,
+      "sha256": "10ac5afef80bdc402cf5bf183a7b172b69e7d5ed998e91f8adbef8dc5d03867f"
     },
     {
       "path": "vectors/circuit/r2/gadgets.json",
@@ -88,6 +106,72 @@
       ],
       "bytes": 382364,
       "sha256": "ff20308779cfe90a1bfafcb5e4df80f36faa5febf9107d9d18e8e62829cdf8f9"
+    },
+    {
+      "path": "vectors/circuit/r3/statement_trace.json",
+      "rung": "r3",
+      "command": [
+        "stwo-circuit-oracle",
+        "statement-trace",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r3/statement_trace.json"
+      ],
+      "bytes": 346181,
+      "sha256": "a599b2c71e1aa24659440cc4603a9b06f797989eb5957411c3adbd9ee1df6302"
+    },
+    {
+      "path": "vectors/circuit/r4/verifier_stages.json",
+      "rung": "r4",
+      "command": [
+        "stwo-circuit-oracle",
+        "verifier-stages",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r4/verifier_stages.json"
+      ],
+      "bytes": 109841,
+      "sha256": "1ac8840112ed1ba3253b6aeda8c4002819420922bf2946ead675d90b87ff379d"
+    },
+    {
+      "path": "vectors/circuit/r5/finalize.json",
+      "rung": "r5",
+      "command": [
+        "stwo-circuit-oracle",
+        "finalize",
+        "--output",
+        "vectors/circuit/r5/finalize.json"
+      ],
+      "bytes": 152402,
+      "sha256": "50ec9754d633de82740819de990924c352e4224e88372ef784d1c09dd4acdd44"
+    },
+    {
+      "path": "vectors/circuit/r6/topology.json",
+      "rung": "r6",
+      "command": [
+        "stwo-circuit-oracle",
+        "topology",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r6/topology.json"
+      ],
+      "bytes": 39729,
+      "sha256": "0bee955ffbd11d01474b5e4b0d9d4aabf87680249a90756c49891a59814fba19"
+    },
+    {
+      "path": "vectors/circuit/r7/prove_small.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "prove-small",
+        "--output",
+        "vectors/circuit/r7/prove_small.json"
+      ],
+      "bytes": 450878,
+      "sha256": "08e4ab360d384e7b9957a65c819b611a5fe929c4ab733280e007a3e13e181e11"
     }
   ]
 }

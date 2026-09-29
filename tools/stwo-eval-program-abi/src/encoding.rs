@@ -1,6 +1,6 @@
 use anyhow::{Result, ensure};
 
-use crate::program::{
+use super::program::{
     MetalEvaluationProgramBaseInstV1, MetalEvaluationProgramExtInstV1,
     MetalEvaluationProgramHeaderV1, MetalEvaluationProgramSectionDescV1,
     OwnedMetalEvaluationProgramV1,

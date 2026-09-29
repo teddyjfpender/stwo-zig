@@ -1,10 +1,9 @@
 use anyhow::{Result, anyhow, ensure};
-use cairo_air::relations::CommonLookupElements;
 use stwo::core::channel::{Blake2sChannel, Channel};
 use stwo::core::fields::m31::BaseField;
 use stwo::core::fields::qm31::SecureField;
 
-use crate::program::ExtParameterPair;
+use super::program::ExtParameterPair;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ExtSource {
@@ -14,14 +13,19 @@ pub enum ExtSource {
     ClaimedSumScaled,
 }
 
-pub struct LookupProbe {
-    pub elements: CommonLookupElements,
+/// Lookup elements drawn from a seeded channel, with the `z` and `alpha` powers they were drawn
+/// as, so that recorded extension constants can be classified.
+///
+/// `R` is the AIR's lookup relation (`relation!(CommonLookupElements, 128)` in both the Cairo AIR
+/// and the circuit AIR); `draw` is its `draw`, which consumes `z` then `alpha` from the channel.
+pub struct LookupProbe<R> {
+    pub elements: R,
     z: SecureField,
     alpha_powers: Vec<SecureField>,
 }
 
-impl LookupProbe {
-    pub fn from_seed(seed: &[u32]) -> Result<Self> {
+impl<R> LookupProbe<R> {
+    pub fn from_seed(seed: &[u32], draw: impl FnOnce(&mut Blake2sChannel) -> R) -> Result<Self> {
         let mut channel = Blake2sChannel::default();
         channel.mix_u32s(seed);
         let mut mirror = channel.clone();
@@ -38,20 +42,20 @@ impl LookupProbe {
             })
             .collect();
         Ok(Self {
-            elements: CommonLookupElements::draw(&mut channel),
+            elements: draw(&mut channel),
             z,
             alpha_powers,
         })
     }
 }
 
-pub fn classify(
+pub fn classify<R>(
     component: &str,
     log_size: u32,
     claimed_sum: SecureField,
     probe_claimed_sum: SecureField,
-    lookup: &LookupProbe,
-    probe_lookup: &LookupProbe,
+    lookup: &LookupProbe<R>,
+    probe_lookup: &LookupProbe<R>,
     parameters: &[ExtParameterPair],
 ) -> Result<Vec<ExtSource>> {
     let mut dynamic = Vec::with_capacity(lookup.alpha_powers.len() + 2);
