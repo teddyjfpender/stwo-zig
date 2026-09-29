@@ -302,6 +302,16 @@ fn fold_record(root: &mut ProvingRoot, registry: &'static str, name: &'static st
     })
 }
 
+/// `circuit_component_log_sizes` of a preprocessed circuit, in `ComponentList` order.
+pub fn component_log_sizes_of(preprocessed: &PreprocessedCircuit) -> Vec<(&'static str, u32)> {
+    circuit_component_log_sizes(
+        &all_circuit_components::<QM31>(),
+        &preprocessed.preprocessed_trace.log_sizes(),
+    )
+    .into_named_iter()
+    .collect()
+}
+
 fn privacy_layout() -> Result<Vec<LayoutEntry>> {
     let [eq, qm31_ops, triple_xor, m31_to_u32, blake_g_gate] = goldens::PRIVACY_TARGET_LOG_SIZES;
     let layout = layout_from_component_sizes(
