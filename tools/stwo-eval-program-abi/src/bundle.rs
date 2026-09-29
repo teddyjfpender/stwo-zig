@@ -9,9 +9,9 @@ use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::utils::bit_reverse;
 use stwo_constraint_framework::{FrameworkComponent, FrameworkEval};
 
-use crate::encoding::{program as encode_program, push_u16, push_u32, push_u64};
-use crate::parameters::ExtSource;
-use crate::program::OwnedMetalEvaluationProgramV1;
+use super::encoding::{program as encode_program, push_u16, push_u32, push_u64};
+use super::parameters::ExtSource;
+use super::program::OwnedMetalEvaluationProgramV1;
 
 const MAGIC: &[u8; 8] = b"STWZEVA\0";
 const VERSION: u32 = 1;
@@ -41,7 +41,8 @@ impl CapturedComponent {
         program: OwnedMetalEvaluationProgramV1,
         ext_sources: Vec<ExtSource>,
     ) -> Result<Self> {
-        let trace_log_size = component.evaluator().log_size();
+        // `FrameworkComponent` derefs to its evaluator in every supported Stwo revision.
+        let trace_log_size = FrameworkEval::log_size(&**component);
         let evaluation_log_size = component.max_constraint_log_degree_bound();
         ensure!(
             evaluation_log_size >= trace_log_size,
@@ -86,10 +87,7 @@ impl CapturedComponent {
 }
 
 pub fn encode(components: &[CapturedComponent]) -> Result<Vec<u8>> {
-    ensure!(
-        !components.is_empty(),
-        "cannot encode an empty Cairo AIR bundle"
-    );
+    ensure!(!components.is_empty(), "cannot encode an empty AIR bundle");
     let total_constraints = components
         .iter()
         .map(|component| u64::from(component.n_constraints))
