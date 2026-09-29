@@ -1,0 +1,52 @@
+[
+  {
+    "case": "empty",
+    "exit_code": 2,
+    "stderr": "bend transport: truncated request"
+  },
+  {
+    "case": "truncated",
+    "exit_code": 2,
+    "stderr": "bend transport: truncated request"
+  },
+  {
+    "case": "bad_magic",
+    "exit_code": 2,
+    "stderr": "bend transport: bad version/magic"
+  },
+  {
+    "case": "bad_version",
+    "exit_code": 2,
+    "stderr": "bend transport: bad version/magic"
+  },
+  {
+    "case": "bad_operation",
+    "exit_code": 2,
+    "stderr": "bend transport: unsupported operation/size"
+  },
+  {
+    "case": "too_large",
+    "exit_code": 2,
+    "stderr": "bend transport: unsupported operation/size"
+  },
+  {
+    "case": "zero_log",
+    "exit_code": 2,
+    "stderr": "bend transport: unsupported operation/size"
+  },
+  {
+    "case": "noncanonical",
+    "exit_code": 2,
+    "stderr": "bend transport: noncanonical M31"
+  },
+  {
+    "case": "trailing",
+    "exit_code": 2,
+    "stderr": "bend transport: trailing input"
+  },
+  {
+    "case": "GPU unavailable refuses build fallback",
+    "exit_code": 2,
+    "stderr": "build_bend_experiment.py: error: GPU target requires Metal on macOS or CUDA; refusing CPU fallback"
+  }
+]

@@ -1,0 +1,43 @@
+{
+  "schema": "stwo-bend-pass4-build-v1",
+  "host": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "binaries": {
+    ".zig-cache/bend-pass4/profile/bin/bend-csp-bench": "4bd109321f0b1cf146b8e96fd6a58528d340c667a05fe7f361f4eb36b91e7411",
+    ".zig-cache/bend-pass3/native": "d11fefb66bd3a66a4705f24edf415a9be2ab3214dbcd1efcb6eacbbcfe4dce90"
+  },
+  "sources": {
+    "src/backends/bend/README.md": "563b3fb02d9df48ba1d44c1ddbc7f1d0d94b7205ea1ffabb757ad8f2ee1fbb54",
+    "src/backends/bend/abi.zig": "507aaf1746f644bda507cdd5f944faf0d73b0c06ac230cc96d891c313e356127",
+    "src/backends/bend/benchmark.zig": "d4d345ba15f5e40b834a8b24eb4ef2c84bb5df563c7649eaac31bf8d651d3d6e",
+    "src/backends/bend/build.zig": "de539929c483a99346444e54f2f51874d050cd365994196c382c1e0101562d96",
+    "src/backends/bend/build.zig.zon": "77245d46e41ac8aa4e6047f5e4291c5933f22494e28fd7e9baf290b694513c19",
+    "src/backends/bend/circle.zig": "b2ba7ec9065319d248cbc12b5e39cf7adb6a8ffd563e740ea8ca495e76123ebd",
+    "src/backends/bend/fri.zig": "5b8ff436cd6670951a389cd618728ec64b77b062d4a949daaca8225f18b946b4",
+    "src/backends/bend/integration_test.zig": "e843950f5d8825fbbb6e9df5ceedcb4199e0993632738fff2934e452431469c9",
+    "src/backends/bend/mod.zig": "cf02cc79c8c8fcc3957aae0a81cd85703c5435b80f4d0811363310f1bc2622bd",
+    "src/backends/bend/oracle.zig": "0144a08cfb66956c33b2f4e3469176a645e81967e1109947afb98890d7cb24f2",
+    "src/backends/bend/package.contract.json": "4e13e441ee83811302970b7988f20dca73334ec8c185b76b0019f692b22db02a",
+    "src/backends/bend/runtime.zig": "98284fd5831fecdfe959da45d45979a2095ceb4ac83a05ba022a80d033b757ad",
+    "src/integrations/riscv_bend/README.md": "0ad0c9a0c1dd88623ad5c3dabdb123bb0bac39af540b577801ffee030a57c25e",
+    "src/integrations/riscv_bend/build.zig": "6d64967d0dd0546ec09630ffece220e2c5896196758bc385160f8468b2ed1d40",
+    "src/integrations/riscv_bend/build.zig.zon": "41777321593a88b3bc00a932e265ef173641c0568654c1809f4adb01cdf9a678",
+    "src/integrations/riscv_bend/csp_benchmark.zig": "68b4c60ff616a283b99d4ae08e76b311d24334d5328d479091621057b6206e05",
+    "src/integrations/riscv_bend/mod.zig": "9900010944ac4821dd60bb4b8d9f34e460286e1a744133a4963599a8ae3ce4bb",
+    "src/integrations/riscv_bend/package.contract.json": "755a677a9c33c5e2227a9340351ffc2b559d2937dfc4b2462353755adfa0cb76",
+    "bend/stwo/LAWS.bend": "3aaf0961036a89c99208b8bd9279677f3ab4c19856ca6972f060b5ecfdc84c46",
+    "bend/stwo/PROOF.bend": "78a682775b4c89294620d14918d7d5668977155074f5d6c30468b3a89f2c1bd1",
+    "bend/stwo/butterfly.bend": "8c00e7df8b02f7d69752f259ab2b10559615baadfec1bc92b025132e8a6656e9",
+    "bend/stwo/circle_fft.bend": "fafb07a80665df12c29b022f9e0fc904dd63bd39ae76ca7defca096b011833e2",
+    "bend/stwo/fri.bend": "295e94c4e9aab3fc2f8531be77b310cca32cfadc843b1756ec655000f290fec6",
+    "bend/stwo/interactions.bend": "c0a9b4b4cf7bf672b66327ccedb7f7b0e525265ad40785c829e287b23e6ce6db",
+    "bend/stwo/m31.bend": "2029286b6f82cea592e0d7bbe6cf735de83c785bf4535953c40cae01c39f3c09",
+    "bend/stwo/qm31.bend": "5ee5e9301f3ba2253640f9cc0551032f407531642f9842f58d48e3c8ef2d4e9c",
+    "bend/stwo/runner.bend": "aeaa7420fd9c4587914c4d4a3613e61147201c72e9d86e1071669fde4c0863c2",
+    "bend/stwo/transport.c": "22d1f8c5b14341197fde808ef73750d71b2425eda4c4f26d394ad485648196e1"
+  },
+  "validation": {
+    "ReleaseFast": "backend tests + native integration passed",
+    "ReleaseSafe": "backend tests + native integration passed"
+  },
+  "scope": "CPU only. Existing pinned Bend native unchanged. 64 MiB cold exact-request result cache; all parity checks retained."
+}

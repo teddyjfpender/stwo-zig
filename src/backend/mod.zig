@@ -31,6 +31,7 @@
 
 pub const column = @import("column.zig");
 pub const capabilities = @import("capabilities.zig");
+pub const circle_ops = @import("circle_ops.zig");
 pub const field_ops = @import("field_ops.zig");
 pub const fri_ops = @import("fri_ops.zig");
 pub const merkle_ops = @import("merkle_ops.zig");
@@ -50,6 +51,7 @@ pub fn assertBackend(comptime B: type) void {
     comptime {
         column.assertColumnOps(B);
         const declared = capabilities.declared(B);
+        circle_ops.assertCapability(B, declared.circle_transform);
         field_ops.assertCapability(B, declared.host_batch_inverse);
         fri_ops.assertCapability(B, declared.fri_folding, declared.fri_multi_fold);
     }

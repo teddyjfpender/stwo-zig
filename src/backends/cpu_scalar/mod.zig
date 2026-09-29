@@ -36,10 +36,32 @@ const QM31 = qm31_mod.QM31;
 /// to the existing scalar implementations in `core/` and `prover/`.
 pub const CpuBackend = struct {
     pub const capabilities: backend.Capabilities = .{
+        .circle_transform = true,
         .host_batch_inverse = true,
         .fri_folding = true,
         .fri_multi_fold = true,
     };
+    /// Explicit transform primitive for experimental compute-backend parity.
+    /// Existing PCS scheduling and combined LDE hooks remain unchanged.
+    pub fn transformCircleBuffers(
+        allocator: std.mem.Allocator,
+        values: []const []M31,
+        domain: core_poly.circle.domain.CircleDomain,
+        twiddles: backend.circle_ops.Twiddles,
+        direction: backend.circle_ops.Direction,
+    ) !void {
+        _ = allocator;
+        const tree = prover_impl.poly.twiddles.TwiddleTree([]const M31).init(
+            twiddles.root_coset,
+            twiddles.twiddles,
+            twiddles.itwiddles,
+        );
+        switch (direction) {
+            .evaluate => try prover_impl.poly.circle.poly.evaluateBuffersWithTwiddles(values, domain, tree),
+            .interpolate => try prover_impl.poly.circle.poly.interpolateBuffersWithTwiddles(values, domain, tree),
+        }
+    }
+
     pub const combined_commit_min_columns: usize = 65;
     pub const combined_commit_max_columns: usize = 256;
     pub const combined_base_in_place = true;

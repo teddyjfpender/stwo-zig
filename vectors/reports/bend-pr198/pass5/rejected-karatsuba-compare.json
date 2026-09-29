@@ -1,0 +1,596 @@
+{
+  "schema": "stwo-bend-evidence-v1",
+  "toolchain": {
+    "repository": "https://github.com/bendlang/bend",
+    "commit": "0b7e2b11c1054f5d0f4eb955cadb47997ef1115d",
+    "version": "2.0.5",
+    "zig_version": "0.15.2",
+    "base_pr": "https://github.com/teddyjfpender/stwo-zig/pull/198",
+    "base_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc"
+  },
+  "host": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpu_count": 9,
+    "cpu": "AMD EPYC 9V74 80-Core Processor"
+  },
+  "bend_binary_sha256": "dbf18386b72721e66dfd6b690205407d4dc519771639a4b7f9cfae217623cf28",
+  "zig_oracle_sha256": "ebc03b2fdaee9c6b1ad6df62d2bf01afa4ff9cd67569a51b2d95b245a54db98f",
+  "sources": {
+    "bend/stwo/LAWS.bend": "3aaf0961036a89c99208b8bd9279677f3ab4c19856ca6972f060b5ecfdc84c46",
+    "bend/stwo/PROOF.bend": "78a682775b4c89294620d14918d7d5668977155074f5d6c30468b3a89f2c1bd1",
+    "bend/stwo/butterfly.bend": "8c00e7df8b02f7d69752f259ab2b10559615baadfec1bc92b025132e8a6656e9",
+    "bend/stwo/circle_fft.bend": "0ac639d573f34a6979a215b04a9c5159aba62aad6d30f559eeec6176ba5a03ad",
+    "bend/stwo/fri.bend": "295e94c4e9aab3fc2f8531be77b310cca32cfadc843b1756ec655000f290fec6",
+    "bend/stwo/interactions.bend": "c0a9b4b4cf7bf672b66327ccedb7f7b0e525265ad40785c829e287b23e6ce6db",
+    "bend/stwo/m31.bend": "506ac72de080f8e68e4a0f2c554f3048f8f15f3c4425b4425c96e2c246aabaec",
+    "bend/stwo/qm31.bend": "5ee5e9301f3ba2253640f9cc0551032f407531642f9842f58d48e3c8ef2d4e9c",
+    "bend/stwo/runner.bend": "e3514c2d11c9b579b0b0805d626f274fab6fe8d909516e5a7b259476c7c6402d",
+    "src/backends/bend/abi.zig": "507aaf1746f644bda507cdd5f944faf0d73b0c06ac230cc96d891c313e356127",
+    "src/backends/bend/benchmark.zig": "d4d345ba15f5e40b834a8b24eb4ef2c84bb5df563c7649eaac31bf8d651d3d6e",
+    "src/backends/bend/build.zig": "de539929c483a99346444e54f2f51874d050cd365994196c382c1e0101562d96",
+    "src/backends/bend/circle.zig": "7fb4a6749f377872ea7b40c8c3f95dc5f7758352177af18e20898ab47b4ebb46",
+    "src/backends/bend/fri.zig": "f7421059281c31dea29e2695c583ee4ced59bca9af4f01af619177d08b50e2fd",
+    "src/backends/bend/integration_test.zig": "5e5f5a4f7fe790ca46433564da757ec51aa1040929136342973427c06b30718d",
+    "src/backends/bend/mod.zig": "cf02cc79c8c8fcc3957aae0a81cd85703c5435b80f4d0811363310f1bc2622bd",
+    "src/backends/bend/oracle.zig": "0144a08cfb66956c33b2f4e3469176a645e81967e1109947afb98890d7cb24f2",
+    "src/backends/bend/runtime.zig": "48bbb6ca0e4ed3dd30db0bf8e6d1380346eb8a96a907491b452797d0fedee761",
+    "bend/stwo/transport.c": "86c07f28f9ec0fbcf1922e194d0c50470345d4b3612cf5a3f6e7470cbb9dd495",
+    "autoresearch/benchmarks/bend_common.py": "78e6dc3edb3113312d3f70b764c184abbaab5abd0db52749e75fa39418d99a12"
+  },
+  "rust_oracle_qualified": false,
+  "proof_throughput_claim": false,
+  "scope": "fresh process per column; compute excludes input tree/plan construction and output serialization; wall includes native process launch and transport; compiler excluded",
+  "limitations": [
+    "shared host, uncontrolled frequency",
+    "RSS includes runtime and IO",
+    "logical operations are not machine instructions",
+    "no full proof or universal arithmetic proof"
+  ],
+  "rows": [
+    {
+      "operation": "fft",
+      "log_size": 20,
+      "threads": 1,
+      "samples": [
+        {
+          "zig": {
+            "compute_ns": 5981804,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 71750085,
+            "cpu_user_s": 0.031914,
+            "cpu_system_s": 0.039464,
+            "peak_rss_bytes": 20971520,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 72520170,
+            "lane": "bend-cpu",
+            "wall_ns": 88101786,
+            "cpu_user_s": 0.071681,
+            "cpu_system_s": 0.016113,
+            "peak_rss_bytes": 26619904,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 96576978,
+            "lane": "bend-cpu",
+            "wall_ns": 117317760,
+            "cpu_user_s": 0.104944,
+            "cpu_system_s": 0.012093,
+            "peak_rss_bytes": 30814208,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 5941004,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 44496020,
+            "cpu_user_s": 0.032549,
+            "cpu_system_s": 0.011479999999999999,
+            "peak_rss_bytes": 35008512,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "candidate": {
+            "compute_ns": 69239000,
+            "lane": "bend-cpu",
+            "wall_ns": 84946632,
+            "cpu_user_s": 0.07674,
+            "cpu_system_s": 0.007932,
+            "peak_rss_bytes": 42700800,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "baseline": {
+            "compute_ns": 74364821,
+            "lane": "bend-cpu",
+            "wall_ns": 89687305,
+            "cpu_user_s": 0.07323299999999999,
+            "cpu_system_s": 0.016222999999999998,
+            "peak_rss_bytes": 42700800,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 6481181,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 42343689,
+            "cpu_user_s": 0.042013999999999996,
+            "cpu_system_s": 0.0,
+            "peak_rss_bytes": 42700800,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 74958057,
+            "lane": "bend-cpu",
+            "wall_ns": 91212245,
+            "cpu_user_s": 0.07979699999999999,
+            "cpu_system_s": 0.011124,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 75806699,
+            "lane": "bend-cpu",
+            "wall_ns": 91168075,
+            "cpu_user_s": 0.072984,
+            "cpu_system_s": 0.017887,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        }
+      ],
+      "compute_ns_speedup": 0.9809795437735654,
+      "wall_ns_speedup": 0.9837578011820476
+    },
+    {
+      "operation": "fft",
+      "log_size": 20,
+      "threads": 8,
+      "samples": [
+        {
+          "zig": {
+            "compute_ns": 5658518,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 39421859,
+            "cpu_user_s": 0.027395,
+            "cpu_system_s": 0.011739999999999999,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 42000162,
+            "lane": "bend-cpu",
+            "wall_ns": 56916403,
+            "cpu_user_s": 0.106044,
+            "cpu_system_s": 0.042609999999999995,
+            "peak_rss_bytes": 81133568,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 46084869,
+            "lane": "bend-cpu",
+            "wall_ns": 64667401,
+            "cpu_user_s": 0.089254,
+            "cpu_system_s": 0.063551,
+            "peak_rss_bytes": 78774272,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 5897249,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 43002293,
+            "cpu_user_s": 0.038706,
+            "cpu_system_s": 0.00402,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "candidate": {
+            "compute_ns": 39348194,
+            "lane": "bend-cpu",
+            "wall_ns": 54280200,
+            "cpu_user_s": 0.099656,
+            "cpu_system_s": 0.028776999999999997,
+            "peak_rss_bytes": 85196800,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "baseline": {
+            "compute_ns": 43175259,
+            "lane": "bend-cpu",
+            "wall_ns": 66299795,
+            "cpu_user_s": 0.120248,
+            "cpu_system_s": 0.036606,
+            "peak_rss_bytes": 83099648,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 6145485,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 52939126,
+            "cpu_user_s": 0.04863,
+            "cpu_system_s": 0.004058,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 37811691,
+            "lane": "bend-cpu",
+            "wall_ns": 53228358,
+            "cpu_user_s": 0.12403499999999999,
+            "cpu_system_s": 0.016319,
+            "peak_rss_bytes": 79429632,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 42832273,
+            "lane": "bend-cpu",
+            "wall_ns": 62451463,
+            "cpu_user_s": 0.11415399999999999,
+            "cpu_system_s": 0.014972,
+            "peak_rss_bytes": 81657856,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        }
+      ],
+      "compute_ns_speedup": 0.9805728031290798,
+      "wall_ns_speedup": 0.9113702108147571
+    },
+    {
+      "operation": "ifft",
+      "log_size": 20,
+      "threads": 1,
+      "samples": [
+        {
+          "zig": {
+            "compute_ns": 5226169,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 41840565,
+            "cpu_user_s": 0.028176999999999997,
+            "cpu_system_s": 0.012288,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 105969312,
+            "lane": "bend-cpu",
+            "wall_ns": 122434991,
+            "cpu_user_s": 0.110081,
+            "cpu_system_s": 0.011597,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 88694400,
+            "lane": "bend-cpu",
+            "wall_ns": 106920891,
+            "cpu_user_s": 0.09859599999999999,
+            "cpu_system_s": 0.00801,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 5182175,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 41878586,
+            "cpu_user_s": 0.033773,
+            "cpu_system_s": 0.0075959999999999995,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "candidate": {
+            "compute_ns": 92931755,
+            "lane": "bend-cpu",
+            "wall_ns": 113147797,
+            "cpu_user_s": 0.09003799999999999,
+            "cpu_system_s": 0.022799,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "baseline": {
+            "compute_ns": 82714198,
+            "lane": "bend-cpu",
+            "wall_ns": 98832850,
+            "cpu_user_s": 0.090206,
+            "cpu_system_s": 0.007809,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 5521284,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 45159595,
+            "cpu_user_s": 0.036572,
+            "cpu_system_s": 0.00795,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 80761122,
+            "lane": "bend-cpu",
+            "wall_ns": 95340338,
+            "cpu_user_s": 0.087157,
+            "cpu_system_s": 0.007914,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 76610540,
+            "lane": "bend-cpu",
+            "wall_ns": 91464651,
+            "cpu_user_s": 0.07506199999999999,
+            "cpu_system_s": 0.016111,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        }
+      ],
+      "compute_ns_speedup": 0.932575202042068,
+      "wall_ns_speedup": 0.9243549045995136
+    },
+    {
+      "operation": "ifft",
+      "log_size": 20,
+      "threads": 8,
+      "samples": [
+        {
+          "zig": {
+            "compute_ns": 4618814,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 42004541,
+            "cpu_user_s": 0.03729,
+            "cpu_system_s": 0.004385,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 53814031,
+            "lane": "bend-cpu",
+            "wall_ns": 74832157,
+            "cpu_user_s": 0.12573199999999998,
+            "cpu_system_s": 0.020496999999999998,
+            "peak_rss_bytes": 85983232,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 52528516,
+            "lane": "bend-cpu",
+            "wall_ns": 70879575,
+            "cpu_user_s": 0.102143,
+            "cpu_system_s": 0.039743,
+            "peak_rss_bytes": 90177536,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 4740954,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 42347598,
+            "cpu_user_s": 0.038333,
+            "cpu_system_s": 0.003789,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "candidate": {
+            "compute_ns": 45680474,
+            "lane": "bend-cpu",
+            "wall_ns": 63109518,
+            "cpu_user_s": 0.121462,
+            "cpu_system_s": 0.027368,
+            "peak_rss_bytes": 86245376,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "baseline": {
+            "compute_ns": 59184143,
+            "lane": "bend-cpu",
+            "wall_ns": 81177316,
+            "cpu_user_s": 0.13235,
+            "cpu_system_s": 0.038100999999999996,
+            "peak_rss_bytes": 86900736,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 5265802,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 41233118,
+            "cpu_user_s": 0.036739999999999995,
+            "cpu_system_s": 0.004194,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 53439254,
+            "lane": "bend-cpu",
+            "wall_ns": 68387470,
+            "cpu_user_s": 0.130511,
+            "cpu_system_s": 0.031141,
+            "peak_rss_bytes": 84148224,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          },
+          "candidate": {
+            "compute_ns": 47163042,
+            "lane": "bend-cpu",
+            "wall_ns": 71040689,
+            "cpu_user_s": 0.115075,
+            "cpu_system_s": 0.035491999999999996,
+            "peak_rss_bytes": 88735744,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316
+          }
+        }
+      ],
+      "compute_ns_speedup": 1.1410212046966774,
+      "wall_ns_speedup": 1.0557647531041205
+    },
+    {
+      "operation": "multiply",
+      "log_size": 20,
+      "threads": 1,
+      "samples": [
+        {
+          "zig": {
+            "compute_ns": 195929,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 28944256,
+            "cpu_user_s": 0.023035,
+            "cpu_system_s": 0.0036929999999999997,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 9116949,
+            "lane": "bend-cpu",
+            "wall_ns": 16530364,
+            "cpu_user_s": 0.007859,
+            "cpu_system_s": 0.008313,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164
+          },
+          "candidate": {
+            "compute_ns": 12408444,
+            "lane": "bend-cpu",
+            "wall_ns": 20985325,
+            "cpu_user_s": 0.016541999999999998,
+            "cpu_system_s": 0.004174,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 201788,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 28788512,
+            "cpu_user_s": 0.027774999999999998,
+            "cpu_system_s": 0.0,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "candidate": {
+            "compute_ns": 7869999,
+            "lane": "bend-cpu",
+            "wall_ns": 15082659,
+            "cpu_user_s": 0.011014999999999999,
+            "cpu_system_s": 0.0038139999999999997,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164
+          },
+          "baseline": {
+            "compute_ns": 8695868,
+            "lane": "bend-cpu",
+            "wall_ns": 15813367,
+            "cpu_user_s": 0.007896,
+            "cpu_system_s": 0.007671,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164
+          }
+        },
+        {
+          "zig": {
+            "compute_ns": 154248,
+            "pack_width": 16,
+            "lane": "zig-existing",
+            "wall_ns": 37482821,
+            "cpu_user_s": 0.019195999999999998,
+            "cpu_system_s": 0.009145,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 0,
+            "response_bytes": 0
+          },
+          "baseline": {
+            "compute_ns": 8424577,
+            "lane": "bend-cpu",
+            "wall_ns": 15211498,
+            "cpu_user_s": 0.0075179999999999995,
+            "cpu_system_s": 0.0075179999999999995,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164
+          },
+          "candidate": {
+            "compute_ns": 10932166,
+            "lane": "bend-cpu",
+            "wall_ns": 19155526,
+            "cpu_user_s": 0.011477999999999999,
+            "cpu_system_s": 0.007436,
+            "peak_rss_bytes": 42766336,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164
+          }
+        }
+      ],
+      "compute_ns_speedup": 0.7954387081206048,
+      "wall_ns_speedup": 0.8255250730259247
+    }
+  ],
+  "all_equal": true,
+  "baseline_binary_sha256": "72275fea4e57f089b1dfb01c64ad6d567e5d6456e1b827350bfbe7721f65bc68",
+  "harness_sha256": "cc504c82986835cb3ab8cc730b44462d540345bab4f9cbcfd013d4e8ad585067",
+  "paired_order": "baseline/candidate, candidate/baseline, baseline/candidate"
+}

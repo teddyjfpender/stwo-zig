@@ -1,0 +1,36 @@
+{
+  "binary_sha256": "7077ae02b13991069c5fac4066e51d5973cea52e81b1f44fd7ccca9130301bdd",
+  "all_passed": true,
+  "cases": [
+    {
+      "case": "reuse_different_values",
+      "passed": true,
+      "returncode": 0,
+      "stderr": "{\"compute_ns\":1633,\"lane\":\"bend-cpu\"}\n{\"compute_ns\":391,\"lane\":\"bend-cpu\"}\n"
+    },
+    {
+      "case": "reuse_before_plan",
+      "passed": true,
+      "returncode": 2,
+      "stderr": "bend transport: missing plan template\n"
+    },
+    {
+      "case": "reuse_wrong_size",
+      "passed": true,
+      "returncode": 2,
+      "stderr": "{\"compute_ns\":801,\"lane\":\"bend-cpu\"}\nbend transport: missing plan template\n"
+    },
+    {
+      "case": "legacy_magic_reuse",
+      "passed": true,
+      "returncode": 2,
+      "stderr": "bend transport: invalid plan reuse\n"
+    },
+    {
+      "case": "truncated_frame",
+      "passed": true,
+      "returncode": 2,
+      "stderr": "bend transport: truncated request\n"
+    }
+  ]
+}

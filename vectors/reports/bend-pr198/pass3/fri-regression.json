@@ -1,0 +1,25 @@
+{
+  "scope": "same seed42 fixture and unchanged core folding; explicit non-inlined call boundary in oracle",
+  "request_identical": true,
+  "seed": 42,
+  "oracle_sha256": "ebc03b2fdaee9c6b1ad6df62d2bf01afa4ff9cd67569a51b2d95b245a54db98f",
+  "old_release": [
+    827280962,
+    1,
+    4,
+    1486523585,
+    661386311,
+    1107466586,
+    1298730771
+  ],
+  "current_release": [
+    827280962,
+    1,
+    4,
+    739405575,
+    2061584686,
+    1854705640,
+    2045997287
+  ],
+  "matches_retained_debug_and_bend": true
+}

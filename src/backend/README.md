@@ -42,6 +42,10 @@ flowchart LR
 
 ## Public API
 
+`circle_ops` defines the opt-in caller-owned Circle transform primitive and its
+compile-time signature contract. It uses core field/domain types only.
+
+
 ```zig
 const contracts = @import("stwo_backend_contracts");
 const cpu = @import("stwo_cpu_backend");

@@ -1,0 +1,78 @@
+{
+  "release": {
+    "oracle_sha256": "3631aa523628b9472eec29712853f5b4aa6f90930d3292b175f3136803972b6d",
+    "request_words": [
+      826560066,
+      1,
+      4,
+      3,
+      1,
+      574305359,
+      733453256,
+      101873349,
+      107748059,
+      977417529,
+      656961342,
+      286071466,
+      124544418,
+      65536,
+      17,
+      2147483646,
+      65535,
+      12345
+    ],
+    "expected_words": [
+      827280962,
+      1,
+      4,
+      1486523585,
+      661386311,
+      1107466586,
+      1298730771
+    ]
+  },
+  "debug": {
+    "oracle_sha256": "048d4b7a56b07909dd9d137c49c45b14be314dd6b739eedf9e816b2ed2b32f06",
+    "request_words": [
+      826560066,
+      1,
+      4,
+      3,
+      1,
+      574305359,
+      733453256,
+      101873349,
+      107748059,
+      977417529,
+      656961342,
+      286071466,
+      124544418,
+      65536,
+      17,
+      2147483646,
+      65535,
+      12345
+    ],
+    "expected_words": [
+      827280962,
+      1,
+      4,
+      739405575,
+      2061584686,
+      1854705640,
+      2045997287
+    ]
+  },
+  "bend_words": [
+    827280962,
+    1,
+    4,
+    739405575,
+    2061584686,
+    1854705640,
+    2045997287
+  ],
+  "request_identical": true,
+  "status": "blocked: Zig Debug/ReleaseFast disagreement; Bend FRI not admitted",
+  "scope": "Zig 0.15.2 x86_64 build of new fixture producer calling existing core FRI; root cause not established. Not a claim about production proof corruption."
+}

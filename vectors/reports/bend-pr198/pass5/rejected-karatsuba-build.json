@@ -1,0 +1,26 @@
+{
+  "schema": "stwo-bend-build-v1",
+  "pin": {
+    "repository": "https://github.com/bendlang/bend",
+    "commit": "0b7e2b11c1054f5d0f4eb955cadb47997ef1115d",
+    "version": "2.0.5",
+    "zig_version": "0.15.2",
+    "base_pr": "https://github.com/teddyjfpender/stwo-zig/pull/198",
+    "base_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc"
+  },
+  "target": "cpu",
+  "binary_sha256": "dbf18386b72721e66dfd6b690205407d4dc519771639a4b7f9cfae217623cf28",
+  "generated_c_sha256": "2dce654a3a9063c2026a887cd892e9a63bfe3177d893e1f344061b4ef68b6558",
+  "sources": {
+    "bend/stwo/LAWS.bend": "3aaf0961036a89c99208b8bd9279677f3ab4c19856ca6972f060b5ecfdc84c46",
+    "bend/stwo/PROOF.bend": "78a682775b4c89294620d14918d7d5668977155074f5d6c30468b3a89f2c1bd1",
+    "bend/stwo/butterfly.bend": "8c00e7df8b02f7d69752f259ab2b10559615baadfec1bc92b025132e8a6656e9",
+    "bend/stwo/circle_fft.bend": "0ac639d573f34a6979a215b04a9c5159aba62aad6d30f559eeec6176ba5a03ad",
+    "bend/stwo/fri.bend": "295e94c4e9aab3fc2f8531be77b310cca32cfadc843b1756ec655000f290fec6",
+    "bend/stwo/interactions.bend": "c0a9b4b4cf7bf672b66327ccedb7f7b0e525265ad40785c829e287b23e6ce6db",
+    "bend/stwo/m31.bend": "506ac72de080f8e68e4a0f2c554f3048f8f15f3c4425b4425c96e2c246aabaec",
+    "bend/stwo/qm31.bend": "5ee5e9301f3ba2253640f9cc0551032f407531642f9842f58d48e3c8ef2d4e9c",
+    "bend/stwo/runner.bend": "e3514c2d11c9b579b0b0805d626f274fab6fe8d909516e5a7b259476c7c6402d",
+    "bend/stwo/transport.c": "86c07f28f9ec0fbcf1922e194d0c50470345d4b3612cf5a3f6e7470cbb9dd495"
+  }
+}

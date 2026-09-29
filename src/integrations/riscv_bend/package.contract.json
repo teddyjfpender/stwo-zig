@@ -1,0 +1,45 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_riscv_bend_integration",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "bend-experiment",
+  "public_modules": {
+    "stwo_riscv_bend_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_cpu_backend": "../../backends/cpu_scalar",
+    "stwo_bend_backend": "../../backends/bend",
+    "stwo_prover_engine": "../../prover",
+    "stwo_riscv_frontend": "../../frontends/riscv"
+  },
+  "injected_modules": [
+    "config",
+    "postcard"
+  ],
+  "api_surface": [
+    "Engine"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: experimental engine exposes the prover backend"
+    ],
+    "invariant_tests": [
+      "mod.zig::api invariant: experimental engine retains Circle and multi-fold"
+    ]
+  },
+  "ci": {
+    "lane": "riscv_bend_integration",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/riscv_bend/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

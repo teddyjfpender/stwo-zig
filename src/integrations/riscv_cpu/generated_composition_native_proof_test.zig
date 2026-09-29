@@ -30,6 +30,7 @@ const span = frontend.recursion.span_statement;
 /// implementation whose behavior could drift from `CpuBackend`.
 const ReferenceCpuBackend = struct {
     pub const capabilities = CpuBackend.capabilities;
+    pub const transformCircleBuffers = CpuBackend.transformCircleBuffers;
     pub const combined_commit_min_columns =
         CpuBackend.combined_commit_min_columns;
     pub const combined_commit_max_columns =

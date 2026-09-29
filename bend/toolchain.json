@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/bendlang/bend",
+  "commit": "0b7e2b11c1054f5d0f4eb955cadb47997ef1115d",
+  "version": "2.0.5",
+  "zig_version": "0.15.2",
+  "base_pr": "https://github.com/teddyjfpender/stwo-zig/pull/198",
+  "base_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc"
+}

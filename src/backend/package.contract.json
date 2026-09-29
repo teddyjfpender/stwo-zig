@@ -18,6 +18,7 @@
     "assertBackend",
     "assertBackendForChannel",
     "capabilities",
+    "circle_ops",
     "column",
     "field_ops",
     "fri_ops",
