@@ -1,0 +1,43 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_circuit_frontend",
+  "version": "0.1.0",
+  "layer": "frontend",
+  "owner": "circuit-frontend",
+  "public_modules": {
+    "stwo_circuit_frontend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_prover_engine": "../../prover"
+  },
+  "injected_modules": [
+    "circuit_frontend"
+  ],
+  "api_surface": [
+    "common",
+    "stark_verifier",
+    "statements"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: circuit facade exposes the ported crates"
+    ],
+    "invariant_tests": [
+      "mod.zig::invariant: every preprocessed layout has the 45 circuit columns"
+    ]
+  },
+  "ci": {
+    "lane": "circuit_frontend",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/frontends/circuit/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}
