@@ -8,7 +8,7 @@ port's parity ladder compares against (design:
 products never build, invoke, or distribute it.
 
 Every subcommand runs in seconds. Most only build circuits or hash data;
-`prove-small` proves six small circuits, `prove-cairo` proves a small Cairo
+`prove-small` and `prove-profiles` prove small circuits, `prove-cairo` proves a small Cairo
 program (about 2 GB for the committed all_opcodes and all_builtins fixtures;
 larger programs belong on a big host), and `topology` and `verifier-stages`
 build multi-million-gate circuits and commit preprocessed traces. Measured peak
@@ -28,6 +28,9 @@ heavy ones under the host's heavy-command wrapper; `topology` is close to an
 | `finalize` | R5 | The `prover_test.rs` circuits after `finalize_constants`, guess finalization, each padding kind, and ZK blinding |
 | `topology` | R6 | Both checked-in registries' multiverifiers rebuilt (layout, per-column digests, preprocessed root, circuit hash); the canonical_small Cairo preprocessed roots at log blowups 1-3 |
 | `prove-small` | R7 | Proofs of the `prover_test.rs` circuits, mirrored step by step: transcript digests, per-column digests, claimed sums, roots, FRI layer roots, nonces |
+| `prove-profiles` | R7 | `fibonacci` and `blake_g_gate` under the circuit FRI config (26 PoW bits, blowup 1, 70 queries, fold step 4) on both channel profiles (`Blake2sM31MerkleChannel`, `Blake2sMerkleChannel`), with the `prove-small` records and the verdict of upstream's native `stwo_verify` on each proof: both grinds in `SimdBackend` order, most nonces with `hi > 0` |
+| `multiverifier-inputs` | R7 | The multiverifier `test_data/circuit_multiverifier/proof.bin` proves (two copies of `proof_cairo.bin`, padded to the privacy targets), written as the circuit prover's inputs (`--inputs-output`, `STWZCIRC/1`: gate lists and value table, 179 MB, outside the tree); the checkpoint pins that file, the circuit digests, the preprocessed root and `proof.bin` |
+| `verify-circuit` | R7 | Upstream `verify_circuit` on CircuitSerialize bytes (`--proof`) under a request (`--request`: PCS config, preprocessed layout, preprocessed root, output digest); the verdict is a result, and a rejection is recorded, not raised |
 | `cairo-statement` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, the leaf test program's limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests on both channels, and the leaf `ProofConfig` and proof size |
 | `air-programs` | R7 | The circuit AIR's 11 `FrameworkEval`s recorded into the `STWZEVA/1` bundle with the shared recorder of `tools/stwo-eval-program-abi` |
 | `prove-lifted-example` | R10 lift | Upstream's wide-Fibonacci prover test (`crates/examples`) with the trace tree committed 0, 1 and 3 levels above its columns, verified; `bincode(StarkProof)` digests and per-stage values |
@@ -49,8 +52,13 @@ refuse any checkout whose inputs differ from the pinned revision's
 (`src/upstream.rs` and each subcommand's pinned aggregate digest). `prove-small`
 takes `--memory-budget BYTES` (default 4 GiB) and refuses a circuit whose
 estimated prover peak exceeds it; the multiverifier `proof.bin` circuit (trace
-log size 21, log blowup 3) is far over that budget and is therefore covered by
-`verifier-stages` only.
+log size 21, log blowup 3) is far over that budget. The oracle does not prove it:
+`multiverifier-inputs` writes its inputs, and the Zig circuit prover must
+reproduce the committed `proof.bin` from them (1 s, 4.1 GB peak for the
+oracle). `verify-circuit` checks proofs written by the Zig prover
+(`STWO_CIRCUIT_R7_EMIT_DIR`); `scripts/generate_circuit_oracle_vectors.py
+--zig-emit-dir DIR` regenerates the committed verdicts from such a directory
+and otherwise keeps them.
 
 The oracle compiles in `../stwo-eval-program-abi/src/lib.rs` with `#[path]`: the
 evaluation-program recorder and bundle encoder it shares with

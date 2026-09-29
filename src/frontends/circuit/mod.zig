@@ -21,6 +21,9 @@ pub const statements = @import("statements/mod.zig");
 /// The in-circuit constraint evaluators, interpreted from the compiled-AIR
 /// projection (design §5.4).
 pub const air_eval = @import("air_eval/mod.zig");
+/// `crates/circuit_prover/src/witness`: the circuit prover's base and
+/// interaction traces (design §4.3).
+pub const witness = @import("witness/mod.zig");
 
 test "api signature: the builder is generic over QM31 and NoValue" {
     const QM31 = @import("stwo_core").fields.qm31.QM31;

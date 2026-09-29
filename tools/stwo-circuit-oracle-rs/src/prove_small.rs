@@ -37,24 +37,31 @@ use circuit_prover::circuit_air::circuit_components::CircuitComponents;
 use circuit_prover::circuit_hash::compute_circuit_hash;
 use circuit_prover::prover::{
     BaseColumnPool, CircuitProof, SimdBackend, prepare_circuit_proof_for_circuit_verifier,
-    prove_circuit_assignment,
+    prove_circuit_assignment_with_channel,
 };
 use circuit_prover::witness::trace::{TraceGenerator, write_interaction_trace, write_trace};
 use circuit_serialize::serialize::CircuitSerialize;
-use circuit_verifier::circuit_claim::{CircuitInteractionElements, lookup_sum};
-use circuit_verifier::statement::{INTERACTION_POW_BITS, all_circuit_components};
+use circuit_verifier::circuit_claim::{
+    CircuitInteractionElements, column_log_sizes_per_tree, lookup_sum,
+};
+use circuit_verifier::statement::{
+    INTERACTION_POW_BITS, all_circuit_components, circuit_component_log_sizes,
+};
 use circuits::ivalue::NoValue;
 use circuits::utils::le_u32s_from_bytes;
 use num_traits::Zero;
 use serde::Serialize;
-use stwo::core::channel::{Blake2sM31Channel, Channel, MerkleChannel};
+use stwo::core::channel::{Blake2sChannelGeneric, Channel, MerkleChannel};
 use stwo::core::fields::qm31::QM31;
 use stwo::core::fri::FriConfig;
-use stwo::core::pcs::PcsConfig;
+use stwo::core::pcs::{CommitmentSchemeVerifier, PcsConfig};
 use stwo::core::poly::circle::CanonicCoset;
 use stwo::core::proof_of_work::GrindOps;
 use stwo::core::utils::MaybeOwned;
-use stwo::core::vcs_lifted::blake2_merkle::{Blake2sM31MerkleChannel, Blake2sMerkleHasher};
+use stwo::core::vcs_lifted::blake2_merkle::{
+    Blake2sM31MerkleChannel, Blake2sMerkleChannel, Blake2sMerkleHasher,
+};
+use stwo::prover::backend::BackendForChannel;
 use stwo::prover::backend::Column;
 use stwo::prover::poly::circle::PolyOps;
 use stwo::prover::{CommitmentSchemeProver, CommitmentTreeProver, prove_ex};
@@ -65,8 +72,6 @@ use stwo_constraint_framework::{
 use crate::checkpoint::{Envelope, U64Record, hex32, qm31, sha256_hex, values_sha256};
 use crate::columns::{self, ColumnDigester, ComponentColumns};
 use crate::contexts::{self, TestContext};
-
-type MC = Blake2sM31MerkleChannel;
 
 /// `COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND` of `crates/circuit_prover/src/prover.rs`.
 const COMPOSITION_POLYNOMIAL_LOG_DEGREE_BOUND: u32 = 1;
@@ -166,10 +171,16 @@ pub struct ProveSmallBody {
     pub proofs: Vec<ProofRecord>,
 }
 
-/// `default_circuit_pcs_config` of `crates/circuit_prover/src/test_utils.rs`.
-fn pcs_config(trace_log_size: u32) -> PcsConfig {
-    PcsConfig::from_fri_and_trace_size(FriConfig::default(), trace_log_size)
+/// The circuit FRI config every checked-in circuit registry uses
+/// (`crates/circuit_params/tests/cairo_consts_test.rs`): 26 PoW bits, blowup 1, 70 queries,
+/// fold step 4. `prove-profiles` proves under it so that both grinds (20-bit interaction,
+/// 26-bit FRI) run in `SimdBackend` order on both channel profiles.
+fn circuit_fri_config() -> FriConfig {
+    FriConfig::new(26, 0, 1, 70, 4)
 }
+
+/// The contexts `prove-profiles` proves on each channel profile.
+const PROFILE_CONTEXTS: [TestContext; 2] = [TestContext::Fibonacci, TestContext::BlakeGGate];
 
 /// An estimate of the prover's peak resident memory from the committed column sizes: every column
 /// held as evaluations, coefficients and a blown-up evaluation (4 bytes per M31), the four
@@ -234,11 +245,15 @@ fn digest_tree<'a>(
 }
 
 /// `prove_circuit_assignment_with_channel` + `prove_circuit_with_precompute`, with step marks.
-fn prove_mirrored(
+fn prove_mirrored<MC, const M31_OUTPUT: bool>(
     values: &[QM31],
     circuit: &PreprocessedCircuit,
     config: PcsConfig,
-) -> Result<Mirrored> {
+) -> Result<Mirrored>
+where
+    MC: MerkleChannel<C = Blake2sChannelGeneric<M31_OUTPUT>, H = Blake2sMerkleHasher>,
+    SimdBackend: BackendForChannel<MC>,
+{
     let pool = BaseColumnPool::<SimdBackend>::new();
     let twiddles = SimdBackend::precompute_twiddles(
         CanonicCoset::new(
@@ -275,14 +290,14 @@ fn prove_mirrored(
         },
     };
     let mut steps = Vec::new();
-    let mut step = |step: &'static str, channel: &Blake2sM31Channel| {
+    let mut step = |step: &'static str, channel: &Blake2sChannelGeneric<M31_OUTPUT>| {
         steps.push(StepRecord {
             step,
             channel_digest: hex32(channel.digest().0),
         })
     };
 
-    let channel = &mut Blake2sM31Channel::default();
+    let channel = &mut Blake2sChannelGeneric::<M31_OUTPUT>::default();
     let channel_salt = 0_u32;
     channel.mix_felts(&[channel_salt.into()]);
     step("mix_channel_salt", channel);
@@ -457,20 +472,112 @@ mod erased {
     }
 }
 
-fn proof_record(test: TestContext, memory_budget: u64) -> Result<ProofRecord> {
+/// `stwo_verify` of `crates/circuit_prover/src/prover_test.rs`: the native stwo verifier on a
+/// circuit proof, with the lookup sum checked to be zero.
+fn native_verify<MC>(proof: CircuitProof<MC::H>, preprocessed: &PreprocessedCircuit) -> Result<()>
+where
+    MC: MerkleChannel,
+{
+    let CircuitProof {
+        claim,
+        interaction_claim,
+        pcs_config,
+        stark_proof: proof,
+        interaction_pow_nonce,
+        channel_salt,
+        circuit_hash: _,
+    } = proof;
+    let preprocessed_column_log_sizes = preprocessed.preprocessed_trace.log_sizes();
+    let log_sizes = circuit_component_log_sizes(
+        &all_circuit_components::<NoValue>(),
+        &preprocessed_column_log_sizes,
+    );
+    let channel = &mut MC::C::default();
+    channel.mix_felts(&[channel_salt.into()]);
+    pcs_config.fri_config.mix_into(channel);
+    let commitment_scheme = &mut CommitmentSchemeVerifier::<MC>::new(pcs_config);
+    let [trace_log_sizes, interaction_log_sizes] = column_log_sizes_per_tree(&log_sizes);
+    commitment_scheme.commit(
+        proof.proof.commitments[0],
+        &preprocessed_column_log_sizes
+            .values()
+            .copied()
+            .collect::<Vec<_>>(),
+        channel,
+    );
+    let circuit_hash = compute_circuit_hash::<MC::H>(
+        &log_sizes,
+        pcs_config.fri_config.log_blowup_factor,
+        proof.proof.commitments[0],
+    );
+    MC::mix_hash(channel, circuit_hash);
+    claim.mix_into(channel);
+    commitment_scheme.commit(proof.proof.commitments[1], &trace_log_sizes, channel);
+    ensure!(
+        channel.verify_pow_nonce(INTERACTION_POW_BITS, interaction_pow_nonce),
+        "interaction proof of work"
+    );
+    channel.mix_u64(interaction_pow_nonce);
+    let interaction_elements = CircuitInteractionElements::draw(channel);
+    interaction_claim.mix_into(channel);
+    commitment_scheme.commit(proof.proof.commitments[2], &interaction_log_sizes, channel);
+    let components = CircuitComponents::new(
+        &interaction_elements,
+        &interaction_claim,
+        &log_sizes,
+        &preprocessed.preprocessed_trace.ids(),
+    );
+    stwo::core::verifier::verify_ex(
+        &components.components(),
+        channel,
+        commitment_scheme,
+        proof.proof,
+        true,
+    )
+    .map_err(|error| anyhow::anyhow!("verify_ex: {error:?}"))?;
+    ensure!(
+        lookup_sum(&claim, &interaction_claim, &interaction_elements) == QM31::zero(),
+        "lookup sum is not zero"
+    );
+    Ok(())
+}
+
+fn proof_record<MC, const M31_OUTPUT: bool>(
+    test: TestContext,
+    fri_config: FriConfig,
+    memory_budget: u64,
+) -> Result<ProofRecord>
+where
+    MC: MerkleChannel<C = Blake2sChannelGeneric<M31_OUTPUT>, H = Blake2sMerkleHasher>,
+    SimdBackend: BackendForChannel<MC>,
+{
+    proof_record_verified::<MC, M31_OUTPUT>(test, fri_config, memory_budget, false).map(|(r, _)| r)
+}
+
+/// [`proof_record`], optionally also verifying upstream's proof with [`native_verify`].
+fn proof_record_verified<MC, const M31_OUTPUT: bool>(
+    test: TestContext,
+    fri_config: FriConfig,
+    memory_budget: u64,
+    verify: bool,
+) -> Result<(ProofRecord, bool)>
+where
+    MC: MerkleChannel<C = Blake2sChannelGeneric<M31_OUTPUT>, H = Blake2sMerkleHasher>,
+    SimdBackend: BackendForChannel<MC>,
+{
     let name = test.name();
     let mut context = test.context::<QM31>(true)?.finalize(false);
     context.validate_circuit();
     let preprocessed = PreprocessedCircuit::preprocess_circuit(&mut context);
-    let config = pcs_config(preprocessed.trace_log_size());
+    let config = PcsConfig::from_fri_and_trace_size(fri_config, preprocessed.trace_log_size());
     let memory_estimate_bytes = memory_estimate(&preprocessed, &config);
     ensure!(
         memory_estimate_bytes <= memory_budget,
         "{name}: estimated {memory_estimate_bytes} bytes exceed --memory-budget {memory_budget}"
     );
 
-    let mirrored = prove_mirrored(context.values(), &preprocessed, config)?;
-    let upstream = prove_circuit_assignment(
+    let mirrored = prove_mirrored::<MC, M31_OUTPUT>(context.values(), &preprocessed, config)?;
+    let upstream = prove_circuit_assignment_with_channel::<MC>(
         context.values(),
         &preprocessed,
         &BaseColumnPool::<SimdBackend>::new(),
@@ -482,7 +589,13 @@ fn proof_record(test: TestContext, memory_budget: u64) -> Result<ProofRecord> {
         differences.is_empty(),
         "{name}: the mirrored proof differs from prove_circuit_assignment in {differences:?}"
     );
-    drop(upstream);
+    let native_verified = if verify {
+        native_verify::<MC>(upstream, &preprocessed)?;
+        true
+    } else {
+        drop(upstream);
+        false
+    };
 
     let Mirrored {
         proof,
@@ -555,16 +668,22 @@ fn proof_record(test: TestContext, memory_budget: u64) -> Result<ProofRecord> {
             sha256: sha256_hex(&bytes),
         }
     });
-    Ok(ProofRecord {
-        circuit_serialize,
-        ..record
-    })
+    Ok((
+        ProofRecord {
+            circuit_serialize,
+            ..record
+        },
+        native_verified,
+    ))
 }
 
 pub fn run(memory_budget: u64) -> Result<Envelope<ProveSmallBody>> {
+    // `default_circuit_pcs_config` of `crates/circuit_prover/src/test_utils.rs`.
     let proofs = contexts::ALL
         .into_iter()
-        .map(|test| proof_record(test, memory_budget))
+        .map(|test| {
+            proof_record::<Blake2sM31MerkleChannel, true>(test, FriConfig::default(), memory_budget)
+        })
         .collect::<Result<_>>()?;
     Ok(Envelope::new(
         "r7",
@@ -573,6 +692,80 @@ pub fn run(memory_budget: u64) -> Result<Envelope<ProveSmallBody>> {
         ProveSmallBody {
             channel: "blake2s_m31",
             proofs,
+        },
+    ))
+}
+
+/// A `prove-profiles` record: the `prove-small` record plus the verdict of upstream's native
+/// `stwo_verify` (`crates/circuit_prover/src/prover_test.rs`) on the same proof.
+#[derive(Serialize)]
+pub struct ProfileProofRecord {
+    #[serde(flatten)]
+    pub record: ProofRecord,
+    pub native_verified: bool,
+}
+
+#[derive(Serialize)]
+pub struct ProfileProofs {
+    /// `internal` (`Blake2sM31MerkleChannel`) or `root` (`Blake2sMerkleChannel`).
+    pub profile: &'static str,
+    pub channel: &'static str,
+    pub proofs: Vec<ProfileProofRecord>,
+}
+
+#[derive(Serialize)]
+pub struct ProveProfilesBody {
+    pub profiles: Vec<ProfileProofs>,
+}
+
+/// `prove-profiles`: [`PROFILE_CONTEXTS`] under [`circuit_fri_config`], once on each channel
+/// profile, with the same records as `prove-small`.
+pub fn run_profiles(memory_budget: u64) -> Result<Envelope<ProveProfilesBody>> {
+    let record = |(record, native_verified)| ProfileProofRecord {
+        record,
+        native_verified,
+    };
+    let internal = PROFILE_CONTEXTS
+        .into_iter()
+        .map(|test| {
+            proof_record_verified::<Blake2sM31MerkleChannel, true>(
+                test,
+                circuit_fri_config(),
+                memory_budget,
+                true,
+            )
+            .map(record)
+        })
+        .collect::<Result<_>>()?;
+    let root = PROFILE_CONTEXTS
+        .into_iter()
+        .map(|test| {
+            proof_record_verified::<Blake2sMerkleChannel, false>(
+                test,
+                circuit_fri_config(),
+                memory_budget,
+                true,
+            )
+            .map(record)
+        })
+        .collect::<Result<_>>()?;
+    Ok(Envelope::new(
+        "r7",
+        "prove-profiles",
+        Vec::new(),
+        ProveProfilesBody {
+            profiles: vec![
+                ProfileProofs {
+                    profile: "internal",
+                    channel: "blake2s_m31",
+                    proofs: internal,
+                },
+                ProfileProofs {
+                    profile: "root",
+                    channel: "blake2s",
+                    proofs: root,
+                },
+            ],
         },
     ))
 }

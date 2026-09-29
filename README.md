@@ -140,7 +140,7 @@ contract. Start with the smallest package that owns the behavior being changed:
 | Protocol and contracts | [`stwo_core`](src/core/README.md), [`stwo_backend_contracts`](src/backend/README.md), [`stwo_prover_api`](src/prover_api/README.md), [`stwo_prover_engine`](src/prover/README.md), [`stwo_proof_wire`](src/interop/proof_wire/README.md) |
 | Backends | [`stwo_cpu_backend`](src/backends/cpu_scalar/README.md), [`stwo_metal_backend`](src/backends/metal/README.md), [`stwo_cuda_backend`](src/backends/cuda/README.md) |
 | Frontends and services | [`stwo_riscv_frontend`](src/frontends/riscv/README.md), [`stwo_cairo_frontend`](src/frontends/cairo/README.md), [`stwo_sm83_frontend`](src/frontends/sm83/README.md), [`stwo_native_examples`](src/examples/README.md), [`stwo_metal_session`](src/tools/metal_session/README.md) |
-| CPU integrations | [`stwo_riscv_cpu_integration`](src/integrations/riscv_cpu/README.md), [`stwo_cairo_cpu_integration`](src/integrations/cairo_cpu/README.md), [`stwo_sm83_cpu_integration`](src/integrations/sm83_cpu/README.md) |
+| CPU integrations | [`stwo_riscv_cpu_integration`](src/integrations/riscv_cpu/README.md), [`stwo_cairo_cpu_integration`](src/integrations/cairo_cpu/README.md), [`stwo_circuit_cpu_integration`](src/integrations/circuit_cpu/README.md), [`stwo_sm83_cpu_integration`](src/integrations/sm83_cpu/README.md) |
 | Metal integrations | [`stwo_riscv_metal_integration`](src/integrations/riscv_metal/README.md), [`stwo_cairo_metal_integration`](src/integrations/cairo_metal/README.md), [`stwo_sm83_metal_integration`](src/integrations/sm83_metal/README.md) |
 | CUDA integrations | [`stwo_native_cuda_integration`](src/integrations/native_cuda/README.md), [`stwo_cairo_cuda_integration`](src/integrations/cairo_cuda/README.md) |
 

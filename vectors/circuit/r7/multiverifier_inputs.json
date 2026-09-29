@@ -1,0 +1,120 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r7",
+  "subcommand": "multiverifier-inputs",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [
+    {
+      "path": "test_data/circuit_multiverifier/proof.bin",
+      "bytes": 182884,
+      "sha256": "458eaa893dee79b8e5bb572d20e445a6d2164cb2d464e5967f1fa9e4156b38df"
+    },
+    {
+      "path": "test_data/circuit_multiverifier/proof_cairo.bin",
+      "bytes": 182884,
+      "sha256": "536c8bd7a231a4d7e66763866066f6d72097d902b7c5f839515d65c8c0fbf5b6"
+    }
+  ],
+  "body": {
+    "pcs_config": {
+      "fri_config": {
+        "pow_bits": 27,
+        "log_blowup_factor": 3,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 23,
+        "fold_step": 4
+      },
+      "trace_lifting_log_size": 24,
+      "preprocessed_lifting_log_size": 24
+    },
+    "target_log_sizes": [
+      17,
+      21,
+      17,
+      18,
+      20
+    ],
+    "circuit": {
+      "n_vars": 6672436,
+      "kinds": [
+        {
+          "kind": "add",
+          "count": 1669393,
+          "sha256": "768f458219ea4285cc770b99ab58eb34b938e262ec29d0530df6807cd8a269ff"
+        },
+        {
+          "kind": "sub",
+          "count": 159679,
+          "sha256": "8491bd5ee1ef1c3bb8492ffcfcf92eb05ace8dcf0a9cc5b230704b212f856ae2"
+        },
+        {
+          "kind": "mul",
+          "count": 181636,
+          "sha256": "82f9a4b8c60d7f1bd5ddc264be66884607660af5a8f44a2482e5f56134b3ae20"
+        },
+        {
+          "kind": "pointwise_mul",
+          "count": 61972,
+          "sha256": "e48546a93c49fa6baff922014490d5917c7f27adad2f711e9f43db2b59e8f5c0"
+        },
+        {
+          "kind": "eq",
+          "count": 131072,
+          "sha256": "170940c9204af5d0c3ce2bc0a3ee6ef9681a0ed1b139aeefafddfdb7970b3626"
+        },
+        {
+          "kind": "triple_xor",
+          "count": 131072,
+          "sha256": "ca00776dbf181c792d8ebc199172a52dc80e1869efcc174ddb3c8f45ec8f290b"
+        },
+        {
+          "kind": "m31_to_u32",
+          "count": 262144,
+          "sha256": "ac0d4d8737ee4c34ced019938123d1ab13516c2191aa83df5d6abd56b1ee362f"
+        },
+        {
+          "kind": "blake_g_gate",
+          "count": 1048576,
+          "sha256": "ba0a4c0aef44c4d90401c4339c4448c164d017cc6112414b2e477e4284fd1d51"
+        },
+        {
+          "kind": "permutation",
+          "count": 92,
+          "sha256": "1e9318c2e6077655f599ee0bf25b439a3000439735dafa73b13e36d72bf346bc"
+        },
+        {
+          "kind": "output",
+          "count": 9,
+          "sha256": "2577bed458a8da13a5db417086f19c9d4e1d04e25efc266ece11c7a4edf4f8ee"
+        }
+      ],
+      "gate_list_sha256": "fb183857888128f8fae463a5de2ac008d97efcc5f9d54156cc840d5050e93629"
+    },
+    "values_sha256": "d2014950fd7ed133e079c24e4e3ac6b8aa70c3c6f6686a2b3970bc5c5f8dcd88",
+    "n_values": 6672436,
+    "n_outputs": 8,
+    "first_permutation_row": 2072680,
+    "trace_log_size": 21,
+    "preprocessed_root": [
+      1268883877,
+      213256978,
+      3644000279,
+      2357144324,
+      734149438,
+      3113839470,
+      1874459862,
+      3738996173
+    ],
+    "inputs_file": {
+      "bytes": 178915776,
+      "sha256": "a45a1c592398af944436e618184f564f32052645c878edbb454d5ce73e32e21f"
+    },
+    "proof": {
+      "bytes": 182884,
+      "sha256": "458eaa893dee79b8e5bb572d20e445a6d2164cb2d464e5967f1fa9e4156b38df"
+    }
+  }
+}

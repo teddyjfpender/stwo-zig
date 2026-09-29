@@ -1,0 +1,230 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r7",
+  "subcommand": "verify-circuit",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [],
+  "body": {
+    "request": {
+      "pcs_config": {
+        "fri_config": {
+          "pow_bits": 26,
+          "log_blowup_factor": 1,
+          "log_last_layer_degree_bound": 0,
+          "n_queries": 70,
+          "fold_step": 4
+        },
+        "trace_lifting_log_size": 21,
+        "preprocessed_lifting_log_size": 21
+      },
+      "preprocessed_column_log_sizes": [
+        [
+          "eq_in0_address",
+          4
+        ],
+        [
+          "eq_in1_address",
+          4
+        ],
+        [
+          "triple_xor_input_addr_0",
+          4
+        ],
+        [
+          "triple_xor_input_addr_1",
+          4
+        ],
+        [
+          "triple_xor_input_addr_2",
+          4
+        ],
+        [
+          "triple_xor_output_addr",
+          4
+        ],
+        [
+          "triple_xor_multiplicity",
+          4
+        ],
+        [
+          "m31_to_u32_input_addr",
+          4
+        ],
+        [
+          "m31_to_u32_output_addr",
+          4
+        ],
+        [
+          "m31_to_u32_multiplicity",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_a",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_b",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_c",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_d",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_f0",
+          4
+        ],
+        [
+          "blake_g_gate_input_addr_f1",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_a",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_b",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_c",
+          4
+        ],
+        [
+          "blake_g_gate_output_addr_d",
+          4
+        ],
+        [
+          "blake_g_gate_multiplicity",
+          4
+        ],
+        [
+          "bitwise_xor_4_0",
+          8
+        ],
+        [
+          "bitwise_xor_4_1",
+          8
+        ],
+        [
+          "bitwise_xor_4_2",
+          8
+        ],
+        [
+          "qm31_ops_add_flag",
+          9
+        ],
+        [
+          "qm31_ops_sub_flag",
+          9
+        ],
+        [
+          "qm31_ops_mul_flag",
+          9
+        ],
+        [
+          "qm31_ops_pointwise_mul_flag",
+          9
+        ],
+        [
+          "qm31_ops_in0_address",
+          9
+        ],
+        [
+          "qm31_ops_in1_address",
+          9
+        ],
+        [
+          "qm31_ops_out_address",
+          9
+        ],
+        [
+          "qm31_ops_mults",
+          9
+        ],
+        [
+          "bitwise_xor_7_0",
+          14
+        ],
+        [
+          "bitwise_xor_7_1",
+          14
+        ],
+        [
+          "bitwise_xor_7_2",
+          14
+        ],
+        [
+          "seq_16",
+          16
+        ],
+        [
+          "bitwise_xor_8_0",
+          16
+        ],
+        [
+          "bitwise_xor_8_1",
+          16
+        ],
+        [
+          "bitwise_xor_8_2",
+          16
+        ],
+        [
+          "bitwise_xor_9_0",
+          18
+        ],
+        [
+          "bitwise_xor_9_1",
+          18
+        ],
+        [
+          "bitwise_xor_9_2",
+          18
+        ],
+        [
+          "bitwise_xor_10_0",
+          20
+        ],
+        [
+          "bitwise_xor_10_1",
+          20
+        ],
+        [
+          "bitwise_xor_10_2",
+          20
+        ]
+      ],
+      "preprocessed_root": [
+        2845429778,
+        2218835085,
+        1205125096,
+        2501607039,
+        240595925,
+        1726247725,
+        2770929447,
+        238604015
+      ],
+      "output_digest": [
+        2827666065,
+        4146123195,
+        3407348176,
+        3638212488,
+        2827666065,
+        4146123195,
+        3407348176,
+        3638212488
+      ]
+    },
+    "proof_bytes": 474184,
+    "proof_sha256": "b5f3f88e8784978a3699ab528b9a07ae34a4c5f257aad99d18b5cdbde5dbb222",
+    "accepted": true
+  }
+}

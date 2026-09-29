@@ -22,6 +22,10 @@
       "status": "published",
       "reason": "The backend-neutral Cairo frontend is a supported Zig source package."
     },
+    "stwo_circuit_cpu_integration": {
+      "status": "internal",
+      "reason": "The circuit prover on CPU serves the in-progress circuit recursion port (recursion design M7); it joins the SDK with the recursion products."
+    },
     "stwo_circuit_frontend": {
       "status": "internal",
       "reason": "The circuit recursion frontend is under construction (recursion design milestones M2 onward) and is not a supported Zig source package yet."

@@ -9,7 +9,7 @@
     "toolchain": "nightly-2026-01-15",
     "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
     "lock_sha256": "c275004ff32d5f5a8460c2359f6a23876c06087af458c135578bc0bd1b5bfadf",
-    "source_sha256": "68c2135e0dedc112d9f92f90c6bedd3fa89a27a1f06bb30c0b020f14dc82cc82"
+    "source_sha256": "03ace705a85facafa6a4d4b77145ab9c6b439659811a2701b34b8f79f5db9ad4"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-30",
@@ -338,6 +338,34 @@
       "sha256": "0bee955ffbd11d01474b5e4b0d9d4aabf87680249a90756c49891a59814fba19"
     },
     {
+      "path": "vectors/circuit/r7/multiverifier_inputs.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "multiverifier-inputs",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--inputs-output",
+        "<multiverifier inputs file, outside the tree>",
+        "--output",
+        "vectors/circuit/r7/multiverifier_inputs.json"
+      ],
+      "bytes": 3452,
+      "sha256": "dfec625586f516f91eae990862087aaf9ea706ed1e91d907e6facb8acc7bd7b6"
+    },
+    {
+      "path": "vectors/circuit/r7/prove_profiles.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "prove-profiles",
+        "--output",
+        "vectors/circuit/r7/prove_profiles.json"
+      ],
+      "bytes": 330748,
+      "sha256": "d6e5b992ea04878ec56837cc81999f4df8fe7a6b70efb4af0fd7d7ddcf1fe881"
+    },
+    {
       "path": "vectors/circuit/r7/prove_small.json",
       "rung": "r7",
       "command": [
@@ -348,6 +376,118 @@
       ],
       "bytes": 450878,
       "sha256": "08e4ab360d384e7b9957a65c819b611a5fe929c4ab733280e007a3e13e181e11"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/internal-blake_g_gate.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/internal-blake_g_gate.proof",
+        "--request",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/internal-blake_g_gate.request.json",
+        "--output",
+        "vectors/circuit/r7/verify/internal-blake_g_gate.json"
+      ],
+      "bytes": 4182,
+      "sha256": "a1f019a30e719dca09e680efda9c6721d38a3356ada8f41282baefda1dd7e102"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/internal-fibonacci.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/internal-fibonacci.proof",
+        "--request",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/internal-fibonacci.request.json",
+        "--output",
+        "vectors/circuit/r7/verify/internal-fibonacci.json"
+      ],
+      "bytes": 4182,
+      "sha256": "3a60218c66ec880bdccb546254ece853c9627559c092410214faf16820afd8af"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/multiverifier.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/multiverifier.proof",
+        "--request",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/multiverifier.request.json",
+        "--output",
+        "vectors/circuit/r7/verify/multiverifier.json"
+      ],
+      "bytes": 4211,
+      "sha256": "f1f25a8e30287cc72491d905bcd4cedc31a2d50af87cde1744d370e2d9872384"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-blake_g_gate.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-blake_g_gate.proof",
+        "--request",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-blake_g_gate.request.json",
+        "--output",
+        "vectors/circuit/r7/verify/small-blake_g_gate.json"
+      ],
+      "bytes": 4180,
+      "sha256": "00f6fa16ca2d42782b5bfba25ea99cdb3369e735d9b877bf20a5c777d70a6cef"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-fibonacci.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-fibonacci.proof",
+        "--request",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-fibonacci.request.json",
+        "--output",
+        "vectors/circuit/r7/verify/small-fibonacci.json"
+      ],
+      "bytes": 4180,
+      "sha256": "b9da11e867bd9de6cbf58729bb031b44c8743aa1f75ce1d36ec81a598d65dc26"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-m31_to_u32.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-m31_to_u32.proof",
+        "--request",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-m31_to_u32.request.json",
+        "--output",
+        "vectors/circuit/r7/verify/small-m31_to_u32.json"
+      ],
+      "bytes": 4138,
+      "sha256": "b1857b196e428e8144ec88ff0a483603238b290bf83e07cdfc7a6b0994b1a9a3"
+    },
+    {
+      "path": "vectors/circuit/r7/verify/small-triple_xor.json",
+      "rung": "r7",
+      "command": [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-triple_xor.proof",
+        "--request",
+        "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>/small-triple_xor.request.json",
+        "--output",
+        "vectors/circuit/r7/verify/small-triple_xor.json"
+      ],
+      "bytes": 4146,
+      "sha256": "490dfdc5f130ce0a4218a98348fafa9eede4c5636763a8c77be89525e2777f33"
     }
   ]
 }

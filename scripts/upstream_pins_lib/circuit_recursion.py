@@ -53,6 +53,7 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r5/finalize.json", "r5", "finalize", False),
     (f"{VECTORS}/r6/topology.json", "r6", "topology", True),
     (f"{VECTORS}/r7/prove_small.json", "r7", "prove-small", False),
+    (f"{VECTORS}/r7/prove_profiles.json", "r7", "prove-profiles", False),
     (f"{VECTORS}/official/circuit_air.air_programs_v1.bin", "r7", "air-programs", False),
     (f"{VECTORS}/r6/cairo_statement.json", "r6", "cairo-statement", True),
 )
@@ -95,6 +96,26 @@ CAIRO_PROOF_ARTIFACTS = tuple(
         CAIRO_PROOF_REGISTRY,
         "fixed:22",
     ),
+)
+# `multiverifier-inputs`: the checkpoint pins the circuit-prover inputs of
+# test_data/circuit_multiverifier/proof.bin, a 179 MB `STWZCIRC/1` file kept outside the tree.
+MULTIVERIFIER_INPUTS = f"{VECTORS}/r7/multiverifier_inputs.json"
+MULTIVERIFIER_INPUTS_FILE_PLACEHOLDER = "<multiverifier inputs file, outside the tree>"
+# `verify-circuit` verdicts of upstream `verify_circuit` on proofs the Zig circuit prover wrote
+# (`STWO_CIRCUIT_R7_EMIT_DIR` of `zig build circuit-parity-r7` and
+# `circuit-parity-r7-multiverifier`, src/integrations/circuit_cpu).
+ZIG_EMIT_DIR_PLACEHOLDER = "<STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps>"
+VERIFY_VERDICTS = tuple(
+    (f"{VECTORS}/r7/verify/{label}.json", label)
+    for label in (
+        "internal-blake_g_gate",
+        "internal-fibonacci",
+        "multiverifier",
+        "small-blake_g_gate",
+        "small-fibonacci",
+        "small-m31_to_u32",
+        "small-triple_xor",
+    )
 )
 PROJECTION = f"{VECTORS}/official/compiled_air_constraints_v1.bin"
 PRIMITIVES = f"{VECTORS}/r0/primitives.json"
@@ -168,6 +189,8 @@ UPSTREAM_COPIES = (
 )
 MANAGED = (
     tuple(path for path, *_ in ORACLE_ARTIFACTS)
+    + (MULTIVERIFIER_INPUTS,)
+    + tuple(path for path, _ in VERIFY_VERDICTS)
     + tuple(path for path, *_ in ADAPTED_PROGRAMS)
     + tuple(path for path, *_ in CAIRO_PROOF_ARTIFACTS)
     + tuple(path for path, _ in UPSTREAM_COPIES)
@@ -183,6 +206,38 @@ def adapt_program_command(path: str, program: str) -> list[str]:
         PROVING_ROOT_PLACEHOLDER,
         "--program",
         program,
+        "--output",
+        path,
+    ]
+
+
+def multiverifier_inputs_command(
+    path: str,
+    proving_root: str = PROVING_ROOT_PLACEHOLDER,
+    inputs_output: str = MULTIVERIFIER_INPUTS_FILE_PLACEHOLDER,
+) -> list[str]:
+    """The `multiverifier-inputs` invocation of the multiverifier input checkpoint."""
+    return [
+        "stwo-circuit-oracle",
+        "multiverifier-inputs",
+        "--proving-root",
+        proving_root,
+        "--inputs-output",
+        inputs_output,
+        "--output",
+        path,
+    ]
+
+
+def verify_circuit_command(path: str, label: str, emit_dir: str = ZIG_EMIT_DIR_PLACEHOLDER) -> list[str]:
+    """The `verify-circuit` invocation of a verdict on a Zig-emitted proof."""
+    return [
+        "stwo-circuit-oracle",
+        "verify-circuit",
+        "--proof",
+        f"{emit_dir}/{label}.proof",
+        "--request",
+        f"{emit_dir}/{label}.request.json",
         "--output",
         path,
     ]
@@ -586,6 +641,13 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
         if by_path.get(path, {}).get("command") != command:
             errors.append(f"{path}: provenance command is not {command}")
         errors.extend(_check_checkpoint(root, path, rung, "prove-cairo", revision))
+    if by_path.get(MULTIVERIFIER_INPUTS, {}).get("command") != multiverifier_inputs_command(MULTIVERIFIER_INPUTS):
+        errors.append(f"{MULTIVERIFIER_INPUTS}: provenance command is not multiverifier-inputs")
+    errors.extend(_check_checkpoint(root, MULTIVERIFIER_INPUTS, "r7", "multiverifier-inputs", revision))
+    for path, label in VERIFY_VERDICTS:
+        if by_path.get(path, {}).get("command") != verify_circuit_command(path, label):
+            errors.append(f"{path}: provenance command is not verify-circuit on {label}")
+        errors.extend(_check_checkpoint(root, path, "r7", "verify-circuit", revision))
     for path, upstream_path in UPSTREAM_COPIES:
         if by_path.get(path, {}).get("upstream_path") != upstream_path:
             errors.append(f"{path}: provenance upstream path is not {upstream_path}")

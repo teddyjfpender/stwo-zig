@@ -77,7 +77,7 @@ def artifact_record(staging: Path, path: str, **fields: object) -> dict:
     return {"path": path, **fields, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
-def generate(staging: Path, oracle: Path, proving: Path) -> list[dict]:
+def generate(staging: Path, oracle: Path, proving: Path, zig_emit_dir: Path | None) -> list[dict]:
     artifacts = []
     for path, rung, subcommand, reads_upstream in lane.ORACLE_ARTIFACTS:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
@@ -122,6 +122,36 @@ def generate(staging: Path, oracle: Path, proving: Path) -> list[dict]:
                 command=lane.cairo_proof_command(path, prover_input, registry, policy),
             )
         )
+    # The multiverifier's circuit-prover inputs (179 MB) stay outside the tree; only the
+    # checkpoint that pins them is managed.
+    path = lane.MULTIVERIFIER_INPUTS
+    (staging / path).parent.mkdir(parents=True, exist_ok=True)
+    inputs_file = staging / "multiverifier_inputs.stwzcirc"
+    subprocess.run(
+        [str(oracle), *lane.multiverifier_inputs_command(
+            str(staging / path), proving_root=str(proving), inputs_output=str(inputs_file)
+        )[1:]],
+        check=True,
+    )
+    inputs_file.unlink()
+    artifacts.append(
+        artifact_record(staging, path, rung="r7", command=lane.multiverifier_inputs_command(path))
+    )
+    # Verdicts on Zig-emitted proofs: regenerated from `--zig-emit-dir`, otherwise kept.
+    for path, label in lane.VERIFY_VERDICTS:
+        (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        if zig_emit_dir is None:
+            shutil.copyfile(ROOT / path, staging / path)
+        else:
+            subprocess.run(
+                [str(oracle), *lane.verify_circuit_command(
+                    str(staging / path), label, emit_dir=str(zig_emit_dir)
+                )[1:]],
+                check=True,
+            )
+        artifacts.append(
+            artifact_record(staging, path, rung="r7", command=lane.verify_circuit_command(path, label))
+        )
     for path, upstream_path in lane.UPSTREAM_COPIES:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(proving / upstream_path, staging / path)
@@ -152,6 +182,12 @@ def provenance(artifacts: list[dict], ledger, generated_on: str) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", default=datetime.date.today().isoformat(), help="generation date")
+    parser.add_argument(
+        "--zig-emit-dir",
+        type=Path,
+        help="STWO_CIRCUIT_R7_EMIT_DIR of the Zig circuit-parity-r7 steps; without it the "
+        "committed verify-circuit verdicts are kept",
+    )
     args = parser.parse_args(argv)
 
     ledger = parse_ledger(ROOT / "conformance" / "upstream.md")
@@ -161,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     vectors.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=vectors.parent) as directory:
         staging = Path(directory)
-        artifacts = generate(staging, oracle, proving)
+        artifacts = generate(staging, oracle, proving, args.zig_emit_dir)
         record = provenance(artifacts, ledger, args.date)
         (staging / lane.PROVENANCE).write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         for path in (*lane.MANAGED, lane.PROVENANCE):

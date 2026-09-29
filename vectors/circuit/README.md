@@ -23,6 +23,9 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `r5/finalize.json` | R5 | the `prover_test.rs` circuits after `finalize_constants`, guess finalization, each padding kind and ZK blinding |
 | `r6/topology.json` | R6 | both registries' multiverifiers rebuilt (layout, per-column digests, preprocessed root, circuit hash); the canonical_small Cairo preprocessed roots |
 | `r7/prove_small.json` | R7 | proofs of the `prover_test.rs` circuits: per-step transcript digests, per-column digests, claimed sums, roots, FRI, nonces |
+| `r7/prove_profiles.json` | R7 | `fibonacci` and `blake_g_gate` under the 26-bit circuit FRI config on the internal and root channel profiles, with the `prove_small.json` records |
+| `r7/multiverifier_inputs.json` | R7 | the multiverifier circuit `official/circuit_multiverifier/proof.bin` proves: digests of its gate lists and values, the preprocessed root, and the SHA-256 of the 179 MB `STWZCIRC/1` inputs file kept outside the tree |
+| `r7/verify/*.json` | R7 | upstream `verify_circuit`'s verdicts on the CircuitSerialize proofs the Zig circuit prover wrote: the digest-output `prove_small` and internal-profile proofs and the multiverifier |
 | `official/circuit_air.air_programs_v1.bin` | R7 | the circuit AIR's 11 `FrameworkEval`s recorded into the `STWZEVA/1` evaluation-program bundle |
 | `official/compiled_{casm,circuit}_air.sample_evaluations.json` | R3 | upstream `outputs/*/sample_evaluations.json`: the evaluator assignments |
 | `official/registries/*.json` | R0, R6 | the checked-in circuit registries: the two canonical_small test registries and the privacy `large_proofs` registry |

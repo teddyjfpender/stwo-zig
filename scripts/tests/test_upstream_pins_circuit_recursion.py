@@ -126,6 +126,7 @@ class CircuitRecursionLaneTests(unittest.TestCase):
                 "finalize",
                 "topology",
                 "prove-small",
+                "prove-profiles",
                 "air-programs",
                 "cairo-statement",
                 "prove-lifted-example",
@@ -133,6 +134,9 @@ class CircuitRecursionLaneTests(unittest.TestCase):
             subcommands,
         )
         for path, *_ in lane.ORACLE_ARTIFACTS:
+            self.assertTrue((ROOT / path).is_file(), path)
+        self.assertTrue((ROOT / lane.MULTIVERIFIER_INPUTS).is_file())
+        for path, _ in lane.VERIFY_VERDICTS:
             self.assertTrue((ROOT / path).is_file(), path)
 
     def test_air_programs_bundle_geometry_is_checked(self) -> None:
