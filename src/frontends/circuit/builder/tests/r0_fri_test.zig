@@ -6,7 +6,7 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const circuit_summary = @import("circuit_summary.zig");
+const circuit_summary = @import("../../testing/circuit_summary.zig");
 
 const fri = stwo_core.fri;
 const line = stwo_core.poly.line;

@@ -20,7 +20,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const circuit_frontend = @import("stwo_circuit_frontend");
 const gadget_cases = @import("gadget_cases.zig");
-const circuit_summary = @import("circuit_summary.zig");
+const circuit_summary = @import("../../testing/circuit_summary.zig");
 
 const builder = circuit_frontend.builder;
 const QM31 = stwo_core.fields.qm31.QM31;

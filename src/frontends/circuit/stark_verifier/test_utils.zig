@@ -6,6 +6,7 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const constraint_eval = @import("constraint_eval.zig");
+const ivalue = @import("../builder/ivalue.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const M31 = stwo_core.fields.m31.M31;
@@ -18,11 +19,6 @@ pub fn TestComponentData(comptime Ctx: type) type {
         const Self = @This();
         const Var = Ctx.Var;
         const Interaction = constraint_eval.InteractionAtOods(Var);
-
-        /// `IValue::from_qm31` for the context's value type (QM31 or NoValue).
-        fn lift(value: QM31) Ctx.Value {
-            return if (Ctx.Value == QM31) value else .{};
-        }
 
         trace: []Var,
         interaction_trace: []Interaction,
@@ -43,27 +39,27 @@ pub fn TestComponentData(comptime Ctx: type) type {
         ) !Self {
             const trace = try allocator.alloc(Var, trace_values.len);
             errdefer allocator.free(trace);
-            for (trace, trace_values) |*v, value| v.* = try ctx.newVar(lift(value));
+            for (trace, trace_values) |*v, value| v.* = try ctx.newVar(ivalue.fromQm31(Ctx.Value, value));
 
             const interaction = try allocator.alloc(Interaction, 4 * interaction_values.len);
             errdefer allocator.free(interaction);
             for (interaction_values, 0..) |value, i| {
                 for (value.toM31Array(), 0..) |limb, j| {
-                    interaction[4 * i + j] = .{ .at_oods = try ctx.newVar(lift(QM31.fromBase(limb))) };
+                    interaction[4 * i + j] = .{ .at_oods = try ctx.newVar(ivalue.fromQm31(Ctx.Value, QM31.fromBase(limb))) };
                 }
             }
             if (interaction.len != 0) {
                 const tail = interaction[interaction.len - 4 ..];
                 for (tail, last_row_sum.toM31Array()) |*column, limb| {
-                    column.at_prev = try ctx.newVar(lift(QM31.fromBase(limb)));
+                    column.at_prev = try ctx.newVar(ivalue.fromQm31(Ctx.Value, QM31.fromBase(limb)));
                 }
             }
             var bits: [n_instances_bits]Var = undefined;
             for (&bits, 0..) |*bit, position| {
                 const value: u32 = (n_instances >> @intCast(position)) & 1;
-                bit.* = try ctx.newVar(lift(QM31.fromBase(M31.fromCanonical(value))));
+                bit.* = try ctx.newVar(ivalue.fromQm31(Ctx.Value, QM31.fromBase(M31.fromCanonical(value))));
             }
-            const count = try ctx.newVar(lift(QM31.fromBase(M31.fromU64(n_instances))));
+            const count = try ctx.newVar(ivalue.fromQm31(Ctx.Value, QM31.fromBase(M31.fromU64(n_instances))));
             return .{ .trace = trace, .interaction_trace = interaction, .n_instances_var = count, .n_instances_bits = bits };
         }
 

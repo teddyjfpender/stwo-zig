@@ -59,9 +59,9 @@ being filled milestone by milestone. Today it holds:
 
 The gate-emitting verifier gadgets (channel, Merkle, FRI, OODS, composition,
 the statements' `guess` traversals and `build_*_circuit`) come next and sit on
-top of these modules. The R3 tests still drive the evaluators through the
-test-only `air_eval/testing/builder_stand_in.zig`; moving them onto `builder`
-is open.
+top of these modules. The R3 rung drives every evaluator through `builder.Context`,
+and summarizes gate lists, values and statement traces with the shared
+test-only `testing/circuit_summary.zig`.
 
 ```mermaid
 flowchart TD
@@ -196,7 +196,7 @@ asserts the slot order equals `official_claim_registry.enable_slots`.
 
 ```sh
 zig build test --build-file src/frontends/circuit/build.zig -Doptimize=ReleaseFast -j2
-zig build test-r3 --build-file src/frontends/circuit/build.zig -j2
+zig build circuit-parity-r3 --build-file src/frontends/circuit/build.zig -j2
 zig build circuit-parity-r6-fold --build-file src/frontends/circuit/build.zig
 zig build circuit-air-projection-check --build-file src/frontends/circuit/build.zig -j2
 zig build circuit-parity-r1 --build-file src/frontends/circuit/build.zig
@@ -210,7 +210,7 @@ Tests that read `vectors/circuit` run from the repository root.
   kept verbatim; the fixture test rebuilds all 20 cases of
   `vectors/circuit/r2/gadgets.json` in value and topology mode and compares
   gate-list, value and `Debug`-text digests, output wires and values.
-- `test-r3` runs all 94 evaluators in value and topology mode against
+- `circuit-parity-r3` runs all 94 evaluators in value and topology mode against
   `vectors/circuit/r3/components.json`, the two upstream
   `sample_evaluations.json` files and the per-stage statement trace
   `vectors/circuit/r3/statement_trace.json`.
@@ -275,7 +275,7 @@ Tests that read `vectors/circuit` run from the repository root.
   `cairo_components.zig` or `circuit_components.zig`.
 - Keep each file's builder calls in upstream order; `eval!` expressions expand
   left subtree, right subtree, operation.
-- Run the focused CI commands above, `test-r3` and
+- Run the focused CI commands above, `circuit-parity-r3` and
   `python3 scripts/lint_circuit_frontend.py`.
 
 ## Related documentation
