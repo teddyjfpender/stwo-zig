@@ -1,0 +1,49 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_circuit_recursion_wire",
+  "version": "0.1.0",
+  "layer": "interchange",
+  "owner": "circuit-recursion",
+  "public_modules": {
+    "stwo_circuit_recursion_wire": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core"
+  },
+  "injected_modules": [
+    "interop_felt_json"
+  ],
+  "api_surface": [
+    "blake2_felt252",
+    "cairo_serialize",
+    "circuit_felt_stream",
+    "circuit_serialize",
+    "json_text",
+    "leaf_proof_json",
+    "packed_node",
+    "registry"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: circuit recursion wire formats expose their codecs"
+    ],
+    "invariant_tests": [
+      "circuit_felt_stream.zig::felt stream: a hand-built proof encodes, decodes and re-encodes identically",
+      "circuit_serialize.zig::circuit serialize: decoding rejects truncation and out-of-range limbs, ignores trailing bytes",
+      "registry.zig::registry: maps sort, variants and null follow serde"
+    ]
+  },
+  "ci": {
+    "lane": "circuit_recursion_wire",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/interop/circuit_recursion/build.zig",
+      "-Doptimize=ReleaseFast",
+      "-j2"
+    ]
+  }
+}

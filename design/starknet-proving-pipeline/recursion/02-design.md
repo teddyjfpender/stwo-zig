@@ -291,13 +291,24 @@ src/frontends/circuit/
   frontend's `interop_postcard`) that this package imports rather than owns.
   Cairo re-exports it as `proof.cairo_serde.felt_json`; the move is
   byte-neutral.
-- `registry.zig`: `CircuitRegistry` and `LogSizes`, parsed with field order
-  kept and written as pretty output + `\n`.
+- `registry.zig`: `CircuitRegistry` and `LogSizes`, parsed into typed values
+  and written in Rust struct order (config map keys in byte order) as pretty
+  output + `\n`.
 - `leaf_proof_json.zig` (`SerializedLeafProof`, `DigestHex` `{:#010x}`, std
   base64 standard padded), `packed_node.zig`, `blake2_felt252.zig`.
 - `cairo_proof_binary.zig`: the ExtendedBinary `CairoProof<H>` reader
   (`cairo-air/src/utils.rs:117,146`), the inverse of the Cairo
   `proof/binary/writer.zig`, including the `ExtendedStarkProof` aux fields.
+
+**As built (M3).** The package is `stwo_circuit_recursion_wire`
+(`src/interop/circuit_recursion/README.md`). It adds `json_text.zig`, the
+serde_json pretty and compact text surface the JSON formats share. The
+`ProofConfig` of `circuit_serialize.zig` takes the per-component column counts
+as data, so the package holds no circuit AIR facts. Where Rust is lenient in a
+way that would break a byte-identical round trip, decoding fails closed and
+says so at the decoder (for example an M31 at or above P in the felt stream,
+which Rust's `BaseField::from` reduces). `cairo_proof_binary.zig` is not yet
+built; the ExtendedBinary round-trip criterion of M3 remains open.
 
 ### 2.4 Integration, product, build, tools
 
