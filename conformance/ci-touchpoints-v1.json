@@ -227,6 +227,21 @@
         ]
       ]
     },
+    "circuit_frontend": {
+      "host": "linux",
+      "description": "Independent circuit recursion frontend package (builder, R1/R2)",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/frontends/circuit/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
     "cpu_backend": {
       "host": "linux",
       "description": "Independent CPU scalar/SIMD backend package",
@@ -749,6 +764,7 @@
         "riscv_cpu_integration",
         "sm83_cpu_integration",
         "cairo_frontend",
+        "circuit_frontend",
         "cairo_cpu_integration",
         "cpu_backend",
         "cuda_backend",
@@ -1040,6 +1056,22 @@
         "package",
         "cairo_cpu",
         "cairo_metal"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/frontends/circuit"
+      ],
+      "lanes": [
+        "package"
+      ]
+    },
+    {
+      "prefixes": [
+        "vectors/circuit"
+      ],
+      "lanes": [
+        "circuit_frontend"
       ]
     },
     {

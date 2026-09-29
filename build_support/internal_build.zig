@@ -400,6 +400,7 @@ fn addPolicyGates(b: *std.Build) void {
         .{ "package-workspace", "Audit package ownership, API, and dependency boundaries", &.{ "python3", "scripts/check_package_workspace.py" } },
         .{ "registry-parity", "Compare focused and aggregate compiled capability registries", &.{ "python3", "scripts/check_registry_parity.py" } },
         .{ "upstream-surface", "Validate API parity rust_path entries against pinned upstream commit", &.{ "python3", "scripts/check_upstream_surface.py" } },
+        .{ "circuit-lint", "Reject order-unstable constructs in the circuit recursion frontend", &.{ "python3", "scripts/lint_circuit_frontend.py" } },
     }) |gate| {
         const command = b.addSystemCommand(gate[2]);
         b.step(gate[0], gate[1]).dependOn(&command.step);
