@@ -187,6 +187,13 @@ pub fn createCairoFrontend(
         .optimize = optimize,
     });
     protocol.addImports(frontend);
+    // The injected interop felt JSON writer behind `proof.cairo_serde`.
+    frontend.addImport("interop_felt_json", create(b, .{
+        .product = product,
+        .root_source_file = "src/interop/felt_json.zig",
+        .target = target,
+        .optimize = optimize,
+    }));
     return frontend;
 }
 

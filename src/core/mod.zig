@@ -17,6 +17,7 @@ pub const constraint_framework = @import("constraint_framework/mod.zig");
 pub const air = @import("air/mod.zig");
 pub const fri = @import("fri.zig");
 pub const pcs = @import("pcs/mod.zig");
+pub const preprocessed_tables = @import("preprocessed_tables.zig");
 pub const proof = @import("proof.zig");
 pub const proof_suites = @import("proof_suites.zig");
 pub const protocol_revision = @import("protocol_revision.zig");

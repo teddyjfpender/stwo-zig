@@ -3,7 +3,7 @@
 const std = @import("std");
 const composition = @import("../../witness/composition_bundle.zig");
 const layout = @import("../layout.zig");
-const felt_json = @import("felt_json.zig");
+const felt_json = @import("interop_felt_json");
 
 const OrderedColumn = struct {
     log_size: u32,

@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const composition = @import("../../witness/composition_bundle.zig");
-const felt_json = @import("felt_json.zig");
+const felt_json = @import("interop_felt_json");
 const queries = @import("queries.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
