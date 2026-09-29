@@ -2,6 +2,8 @@ mod checkpoint;
 mod device_traces;
 mod interaction;
 mod oods;
+#[path = "../../stwo-trace-digest/src/lib.rs"]
+mod trace_digest;
 
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Write};

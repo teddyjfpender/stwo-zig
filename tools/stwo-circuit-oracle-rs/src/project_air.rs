@@ -7,7 +7,7 @@
 //! with the upstream `remove_trailing_zeroes`, and the sorted atom lists are computed with the
 //! upstream `expr_iterator`, so no generator rule is re-implemented here.
 //!
-//! # Format (version 1)
+//! # Format (version 2)
 //!
 //! All integers are little-endian. `str` is a `u32` index into the string table; `list<T>` is a
 //! `u32` count followed by the items; `opt<T>` is a `u8` (0 absent, 1 present) followed by the
@@ -19,7 +19,7 @@
 //! constants := list<(str:name u32:value)>
 //! sources   := list<source>
 //! source    := str:label list<str>:slots list<str>:hand_written list<function>
-//! function  := u32:len [32]:sha256(record) record[len]
+//! function  := u32:len [32]:sha256(canonical(record)) record[len]
 //! record    := str:name str:trace_type opt<u32>:log_height list<str>:verifier_input_limbs
 //!              list<str>:state_names list<(str:relation u8:use_or_yield)>:constraint_lookups
 //!              list<str>:external_states list<str>:public_params
@@ -41,6 +41,11 @@
 //!            | 8 str:name           PublicParam
 //!            | 9                    Enabler
 //! ```
+//!
+//! `canonical(record)` is `record` with every `str` written inline as `u32:len utf8[len]` instead
+//! of as a string-table index, so a function digest depends only on the function itself and not
+//! on the order in which the whole file interned its strings (version 1 hashed the indexed
+//! record).
 //!
 //! `use_or_yield` is 0 for `Use` and 1 for `Yield`. `slots` is the upstream evaluator order of the
 //! source (`all_components` for Cairo, `all_circuit_components` for the circuit AIR).
@@ -64,7 +69,7 @@ use crate::compiled_air::{self, AirSource, CAIRO_AIR, CIRCUIT_AIR, CompiledAir};
 use crate::upstream::{self, ProvingRoot};
 
 const MAGIC: &[u8; 8] = b"STWOCAIR";
-const VERSION: u32 = 1;
+const VERSION: u32 = 2;
 
 /// Upstream constants the hand-written Cairo evaluators and the Cairo statement depend on.
 fn constants() -> [(&'static str, u32); 3] {
@@ -97,9 +102,11 @@ impl Strings {
     }
 }
 
-/// A byte sink that interns every string it writes.
+/// A byte sink that interns every string it writes. `canonical` receives the same bytes with every
+/// string written inline instead of as an index; it is the preimage of a function digest.
 struct Writer<'a> {
     bytes: Vec<u8>,
+    canonical: Vec<u8>,
     strings: &'a mut Strings,
 }
 
@@ -107,16 +114,19 @@ impl<'a> Writer<'a> {
     fn new(strings: &'a mut Strings) -> Self {
         Self {
             bytes: Vec::new(),
+            canonical: Vec::new(),
             strings,
         }
     }
 
     fn u8(&mut self, value: u8) {
         self.bytes.push(value);
+        self.canonical.push(value);
     }
 
     fn u32(&mut self, value: u32) {
         self.bytes.extend_from_slice(&value.to_le_bytes());
+        self.canonical.extend_from_slice(&value.to_le_bytes());
     }
 
     fn len(&mut self, len: usize) -> Result<()> {
@@ -126,7 +136,10 @@ impl<'a> Writer<'a> {
 
     fn str(&mut self, value: &str) {
         let index = self.strings.index(value);
-        self.u32(index);
+        self.bytes.extend_from_slice(&index.to_le_bytes());
+        let len = u32::try_from(value.len()).expect("string longer than u32");
+        self.canonical.extend_from_slice(&len.to_le_bytes());
+        self.canonical.extend_from_slice(value.as_bytes());
     }
 
     fn strs<S: AsRef<str>>(&mut self, values: impl ExactSizeIterator<Item = S>) -> Result<()> {
@@ -283,7 +296,8 @@ fn used_atoms(air_fn: &CompiledAirFn) -> (Vec<String>, Vec<String>) {
     (external_states, public_params)
 }
 
-fn function_record(strings: &mut Strings, air_fn: &CompiledAirFn) -> Result<Vec<u8>> {
+/// The record of `air_fn` and its digest, `SHA-256(canonical(record))`.
+fn function_record(strings: &mut Strings, air_fn: &CompiledAirFn) -> Result<(Vec<u8>, [u8; 32])> {
     let mut w = Writer::new(strings);
     w.str(&air_fn.name);
     let trace_type = serde_json::to_value(air_fn.r#type)?;
@@ -322,7 +336,8 @@ fn function_record(strings: &mut Strings, air_fn: &CompiledAirFn) -> Result<Vec<
     } else {
         w.u8(0);
     }
-    Ok(w.bytes)
+    let digest = Sha256::digest(&w.canonical).into();
+    Ok((w.bytes, digest))
 }
 
 fn source_section(
@@ -355,9 +370,9 @@ fn source_section(
     w.strs(slots.iter())?;
     w.strs(hand_written.iter().map(|air_fn| air_fn.name.as_str()))?;
     w.len(records.len())?;
-    for record in records {
+    for (record, digest) in records {
         w.len(record.len())?;
-        w.bytes.extend_from_slice(&Sha256::digest(&record));
+        w.bytes.extend_from_slice(&digest);
         w.bytes.extend_from_slice(&record);
     }
     Ok(w.bytes)

@@ -22,6 +22,7 @@
 //! evaluator is recorded but not asserted.
 
 mod harness;
+pub mod statement_trace;
 
 use std::path::Path;
 

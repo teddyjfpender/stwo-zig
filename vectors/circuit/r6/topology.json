@@ -1,0 +1,1367 @@
+{
+  "schema": "stwo-circuit-oracle-checkpoint-v1",
+  "rung": "r6",
+  "subcommand": "topology",
+  "authority": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "inputs": [
+    {
+      "path": "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+      "bytes": 1970,
+      "sha256": "85126ed2333fb9a3c25585b518d547b7b80902355c0afd028be1be7b111df87d"
+    },
+    {
+      "path": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
+      "bytes": 1970,
+      "sha256": "438ad2b5f9324306d20d3cc0297d1574d34a46d776f9cf884d99715245c74ab2"
+    }
+  ],
+  "body": {
+    "privacy_multiverifier_layout": [
+      {
+        "id": "bitwise_xor_4_0",
+        "log_size": 8
+      },
+      {
+        "id": "bitwise_xor_4_1",
+        "log_size": 8
+      },
+      {
+        "id": "bitwise_xor_4_2",
+        "log_size": 8
+      },
+      {
+        "id": "bitwise_xor_7_0",
+        "log_size": 14
+      },
+      {
+        "id": "bitwise_xor_7_1",
+        "log_size": 14
+      },
+      {
+        "id": "bitwise_xor_7_2",
+        "log_size": 14
+      },
+      {
+        "id": "seq_16",
+        "log_size": 16
+      },
+      {
+        "id": "bitwise_xor_8_0",
+        "log_size": 16
+      },
+      {
+        "id": "bitwise_xor_8_1",
+        "log_size": 16
+      },
+      {
+        "id": "bitwise_xor_8_2",
+        "log_size": 16
+      },
+      {
+        "id": "eq_in0_address",
+        "log_size": 17
+      },
+      {
+        "id": "eq_in1_address",
+        "log_size": 17
+      },
+      {
+        "id": "triple_xor_input_addr_0",
+        "log_size": 17
+      },
+      {
+        "id": "triple_xor_input_addr_1",
+        "log_size": 17
+      },
+      {
+        "id": "triple_xor_input_addr_2",
+        "log_size": 17
+      },
+      {
+        "id": "triple_xor_output_addr",
+        "log_size": 17
+      },
+      {
+        "id": "triple_xor_multiplicity",
+        "log_size": 17
+      },
+      {
+        "id": "m31_to_u32_input_addr",
+        "log_size": 18
+      },
+      {
+        "id": "m31_to_u32_output_addr",
+        "log_size": 18
+      },
+      {
+        "id": "m31_to_u32_multiplicity",
+        "log_size": 18
+      },
+      {
+        "id": "bitwise_xor_9_0",
+        "log_size": 18
+      },
+      {
+        "id": "bitwise_xor_9_1",
+        "log_size": 18
+      },
+      {
+        "id": "bitwise_xor_9_2",
+        "log_size": 18
+      },
+      {
+        "id": "blake_g_gate_input_addr_a",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_input_addr_b",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_input_addr_c",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_input_addr_d",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_input_addr_f0",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_input_addr_f1",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_output_addr_a",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_output_addr_b",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_output_addr_c",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_output_addr_d",
+        "log_size": 20
+      },
+      {
+        "id": "blake_g_gate_multiplicity",
+        "log_size": 20
+      },
+      {
+        "id": "bitwise_xor_10_0",
+        "log_size": 20
+      },
+      {
+        "id": "bitwise_xor_10_1",
+        "log_size": 20
+      },
+      {
+        "id": "bitwise_xor_10_2",
+        "log_size": 20
+      },
+      {
+        "id": "qm31_ops_add_flag",
+        "log_size": 21
+      },
+      {
+        "id": "qm31_ops_sub_flag",
+        "log_size": 21
+      },
+      {
+        "id": "qm31_ops_mul_flag",
+        "log_size": 21
+      },
+      {
+        "id": "qm31_ops_pointwise_mul_flag",
+        "log_size": 21
+      },
+      {
+        "id": "qm31_ops_in0_address",
+        "log_size": 21
+      },
+      {
+        "id": "qm31_ops_in1_address",
+        "log_size": 21
+      },
+      {
+        "id": "qm31_ops_out_address",
+        "log_size": 21
+      },
+      {
+        "id": "qm31_ops_mults",
+        "log_size": 21
+      }
+    ],
+    "folds": [
+      {
+        "registry": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
+        "golden": "recursive_tree_multiverifier",
+        "fri_config": {
+          "pow_bits": 26,
+          "log_blowup_factor": 1,
+          "log_last_layer_degree_bound": 0,
+          "n_queries": 70,
+          "fold_step": 4
+        },
+        "cairo_log_blowup_factor": 1,
+        "target_log_sizes": {
+          "eq": 20,
+          "qm31_ops": 23,
+          "m31_to_u32": 21,
+          "triple_xor": 20,
+          "blake_g_gate": 23
+        },
+        "unpadded_log_sizes": {
+          "eq": 16,
+          "qm31_ops": 21,
+          "m31_to_u32": 19,
+          "triple_xor": 18,
+          "blake_g_gate": 22
+        },
+        "trace_log_size": 23,
+        "layout": [
+          {
+            "id": "bitwise_xor_4_0",
+            "log_size": 8
+          },
+          {
+            "id": "bitwise_xor_4_1",
+            "log_size": 8
+          },
+          {
+            "id": "bitwise_xor_4_2",
+            "log_size": 8
+          },
+          {
+            "id": "bitwise_xor_7_0",
+            "log_size": 14
+          },
+          {
+            "id": "bitwise_xor_7_1",
+            "log_size": 14
+          },
+          {
+            "id": "bitwise_xor_7_2",
+            "log_size": 14
+          },
+          {
+            "id": "seq_16",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_8_0",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_8_1",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_8_2",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_9_0",
+            "log_size": 18
+          },
+          {
+            "id": "bitwise_xor_9_1",
+            "log_size": 18
+          },
+          {
+            "id": "bitwise_xor_9_2",
+            "log_size": 18
+          },
+          {
+            "id": "eq_in0_address",
+            "log_size": 20
+          },
+          {
+            "id": "eq_in1_address",
+            "log_size": 20
+          },
+          {
+            "id": "triple_xor_input_addr_0",
+            "log_size": 20
+          },
+          {
+            "id": "triple_xor_input_addr_1",
+            "log_size": 20
+          },
+          {
+            "id": "triple_xor_input_addr_2",
+            "log_size": 20
+          },
+          {
+            "id": "triple_xor_output_addr",
+            "log_size": 20
+          },
+          {
+            "id": "triple_xor_multiplicity",
+            "log_size": 20
+          },
+          {
+            "id": "bitwise_xor_10_0",
+            "log_size": 20
+          },
+          {
+            "id": "bitwise_xor_10_1",
+            "log_size": 20
+          },
+          {
+            "id": "bitwise_xor_10_2",
+            "log_size": 20
+          },
+          {
+            "id": "m31_to_u32_input_addr",
+            "log_size": 21
+          },
+          {
+            "id": "m31_to_u32_output_addr",
+            "log_size": 21
+          },
+          {
+            "id": "m31_to_u32_multiplicity",
+            "log_size": 21
+          },
+          {
+            "id": "qm31_ops_add_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_sub_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_mul_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_pointwise_mul_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_in0_address",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_in1_address",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_out_address",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_mults",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_a",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_b",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_c",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_d",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_f0",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_f1",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_a",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_b",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_c",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_d",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_multiplicity",
+            "log_size": 23
+          }
+        ],
+        "component_log_sizes": [
+          [
+            "eq",
+            20
+          ],
+          [
+            "qm31_ops",
+            23
+          ],
+          [
+            "triple_xor",
+            20
+          ],
+          [
+            "m_31_to_u_32",
+            21
+          ],
+          [
+            "blake_g_gate",
+            23
+          ],
+          [
+            "verify_bitwise_xor_8",
+            16
+          ],
+          [
+            "verify_bitwise_xor_12",
+            20
+          ],
+          [
+            "verify_bitwise_xor_4",
+            8
+          ],
+          [
+            "verify_bitwise_xor_7",
+            14
+          ],
+          [
+            "verify_bitwise_xor_9",
+            18
+          ],
+          [
+            "range_check_16",
+            16
+          ]
+        ],
+        "preprocessed_columns": [
+          {
+            "ordinal": 0,
+            "label": "preprocessed",
+            "columns": [
+              {
+                "ordinal": 0,
+                "id": "bitwise_xor_4_0",
+                "log_size": 8,
+                "sha256": "f19e69366bc42c51edee3a51fb5012edb74c6e1e3b4d975dcd315fde98c89c10"
+              },
+              {
+                "ordinal": 1,
+                "id": "bitwise_xor_4_1",
+                "log_size": 8,
+                "sha256": "815bb9c425b54bd3205047d475087a9096e194ca3a9828145b172a34bef6bb80"
+              },
+              {
+                "ordinal": 2,
+                "id": "bitwise_xor_4_2",
+                "log_size": 8,
+                "sha256": "c98607bfeaaba4f35692692ed834e21e99cd7d2096aa17a4c406524f16215aed"
+              },
+              {
+                "ordinal": 3,
+                "id": "bitwise_xor_7_0",
+                "log_size": 14,
+                "sha256": "c2d33df8e32b2d412aa6a5af5a157c5128730e7fdc23b354cc85aea69ff90a53"
+              },
+              {
+                "ordinal": 4,
+                "id": "bitwise_xor_7_1",
+                "log_size": 14,
+                "sha256": "2f41cd92616326594c06086f2542087a89428b9c2240025a7b58b0782ec16bd0"
+              },
+              {
+                "ordinal": 5,
+                "id": "bitwise_xor_7_2",
+                "log_size": 14,
+                "sha256": "06f6b5234b97d7b31caea44d0bdd91663f0c28f9272282b7e6cf5202be78fcf3"
+              },
+              {
+                "ordinal": 6,
+                "id": "seq_16",
+                "log_size": 16,
+                "sha256": "b63f80488c13cba71cfc320aae3ba90ada92a4ea6a36c84e3a239dbe045a2b7a"
+              },
+              {
+                "ordinal": 7,
+                "id": "bitwise_xor_8_0",
+                "log_size": 16,
+                "sha256": "2b752448b4cd5f952f4e105ac307d7afce4eb9488610bc1c87e8a127b1f4366c"
+              },
+              {
+                "ordinal": 8,
+                "id": "bitwise_xor_8_1",
+                "log_size": 16,
+                "sha256": "dd180b43ebff786d05e81a62894386436219a046cf6afb41f5c27f68f04cd8ab"
+              },
+              {
+                "ordinal": 9,
+                "id": "bitwise_xor_8_2",
+                "log_size": 16,
+                "sha256": "43bf435496793d1676761281616fa8438bd899540190f4d568bcba94117ebcc6"
+              },
+              {
+                "ordinal": 10,
+                "id": "bitwise_xor_9_0",
+                "log_size": 18,
+                "sha256": "1cf91adc73032f4e124f1592956b471246509f0b64bd22399b39facda0d2d848"
+              },
+              {
+                "ordinal": 11,
+                "id": "bitwise_xor_9_1",
+                "log_size": 18,
+                "sha256": "13b3b8786da5350cfa9f6d0db92b4681cc72f2524ea2e6cabc32e112bc440db4"
+              },
+              {
+                "ordinal": 12,
+                "id": "bitwise_xor_9_2",
+                "log_size": 18,
+                "sha256": "a344f452db3b38da4f882fb0f4e6ef2a23313dd7ab35e319f1535011322d0e89"
+              },
+              {
+                "ordinal": 13,
+                "id": "eq_in0_address",
+                "log_size": 20,
+                "sha256": "2744c195a23fa4b1f007d4fabf206b8956d506ac2847e7632324d80a277c613b"
+              },
+              {
+                "ordinal": 14,
+                "id": "eq_in1_address",
+                "log_size": 20,
+                "sha256": "e40e0c56d7a74e34e69a2134498089b6ad9c7bf3715decd3d92bc88055d69e10"
+              },
+              {
+                "ordinal": 15,
+                "id": "triple_xor_input_addr_0",
+                "log_size": 20,
+                "sha256": "6bb898324f41fe84f062c422cd27494b3ab2063cf37ff9d2cf2f5a9aec58fd16"
+              },
+              {
+                "ordinal": 16,
+                "id": "triple_xor_input_addr_1",
+                "log_size": 20,
+                "sha256": "9f4cb49999f6472d068d99f9b8cb1153c766002b77fc8e23454f292625eb5638"
+              },
+              {
+                "ordinal": 17,
+                "id": "triple_xor_input_addr_2",
+                "log_size": 20,
+                "sha256": "9d6334ada881933b43269ee3a94ff5f7443d5b6274aab9ef074e43021ae7bf09"
+              },
+              {
+                "ordinal": 18,
+                "id": "triple_xor_output_addr",
+                "log_size": 20,
+                "sha256": "d5a64ba228a1425081dde571b1f000e5c1f054978a90cc4b7a64d0e27172ad9a"
+              },
+              {
+                "ordinal": 19,
+                "id": "triple_xor_multiplicity",
+                "log_size": 20,
+                "sha256": "9a46be121a8e5129c199581fc7012e9ba9a72e97ec2b04213892f30bb3335f6c"
+              },
+              {
+                "ordinal": 20,
+                "id": "bitwise_xor_10_0",
+                "log_size": 20,
+                "sha256": "52e422dc475a3dd9c623c2c2f736dc00fdb24378daadbae64805c42afcee23eb"
+              },
+              {
+                "ordinal": 21,
+                "id": "bitwise_xor_10_1",
+                "log_size": 20,
+                "sha256": "2961bb775027e1a5e12b26926bd487ac3ed6c639b10f2bda5952d5b346438d02"
+              },
+              {
+                "ordinal": 22,
+                "id": "bitwise_xor_10_2",
+                "log_size": 20,
+                "sha256": "5edbd7ad0dfff559264cd2d05b6cb3d1593e98f4fd099920b93fbc2490cb3250"
+              },
+              {
+                "ordinal": 23,
+                "id": "m31_to_u32_input_addr",
+                "log_size": 21,
+                "sha256": "0f4ffb7786837e0460bf81abd0f0ffeaa8cb0a8ca25eabf3cf53467d902b7f19"
+              },
+              {
+                "ordinal": 24,
+                "id": "m31_to_u32_output_addr",
+                "log_size": 21,
+                "sha256": "2e704e0f36eb5dd895fb9d3ad986bbbda7e43f88b94a9682be600ed8e13b9e70"
+              },
+              {
+                "ordinal": 25,
+                "id": "m31_to_u32_multiplicity",
+                "log_size": 21,
+                "sha256": "d80156e4ef5cf776a47d3894efaee51e3173f4e1930c477a26ed10662f266278"
+              },
+              {
+                "ordinal": 26,
+                "id": "qm31_ops_add_flag",
+                "log_size": 23,
+                "sha256": "234b94c869e1bc934e9444746319eac285532759e4961ce337dc50e6de59e3aa"
+              },
+              {
+                "ordinal": 27,
+                "id": "qm31_ops_sub_flag",
+                "log_size": 23,
+                "sha256": "5ea345b8f992fe63c75e852d5515a388cdbf34d4819f16ba52ffd6d287cc2aa4"
+              },
+              {
+                "ordinal": 28,
+                "id": "qm31_ops_mul_flag",
+                "log_size": 23,
+                "sha256": "8f2c14e14c2bec4c18fdda5f2874150075de462f4a8746636228ef001b0cd48e"
+              },
+              {
+                "ordinal": 29,
+                "id": "qm31_ops_pointwise_mul_flag",
+                "log_size": 23,
+                "sha256": "d63146b18fc47683fb1adcda4392b43ced8365ca83d2792b6b22afa9560a538f"
+              },
+              {
+                "ordinal": 30,
+                "id": "qm31_ops_in0_address",
+                "log_size": 23,
+                "sha256": "970d8354d7f3ae58454f85bcd1fb6b604f047b9793dfa5354e0bf1d4e61109a2"
+              },
+              {
+                "ordinal": 31,
+                "id": "qm31_ops_in1_address",
+                "log_size": 23,
+                "sha256": "1169fd52a3bc1aea0f5328cbae17650766929d5cfcdfaaa7c824084f934742f7"
+              },
+              {
+                "ordinal": 32,
+                "id": "qm31_ops_out_address",
+                "log_size": 23,
+                "sha256": "8752cebf375e8adc75a6f8b4c7b7b1635b6d346d5216a53fc2fe728121d3528d"
+              },
+              {
+                "ordinal": 33,
+                "id": "qm31_ops_mults",
+                "log_size": 23,
+                "sha256": "e7d7064356c03d2ae2c950f88b53d8b8e25392a565ad660c6097605af00b6326"
+              },
+              {
+                "ordinal": 34,
+                "id": "blake_g_gate_input_addr_a",
+                "log_size": 23,
+                "sha256": "da67f4857e4490684b07a4d8f8ccb34c89e26b4e531caa0803c48eadccbf198d"
+              },
+              {
+                "ordinal": 35,
+                "id": "blake_g_gate_input_addr_b",
+                "log_size": 23,
+                "sha256": "3e5aa2ecb6c61d67bfc53e9dc26f2ad0973f1522dfbb0b7b90cf128bc3b4afba"
+              },
+              {
+                "ordinal": 36,
+                "id": "blake_g_gate_input_addr_c",
+                "log_size": 23,
+                "sha256": "068841e44ea94ee6c797218299f41cec15882bdf4bf802bb12e76e47d4276492"
+              },
+              {
+                "ordinal": 37,
+                "id": "blake_g_gate_input_addr_d",
+                "log_size": 23,
+                "sha256": "c7d5b7ea9510479f45c9c080ba4ce969e6199a093603d47a12e3a3af3681fdd3"
+              },
+              {
+                "ordinal": 38,
+                "id": "blake_g_gate_input_addr_f0",
+                "log_size": 23,
+                "sha256": "1dac03de40abb6aa2fa5982931c009eae882805bfdb76b41e3b35a84777064f7"
+              },
+              {
+                "ordinal": 39,
+                "id": "blake_g_gate_input_addr_f1",
+                "log_size": 23,
+                "sha256": "47c921e1569023f1237c0101be4af62e5e94ac5a90c303d6471828f9440f432f"
+              },
+              {
+                "ordinal": 40,
+                "id": "blake_g_gate_output_addr_a",
+                "log_size": 23,
+                "sha256": "7721129dced90a0ec198cf758654398b3d14ef04348c2df1fe923d8ac57f5e54"
+              },
+              {
+                "ordinal": 41,
+                "id": "blake_g_gate_output_addr_b",
+                "log_size": 23,
+                "sha256": "876910c0e83258741ebeb3f491233e8e4283938cdfc33f737116b25e58f7c7c5"
+              },
+              {
+                "ordinal": 42,
+                "id": "blake_g_gate_output_addr_c",
+                "log_size": 23,
+                "sha256": "6e992b83aeafc0d900aef6d98cc816432ee19aed79b03402c1bcb28b9dcf392d"
+              },
+              {
+                "ordinal": 43,
+                "id": "blake_g_gate_output_addr_d",
+                "log_size": 23,
+                "sha256": "a4c4bfa038825b1d16303885c206e8a35dcc0286838d943174d0729ad88056f7"
+              },
+              {
+                "ordinal": 44,
+                "id": "blake_g_gate_multiplicity",
+                "log_size": 23,
+                "sha256": "df71032f5bc980e031d09b493f4a2eefed3c36a3dd94c78f4025b28731305ce2"
+              }
+            ],
+            "accumulator_sha256": "c9e2e747f800fa29a4e88b139d3dbf7c95ad57c6de1b931d9f1188b58abc269a"
+          }
+        ],
+        "preprocessed_columns_accumulator_sha256": "c9e2e747f800fa29a4e88b139d3dbf7c95ad57c6de1b931d9f1188b58abc269a",
+        "preprocessed_root": [
+          3833178937,
+          3311133868,
+          2677588770,
+          3610968660,
+          3081655547,
+          3884602565,
+          2957537043,
+          1726550085
+        ],
+        "circuit_hash": [
+          2778240789,
+          595050618,
+          3335645252,
+          1425055821,
+          2347129469,
+          4252222049,
+          2423842600,
+          2537515023
+        ]
+      },
+      {
+        "registry": "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+        "golden": "leaf_prover_multiverifier",
+        "fri_config": {
+          "pow_bits": 26,
+          "log_blowup_factor": 1,
+          "log_last_layer_degree_bound": 0,
+          "n_queries": 35,
+          "fold_step": 4
+        },
+        "cairo_log_blowup_factor": 1,
+        "target_log_sizes": {
+          "eq": 20,
+          "qm31_ops": 23,
+          "m31_to_u32": 20,
+          "triple_xor": 19,
+          "blake_g_gate": 23
+        },
+        "unpadded_log_sizes": {
+          "eq": 15,
+          "qm31_ops": 20,
+          "m31_to_u32": 18,
+          "triple_xor": 17,
+          "blake_g_gate": 21
+        },
+        "trace_log_size": 23,
+        "layout": [
+          {
+            "id": "bitwise_xor_4_0",
+            "log_size": 8
+          },
+          {
+            "id": "bitwise_xor_4_1",
+            "log_size": 8
+          },
+          {
+            "id": "bitwise_xor_4_2",
+            "log_size": 8
+          },
+          {
+            "id": "bitwise_xor_7_0",
+            "log_size": 14
+          },
+          {
+            "id": "bitwise_xor_7_1",
+            "log_size": 14
+          },
+          {
+            "id": "bitwise_xor_7_2",
+            "log_size": 14
+          },
+          {
+            "id": "seq_16",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_8_0",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_8_1",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_8_2",
+            "log_size": 16
+          },
+          {
+            "id": "bitwise_xor_9_0",
+            "log_size": 18
+          },
+          {
+            "id": "bitwise_xor_9_1",
+            "log_size": 18
+          },
+          {
+            "id": "bitwise_xor_9_2",
+            "log_size": 18
+          },
+          {
+            "id": "triple_xor_input_addr_0",
+            "log_size": 19
+          },
+          {
+            "id": "triple_xor_input_addr_1",
+            "log_size": 19
+          },
+          {
+            "id": "triple_xor_input_addr_2",
+            "log_size": 19
+          },
+          {
+            "id": "triple_xor_output_addr",
+            "log_size": 19
+          },
+          {
+            "id": "triple_xor_multiplicity",
+            "log_size": 19
+          },
+          {
+            "id": "eq_in0_address",
+            "log_size": 20
+          },
+          {
+            "id": "eq_in1_address",
+            "log_size": 20
+          },
+          {
+            "id": "m31_to_u32_input_addr",
+            "log_size": 20
+          },
+          {
+            "id": "m31_to_u32_output_addr",
+            "log_size": 20
+          },
+          {
+            "id": "m31_to_u32_multiplicity",
+            "log_size": 20
+          },
+          {
+            "id": "bitwise_xor_10_0",
+            "log_size": 20
+          },
+          {
+            "id": "bitwise_xor_10_1",
+            "log_size": 20
+          },
+          {
+            "id": "bitwise_xor_10_2",
+            "log_size": 20
+          },
+          {
+            "id": "qm31_ops_add_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_sub_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_mul_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_pointwise_mul_flag",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_in0_address",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_in1_address",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_out_address",
+            "log_size": 23
+          },
+          {
+            "id": "qm31_ops_mults",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_a",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_b",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_c",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_d",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_f0",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_input_addr_f1",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_a",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_b",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_c",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_output_addr_d",
+            "log_size": 23
+          },
+          {
+            "id": "blake_g_gate_multiplicity",
+            "log_size": 23
+          }
+        ],
+        "component_log_sizes": [
+          [
+            "eq",
+            20
+          ],
+          [
+            "qm31_ops",
+            23
+          ],
+          [
+            "triple_xor",
+            19
+          ],
+          [
+            "m_31_to_u_32",
+            20
+          ],
+          [
+            "blake_g_gate",
+            23
+          ],
+          [
+            "verify_bitwise_xor_8",
+            16
+          ],
+          [
+            "verify_bitwise_xor_12",
+            20
+          ],
+          [
+            "verify_bitwise_xor_4",
+            8
+          ],
+          [
+            "verify_bitwise_xor_7",
+            14
+          ],
+          [
+            "verify_bitwise_xor_9",
+            18
+          ],
+          [
+            "range_check_16",
+            16
+          ]
+        ],
+        "preprocessed_columns": [
+          {
+            "ordinal": 0,
+            "label": "preprocessed",
+            "columns": [
+              {
+                "ordinal": 0,
+                "id": "bitwise_xor_4_0",
+                "log_size": 8,
+                "sha256": "f19e69366bc42c51edee3a51fb5012edb74c6e1e3b4d975dcd315fde98c89c10"
+              },
+              {
+                "ordinal": 1,
+                "id": "bitwise_xor_4_1",
+                "log_size": 8,
+                "sha256": "815bb9c425b54bd3205047d475087a9096e194ca3a9828145b172a34bef6bb80"
+              },
+              {
+                "ordinal": 2,
+                "id": "bitwise_xor_4_2",
+                "log_size": 8,
+                "sha256": "c98607bfeaaba4f35692692ed834e21e99cd7d2096aa17a4c406524f16215aed"
+              },
+              {
+                "ordinal": 3,
+                "id": "bitwise_xor_7_0",
+                "log_size": 14,
+                "sha256": "c2d33df8e32b2d412aa6a5af5a157c5128730e7fdc23b354cc85aea69ff90a53"
+              },
+              {
+                "ordinal": 4,
+                "id": "bitwise_xor_7_1",
+                "log_size": 14,
+                "sha256": "2f41cd92616326594c06086f2542087a89428b9c2240025a7b58b0782ec16bd0"
+              },
+              {
+                "ordinal": 5,
+                "id": "bitwise_xor_7_2",
+                "log_size": 14,
+                "sha256": "06f6b5234b97d7b31caea44d0bdd91663f0c28f9272282b7e6cf5202be78fcf3"
+              },
+              {
+                "ordinal": 6,
+                "id": "seq_16",
+                "log_size": 16,
+                "sha256": "b63f80488c13cba71cfc320aae3ba90ada92a4ea6a36c84e3a239dbe045a2b7a"
+              },
+              {
+                "ordinal": 7,
+                "id": "bitwise_xor_8_0",
+                "log_size": 16,
+                "sha256": "2b752448b4cd5f952f4e105ac307d7afce4eb9488610bc1c87e8a127b1f4366c"
+              },
+              {
+                "ordinal": 8,
+                "id": "bitwise_xor_8_1",
+                "log_size": 16,
+                "sha256": "dd180b43ebff786d05e81a62894386436219a046cf6afb41f5c27f68f04cd8ab"
+              },
+              {
+                "ordinal": 9,
+                "id": "bitwise_xor_8_2",
+                "log_size": 16,
+                "sha256": "43bf435496793d1676761281616fa8438bd899540190f4d568bcba94117ebcc6"
+              },
+              {
+                "ordinal": 10,
+                "id": "bitwise_xor_9_0",
+                "log_size": 18,
+                "sha256": "1cf91adc73032f4e124f1592956b471246509f0b64bd22399b39facda0d2d848"
+              },
+              {
+                "ordinal": 11,
+                "id": "bitwise_xor_9_1",
+                "log_size": 18,
+                "sha256": "13b3b8786da5350cfa9f6d0db92b4681cc72f2524ea2e6cabc32e112bc440db4"
+              },
+              {
+                "ordinal": 12,
+                "id": "bitwise_xor_9_2",
+                "log_size": 18,
+                "sha256": "a344f452db3b38da4f882fb0f4e6ef2a23313dd7ab35e319f1535011322d0e89"
+              },
+              {
+                "ordinal": 13,
+                "id": "triple_xor_input_addr_0",
+                "log_size": 19,
+                "sha256": "2532082380dd83821d062ed56a43f467662cc3b1e1b704a8fb6a3d5f63d27729"
+              },
+              {
+                "ordinal": 14,
+                "id": "triple_xor_input_addr_1",
+                "log_size": 19,
+                "sha256": "8a795064a560a58338dc3d8843c6c219d1b56e3187f2a330dc8d21e1a34c3d39"
+              },
+              {
+                "ordinal": 15,
+                "id": "triple_xor_input_addr_2",
+                "log_size": 19,
+                "sha256": "67bc0d76fa84e133e8d5ea752f7c74de4512c33ca7df5d2a27a97d47894d5848"
+              },
+              {
+                "ordinal": 16,
+                "id": "triple_xor_output_addr",
+                "log_size": 19,
+                "sha256": "d27e67d31bf7b9b5764e4e35b84fddfff3cdd3e530b307d0fc824d86bde6fe91"
+              },
+              {
+                "ordinal": 17,
+                "id": "triple_xor_multiplicity",
+                "log_size": 19,
+                "sha256": "063ff34c0f8d9ab0c3a87b9d6dd4edc054660f2be41c4c7ad0ae60de2081544c"
+              },
+              {
+                "ordinal": 18,
+                "id": "eq_in0_address",
+                "log_size": 20,
+                "sha256": "1ad82793ceeff08eb4f881f7051c8d14fcac2e674494399971df7875ed2cf8a6"
+              },
+              {
+                "ordinal": 19,
+                "id": "eq_in1_address",
+                "log_size": 20,
+                "sha256": "7dc9ee7a0f4926ae57738e684a597b456e9ab60d5e7cf214d793ed0f6959c7d2"
+              },
+              {
+                "ordinal": 20,
+                "id": "m31_to_u32_input_addr",
+                "log_size": 20,
+                "sha256": "67633d6ce19502fcd4ea226fa10843a784953537f71c1a3d1f2c8a6092a8c5de"
+              },
+              {
+                "ordinal": 21,
+                "id": "m31_to_u32_output_addr",
+                "log_size": 20,
+                "sha256": "ba335e66bcc3b51ce907243bc14e57cb03a798bc49b4ff260a3230cf94a45b2c"
+              },
+              {
+                "ordinal": 22,
+                "id": "m31_to_u32_multiplicity",
+                "log_size": 20,
+                "sha256": "1523dea43a3d99285361959153193bf81ae6d8e12f0f7953226ed771214304ab"
+              },
+              {
+                "ordinal": 23,
+                "id": "bitwise_xor_10_0",
+                "log_size": 20,
+                "sha256": "4d3c39e0d65ffffc4073f469aeea8c2b474233dee6f8f25be7809f2f700cf879"
+              },
+              {
+                "ordinal": 24,
+                "id": "bitwise_xor_10_1",
+                "log_size": 20,
+                "sha256": "39e621fbcdcb81a6b0c2471ad5c487b799d7677c849233cd88ee441dee2adb83"
+              },
+              {
+                "ordinal": 25,
+                "id": "bitwise_xor_10_2",
+                "log_size": 20,
+                "sha256": "770916f9cffff44522f7ca46c533cb15c3249bc36c7fc4b55eed4e8145ae2b3a"
+              },
+              {
+                "ordinal": 26,
+                "id": "qm31_ops_add_flag",
+                "log_size": 23,
+                "sha256": "7811e5a6463dc99800aada1f728729be2123a516bd762ebd392db1e3e8730a8a"
+              },
+              {
+                "ordinal": 27,
+                "id": "qm31_ops_sub_flag",
+                "log_size": 23,
+                "sha256": "7b298378cb1de8c64de1a204e5dd7daa11d4ed696fe83a22cebc2a1aeb52a006"
+              },
+              {
+                "ordinal": 28,
+                "id": "qm31_ops_mul_flag",
+                "log_size": 23,
+                "sha256": "8529b680355309672c2dc967c5b12508413dd085c132051ec50ddd9c79e776fe"
+              },
+              {
+                "ordinal": 29,
+                "id": "qm31_ops_pointwise_mul_flag",
+                "log_size": 23,
+                "sha256": "69599b8048a1b150c7c65ca238159b6bb573c92f91cbd3b1d2da7cf31a8eaaae"
+              },
+              {
+                "ordinal": 30,
+                "id": "qm31_ops_in0_address",
+                "log_size": 23,
+                "sha256": "a833a26823400a98edeb4aa7d82469d9ca61e9aac33f882c8d0f17237dbc1d85"
+              },
+              {
+                "ordinal": 31,
+                "id": "qm31_ops_in1_address",
+                "log_size": 23,
+                "sha256": "4885daebd8da1d10c76a6392a4a8e2aec076498ce5b269fd5ae2c09b1cb76aaf"
+              },
+              {
+                "ordinal": 32,
+                "id": "qm31_ops_out_address",
+                "log_size": 23,
+                "sha256": "b798d8f34a04d8481357cf5ab4dcefb5374866eeb06cc54eb6d35c24e8a1a4af"
+              },
+              {
+                "ordinal": 33,
+                "id": "qm31_ops_mults",
+                "log_size": 23,
+                "sha256": "b14fa42b87a3367ec649c5db19867fb9980cd3c1409d258135698ab91040781d"
+              },
+              {
+                "ordinal": 34,
+                "id": "blake_g_gate_input_addr_a",
+                "log_size": 23,
+                "sha256": "7716b055be1a153127ea383594fd92a35d630b0798192610db23c2bee4a4675b"
+              },
+              {
+                "ordinal": 35,
+                "id": "blake_g_gate_input_addr_b",
+                "log_size": 23,
+                "sha256": "af5e96890128204495930361672491c040b97da97f662453aea87b5bce7afbf9"
+              },
+              {
+                "ordinal": 36,
+                "id": "blake_g_gate_input_addr_c",
+                "log_size": 23,
+                "sha256": "46cf59b2536976442992945ea8611995cc9dc372b18c89265c1ad2e50aa284dc"
+              },
+              {
+                "ordinal": 37,
+                "id": "blake_g_gate_input_addr_d",
+                "log_size": 23,
+                "sha256": "23fb6152ccca52a132434d7d099f9d91039d464854ab20dcd13f9854a0f929c6"
+              },
+              {
+                "ordinal": 38,
+                "id": "blake_g_gate_input_addr_f0",
+                "log_size": 23,
+                "sha256": "1d3e0cf92a2429b17f127574190d02c8da142cd2d5536f3d064931065a787840"
+              },
+              {
+                "ordinal": 39,
+                "id": "blake_g_gate_input_addr_f1",
+                "log_size": 23,
+                "sha256": "e0602e0bc39cf9d627b92b0d81e79bee2e6a2d13c62bb487d40f1da259ae41ca"
+              },
+              {
+                "ordinal": 40,
+                "id": "blake_g_gate_output_addr_a",
+                "log_size": 23,
+                "sha256": "9cc30580dbe4d2ce243de05349e64f55fd022e677ad781ff8642e2a075968864"
+              },
+              {
+                "ordinal": 41,
+                "id": "blake_g_gate_output_addr_b",
+                "log_size": 23,
+                "sha256": "ba43a63fa87de39aaed7ff87a2c77b6e140bbed6b6cb873cb61e78550bb5e3b7"
+              },
+              {
+                "ordinal": 42,
+                "id": "blake_g_gate_output_addr_c",
+                "log_size": 23,
+                "sha256": "77cbe16e1172056c1abf1f412e4bb8cd38fad0efda85d9400e6468cb70cd9350"
+              },
+              {
+                "ordinal": 43,
+                "id": "blake_g_gate_output_addr_d",
+                "log_size": 23,
+                "sha256": "524b4e4f8cba77c0119674686522e9cb9b020a586a0fde4912a5d676e628e1b8"
+              },
+              {
+                "ordinal": 44,
+                "id": "blake_g_gate_multiplicity",
+                "log_size": 23,
+                "sha256": "d623b05f93e68a872955fa902a7edb99461e7d0689b0097ed0cb519fddebbb5e"
+              }
+            ],
+            "accumulator_sha256": "8c39d5e65743fec71cca3566a7c24990c12f5d7c2c5a9cec7290ccf7399712ff"
+          }
+        ],
+        "preprocessed_columns_accumulator_sha256": "8c39d5e65743fec71cca3566a7c24990c12f5d7c2c5a9cec7290ccf7399712ff",
+        "preprocessed_root": [
+          3510195151,
+          1713164150,
+          2078735882,
+          171816297,
+          1320832657,
+          3265402391,
+          3123594166,
+          2645064337
+        ],
+        "circuit_hash": [
+          1291925383,
+          1293143918,
+          3122120595,
+          3080273587,
+          1122910878,
+          3817723877,
+          4114783085,
+          1376701033
+        ]
+      }
+    ],
+    "cairo_preprocessed_roots": [
+      {
+        "preprocessed_trace": "canonical_small",
+        "log_blowup_factor": 1,
+        "trace_log_size": 20,
+        "lifting_log_size": 21,
+        "preprocessed_root": [
+          1712426246,
+          3975215561,
+          3393287716,
+          971513401,
+          2481352801,
+          3435847491,
+          949366627,
+          3962244455
+        ]
+      },
+      {
+        "preprocessed_trace": "canonical_small",
+        "log_blowup_factor": 2,
+        "trace_log_size": 20,
+        "lifting_log_size": 22,
+        "preprocessed_root": [
+          1339935525,
+          1265118357,
+          1284994137,
+          2854722301,
+          3594581873,
+          3353940013,
+          4006659842,
+          3223691736
+        ]
+      },
+      {
+        "preprocessed_trace": "canonical_small",
+        "log_blowup_factor": 3,
+        "trace_log_size": 20,
+        "lifting_log_size": 23,
+        "preprocessed_root": [
+          2271225220,
+          1855536874,
+          1802924152,
+          654143153,
+          3715309987,
+          1517124483,
+          206973071,
+          750452746
+        ]
+      }
+    ]
+  }
+}

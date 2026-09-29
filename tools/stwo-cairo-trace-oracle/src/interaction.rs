@@ -12,11 +12,16 @@ use stwo::prover::poly::BitReversedOrder;
 use stwo::prover::poly::circle::CircleEvaluation;
 
 use crate::checkpoint::Authority;
+use crate::trace_digest::{Domains, column_digest, update_label};
 
 const CHALLENGE_DOMAIN: &[u8] = b"STWO_CAIRO_INTERACTION_DIAGNOSTIC_CHALLENGE_V1\0";
 const LOOKUP_ELEMENTS_DOMAIN: &[u8] = b"STWO_CAIRO_INTERACTION_LOOKUP_ELEMENTS_V1\0";
-const COLUMN_DOMAIN: &[u8] = b"STWO_CAIRO_INTERACTION_COLUMN_V1\0";
-const ACCUMULATOR_DOMAIN: &[u8] = b"STWO_CAIRO_INTERACTION_ACCUMULATOR_V1\0";
+/// The column digest is the shared one; the accumulator also binds the lookup elements and the
+/// component's claimed sum, so it is specific to this checkpoint.
+const DOMAINS: Domains = Domains {
+    column: b"STWO_CAIRO_INTERACTION_COLUMN_V1\0",
+    accumulator: b"STWO_CAIRO_INTERACTION_ACCUMULATOR_V1\0",
+};
 
 #[derive(Serialize)]
 pub struct ChallengeProvenance {
@@ -255,30 +260,6 @@ fn lookup_elements_from_channel(
     Ok((elements, provenance))
 }
 
-fn update_label(hasher: &mut Sha256, label: &str) -> Result<()> {
-    hasher.update(u32::try_from(label.len())?.to_le_bytes());
-    hasher.update(label.as_bytes());
-    Ok(())
-}
-
-fn column_digest(
-    component_ordinal: u32,
-    label: &str,
-    column_ordinal: u32,
-    values: &[BaseField],
-) -> Result<[u8; 32]> {
-    let mut hasher = Sha256::new();
-    hasher.update(COLUMN_DOMAIN);
-    hasher.update(component_ordinal.to_le_bytes());
-    update_label(&mut hasher, label)?;
-    hasher.update(column_ordinal.to_le_bytes());
-    hasher.update(u64::try_from(values.len())?.to_le_bytes());
-    for value in values {
-        hasher.update(value.0.to_le_bytes());
-    }
-    Ok(hasher.finalize().into())
-}
-
 fn accumulator_digest(
     previous: [u8; 32],
     lookup_digest: [u8; 32],
@@ -288,7 +269,7 @@ fn accumulator_digest(
     columns: &[(u64, [u8; 32])],
 ) -> Result<[u8; 32]> {
     let mut hasher = Sha256::new();
-    hasher.update(ACCUMULATOR_DOMAIN);
+    hasher.update(DOMAINS.accumulator);
     hasher.update(previous);
     hasher.update(lookup_digest);
     hasher.update(component_ordinal.to_le_bytes());
@@ -362,7 +343,13 @@ pub fn build(
                 "interaction trace row count mismatch"
             );
             let column_ordinal = u32::try_from(column_index)?;
-            let digest = column_digest(component_ordinal, &layout.label, column_ordinal, &values)?;
+            let digest = column_digest(
+                DOMAINS,
+                component_ordinal,
+                &layout.label,
+                column_ordinal,
+                &values,
+            )?;
             let row_count = u64::try_from(values.len())?;
             digest_inputs.push((row_count, digest));
             columns.push(ColumnCheckpoint {
@@ -438,7 +425,7 @@ mod tests {
     #[test]
     fn accumulator_binds_claim_and_lookup_elements() {
         let values = [BaseField::from(1), BaseField::from(2)];
-        let column = column_digest(3, "ret_opcode", 0, &values).unwrap();
+        let column = column_digest(DOMAINS, 3, "ret_opcode", 0, &values).unwrap();
         let first = accumulator_digest(
             [0; 32],
             [1; 32],

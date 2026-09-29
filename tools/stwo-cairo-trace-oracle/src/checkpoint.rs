@@ -1,15 +1,18 @@
 use anyhow::{Context, Result, ensure};
 use cairo_air::claims::CairoClaim;
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 use stwo::core::fields::m31::BaseField;
 use stwo::prover::backend::Column;
 use stwo::prover::backend::simd::SimdBackend;
 use stwo::prover::poly::BitReversedOrder;
 use stwo::prover::poly::circle::CircleEvaluation;
 
-const COLUMN_DOMAIN: &[u8] = b"STWO_CAIRO_BASE_COLUMN_V1\0";
-const ACCUMULATOR_DOMAIN: &[u8] = b"STWO_CAIRO_BASE_ACCUMULATOR_V1\0";
+use crate::trace_digest::{Domains, accumulator_digest, column_digest};
+
+const DOMAINS: Domains = Domains {
+    column: b"STWO_CAIRO_BASE_COLUMN_V1\0",
+    accumulator: b"STWO_CAIRO_BASE_ACCUMULATOR_V1\0",
+};
 
 #[derive(Serialize)]
 pub struct Authority {
@@ -139,51 +142,6 @@ fn layouts(claim: &CairoClaim) -> Vec<ComponentLayout> {
     result
 }
 
-fn update_label(hasher: &mut Sha256, label: &str) -> Result<()> {
-    let length = u32::try_from(label.len()).context("component label exceeds u32")?;
-    hasher.update(length.to_le_bytes());
-    hasher.update(label.as_bytes());
-    Ok(())
-}
-
-fn column_digest(
-    component_ordinal: u32,
-    label: &str,
-    column_ordinal: u32,
-    values: &[BaseField],
-) -> Result<[u8; 32]> {
-    let mut hasher = Sha256::new();
-    hasher.update(COLUMN_DOMAIN);
-    hasher.update(component_ordinal.to_le_bytes());
-    update_label(&mut hasher, label)?;
-    hasher.update(column_ordinal.to_le_bytes());
-    hasher.update(u64::try_from(values.len())?.to_le_bytes());
-    for value in values {
-        hasher.update(value.0.to_le_bytes());
-    }
-    Ok(hasher.finalize().into())
-}
-
-fn accumulator_digest(
-    previous: [u8; 32],
-    component_ordinal: u32,
-    label: &str,
-    columns: &[(u64, [u8; 32])],
-) -> Result<[u8; 32]> {
-    let mut hasher = Sha256::new();
-    hasher.update(ACCUMULATOR_DOMAIN);
-    hasher.update(previous);
-    hasher.update(component_ordinal.to_le_bytes());
-    update_label(&mut hasher, label)?;
-    hasher.update(u32::try_from(columns.len())?.to_le_bytes());
-    for (ordinal, (row_count, digest)) in columns.iter().enumerate() {
-        hasher.update(u32::try_from(ordinal)?.to_le_bytes());
-        hasher.update(row_count.to_le_bytes());
-        hasher.update(digest);
-    }
-    Ok(hasher.finalize().into())
-}
-
 pub fn build(
     input_sha256: [u8; 32],
     claim: &CairoClaim,
@@ -223,7 +181,13 @@ pub fn build(
                 "base trace row count mismatch"
             );
             let column_ordinal = u32::try_from(column_index)?;
-            let digest = column_digest(component_ordinal, &layout.label, column_ordinal, &values)?;
+            let digest = column_digest(
+                DOMAINS,
+                component_ordinal,
+                &layout.label,
+                column_ordinal,
+                &values,
+            )?;
             let row_count = u64::try_from(values.len())?;
             digest_inputs.push((row_count, digest));
             columns.push(ColumnCheckpoint {
@@ -240,6 +204,7 @@ pub fn build(
             });
         }
         accumulator = accumulator_digest(
+            DOMAINS,
             accumulator,
             component_ordinal,
             &layout.label,
@@ -273,14 +238,14 @@ mod tests {
     #[test]
     fn digest_contract_is_domain_separated_and_chained() {
         let values = [BaseField::from(1), BaseField::from(2)];
-        let column = column_digest(3, "ret_opcode", 0, &values).unwrap();
-        let first = accumulator_digest([0; 32], 3, "ret_opcode", &[(2, column)]).unwrap();
-        let second = accumulator_digest(first, 4, "memory", &[]).unwrap();
+        let column = column_digest(DOMAINS, 3, "ret_opcode", 0, &values).unwrap();
+        let first = accumulator_digest(DOMAINS, [0; 32], 3, "ret_opcode", &[(2, column)]).unwrap();
+        let second = accumulator_digest(DOMAINS, first, 4, "memory", &[]).unwrap();
         assert_ne!(column, first);
         assert_ne!(first, second);
         assert_ne!(
             second,
-            accumulator_digest([0; 32], 4, "memory", &[]).unwrap()
+            accumulator_digest(DOMAINS, [0; 32], 4, "memory", &[]).unwrap()
         );
     }
 }

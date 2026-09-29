@@ -5,127 +5,18 @@ use anyhow::{Context, Result, anyhow, ensure};
 use cairo_air::CairoProofForRustVerifier;
 use cairo_air::cairo_components::CairoComponents;
 use cairo_air::claims::{CairoClaim, CairoInteractionClaim};
+use cairo_air::relations::CommonLookupElements;
 use cairo_air::utils::{ProofFormat, deserialize_proof_from_file};
-use stwo::core::air::Component;
-use stwo::core::fields::qm31::SecureField;
 use stwo::core::vcs_lifted::blake2_merkle::Blake2sMerkleHasher;
 use stwo_cairo_adapter::ProverInput;
 use stwo_cairo_common::preprocessed_columns::preprocessed_trace::PreProcessedTraceVariant;
 use stwo_cairo_prover::witness::cairo::create_cairo_claim_generator;
-use stwo_constraint_framework::{FrameworkComponent, FrameworkEval};
 
-mod bundle;
-mod encoding;
-mod parameters;
-mod program;
-mod recording;
-mod semantic;
+#[path = "../../stwo-eval-program-abi/src/lib.rs"]
+mod eval_program_abi;
 
-use program::lower_framework_eval_to_v1_with_logup;
-
-#[derive(Default)]
-struct Summary {
-    components: usize,
-    constraints: usize,
-    base_instructions: usize,
-    extension_instructions: usize,
-    extension_parameters: usize,
-}
-
-fn lower_component<E: FrameworkEval>(
-    name: &str,
-    instance: u32,
-    component: &FrameworkComponent<E>,
-    probe_component: &FrameworkComponent<E>,
-    lookup: &parameters::LookupProbe,
-    probe_lookup: &parameters::LookupProbe,
-    summary: &mut Summary,
-) -> Result<bundle::CapturedComponent> {
-    let random_coefficient_offset = summary.constraints;
-    let concrete_program = lower_framework_eval_to_v1_with_logup(
-        component.evaluator(),
-        component.trace_locations().len() as u32,
-        0,
-        0,
-        component.claimed_sum(),
-        component.evaluator().log_size(),
-    )
-    .map_err(|error| anyhow!("{name}: {error:?}"))?;
-    semantic::validate(
-        name,
-        component.evaluator(),
-        component.claimed_sum(),
-        &concrete_program,
-    )?;
-    let probe = lower_framework_eval_to_v1_with_logup(
-        probe_component.evaluator(),
-        probe_component.trace_locations().len() as u32,
-        0,
-        0,
-        PROBE_CLAIMED_SUM,
-        probe_component.evaluator().log_size(),
-    )
-    .map_err(|error| anyhow!("{name} probe: {error:?}"))?;
-    let (program, parameter_pairs) = concrete_program
-        .parameterize_extension_constants(&probe)
-        .map_err(|error| anyhow!("{name}: {error:?}"))?;
-    let rebound = program
-        .bind_extension_parameters(
-            &parameter_pairs
-                .iter()
-                .map(|parameter| parameter.primary)
-                .collect::<Vec<_>>(),
-        )
-        .map_err(|error| anyhow!("{name} rebound: {error:?}"))?;
-    ensure!(
-        rebound == concrete_program,
-        "{name}: parameterized AIR does not reconstruct its concrete recording"
-    );
-    let sources = parameters::classify(
-        name,
-        component.evaluator().log_size(),
-        component.claimed_sum(),
-        PROBE_CLAIMED_SUM,
-        lookup,
-        probe_lookup,
-        &parameter_pairs,
-    )?;
-    ensure!(
-        program.constraint_roots().len() == component.n_constraints(),
-        "{name}: recorded {} constraints, official component reports {}",
-        program.constraint_roots().len(),
-        component.n_constraints()
-    );
-    summary.components += 1;
-    summary.constraints += component.n_constraints();
-    summary.base_instructions += program.base_insts().len();
-    summary.extension_instructions += program.ext_insts().len();
-    summary.extension_parameters += sources.len();
-    let semantic_hash = program.header().semantic_hash;
-    let base_instruction_count = program.base_insts().len();
-    let extension_instruction_count = program.ext_insts().len();
-    let extension_parameter_count = sources.len();
-    let captured = bundle::CapturedComponent::new(
-        name,
-        instance,
-        component,
-        random_coefficient_offset,
-        program,
-        sources,
-    )?;
-    println!(
-        "{name}: log={} constraints={} base_insts={} ext_insts={} ext_params={} hash={:016x}",
-        component.evaluator().log_size(),
-        component.n_constraints(),
-        base_instruction_count,
-        extension_instruction_count,
-        extension_parameter_count,
-        semantic_hash
-    );
-    Ok(captured)
-}
-
-const PROBE_CLAIMED_SUM: SecureField = SecureField::from_u32_unchecked(257, 263, 269, 271);
+use eval_program_abi::capture::{Summary, lower_component};
+use eval_program_abi::{abi_fixture, bundle, parameters};
 
 enum Source {
     Proof(PathBuf),
@@ -204,7 +95,7 @@ fn proof_source(
 fn prover_input_source(
     input_path: &PathBuf,
     variant: PreProcessedTraceVariant,
-    lookup: &parameters::LookupProbe,
+    lookup: &parameters::LookupProbe<CommonLookupElements>,
 ) -> Result<(
     CairoClaim,
     CairoInteractionClaim,
@@ -226,9 +117,11 @@ fn prover_input_source(
 }
 
 fn main() -> Result<()> {
+    abi_fixture::check()?;
     let arguments = arguments()?;
-    let lookup = parameters::LookupProbe::from_seed(&[11, 13, 17, 19])?;
-    let probe_lookup = parameters::LookupProbe::from_seed(&[23, 29, 31, 37])?;
+    let lookup = parameters::LookupProbe::from_seed(&[11, 13, 17, 19], CommonLookupElements::draw)?;
+    let probe_lookup =
+        parameters::LookupProbe::from_seed(&[23, 29, 31, 37], CommonLookupElements::draw)?;
     let (claim, interaction_claim, preprocessed) = match &arguments.source {
         Source::Proof(path) => proof_source(path)?,
         Source::ProverInput { path, variant } => prover_input_source(path, *variant, &lookup)?,
@@ -251,7 +144,7 @@ fn main() -> Result<()> {
                 if let Some(component) = &components.$field {
                     let probe_component = probe_components.$field.as_ref()
                         .context(concat!("probe missing ", stringify!($field)))?;
-                    captured.push(lower_component(
+                    let (component, report) = lower_component(
                         stringify!($field),
                         0,
                         component,
@@ -259,7 +152,9 @@ fn main() -> Result<()> {
                         &lookup,
                         &probe_lookup,
                         &mut summary,
-                    )?);
+                    )?;
+                    println!("{report}");
+                    captured.push(component);
                 }
             )+
         };
@@ -326,7 +221,7 @@ fn main() -> Result<()> {
         .zip(&probe_components.memory_id_to_big)
         .enumerate()
     {
-        captured.push(lower_component(
+        let (component, report) = lower_component(
             &format!("memory_id_to_big[{instance}]"),
             u32::try_from(instance)?,
             component,
@@ -334,7 +229,9 @@ fn main() -> Result<()> {
             &lookup,
             &probe_lookup,
             &mut summary,
-        )?);
+        )?;
+        println!("{report}");
+        captured.push(component);
     }
     lower_optional!(
         memory_id_to_small,

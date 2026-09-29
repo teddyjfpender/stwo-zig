@@ -12,7 +12,7 @@ use stwo::core::fields::qm31::SecureField;
 use stwo::core::pcs::TreeVec;
 use stwo_constraint_framework::{FrameworkEval, InfoEvaluator, PointEvaluator};
 
-use crate::program::{
+use super::program::{
     MetalEvaluationProgramBaseOpcodeV1, MetalEvaluationProgramExtOpcodeV1,
     OwnedMetalEvaluationProgramV1,
 };

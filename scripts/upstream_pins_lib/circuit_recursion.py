@@ -12,9 +12,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import struct
 import tomllib
 from pathlib import Path
+
+from .official_cairo_air import (
+    BUNDLE_FORMAT,
+    EVAL_PROGRAM_ABI,
+    bundle_summary,
+    check_bundle_geometry,
+    parse_bundle_header,
+)
 
 
 ORACLE = "tools/stwo-circuit-oracle-rs"
@@ -22,6 +31,8 @@ MANIFEST = f"{ORACLE}/Cargo.toml"
 LOCK = f"{ORACLE}/Cargo.lock"
 TOOLCHAIN = f"{ORACLE}/rust-toolchain.toml"
 AUTHORITY_SOURCE = f"{ORACLE}/src/checkpoint.rs"
+# The trace digest source shared with `tools/stwo-cairo-trace-oracle`, compiled in with `#[path]`.
+TRACE_DIGEST = "tools/stwo-trace-digest"
 VECTORS = "vectors/circuit"
 README = f"{VECTORS}/README.md"
 PROVENANCE = f"{VECTORS}/provenance.json"
@@ -35,10 +46,24 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r0/primitives.json", "r0", "primitives", False),
     (f"{VECTORS}/r2/gadgets.json", "r1-r2", "gadgets", False),
     (f"{VECTORS}/r3/components.json", "r3", "components", True),
+    (f"{VECTORS}/r3/statement_trace.json", "r3", "statement-trace", True),
     (f"{VECTORS}/official/compiled_air_constraints_v1.bin", "r3", "project-air", True),
+    (f"{VECTORS}/r4/verifier_stages.json", "r4", "verifier-stages", True),
+    (f"{VECTORS}/r5/finalize.json", "r5", "finalize", False),
+    (f"{VECTORS}/r6/topology.json", "r6", "topology", True),
+    (f"{VECTORS}/r7/prove_small.json", "r7", "prove-small", False),
+    (f"{VECTORS}/official/circuit_air.air_programs_v1.bin", "r7", "air-programs", False),
 )
-PROJECTION = ORACLE_ARTIFACTS[3][0]
-COMPONENTS = ORACLE_ARTIFACTS[2][0]
+PROJECTION = f"{VECTORS}/official/compiled_air_constraints_v1.bin"
+PRIMITIVES = f"{VECTORS}/r0/primitives.json"
+# The Zig test that inlines the R0 `fri` vector of `PRIMITIVES`.
+R0_FRI_ZIG_TEST = "src/core/fri/tests.zig"
+R0_FRI_ZIG_TEST_NAME = "fri: circuit recursion R0 fold_step 4 vector"
+COMPONENTS = f"{VECTORS}/r3/components.json"
+TOPOLOGY = f"{VECTORS}/r6/topology.json"
+AIR_PROGRAMS = f"{VECTORS}/official/circuit_air.air_programs_v1.bin"
+# The circuit AIR's components, in `ComponentList` order.
+CIRCUIT_AIR_COMPONENTS = 11
 # (fixture, path in the proving checkout) for files copied verbatim.
 UPSTREAM_COPIES = (
     (
@@ -100,7 +125,7 @@ MANAGED = tuple(path for path, *_ in ORACLE_ARTIFACTS) + tuple(
 )
 
 PROJECTION_MAGIC = b"STWOCAIR"
-PROJECTION_VERSION = 1
+PROJECTION_VERSION = 2
 INPUTS_DOMAIN = b"STWO_CIRCUIT_ORACLE_INPUTS_V1\0"
 
 
@@ -113,10 +138,17 @@ def sha256_file(path: Path) -> str:
 
 
 def oracle_sources(root: Path) -> list[str]:
-    """The files that determine the oracle binary, as sorted repository paths."""
+    """The files that determine the oracle binary, as sorted repository paths.
+
+    Besides the oracle crate, the oracle compiles the shared evaluation-program ABI sources
+    (`tools/stwo-eval-program-abi`) and trace digest source (`tools/stwo-trace-digest`) in with
+    `#[path]`.
+    """
     oracle = root / ORACLE
     files = [oracle / "Cargo.toml", oracle / "Cargo.lock", oracle / "rust-toolchain.toml"]
     files.extend(sorted((oracle / "src").rglob("*.rs")))
+    files.extend(sorted((root / EVAL_PROGRAM_ABI / "src").rglob("*.rs")))
+    files.extend(sorted((root / TRACE_DIGEST / "src").rglob("*.rs")))
     return sorted(path.relative_to(root).as_posix() for path in files)
 
 
@@ -148,13 +180,22 @@ class _Reader:
         self.data = data
         self.position = 0
         self.strings: list[str] = []
+        # While a function record is read, the canonical record: the same bytes with every string
+        # written inline (`u32:len utf8`) instead of as a table index.
+        self.canonical: bytearray | None = None
 
-    def take(self, size: int) -> bytes:
+    def _take(self, size: int) -> bytes:
         end = self.position + size
         if end > len(self.data):
             raise ProjectionError(f"truncated at byte {self.position}")
         chunk = self.data[self.position:end]
         self.position = end
+        return chunk
+
+    def take(self, size: int) -> bytes:
+        chunk = self._take(size)
+        if self.canonical is not None:
+            self.canonical += chunk
         return chunk
 
     def u8(self) -> int:
@@ -164,10 +205,14 @@ class _Reader:
         return struct.unpack("<I", self.take(4))[0]
 
     def string(self) -> str:
-        index = self.u32()
+        index = struct.unpack("<I", self._take(4))[0]
         if index >= len(self.strings):
             raise ProjectionError(f"string index {index} out of range")
-        return self.strings[index]
+        value = self.strings[index]
+        if self.canonical is not None:
+            encoded = value.encode("utf-8")
+            self.canonical += struct.pack("<I", len(encoded)) + encoded
+        return value
 
     def many(self, item):
         return [item() for _ in range(self.u32())]
@@ -238,7 +283,11 @@ class _Reader:
 
 
 def parse_projection(data: bytes) -> dict:
-    """Decodes a v1 projection, verifying every record digest; returns its header summary."""
+    """Decodes a v2 projection, verifying every record digest; returns its header summary.
+
+    A function digest is `SHA-256(canonical(record))`: the record with every string inline, so
+    that it does not depend on the order of the file's string table.
+    """
     reader = _Reader(data)
     if reader.take(8) != PROJECTION_MAGIC:
         raise ProjectionError("bad magic")
@@ -257,21 +306,26 @@ def parse_projection(data: bytes) -> dict:
         slots = reader.many(reader.string)
         hand_written = reader.many(reader.string)
         functions = []
+        digest_offsets = []
         for _ in range(reader.u32()):
             length = reader.u32()
+            digest_offsets.append(reader.position)
             digest = reader.take(32)
             start = reader.position
-            record = reader.take(length)
-            if hashlib.sha256(record).digest() != digest:
-                raise ProjectionError(f"{label}: record at byte {start} has a bad digest")
-            reader.position = start
+            if start + length > len(data):
+                raise ProjectionError(f"truncated at byte {start}")
+            reader.canonical = bytearray()
             functions.append(reader.record())
+            canonical, reader.canonical = bytes(reader.canonical), None
             if reader.position != start + length:
                 raise ProjectionError(f"{label}: record {functions[-1]} length mismatch")
+            if hashlib.sha256(canonical).digest() != digest:
+                raise ProjectionError(f"{label}: record at byte {start} has a bad digest")
         summary["sources"][label] = {
             "slots": slots,
             "hand_written": hand_written,
             "functions": functions,
+            "digest_offsets": digest_offsets,
         }
     if reader.position != len(data):
         raise ProjectionError("trailing bytes")
@@ -406,6 +460,11 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
     oracle = provenance.get("oracle", {})
     if oracle.get("toolchain") != toolchain or oracle.get("manifest") != MANIFEST:
         errors.append(f"{PROVENANCE}: oracle manifest or toolchain drifted")
+    if oracle.get("lock") != LOCK or oracle.get("lock_sha256") != _sha256_or_none(root / LOCK):
+        errors.append(f"{PROVENANCE}: oracle lock digest drifted")
+    # Provenance names only host-independent inputs: the toolchain, the lock and the sources.
+    if "host" in provenance:
+        errors.append(f"{PROVENANCE}: 'host' is host-dependent; provenance must not record it")
     if oracle.get("source_sha256") != oracle_source_sha256(root):
         errors.append(
             f"{PROVENANCE}: oracle source digest drifted; regenerate with "
@@ -447,18 +506,137 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
     return errors
 
 
+def _sha256_or_none(path: Path) -> str | None:
+    try:
+        return sha256_file(path)
+    except OSError:
+        return None
+
+
 def _check_upstream_copies(root: Path) -> list[str]:
     """Copies of files the oracle read must equal the bytes it recorded reading."""
-    try:
-        components = json.loads((root / COMPONENTS).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        return [f"{COMPONENTS}: unable to parse: {error}"]
-    recorded = {record["path"]: record["sha256"] for record in components.get("inputs", [])}
+    recorded: dict[str, str] = {}
     errors = []
+    for path, _rung, _subcommand, reads_upstream in ORACLE_ARTIFACTS:
+        if not reads_upstream or not path.endswith(".json"):
+            continue
+        try:
+            checkpoint = json.loads((root / path).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            errors.append(f"{path}: unable to parse: {error}")
+            continue
+        for record in checkpoint.get("inputs", []):
+            if recorded.setdefault(record["path"], record["sha256"]) != record["sha256"]:
+                errors.append(f"{path}: records {record['path']} with a different digest")
     for path, upstream_path in UPSTREAM_COPIES:
         if upstream_path in recorded and (root / path).is_file():
             if sha256_file(root / path) != recorded[upstream_path]:
                 errors.append(f"{path}: differs from the {upstream_path} the oracle read")
+    return errors
+
+
+def _check_air_programs(root: Path) -> list[str]:
+    """The circuit AIR bundle: `STWZEVA/1` geometry and plan hash, as for the Cairo bundles."""
+    try:
+        encoded = (root / AIR_PROGRAMS).read_bytes()
+        provenance = json.loads((root / PROVENANCE).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{AIR_PROGRAMS}: {error}"]
+    header = parse_bundle_header(encoded)
+    if header is None:
+        return [f"{AIR_PROGRAMS}: invalid AIR program header"]
+    artifact = next(
+        (item for item in provenance.get("artifacts", []) if item.get("path") == AIR_PROGRAMS),
+        {},
+    )
+    errors = check_bundle_geometry(encoded, header, artifact, AIR_PROGRAMS)
+    if artifact.get("format") != BUNDLE_FORMAT:
+        errors.append(f"{AIR_PROGRAMS}: AIR program format drifted")
+    if header["component_count"] != CIRCUIT_AIR_COMPONENTS:
+        errors.append(
+            f"{AIR_PROGRAMS}: {header['component_count']} components, "
+            f"expected {CIRCUIT_AIR_COMPONENTS}"
+        )
+    return errors
+
+
+def _registry_words(words: list[str]) -> list[int]:
+    return [int(word, 16) for word in words]
+
+
+def _check_topology(root: Path) -> list[str]:
+    """The fold roots and hashes the oracle rebuilt equal the committed registry copies."""
+    try:
+        topology = json.loads((root / TOPOLOGY).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"{TOPOLOGY}: unable to parse: {error}"]
+    copies = {upstream_path: path for path, upstream_path in UPSTREAM_COPIES}
+    errors = []
+    folds = topology.get("body", {}).get("folds", [])
+    if not folds:
+        errors.append(f"{TOPOLOGY}: no fold records")
+    for fold in folds:
+        copy = copies.get(fold.get("registry"))
+        if copy is None:
+            errors.append(f"{TOPOLOGY}: registry {fold.get('registry')!r} has no committed copy")
+            continue
+        try:
+            registry = json.loads((root / copy).read_text(encoding="utf-8"))
+            (multiverifier,) = registry["multiverifiers"]
+        except (OSError, json.JSONDecodeError, KeyError, ValueError) as error:
+            errors.append(f"{copy}: {error}")
+            continue
+        for key in ("preprocessed_root", "circuit_hash"):
+            if fold.get(key) != _registry_words(multiverifier.get(key, [])):
+                errors.append(f"{TOPOLOGY}: {copy} multiverifier {key} differs")
+    return errors
+
+
+def _zig_test_body(source: str, name: str) -> str | None:
+    """The body of the Zig `test "<name>" { ... }` block (top-level, closed by `\n}`)."""
+    start = source.find(f'test "{name}" {{')
+    if start < 0:
+        return None
+    end = source.find("\n}", start)
+    return None if end < 0 else source[start:end]
+
+
+def _check_r0_fri_inline(root: Path) -> list[str]:
+    """The Zig test's inlined R0 `fri` constants equal the committed `primitives.json` vector.
+
+    The test pins, in order, the input digest and every per-fold output digest, the per-layer
+    alphas and the last-layer value; regenerating the fixture with different FRI output without
+    updating the test is rejected here rather than passing against stale constants.
+    """
+    try:
+        fri = json.loads((root / PRIMITIVES).read_text(encoding="utf-8"))["body"]["fri"]
+        source = (root / R0_FRI_ZIG_TEST).read_text(encoding="utf-8")
+    except (OSError, json.JSONDecodeError, KeyError) as error:
+        return [f"{R0_FRI_ZIG_TEST}: unable to compare with {PRIMITIVES}: {error}"]
+    body = _zig_test_body(source, R0_FRI_ZIG_TEST_NAME)
+    if body is None:
+        return [f"{R0_FRI_ZIG_TEST}: missing test {R0_FRI_ZIG_TEST_NAME!r}"]
+    errors = []
+    expected_digests = [fri["input_sha256"]] + [
+        fold["values_sha256"] for layer in fri["layers"] for fold in layer["folds"]
+    ]
+    if re.findall(r'"([0-9a-f]{64})"', body) != expected_digests:
+        errors.append(f"{R0_FRI_ZIG_TEST}: inlined R0 fri digests differ from {PRIMITIVES}")
+    quadruples = [
+        [int(limb) for limb in match]
+        for match in re.findall(
+            r"QM31\.fromU32Unchecked\((\d+), (\d+), (\d+), (\d+)\)", body
+        )
+    ]
+    expected_quadruples = [layer["layer_alpha"] for layer in fri["layers"]] + [fri["last_layer"]]
+    if quadruples != expected_quadruples:
+        errors.append(
+            f"{R0_FRI_ZIG_TEST}: inlined R0 fri alphas or last layer differ from {PRIMITIVES}"
+        )
+    for key, pattern in (("log_size", r"const log_size: u32 = (\d+);"),):
+        match = re.search(pattern, body)
+        if match is None or int(match.group(1)) != fri[key]:
+            errors.append(f"{R0_FRI_ZIG_TEST}: inlined R0 fri {key} differs from {PRIMITIVES}")
     return errors
 
 
@@ -468,4 +646,7 @@ def check(root: Path, *, repository: str, revision: str, toolchain: str) -> list
     errors.extend(_check_provenance(root, repository, revision, toolchain))
     errors.extend(_check_projection(root, revision))
     errors.extend(_check_upstream_copies(root))
+    errors.extend(_check_air_programs(root))
+    errors.extend(_check_topology(root))
+    errors.extend(_check_r0_fri_inline(root))
     return errors

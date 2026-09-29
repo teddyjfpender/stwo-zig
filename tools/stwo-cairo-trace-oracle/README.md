@@ -15,7 +15,9 @@ cargo run --release --locked -- \
 Columns retain the committed `CircleEvaluation` value order
 (`BitReversedOrder`). Every M31 value is encoded as canonical `u32` little
 endian. Column and cumulative component hashes use the domain-separated
-SHA-256 contract named in `src/checkpoint.rs`.
+SHA-256 contract of `../stwo-trace-digest/src/lib.rs`, compiled in with
+`#[path]` and shared with `tools/stwo-circuit-oracle-rs`; `src/checkpoint.rs`
+names this checkpoint's domains.
 
 ## Diagnostic interaction checkpoints
 
@@ -43,7 +45,9 @@ The receipt explicitly sets `is_proof_transcript` to `false` and serializes
 Zig comparator need not reimplement the channel before checking interaction
 columns. The lookup-element digest, per-component claimed sum, raw M31 column
 digests, and cumulative component accumulator are all domain separated and
-bound together by the contract in `src/interaction.rs`.
+bound together by the contract in `src/interaction.rs` (column digests use
+the shared `column_digest`; the accumulator additionally binds the lookup
+elements and claimed sum, so it is defined there).
 
 Interaction columns retain `CircleEvaluation`'s `BitReversedOrder`. Each raw
 M31 value is hashed as a canonical little-endian `u32`. The binary hash inputs

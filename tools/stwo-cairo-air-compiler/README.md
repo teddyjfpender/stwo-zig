@@ -5,12 +5,18 @@ pinned official Stwo-Cairo source into stwo-zig's backend-neutral evaluation
 program ABI. Rust is a source and correctness oracle only; released Zig
 products consume authenticated artifacts and never invoke Cargo while proving.
 
-The official Stwo framework keeps the evaluator inside `FrameworkComponent`
-private. `generate.py` therefore:
+The recorder, lowering and bundle encoder are the shared sources of
+`tools/stwo-eval-program-abi`, compiled in with `#[path]` (the circuit recursion
+oracle compiles the same sources against `proving@5a7c5ed`).
+
+The compiler depends on Stwo by path to an authenticated overlay of the
+official tree. `generate.py`:
 
 1. authenticates the exact Stwo revision and Git tree;
 2. exports that immutable tree into the ignored repository `target/` cache;
-3. applies one exact-context `evaluator()` accessor patch;
+3. applies one exact-context `evaluator()` accessor patch (the shared recorder
+   no longer calls it, since `FrameworkComponent` derefs to its evaluator; the
+   patch is kept so that the recorded overlay receipt is unchanged);
 4. runs the locked compiler with the official nightly toolchain; and
 5. refuses to replace an existing output artifact.
 

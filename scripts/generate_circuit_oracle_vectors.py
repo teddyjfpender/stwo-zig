@@ -4,8 +4,13 @@
 Builds `tools/stwo-circuit-oracle-rs` from its lockfile, locates the `proving`
 checkout Cargo resolved for the pinned revision, runs every oracle subcommand,
 copies the upstream goldens the rungs consume, and writes the provenance record
-that `scripts/check_upstream_pins.py` authenticates. Every command here only
-builds circuits or hashes data; nothing is proven, so it runs on a laptop.
+that `scripts/check_upstream_pins.py` authenticates. Every subcommand builds
+circuits, hashes data or, for `prove-small`, proves the small `prover_test.rs`
+circuits under the oracle's default memory budget; the heaviest (`topology`)
+peaks at about 7.1 GB resident. On a shared host run it under the heavy-command wrapper.
+
+The provenance names only host-independent inputs: the toolchain, the oracle's
+`Cargo.lock` digest and the digest of every oracle source.
 """
 
 from __future__ import annotations
@@ -15,7 +20,6 @@ import datetime
 import hashlib
 import json
 import os
-import platform
 import shutil
 import subprocess
 import sys
@@ -25,9 +29,11 @@ from pathlib import Path
 try:
     from upstream_pins_lib import circuit_recursion as lane
     from upstream_pins_lib.model import parse_ledger
+    from upstream_pins_lib.official_cairo_air import bundle_summary
 except ModuleNotFoundError:  # Imported as scripts.generate_circuit_oracle_vectors in tests.
     from scripts.upstream_pins_lib import circuit_recursion as lane
     from scripts.upstream_pins_lib.model import parse_ledger
+    from scripts.upstream_pins_lib.official_cairo_air import bundle_summary
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,9 +87,10 @@ def generate(staging: Path, oracle: Path, proving: Path) -> list[dict]:
         recorded = [ORACLE_BINARY, subcommand]
         if reads_upstream:
             recorded += ["--proving-root", lane.PROVING_ROOT_PLACEHOLDER]
-        artifacts.append(
-            artifact_record(staging, path, rung=rung, command=recorded + ["--output", path])
-        )
+        fields: dict[str, object] = {"rung": rung, "command": recorded + ["--output", path]}
+        if path == lane.AIR_PROGRAMS:
+            fields.update(bundle_summary((staging / path).read_bytes()))
+        artifacts.append(artifact_record(staging, path, **fields))
     for path, upstream_path in lane.UPSTREAM_COPIES:
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(proving / upstream_path, staging / path)
@@ -101,11 +108,12 @@ def provenance(artifacts: list[dict], ledger, generated_on: str) -> dict:
         "oracle": {
             "manifest": lane.MANIFEST,
             "toolchain": ledger.circuit_recursion_toolchain,
+            "lock": lane.LOCK,
+            "lock_sha256": lane.sha256_file(ROOT / lane.LOCK),
             "source_sha256": lane.oracle_source_sha256(ROOT),
         },
         "generator": "scripts/generate_circuit_oracle_vectors.py",
         "generated_on": generated_on,
-        "host": f"{platform.system()} {platform.machine()}",
         "artifacts": artifacts,
     }
 

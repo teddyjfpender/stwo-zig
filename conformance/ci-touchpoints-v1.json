@@ -948,7 +948,9 @@
       "prefixes": [
         "tools/cairo-witness-compiler",
         "tools/stwo-cairo-air-compiler",
-        "tools/stwo-cairo-trace-oracle"
+        "tools/stwo-cairo-trace-oracle",
+        "tools/stwo-eval-program-abi",
+        "tools/stwo-trace-digest"
       ],
       "lanes": [
         "script_contracts",
