@@ -230,7 +230,9 @@ pub fn proveFixtureForLane(
         Engine.Backend.adopts_source_trace_arena;
 
     var planned_geometry: ?claim_generator.OwnedClaimGeometry = null;
-    errdefer if (planned_geometry) |*owned| owned.deinit();
+    // The arena-planned base trace borrows this geometry (`borrowed_geometry`),
+    // so the transaction frees it on every exit, after `base` (declared later).
+    defer if (planned_geometry) |*owned| owned.deinit();
     var planned_composition: ?witness.composition_bundle.Bundle = null;
     errdefer if (planned_composition) |*owned| owned.deinit();
     var arena: ?trace_arena.Arena = null;

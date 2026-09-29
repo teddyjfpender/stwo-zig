@@ -454,7 +454,7 @@ pub fn addMemoryRangeChecksLive(
 }
 
 /// As `addMemoryRangeChecksLive` for `component_count` big-value components;
-/// padding components (`memory_tables.bigRowCount`) add their zero limbs.
+/// padding components (`memory_tables.paddedBigRowCount`) add their zero limbs.
 pub fn addMemoryRangeChecksForComponents(
     input: *const adapter.ProverInput,
     component_count: usize,
@@ -462,7 +462,7 @@ pub fn addMemoryRangeChecksForComponents(
 ) !void {
     if (component_count < try memory_tables.bigComponentCount(input)) return Error.FixedGeometryMismatch;
     for (0..component_count) |component_index| {
-        const row_count = try memory_tables.bigRowCount(input, component_index);
+        const row_count = try memory_tables.paddedBigRowCount(input, component_index, component_count);
         const first = try tables.allocator.alloc(u32, row_count);
         defer tables.allocator.free(first);
         const second = try tables.allocator.alloc(u32, row_count);

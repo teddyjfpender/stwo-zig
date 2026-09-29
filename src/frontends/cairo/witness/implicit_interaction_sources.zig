@@ -133,7 +133,8 @@ pub fn memoryBig(
     counts: *const cpu_memory_multiplicity.Counts,
     component: usize,
 ) !OwnedColumns {
-    const rows: u32 = @intCast(try memory_tables.bigRowCount(input, component));
+    // Live or padding: the claim fixes how many components exist.
+    const rows: u32 = @intCast(try memory_tables.paddedBigRowCount(input, component, memory_tables.max_big_components));
     var result = try initOwned(allocator, rows, memory_tables.big_column_count);
     errdefer result.deinit();
     var destinations: [memory_tables.big_column_count][]u32 = undefined;
@@ -148,7 +149,7 @@ pub fn memoryBigInto(
     component: usize,
     columns: []const []u32,
 ) !void {
-    try validateDestinations(columns, memory_tables.big_column_count, try memory_tables.bigRowCount(input, component));
+    try validateDestinations(columns, memory_tables.big_column_count, try memory_tables.paddedBigRowCount(input, component, memory_tables.max_big_components));
     try fillColumns(.big, input, counts, component, columns, columns[0].len);
 }
 

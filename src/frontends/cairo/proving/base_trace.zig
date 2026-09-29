@@ -318,7 +318,7 @@ fn buildWithCollector(
                 "memory_id_to_big",
                 @intCast(component_index),
                 tables.big_column_count,
-                try tables.bigRowCount(input, component_index),
+                try tables.paddedBigRowCount(input, component_index, big_component_count),
             );
             defer allocator.free(big);
             // Base AIR places multiplicity first; interaction sources place it
