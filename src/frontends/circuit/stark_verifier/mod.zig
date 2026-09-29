@@ -2,3 +2,4 @@
 pub const oods = @import("oods.zig");
 pub const proof = @import("proof.zig");
 pub const proof_from_stark_proof = @import("proof_from_stark_proof.zig");
+pub const verify = @import("verify.zig");
