@@ -1,0 +1,19 @@
+[package]
+name = "starknet-aggregator"
+version = "0.1.0"
+edition = "2021"
+description = "Runs the Starknet aggregator program over contiguous Starknet OS leaf PIEs"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Same pins as SNOS feature/0.14.3 (keep-starknet-strange/snos 38cabc9) so the
+# aggregator matches the OS that produced the leaves, and builds reuse its cache.
+starknet_os = { git = "https://github.com/starkware-libs/sequencer", tag = "APOLLO-0.14.3-RC.15", features = ["testing"] }
+apollo_starknet_os_program = { git = "https://github.com/starkware-libs/sequencer", tag = "APOLLO-0.14.3-RC.15" }
+cairo-vm = "=3.2.0"
+starknet-types-core = "0.2.4"
+clap = { version = "4", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
