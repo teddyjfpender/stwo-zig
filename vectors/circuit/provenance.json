@@ -7,7 +7,7 @@
   "oracle": {
     "manifest": "tools/stwo-circuit-oracle-rs/Cargo.toml",
     "toolchain": "nightly-2026-01-15",
-    "source_sha256": "58b062fb4162643c11188b9ccb1c081d947920122242c26da0b6008255272826"
+    "source_sha256": "4e500994d0d242319234a8e54650d551628b51e2e42d43c3b9cb8cd5995ef073"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-29",
@@ -106,8 +106,8 @@
         "--output",
         "vectors/circuit/r6/cairo_statement.json"
       ],
-      "bytes": 34509,
-      "sha256": "98c34a3c119fb3558f7a076c65537ecafde3ea3fce370643ba57d6d97e6d6a46"
+      "bytes": 39652,
+      "sha256": "4c030f6903366c2c10262fdeae4ecf2f3db7411e296bf4a95f72305d29c6fc1f"
     }
   ]
 }

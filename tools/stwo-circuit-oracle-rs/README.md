@@ -16,7 +16,7 @@ all of them run on a laptop in seconds with a few tens of megabytes of memory.
 | `gadgets` | R1, R2 | Builder circuits (context, peepholes, constants, wrappers) and gadgets (Blake2s at 0/4/44/64/65/128 bytes, `extract_bits`, Simd, mux, `sort_by_u` permutation, `reduce_hash_value`, circuit hash) before and after `finalize` |
 | `components` | R3 | All 83 Cairo slots and 11 circuit components, each built in a fresh `Context` through the upstream test harness |
 | `project-air` | R3 | The constraints-only projection of the compiled AIR read by the Zig interpreter |
-| `cairo-statement` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, `get_preprocessed_root` 21/22/23, the leaf test program's limbs and hash, and a synthetic `FlatClaim`'s aux data and mix digests on both channels |
+| `cairo-statement` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, `get_preprocessed_root` 21/22/23, the leaf test program's limbs and hash, and a synthetic `FlatClaim`'s aux data and mix digests on both channels, and the leaf `ProofConfig` and proof size |
 
 ```sh
 cd tools/stwo-circuit-oracle-rs

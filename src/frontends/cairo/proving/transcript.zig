@@ -9,7 +9,7 @@ const QM31 = core.fields.qm31.QM31;
 const Blake2sMerkleChannel =
     core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleChannel;
 
-pub const interaction_pow_bits: u32 = 24;
+pub const interaction_pow_bits: u32 = core.cairo_air_layout.interaction_pow_bits;
 
 pub const LookupElements = struct {
     z: QM31,

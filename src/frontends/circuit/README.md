@@ -37,8 +37,9 @@ file. The package is filled milestone by milestone:
 - `stark_verifier` (M4, M5): the composition accumulator and logup terms,
   `ProofConfig`, `ProofInfo` (the proof size model) and `pack_into_qm31s`.
 - `statements` (M5, M6): the circuit-verifier and multiverifier
-  configuration, and `cairo_statement`, the port of `CairoStatement` (see
-  below).
+  configuration, `cairo_statement` (the port of `CairoStatement`, see below)
+  and `cairo_leaf_config` (`leaf_verifier_config`: enabled components and
+  the leaf `ProofConfig` over the projection's Cairo slot table).
 
 The builder (`builder/`, M2) and the gate-emitting verifier gadgets
 (channel, Merkle, FRI, OODS, the statements' `guess` traversals and
@@ -95,7 +96,7 @@ const statement = try Statement.init(arena, &ctx, inputs);
 | Composition | `stark_verifier.constraint_eval`, `stark_verifier.logup` |
 | Proof model | `stark_verifier.proof`, `stark_verifier.proof_from_stark_proof`, `stark_verifier.verify` |
 | Circuit common | `common.component_list`, `common.finalize`, `common.circuit_hash`, `common.preprocessed`, `common.component_utils` |
-| Statements | `statements.circuit_statement`, `statements.multiverifier`, `statements.cairo_statement` |
+| Statements | `statements.circuit_statement`, `statements.multiverifier`, `statements.cairo_statement`, `statements.cairo_leaf_config` |
 
 ## Dependencies
 

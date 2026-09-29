@@ -64,6 +64,10 @@ pub const Variant = enum {
     }
 };
 
+/// `INTERACTION_POW_BITS` of `crates/cairo_verifier/src/verify.rs`: the
+/// interaction grind of a Cairo proof, which the leaf verifier re-checks.
+pub const interaction_pow_bits: u32 = 24;
+
 pub const Error = error{
     /// `disabled_components` panics for `CanonicalWithoutPedersen`.
     UnsupportedLeafVariant,
