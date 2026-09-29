@@ -28,6 +28,9 @@ pub const FriConfig = config_mod.FriConfig;
 pub const FOLD_STEP = config_mod.FOLD_STEP;
 pub const CIRCLE_TO_LINE_FOLD_STEP = config_mod.CIRCLE_TO_LINE_FOLD_STEP;
 pub const LOG_PACKED_LEAF_SIZE = config_mod.LOG_PACKED_LEAF_SIZE;
+pub const foldStepAt = config_mod.foldStepAt;
+pub const nFoldSteps = config_mod.nFoldSteps;
+pub const allFoldSteps = config_mod.allFoldSteps;
 pub const FriVerificationError = config_mod.FriVerificationError;
 pub const CirclePolyDegreeBound = config_mod.CirclePolyDegreeBound;
 pub const LinePolyDegreeBound = config_mod.LinePolyDegreeBound;
@@ -98,7 +101,7 @@ pub fn FriVerifier(comptime H: type, comptime MC: type) type {
                 // Determine fold count: normally FOLD_STEP, clamped to the
                 // remaining degree so we don't overshoot.
                 const remaining = layer_bound.logDegreeBound() - config.log_last_layer_degree_bound;
-                const this_fold_step: u32 = @min(config.fold_step, remaining);
+                const this_fold_step: u32 = config_mod.foldStepAt(config.fold_step, remaining);
 
                 inner_layers[i] = .{
                     .domain = layer_domain,
