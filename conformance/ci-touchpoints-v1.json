@@ -1060,11 +1060,17 @@
     },
     {
       "prefixes": [
-        "src/frontends/circuit",
+        "src/frontends/circuit"
+      ],
+      "lanes": [
+        "package"
+      ]
+    },
+    {
+      "prefixes": [
         "vectors/circuit"
       ],
       "lanes": [
-        "package",
         "circuit_frontend"
       ]
     },
