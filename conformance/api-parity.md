@@ -131,6 +131,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": null,
       "source": "src/core/channel/mod.zig"
     },
+    "stwo.core.channel.lookup_transcript": {
+      "kind": "const",
+      "rationale": "Shared LogUp transcript steps (channel salt, CommonLookupElements draw, claimed-sum mix) used by the Cairo prover and by the circuit prover of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230 (crates/circuit_prover/src/prover.rs); not a Native a8fcf4b export.",
+      "rust_path": null,
+      "source": "src/core/channel/mod.zig"
+    },
     "stwo.core.channel.transcript": {
       "kind": "const",
       "rationale": null,

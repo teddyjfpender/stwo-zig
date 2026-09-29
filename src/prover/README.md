@@ -63,6 +63,17 @@ comptime prover.engine.assertProverEngine(Engine);
 | Observability | `measurement`, `stage_profile`, `task_profile`, `work_profile` |
 | Prepared transaction ownership | `transaction` |
 
+`pcs.CommitmentSchemeProver(B, H, MC)` follows the protocol revision of its
+Merkle channel (`stwo_core.protocol_revision.Revision.of(MC)`). Existing
+lanes are `stwo_7b211ed` and are unchanged. Under a `proving_5a7c5ed`
+channel profile, `init` takes a `PcsConfigV2`, every tree is committed at its
+configured lifting height (`commitment_tree.liftToHeight`, host Merkle trees
+only), the proof domain is the last tree's height, and the FRI proof of work
+is ground at `fri_config.pow_bits` in the profile's search order
+(`pcs.proof_of_work.grindForMerkleChannel`). `test-pcs-revision` compares a
+lifted-tree PCS proof on both upstream Merkle channels with Rust bytes and
+verifies it natively.
+
 The low-level `prove.prove`, `prove.proveEx`, and
 `prove.proveExWithRecorder` functions consume a commitment scheme. The typed
 engine exposes the same ownership rule through the stable transaction API:

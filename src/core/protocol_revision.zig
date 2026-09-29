@@ -30,6 +30,30 @@ pub const Revision = enum {
         };
     }
 
+    /// The revision a Merkle channel type commits under. A channel profile
+    /// (`vcs_lifted.channel_profile`) declares `protocol_revision`; every
+    /// other Merkle channel is an existing Native or Cairo lane channel and
+    /// selects `stwo_7b211ed`, so their provers are unchanged by construction.
+    pub fn of(comptime MC: type) Revision {
+        return if (@hasDecl(MC, "protocol_revision")) MC.protocol_revision else .stwo_7b211ed;
+    }
+
+    /// The legacy `pcs.PcsConfig` view of `config`: the FRI folding
+    /// parameters, and the proof-of-work bits the PCS grinds before FRI
+    /// queries. Under `proving_5a7c5ed` those bits are `fri_config.pow_bits`
+    /// (upstream `CommitmentSchemeProver::prove_values`) and the lifting
+    /// heights are not part of this view; prover code that is shared by both
+    /// revisions reads blowup, folding and PoW from it.
+    pub fn legacyView(comptime self: Revision, config: self.PcsConfig()) pcs.PcsConfig {
+        return switch (self) {
+            .stwo_7b211ed => config,
+            .proving_5a7c5ed => .{
+                .pow_bits = config.fri_config.pow_bits,
+                .fri_config = config.fri_config.folding(),
+            },
+        };
+    }
+
     /// Mixes the PCS configuration into the channel at the start of a proof.
     pub fn mixConfig(comptime self: Revision, config: self.PcsConfig(), channel: anytype) void {
         switch (self) {
@@ -83,4 +107,19 @@ test "protocol revision: the two revisions fork on identical FRI parameters" {
     // Heights: largest column versus the explicit lifting height.
     try std.testing.expectEqual(@as(u32, 5), try Revision.proving_5a7c5ed.treeHeight(v2, 1, &.{ 3, 4 }));
     try std.testing.expectEqual(@as(u32, 4), try Revision.stwo_7b211ed.treeHeight(legacy, 1, &.{ 3, 4 }));
+}
+
+test "protocol revision: Merkle channels select their revision" {
+    const blake2_merkle = @import("vcs_lifted/blake2_merkle.zig");
+    const channel_profile = @import("vcs_lifted/channel_profile.zig");
+    try std.testing.expectEqual(Revision.stwo_7b211ed, Revision.of(blake2_merkle.Blake2sMerkleChannel));
+    try std.testing.expectEqual(Revision.proving_5a7c5ed, Revision.of(channel_profile.proving_5a7c5ed.Blake2sM31MerkleChannel));
+    try std.testing.expectEqual(Revision.proving_5a7c5ed, Revision.of(channel_profile.proving_5a7c5ed.Blake2sMerkleChannel));
+
+    const v2 = config_v2.PcsConfigV2.fromFriAndLiftingSize(try config_v2.FriConfigV2.init(26, 0, 1, 70, 4), 21);
+    const view = Revision.proving_5a7c5ed.legacyView(v2);
+    try std.testing.expectEqual(@as(u32, 26), view.pow_bits);
+    try std.testing.expectEqual(@as(u32, 4), view.fri_config.fold_step);
+    try std.testing.expectEqual(@as(usize, 70), view.fri_config.n_queries);
+    try std.testing.expectEqual(@as(?u32, null), view.lifting_log_size);
 }

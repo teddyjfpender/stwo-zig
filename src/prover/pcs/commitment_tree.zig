@@ -126,6 +126,9 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
         commitment: B.MerkleTree(H),
         shared_owner: ?*SharedOwner = null,
         compact_polynomials: bool = false,
+        /// Explicit Merkle height set by `liftToHeight` (protocol revision
+        /// `proving_5a7c5ed`); null means the height of the largest column.
+        merkle_log_height: ?u32 = null,
 
         const Self = @This();
         const SharedOwner = struct {
@@ -447,6 +450,39 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
 
         pub fn root(self: Self) H.Hash {
             return self.commitment.root();
+        }
+
+        /// Log2 of the number of Merkle leaves, or null for a tree without
+        /// columns committed at the largest-column height.
+        pub fn merkleLogHeight(self: Self) ?u32 {
+            if (self.merkle_log_height) |height| return height;
+            if (self.columns.len == 0) return null;
+            var height: u32 = 0;
+            for (self.columns) |column| height = @max(height, column.log_size);
+            return height;
+        }
+
+        /// Recommits this tree with every column lifted to `2^height` leaves
+        /// (`MerkleProverLifted::commit(columns, height, 0)` of
+        /// proving@5a7c5ed). A height equal to the largest column's keeps the
+        /// existing commitment, which is the same tree. Only host Merkle trees
+        /// can be lifted; other backends fail closed, as do compact or shared
+        /// trees whose column values are no longer all resident.
+        pub fn liftToHeight(self: *Self, allocator: std.mem.Allocator, height: u32) !void {
+            if (self.columns.len != 0 and (self.merkleLogHeight() orelse 0) == height) {
+                self.merkle_log_height = height;
+                return;
+            }
+            const HostTree = vcs_lifted_prover.MerkleProverLifted(H);
+            if (comptime B.MerkleTree(H) != HostTree) return error.UnsupportedLiftedCommitment;
+            if (self.compact_polynomials or self.shared_owner != null) return error.UnsupportedLiftedCommitment;
+            const column_refs = try allocator.alloc([]const M31, self.columns.len);
+            defer allocator.free(column_refs);
+            for (self.columns, column_refs) |column, *values| values.* = column.values;
+            const lifted = try HostTree.commitLifted(allocator, column_refs, height);
+            self.commitment.deinit(allocator);
+            self.commitment = lifted;
+            self.merkle_log_height = height;
         }
 
         pub fn columnLogSizes(self: Self, allocator: std.mem.Allocator) ![]u32 {

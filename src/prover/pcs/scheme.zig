@@ -39,6 +39,7 @@ const M31 = m31.M31;
 const QM31 = qm31.QM31;
 const CirclePointQM31 = circle.CirclePointQM31;
 const PcsConfig = pcs_core.PcsConfig;
+const Revision = @import("stwo_core").protocol_revision.Revision;
 const TreeVec = pcs_core.TreeVec;
 const PREPROCESSED_TRACE_IDX = verifier_types.PREPROCESSED_TRACE_IDX;
 const TwiddleSource = twiddle_source_mod.TwiddleSource;
@@ -77,13 +78,34 @@ pub fn TreeDecommitmentResult(comptime H: type) type {
     };
 }
 
+/// The PCS prover. `MC` selects the protocol revision (`Revision.of`):
+///
+/// - `stwo_7b211ed` (every Native and Cairo lane): `init` takes the legacy
+///   `PcsConfig`, each tree is as tall as its largest column, and the FRI
+///   proof of work uses `grindForBackend`. Nothing below changes for it.
+/// - `proving_5a7c5ed` (channel profiles): `init` takes a `PcsConfigV2`. Each
+///   tree is committed at `PcsConfigV2.treeHeight` (the preprocessed or the
+///   trace lifting height), the proof domain is the last tree's height,
+///   preprocessed queries follow `prepare_preprocessed_query_positions`, and
+///   the FRI grind runs at `fri_config.pow_bits` in the profile's order.
+///   `config` then holds `Revision.legacyView` of that configuration, which
+///   is what the shared code (blowup, folding, PoW bits) and the proof's
+///   `config` field read.
 pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: type) type {
     comptime backend_merkle.assertMerkleOps(B, H);
     const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
+    const scheme_revision = Revision.of(MC);
     return struct {
         pub const CommittedTree = BackendCommitmentTree;
+        pub const revision = scheme_revision;
+        /// The configuration `init` takes: `revision.PcsConfig()`.
+        pub const Config = scheme_revision.PcsConfig();
+        /// Trees are committed at configured, not largest-column, heights.
+        pub const explicit_tree_heights = scheme_revision == .proving_5a7c5ed;
         trees: std.ArrayListUnmanaged(BackendCommitmentTree),
         config: PcsConfig,
+        /// The full `proving_5a7c5ed` configuration (lifting heights).
+        revision_config: if (explicit_tree_heights) Config else void,
         coefficient_retention_policy: CoefficientRetentionPolicy,
         /// CPU coefficient-backed residency; commitment/proof geometry is unchanged.
         compact_polynomial_storage: bool = false,
@@ -106,16 +128,17 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
 
         const Self = @This();
 
-        pub fn init(allocator: std.mem.Allocator, config: PcsConfig) !Self {
+        pub fn init(allocator: std.mem.Allocator, config: Config) !Self {
             return initWithTwiddleSource(config, TwiddleSource.initOwned(allocator));
         }
-        pub fn initWithTwiddleTower(config: PcsConfig, tower: *const M31TwiddleTower) Self {
+        pub fn initWithTwiddleTower(config: Config, tower: *const M31TwiddleTower) Self {
             return initWithTwiddleSource(config, TwiddleSource.initBorrowed(tower));
         }
-        fn initWithTwiddleSource(config: PcsConfig, twiddle_source: TwiddleSource) Self {
+        fn initWithTwiddleSource(config: Config, twiddle_source: TwiddleSource) Self {
             return .{
                 .trees = .{},
-                .config = config,
+                .config = scheme_revision.legacyView(config),
+                .revision_config = if (explicit_tree_heights) config else {},
                 .coefficient_retention_policy = .always,
                 .twiddle_source = twiddle_source,
                 .pending_commit = null,
@@ -545,8 +568,9 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     "Proof of work",
                 );
                 defer proof_of_work_stage.end();
-                const nonce = try pow_search.grindForBackend(
+                const nonce = try pow_search.grindForMerkleChannel(
                     B,
+                    MC,
                     channel,
                     scheme.config.pow_bits,
                 );
@@ -665,6 +689,21 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             return result;
         }
 
+        /// The Merkle height the next tree (`tree_index`) must be committed
+        /// at, or null when trees keep their largest-column height.
+        pub fn explicitTreeHeight(
+            self: Self,
+            allocator: std.mem.Allocator,
+            tree_index: usize,
+            columns: []const ColumnEvaluation,
+        ) !?u32 {
+            if (comptime !explicit_tree_heights) return null;
+            const log_sizes = try allocator.alloc(u32, columns.len);
+            defer allocator.free(log_sizes);
+            for (columns, log_sizes) |column, *log_size| log_size.* = column.log_size;
+            return try scheme_revision.treeHeight(self.revision_config, tree_index, log_sizes);
+        }
+
         pub fn appendCommittedTree(
             self: *Self,
             allocator: std.mem.Allocator,
@@ -681,11 +720,15 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         }
 
         /// The final composition tree sets the proof domain. Earlier trees may
-        /// contain larger columns when those columns are left unsampled.
+        /// contain larger columns when those columns are left unsampled. Under
+        /// explicit heights it is the final tree's Merkle height
+        /// (`trees.last().commitment.layers.len() - 1` upstream).
         fn proofLiftingLogSize(self: Self) !u32 {
             if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
             const final_tree = self.trees.items[self.trees.items.len - 1];
             if (final_tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
+            if (comptime explicit_tree_heights)
+                return final_tree.merkle_log_height orelse CommitmentSchemeError.ShapeMismatch;
             return maxLogSize(final_tree.columns);
         }
 

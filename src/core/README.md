@@ -70,8 +70,16 @@ lane follows. `stwo_7b211ed` is the existing Native and Cairo rule set
 `starkware-libs/proving@5a7c5ed` (`pcs.config_v2`, a two-felt FRI config mix,
 explicit per-tree lifting heights). Its channels, hashers and proof-of-work
 search order are fixed together by `vcs_lifted.channel_profile`; lanes name a
-profile rather than pairing a channel with a hasher themselves. The
-revision-specific tests run as `test-revision` in the owner-local build.
+profile rather than pairing a channel with a hasher themselves. A profile
+also declares its revision, and `Revision.of(MC)` reads it back, so the PCS
+prover and `pcs.verifier.CommitmentSchemeVerifier` select their laws from the
+Merkle channel they are instantiated with; every other Merkle channel selects
+`stwo_7b211ed`. The revision-specific tests run as `test-revision` in the
+owner-local build.
+
+`channel.lookup_transcript` holds the LogUp transcript steps that the Cairo
+prover and the circuit prover share: the channel salt, the `(z, alpha)`
+lookup-element draw and the claimed-sum mix.
 
 Primitives that more than one frontend needs live here rather than in either
 frontend: `crypto.blake_sigma.BLAKE_SIGMA` (the BLAKE2s message schedule, also

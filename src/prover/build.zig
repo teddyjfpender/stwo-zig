@@ -110,6 +110,11 @@ pub fn build(b: *std.Build) void {
         .root = "pcs_pow_test_root.zig",
         .filters = &.{"BLAKE3 PoW"},
     });
+    const pcs_revision_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-revision",
+        .description = "Prove PCS openings under protocol revision proving_5a7c5ed against Rust vectors",
+        .root = "pcs_revision_test_root.zig",
+    });
     const pcs_commitments_step = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-commitments",
         .description = "Run only prover PCS commitment tests",
@@ -177,6 +182,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(poly_step);
     test_step.dependOn(pcs_commitments_step);
     test_step.dependOn(pow_step);
+    test_step.dependOn(pcs_revision_step);
     test_step.dependOn(quotient_ops_step);
 }
 
