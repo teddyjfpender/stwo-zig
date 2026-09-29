@@ -19,7 +19,8 @@
     "builder",
     "common",
     "stark_verifier",
-    "statements"
+    "statements",
+    "witness"
   ],
   "api_contract": {
     "signature_tests": [

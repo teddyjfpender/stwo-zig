@@ -32,7 +32,7 @@ pub fn instantiate(
     errdefer allocator.free(components);
     var initialized: usize = 0;
     errdefer for (components[0..initialized]) |*component|
-        deinitComponent(allocator, component);
+        composition.deinitComponent(allocator, component);
     var tree_cursors = [3]u32{ 0, 0, 0 };
     var constraint_cursor: u32 = 0;
     var maximum_evaluation_log: u32 = 0;
@@ -83,7 +83,7 @@ pub fn instantiate(
         .max_kernel_instructions = 1_000_000,
         .total_constraints = constraint_cursor,
         .max_evaluation_log_size = maximum_evaluation_log,
-        .plan_hash = scheduleHash(components),
+        .plan_hash = composition.scheduleHash(components),
         .components = components,
     };
 }
@@ -155,7 +155,7 @@ fn instantiateComponent(
         template.trace_log_size,
         trace_log,
     );
-    const denominators = try denominatorInverses(
+    const denominators = try composition.denominatorInverses(
         allocator,
         trace_log,
         evaluation_log,
@@ -206,34 +206,6 @@ fn instantiateComponent(
         .ext_sources = extension_sources,
         .parts = parts,
     };
-}
-
-fn denominatorInverses(
-    allocator: std.mem.Allocator,
-    trace_log: u32,
-    evaluation_log: u32,
-) ![]u32 {
-    const delta = std.math.sub(
-        u32,
-        evaluation_log,
-        trace_log,
-    ) catch return error.InvalidTemplateGeometry;
-    if (delta >= @bitSizeOf(usize)) return error.InvalidTemplateGeometry;
-
-    const values = try allocator.alloc(u32, @as(usize, 1) << @intCast(delta));
-    errdefer allocator.free(values);
-    const trace_coset = core.poly.circle.canonic.CanonicCoset.new(trace_log).coset();
-    const evaluation_domain =
-        core.poly.circle.canonic.CanonicCoset.new(evaluation_log).circleDomain();
-    for (values, 0..) |*value, index| {
-        value.* = (try core.constraints.cosetVanishing(
-            M31,
-            trace_coset,
-            evaluation_domain.at(index),
-        ).inv()).toU32();
-    }
-    core.utils.bitReverse(u32, values);
-    return values;
 }
 
 fn rebindDomainConstants(
@@ -308,53 +280,6 @@ fn segmentStart(segments: adapter.BuiltinSegments, label: []const u8) ?u32 {
     return null;
 }
 
-fn deinitComponent(
-    allocator: std.mem.Allocator,
-    component: *composition.Component,
-) void {
-    allocator.free(component.label);
-    allocator.free(component.trace_spans);
-    allocator.free(component.preprocessed_indices);
-    allocator.free(component.denominator_inverses);
-    allocator.free(component.ext_sources);
-    for (component.parts) |*part| part.program.deinit();
-    allocator.free(component.parts);
-}
-
-fn scheduleHash(components: []const composition.Component) u64 {
-    var hash: u64 = 0xcbf29ce484222325;
-    for (components) |component| {
-        hashBytes(&hash, component.label);
-        hashInt(&hash, component.instance);
-        hashInt(&hash, component.trace_log_size);
-        hashInt(&hash, component.evaluation_log_size);
-        hashInt(&hash, component.n_constraints);
-        hashInt(&hash, component.random_coefficient_offset);
-        for (component.trace_spans) |span| {
-            hashInt(&hash, span.tree);
-            hashInt(&hash, span.start);
-            hashInt(&hash, span.end);
-        }
-        for (component.preprocessed_indices) |index| hashInt(&hash, index);
-        for (component.parts) |part| hashInt(&hash, part.semantic_hash);
-    }
-    return if (hash == 0) 1 else hash;
-}
-
-fn hashInt(hash: *u64, value: anytype) void {
-    const T = @TypeOf(value);
-    var encoded: [@sizeOf(T)]u8 = undefined;
-    std.mem.writeInt(T, &encoded, value, .little);
-    hashBytes(hash, &encoded);
-}
-
-fn hashBytes(hash: *u64, bytes: []const u8) void {
-    for (bytes) |byte| {
-        hash.* ^= byte;
-        hash.* *%= 0x100000001b3;
-    }
-}
-
 test "official Cairo AIR templates instantiate live logs and segment starts" {
     const allocator = std.testing.allocator;
     var library = try template_library.Library.readFile(
@@ -408,9 +333,9 @@ test "official Cairo AIR templates instantiate live logs and segment starts" {
 
 test "official Cairo AIR templates derive vanishing inverses from live geometry" {
     const allocator = std.testing.allocator;
-    const source = try denominatorInverses(allocator, 8, 9);
+    const source = try composition.denominatorInverses(allocator, 8, 9);
     defer allocator.free(source);
-    const rebound = try denominatorInverses(allocator, 9, 10);
+    const rebound = try composition.denominatorInverses(allocator, 9, 10);
     defer allocator.free(rebound);
 
     try std.testing.expectEqual(@as(usize, 2), source.len);

@@ -23,6 +23,8 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const finalize = @import("finalize.zig");
+const builder_circuit = @import("../builder/circuit.zig");
+const builder_context = @import("../builder/context.zig");
 
 const M31 = core.fields.m31.M31;
 const tables = core.preprocessed_tables;
@@ -460,6 +462,76 @@ pub const PreprocessedCircuit = struct {
             .first_permutation_row = first_permutation_row,
             .n_outputs = circuit.output.len - 1,
         };
+    }
+
+    /// `PreprocessedCircuit::preprocess_circuit`: pads the finalized
+    /// context's components (`pad_context`), then preprocesses its circuit.
+    pub fn preprocessContext(
+        comptime V: type,
+        allocator: std.mem.Allocator,
+        ctx: *builder_context.Context(V),
+    ) (Error || finalize.PadError || std.mem.Allocator.Error)!PreprocessedCircuit {
+        try finalize.padContext(V, ctx);
+        return fromBuilderCircuit(allocator, &ctx.circuit);
+    }
+
+    /// `PreprocessedCircuit::from_finalized_circuit` of a finalized builder
+    /// circuit: the builder's gate lists converted to a `CircuitView`
+    /// (`BlakeGGate` outputs expanded from `out_base`, permutation ends to
+    /// CSR offsets) and preprocessed.
+    pub fn fromBuilderCircuit(allocator: std.mem.Allocator, circuit: *const builder_circuit.Circuit) (Error || std.mem.Allocator.Error)!PreprocessedCircuit {
+        var arena_state = std.heap.ArenaAllocator.init(allocator);
+        defer arena_state.deinit();
+        const arena = arena_state.allocator();
+        const binary = struct {
+            fn copy(a: std.mem.Allocator, gates: []const builder_circuit.BinaryGate) ![]BinaryGate {
+                const out = try a.alloc(BinaryGate, gates.len);
+                for (gates, out) |gate, *dst| dst.* = .{ .in0 = gate.in0, .in1 = gate.in1, .out = gate.out };
+                return out;
+            }
+        }.copy;
+        const eq = try arena.alloc(EqGate, circuit.eq.items.len);
+        for (circuit.eq.items, eq) |gate, *dst| dst.* = .{ .in0 = gate.in0, .in1 = gate.in1 };
+        const triple_xor = try arena.alloc(TripleXorGate, circuit.triple_xor.items.len);
+        for (circuit.triple_xor.items, triple_xor) |gate, *dst|
+            dst.* = .{ .input_a = gate.input_a, .input_b = gate.input_b, .input_c = gate.input_c, .out = gate.out };
+        const m31_to_u32 = try arena.alloc(M31ToU32Gate, circuit.m31_to_u32.items.len);
+        for (circuit.m31_to_u32.items, m31_to_u32) |gate, *dst| dst.* = .{ .input = gate.input, .out = gate.out };
+        const blake_g_gate = try arena.alloc(BlakeGGate, circuit.blake_g_gate.items.len);
+        for (circuit.blake_g_gate.items, blake_g_gate) |gate, *dst| {
+            const out = gate.outputs();
+            dst.* = .{
+                .input_a = gate.input_a,
+                .input_b = gate.input_b,
+                .input_c = gate.input_c,
+                .input_d = gate.input_d,
+                .input_f0 = gate.input_f0,
+                .input_f1 = gate.input_f1,
+                .out_a = out[0],
+                .out_b = out[1],
+                .out_c = out[2],
+                .out_d = out[3],
+            };
+        }
+        const ends = circuit.permutation.ends.items;
+        const offsets = try arena.alloc(u32, ends.len + 1);
+        offsets[0] = 0;
+        @memcpy(offsets[1..], ends);
+        return fromCircuit(allocator, .{
+            .n_vars = circuit.n_vars,
+            .add = try binary(arena, circuit.add.items),
+            .sub = try binary(arena, circuit.sub.items),
+            .mul = try binary(arena, circuit.mul.items),
+            .pointwise_mul = try binary(arena, circuit.pointwise_mul.items),
+            .eq = eq,
+            .triple_xor = triple_xor,
+            .m31_to_u32 = m31_to_u32,
+            .blake_g_gate = blake_g_gate,
+            .permutation_offsets = offsets,
+            .permutation_inputs = circuit.permutation.inputs.items,
+            .permutation_outputs = circuit.permutation.outputs.items,
+            .output = circuit.output.items,
+        });
     }
 
     /// `PreProcessedTrace::log_sizes`.
