@@ -1,0 +1,93 @@
+{
+  "schema": "stwo-circuit-oracle-provenance-v1",
+  "upstream": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "revision": "5a7c5ede4299c91a61df19a07cba4f7502c14230"
+  },
+  "oracle": {
+    "manifest": "tools/stwo-circuit-oracle-rs/Cargo.toml",
+    "toolchain": "nightly-2026-01-15",
+    "source_sha256": "c7113f90ac4b2c6606a96a6c014a23f5d16a104eb80b79273c363346dc723355"
+  },
+  "generator": "scripts/generate_circuit_oracle_vectors.py",
+  "generated_on": "2026-09-29",
+  "host": "Darwin arm64",
+  "artifacts": [
+    {
+      "path": "vectors/circuit/official/compiled_air_constraints_v1.bin",
+      "rung": "r3",
+      "command": [
+        "stwo-circuit-oracle",
+        "project-air",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/official/compiled_air_constraints_v1.bin"
+      ],
+      "bytes": 476520,
+      "sha256": "8acdc72dd2bde0eb41ee0b35ee378902a1f3e825d68e0480c736a783876695bb"
+    },
+    {
+      "path": "vectors/circuit/official/compiled_casm_air.sample_evaluations.json",
+      "upstream_path": "outputs/compiled_casm_air/sample_evaluations.json",
+      "bytes": 1076126,
+      "sha256": "40e7db64636a51cff9dbb9be3174f6d42cad4379ef7cbf071c9461c3165aede9"
+    },
+    {
+      "path": "vectors/circuit/official/compiled_circuit_air.sample_evaluations.json",
+      "upstream_path": "outputs/compiled_circuit_air/sample_evaluations.json",
+      "bytes": 43759,
+      "sha256": "3a6ccb1f9ebc4fb0e3bf95c8e67b38c1ced5e84981bdbc9f3204eda21b9c7844"
+    },
+    {
+      "path": "vectors/circuit/official/registries/leaf_prover_canonical_small.json",
+      "upstream_path": "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+      "bytes": 1970,
+      "sha256": "85126ed2333fb9a3c25585b518d547b7b80902355c0afd028be1be7b111df87d"
+    },
+    {
+      "path": "vectors/circuit/official/registries/recursive_tree_test.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
+      "bytes": 1970,
+      "sha256": "438ad2b5f9324306d20d3cc0297d1574d34a46d776f9cf884d99715245c74ab2"
+    },
+    {
+      "path": "vectors/circuit/r0/primitives.json",
+      "rung": "r0",
+      "command": [
+        "stwo-circuit-oracle",
+        "primitives",
+        "--output",
+        "vectors/circuit/r0/primitives.json"
+      ],
+      "bytes": 126786,
+      "sha256": "12a2e4bd78b8b44f09b9405c99fb628c49745f720e96125ee2925a0ae46c0a5a"
+    },
+    {
+      "path": "vectors/circuit/r2/gadgets.json",
+      "rung": "r1-r2",
+      "command": [
+        "stwo-circuit-oracle",
+        "gadgets",
+        "--output",
+        "vectors/circuit/r2/gadgets.json"
+      ],
+      "bytes": 437550,
+      "sha256": "040f5d12134b3f1129f3d05b27e8d018b3e8f3dcf7965c0292bf43b6e970aef7"
+    },
+    {
+      "path": "vectors/circuit/r3/components.json",
+      "rung": "r3",
+      "command": [
+        "stwo-circuit-oracle",
+        "components",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r3/components.json"
+      ],
+      "bytes": 382364,
+      "sha256": "ff20308779cfe90a1bfafcb5e4df80f36faa5febf9107d9d18e8e62829cdf8f9"
+    }
+  ]
+}

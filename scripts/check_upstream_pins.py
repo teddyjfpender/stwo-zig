@@ -16,6 +16,7 @@ try:
     from upstream_pins_lib import model
     from upstream_pins_lib.blake_oracle_source import check as _check_blake_oracle_source
     from upstream_pins_lib.cairo_vm_adapter import check as check_cairo_vm_adapter
+    from upstream_pins_lib.circuit_recursion import check as check_circuit_recursion
     from upstream_pins_lib.official_cairo_manifest import (
         check as _check_official_cairo_manifest,
     )
@@ -30,6 +31,9 @@ except ModuleNotFoundError:  # Imported as scripts.check_upstream_pins in tests.
     )
     from scripts.upstream_pins_lib.cairo_vm_adapter import (
         check as check_cairo_vm_adapter,
+    )
+    from scripts.upstream_pins_lib.circuit_recursion import (
+        check as check_circuit_recursion,
     )
     from scripts.upstream_pins_lib.official_cairo_vectors import (
         check as check_official_cairo_vectors,
@@ -822,6 +826,14 @@ def validate_repository(root: Path = ROOT, ledger_path: Path | None = None) -> l
             ledger.official_cairo_stwo_revision,
         )
     )
+    errors.extend(
+        check_circuit_recursion(
+            root,
+            repository=ledger.circuit_recursion_repository,
+            revision=ledger.circuit_recursion_revision,
+            toolchain=ledger.circuit_recursion_toolchain,
+        )
+    )
     return errors
 
 
@@ -838,7 +850,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
     print(
-        "upstream pin ledger matches all Native, RISC-V formal/legacy, SM83, and Cairo carriers"
+        "upstream pin ledger matches all Native, RISC-V formal/legacy, SM83, Cairo, and "
+        "circuit recursion carriers"
     )
     return 0
 

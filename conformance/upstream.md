@@ -202,6 +202,39 @@ tools must therefore isolate the crate in their own workspace and replace every 
 package with the exact prover revision above. The pin checker validates that complete replacement
 graph and its lockfile; inheriting the upstream absolute path is forbidden.
 
+## Circuit Recursion Lane
+
+This lane governs StarkWare's circuit recursion stage: the leaf wrap of a Cairo
+proof, the 2-to-1 folds of the recursive tree, and the circuit registry. Its
+single authority is the `proving` monorepo, which vendors its Stwo, Stwo-Cairo
+and circuit crates in-tree without git pins:
+
+- Circuit recursion repository: `https://github.com/starkware-libs/proving`
+- Pinned circuit recursion commit: `5a7c5ede4299c91a61df19a07cba4f7502c14230`
+- Circuit recursion oracle Rust toolchain: `nightly-2026-01-15`
+- Circuit recursion pin date: `2026-09-29`
+
+The vendored Stwo is `7b211edde786775016ef3eecb837a6240d8fe792` plus a
+transcript-changing PCS revision (`FriConfig` carries `pow_bits`, the config mix
+is always two felts, and trace and preprocessed lifting heights are explicit).
+The vendored Cairo AIR and witness code equals the Cairo lane's official
+Stwo-Cairo pin `82f21252a68ec006d73e299f5bf1ce6d4db0ee78`. Neither fact lets
+evidence cross lanes: Cairo-lane vectors do not establish circuit-lane parity,
+and this lane's checkpoints do not establish Cairo proof acceptance. The Cairo
+lane's PIE runner uses the same `proving` commit as an execution-only authority;
+this lane pins it independently.
+
+`tools/stwo-circuit-oracle-rs` depends on the pinned commit by git URL. Its
+`Cargo.lock` binds every upstream crate to that exact revision, and its
+registry packages were seeded from the upstream workspace lock. The oracle's
+checkpoints and the constraints-only AIR projection live under
+`vectors/circuit/`, authenticated by `vectors/circuit/provenance.json` (fixture
+bytes, SHA-256, generating command, and the digest of the oracle source) and
+regenerated only by `scripts/generate_circuit_oracle_vectors.py`. These
+checkpoints are parity oracles for the Zig port, not proof acceptance; the Rust
+`circuit_verifier` and the Cairo `stwo_circuit_verifier` remain the acceptance
+authorities once circuit proofs exist.
+
 ## Native Stwo Parity Slice
 
 The current Native Stwo increment targets:
@@ -242,6 +275,8 @@ The current Native Stwo increment targets:
 1. Name the compatibility lane being upgraded; never reuse evidence from another lane.
 2. Bump every exact revision that composes that lane's Rust oracle in this ledger. For Cairo,
    state whether the official production pair, a legacy SN2 evidence pair, or both change.
+   For circuit recursion, re-seed the oracle lockfile from the new upstream workspace lock and
+   re-pin the oracle's aggregate digest of the upstream compiled AIR.
 3. Update manifests, lockfiles, constants, proof envelopes, receipts, and generated artifacts that
    carry those revisions.
 4. Re-run vector generation for all committed fixtures in the affected lane.

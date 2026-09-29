@@ -938,7 +938,9 @@
       "prefixes": [
         "tools/stwo-air-derive-vector-gen",
         "tools/stwo-cf-vector-gen",
-        "tools/stwo-vector-gen"
+        "tools/stwo-circuit-oracle-rs",
+        "tools/stwo-vector-gen",
+        "vectors/circuit"
       ],
       "lanes": [
         "script_contracts"

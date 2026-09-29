@@ -69,6 +69,17 @@
       "pr_lanes": ["static", "script_contracts"],
       "extraction": "consolidate into the external native-oracle workspace"
     },
+    "stwo-circuit-oracle-rs": {
+      "owner": "circuit-recursion",
+      "role": "fixture-generator",
+      "required_for": "Authenticated circuit recursion parity checkpoints and the compiled-AIR projection",
+      "live_callers": [
+        "scripts/generate_circuit_oracle_vectors.py",
+        "scripts/upstream_pins_lib/circuit_recursion.py"
+      ],
+      "pr_lanes": ["static", "script_contracts"],
+      "extraction": "externalize once checkpoint regeneration is authenticated and clean-room reproducible"
+    },
     "stwo-cuda-adapter-rs": {
       "owner": "cuda-backend",
       "role": "qualification-adapter",

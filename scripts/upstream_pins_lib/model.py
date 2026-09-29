@@ -62,6 +62,9 @@ class PinLedger:
     cairo_stwo_repository: str
     cairo_stwo_revision: str
     cairo_prover_stwo_revision: str
+    circuit_recursion_repository: str
+    circuit_recursion_revision: str
+    circuit_recursion_toolchain: str
 
 
 def _single_field(text: str, pattern: str, label: str) -> str:
@@ -276,5 +279,20 @@ def parse_ledger(path: Path = DEFAULT_LEDGER) -> PinLedger:
             text,
             rf"^- Pinned Cairo prover Stwo commit: `({REVISION_RE})`$",
             "Cairo prover Stwo revision",
+        ),
+        circuit_recursion_repository=_single_field(
+            text,
+            r"^- Circuit recursion repository: `([^`]+)`$",
+            "circuit recursion repository",
+        ),
+        circuit_recursion_revision=_single_field(
+            text,
+            rf"^- Pinned circuit recursion commit: `({REVISION_RE})`$",
+            "circuit recursion revision",
+        ),
+        circuit_recursion_toolchain=_single_field(
+            text,
+            r"^- Circuit recursion oracle Rust toolchain: `([^`]+)`$",
+            "circuit recursion oracle Rust toolchain",
         ),
     )
