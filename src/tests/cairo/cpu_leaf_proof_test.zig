@@ -116,20 +116,26 @@ fn compareStages(expected: Stages, result: *const leaf.Result) !void {
 }
 
 test "R10c: leaf Cairo proofs match proving@5a7c5ed prove_cairo" {
+    // The last field overrides the registry's lifting policy: under
+    // AtLeastPreprocessed these programs commit every tree at its own height
+    // (their 2^20-row tables fill the preprocessed domain), and `Fixed(22)`
+    // lifts every tree, the pruned preprocessed one included.
+    const Policy = parameters.LiftingSizePolicy;
     inline for (.{
-        .{ "all_opcodes", "vectors/cairo/official/all_opcodes.prover_input.json" },
-        .{ "all_builtins", "vectors/cairo/official/all_builtins.prover_input.json" },
-        .{ "use_all_opcodes_and_builtins", "vectors/circuit/r10/use_all_opcodes_and_builtins.prover_input.json" },
+        .{ "all_opcodes", "vectors/cairo/official/all_opcodes.prover_input.json", @as(?Policy, null) },
+        .{ "all_builtins", "vectors/cairo/official/all_builtins.prover_input.json", @as(?Policy, null) },
+        .{ "use_all_opcodes_and_builtins", "vectors/circuit/r10/use_all_opcodes_and_builtins.prover_input.json", @as(?Policy, null) },
+        .{ "all_opcodes.fixed_22", "vectors/cairo/official/all_opcodes.prover_input.json", @as(?Policy, .{ .fixed = 22 }) },
     }) |case| {
         const name = case[0];
-        proveAndCompare(case[1], "vectors/circuit/r10/" ++ name ++ ".prove_cairo.json") catch |err| {
+        proveAndCompare(case[1], "vectors/circuit/r10/" ++ name ++ ".prove_cairo.json", case[2]) catch |err| {
             std.debug.print("R10c case {s} failed\n", .{name});
             return err;
         };
     }
 }
 
-fn proveAndCompare(input_path: []const u8, checkpoint_path: []const u8) !void {
+fn proveAndCompare(input_path: []const u8, checkpoint_path: []const u8, policy: ?parameters.LiftingSizePolicy) !void {
     const allocator = std.testing.allocator;
 
     const checkpoint_bytes = try readFile(allocator, checkpoint_path);
@@ -142,8 +148,9 @@ fn proveAndCompare(input_path: []const u8, checkpoint_path: []const u8) !void {
     defer allocator.free(registry_bytes);
     const registry = try std.json.parseFromSlice(std.json.Value, allocator, registry_bytes, .{});
     defer registry.deinit();
-    const params = try parameters.fromValue(allocator, registry.value.object.get("cairo_prover_params") orelse
+    var params = try parameters.fromValue(allocator, registry.value.object.get("cairo_prover_params") orelse
         return error.MissingProverParameters);
+    if (policy) |override| params.lifting_size_policy = override;
 
     var input = try cairo.adapter.official_input.readFile(allocator, input_path);
     defer input.deinit(allocator);
@@ -244,5 +251,165 @@ test "R10b: canonical_small preprocessed roots at log blowup 1, 2 and 3" {
             });
             return error.PreprocessedRootDiffers;
         }
+    }
+}
+
+/// Upstream `FrameworkComponent` semantics for the example AIR: the OODS
+/// vanishing polynomial is over `CanonicCoset(max_log_degree_bound)`, which a
+/// lifted proof raises above the component's rows. The example component
+/// fixes it at its own rows (the a8fcf4b native lane), so this wrapper
+/// replaces that one term and delegates everything else.
+const LiftedWideFibonacci = struct {
+    inner: @import("stwo_native_examples").wide_fibonacci.Component,
+
+    const core = @import("stwo_core");
+    const prover_air = @import("stwo_prover_engine").air;
+    const Adapter = core.air.derive.ComponentAdapter(
+        @This(),
+        prover_air.component_prover.ComponentProver,
+        prover_air.component_prover.Trace,
+        prover_air.accumulation.DomainEvaluationAccumulator,
+    );
+
+    fn asProverComponent(self: *const @This()) prover_air.component_prover.ComponentProver {
+        return Adapter.asProverComponent(self);
+    }
+    pub fn nConstraints(self: *const @This()) usize {
+        return self.inner.nConstraints();
+    }
+    pub fn maxConstraintLogDegreeBound(self: *const @This()) u32 {
+        return self.inner.maxConstraintLogDegreeBound();
+    }
+    pub fn traceLogDegreeBounds(self: *const @This(), allocator: std.mem.Allocator) !core.air.components.TraceLogDegreeBounds {
+        return self.inner.traceLogDegreeBounds(allocator);
+    }
+    pub fn maskPoints(self: *const @This(), allocator: std.mem.Allocator, point: core.circle.CirclePointQM31, bound: u32) !core.air.components.MaskPoints {
+        // Every mask offset is 0, so the points do not depend on the bound.
+        return self.inner.maskPoints(allocator, point, bound);
+    }
+    pub fn preprocessedColumnIndices(self: *const @This(), allocator: std.mem.Allocator) ![]usize {
+        return self.inner.preprocessedColumnIndices(allocator);
+    }
+    pub fn evaluateConstraintQuotientsOnDomain(
+        self: *const @This(),
+        trace: *const prover_air.component_prover.Trace,
+        accumulator: *prover_air.accumulation.DomainEvaluationAccumulator,
+    ) !void {
+        return self.inner.evaluateConstraintQuotientsOnDomain(trace, accumulator);
+    }
+    pub fn evaluateConstraintQuotientsAtPoint(
+        self: *const @This(),
+        point: core.circle.CirclePointQM31,
+        mask: *const core.air.components.MaskValues,
+        accumulator: *core.air.accumulation.PointEvaluationAccumulator,
+        max_log_degree_bound: u32,
+    ) !void {
+        const main = mask.items[1];
+        const inverse = try core.constraints.cosetVanishing(
+            core.fields.qm31.QM31,
+            core.poly.circle.canonic.CanonicCoset.new(max_log_degree_bound).coset(),
+            point,
+        ).inv();
+        var a = main[0][0];
+        var b = main[1][0];
+        for (main[2..]) |column| {
+            const c = column[0];
+            accumulator.accumulate(c.sub(a.square().add(b.square())).mul(inverse));
+            a = b;
+            b = c;
+        }
+        _ = self;
+    }
+};
+
+const LiftedCheckpoint = struct {
+    body: struct {
+        fri_config: [5]u32,
+        cases: []const struct {
+            log_n_rows: u32,
+            sequence_len: u32,
+            trace_lifting_log_size: u32,
+            preprocessed_lifting_log_size: u32,
+            commitments: []const []const u8,
+            proof_of_work: U64Record,
+            fri_inner_layer_roots: []const []const u8,
+            sampled_values_sha256: []const u8,
+            stark_proof_bytes: u64,
+            stark_proof_sha256: []const u8,
+        },
+    },
+};
+
+test "R10 lift: trace trees committed above their columns match proving@5a7c5ed" {
+    // `stwo-circuit-oracle prove-lifted-example`: upstream's wide-Fibonacci
+    // prover test with the trace tree lifted 0, 1 and 3 levels above its
+    // columns. The small Cairo programs never lift (their 2^20-row tables fill
+    // the preprocessed domain), so this is the end-to-end check of the prover's
+    // lifted commitments, queries, sampled points and FRI domain.
+    const allocator = std.testing.allocator;
+    const core = @import("stwo_core");
+    const wide_fibonacci = @import("stwo_native_examples").wide_fibonacci;
+    const bytes = try readFile(allocator, "vectors/circuit/r10/prove_lifted_example.json");
+    defer allocator.free(bytes);
+    const checkpoint = try std.json.parseFromSlice(LiftedCheckpoint, allocator, bytes, .{ .ignore_unknown_fields = true });
+    defer checkpoint.deinit();
+    const fri_words = checkpoint.value.body.fri_config;
+    const fri = try core.pcs.config_v2.FriConfigV2.init(fri_words[0], fri_words[2], fri_words[1], fri_words[3], fri_words[4]);
+
+    for (checkpoint.value.body.cases) |case| {
+        const config = core.pcs.config_v2.PcsConfigV2{
+            .fri_config = fri,
+            .trace_lifting_log_size = case.trace_lifting_log_size,
+            .preprocessed_lifting_log_size = case.preprocessed_lifting_log_size,
+        };
+        var scheme = try leaf.Engine.initRevision(allocator, config);
+        var scheme_owned = true;
+        errdefer if (scheme_owned) scheme.deinit(allocator);
+        var channel = leaf.Channel{};
+        try leaf.Engine.commit(&scheme, allocator, try allocator.alloc(@import("stwo_prover_engine").pcs.ColumnEvaluation, 0), null, &channel);
+        const statement = wide_fibonacci.Statement{ .log_n_rows = case.log_n_rows, .sequence_len = case.sequence_len };
+        // Upstream `generate_trace` writes input `i` at storage index `i` of the
+        // bit-reversed evaluation; the Zig example (`genTrace`) writes it at
+        // the circle bit-reversed row, the a8fcf4b layout. Only the AIR is shared.
+        const M31 = core.fields.m31.M31;
+        const rows = @as(usize, 1) << @intCast(case.log_n_rows);
+        const values = try allocator.alloc([]M31, case.sequence_len);
+        defer allocator.free(values);
+        for (values) |*column| column.* = try allocator.alloc(M31, rows);
+        for (0..rows) |row| {
+            var a = M31.one();
+            var b = M31.fromCanonical(@intCast(row));
+            values[0][row] = a;
+            values[1][row] = b;
+            for (values[2..]) |column| {
+                const next = a.square().add(b.square());
+                a = b;
+                b = next;
+                column[row] = b;
+            }
+        }
+        const columns = try allocator.alloc(@import("stwo_prover_engine").pcs.ColumnEvaluation, values.len);
+        for (values, columns) |column_values, *column| column.* = .{ .log_size = case.log_n_rows, .values = column_values };
+        try leaf.Engine.commit(&scheme, allocator, columns, null, &channel);
+        const component = LiftedWideFibonacci{ .inner = .{ .statement = statement } };
+        scheme_owned = false;
+        var proof = leaf.Engine.prove(allocator, &.{component.asProverComponent()}, &channel, scheme, .{}) catch |err| {
+            std.debug.print("lifted example at height {d}: {s}\n", .{ case.trace_lifting_log_size, @errorName(err) });
+            return err;
+        };
+        defer proof.deinit(allocator);
+
+        const pcs_proof = proof.proof.commitment_scheme_proof;
+        for (pcs_proof.commitments.items, case.commitments) |root, expected|
+            try std.testing.expectEqualStrings(expected, &hex(root));
+        var buffer: [24]u8 = undefined;
+        try std.testing.expectEqualStrings(case.proof_of_work.value, try std.fmt.bufPrint(&buffer, "{d}", .{pcs_proof.proof_of_work}));
+        var encoded = std.Io.Writer.Allocating.init(allocator);
+        defer encoded.deinit();
+        try cairo.proof.binary.pcs.write(&encoded.writer, pcs_proof);
+        expectSha256(.{ .bytes = case.stark_proof_bytes, .sha256 = case.stark_proof_sha256 }, encoded.written()) catch |err| {
+            std.debug.print("lifted example at height {d} differs\n", .{case.trace_lifting_log_size});
+            return err;
+        };
     }
 }

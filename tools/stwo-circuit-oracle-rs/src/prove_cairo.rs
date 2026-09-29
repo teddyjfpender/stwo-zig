@@ -210,7 +210,15 @@ fn hash_hex(hash: &Hash) -> String {
 /// `params` is a `ProverParameters` document or a circuit registry, whose
 /// `cairo_prover_params` member is then used. With `proving_root` it is a path inside that
 /// `proving` checkout (recorded relative to it); otherwise a local path.
-pub fn run(prover_input: &Path, params: &Path, proving_root: Option<&Path>) -> Result<Output> {
+/// `lifting_size_policy` overrides the parameters' policy: `auto`, `at_least_preprocessed` or
+/// `fixed:N`. A small program never lifts under `AtLeastPreprocessed` (its fixed 2^20-row tables
+/// fill the canonical_small preprocessed domain); `fixed:N` above that domain lifts every tree.
+pub fn run(
+    prover_input: &Path,
+    params: &Path,
+    proving_root: Option<&Path>,
+    lifting_size_policy: Option<&str>,
+) -> Result<Output> {
     let input_bytes = std::fs::read(prover_input)
         .with_context(|| format!("failed to read {}", prover_input.display()))?;
     let mut inputs = vec![InputRecord {
@@ -239,7 +247,14 @@ pub fn run(prover_input: &Path, params: &Path, proving_root: Option<&Path>) -> R
     let input: ProverInput =
         serde_json::from_slice(&input_bytes).context("invalid ProverInput JSON")?;
     let document: serde_json::Value = serde_json::from_slice(&params_bytes)?;
-    let params_json = document.get("cairo_prover_params").cloned().unwrap_or(document);
+    let mut params_json = document.get("cairo_prover_params").cloned().unwrap_or(document);
+    if let Some(policy) = lifting_size_policy {
+        let value = match policy.strip_prefix("fixed:") {
+            Some(height) => serde_json::json!({ "fixed": height.parse::<u32>()? }),
+            None => serde_json::Value::String(policy.to_owned()),
+        };
+        params_json["lifting_size_policy"] = value;
+    }
     let prover_params: ProverParameters = serde_json::from_value(params_json.clone())
         .context("invalid ProverParameters JSON")?;
 

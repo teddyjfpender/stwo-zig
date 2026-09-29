@@ -4,7 +4,9 @@ const adapter = @import("../../adapter/mod.zig");
 const composition = @import("../../witness/composition_bundle.zig");
 const preprocessed = @import("../../preprocessed/trace.zig");
 const binary = @import("writer.zig");
-const pcs = @import("pcs.zig");
+/// `bincode(CommitmentSchemeProof)` (= `StarkProof`) and its aux, shared with
+/// proof readers and other bincode documents.
+pub const pcs = @import("pcs.zig");
 const statement = @import("statement.zig");
 const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;

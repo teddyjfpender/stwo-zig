@@ -19,6 +19,9 @@ const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
 
 const M31 = m31.M31;
 const WideFibonacciComponent = component_mod.Component;
+/// The AIR alone, for provers that drive the commitment scheme themselves
+/// (e.g. at `proving_5a7c5ed` tree heights).
+pub const Component = component_mod.Component;
 
 pub const Hasher = blake2_merkle.Blake2sPrefixedMerkleHasher;
 pub const MerkleChannel = blake2_merkle.Blake2sPrefixedMerkleChannel;

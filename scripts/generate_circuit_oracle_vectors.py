@@ -96,19 +96,22 @@ def generate(staging: Path, oracle: Path, proving: Path) -> list[dict]:
             artifact_record(staging, path, rung=rung, command=lane.adapt_program_command(path, program))
         )
     adapted = {path for path, *_ in lane.ADAPTED_PROGRAMS}
-    for path, rung, prover_input, registry in lane.CAIRO_PROOF_ARTIFACTS:
-        # Leaf-lane Cairo proofs of small programs: seconds and about 2 GB each. An input
+    for path, rung, prover_input, registry, policy in lane.CAIRO_PROOF_ARTIFACTS:
+        # Leaf-lane Cairo proofs of small programs: seconds and 2-4 GB each. An input
         # adapted above is read from the staging tree, under the same relative path.
         (staging / path).parent.mkdir(parents=True, exist_ok=True)
+        command = lane.cairo_proof_command(
+            str(staging / path), prover_input, registry, policy, proving_root=str(proving)
+        )
         subprocess.run(
-            [str(oracle), "prove-cairo", "--prover-input", prover_input, "--params", registry,
-             "--proving-root", str(proving), "--output", str(staging / path)],
+            [str(oracle), *command[1:]],
             check=True,
             cwd=staging if prover_input in adapted else ROOT,
         )
         artifacts.append(
             artifact_record(
-                staging, path, rung=rung, command=lane.cairo_proof_command(path, prover_input, registry)
+                staging, path, rung=rung,
+                command=lane.cairo_proof_command(path, prover_input, registry, policy),
             )
         )
     for path, upstream_path in lane.UPSTREAM_COPIES:

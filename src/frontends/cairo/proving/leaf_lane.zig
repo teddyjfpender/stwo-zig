@@ -18,9 +18,11 @@
 //! requires a channel profile (`core.vcs_lifted.channel_profile`), whose
 //! grind order reproduces upstream's `SimdBackend::grind`.
 //!
-//! Only the policy upstream's leaf prover uses is admitted:
-//! `AtLeastPreprocessed` with `include_all_preprocessed_columns`. Anything else
-//! is refused rather than proved under an untested transcript.
+//! The leaf prover's policy, `AtLeastPreprocessed`, and `Fixed` (every tree at
+//! one height, which small programs need to exercise lifted trees) are
+//! admitted, both with `include_all_preprocessed_columns`; `Auto` and
+//! partial sampling are refused rather than proved under an untested
+//! transcript.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -48,14 +50,18 @@ pub const Lane = struct {
     memory_id_to_big_components: ?usize,
     /// Execution only: store coefficients for sampled-value evaluation.
     store_polynomials_coefficients: bool,
+    /// `LiftingSizePolicy::Fixed`: every tree at this height (which includes
+    /// the blowup); null is `AtLeastPreprocessed`, the leaf prover's policy.
+    fixed_lifting_log_size: ?u32 = null,
 
     /// Admits a registry's `cairo_prover_params`. `channel_hash` is ignored,
     /// as upstream ignores it: the leaf prover fixes `Blake2sM31MerkleChannel`.
     pub fn fromParameters(params: ProverParameters) Error!Lane {
-        switch (params.lifting_size_policy) {
-            .at_least_preprocessed => {},
-            .auto, .fixed => return Error.UnsupportedLiftingSizePolicy,
-        }
+        const fixed_lifting_log_size: ?u32 = switch (params.lifting_size_policy) {
+            .at_least_preprocessed => null,
+            .fixed => |height| height,
+            .auto => return Error.UnsupportedLiftingSizePolicy,
+        };
         if (!params.include_all_preprocessed_columns) return Error.LeafLaneRequiresAllPreprocessedColumns;
         const fri = params.fri_config;
         const count: ?usize = if (params.opt_n_id_to_big_components) |n| n else null;
@@ -76,13 +82,15 @@ pub const Lane = struct {
             },
             .memory_id_to_big_components = count,
             .store_polynomials_coefficients = params.store_polynomials_coefficients,
+            .fixed_lifting_log_size = fixed_lifting_log_size,
         };
     }
 
-    /// The proof's `PcsConfig` under `AtLeastPreprocessed`: every tree, the
-    /// preprocessed one included, at `max(trace domain, preprocessed domain)`
-    /// (`prove_cairo`). `max_claim_log_size` is the largest component log
-    /// size of the claim, padding components included.
+    /// The proof's `PcsConfig` (`prove_cairo`): every tree, the preprocessed
+    /// one included, at `max(trace domain, preprocessed domain)` under
+    /// `AtLeastPreprocessed`, or at the fixed height, which must dominate both
+    /// (`InvalidLiftingLogSizeError`). `max_claim_log_size` is the largest
+    /// component log size of the claim, padding components included.
     pub fn pcsConfig(self: Lane, max_claim_log_size: u32) Error!PcsConfigV2 {
         const blowup = self.fri_config.log_blowup_factor;
         // `assert!(cairo_air_log_degree_bound <= log_blowup_factor)` with a
@@ -90,7 +98,9 @@ pub const Lane = struct {
         if (blowup < 1) return Error.InvalidLiftingLogSize;
         const trace_domain = std.math.add(u32, max_claim_log_size, blowup) catch return Error.InvalidLiftingLogSize;
         const preprocessed_domain = self.variant.maxLogSize() + blowup;
-        return PcsConfigV2.fromFriAndLiftingSize(self.fri_config, @max(trace_domain, preprocessed_domain));
+        const height = self.fixed_lifting_log_size orelse @max(trace_domain, preprocessed_domain);
+        if (height < trace_domain or height < preprocessed_domain) return Error.InvalidLiftingLogSize;
+        return PcsConfigV2.fromFriAndLiftingSize(self.fri_config, height);
     }
 };
 
@@ -115,6 +125,15 @@ test "leaf lane: the canonical_small registry parameters" {
     const tall = try lane.pcsConfig(23);
     try std.testing.expectEqual(@as(u32, 24), tall.trace_lifting_log_size);
     try std.testing.expectEqual(@as(u32, 24), tall.preprocessed_lifting_log_size);
+
+    var fixed = params;
+    fixed.lifting_size_policy = .{ .fixed = 22 };
+    const lifted = try (try Lane.fromParameters(fixed)).pcsConfig(17);
+    try std.testing.expectEqual(@as(u32, 22), lifted.trace_lifting_log_size);
+    try std.testing.expectEqual(@as(u32, 22), lifted.preprocessed_lifting_log_size);
+    try std.testing.expectError(Error.InvalidLiftingLogSize, (try Lane.fromParameters(fixed)).pcsConfig(21));
+    fixed.lifting_size_policy = .{ .fixed = 20 };
+    try std.testing.expectError(Error.InvalidLiftingLogSize, (try Lane.fromParameters(fixed)).pcsConfig(17));
 
     var refused = params;
     refused.lifting_size_policy = .auto;

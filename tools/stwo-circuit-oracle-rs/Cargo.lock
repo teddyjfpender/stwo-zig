@@ -4221,6 +4221,7 @@ dependencies = [
  "eval_air_fn_constraints",
  "hex",
  "indexmap 2.14.0",
+ "itertools 0.12.1",
  "leaf-proof-format",
  "num-traits",
  "rand_chacha 0.3.1",
@@ -4234,6 +4235,7 @@ dependencies = [
  "stwo-cairo-common",
  "stwo-cairo-prover",
  "stwo-constraint-framework",
+ "stwo-examples",
 ]
 
 [[package]]
@@ -4249,6 +4251,22 @@ dependencies = [
  "stwo",
  "stwo-std-shims",
  "tracing",
+]
+
+[[package]]
+name = "stwo-examples"
+version = "2.4.0"
+source = "git+https://github.com/starkware-libs/proving?rev=5a7c5ede4299c91a61df19a07cba4f7502c14230#5a7c5ede4299c91a61df19a07cba4f7502c14230"
+dependencies = [
+ "educe 0.5.11",
+ "itertools 0.12.1",
+ "num-traits",
+ "rand 0.9.5",
+ "serde",
+ "stwo",
+ "stwo-constraint-framework",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -4320,7 +4338,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys",

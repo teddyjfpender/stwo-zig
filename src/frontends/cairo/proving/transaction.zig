@@ -464,8 +464,10 @@ pub fn proveFixtureForLane(
             .known => |log_size| max_claim_log_size = @max(max_claim_log_size, log_size),
             .deferred => return error.InvalidCompositionGeometry,
         };
-        if (comptime !@hasDecl(Engine.Scheme, "setRevisionConfig")) return error.LeafLaneRequiresChannelProfile;
-        try scheme.setRevisionConfig(try leaf.pcsConfig(max_claim_log_size));
+        if (comptime @hasDecl(Engine.Scheme, "setRevisionConfig"))
+            try scheme.setRevisionConfig(try leaf.pcsConfig(max_claim_log_size))
+        else
+            return error.LeafLaneRequiresChannelProfile;
     }
     try preprocessed_worker.finish(recorder);
     // The fixed-data tree keeps its own compact representation. After the
@@ -573,6 +575,14 @@ pub fn proveFixtureForLane(
     }
 
     prover.measurement.process_usage.reportStage("cairo.interaction_commit_complete");
+    // The components' OODS bound (`resident_geometry.validateMaximumDegreeLog`
+    // expects it plus one). On the leaf lane it is upstream `prove_ex`'s
+    // `max_log_degree_bound`, the committed trace height minus the blowup,
+    // which lifting raises above the composition's evaluation domain.
+    const component_bound_log_size: u32 = if (lane != null)
+        try revisionComponentBound(Engine, &scheme)
+    else
+        composition.max_evaluation_log_size;
     const runtime_components = try allocator.alloc(
         proving_air.component.Component,
         composition.components.len,
@@ -593,7 +603,7 @@ pub fn proveFixtureForLane(
             allocator,
             captured,
             preprocessed_logs,
-            composition.max_evaluation_log_size,
+            component_bound_log_size,
             lookup.z,
             lookup.alpha,
             claimed_sum,
@@ -797,6 +807,13 @@ pub fn verifyAndConsume(
         &scheme,
         proof,
     );
+}
+
+fn revisionComponentBound(comptime Engine: type, scheme: *const Engine.Scheme) !u32 {
+    if (comptime @hasField(Engine.Scheme, "revision_config")) {
+        const config = scheme.revision_config orelse return error.MissingRevisionConfig;
+        return config.trace_lifting_log_size - config.fri_config.log_blowup_factor + 1;
+    } else return error.LeafLaneRequiresChannelProfile;
 }
 
 /// Publishes the stage's coverage as three zero-duration marker scopes, which

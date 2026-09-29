@@ -33,6 +33,7 @@ PROVING_ROOT_PLACEHOLDER = "<proving checkout at the pinned revision>"
 # (fixture, rung, oracle subcommand, reads upstream data)
 ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r0/primitives.json", "r0", "primitives", False),
+    (f"{VECTORS}/r10/prove_lifted_example.json", "r10-lift", "prove-lifted-example", False),
     (f"{VECTORS}/r2/gadgets.json", "r1-r2", "gadgets", False),
     (f"{VECTORS}/r3/components.json", "r3", "components", True),
     (f"{VECTORS}/official/compiled_air_constraints_v1.bin", "r3", "project-air", True),
@@ -50,12 +51,15 @@ ADAPTED_PROGRAMS = (
     ),
 )
 CAIRO_PROOF_REGISTRY = "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json"
+# The last field overrides the registry's lifting policy (None keeps it): small programs
+# never lift under AtLeastPreprocessed, so `fixed:22` covers the lifted Cairo trees.
 CAIRO_PROOF_ARTIFACTS = tuple(
     (
         f"{VECTORS}/r10/{name}.prove_cairo.json",
         "r10c",
         f"vectors/cairo/official/{name}.prover_input.json",
         CAIRO_PROOF_REGISTRY,
+        None,
     )
     for name in ("all_opcodes", "all_builtins")
 ) + (
@@ -64,10 +68,18 @@ CAIRO_PROOF_ARTIFACTS = tuple(
         "r10c",
         ADAPTED_PROGRAMS[0][0],
         CAIRO_PROOF_REGISTRY,
+        None,
+    ),
+    (
+        f"{VECTORS}/r10/all_opcodes.fixed_22.prove_cairo.json",
+        "r10c",
+        "vectors/cairo/official/all_opcodes.prover_input.json",
+        CAIRO_PROOF_REGISTRY,
+        "fixed:22",
     ),
 )
-PROJECTION = ORACLE_ARTIFACTS[3][0]
-COMPONENTS = ORACLE_ARTIFACTS[2][0]
+PROJECTION = f"{VECTORS}/official/compiled_air_constraints_v1.bin"
+COMPONENTS = f"{VECTORS}/r3/components.json"
 # (fixture, path in the proving checkout) for files copied verbatim.
 UPSTREAM_COPIES = (
     (
@@ -109,8 +121,12 @@ def adapt_program_command(path: str, program: str) -> list[str]:
     ]
 
 
-def cairo_proof_command(path: str, prover_input: str, registry: str) -> list[str]:
-    """The recorded `prove-cairo` invocation of a leaf-lane Cairo proof fixture."""
+def cairo_proof_command(
+    path: str, prover_input: str, registry: str, policy: str | None, proving_root: str = PROVING_ROOT_PLACEHOLDER
+) -> list[str]:
+    """The `prove-cairo` invocation of a leaf-lane Cairo proof fixture (recorded with the
+    placeholder checkout; the generator passes the real one)."""
+    override = ["--lifting-size-policy", policy] if policy else []
     return [
         "stwo-circuit-oracle",
         "prove-cairo",
@@ -119,7 +135,8 @@ def cairo_proof_command(path: str, prover_input: str, registry: str) -> list[str
         "--params",
         registry,
         "--proving-root",
-        PROVING_ROOT_PLACEHOLDER,
+        proving_root,
+        *override,
         "--output",
         path,
     ]
@@ -463,8 +480,8 @@ def _check_provenance(root: Path, repository: str, revision: str, toolchain: str
         command = adapt_program_command(path, program)
         if by_path.get(path, {}).get("command") != command:
             errors.append(f"{path}: provenance command is not {command}")
-    for path, rung, prover_input, registry in CAIRO_PROOF_ARTIFACTS:
-        command = cairo_proof_command(path, prover_input, registry)
+    for path, rung, prover_input, registry, policy in CAIRO_PROOF_ARTIFACTS:
+        command = cairo_proof_command(path, prover_input, registry, policy)
         if by_path.get(path, {}).get("command") != command:
             errors.append(f"{path}: provenance command is not {command}")
         errors.extend(_check_checkpoint(root, path, rung, "prove-cairo", revision))
