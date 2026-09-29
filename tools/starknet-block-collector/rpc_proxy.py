@@ -133,7 +133,7 @@ class Proxy:
         return await fut
 
     async def dispatcher(self, lane: str) -> None:
-        queue, limit = self.queues[lane], (self.max_batch if lane == "read" else 40)
+        queue, limit = self.queues[lane], (self.max_batch if lane == "read" else 8)
         while True:
             items = [await queue.get()]
             await asyncio.sleep(self.batch_window)

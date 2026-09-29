@@ -17,7 +17,10 @@ Hashes: binary H(l, r); edge H(child, path) + length; leaf = value.
 
 from __future__ import annotations
 
-from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
+try:  # native C++ Pedersen (crypto-cpp-py), ~6x faster than cairo-lang's
+    from crypto_cpp_py.cpp_bindings import cpp_hash as pedersen_hash
+except ImportError:  # pragma: no cover
+    from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
 
 P = 2**251 + 17 * 2**192 + 1
 HEIGHT = 251
@@ -113,6 +116,25 @@ class Trie:
         if h - length < target_h:
             return node  # target lies inside a compressed edge: nothing to expand
         return ("X", path, length, self._expand(child, h - length, prefix, target_h, (cur << length) | path))
+
+    def opaque_at(self, prefix: int, height: int) -> bool:
+        """Whether the subtree at (prefix, height) is still unexpanded."""
+        node, h = self.root, HEIGHT
+        while h > height:
+            kind = node[0]
+            if kind == "O":
+                return True
+            if kind in ("E", "L"):
+                return False
+            if kind == "B":
+                bit = (prefix >> (h - 1 - height)) & 1
+                node, h = node[2] if bit else node[1], h - 1
+            else:
+                path, length, child = node[1], node[2], node[3]
+                if h - length < height or (prefix >> (h - length - height)) & ((1 << length) - 1) != path:
+                    return False
+                node, h = child, h - length
+        return node[0] == "O"
 
     # -- updates -----------------------------------------------------------
     def set(self, key: int, value: int) -> None:
