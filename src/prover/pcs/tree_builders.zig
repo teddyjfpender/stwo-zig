@@ -84,6 +84,8 @@ pub fn appendCommittedTree(
     // Admit capacity first. Compaction is fail-atomic, so an error leaves
     // the caller's complete tree ownership intact.
     try scheme.trees.ensureUnusedCapacity(allocator, 1);
+    if (comptime @hasDecl(@TypeOf(scheme.*), "liftCommittedTree"))
+        try scheme.liftCommittedTree(allocator, &retained);
     if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
         if (scheme.compact_polynomial_storage)
             try retained.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);

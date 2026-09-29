@@ -158,3 +158,35 @@ test "prover vcs_lifted: a lifted tree with pruned leaves refuses to decommit" {
     tree.pruneBottomLayers(1);
     try std.testing.expectError(error.InvalidColumnSize, tree.decommit(alloc, &.{ 1, 63 }, &columns));
 }
+
+test "prover vcs_lifted: lifting a finished tree equals committing at the height" {
+    const alloc = std.testing.allocator;
+    var storage: [vectors.column_log_sizes.len][8]M31 = undefined;
+    const columns = oracleColumns(&storage);
+    for (vectors.cases) |case| {
+        var tree = try Prover.commit(alloc, &columns);
+        defer tree.deinit(alloc);
+        try tree.liftTo(alloc, case.height);
+        try std.testing.expectEqual(case.height, tree.maxLogSize());
+        try std.testing.expectEqualSlices(u8, &vectors.digest(case.root), &tree.root());
+
+        var direct = try Prover.commitLifted(alloc, &columns, case.height);
+        defer direct.deinit(alloc);
+        var positions: [4]usize = undefined;
+        const unique = sortedUnique(case.positions, &positions);
+        var lifted_opening = try tree.decommit(alloc, unique, &columns);
+        defer lifted_opening.deinit(alloc);
+        var direct_opening = try direct.decommit(alloc, unique, &columns);
+        defer direct_opening.deinit(alloc);
+        const lifted_witness = lifted_opening.decommitment.decommitment.hash_witness;
+        const direct_witness = direct_opening.decommitment.decommitment.hash_witness;
+        try std.testing.expectEqual(direct_witness.len, lifted_witness.len);
+        for (lifted_witness, direct_witness) |a, b| try std.testing.expectEqualSlices(u8, &b, &a);
+    }
+    var tree = try Prover.commitLifted(alloc, &columns, 4);
+    defer tree.deinit(alloc);
+    try std.testing.expectError(error.InvalidTreeHeight, tree.liftTo(alloc, 3));
+    const root = tree.root();
+    try tree.liftTo(alloc, 4);
+    try std.testing.expectEqualSlices(u8, &root, &tree.root());
+}

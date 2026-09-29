@@ -70,6 +70,11 @@ pub fn CommitmentSchemeProof(comptime H: type) type {
         queried_values: TreeVec([][]M31),
         proof_of_work: u64,
         fri_proof: FriProof(H),
+        /// The `proving_5a7c5ed` configuration of a revision proof: `config`
+        /// is then its FRI/PoW view and the proof's own configuration, with
+        /// both lifting heights, is this (the bincode `PcsConfig` of that
+        /// revision). Null for the existing lanes, which `config` defines.
+        revision_config: ?config_v2.PcsConfigV2 = null,
 
         const Self = @This();
 

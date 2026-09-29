@@ -53,6 +53,15 @@ pub fn ProverEngine(
             return Scheme.init(allocator, config);
         }
 
+        /// A scheme of the `proving_5a7c5ed` revision: FRI and PoW from the V2
+        /// FRI config, trees committed at `config`'s lifting heights. The
+        /// caller mixes `config` with `Revision.proving_5a7c5ed.mixConfig`.
+        pub fn initRevision(allocator: std.mem.Allocator, config: pcs_core.config_v2.PcsConfigV2) !Scheme {
+            var scheme = try Scheme.init(allocator, pcs.revision_lifting.schemeConfig(config.fri_config));
+            scheme.setRevisionConfig(config) catch unreachable;
+            return scheme;
+        }
+
         pub fn deinit(scheme: *Scheme, allocator: std.mem.Allocator) void {
             scheme.deinit(allocator);
         }

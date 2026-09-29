@@ -469,6 +469,34 @@ pub fn MerkleProverLifted(comptime H: type) type {
             return work_pool_mod.getGlobalPool() != null or merklePoolReuseEnabled(allocator);
         }
 
+        /// Re-commits a finished tree at a taller explicit height. The result
+        /// is the tree `commitLifted(columns, lifting_log_size)` builds from
+        /// the same columns: a lifted leaf is the natural leaf at the lifted
+        /// index, so only the leaf replication and the node hashes above it
+        /// are recomputed, never a column value. This is the single lifting
+        /// step behind every commit path of a `proving_5a7c5ed` scheme
+        /// (`pcs.revision_lifting`), so no specialised leaf builder needs a
+        /// lifted variant. A tree whose leaf layer was pruned
+        /// (`compactForQueries`) cannot be lifted and returns
+        /// `error.InvalidColumnSize`; a lower height is `InvalidTreeHeight`.
+        /// On error the tree is unchanged.
+        pub fn liftTo(self: *Self, allocator: std.mem.Allocator, lifting_log_size: u32) !void {
+            const natural = self.maxLogSize();
+            if (lifting_log_size == natural) return;
+            if (lifting_log_size < natural) return error.InvalidTreeHeight;
+            const leaves = self.layers[natural];
+            if (leaves.len == 0) return error.InvalidColumnSize;
+            const layer_alloc = self.layer_allocator;
+            const lifted = try liftLeaves(
+                layer_alloc,
+                try layer_alloc.dupe(H.Hash, leaves),
+                lifting_log_size - natural,
+            );
+            const rebuilt = try buildTreeFromOwnedLeaves(allocator, layer_alloc, lifted, lifting_log_size);
+            self.deinit(allocator);
+            self.* = rebuilt;
+        }
+
         /// Lifts a finished leaf layer by `log_ratio` more levels:
         /// `lifted[i] = leaves[((i >> (log_ratio + 1)) << 1) + (i & 1)]`, the
         /// final step of upstream `build_leaves`. Takes ownership of `leaves`.

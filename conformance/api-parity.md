@@ -893,6 +893,12 @@ This ledger maps every public export in the Zig root/module API surface to the p
       "rust_path": "crates/stwo/src/lib.rs",
       "source": "src/prover/pcs/mod.zig"
     },
+    "stwo.prover.pcs.revision_lifting": {
+      "kind": "const",
+      "rationale": "Port of the circuit-recursion protocol revision of https://github.com/starkware-libs/proving at 5a7c5ede4299c91a61df19a07cba4f7502c14230, outside the Native a8fcf4b surface; per-tree commitment heights of CommitmentSchemeProver::commit (prover/pcs/mod.rs there) applied as one lifting step after every commit path.",
+      "rust_path": null,
+      "source": "src/prover/pcs/mod.zig"
+    },
     "stwo.prover.poly": {
       "kind": "const",
       "rationale": null,

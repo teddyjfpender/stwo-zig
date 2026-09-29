@@ -450,7 +450,7 @@ fn proveExComponentsWithRecorder(
 
     const composition_log_size = component_provers.compositionLogDegreeBound();
     const composition_log_split = try component_provers.compositionLogSplit();
-    const max_log_degree_bound = verifier_types.compositionMaskLogSize(
+    const composition_mask_log_size = verifier_types.compositionMaskLogSize(
         composition_log_size,
         composition_log_split,
     ) orelse return ProvingError.InvalidStructure;
@@ -594,6 +594,13 @@ fn proveExComponentsWithRecorder(
     @import("host_budget_allocator.zig").SharedHostBudget.reportStage(allocator, "core.openings");
     diagnostic_subphase.* = null;
     evaluation_diagnostic.* = null;
+    // A `proving_5a7c5ed` scheme masks at its committed height, which lifting
+    // may raise above the composition split (upstream `prove_ex`); the
+    // composition reconstruction follows the same bound.
+    const max_log_degree_bound = (try scheme.revisionMaskLogSize(include_all_preprocessed_columns)) orelse
+        composition_mask_log_size;
+    const extraction_log_size = std.math.add(u32, max_log_degree_bound, composition_log_split) catch
+        return ProvingError.InvalidStructure;
     var components_view = try component_provers.componentsView(allocator);
     defer components_view.deinit(allocator);
 
@@ -675,7 +682,7 @@ fn proveExComponentsWithRecorder(
 
         const composition_oods_eval = ext_proof.proof.extractCompositionOodsEvalWithSplit(
             oods_sampling.point,
-            composition_log_size,
+            extraction_log_size,
             composition_log_split,
         ) orelse return ProvingError.InvalidStructure;
 
@@ -685,7 +692,7 @@ fn proveExComponentsWithRecorder(
             &ext_proof.proof.commitment_scheme_proof.sampled_values,
             random_coeff,
             max_log_degree_bound,
-            composition_log_size,
+            extraction_log_size,
             composition_log_split,
             if (work_recorder != null) &oods_constraint_work_capture else null,
         );

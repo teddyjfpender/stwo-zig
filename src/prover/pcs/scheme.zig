@@ -32,6 +32,7 @@ const backed_columns = @import("backed_columns.zig");
 const scheme_decommit = @import("scheme_decommit.zig");
 const scheme_views = @import("scheme_views.zig");
 const shell_work_profile = @import("shell_work_profile.zig");
+pub const revision_lifting = @import("revision_lifting.zig");
 
 pub const quotient_ops = @import("quotient_ops.zig");
 
@@ -103,6 +104,10 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         twiddle_source: TwiddleSource,
         pending_commit: ?deferred_commit.Pending(BackendCommitmentTree),
         shell_preopening_audit: shell_work_profile.PreOpeningAudit,
+        /// `proving_5a7c5ed` commitment heights (`revision_lifting`). Null
+        /// commits every tree at its largest column, the Native and Cairo
+        /// lanes' rule; `config` then defines the whole protocol.
+        revision_config: ?revision_lifting.PcsConfigV2 = null,
 
         const Self = @This();
 
@@ -145,6 +150,37 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             self.trees.deinit(allocator);
             self.twiddle_source.deinit(allocator);
             self.* = undefined;
+        }
+
+        /// Selects the `proving_5a7c5ed` revision: FRI and PoW run from
+        /// `config.fri_config` and tree `i` is committed at
+        /// `config.liftingLogSize(i)`. Must precede the first commitment, as
+        /// the heights shape every root; the caller mixes the configuration
+        /// (`Revision.proving_5a7c5ed.mixConfig`).
+        pub fn setRevisionConfig(self: *Self, config: revision_lifting.PcsConfigV2) error{RevisionAfterCommit}!void {
+            if (self.trees.items.len != 0 or self.pending_commit != null) return error.RevisionAfterCommit;
+            self.config = revision_lifting.schemeConfig(config.fri_config);
+            self.revision_config = config;
+        }
+
+        /// The height choke point every commit path appends through.
+        pub fn liftCommittedTree(self: *Self, allocator: std.mem.Allocator, tree: *BackendCommitmentTree) !void {
+            const config = self.revision_config orelse return;
+            try revision_lifting.liftCommittedTree(B, H, config, allocator, tree, self.trees.items.len);
+        }
+
+        /// `max_log_degree_bound` of upstream `prove_ex` for a revision
+        /// scheme; null for the existing lanes, whose bound follows the
+        /// composition split.
+        pub fn revisionMaskLogSize(self: Self, include_all_preprocessed_columns: bool) !?u32 {
+            const config = self.revision_config orelse return null;
+            if (self.trees.items.len <= PREPROCESSED_TRACE_IDX) return CommitmentSchemeError.InvalidPreprocessedTree;
+            return try revision_lifting.maskLogSize(
+                config,
+                try self.proofLiftingLogSize(),
+                self.trees.items[PREPROCESSED_TRACE_IDX].commitment.maxLogSize(),
+                include_all_preprocessed_columns,
+            );
         }
 
         pub fn setCompactPolynomialStorage(self: *Self, minimum_log_size: u32) void {
@@ -545,11 +581,17 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     "Proof of work",
                 );
                 defer proof_of_work_stage.end();
-                const nonce = try pow_search.grindForBackend(
-                    B,
-                    channel,
-                    scheme.config.pow_bits,
-                );
+                // A Merkle channel profile (`vcs_lifted.channel_profile`)
+                // names the search order of the prover it reproduces; the
+                // existing lanes keep the backend's lowest-nonce search.
+                const nonce = if (comptime @hasDecl(MC, "grind_order"))
+                    try MC.grind(channel.*, scheme.config.pow_bits)
+                else
+                    try pow_search.grindForBackend(
+                        B,
+                        channel,
+                        scheme.config.pow_bits,
+                    );
                 channel.mixU64(nonce);
                 break :blk nonce;
             };
@@ -632,6 +674,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     .queried_values = trace_decommit.queried_values,
                     .proof_of_work = proof_of_work,
                     .fri_proof = fri_decommit.fri_proof.proof,
+                    .revision_config = scheme.revision_config,
                 },
                 .aux = .{
                     .unsorted_query_locations = fri_decommit.unsorted_query_locations,
@@ -681,11 +724,14 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         }
 
         /// The final composition tree sets the proof domain. Earlier trees may
-        /// contain larger columns when those columns are left unsampled.
-        fn proofLiftingLogSize(self: Self) !u32 {
+        /// contain larger columns when those columns are left unsampled. A
+        /// revision scheme proves at the final tree's committed height
+        /// (upstream `prove_values`), which lifting may place above its columns.
+        pub fn proofLiftingLogSize(self: Self) !u32 {
             if (self.trees.items.len == 0) return CommitmentSchemeError.ShapeMismatch;
             const final_tree = self.trees.items[self.trees.items.len - 1];
             if (final_tree.columns.len == 0) return CommitmentSchemeError.ShapeMismatch;
+            if (self.revision_config != null) return final_tree.commitment.maxLogSize();
             return maxLogSize(final_tree.columns);
         }
 

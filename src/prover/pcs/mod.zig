@@ -6,6 +6,9 @@ const deferred_commit = @import("deferred_commit.zig");
 pub const proof_of_work = @import("proof_of_work.zig");
 
 pub const quotient_ops = scheme.quotient_ops;
+/// `proving_5a7c5ed` commitment heights: the single lifting step of every
+/// commit path and the FRI/PoW view of a V2 configuration.
+pub const revision_lifting = scheme.revision_lifting;
 /// Diagnostic/backend parity owners. These are additive exports of the exact
 /// executors already used by `quotient_ops`; external backends must not fork
 /// the quotient formula when validating an accelerated result.

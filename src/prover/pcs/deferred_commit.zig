@@ -203,6 +203,8 @@ pub fn resolveObserved(scheme: anytype, allocator: std.mem.Allocator) anyerror!v
         tree.deinit(allocator);
         allocator.destroy(slot);
     }
+    if (comptime @hasDecl(@TypeOf(scheme.*), "liftCommittedTree"))
+        try scheme.liftCommittedTree(allocator, &tree);
     if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
         if (scheme.compact_polynomial_storage)
             try tree.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);
