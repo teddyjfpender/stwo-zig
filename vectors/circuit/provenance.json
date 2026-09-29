@@ -8,11 +8,11 @@
     "manifest": "tools/stwo-circuit-oracle-rs/Cargo.toml",
     "toolchain": "nightly-2026-01-15",
     "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
-    "lock_sha256": "549a2cee45a1e64ad223855894a426d5ee6cf4a331298bcb65bcaed4155faac5",
-    "source_sha256": "c75a3aef547c23a19a441d3e2c4313c490425ea832319eb41a8f97e2d80e1f23"
+    "lock_sha256": "c275004ff32d5f5a8460c2359f6a23876c06087af458c135578bc0bd1b5bfadf",
+    "source_sha256": "68c2135e0dedc112d9f92f90c6bedd3fa89a27a1f06bb30c0b020f14dc82cc82"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
-  "generated_on": "2026-09-29",
+  "generated_on": "2026-09-30",
   "artifacts": [
     {
       "path": "vectors/circuit/official/circuit_air.air_programs_v1.bin",
