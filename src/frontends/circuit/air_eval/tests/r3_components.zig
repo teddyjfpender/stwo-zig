@@ -224,12 +224,12 @@ fn expectEntryShape(record: Value, table: *const Table, slot: usize) !void {
     const entry = table.entries[slot];
     try std.testing.expectEqualStrings(try fixture.string(try fixture.field(record, "name")), entry.name);
     try std.testing.expectEqualStrings(try fixture.string(try fixture.field(record, "evaluator_name")), entry.name);
-    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "trace_columns")), entry.trace_columns);
-    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "interaction_columns")), entry.interaction_columns);
+    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "trace_columns")), entry.shape.trace_columns);
+    try std.testing.expectEqual(try fixture.unsigned(usize, try fixture.field(record, "interaction_columns")), entry.shape.interaction_columns);
     try std.testing.expectEqual(try fixture.boolean(try fixture.field(record, "hand_written")), entry.evaluator == .manual);
     const uses = try fixture.array(try fixture.field(record, "relation_uses_per_row"));
-    try std.testing.expectEqual(uses.len, entry.relation_uses_per_row.len);
-    for (uses, entry.relation_uses_per_row) |use, actual| {
+    try std.testing.expectEqual(uses.len, entry.shape.relation_uses_per_row.len);
+    for (uses, entry.shape.relation_uses_per_row) |use, actual| {
         try std.testing.expectEqualStrings(try fixture.string(try fixture.field(use, "relation_id")), actual.relation_id);
         try std.testing.expectEqual(try fixture.unsigned(u64, try fixture.field(use, "uses")), actual.uses);
     }

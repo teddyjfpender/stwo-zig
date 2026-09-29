@@ -2,70 +2,25 @@
 //! `crates/circuit_verifier/src/components/{eq,qm31_ops,verify_bitwise_xor_12}.rs`
 //! (https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230). Each function is the body of
-//! the Rust `CircuitEval::evaluate`, in its call order.
+//! the Rust `CircuitEval::evaluate`, in its call order. Their shapes and
+//! relation ids are the circuit components' static facts in
+//! `common/component_list.zig`.
 
-const stwo_core = @import("stwo_core");
-const constraint_eval = @import("../../stark_verifier/constraint_eval.zig");
+const component_list = @import("../../common/component_list.zig");
 const tree = @import("eval_tree.zig");
+const xor_12 = @import("verify_bitwise_xor_12.zig");
 
-const QM31 = stwo_core.fields.qm31.QM31;
-const M31 = stwo_core.fields.m31.M31;
-const RelationUse = constraint_eval.RelationUse;
-
-/// `M31::from(378353459)`, the circuit `Gate` relation id, as hard-coded upstream.
-const gate_relation_id: u32 = 378353459;
-/// The `VerifyBitwiseXor_12` relation id, as hard-coded upstream.
-const xor_12_relation_id: u32 = 648362599;
-
-pub const Shape = struct {
-    trace_columns: usize,
-    interaction_columns: usize,
-    relation_uses: []const RelationUse,
-    /// The preprocessed column whose log size is the component's, or null
-    /// for a fixed `log_size`.
-    log_size_column: ?[]const u8,
-    log_size: ?u32,
-};
-
-pub const eq_shape: Shape = .{
-    .trace_columns = 4,
-    .interaction_columns = 4,
-    .relation_uses = &.{.{ .relation_id = "Gate", .uses = 2 }},
-    .log_size_column = "eq_in0_address",
-    .log_size = null,
-};
-
-pub const qm31_ops_shape: Shape = .{
-    .trace_columns = 12,
-    .interaction_columns = 8,
-    .relation_uses = &.{.{ .relation_id = "Gate", .uses = 2 }},
-    .log_size_column = "qm31_ops_in0_address",
-    .log_size = null,
-};
-
-const xor_12_expand_bits = 2;
-const xor_12_limb_bits = 10;
-
-pub const verify_bitwise_xor_12_shape: Shape = .{
-    .trace_columns = 1 << (2 * xor_12_expand_bits),
-    .interaction_columns = 4 * ((1 << (2 * xor_12_expand_bits)) / 2),
-    .relation_uses = &.{},
-    .log_size_column = null,
-    .log_size = 2 * xor_12_limb_bits,
-};
-
-fn constantM31(ctx: anytype, value: u32) !@TypeOf(ctx.*).Var {
-    return ctx.constant(QM31.fromBase(M31.fromCanonical(value)));
-}
+const facts = component_list.component_facts;
+const constantM31 = tree.constantM31;
 
 /// `CircuitEqComponent::evaluate`.
 pub fn evaluateEq(interp: anytype) !void {
     const ctx = interp.ctx;
-    const relation = try constantM31(ctx, gate_relation_id);
+    const relation = try constantM31(ctx, component_list.GATE_RELATION_ID);
     const in0_address = try interp.acc.getPreprocessedColumn("eq_in0_address");
     const in1_address = try interp.acc.getPreprocessedColumn("eq_in1_address");
     const cols = interp.data.traceColumns();
-    if (cols.len != eq_shape.trace_columns) return error.TraceColumnCountMismatch;
+    if (cols.len != facts.eq.trace_columns) return error.TraceColumnCountMismatch;
     try interp.acc.addToRelation(ctx, ctx.one(), &.{ relation, in0_address, cols[0], cols[1], cols[2], cols[3] });
     try interp.acc.addToRelation(ctx, ctx.one(), &.{ relation, in1_address, cols[0], cols[1], cols[2], cols[3] });
 }
@@ -135,7 +90,7 @@ const qm31_ops_constraints = blk: {
 pub fn evaluateQm31Ops(interp: anytype) !void {
     const ctx = interp.ctx;
     const acc = interp.acc;
-    const relation = try constantM31(ctx, gate_relation_id);
+    const relation = try constantM31(ctx, component_list.GATE_RELATION_ID);
     const flags = [_]@TypeOf(ctx.*).Var{
         try acc.getPreprocessedColumn("qm31_ops_add_flag"),
         try acc.getPreprocessedColumn("qm31_ops_sub_flag"),
@@ -147,7 +102,7 @@ pub fn evaluateQm31Ops(interp: anytype) !void {
     const dst_addr = try acc.getPreprocessedColumn("qm31_ops_out_address");
     const multiplicity = try acc.getPreprocessedColumn("qm31_ops_mults");
     const cols = interp.data.traceColumns();
-    if (cols.len != qm31_ops_shape.trace_columns) return error.TraceColumnCountMismatch;
+    if (cols.len != facts.qm31_ops.trace_columns) return error.TraceColumnCountMismatch;
 
     var operands: [16]@TypeOf(ctx.*).Var = undefined;
     @memcpy(operands[0..4], &flags);
@@ -165,23 +120,9 @@ pub fn evaluateQm31Ops(interp: anytype) !void {
 /// `verify_bitwise_xor_12::Component::evaluate` (circuit AIR): 16 lookups of
 /// the 10-bit table expanded by the top two bits of each operand.
 pub fn evaluateVerifyBitwiseXor12(interp: anytype) !void {
-    const ctx = interp.ctx;
-    const relation = try constantM31(ctx, xor_12_relation_id);
-    const a_low = try interp.acc.getPreprocessedColumn("bitwise_xor_10_0");
-    const b_low = try interp.acc.getPreprocessedColumn("bitwise_xor_10_1");
-    const c_low = try interp.acc.getPreprocessedColumn("bitwise_xor_10_2");
-    const cols = interp.data.traceColumns();
-    if (cols.len != verify_bitwise_xor_12_shape.trace_columns) return error.TraceColumnCountMismatch;
-    var next: usize = 0;
-    for (0..1 << xor_12_expand_bits) |i| {
-        for (0..1 << xor_12_expand_bits) |j| {
-            const multiplicity = cols[next];
-            next += 1;
-            const a = try ctx.add(a_low, try constantM31(ctx, @intCast(i << xor_12_limb_bits)));
-            const b = try ctx.add(b_low, try constantM31(ctx, @intCast(j << xor_12_limb_bits)));
-            const c = try ctx.add(c_low, try constantM31(ctx, @intCast((i ^ j) << xor_12_limb_bits)));
-            const neg_multiplicity = try ctx.sub(ctx.zero(), multiplicity);
-            try interp.acc.addToRelation(ctx, neg_multiplicity, &.{ relation, a, b, c });
-        }
-    }
+    const relation = try constantM31(interp.ctx, xor_12.relation_id);
+    const a_low = try interp.acc.getPreprocessedColumn(xor_12.a_column);
+    const b_low = try interp.acc.getPreprocessedColumn(xor_12.b_column);
+    const c_low = try interp.acc.getPreprocessedColumn(xor_12.c_column);
+    try xor_12.addLookups(interp, relation, a_low, b_low, c_low, interp.data.traceColumns());
 }
