@@ -36,6 +36,7 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r2/gadgets.json", "r1-r2", "gadgets", False),
     (f"{VECTORS}/r3/components.json", "r3", "components", True),
     (f"{VECTORS}/official/compiled_air_constraints_v1.bin", "r3", "project-air", True),
+    (f"{VECTORS}/r6/cairo_statement.json", "r6", "cairo-statement", True),
 )
 PROJECTION = ORACLE_ARTIFACTS[3][0]
 COMPONENTS = ORACLE_ARTIFACTS[2][0]
@@ -52,6 +53,10 @@ UPSTREAM_COPIES = (
     (
         f"{VECTORS}/official/registries/leaf_prover_canonical_small.json",
         "crates/leaf_prover/tests/data/circuit_registry_canonical_small.json",
+    ),
+    (
+        f"{VECTORS}/official/programs/use_all_opcodes_and_builtins_compiled.json",
+        "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
     ),
     (
         f"{VECTORS}/official/registries/recursive_tree_test.json",

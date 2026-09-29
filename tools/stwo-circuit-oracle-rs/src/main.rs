@@ -3,6 +3,7 @@
 //! Each subcommand runs pinned upstream Rust code and emits one checkpoint that a rung of the Zig
 //! parity ladder compares against. See `README.md` for the rung mapping and the digest contracts.
 
+mod cairo_statement;
 mod checkpoint;
 mod compiled_air;
 mod components;
@@ -20,7 +21,8 @@ use anyhow::{Context, Result, bail};
 const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle gadgets [--output PATH]
        stwo-circuit-oracle components --proving-root DIR [--output PATH]
-       stwo-circuit-oracle project-air --proving-root DIR [--output PATH]";
+       stwo-circuit-oracle project-air --proving-root DIR [--output PATH]
+       stwo-circuit-oracle cairo-statement --proving-root DIR [--output PATH]";
 
 fn main() -> Result<()> {
     let mut values = std::env::args().skip(1);
@@ -52,6 +54,7 @@ fn main() -> Result<()> {
         "gadgets" => output::json(&gadgets::run()?)?,
         "components" => output::json(&components::run(root()?)?)?,
         "project-air" => project_air::run(root()?)?,
+        "cairo-statement" => output::json(&cairo_statement::run(root()?)?)?,
         other => bail!("unknown subcommand {other:?}\n{USAGE}"),
     };
     output::emit(output.as_deref(), &bytes)

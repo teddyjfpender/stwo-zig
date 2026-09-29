@@ -19,6 +19,8 @@ rejects any drift. Regenerate only with
 | `official/compiled_air_constraints_v1.bin` | R3 | constraints-only projection of the compiled AIR |
 | `official/compiled_{casm,circuit}_air.sample_evaluations.json` | R3 | upstream `outputs/*/sample_evaluations.json`: the evaluator assignments |
 | `official/registries/*.json` | R0, R6 | the two checked-in canonical_small circuit registries |
+| `r6/cairo_statement.json` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, `get_preprocessed_root` 21/22/23, program limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests |
+| `official/programs/use_all_opcodes_and_builtins_compiled.json` | R6, R8 | upstream `crates/leaf_prover/tests/data/`: the leaf test program |
 
 ## Encodings
 
@@ -108,3 +110,28 @@ the hand-written functions it omits, and the upstream constants
 `LARGE_MEMORY_VALUE_ID_BASE`, `MAX_SEQUENCE_LOG_SIZE`, and
 `MEMORY_ADDRESS_TO_ID_SPLIT`. The pin checker decodes it with an independent
 reader and verifies every record digest.
+
+## R6 leaf statement
+
+`r6/cairo_statement.json` (`cairo-statement`) records, from pinned upstream code
+or data only:
+
+- `constants`: `AUX_DATA_FIXED_LEN`, `N_OUTPUTS`, the three relation ids the
+  statement uses, the memory constants, and the ten builtin memory-cell sizes
+  in `CairoStatement::verify_builtins` order (the first entry is the Pedersen
+  segment, whose component name depends on the variant);
+- `all_components`: the 83 slot names of `all_components()`;
+- `variants`: per `PreProcessedTraceVariant`, the leaf disabled-component list
+  parsed from `crates/leaf_prover/src/consts.rs` (`null` where
+  `disabled_components` panics), the induced `enabled_bits` and the ordered
+  `to_preprocessed_trace().ids()`;
+- `preprocessed_roots`: `get_preprocessed_root(21 | 22 | 23)` of
+  `crates/cairo_verifier/src/verify.rs` as eight `u32` words;
+- `program`: `load_program` of the leaf test program, summarized by the SHA-256
+  of its flattened limbs as LE `u32`, its first and last felt's 28 limbs, and
+  the `claims_to_mix` program hash (Blake2s over the QM31-packed limbs);
+- `synthetic_claim`: a `FlatClaim` with all eleven segments present and the
+  canonical_small enabled bits, with its `serialize_aux_data`, the three
+  `PublicData::pack_into_u32s` vectors, and the channel digest after
+  `FlatClaim::mix_into` from a default channel under `Blake2sM31MerkleChannel`
+  and `Blake2sMerkleChannel`.

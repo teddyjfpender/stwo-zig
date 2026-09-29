@@ -7,7 +7,7 @@
   "oracle": {
     "manifest": "tools/stwo-circuit-oracle-rs/Cargo.toml",
     "toolchain": "nightly-2026-01-15",
-    "source_sha256": "c7113f90ac4b2c6606a96a6c014a23f5d16a104eb80b79273c363346dc723355"
+    "source_sha256": "58b062fb4162643c11188b9ccb1c081d947920122242c26da0b6008255272826"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-29",
@@ -38,6 +38,12 @@
       "upstream_path": "outputs/compiled_circuit_air/sample_evaluations.json",
       "bytes": 43759,
       "sha256": "3a6ccb1f9ebc4fb0e3bf95c8e67b38c1ced5e84981bdbc9f3204eda21b9c7844"
+    },
+    {
+      "path": "vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json",
+      "upstream_path": "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
+      "bytes": 585859,
+      "sha256": "00561f8214e85ae213095327015f269cd7d4a9e53b5ae26954e1a76eb8c56f41"
     },
     {
       "path": "vectors/circuit/official/registries/leaf_prover_canonical_small.json",
@@ -88,6 +94,20 @@
       ],
       "bytes": 382364,
       "sha256": "ff20308779cfe90a1bfafcb5e4df80f36faa5febf9107d9d18e8e62829cdf8f9"
+    },
+    {
+      "path": "vectors/circuit/r6/cairo_statement.json",
+      "rung": "r6",
+      "command": [
+        "stwo-circuit-oracle",
+        "cairo-statement",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r6/cairo_statement.json"
+      ],
+      "bytes": 34509,
+      "sha256": "98c34a3c119fb3558f7a076c65537ecafde3ea3fce370643ba57d6d97e6d6a46"
     }
   ]
 }
