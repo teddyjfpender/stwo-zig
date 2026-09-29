@@ -220,7 +220,7 @@ Tests that read `vectors/circuit` run from the repository root.
   and `ProofInfo.totalBytes` against the 182,884-byte multiverifier
   `proof.bin`.
 - The Cairo leaf host inputs and R10b roots are gated from the Cairo side
-  (`zig build test-cairo-frontend`, `zig build test-circuit-leaf-cairo-roots`).
+  (`zig build test-cairo-frontend`, `zig build test-cairo-leaf-proof`).
 
 ## Contract and invariants
 

@@ -205,14 +205,6 @@ pub fn addProducts(context: Context) void {
         "Run focused backend-neutral Cairo conformance tests",
     ).dependOn(&run_cairo_tests.step);
 
-    const leaf_roots_root = consumer(context, protocol, "src/frontends/cairo/tests/circuit_leaf_preprocessed_roots.zig");
-    leaf_roots_root.addImport("cairo_frontend", cairo_frontend);
-    leaf_roots_root.addImport("stwo_cpu_backend", cpu_backend);
-    context.b.step(
-        "test-circuit-leaf-cairo-roots",
-        "Commit the canonical_small preprocessed trace to the leaf circuit's Cairo roots (R10b)",
-    ).dependOn(&context.b.addRunArtifact(context.b.addTest(.{ .root_module = leaf_roots_root })).step);
-
     const cairo_cpu_air_test_root = consumer(
         context,
         protocol,
@@ -269,7 +261,7 @@ pub fn addProducts(context: Context) void {
     const run_cairo_leaf_proof_tests = context.b.addRunArtifact(cairo_leaf_proof_tests);
     context.b.step(
         "test-cairo-leaf-proof",
-        "R10c: the Cairo leaf lane against the proving@5a7c5ed prove_cairo checkpoint",
+        "R10b/R10c: the Cairo leaf lane against proving@5a7c5ed preprocessed roots and prove_cairo checkpoints",
     ).dependOn(&run_cairo_leaf_proof_tests.step);
 
     const opcode = consumer(context, protocol, "src/tools/riscv_opcode_manifest/main.zig");
