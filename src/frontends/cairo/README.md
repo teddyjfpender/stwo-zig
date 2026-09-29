@@ -88,7 +88,7 @@ re-exports them as `air_layout`, `preprocessed.trace.Variant` and
 circuit-recursion leaf's host inputs (serialized aux data, program limbs,
 output digest, `enabled_bits`) from the lane's existing statement code;
 `vectors/circuit/r6/cairo_statement.json` pins them, and R10b
-(`zig build test-circuit-leaf-cairo-roots`) commits the canonical_small trace
+(`zig build test-cairo-leaf-proof`) commits the canonical_small trace
 to the roots of `vectors/circuit/r6/topology.json`.
 
 ## Build, test, and run

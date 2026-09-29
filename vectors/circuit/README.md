@@ -178,8 +178,8 @@ the leaf circuit: `cairo_preprocessed_roots` commits the canonical_small Cairo
 preprocessed trace at trace log size 20 and log blowups 1, 2 and 3 (lifting log
 sizes 21, 22, 23) under `Blake2sM31MerkleChannel`, each asserted against
 `cairo_verifier::verify::get_preprocessed_root`. The registries' leaves use log
-blowup 1. Rung R10b (`zig build test-circuit-leaf-cairo-roots`) commits the same
-trace through the Cairo lane and compares against these roots.
+blowup 1. Rung R10b (`zig build test-cairo-leaf-proof`) commits the same
+trace through the Cairo leaf lane and compares against these roots.
 
 ## Circuit AIR programs
 
