@@ -5,6 +5,7 @@ const std = @import("std");
 test {
     _ = @import("producer_lookup_lifetime.zig");
     _ = @import("base_trace_arena.zig");
+    _ = @import("circuit_leaf_statement.zig");
     _ = @import("feed_geometry_oracle.zig");
     _ = @import("official_base_checkpoint.zig");
     _ = @import("official_claim.zig");

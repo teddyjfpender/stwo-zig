@@ -205,6 +205,22 @@ pub fn addProducts(context: Context) void {
         "Run focused backend-neutral Cairo conformance tests",
     ).dependOn(&run_cairo_tests.step);
 
+    const leaf_roots_root = consumer(context, protocol, "src/frontends/cairo/tests/circuit_leaf_preprocessed_roots.zig");
+    leaf_roots_root.addImport("cairo_frontend", cairo_frontend);
+    leaf_roots_root.addImport("stwo_cpu_backend", cpu_backend);
+    context.b.step(
+        "test-circuit-leaf-cairo-roots",
+        "Commit the canonical_small preprocessed trace to the leaf circuit's Cairo roots (R10b)",
+    ).dependOn(&context.b.addRunArtifact(context.b.addTest(.{ .root_module = leaf_roots_root })).step);
+
+    // The circuit recursion package (M2) does not exist yet; its Cairo
+    // statement port compiles and tests against stwo_core alone.
+    const cairo_statement_root = consumer(context, protocol, "src/frontends/circuit/statements/cairo_statement.zig");
+    context.b.step(
+        "test-circuit-cairo-statement",
+        "Test the in-circuit Cairo statement port through a recording builder facade",
+    ).dependOn(&context.b.addRunArtifact(context.b.addTest(.{ .root_module = cairo_statement_root })).step);
+
     const cairo_cpu_air_test_root = consumer(
         context,
         protocol,
