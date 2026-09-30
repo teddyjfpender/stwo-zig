@@ -180,6 +180,36 @@ pub fn build(b: *std.Build) void {
         "Rung R11: the Zig circuit verifier and upstream verify_circuit accept three proofs and reject every tampering",
     ).dependOn(&r11_tests.step);
 
+    // Grind throughput on both circuit channels (design §9.1); a benchmark,
+    // not a test. Arguments after `--`: `[seeds] [bits...]`.
+    const grind_bench_root = b.createModule(.{
+        .root_source_file = b.path("tests/grind_bench.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    grind_bench_root.addImport("stwo_core", core);
+    grind_bench_root.addImport("stwo_prover_engine", prover);
+    grind_bench_root.addImport("stwo_cpu_backend", cpu_backend);
+    const grind_bench = b.addRunArtifact(b.addExecutable(.{ .name = "circuit-grind-bench", .root_module = grind_bench_root }));
+    if (b.args) |args| grind_bench.addArgs(args);
+    b.step("bench-grind", "Benchmark the interaction and FRI proof-of-work grinds on both circuit channels").dependOn(&grind_bench.step);
+
+    // The R9 tree's wall time and stage profile (design §9.2 item 6); a
+    // benchmark, not a test. Arguments after `--`: `[n_leaves] [repeats]`.
+    const fold_bench_root = b.createModule(.{
+        .root_source_file = b.path("tests/fold_bench.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    fold_bench_root.addImport("stwo_prover_engine", prover);
+    fold_bench_root.addImport("stwo_circuit_frontend", circuit);
+    fold_bench_root.addImport("stwo_circuit_cpu_integration", integration);
+    fold_bench_root.addImport("stwo_circuit_recursion_wire", wire);
+    const fold_bench = b.addRunArtifact(b.addExecutable(.{ .name = "circuit-fold-bench", .root_module = fold_bench_root }));
+    fold_bench.setCwd(repository_root);
+    if (b.args) |args| fold_bench.addArgs(args);
+    b.step("bench-fold", "Benchmark the R9 recursive tree (stage profile, CPU utilisation), checked against upstream").dependOn(&fold_bench.step);
+
     const r7_step = b.step(
         "circuit-parity-r7",
         "Rung R7: the prover_test.rs circuits proved byte for byte against the oracle's prove-small",
