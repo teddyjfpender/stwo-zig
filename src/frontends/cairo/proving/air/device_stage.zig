@@ -165,8 +165,10 @@ fn evaluateStage(
         composition_log_degree_bound,
         total_constraints,
     );
-    var accumulator_owned = true;
-    defer if (accumulator_owned) accumulator.deinit();
+    // `finalize` moves out the one bucket it returns (or builds a fresh
+    // column); the accumulator still owns its coefficient powers, bucket
+    // table and every other bucket, so it is released on every path.
+    defer accumulator.deinit();
 
     const pool = prover.work_pool.getGlobalPool();
     for (self.components, self.captured, self.session.accepts) |*runtime, *captured, accepted| {
@@ -215,7 +217,6 @@ fn evaluateStage(
         }
     }
 
-    accumulator_owned = false;
     return try accumulator.finalize();
 }
 
