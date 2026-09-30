@@ -35,8 +35,8 @@ const goldens_dir = "vectors/circuit/official/recursive_tree/four_leaves";
 const checkpoint_path = "vectors/circuit/r9/fold_tree.json";
 const projection_path = "vectors/circuit/official/compiled_air_constraints_v1.bin";
 
-/// The product's fold options (`cli.default_compact_min_log`).
-const fold_options: circuit_cpu.prove.Options = .{ .compact_polynomial_min_log = 18 };
+/// The product's fold options.
+const fold_options = recursion.fold.default_options;
 
 /// The tree's shared inputs: registry, evaluators, AIR bundle, canonical
 /// circuit and the golden leaf.

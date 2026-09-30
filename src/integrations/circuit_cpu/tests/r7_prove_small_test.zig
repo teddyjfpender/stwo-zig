@@ -61,6 +61,9 @@ const Observer = struct {
     alpha: QM31 = undefined,
     trees: [3]std.ArrayListUnmanaged(checkpoint.Component) = .{ .empty, .empty, .empty },
     accumulators: [3]checkpoint.Digest = undefined,
+    /// Compact storage drops the committed evaluations before `onTraces`;
+    /// the proof bytes still bind them (roots and decommitted values).
+    digest_traces: bool = true,
     timer: ?*std.time.Timer = null,
     last_step_ns: u64 = 0,
     interaction_grind_ns: u64 = 0,
@@ -93,6 +96,7 @@ const Observer = struct {
         base: []const prover.pcs.ColumnEvaluation,
         interaction: []const prover.pcs.ColumnEvaluation,
     ) !void {
+        if (!self.digest_traces) return;
         const one = [_]usize{pp.len};
         self.accumulators[0] = try self.digestTree(0, preprocessed_domains, pp, &.{"preprocessed"}, &one);
         var base_widths: [component_list.N_COMPONENTS]usize = undefined;
@@ -216,15 +220,22 @@ fn expectedProof(lane: Lane, which: TestContext, parsed: Json) !Json {
 }
 
 fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
-    return proveAndCompareLanes(&.{lane}, which, false);
+    return proveAndCompareLanes(&.{lane}, which, null);
 }
+
+/// The storage of a cached run: the shared tree's, and every proof's.
+/// Neither changes a byte.
+const Cached = struct {
+    commitment: circuit_cpu.prove.Options = .{},
+    proofs: circuit_cpu.prove.Options = .{},
+};
 
 /// Proves `which` on each of `lanes` (which share a PCS config) and compares
 /// every proof with its fixture. `cached` commits the preprocessed tree and
 /// builds the twiddle tower once, then every proof leases them
 /// (`prove.Options.preprocessed_commitment`, `twiddle_tower`), as a fold
 /// tree's reductions do.
-fn proveAndCompareLanes(comptime lanes: []const Lane, comptime which: TestContext, comptime cached: bool) !void {
+fn proveAndCompareLanes(comptime lanes: []const Lane, comptime which: TestContext, comptime cached: ?Cached) !void {
     const allocator = std.testing.allocator;
     var ctx = try contexts.build(QM31, allocator, which);
     defer ctx.deinit();
@@ -237,18 +248,22 @@ fn proveAndCompareLanes(comptime lanes: []const Lane, comptime which: TestContex
         .small => circuit_cpu.prove.defaultPcsConfig(pp.traceLogSize()),
         .internal, .root => PcsConfigV2.fromFriAndTraceSize(try FriConfigV2.init(26, 0, 1, 70, 4), pp.traceLogSize()),
     };
-    var tower: ?circuit_cpu.prove.TwiddleTower = if (cached) try circuit_cpu.prove.twiddleTower(allocator, pcs_config) else null;
+    var tower: ?circuit_cpu.prove.TwiddleTower = if (cached != null) try circuit_cpu.prove.twiddleTower(allocator, pcs_config) else null;
     defer if (tower) |*t| t.deinit(allocator);
-    var commitment: ?circuit_cpu.prove.PreprocessedCommitment = if (cached)
-        try circuit_cpu.prove.PreprocessedCommitment.build(allocator, &pp, pcs_config, .{ .twiddle_tower = &tower.? })
-    else
-        null;
+    var commitment: ?circuit_cpu.prove.PreprocessedCommitment = if (cached) |storage| blk: {
+        var commit_options = storage.commitment;
+        commit_options.twiddle_tower = &tower.?;
+        break :blk try circuit_cpu.prove.PreprocessedCommitment.build(allocator, &pp, pcs_config, commit_options);
+    } else null;
     defer if (commitment) |*c| c.deinit(allocator);
-    const options: circuit_cpu.prove.Options = .{
-        .preprocessed_commitment = if (commitment) |*c| c else null,
-        .twiddle_tower = if (tower) |*t| t else null,
-    };
-    inline for (lanes) |lane| try proveLaneAndCompare(lane, which, &ctx, &pp, pcs_config, options);
+    var options: circuit_cpu.prove.Options = if (cached) |storage| storage.proofs else .{};
+    options.preprocessed_commitment = if (commitment) |*c| c else null;
+    options.twiddle_tower = if (tower) |*t| t else null;
+    const compact = if (cached) |storage|
+        storage.commitment.compact_polynomial_min_log != null or storage.proofs.compact_polynomial_min_log != null
+    else
+        false;
+    inline for (lanes) |lane| try proveLaneAndCompare(lane, which, &ctx, &pp, pcs_config, options, !compact);
 }
 
 fn proveLaneAndCompare(
@@ -258,6 +273,7 @@ fn proveLaneAndCompare(
     pp: *const preprocessed.PreprocessedCircuit,
     pcs_config: PcsConfigV2,
     options: circuit_cpu.prove.Options,
+    digest_traces: bool,
 ) !void {
     const allocator = std.testing.allocator;
     const bytes = try std.fs.cwd().readFileAlloc(allocator, if (lane == .small) fixture_path else profiles_path, 16 << 20);
@@ -278,7 +294,7 @@ fn proveLaneAndCompare(
 
     var bundle = try loadBundle(allocator);
     defer bundle.deinit();
-    var observer = Observer{ .allocator = allocator };
+    var observer = Observer{ .allocator = allocator, .digest_traces = digest_traces };
     defer observer.deinit();
     // `STWO_CIRCUIT_STAGE_PROFILE=1` reports the interaction grind (the
     // step before the lookup draw) and the FRI grind (`proof_of_work`).
@@ -347,9 +363,11 @@ fn proveLaneAndCompare(
     for (last_layer, stark.fri_proof.last_layer_poly.coeffs) |want, got| try expectQm31(want, got);
     try expectU64(field(expected, "fri_pow_nonce"), stark.proof_of_work);
     // Committed trees.
-    try expectTree(field(expected, "preprocessed_columns"), field(expected, "preprocessed_accumulator_sha256"), observer.trees[0].items, observer.accumulators[0]);
-    try expectTree(field(expected, "base_columns"), field(expected, "base_accumulator_sha256"), observer.trees[1].items, observer.accumulators[1]);
-    try expectTree(field(expected, "interaction_columns"), field(expected, "interaction_accumulator_sha256"), observer.trees[2].items, observer.accumulators[2]);
+    if (digest_traces) {
+        try expectTree(field(expected, "preprocessed_columns"), field(expected, "preprocessed_accumulator_sha256"), observer.trees[0].items, observer.accumulators[0]);
+        try expectTree(field(expected, "base_columns"), field(expected, "base_accumulator_sha256"), observer.trees[1].items, observer.accumulators[1]);
+        try expectTree(field(expected, "interaction_columns"), field(expected, "interaction_accumulator_sha256"), observer.trees[2].items, observer.accumulators[2]);
+    }
 
     // CircuitSerialize bytes, for circuits whose outputs are a digest.
     if (expected.object.get("circuit_serialize")) |serialized| {
@@ -412,10 +430,34 @@ test "R7 profiles: root blake_g_gate under the 26-bit circuit FRI config" {
     try proveAndCompare(.root, .blake_g_gate);
 }
 
-test "R7 cached: one committed preprocessed tree serves fibonacci proofs" {
-    try proveAndCompareLanes(&.{ .small, .small }, .fibonacci, true);
+test "R7 cached: one compact preprocessed tree serves compact fibonacci proofs" {
+    const compact: circuit_cpu.prove.Options = .{ .compact_polynomial_min_log = 4 };
+    try proveAndCompareLanes(&.{ .small, .small }, .fibonacci, .{ .commitment = compact, .proofs = compact });
 }
 
-test "R7 cached: one committed preprocessed tree serves the internal and root profiles" {
-    try proveAndCompareLanes(&.{ .internal, .root }, .blake_g_gate, true);
+test "R7 cached: one evaluations-only tree serves the internal and root profiles, as folds do" {
+    const evaluations: circuit_cpu.prove.Options = .{ .evaluations_only = true };
+    try proveAndCompareLanes(&.{ .internal, .root }, .blake_g_gate, .{ .commitment = evaluations, .proofs = evaluations });
+}
+
+test "R7 cached: compacting proofs never compact an evaluations-only lease" {
+    try proveAndCompareLanes(&.{ .small, .small }, .blake_g_gate, .{
+        .commitment = .{ .evaluations_only = true },
+        .proofs = .{ .compact_polynomial_min_log = 4 },
+    });
+}
+
+test "R7: evaluations-only storage and compact storage are exclusive" {
+    const allocator = std.testing.allocator;
+    var ctx = try contexts.build(QM31, allocator, .fibonacci);
+    defer ctx.deinit();
+    try ctx.finalize(false);
+    var pp = try preprocessed.PreprocessedCircuit.preprocessContext(QM31, allocator, &ctx);
+    defer pp.deinit(allocator);
+    try std.testing.expectError(error.ConflictingStorageOptions, circuit_cpu.prove.PreprocessedCommitment.build(
+        allocator,
+        &pp,
+        circuit_cpu.prove.defaultPcsConfig(pp.traceLogSize()),
+        .{ .evaluations_only = true, .compact_polynomial_min_log = 4 },
+    ));
 }

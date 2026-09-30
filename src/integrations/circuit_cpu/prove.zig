@@ -70,11 +70,19 @@ pub const Options = struct {
     /// polynomial coefficients, for columns of at least this log size
     /// (`CommitmentSchemeProver.setCompactPolynomialStorage`).
     compact_polynomial_min_log: ?u32 = null,
+    /// Keep each tree's committed (blown-up) evaluations only, without the
+    /// second, coefficient-form copy (`CoefficientRetentionPolicy.never`):
+    /// sampled values are evaluated from the evaluations, and composition,
+    /// quotients and decommitment read the committed columns instead of
+    /// re-extending coefficients. Excludes compact storage, which keeps the
+    /// coefficients instead.
+    evaluations_only: bool = false,
     /// The preprocessed tree of this proof's topology, already committed
     /// (design §9.2 item 1): step 3 appends a lease on it instead of
     /// interpolating, extending and hashing the preprocessed columns again.
     /// It must be `PreprocessedCommitment.build` of the same preprocessed
-    /// circuit under the same `pcs_config` and compaction.
+    /// circuit under the same `pcs_config`; its storage policy is its own
+    /// (a proof never compacts a lease).
     preprocessed_commitment: ?*const PreprocessedCommitment = null,
     /// Canonical twiddles shared by consecutive proofs (`twiddleTower`);
     /// null precomputes them per proof.
@@ -107,7 +115,6 @@ fn twiddleTowerLog(pcs_config: PcsConfigV2) u32 {
 pub const PreprocessedCommitment = struct {
     tree: Tree,
     pcs_config: PcsConfigV2,
-    compact_polynomial_min_log: ?u32,
     /// `(log_size)` of each column, in layout order.
     log_sizes: [preprocessed.N_PREPROCESSED_COLUMNS]u32,
 
@@ -117,7 +124,8 @@ pub const PreprocessedCommitment = struct {
     }
 
     /// Commits `pp`'s columns as tree 0 of a `pcs_config` proof, exactly as
-    /// step 3 of `prove` does, and keeps the tree.
+    /// step 3 of `prove` does, and keeps the tree, stored as `options` says
+    /// (compact, evaluations only, or both); every lease shares that storage.
     pub fn build(
         allocator: std.mem.Allocator,
         pp: *const preprocessed.PreprocessedCircuit,
@@ -137,7 +145,6 @@ pub const PreprocessedCommitment = struct {
         return .{
             .tree = scheme.trees.pop().?,
             .pcs_config = pcs_config,
-            .compact_polynomial_min_log = options.compact_polynomial_min_log,
             .log_sizes = log_sizes,
         };
     }
@@ -163,13 +170,13 @@ pub const PreprocessedCommitment = struct {
         return bytes;
     }
 
-    /// Whether a proof of `pp` under `pcs_config` and `options` may use this
-    /// commitment. The caller vouches that `pp` is the circuit it was built
-    /// from (a topology-cache hit); the shape and every commitment parameter
-    /// are checked here.
-    fn check(self: *const PreprocessedCommitment, pp: *const preprocessed.PreprocessedCircuit, pcs_config: PcsConfigV2, options: Options) !void {
-        if (!std.meta.eql(self.pcs_config, pcs_config) or
-            !std.meta.eql(self.compact_polynomial_min_log, options.compact_polynomial_min_log))
+    /// Whether a proof of `pp` under `pcs_config` may use this commitment.
+    /// The caller vouches that `pp` is the circuit it was built from (a
+    /// topology-cache hit); the shape and every commitment parameter are
+    /// checked here. The storage policy is the commitment's own: a proof
+    /// never compacts a lease, and residency never changes the bytes.
+    fn check(self: *const PreprocessedCommitment, pp: *const preprocessed.PreprocessedCircuit, pcs_config: PcsConfigV2) !void {
+        if (!std.meta.eql(self.pcs_config, pcs_config))
             return error.PreprocessedCommitmentMismatch;
         for (pp.columns, self.log_sizes) |column, log_size|
             if (column.logSize() != log_size) return error.PreprocessedCommitmentMismatch;
@@ -181,8 +188,14 @@ fn initScheme(comptime Engine: type, allocator: std.mem.Allocator, pcs_config: P
         try Engine.initRevisionWithTwiddleTower(pcs_config, tower)
     else
         try Engine.initRevision(allocator, pcs_config);
+    errdefer Engine.deinit(&scheme, allocator);
     scheme.setStorePolynomialsCoefficients();
-    if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
+    if (options.compact_polynomial_min_log) |min_log| {
+        if (options.evaluations_only) return error.ConflictingStorageOptions;
+        scheme.setCompactPolynomialStorage(min_log);
+    } else if (options.evaluations_only) {
+        scheme.setCoefficientRetentionPolicy(.never);
+    }
     return scheme;
 }
 
@@ -263,7 +276,7 @@ pub fn Prover(comptime MC: type) type {
             // Preprocessed tree: a lease on the topology's commitment, or
             // committed here.
             if (options.preprocessed_commitment) |cached| {
-                try cached.check(pp, pcs_config, options);
+                try cached.check(pp, pcs_config);
                 var lease = cached.tree.retainShared();
                 errdefer lease.deinit(allocator);
                 try scheme.appendCommittedTree(allocator, lease, &channel);

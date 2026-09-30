@@ -320,7 +320,8 @@ pub fn foldTree(gpa: std.mem.Allocator, registry: wire.registry.CircuitRegistry,
     defer bundle.deinit();
     // The canonical circuit with its committed preprocessed tree, by fold
     // topology; every reduction of the tree leases that one commitment.
-    const options: circuit_cpu.prove.Options = .{ .compact_polynomial_min_log = cli.default_compact_min_log };
+    // Every reduction stores its trees as `fold.default_options` says.
+    const options = recursion.fold.default_options;
     var topologies = recursion.canonical.Cache.init(gpa, .{});
     defer topologies.deinit();
     const canonical = try recursion.canonical.acquire(gpa, &topologies, &circuit_table, registry, options);

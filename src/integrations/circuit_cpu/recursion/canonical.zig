@@ -103,7 +103,7 @@ pub const CanonicalCircuit = struct {
     /// Commits the preprocessed tree once, as every fold under `options`
     /// would, and keeps it with the twiddle tower it was extended with. The
     /// root must equal the identity's, which `build` checked against the
-    /// registry.
+    /// registry. The tree is stored as `options` says, for every fold.
     pub fn commitPreprocessed(self: *CanonicalCircuit, gpa: std.mem.Allocator, options: prove.Options) !void {
         if (self.commitment != null) return error.AlreadyCommitted;
         const pcs_config = self.shared.pcs_config;

@@ -54,6 +54,15 @@ pub const Error = error{
     RootProofFolded,
 };
 
+/// The folds' storage (design §9.3): every tree, the shared preprocessed
+/// tree included, keeps only its committed evaluations. Under the circuit
+/// FRI config's blowup 1 those are the composition and quotient domain, so
+/// no stage re-extends a column from coefficients; compact storage (large
+/// columns as coefficients) would re-extend each one for composition,
+/// quotients and decommitment, about a quarter of a reduction, for about
+/// the same peak. Never changes the bytes.
+pub const default_options: prove.Options = .{ .evaluations_only = true };
+
 /// Everything a reduction reads: built once per tree.
 pub const Fold = struct {
     canonical: *const CanonicalCircuit,
