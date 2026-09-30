@@ -137,6 +137,9 @@ pub const LeafWrapRequest = struct {
     assets: []const u8 = ".",
     /// Execution choices of the circuit prover; never change bytes.
     options: circuit_cpu.prove.Options = .{},
+    /// The backend that proves the wrap (the CPU here; `circuit_metal`'s
+    /// device rungs inject theirs); never changes bytes.
+    provers: *const circuit_cpu.prove.Provers = &circuit_cpu.prove.cpu_provers,
 };
 
 /// Wall time of each stage, in nanoseconds.
@@ -218,6 +221,7 @@ pub fn leafWrap(allocator: std.mem.Allocator, request: LeafWrapRequest, timings:
         .program = program,
         .cache = &cache,
         .options = request.options,
+        .provers = request.provers,
     };
     const leaf = try leaf_wrap.wrapCairoProof(allocator, &wrap, &cairo_proof, &input);
     timings.wrap_ns = timer.lap();
@@ -315,6 +319,26 @@ pub fn foldTreeProfiled(
     leaves: []const wire.leaf_proof_json.LeafInput,
     recorder: ?*prover.stage_profile.Recorder,
 ) !RootFiles {
+    return foldTreeWithProfiled(gpa, registry, leaves, &circuit_cpu.prove.cpu_provers, recorder);
+}
+
+/// `foldTree` with every reduction proved by `provers` (bytes unchanged).
+pub fn foldTreeWith(
+    gpa: std.mem.Allocator,
+    registry: wire.registry.CircuitRegistry,
+    leaves: []const wire.leaf_proof_json.LeafInput,
+    provers: *const circuit_cpu.prove.Provers,
+) !RootFiles {
+    return foldTreeWithProfiled(gpa, registry, leaves, provers, null);
+}
+
+pub fn foldTreeWithProfiled(
+    gpa: std.mem.Allocator,
+    registry: wire.registry.CircuitRegistry,
+    leaves: []const wire.leaf_proof_json.LeafInput,
+    provers: *const circuit_cpu.prove.Provers,
+    recorder: ?*prover.stage_profile.Recorder,
+) !RootFiles {
     if (leaves.len == 0) return error.EmptyLeaves;
     // A proof-scoped worker pool (`STWO_ZIG_WORKERS` sizes it), as R9 folds.
     var pool: prover.work_pool.WorkPool = undefined;
@@ -349,6 +373,7 @@ pub fn foldTreeProfiled(
         .table = &circuit_table,
         .bundle = &bundle,
         .options = options,
+        .provers = provers,
         .packed_allocator = packed_arena.allocator(),
     };
     var folded = try recursion.tree.foldLeaves(gpa, &fold, leaves);

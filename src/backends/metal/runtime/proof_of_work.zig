@@ -56,9 +56,29 @@ pub const Result = struct {
 };
 
 /// Canonical Stwo BLAKE2s nonce (`SimdBackend` lattice order, see
-/// `core/channel/blake2s_pow_order.zig`). Stwo defines it only up to 32 bits.
+/// `core/channel/blake2s_pow_order.zig`) for the plain `Blake2sChannel`.
+/// Stwo defines it only up to 32 bits.
 pub fn grindBlake2sProofOfWork(
     self: *Runtime,
+    prefix_words: *const [8]u32,
+    pow_bits: u32,
+) MetalError!Result {
+    return grindBlake2sLattice(self, false, prefix_words, pow_bits);
+}
+
+/// The same search for `Blake2sM31Channel`, whose hash output words are
+/// reduced mod P before the zeros are counted.
+pub fn grindBlake2sM31ProofOfWork(
+    self: *Runtime,
+    prefix_words: *const [8]u32,
+    pow_bits: u32,
+) MetalError!Result {
+    return grindBlake2sLattice(self, true, prefix_words, pow_bits);
+}
+
+fn grindBlake2sLattice(
+    self: *Runtime,
+    m31_output: bool,
     prefix_words: *const [8]u32,
     pow_bits: u32,
 ) MetalError!Result {
@@ -72,6 +92,7 @@ pub fn grindBlake2sProofOfWork(
     var message: [1024]u8 = [_]u8{0} ** 1024;
     if (!ffi.stwo_zig_metal_blake2s_pow_search(
         self.handle,
+        m31_output,
         prefix_words,
         &round_zero_columns,
         pow_bits,

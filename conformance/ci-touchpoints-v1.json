@@ -227,6 +227,21 @@
         ]
       ]
     },
+    "circuit_metal_integration": {
+      "host": "macos",
+      "description": "Circuit prover on the Metal backend (M12: device R7 byte-equal to the CPU oracle, both channel profiles, M31 and plain BLAKE2s grinds)",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/circuit_metal/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
+      ]
+    },
     "cairo_frontend": {
       "host": "linux",
       "description": "Independent official Cairo frontend package",
@@ -1135,6 +1150,7 @@
       "lanes": [
         "circuit_frontend",
         "circuit_cpu_integration",
+        "circuit_metal_integration",
         "circuit_recursion_cpu"
       ]
     },

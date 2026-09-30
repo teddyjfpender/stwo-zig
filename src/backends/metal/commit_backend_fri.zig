@@ -84,7 +84,11 @@ pub fn Ops(comptime Backend: type) type {
             ledger: ?*work_profile.FriFoldExecutionLedger,
         ) !void {
             const M31 = @import("stwo_core").fields.m31.M31;
-            const use_resident_inverse = dst.len >= 1 << 13;
+            // Small folds prepare inverses on the host (lower latency); a
+            // strict device run generates them on the device instead. The
+            // inverses are exact field values either way.
+            const use_resident_inverse = dst.len >= 1 << 13 or
+                (try @import("execution_policy.zig").requested()) == .require_gpu;
             const check_parity = fold_parity.enabled();
             var inverse_words: ?[]const u32 = null;
             var parity_inverses: ?[]const M31 = null;
@@ -303,7 +307,12 @@ pub fn Ops(comptime Backend: type) type {
 
             const final_count = evaluation.len() >> @intCast(n_folds);
             const source_storage = evaluation.resident_storage;
-            if (source_storage == null or domain == null or
+            // The fused fold-and-commit epoch consumes host-prepared line
+            // inverses. A strict device run takes the unfused route instead:
+            // resident folds that generate their inverses on the device, then
+            // the Merkle commit. Same folded values, same tree.
+            const strict_device = (try @import("execution_policy.zig").requested()) == .require_gpu;
+            if (source_storage == null or domain == null or strict_device or
                 !commit_policy.friFoldCommitUsesResidentMerkle(final_count, n_folds))
             {
                 const folded = try foldLineEvaluationNInternal(

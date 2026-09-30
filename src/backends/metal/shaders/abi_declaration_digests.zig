@@ -11,7 +11,7 @@ pub const Entry = struct {
     declaration_sha256: [64]u8,
 };
 
-pub const entries = [234]Entry{
+pub const entries = [235]Entry{
     .{ .name = "stwo_zig_quadratic_recurrence_trace", .declaration_sha256 = "fef54ebe3cc8bd739b88f4b5e47f72b6b8fdaf4280fe30c2ebc1a23232d3e8fd".* },
     .{ .name = "stwo_zig_transcript_init_resident", .declaration_sha256 = "3dbf9258e59e0e50e2195a05d064634eb2629a396673fbbcddd86032b41a01c6".* },
     .{ .name = "stwo_zig_transcript_mix_resident", .declaration_sha256 = "3d408530955a5daf06252b1a220b2553b275e56a4e831285247c889d7342c41c".* },
@@ -21,6 +21,7 @@ pub const entries = [234]Entry{
     .{ .name = "stwo_zig_blake2s_leaves", .declaration_sha256 = "b342a6b6912f06de3babd17beeb130ef7728b63f69f8b8197085fb1230b45ee2".* },
     .{ .name = "stwo_zig_blake2s_leaves_wide", .declaration_sha256 = "a7bcc88ff173dbf7b4b9c45794bca5d4cc131e3c5a44f1395195726b4232b873".* },
     .{ .name = "stwo_zig_blake2s_pow_search", .declaration_sha256 = "8aa59310edbd4e9b1b4b0fbe8f90bfe8b0cccd1b1bedd26390854a462d25506a".* },
+    .{ .name = "stwo_zig_blake2s_m31_pow_search", .declaration_sha256 = "bb526ed7cafa5fd7226499a2481366d7773758994b1bff11931ea617777acffd".* },
     .{ .name = "stwo_zig_blake3_pow_search", .declaration_sha256 = "98d273306ff71f6c35df18cc953579313cb0782a285da4f972c3fd86254e3ace".* },
     .{ .name = "stwo_zig_blake3_parent_tail_sparse", .declaration_sha256 = "0738eb352d8796fb3700becaa2feb22de8dcdcff5400d5e0b2abbd4f5a4ae1d3".* },
     .{ .name = "stwo_zig_blake3_parents_sparse", .declaration_sha256 = "3d8210e2e9d8d2c444cfa51fc22844232f81e227655e71c26b71b16f493317cc".* },

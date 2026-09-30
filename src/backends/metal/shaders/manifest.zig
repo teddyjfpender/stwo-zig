@@ -54,6 +54,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_blake2s_leaves", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaves_wide", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_pow_search", .owner = .commitments },
+    .{ .name = "stwo_zig_blake2s_m31_pow_search", .owner = .commitments },
     .{ .name = "stwo_zig_blake3_pow_search", .owner = .commitments },
     .{ .name = "stwo_zig_blake3_parent_tail_sparse", .owner = .transcript },
     .{ .name = "stwo_zig_blake3_parents_sparse", .owner = .commitments },

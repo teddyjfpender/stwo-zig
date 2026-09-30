@@ -1,0 +1,17 @@
+.{
+    .fingerprint = 0x42380cadbb3c4b7f,
+    .name = .stwo_circuit_metal_integration,
+    .version = "0.1.0",
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_prover_api = .{ .path = "../../prover_api" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
+        .stwo_metal_backend = .{ .path = "../../backends/metal" },
+        .stwo_circuit_frontend = .{ .path = "../../frontends/circuit" },
+        .stwo_cairo_frontend = .{ .path = "../../frontends/cairo" },
+        .stwo_circuit_cpu_integration = .{ .path = "../circuit_cpu" },
+        .stwo_cairo_metal_integration = .{ .path = "../cairo_metal" },
+        .stwo_cairo_cpu_integration = .{ .path = "../cairo_cpu" },
+    },
+}

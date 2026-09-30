@@ -13,6 +13,7 @@ const stwo_core = @import("stwo_core");
 const work_pool_mod = @import("../work_pool.zig");
 
 const Blake2sChannel = stwo_core.channel.blake2s.Blake2sChannel;
+const Blake2sM31Channel = stwo_core.channel.blake2s.Blake2sM31Channel;
 const Blake2sHasher = stwo_core.crypto.blake2s_backend.Blake2sHasher;
 const pow_order = stwo_core.channel.blake2s.pow_order;
 
@@ -65,6 +66,17 @@ pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) 
             try grindOnHost(Backend, channel, pow_bits);
         // Minimality cannot be rechecked cheaply, but a nonce outside the
         // canonical lattice proves the backend searched the wrong order.
+        if (pow_order.indexFromNonce(nonce) == null or !channel.verifyPowNonce(pow_bits, nonce))
+            return error.InvalidBackendProofOfWorkNonce;
+        return nonce;
+    }
+    if (comptime @TypeOf(channel.*) == Blake2sM31Channel and
+        Backend != void and @hasDecl(Backend, "grindBlake2sM31ProofOfWork"))
+    {
+        // Same lattice as the plain channel; the device reduces the first
+        // output word mod P before counting zeros (`Blake2sM31Channel`).
+        if (pow_bits > pow_order.MAX_POW_BITS) return error.UnsupportedProofOfWorkBits;
+        const nonce = try Backend.grindBlake2sM31ProofOfWork(channel.computePowPrefix(pow_bits), pow_bits);
         if (pow_order.indexFromNonce(nonce) == null or !channel.verifyPowNonce(pow_bits, nonce))
             return error.InvalidBackendProofOfWorkNonce;
         return nonce;

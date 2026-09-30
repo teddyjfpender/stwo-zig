@@ -211,6 +211,16 @@ fn addAppTest(context: Context, app: *std.Build.Module, root_source_file: []cons
     });
     root.addImport("app", app);
     root.addImport("stwo_prover_engine", context.protocol.prover);
+    // The R8/R8b rungs prove with the CPU scalar oracle here; `circuit_metal`
+    // builds the same tests with its device provers.
+    const cpu_provers = context.b.createModule(.{
+        .root_source_file = context.b.path("src/integrations/circuit_cpu/tests/cpu_provers.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    cpu_provers.addImport("stwo_circuit_cpu_integration", app.import_table.get("stwo_circuit_cpu_integration") orelse
+        @panic("circuit recursion app is missing stwo_circuit_cpu_integration"));
+    root.addImport("circuit_provers_under_test", cpu_provers);
     const run = context.b.addRunArtifact(context.b.addTest(.{ .root_module = root }));
     run.setCwd(context.b.path("."));
     return &run.step;

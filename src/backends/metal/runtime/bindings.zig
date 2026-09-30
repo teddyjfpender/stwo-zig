@@ -116,6 +116,7 @@ pub extern fn stwo_zig_metal_runtime_identity(
 ) usize;
 pub extern fn stwo_zig_metal_blake2s_pow_search(
     runtime: *anyopaque,
+    m31_output: bool,
     prefix_words: *const [8]u32,
     round_zero_columns: *const [16]u32,
     pow_bits: u32,

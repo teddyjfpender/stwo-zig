@@ -340,6 +340,7 @@ pub const Runtime = struct {
     pub const transformCircleLdeAndCommitPreparedForHash = combined_commit_ops.transformCircleLdeAndCommitPreparedForHash;
     pub const grindBlake3ProofOfWork = proof_of_work_ops.grindBlake3ProofOfWork;
     pub const grindBlake2sProofOfWork = proof_of_work_ops.grindBlake2sProofOfWork;
+    pub const grindBlake2sM31ProofOfWork = proof_of_work_ops.grindBlake2sM31ProofOfWork;
     pub const grindPoseidon2ChannelProofOfWork = proof_of_work_ops.grindPoseidon2ChannelProofOfWork;
 };
 

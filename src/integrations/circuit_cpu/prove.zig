@@ -96,7 +96,11 @@ pub const Options = struct {
     /// Canonical twiddles shared by consecutive proofs (`twiddleTower`);
     /// null precomputes them per proof.
     twiddle_tower: ?*const TwiddleTower = null,
+    /// Optional whole-stage device evaluator for the captured circuit AIR.
+    composition_device: ?DeviceStage.Device = null,
 };
+
+const DeviceStage = cairo.proving.air.device_stage;
 
 pub const ReleaseValues = struct {
     context: *anyopaque,
@@ -223,41 +227,60 @@ pub fn defaultPcsConfig(trace_log_size: u32) PcsConfigV2 {
     return PcsConfigV2.fromFriAndTraceSize(fri, trace_log_size);
 }
 
+/// `CircuitProof<MC::H>`: its stark proof depends only on the Merkle
+/// hasher, so the CPU and device provers of a profile share this type.
+pub fn CircuitProofOf(comptime MC: type) type {
+    const Hash = MC.MerkleHasher.Hash;
+    return struct {
+        allocator: std.mem.Allocator,
+        pcs_config: PcsConfigV2,
+        /// `CircuitClaim::output_values`.
+        output_values: []QM31,
+        interaction_pow_nonce: u64,
+        /// `CircuitInteractionClaim::claimed_sums`.
+        claimed_sums: PerComponent(QM31),
+        stark_proof: core.proof.ExtendedStarkProof(MC.MerkleHasher),
+        channel_salt: u32,
+        circuit_hash: Hash,
+        /// Not a proof field: the committed log sizes the circuit hash
+        /// binds, for callers that re-derive it.
+        component_log_sizes: PerComponent(u32),
+
+        pub fn deinit(self: *@This()) void {
+            self.stark_proof.deinit(self.allocator);
+            self.allocator.free(self.output_values);
+            self.* = undefined;
+        }
+    };
+}
+
 pub fn Prover(comptime MC: type) type {
+    return ProverOn(CpuBackend, MC);
+}
+
+/// The circuit prover on the PCS backend `B` (design §4.6): the CPU backend
+/// is the parity oracle; a device backend (`circuit_metal`) reuses this
+/// transcript unchanged, so the two can differ only in where the work runs.
+/// A backend may supply the §4.7 interaction grind
+/// (`prover.pcs.proof_of_work.grindForBackend`); the CPU grinds on the
+/// channel, which walks the same `(hi, lo < 2^20)` order.
+pub fn ProverOn(comptime B: type, comptime MC: type) type {
     comptime std.debug.assert(MC.protocol_revision == .proving_5a7c5ed);
     return struct {
+        pub const Backend = B;
         pub const MerkleChannel = MC;
         pub const Channel = MC.Channel;
         pub const Hasher = MC.MerkleHasher;
-        pub const Engine = prover.engine.ProverEngine(CpuBackend, Hasher, MC, Channel);
+        pub const Engine = prover.engine.ProverEngine(B, Hasher, MC, Channel);
         pub const Hash = Hasher.Hash;
 
         comptime {
             @import("stwo_prover_api").assertProverEngine(Engine);
         }
 
-        /// `CircuitProof<MC::H>`.
-        pub const CircuitProof = struct {
-            allocator: std.mem.Allocator,
-            pcs_config: PcsConfigV2,
-            /// `CircuitClaim::output_values`.
-            output_values: []QM31,
-            interaction_pow_nonce: u64,
-            /// `CircuitInteractionClaim::claimed_sums`.
-            claimed_sums: PerComponent(QM31),
-            stark_proof: Engine.ExtendedProof,
-            channel_salt: u32,
-            circuit_hash: Hash,
-            /// Not a proof field: the committed log sizes the circuit hash
-            /// binds, for callers that re-derive it.
-            component_log_sizes: PerComponent(u32),
-
-            pub fn deinit(self: *CircuitProof) void {
-                self.stark_proof.deinit(self.allocator);
-                self.allocator.free(self.output_values);
-                self.* = undefined;
-            }
-        };
+        /// `CircuitProof<MC::H>`; one type per channel profile, whichever
+        /// backend proved it.
+        pub const CircuitProof = CircuitProofOf(MC);
 
         /// `prove_circuit_assignment_with_channel`. `values` is the finalized
         /// context's value table, `pp` its preprocessed circuit and
@@ -292,16 +315,23 @@ pub fn Prover(comptime MC: type) type {
             {
                 var stage = try StageScope.begin(recorder, "circuit_commit_preprocessed", "commit preprocessed tree");
                 defer stage.end();
-                if (options.preprocessed_commitment) |cached| {
-                    try cached.check(pp, pcs_config);
-                    var lease = cached.tree.retainShared();
-                    errdefer lease.deinit(allocator);
-                    try scheme.appendCommittedTree(allocator, lease, &channel);
-                } else if (scheme.compact_polynomial_storage) {
-                    var views: [preprocessed.N_PREPROCESSED_COLUMNS]prover.pcs.ColumnEvaluation = undefined;
-                    preprocessedViews(pp, &views);
-                    try commitBorrowed(&scheme, allocator, &views, &channel);
-                } else try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), recorder, &channel);
+                if (comptime B == CpuBackend) {
+                    if (options.preprocessed_commitment) |cached| {
+                        try cached.check(pp, pcs_config);
+                        var lease = cached.tree.retainShared();
+                        errdefer lease.deinit(allocator);
+                        try scheme.appendCommittedTree(allocator, lease, &channel);
+                    } else if (scheme.compact_polynomial_storage) {
+                        var views: [preprocessed.N_PREPROCESSED_COLUMNS]prover.pcs.ColumnEvaluation = undefined;
+                        preprocessedViews(pp, &views);
+                        try commitBorrowed(&scheme, allocator, &views, &channel);
+                    } else try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), recorder, &channel);
+                } else {
+                    if (options.preprocessed_commitment != null) return error.CpuCommitmentOnDevice;
+                    // Device tree representations are backend-specific.
+                    // The canonical CPU commitment cannot be leased here.
+                    try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), recorder, &channel);
+                }
             }
             const preprocessed_root = scheme.trees.items[0].commitment.root();
             step(observer, .commit_preprocessed, &channel);
@@ -330,7 +360,7 @@ pub fn Prover(comptime MC: type) type {
             {
                 var stage = try StageScope.begin(recorder, "circuit_commit_base", "commit base trace");
                 defer stage.end();
-                if (scheme.compact_polynomial_storage)
+                if (B == CpuBackend and scheme.compact_polynomial_storage)
                     try commitBorrowed(&scheme, allocator, base.columns, &channel)
                 else
                     try commit(&scheme, allocator, try dupColumns(allocator, base.columns), recorder, &channel);
@@ -341,7 +371,10 @@ pub fn Prover(comptime MC: type) type {
             const nonce = blk: {
                 var stage = try StageScope.begin(recorder, "circuit_interaction_pow", "interaction grind");
                 defer stage.end();
-                break :blk channel.grind(component_list.INTERACTION_POW_BITS);
+                break :blk if (comptime B == CpuBackend)
+                    channel.grind(component_list.INTERACTION_POW_BITS)
+                else
+                    try prover.pcs.proof_of_work.grindForBackend(B, &channel, component_list.INTERACTION_POW_BITS);
             };
             channel.mixU64(nonce);
             step(observer, .mix_interaction_pow_nonce, &channel);
@@ -430,13 +463,39 @@ pub fn Prover(comptime MC: type) type {
             // concurrently, and the recorder's stage stack is single-threaded.
             const engine_recorder = options.recorder orelse if (local_recorder) |*owned| owned else null;
 
+            // The device composition stage is admitted before `prove_ex`,
+            // exactly as the Cairo transaction does it.
+            var stage: ?DeviceStage.Bound = null;
+            defer if (stage) |*owned| owned.close();
+            if (options.composition_device) |device| {
+                var committed_logs = try scheme.columnLogSizes(allocator);
+                defer committed_logs.deinitDeep(allocator);
+                const opened = try device.open(device.context, allocator, bound.components, committed_logs.items);
+                if (opened) |session| {
+                    stage = .{
+                        .allocator = allocator,
+                        .components = &captured,
+                        .captured = bound.components,
+                        .session = session,
+                        .recorder = options.recorder,
+                    };
+                    for (session.accepts) |accepted| {
+                        if (!accepted) try admitHostComposition(B);
+                    }
+                } else try admitHostComposition(B);
+            }
+
             scheme_owned = false;
             var stark_proof = try Engine.prove(allocator, &components, &channel, scheme, .{
                 .include_all_preprocessed_columns = true,
                 .recorder = engine_recorder,
+                .composition_stage = if (stage) |*ready| ready.asStage() else null,
             });
             if (local_recorder) |*owned| printStageProfile(allocator, owned);
             errdefer stark_proof.deinit(allocator);
+            // A device error mid-stage recomposes that component on the host;
+            // the bytes are the same, but a strict device run must not claim it.
+            if (stage) |owned| if (owned.counts.device_fallbacks != 0) try admitHostComposition(B);
             step(observer, .prove_ex, &channel);
             return .{
                 .allocator = allocator,
@@ -464,7 +523,9 @@ pub fn Prover(comptime MC: type) type {
         /// (`StreamingTreeBuilder`'s compact committer). The Merkle tree, and
         /// so the root, is the same either way; only the transient peak changes.
         fn commit(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []prover.pcs.ColumnEvaluation, recorder: ?*prover.stage_profile.Recorder, channel: *Channel) !void {
-            if (!scheme.compact_polynomial_storage)
+            if (comptime B != CpuBackend) {
+                try Engine.commit(scheme, allocator, columns, recorder, channel);
+            } else if (!scheme.compact_polynomial_storage)
                 try Engine.commit(scheme, allocator, columns, recorder, channel)
             else if (tiles(scheme, columns))
                 try prover.pcs.tiled_commit.commit(CpuBackend, Hasher, scheme, allocator, columns, .owned, .{}, channel)
@@ -505,6 +566,12 @@ fn printStageProfile(allocator: std.mem.Allocator, recorder: *const prover.stage
 fn printStageNode(node: prover.stage_profile.StageNode, depth: usize) void {
     std.debug.print("CIRCUIT_STAGE {d} {s} {d:.3}s ({s})\n", .{ depth, node.id, node.seconds, node.label });
     if (node.children) |children| for (children) |child| printStageNode(child, depth + 1);
+}
+
+/// The backend's host-work policy for composition (Metal:
+/// `STWO_ZIG_METAL_REQUIRE_GPU=1` forbids it); a backend without one admits.
+fn admitHostComposition(comptime B: type) !void {
+    if (comptime @hasDecl(B, "admitHostProving")) try B.admitHostProving(.composition);
 }
 
 fn hasObserver(comptime T: type, comptime name: []const u8) bool {
@@ -554,3 +621,68 @@ fn dupColumns(
 pub const Internal = Prover(profiles.Blake2sM31MerkleChannel);
 /// The circuit prover on the root profile.
 pub const Root = Prover(profiles.Blake2sMerkleChannel);
+
+/// The two profiles' provers bound to one backend, for the recursion
+/// drivers (leaf wrap, fold): the CPU set is the default, a device
+/// integration supplies its own (`circuit_metal.provers`). Both sets return
+/// the same proof types, so the drivers do not depend on the backend.
+pub const Provers = struct {
+    backend_name: []const u8,
+    internal: *const fn (
+        std.mem.Allocator,
+        []const QM31,
+        *const preprocessed.PreprocessedCircuit,
+        *const air.Bundle,
+        PcsConfigV2,
+        Options,
+    ) anyerror!Internal.CircuitProof,
+    root: *const fn (
+        std.mem.Allocator,
+        []const QM31,
+        *const preprocessed.PreprocessedCircuit,
+        *const air.Bundle,
+        PcsConfigV2,
+        Options,
+    ) anyerror!Root.CircuitProof,
+
+    /// The set of `ProverOn(B, ·)` for both profiles.
+    pub fn of(comptime I: type, comptime R: type) Provers {
+        comptime std.debug.assert(I.CircuitProof == Internal.CircuitProof and R.CircuitProof == Root.CircuitProof);
+        return .{
+            .backend_name = if (I.Backend == CpuBackend) "cpu" else @typeName(I.Backend),
+            .internal = Unobserved(I).prove,
+            .root = Unobserved(R).prove,
+        };
+    }
+
+    fn Unobserved(comptime P: type) type {
+        return struct {
+            fn prove(
+                allocator: std.mem.Allocator,
+                values: []const QM31,
+                pp: *const preprocessed.PreprocessedCircuit,
+                bundle: *const air.Bundle,
+                pcs_config: PcsConfigV2,
+                options: Options,
+            ) anyerror!P.CircuitProof {
+                var effective = options;
+                if (comptime P.Backend != CpuBackend) {
+                    // The topology's leased tree and twiddles belong to the
+                    // CPU PCS. A device builds its own tree; its current
+                    // storage policy is compact coefficients, not the CPU
+                    // fold's evaluations-only policy.
+                    effective.preprocessed_commitment = null;
+                    effective.twiddle_tower = null;
+                    if (effective.evaluations_only) {
+                        effective.evaluations_only = false;
+                        effective.compact_polynomial_min_log = 18;
+                    }
+                }
+                return P.prove(allocator, values, pp, bundle, pcs_config, effective, {});
+            }
+        };
+    }
+};
+
+/// The CPU scalar provers: the parity oracle.
+pub const cpu_provers = Provers.of(Internal, Root);

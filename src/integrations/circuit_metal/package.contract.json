@@ -1,0 +1,54 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_circuit_metal_integration",
+  "version": "0.1.0",
+  "layer": "integration",
+  "owner": "circuit-metal-integration",
+  "public_modules": {
+    "stwo_circuit_metal_integration": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_cairo_cpu_integration": "../cairo_cpu",
+    "stwo_cairo_frontend": "../../frontends/cairo",
+    "stwo_cairo_metal_integration": "../cairo_metal",
+    "stwo_circuit_cpu_integration": "../circuit_cpu",
+    "stwo_circuit_frontend": "../../frontends/circuit",
+    "stwo_core": "../../core",
+    "stwo_metal_backend": "../../backends/metal",
+    "stwo_prover_api": "../../prover_api",
+    "stwo_prover_engine": "../../prover"
+  },
+  "injected_modules": [
+    "app",
+    "circuit_provers_under_test",
+    "circuit_testing"
+  ],
+  "api_surface": [
+    "Backend",
+    "Internal",
+    "Root",
+    "provers"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::api signature: both channel profiles bind the Metal engine"
+    ],
+    "invariant_tests": [
+      "mod.zig::invariant: the Metal grinds are the device kernels, not a host fallback",
+      "mod.zig::invariant: the Metal provers commit with the CPU oracle's hasher and channels"
+    ]
+  },
+  "ci": {
+    "lane": "circuit_metal_integration",
+    "host": "macos",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/integrations/circuit_metal/build.zig",
+      "-Doptimize=ReleaseSafe",
+      "-j2"
+    ]
+  }
+}

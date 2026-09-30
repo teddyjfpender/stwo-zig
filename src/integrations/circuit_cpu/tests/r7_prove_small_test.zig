@@ -19,6 +19,10 @@ const cairo = @import("stwo_cairo_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 const rust_verifier = @import("rust_verifier.zig");
 const circuit_testing = @import("circuit_testing");
+/// The provers under test: the CPU ones here (`cpu_provers.zig`), the Metal
+/// ones in `circuit_metal`'s device R7 (design §4.6: device proofs must be
+/// byte-equal to the CPU scalar oracle, which is this fixture).
+const provers = @import("circuit_provers_under_test");
 const contexts = circuit_testing.contexts;
 
 const QM31 = core.fields.qm31.QM31;
@@ -201,8 +205,8 @@ const Lane = enum { small, internal, root };
 
 fn laneProver(comptime lane: Lane) type {
     return switch (lane) {
-        .small, .internal => circuit_cpu.Internal,
-        .root => circuit_cpu.Root,
+        .small, .internal => provers.Internal,
+        .root => provers.Root,
     };
 }
 
@@ -299,7 +303,7 @@ fn proveLaneAndCompare(
     // `STWO_CIRCUIT_STAGE_PROFILE=1` reports the interaction grind (the
     // step before the lookup draw) and the FRI grind (`proof_of_work`).
     const profile = std.process.hasEnvVarConstant("STWO_CIRCUIT_STAGE_PROFILE");
-    var recorder = prover.stage_profile.Recorder.init(allocator, "cpu", @tagName(which));
+    var recorder = prover.stage_profile.Recorder.init(allocator, provers.backend_name, @tagName(which));
     defer recorder.deinit();
     var timer = try std.time.Timer.start();
     observer.timer = &timer;
@@ -313,7 +317,8 @@ fn proveLaneAndCompare(
         const fri_grind = for (snapshot.stages) |stage| {
             if (std.mem.eql(u8, stage.id, "proof_of_work")) break stage.seconds;
         } else 0;
-        std.debug.print("{s}/{s}: interaction grind {d:.3} s (nonce 0x{x}), FRI grind {d:.3} s at {d} bits (nonce 0x{x})\n", .{
+        std.debug.print("{s} {s}/{s}: interaction grind {d:.3} s (nonce 0x{x}), FRI grind {d:.3} s at {d} bits (nonce 0x{x})\n", .{
+            provers.backend_name,
             @tagName(lane),
             @tagName(which),
             @as(f64, @floatFromInt(observer.interaction_grind_ns)) / std.time.ns_per_s,
@@ -431,16 +436,19 @@ test "R7 profiles: root blake_g_gate under the 26-bit circuit FRI config" {
 }
 
 test "R7 cached: one compact preprocessed tree serves compact fibonacci proofs" {
+    if (!std.mem.eql(u8, provers.backend_name, "cpu")) return error.SkipZigTest;
     const compact: circuit_cpu.prove.Options = .{ .compact_polynomial_min_log = 4 };
     try proveAndCompareLanes(&.{ .small, .small }, .fibonacci, .{ .commitment = compact, .proofs = compact });
 }
 
 test "R7 cached: one evaluations-only tree serves the internal and root profiles, as folds do" {
+    if (!std.mem.eql(u8, provers.backend_name, "cpu")) return error.SkipZigTest;
     const evaluations: circuit_cpu.prove.Options = .{ .evaluations_only = true };
     try proveAndCompareLanes(&.{ .internal, .root }, .blake_g_gate, .{ .commitment = evaluations, .proofs = evaluations });
 }
 
 test "R7 cached: compacting proofs never compact an evaluations-only lease" {
+    if (!std.mem.eql(u8, provers.backend_name, "cpu")) return error.SkipZigTest;
     try proveAndCompareLanes(&.{ .small, .small }, .blake_g_gate, .{
         .commitment = .{ .evaluations_only = true },
         .proofs = .{ .compact_polynomial_min_log = 4 },

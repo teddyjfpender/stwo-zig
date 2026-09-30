@@ -140,6 +140,8 @@ pub const LeafWrap = struct {
     program: []const layout.ProgramFelt,
     cache: *Cache,
     options: prove.Options = .{},
+    /// The backend that proves the wrap; never changes bytes.
+    provers: *const prove.Provers = &prove.cpu_provers,
 
     /// The statement constants: the Cairo relation ids and the projection's
     /// memory constants.
@@ -315,7 +317,7 @@ pub fn wrapCairoProof(
     ctx_owned = false;
     defer allocator.free(values);
     const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, topology.preprocessed.traceLogSize());
-    var circuit_proof = try prove.Internal.prove(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, topology.proveOptions(wrap.options), {});
+    var circuit_proof = try wrap.provers.internal(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, topology.proveOptions(wrap.options));
     defer circuit_proof.deinit();
     const root = blake2_hash.digestToU32s(circuit_proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
     const hash = blake2_hash.digestToU32s(circuit_proof.circuit_hash);

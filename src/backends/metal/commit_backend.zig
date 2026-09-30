@@ -255,13 +255,28 @@ pub const MetalCommitBackend = struct {
     }
 
     pub fn grindBlake2sProofOfWork(prefix: [32]u8, pow_bits: u32) !u64 {
+        return grindBlake2sLattice(false, prefix, pow_bits);
+    }
+
+    /// `Blake2sM31Channel` grind (the circuit prover's internal profile):
+    /// the same canonical `(hi, lo < 2^20)` order, with the hash output
+    /// reduced mod P before its zeros are counted. `prefix` is the channel's
+    /// `computePowPrefix`, itself an M31-reduced digest.
+    pub fn grindBlake2sM31ProofOfWork(prefix: [32]u8, pow_bits: u32) !u64 {
+        return grindBlake2sLattice(true, prefix, pow_bits);
+    }
+
+    fn grindBlake2sLattice(comptime m31_output: bool, prefix: [32]u8, pow_bits: u32) !u64 {
         var prefix_words: [8]u32 = undefined;
         for (&prefix_words, 0..) |*word, index| {
             word.* = std.mem.readInt(u32, prefix[index * 4 ..][0..4], .little);
         }
         var lease = try shared_runtime.acquire();
         defer lease.deinit();
-        const result = try lease.runtime.grindBlake2sProofOfWork(&prefix_words, pow_bits);
+        const result = if (m31_output)
+            try lease.runtime.grindBlake2sM31ProofOfWork(&prefix_words, pow_bits)
+        else
+            try lease.runtime.grindBlake2sProofOfWork(&prefix_words, pow_bits);
         telemetry.recordN(.metal_proof_of_work_dispatch, result.dispatch_count);
         return result.nonce;
     }
@@ -1125,6 +1140,39 @@ test "metal proof of work returns the canonical Stwo nonce" {
     try std.testing.expectError(
         error.ProofOfWorkFailed,
         MetalCommitBackend.grindBlake2sProofOfWork(prefix, 33),
+    );
+}
+
+test "metal m31 proof of work returns the canonical Stwo nonce" {
+    const Channel = @import("stwo_core").channel.blake2s.Blake2sM31Channel;
+    try MetalCommitBackend.initializeRuntime(std.testing.allocator, .source_jit);
+    defer MetalCommitBackend.shutdown() catch unreachable;
+
+    // Rust Stwo `SimdBackend::grind` on `Blake2sM31Channel` (7b211ed and
+    // proving@5a7c5ed): lattice nonces with hi > 0 where the natural order
+    // and the unreduced predicate both answer differently.
+    const vectors = [_]struct { seed: u64, bits: u32, nonce: u64 }{
+        .{ .seed = 1, .bits = 20, .nonce = 12885632339 }, // hi 3, lo 730451
+        .{ .seed = 1, .bits = 24, .nonce = 4295766292 }, // hi 1, lo 798996
+        .{ .seed = 0x1111_2222_3333_4344, .bits = 20, .nonce = 0x1_0005_a700 },
+        .{ .seed = 0x1111_2222_3333_4344, .bits = 24, .nonce = 0xf_0001_6fbd },
+        .{ .seed = 0x1111_2222_3333_4344, .bits = 26, .nonce = 150324282603 }, // hi 35, lo 427243
+        .{ .seed = 0x1111_2222_3333_4344, .bits = 10, .nonce = 0x415 },
+    };
+    for (vectors) |vector| {
+        var channel = Channel{};
+        channel.mixU64(vector.seed);
+        const prefix = channel.computePowPrefix(vector.bits);
+        try std.testing.expectEqual(
+            vector.nonce,
+            try MetalCommitBackend.grindBlake2sM31ProofOfWork(prefix, vector.bits),
+        );
+    }
+    var channel = Channel{};
+    channel.mixU64(1);
+    try std.testing.expectError(
+        error.ProofOfWorkFailed,
+        MetalCommitBackend.grindBlake2sM31ProofOfWork(channel.computePowPrefix(20), 33),
     );
 }
 
