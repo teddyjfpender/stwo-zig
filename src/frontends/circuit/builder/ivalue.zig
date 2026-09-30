@@ -150,7 +150,7 @@ pub fn blake2s(comptime V: type, input: []const V, n_bytes: usize) [8]V {
     var digest: [32]u8 = undefined;
     hasher.final(&digest);
     var words: [8]QM31 = undefined;
-    for (&words, 0..) |*word, i| word.* = packU32(QM31, std.mem.readInt(u32, digest[4 * i ..][0..4], .little));
+    for (&words, stwo_core.vcs.blake2_hash.digestToU32s(digest)) |*word, value| word.* = packU32(QM31, value);
     return words;
 }
 
