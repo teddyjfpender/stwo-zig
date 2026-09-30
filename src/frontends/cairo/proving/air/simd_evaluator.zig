@@ -192,6 +192,12 @@ inline fn cm31MulKaratsuba(
 pub const ResolvedColumn = struct {
     values: []const M31,
     shift_amt: std.math.Log2Int(usize),
+    /// Index of `values[0]` in the column's coset evaluation: nonzero when
+    /// `values` is one row tile's block (`trace_lease.Tiles`).
+    base: usize = 0,
+    /// `values` already holds the read site's shifted value per evaluation
+    /// row: row `r` reads `values[r - base]` (a tile's offset-read halo).
+    row_indexed: bool = false,
 };
 
 pub const TraceReader = struct {
@@ -204,6 +210,14 @@ pub const TraceReader = struct {
         interaction: u8,
         column: u32,
     ) anyerror!ResolvedColumn,
+    /// Optional: re-resolves read sites with a nonzero mask offset, which may
+    /// then come back `row_indexed`.
+    resolve_at: ?*const fn (
+        context: *const anyopaque,
+        interaction: u8,
+        column: u32,
+        offset: i32,
+    ) anyerror!ResolvedColumn = null,
 };
 
 pub const Input = struct {
@@ -259,6 +273,15 @@ pub fn evaluatePartRange(
     defer plan.deinit(allocator);
     const offsets = plan.offsets;
     const sites = plan.sites;
+    if (input.trace.resolve_at) |resolve_at| {
+        var cursor: usize = 0;
+        for (program.base_insts) |instruction| {
+            if (instruction.op != .trace_col and instruction.op != .preprocessed_col) continue;
+            if (instruction.imm != 0)
+                sites[cursor].column = try resolve_at(input.trace.context, instruction.interaction, instruction.a, instruction.imm);
+            cursor += 1;
+        }
+    }
     // One mapped lane position per distinct mask offset, refreshed per group.
     const positions = try allocator.alloc([lane_count]usize, offsets.len);
     defer allocator.free(positions);
@@ -286,11 +309,15 @@ pub fn evaluatePartRange(
                     site_cursor += 1;
                     const mapped = positions[site.offset_slot];
                     var values: PackedM31 = undefined;
+                    if (site.column.row_indexed) {
+                        inline for (0..lane_count) |lane| values[lane] = site.column.values[row + lane - site.column.base].toU32();
+                        break :blk values;
+                    }
                     inline for (0..lane_count) |lane| {
                         const position = mapped[lane];
                         values[lane] = site.column.values[
-                            ((position >> site.column.shift_amt) << 1) +
-                                (position & 1)
+                            (((position >> site.column.shift_amt) << 1) +
+                                (position & 1)) - site.column.base
                         ].toU32();
                     }
                     break :blk values;
