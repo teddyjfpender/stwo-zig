@@ -1,6 +1,6 @@
 //! Build ownership for the circuit recursion CPU product: the leaf wrap, the
 //! recursive tree and registry generation of the circuit recursion stage
-//! (design §7.4, milestones M8 and M9).
+//! (design §7.4).
 
 const std = @import("std");
 const build_identity = @import("../build_identity.zig");
@@ -62,14 +62,16 @@ const source_closure = product_policy.SourceClosure{
 
 pub const descriptor = product_policy.Descriptor{
     .product = product(.cli),
-    // Byte parity with the pinned upstream binaries is its release gate.
+    // Byte parity with the pinned upstream binaries is its release gate: the
+    // local parity lane (every rung that fits the 8 GB development budget).
+    // The large lane (R8, R8b, R9) is `circuit-parity-large`.
     .state = .parity_gated,
     .target_support = .any,
     .build_step = "stwo-circuit-recursion-cpu",
     .test_step = "test-circuit-recursion-cpu-product",
     .executable = "stwo-circuit-recursion-cpu",
     .installed_artifacts = &.{"stwo-circuit-recursion-cpu"},
-    .release_gates = &.{"test-circuit-recursion-cpu-product"},
+    .release_gates = &.{ "test-circuit-recursion-cpu-product", "circuit-parity-local" },
     .dependencies = .{ .module_roots = source_closure.entry_roots },
     .source_closure = source_closure,
 };
@@ -124,6 +126,78 @@ pub fn addProduct(context: Context) void {
         "circuit-parity-r8b",
         "Rung R8b: the Zig leaf of the leaf simple bootloader equals four_leaves/leaf.json, and four of them fold to the root goldens",
     ).dependOn(addAppTest(context, app, "src/products/circuit_recursion_cpu/tests/r8b_leaf_chain_test.zig"));
+    addParityLanes(context.b);
+}
+
+/// One rung of the parity ladder (design §8.2): a step of the root build or
+/// of a package build, and the mode it runs in.
+const Rung = struct {
+    build_file: ?[]const u8 = null,
+    step: []const u8,
+    optimize: []const u8 = "-Doptimize=ReleaseSafe",
+};
+
+const frontend_build = "src/frontends/circuit/build.zig";
+const integration_build = "src/integrations/circuit_cpu/build.zig";
+
+/// Rungs that run within the 8 GB development budget.
+const local_rungs = [_]Rung{
+    // R0: the wire formats' vectors (felt252, base64, leaf JSON, serializers).
+    .{ .build_file = "src/interop/circuit_recursion/build.zig", .step = "test" },
+    // R0 (FRI), R1, R2, R3 and R5: the frontend's unit and fixture tests.
+    .{ .build_file = frontend_build, .step = "circuit-parity-r1" },
+    .{ .build_file = frontend_build, .step = "circuit-parity-r4" },
+    .{ .build_file = frontend_build, .step = "circuit-parity-r6-fold" },
+    .{ .build_file = integration_build, .step = "circuit-parity-r4-values" },
+    .{ .build_file = integration_build, .step = "circuit-parity-r6-leaf" },
+    .{ .build_file = integration_build, .step = "circuit-parity-r7" },
+    .{ .build_file = integration_build, .step = "circuit-parity-registry", .optimize = "-Doptimize=ReleaseFast" },
+    // R10b/R10c: the Zig Cairo leaf lane.
+    .{ .step = "test-cairo-leaf-proof", .optimize = "-Doptimize=ReleaseFast" },
+    .{ .build_file = integration_build, .step = "circuit-parity-r11" },
+};
+
+/// Rungs above the development budget (11-18 GB peaks): design §8.3's
+/// large lane. `circuit-parity-r7-multiverifier` is skipped without its
+/// external inputs file.
+const large_rungs = [_]Rung{
+    .{ .step = "circuit-parity-r8", .optimize = "-Doptimize=ReleaseFast" },
+    .{ .step = "circuit-parity-r8b", .optimize = "-Doptimize=ReleaseFast" },
+    .{ .build_file = integration_build, .step = "circuit-parity-r9", .optimize = "-Doptimize=ReleaseFast" },
+    .{ .build_file = integration_build, .step = "circuit-parity-r7-multiverifier", .optimize = "-Doptimize=ReleaseFast" },
+};
+
+/// `circuit-parity-local`, `circuit-parity-large` and `circuit-parity`
+/// (both). Every rung is its own `zig build` run from the repository root,
+/// one after another, so that no two large circuits are resident at once.
+fn addParityLanes(b: *std.Build) void {
+    const local = addLane(b, &local_rungs, null);
+    const large = addLane(b, &large_rungs, local);
+    b.step(
+        "circuit-parity-local",
+        "Parity ladder, local lane: R0-R7, registry generation, R10b/R10c and R11, one rung at a time",
+    ).dependOn(local);
+    const large_step = b.step(
+        "circuit-parity-large",
+        "Parity ladder, large lane (11-18 GB): R8, R8b, R9 and, with its inputs, the R7 multiverifier",
+    );
+    large_step.dependOn(addLane(b, &large_rungs, null));
+    b.step("circuit-parity", "The whole parity ladder: the local lane, then the large lane").dependOn(large);
+}
+
+/// Chains `rungs` after `first`; returns the last rung's step.
+fn addLane(b: *std.Build, rungs: []const Rung, first: ?*std.Build.Step) *std.Build.Step {
+    var previous = first;
+    for (rungs) |rung| {
+        const command = b.addSystemCommand(&.{ "zig", "build", rung.step });
+        if (rung.build_file) |file| command.addArgs(&.{ "--build-file", file });
+        command.addArgs(&.{ rung.optimize, "-j2" });
+        command.setCwd(b.path("."));
+        command.setName(rung.step);
+        if (previous) |step| command.step.dependOn(step);
+        previous = &command.step;
+    }
+    return previous.?;
 }
 
 /// A test root that sees the product's `app` module, run from the
