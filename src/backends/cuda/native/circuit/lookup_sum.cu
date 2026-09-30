@@ -15,6 +15,14 @@ __host__ __device__ __forceinline__ bool is_zero(QM31 x) {
     return (x.a.a | x.a.b | x.b.a | x.b.b) == 0u;
 }
 
+__host__ __device__ __forceinline__ void flag(unsigned *error) {
+#if defined(__CUDA_ARCH__)
+    atomicOr(error, 4u);
+#else
+    *error |= 4u;
+#endif
+}
+
 __host__ __device__ __forceinline__ QM31 gate_denominator(
     const QM31 *powers, QM31 z, unsigned address, QM31 value) {
     QM31 combined = f::sub(f::zero(), z);
@@ -34,14 +42,14 @@ __host__ __device__ __forceinline__ void check(
     for (unsigned i = 0; i < 11; ++i) total = f::add(total, claims[i]);
     for (unsigned i = 0; i < output_count; ++i) {
         const QM31 denominator = gate_denominator(powers, z, kUVariable + 1u + i, outputs[i]);
-        if (is_zero(denominator)) { atomicOr(error, 4u); return; }
+        if (is_zero(denominator)) { flag(error); return; }
         total = f::add(total, f::inverse(denominator));
     }
     const QM31 u_value{{0u, 0u}, {1u, 0u}};
     const QM31 denominator = gate_denominator(powers, z, kUVariable, u_value);
-    if (is_zero(denominator)) { atomicOr(error, 4u); return; }
+    if (is_zero(denominator)) { flag(error); return; }
     total = f::add(total, f::inverse(denominator));
-    if (!is_zero(total)) atomicOr(error, 4u);
+    if (!is_zero(total)) flag(error);
 }
 
 #if !defined(STWO_CIRCUIT_LOOKUP_SUM_HOST_EMULATION)

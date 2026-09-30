@@ -25,6 +25,45 @@ constexpr unsigned kBaseWidths[kComponents] = {4, 12, 20, 4, 52, 2, 16, 1, 1, 1,
 constexpr unsigned kLookups[kComponents] = {2, 3, 12, 5, 26, 2, 16, 1, 1, 1, 1};
 constexpr unsigned kSecure[kComponents] = {1, 2, 6, 3, 13, 1, 8, 1, 1, 1, 1};
 
+// NVCC cannot address namespace-scope host constexpr arrays in device code.
+// These template constants also let each component specialize its column load.
+template <unsigned Kind>
+__host__ __device__ constexpr unsigned pp_width() {
+    if constexpr (Kind == 0) return 2;
+    if constexpr (Kind == 1) return 8;
+    if constexpr (Kind == 2) return 5;
+    if constexpr (Kind == 3) return 3;
+    if constexpr (Kind == 4) return 11;
+    if constexpr (Kind == 5) return 3;
+    if constexpr (Kind == 6) return 0;
+    if constexpr (Kind == 7 || Kind == 8 || Kind == 9) return 3;
+    return 1;
+}
+
+template <unsigned Kind>
+__host__ __device__ constexpr unsigned base_width() {
+    if constexpr (Kind == 0) return 4;
+    if constexpr (Kind == 1) return 12;
+    if constexpr (Kind == 2) return 20;
+    if constexpr (Kind == 3) return 4;
+    if constexpr (Kind == 4) return 52;
+    if constexpr (Kind == 5) return 2;
+    if constexpr (Kind == 6) return 16;
+    return 1;
+}
+
+template <unsigned Kind>
+__host__ __device__ constexpr unsigned lookup_count() {
+    if constexpr (Kind == 0) return 2;
+    if constexpr (Kind == 1) return 3;
+    if constexpr (Kind == 2) return 12;
+    if constexpr (Kind == 3) return 5;
+    if constexpr (Kind == 4) return 26;
+    if constexpr (Kind == 5) return 2;
+    if constexpr (Kind == 6) return 16;
+    return 1;
+}
+
 constexpr M31 kGate = 378353459u;
 constexpr M31 kRc16 = 1008385708u;
 constexpr M31 kXor4 = 45448144u;
@@ -68,8 +107,8 @@ __host__ __device__ __forceinline__ Lookup lookup_at(
     M31 c[kMaxBase] = {};
     M31 p[kMaxPp] = {};
     // The compiler prunes unused columns for every kind and lookup index.
-    for (unsigned i = 0; i < kBaseWidths[Kind]; ++i) c[i] = columns.base[i][row];
-    for (unsigned i = 0; i < kPpWidths[Kind]; ++i) p[i] = columns.pp[i][row];
+    for (unsigned i = 0; i < base_width<Kind>(); ++i) c[i] = columns.base[i][row];
+    for (unsigned i = 0; i < pp_width<Kind>(); ++i) p[i] = columns.pp[i][row];
     if constexpr (Kind == 0) {
         return gate6(1u, p[index], c);
     } else if constexpr (Kind == 1) {
@@ -160,7 +199,7 @@ __host__ __device__ __forceinline__ void fraction_at(
     const Lookup first = lookup_at<Kind>(first_index, row, columns);
     const QM31 d0 = combine(first, powers, z);
     QM31 numerator, denominator;
-    if (first_index + 1u < kLookups[Kind]) {
+    if (first_index + 1u < lookup_count<Kind>()) {
         const Lookup second = lookup_at<Kind>(first_index + 1u, row, columns);
         const QM31 d1 = combine(second, powers, z);
         numerator = f::add(f::mul(first.numerator, d1), f::mul(second.numerator, d0));
