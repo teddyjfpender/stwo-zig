@@ -99,6 +99,12 @@ pub fn build(b: *std.Build) void {
         .filters = &.{"budgeted Merkle"},
     });
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-tiled-commit",
+        .description = "Check the row-tiled compact commitment against the streaming compact commitment",
+        .root = "pcs_commitments_test_root.zig",
+        .filters = &.{"tiled compact commitment"},
+    });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-borrowed-streaming",
         .description = "Check bounded borrowed commitments and failure ownership",
         .root = "pcs_commitments_test_root.zig",

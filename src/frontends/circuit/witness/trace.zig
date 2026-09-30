@@ -359,6 +359,16 @@ const BaseView = struct {
     }
 };
 
+/// Frees base component `index`'s columns when releasing.
+fn releaseComponent(allocator: std.mem.Allocator, release: ?[]ColumnEvaluation, base: BaseView, index: usize) void {
+    const columns = release orelse return;
+    const widths = traceWidths();
+    for (columns[base.offsets[index]..][0..widths[index]]) |*column| {
+        allocator.free(column.values);
+        column.values = &.{};
+    }
+}
+
 /// Pairs consecutive lookups into secure-column fractions.
 fn pairFractions(elements: *const LookupElements, lookups: []const Lookup, out: []logup_columns.Fraction) void {
     for (out, 0..) |*fraction, column| {
@@ -460,6 +470,33 @@ pub fn writeInteractionTrace(
     z: QM31,
     alpha: QM31,
 ) !InteractionTrace {
+    return writeInteractionTraceImpl(allocator, base_columns, null, log_sizes, circuit, z, alpha);
+}
+
+/// `writeInteractionTrace` that frees each component's base columns (leaving
+/// them empty in `base`) as soon as that component's LogUp columns are
+/// built: component `i`'s interaction reads only base component `i`, so the
+/// base and interaction traces are never both whole. `base` is left with
+/// every column empty on success.
+pub fn writeInteractionTraceReleasing(
+    allocator: std.mem.Allocator,
+    base: *BaseTrace,
+    circuit: *const preprocessed.PreprocessedCircuit,
+    z: QM31,
+    alpha: QM31,
+) !InteractionTrace {
+    return writeInteractionTraceImpl(allocator, base.columns, base.columns, base.log_sizes, circuit, z, alpha);
+}
+
+fn writeInteractionTraceImpl(
+    allocator: std.mem.Allocator,
+    base_columns: []const ColumnEvaluation,
+    release: ?[]ColumnEvaluation,
+    log_sizes: PerComponent(u32),
+    circuit: *const preprocessed.PreprocessedCircuit,
+    z: QM31,
+    alpha: QM31,
+) !InteractionTrace {
     const pp = Pp{ .circuit = circuit };
     const base = try BaseView.init(base_columns);
     const elements = LookupElements.init(z, alpha);
@@ -487,6 +524,7 @@ pub fn writeInteractionTrace(
             .pp = &pc,
             .elements = &elements,
         }, Rows.fill);
+        releaseComponent(allocator, release, base, index);
     }
     const tables = .{
         .{ components.xor_8, 5, "bitwise_xor_8" },
@@ -505,16 +543,19 @@ pub fn writeInteractionTrace(
             .pp = pc,
             .elements = &elements,
         }, XorTableRows.fill);
+        releaseComponent(allocator, release, base, index);
     }
     outputs[6] = try logup_columns.build(allocator, logs[6], widths[6] / 4, Xor12Rows{
         .mults = base.component(6, components.xor_12.n_mult_columns),
         .elements = &elements,
     }, Xor12Rows.fill);
+    releaseComponent(allocator, release, base, 6);
     outputs[10] = try logup_columns.build(allocator, logs[10], widths[10] / 4, RangeCheckRows{
         .mults = base.component(10, 1),
         .seq = try pp.column("seq_16"),
         .elements = &elements,
     }, RangeCheckRows.fill);
+    releaseComponent(allocator, release, base, 10);
 
     var total: usize = 0;
     for (outputs) |maybe| total += maybe.?.columns.len;
