@@ -1,6 +1,7 @@
 //! Official Cairo proving through the Metal PCS backend.
 
 pub const transaction = @import("transaction.zig");
+pub const leaf_transaction = @import("leaf_transaction.zig");
 /// Re-exported so the Cairo Metal product can inject the device composition
 /// stage through the same `integrations.cairo_metal` facade it already uses for
 /// the interaction executor.
@@ -11,6 +12,7 @@ pub const resident_lookup = @import("resident_lookup.zig");
 
 test {
     _ = transaction;
+    _ = leaf_transaction;
     _ = composition_stage;
     _ = interaction_executor;
     _ = resident_interaction;

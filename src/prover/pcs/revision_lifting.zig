@@ -48,7 +48,19 @@ pub fn liftCommittedTree(
     // A shared tree is a lease on storage other proofs read; lifting it would
     // change their commitment.
     if (tree.shared_owner != null) return Error.UnsupportedLiftedCommitment;
-    if (comptime @hasDecl(B, "liftMerkle")) {
+    if (comptime @hasDecl(B, "recommitMerkleLifted")) {
+        const columns = try allocator.alloc([]const @import("stwo_core").fields.m31.M31, tree.columns.len);
+        defer allocator.free(columns);
+        for (tree.columns, columns) |column, *values| {
+            if (column.values.len != @as(usize, 1) << @intCast(column.log_size))
+                return Error.UnsupportedLiftedCommitment;
+            values.* = column.values;
+        }
+        var lifted = try B.recommitMerkleLifted(H, allocator, columns, height);
+        errdefer lifted.deinit(allocator);
+        tree.commitment.deinit(allocator);
+        tree.commitment = lifted;
+    } else if (comptime @hasDecl(B, "liftMerkle")) {
         return B.liftMerkle(H, allocator, &tree.commitment, height);
     } else if (comptime B.MerkleTree(H) == vcs_lifted_prover.MerkleProverLifted(H)) {
         tree.commitment.liftTo(allocator, height) catch |err| switch (err) {

@@ -448,6 +448,26 @@ pub const MetalCommitBackend = struct {
         return resident_tree;
     }
 
+    /// The pinned Rust protocol may commit above its largest column. Rebuild
+    /// at that explicit height on Metal; retain the original tree until the
+    /// new commitment succeeds so callers can replace it atomically.
+    pub fn recommitMerkleLifted(
+        comptime H: type,
+        allocator: std.mem.Allocator,
+        columns: []const []const @import("stwo_core").fields.m31.M31,
+        height: u32,
+    ) !MerkleTree(H) {
+        var cells: usize = 0;
+        for (columns) |column| cells = try std.math.add(usize, cells, column.len);
+        if (!commit_policy.usesResidentMerkle(cells) or comptime hash_domain.directParameters(H) == null) {
+            try admitHostProving(.merkle_commit);
+            return MerkleTree(H).fromHost(try merkle.MerkleProverLifted(H).commitLifted(allocator, columns, height));
+        }
+        var lease = try shared_runtime.acquire();
+        defer lease.deinit();
+        return MerkleTree(H).commitSharedAtHeight(lease.runtime, allocator, columns, height);
+    }
+
     pub fn commitMerkleWithBacking(
         comptime H: type,
         allocator: std.mem.Allocator,

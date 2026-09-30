@@ -29,6 +29,10 @@ pub const ProverParameters = generic.leaf_lane.ProverParameters;
 pub const Fixture = generic.Fixture;
 pub const Result = generic.Result(Engine);
 
+pub fn compositionDevice(_: []const u8) ?@import("stwo_cairo_frontend").proving.air.device_stage.Device {
+    return null;
+}
+
 comptime {
     @import("stwo_prover_api").assertProverEngine(Engine);
 }

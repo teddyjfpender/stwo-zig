@@ -138,6 +138,17 @@ pub fn build(b: *std.Build) void {
     app.addAnonymousImport("circuit_air_programs", .{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
     });
+    const executable_root = b.createModule(.{
+        .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_metal/main.zig") },
+        .target = target,
+        .optimize = optimize,
+    });
+    executable_root.addImport("circuit_recursion_app", app);
+    executable_root.addImport("stwo_cairo_metal_integration", cairo_metal);
+    executable_root.addImport("stwo_circuit_metal_integration", integration);
+    const executable = b.addExecutable(.{ .name = "stwo-circuit-recursion-metal", .root_module = executable_root });
+    linkMetal(executable);
+    b.installArtifact(executable);
     inline for (.{ .{ "r8_leaf_wrap_test.zig", r8_step }, .{ "r8b_leaf_chain_test.zig", r8b_step } }) |rung| {
         const root = b.createModule(.{
             .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cpu/tests/" ++ rung[0]) },

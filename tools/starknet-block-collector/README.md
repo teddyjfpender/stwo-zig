@@ -74,6 +74,7 @@ Status:
 | `rpc_store.py` | Content-addressed store: `objects/` (gzipped response bodies by sha256), `index/` (request key → object), and `blocks/<n>/requests.jsonl`. `getStorageProof` params are canonicalised (sorted contracts, keys and classes), and answers are permuted back to the caller's order, because SNOS emits key lists in hash-set order. |
 | `rpc_proxy.py` | Recording/replaying JSON-RPC proxy (`http://127.0.0.1:<port>/b/<block>`). Coalesces concurrent calls into paced upstream batches with per-upstream AIMD rates, and keeps separate read and proof lanes. `--defer-proofs` logs expired proof requests for `backfill.py`. `--mode replay` serves only recorded data. |
 | `prove_pipeline.py` | Assemble leaves, prove each with stwo-zig CPU, verify with the official Rust verifier, run the aggregator over the leaf outputs, and prove and verify the aggregator PIE. Stages run one at a time behind a swap guard. |
+| `circuit_pipeline.py` | Prove contiguous committed PIEs through the pinned leaf bootloader, wrap each Cairo proof as a circuit proof, and fold them into one recursive root. Validates manifest digests and root continuity, records time/RSS per stage, and optionally compares all root files byte for byte with the pinned Rust reducer. The final applicative proof binding that root to the aggregator remains a separate stage. |
 | `assemble.py` | Runs `generate-pie` over consecutive blocks through a proxy and checks each leaf's first `old_root` and last `new_root` against the chain. |
 | `pie_info.py` | Reads the OS output header and execution resources from a PIE zip. |
 | `collector.py` | Fallback: follows the head, prefetches likely reads, captures global roots live, runs SNOS per block, and checks the single-block OS roots. |
@@ -90,3 +91,47 @@ Status:
 - `tools/starknet-aggregator-rs` for the aggregator step.
 
 Recorded data goes under `block-data/` at the repository root (gitignored).
+
+## Two-leaf circuit root on M5 Max
+
+The following run used the production circuit registry (70 FRI queries and 26
+PoW bits in both Cairo and circuit proofs), two committed consecutive mainnet
+PIEs, ReleaseFast Zig, and the pinned `proving@5a7c5ed` Rust adapter. The
+numbers are serial wall time on 2026-09-30; process peak RSS is not additive.
+
+| Program or stage | Blocks | Cairo steps | CPU time | Metal time | CPU / Metal peak RSS |
+|---|---:|---:|---:|---:|---:|
+| `leaf_simple_bootloader`, PIE 15627902–15627904: adapt, Cairo prove, circuit wrap | 15627902–904 | 1,224,007 | 47.80 s | 30.96 s | 28.49 / 17.03 GB |
+| `leaf_simple_bootloader`, PIE 15627905–15627907: adapt, Cairo prove, circuit wrap | 15627905–907 | 785,807 | 49.74 s | 32.15 s | 28.10 / 17.04 GB |
+| `circuit_multiverifier`, two leaves → root | 15627902–907 | — | 8.58 s | 12.87 s | 13.81 / 16.90 GB |
+| **PIEs → one circuit root** | **15627902–907** | **2,009,814** | **106.13 s** | **75.98 s** | **28.49 / 17.04 GB** |
+
+The root proof is 1,508,773 bytes. Both Metal leaf proofs, the root proof,
+root outputs, and packed tree are byte-identical to CPU; the three root files
+are also identical to the pinned Rust reducer. The first CPU leaf proof is
+byte-identical to Rust `leaf-prover`. Rust's reducer took 9.90 s and 33.14 GB
+RSS on the same inputs; Rust's first leaf took 26.78 s and 50.51 GB RSS.
+The Metal run admitted 70/79 Cairo AIR composition components to the device
+and 11/11 circuit components; nine Cairo components still used the declared
+host path. macOS `time -l` reported a **34.75 GB peak memory footprint** for
+the Metal run (28.50 GB for CPU), which includes memory not represented by
+process RSS. The smaller Metal RSS is therefore not a total-memory reduction.
+Neither the Rust parity comparison nor the original OS PIE generation is
+included in the 106.13 s. The committed Starknet aggregator PIE for these two
+leaves has 18,816 Cairo steps, but the circuit root alone does not bind that
+aggregator output. The circuit applicative bootloader must do that before this
+is a final aggregate Starknet proof.
+
+To reproduce the PIE-to-root receipt (including an optional Rust comparison):
+
+```sh
+python3 tools/starknet-block-collector/circuit_pipeline.py \
+  --oracle /path/to/stwo-circuit-oracle \
+  --proving-root /path/to/proving-at-5a7c5ed \
+  --rust-reducer /path/to/stwo_run_and_prove_recursive_tree \
+  --out /tmp/starknet-circuit-root \
+  15627902-15627904 15627905-15627907
+```
+
+For Metal, first build `src/integrations/circuit_metal` with
+`zig build -Doptimize=ReleaseFast`, then add `--backend metal` to the command.

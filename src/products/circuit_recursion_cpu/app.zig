@@ -46,6 +46,11 @@ const projection_sha256 = "ceea3c293a4fcd3ca8a20ba62f4845732f8725bdf610fe6367c83
 const max_input_bytes = 64 << 20;
 
 pub fn main() !void {
+    return mainWith(cairo_leaf, &circuit_cpu.prove.cpu_provers);
+}
+
+/// Backend selection is confined to proving; protocol bytes and CLI stay shared.
+pub fn mainWith(comptime CairoLeaf: type, provers: *const circuit_cpu.prove.Provers) !void {
     const gpa = std.heap.smp_allocator;
     const argv = try std.process.argsAlloc(gpa);
     defer std.process.argsFree(gpa, argv);
@@ -56,18 +61,18 @@ pub fn main() !void {
         try stderr.interface.flush();
         std.process.exit(2);
     };
-    run(gpa, parsed) catch |err| {
+    runWith(CairoLeaf, provers, gpa, parsed) catch |err| {
         try stderr.interface.print("error: {s}\n", .{@errorName(err)});
         try stderr.interface.flush();
         std.process.exit(1);
     };
 }
 
-fn run(gpa: std.mem.Allocator, parsed: cli.Parsed) !void {
+fn runWith(comptime CairoLeaf: type, provers: *const circuit_cpu.prove.Provers, gpa: std.mem.Allocator, parsed: cli.Parsed) !void {
     switch (parsed) {
         .help => try std.fs.File.stdout().writeAll(cli.usage),
-        .leaf_wrap => |command| try leafWrapCommand(gpa, command),
-        .fold_tree => |command| try foldTreeCommand(gpa, command),
+        .leaf_wrap => |command| try leafWrapCommandWith(CairoLeaf, provers, gpa, command),
+        .fold_tree => |command| try foldTreeCommandWith(provers, gpa, command),
         .circuit_params => |command| try circuitParams(gpa, command),
         .verify => |command| if (!try verifyCommand(gpa, command)) std.process.exit(3),
     }
@@ -152,6 +157,10 @@ pub const Timings = struct {
 /// `prove_leaf` from an adapted execution: the leaf Cairo proof, then the
 /// wrap. The Cairo trace is released before the wrap starts.
 pub fn leafWrap(allocator: std.mem.Allocator, request: LeafWrapRequest, timings: *Timings) !leaf_wrap.LeafProof {
+    return leafWrapWith(cairo_leaf, allocator, request, timings);
+}
+
+pub fn leafWrapWith(comptime CairoLeaf: type, allocator: std.mem.Allocator, request: LeafWrapRequest, timings: *Timings) !leaf_wrap.LeafProof {
     var timer = try std.time.Timer.start();
 
     const registry_text = try readFile(allocator, request.registry_path);
@@ -192,13 +201,14 @@ pub fn leafWrap(allocator: std.mem.Allocator, request: LeafWrapRequest, timings:
         defer allocator.free(templates_path);
         var air_templates = try cairo.air.template_library.Library.readFile(allocator, templates_path);
         defer air_templates.deinit();
-        break :blk try cairo_leaf.proveLeafCairo(allocator, .{
+        break :blk try CairoLeaf.proveLeafCairo(allocator, .{
             .input = &input,
             .programs = &programs,
             .topology = topology,
             .fixed = &fixed,
             .relations = &relations,
             .air_templates = &air_templates,
+            .composition_device = CairoLeaf.compositionDevice(request.assets),
         }, registry.registry.cairo_prover_params, null);
     };
     defer cairo_proof.deinit();
@@ -237,16 +247,16 @@ pub fn writeLeafProof(leaf: *const leaf_wrap.LeafProof, path: []const u8) !void 
     try atomic.finish();
 }
 
-fn leafWrapCommand(gpa: std.mem.Allocator, command: cli.LeafWrap) !void {
+fn leafWrapCommandWith(comptime CairoLeaf: type, provers: *const circuit_cpu.prove.Provers, gpa: std.mem.Allocator, command: cli.LeafWrap) !void {
     var stderr_buffer: [4096]u8 = undefined;
     var stderr = std.fs.File.stderr().writerStreaming(&stderr_buffer);
     const out = &stderr.interface;
     defer out.flush() catch {};
 
-    var recorder = prover.stage_profile.Recorder.init(gpa, "cpu", "circuit-leaf-wrap");
+    var recorder = prover.stage_profile.Recorder.init(gpa, provers.backend_name, "circuit-leaf-wrap");
     defer recorder.deinit();
     var timings = Timings{};
-    var leaf = try leafWrap(gpa, .{
+    var leaf = try leafWrapWith(CairoLeaf, gpa, .{
         .registry_path = command.registry,
         .program_path = command.program,
         .prover_input_path = command.prover_input,
@@ -255,6 +265,7 @@ fn leafWrapCommand(gpa: std.mem.Allocator, command: cli.LeafWrap) !void {
             .compact_polynomial_min_log = command.compact_min_log,
             .recorder = if (command.profile) &recorder else null,
         },
+        .provers = provers,
     }, &timings);
     defer leaf.deinit();
     try writeLeafProof(&leaf, command.output);
@@ -405,7 +416,7 @@ fn parallelFoldJobs(allocator: std.mem.Allocator) usize {
 
 /// `stwo_run_and_prove_recursive_tree`: loads the leaves and the registry,
 /// folds and writes the three root files.
-fn foldTreeCommand(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
+fn foldTreeCommandWith(provers: *const circuit_cpu.prove.Provers, gpa: std.mem.Allocator, command: cli.FoldTree) !void {
     var arena_state = std.heap.ArenaAllocator.init(gpa);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
@@ -418,9 +429,9 @@ fn foldTreeCommand(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
     }
     const registry = try wire.registry.parseRegistry(arena, try readFile(arena, command.circuit_registry_json));
 
-    var recorder = prover.stage_profile.Recorder.init(gpa, "cpu", "circuit-fold-tree");
+    var recorder = prover.stage_profile.Recorder.init(gpa, provers.backend_name, "circuit-fold-tree");
     defer recorder.deinit();
-    var files = try foldTreeProfiled(gpa, registry.registry, leaves, if (command.profile) &recorder else null);
+    var files = try foldTreeWithProfiled(gpa, registry.registry, leaves, provers, if (command.profile) &recorder else null);
     defer files.deinit();
     try writeFile(command.proof_path, files.proof.written());
     try writeFile(command.program_output, files.outputs.written());
