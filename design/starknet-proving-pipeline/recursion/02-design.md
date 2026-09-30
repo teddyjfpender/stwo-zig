@@ -81,6 +81,30 @@ before editing):
    trace log 25–29) and the production registry need canonical Cairo roots
    and circuits beyond this host (§8.3), so they move to a big-host gate
    listed in the M6 row of §10.
+10. **M9 closes locally on the canonical_small test registry.**
+   - `recursion/{canonical,fold,tree}.zig` live in
+     `src/integrations/circuit_cpu/recursion/`, not in the frontend (§2.2):
+     a fold proves and reads and writes the recursion wire formats, and the
+     frontend may depend on neither. Registry generation is
+     `recursion/circuit_params.zig` beside them. The product is
+     `stwo-circuit-recursion-cpu` (`fold-tree`, `circuit-params`) with
+     upstream's flag names; `leaf-wrap` (M8) and `verify` are not in it yet.
+   - R9 is `circuit-parity-r9` (circuit CPU integration): 1, 2, 3, 4 and 5
+     copies of the golden leaf, all three root files as raw bytes, against
+     the upstream four-leaf goldens and the oracle's new `fold-tree`
+     checkpoint (`vectors/circuit/r9/fold_tree.json`), which runs
+     upstream's tree library on the same leaves. The release binary wrote
+     the same bytes. Per-internal-node CircuitSerialize digests are not
+     recorded: upstream emits no internal node, and every internal proof is
+     bound by the root bytes.
+   - Registry generation (`circuit-parity-registry`) reproduces both
+     canonical_small test registries byte for byte from their upstream
+     definitions; the committed registries equal the release
+     `circuit-params --registry` output byte for byte.
+   - The per-key committed-tree cache of §7.2 and §9.2 is not built: each
+     reduction commits the canonical preprocessed trace again, as upstream
+     does. One fold takes 50-65 s and up to 18 GB here against upstream's
+     20 s and 22.7 GB; speed and the 8 GB host budget are M11.
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
@@ -1321,7 +1345,7 @@ work can be started earlier against committed fixtures.
 | **M6** | Cairo statement and leaf topology | `statements/cairo_statement.zig`, `cairo_public_data.zig`, variants, enabled_bits | R6 leaf, from committed Cairo-root fixtures (M0): canonical_small trace_log 20, `get_preprocessed_root` 21/22/23; all 83 slots confirmed; then, on the big host, production and privacy registries against big-host fixtures (errata 9) | M0 (Cairo-root fixtures), M4, M5 | 3 wk |
 | **M7** | Circuit prover (scalar and SIMD CPU) | `air/*`, `witness/*`, `proving/*`, generalised composition AOT step, `src/integrations/circuit_cpu` | R7 green, including interaction-column hashes; both grinds (20-bit interaction, 26-bit FRI) per §4.7 on the `.internal` (M31) and `.root` (plain) profiles; multiverifier `proof.bin` reproduced exactly; Rust verifier accepts Zig proofs; builder-share and grind-time measurements recorded | M0 (bundle), M1, M3, M5 | 4–5 wk |
 | **M8** | Leaf wrap (Stage A) | `recursion/leaf_wrap.zig`, `topology_key.zig`, `topology_cache.zig`, product `leaf-wrap` | R8 both gates (expected_output.json; mainnet 1,580,295-step bucket-25 leaf); then, on the big host, R10d (Zig Cairo proof of SN_PIE_2 wrapped by Zig == release `leaf-prover`, errata 8) | M6, M7 (R10d also M10) | 1.5 wk |
-| **M9** | Fold tree and root | `recursion/{fold,tree,canonical}.zig`, product `fold-tree`, `circuit-params` | R9 raw bytes on four_leaves and N = 1, 2, 3, 5; R11 green. Parity-complete for Stage A. | M7, M8 | 2 wk |
+| **M9** | Fold tree and root | `recursion/{fold,tree,canonical}.zig`, product `fold-tree`, `circuit-params` | R9 raw bytes on four_leaves and N = 1, 2, 3, 5 (Rust-produced leaf fixtures, test registry); registry generation byte-identical for the test definitions (errata 10). Parity-complete for Stage A. | M7, M8 | 2 wk |
 | **M10** | Zig Cairo leaf lane (Stage B) | `src/frontends/cairo` channel/revision parameterisation, include-all, AtLeastPreprocessed, public-data mix, params loader, CPU M31 grind | R10a–R10c; Cairo-lane vectors unchanged except the §4.7 PoW order (R10d is a big-host gate after M8, errata 8) | M1 (parallel to M2–M9) | 4–6 wk |
 | **M11** | CPU performance | caches, streaming commit, low-memory policy, scheduler, static budget | ladder still green after every change; the §9.4 CPU targets measured, pass or fail reported honestly | M9 | 3–4 wk |
 | **M12** | Metal, then CUDA | `src/integrations/circuit_{metal,cuda}`, §4.7 grind kernels (M31 and plain Blake2s; 20 and 26 bits, plus 24 for Stage B), gather and blake_g kernels | R7–R9 on device byte-equal to CPU scalar; fail-closed capability checks | M11 | 4–6 wk |
