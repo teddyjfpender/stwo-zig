@@ -29,7 +29,10 @@ const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
-const CpuBackend = @import("stwo_cpu_backend").CpuBackend;
+/// The CPU backend with the Cairo product's wide LDE preparation: fused
+/// per-column extension jobs in a product-bounded batch, so a 2^23-row
+/// tree's FFTs occupy every worker. Commitment bytes are unchanged.
+const CpuBackend = @import("stwo_cpu_backend").configured(.{ .wide_preparation = true });
 const air = @import("air.zig");
 
 const M31 = core.fields.m31.M31;
