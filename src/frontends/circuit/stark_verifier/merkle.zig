@@ -112,3 +112,7 @@ pub fn decommitEvalDomainSamples(
         }
     }
 }
+
+test {
+    _ = @import("merkle_test.zig");
+}

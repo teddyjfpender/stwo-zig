@@ -129,3 +129,7 @@ pub const Channel = struct {
         self.updateDigest(try blake.blake2sM31(V, ctx, &.{ self.digest.low, self.digest.high, nonce }, 40));
     }
 };
+
+test {
+    _ = @import("channel_test.zig");
+}
