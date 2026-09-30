@@ -169,7 +169,13 @@ __host__ __device__ __forceinline__ void fraction_at(
         numerator = f::mul(first.numerator, f::one());
         denominator = d0;
     }
-    if (is_zero(denominator)) atomicOr(error, 2u);
+    if (is_zero(denominator)) {
+#if defined(__CUDA_ARCH__)
+        atomicOr(error, 2u);
+#else
+        *error |= 2u;
+#endif
+    }
     const unsigned at = 4u * column;
     columns.out[at][row] = numerator.a.a;
     columns.out[at + 1u][row] = numerator.a.b;
