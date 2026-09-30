@@ -1490,6 +1490,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "circuit-cairo-serialize"
+version = "2.4.0"
+source = "git+https://github.com/starkware-libs/proving?rev=5a7c5ede4299c91a61df19a07cba4f7502c14230#5a7c5ede4299c91a61df19a07cba4f7502c14230"
+dependencies = [
+ "cairo-air",
+ "circuit-verifier",
+ "starknet-ff",
+ "stwo",
+ "stwo-cairo-serialize",
+]
+
+[[package]]
 name = "circuit-cairo-verifier"
 version = "2.4.0"
 source = "git+https://github.com/starkware-libs/proving?rev=5a7c5ede4299c91a61df19a07cba4f7502c14230#5a7c5ede4299c91a61df19a07cba4f7502c14230"
@@ -1556,6 +1568,20 @@ dependencies = [
  "stwo-cairo-common",
  "stwo-cairo-prover",
  "stwo-constraint-framework",
+]
+
+[[package]]
+name = "circuit-registry"
+version = "2.4.0"
+source = "git+https://github.com/starkware-libs/proving?rev=5a7c5ede4299c91a61df19a07cba4f7502c14230#5a7c5ede4299c91a61df19a07cba4f7502c14230"
+dependencies = [
+ "circuit-common",
+ "leaf-proof-format",
+ "serde",
+ "serde_json",
+ "stwo",
+ "stwo-cairo-common",
+ "thiserror",
 ]
 
 [[package]]
@@ -2045,6 +2071,26 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "env_filter"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "900d271a03799a1ee8d1ca9b19893b48ca674a9284fefcfb85f05e74ed314217"
+dependencies = [
+ "log",
+ "regex",
+]
+
+[[package]]
+name = "env_logger"
+version = "0.11.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de671bd27a75a797dc9ae289ba1e77276e75e2026408aab65185384e2d5cd3f6"
+dependencies = [
+ "env_filter",
+ "log",
 ]
 
 [[package]]
@@ -4248,6 +4294,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "stwo-cairo-utils"
+version = "2.4.0"
+source = "git+https://github.com/starkware-libs/proving?rev=5a7c5ede4299c91a61df19a07cba4f7502c14230#5a7c5ede4299c91a61df19a07cba4f7502c14230"
+dependencies = [
+ "env_logger",
+ "log",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "stwo-circuit-oracle"
 version = "0.1.0"
 dependencies = [
@@ -4263,6 +4320,7 @@ dependencies = [
  "circuit-common",
  "circuit-multiverifier",
  "circuit-prover",
+ "circuit-registry",
  "circuit-serialize",
  "circuit-verifier",
  "circuits",
@@ -4286,6 +4344,7 @@ dependencies = [
  "stwo-cairo-prover",
  "stwo-constraint-framework",
  "stwo-examples",
+ "stwo-run-and-prove-recursive-tree",
 ]
 
 [[package]]
@@ -4317,6 +4376,33 @@ dependencies = [
  "stwo-constraint-framework",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "stwo-run-and-prove-recursive-tree"
+version = "2.4.0"
+source = "git+https://github.com/starkware-libs/proving?rev=5a7c5ede4299c91a61df19a07cba4f7502c14230#5a7c5ede4299c91a61df19a07cba4f7502c14230"
+dependencies = [
+ "blake2",
+ "circuit-cairo-serialize",
+ "circuit-common",
+ "circuit-multiverifier",
+ "circuit-prover",
+ "circuit-registry",
+ "circuit-serialize",
+ "circuit-verifier",
+ "circuits",
+ "circuits-stark-verifier",
+ "clap",
+ "leaf-proof-format",
+ "serde",
+ "serde_json",
+ "sonic-rs",
+ "starknet-types-core",
+ "stwo",
+ "stwo-cairo-utils",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]

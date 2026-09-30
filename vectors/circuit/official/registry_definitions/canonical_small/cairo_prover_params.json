@@ -1,0 +1,16 @@
+{
+    "channel_hash": "blake2s",
+    "channel_salt": 0,
+    "preprocessed_trace": "canonical_small",
+    "fri_config": {
+        "pow_bits": 16,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70,
+        "fold_step": 1
+    },
+    "store_polynomials_coefficients": false,
+    "include_all_preprocessed_columns": true,
+    "opt_n_id_to_big_components": 16,
+    "lifting_size_policy": "at_least_preprocessed"
+}

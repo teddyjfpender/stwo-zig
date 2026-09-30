@@ -7,7 +7,7 @@ port's parity ladder compares against (design:
 `design/starknet-proving-pipeline/recursion/02-design.md` §8). Released Zig
 products never build, invoke, or distribute it.
 
-Every subcommand runs in seconds. Most only build circuits or hash data;
+Every subcommand but `fold-tree` runs in seconds. Most only build circuits or hash data;
 `prove-small` and `prove-profiles` prove small circuits, `prove-cairo` proves a small Cairo
 program (about 2 GB for the committed all_opcodes and all_builtins fixtures;
 larger programs belong on a big host), and `topology` and `verifier-stages`
@@ -16,6 +16,9 @@ resident memory on the 36 GB development host: `topology` 7.1 GB,
 `verifier-stages` 3.9 GB, `prove-small` 2.9 GB, the rest under 100 MB. Run the
 heavy ones under the host's heavy-command wrapper; `topology` is close to an
 8 GB per-process budget, so do not run it beside another multi-GB process.
+`fold-tree` proves fifteen 2^23-row multiverifiers with upstream's recursive
+tree (6 minutes and 22.7 GB peak on an Apple M4 Max): run it alone, on the
+recursive-tree test registry only.
 
 | Subcommand | Rung | Content |
 |---|---|---|
@@ -27,6 +30,7 @@ heavy ones under the host's heavy-command wrapper; `topology` is close to an
 | `verifier-stages` | R4 | The multiverifier over `test_data/circuit_multiverifier/{proof,proof_cairo}.bin`, summarized after every stage of `build_multiverifier_circuit` and `stark_verifier::verify` |
 | `finalize` | R5 | The `prover_test.rs` circuits after `finalize_constants`, guess finalization, each padding kind, and ZK blinding |
 | `topology` | R6 | Both checked-in registries' multiverifiers rebuilt (layout, per-column digests, preprocessed root, circuit hash); the canonical_small Cairo preprocessed roots at log blowups 1-3 |
+| `fold-tree` | R9 | Upstream `stwo_run_and_prove_recursive_tree` over 1, 2, 3, 4 and 5 copies of `test_data/goldens/four_leaves/leaf.json` under the recursive-tree test registry; the four-leaf tree must equal the committed goldens byte for byte, and each tree's `root_outputs.json` and `root_packed.json` are recorded verbatim, its `root.proof` by length and SHA-256, with its layer and reduction counts |
 | `prove-small` | R7 | Proofs of the `prover_test.rs` circuits, mirrored step by step: transcript digests, per-column digests, claimed sums, roots, FRI layer roots, nonces |
 | `prove-profiles` | R7 | `fibonacci` and `blake_g_gate` under the circuit FRI config (26 PoW bits, blowup 1, 70 queries, fold step 4) on both channel profiles (`Blake2sM31MerkleChannel`, `Blake2sMerkleChannel`), with the `prove-small` records and the verdict of upstream's native `stwo_verify` on each proof: both grinds in `SimdBackend` order, most nonces with `hi > 0` |
 | `multiverifier-inputs` | R7 | The multiverifier `test_data/circuit_multiverifier/proof.bin` proves (two copies of `proof_cairo.bin`, padded to the privacy targets), written as the circuit prover's inputs (`--inputs-output`, `STWZCIRC/1`: gate lists and value table, 179 MB, outside the tree); the checkpoint pins that file, the circuit digests, the preprocessed root and `proof.bin` |
@@ -47,7 +51,7 @@ cargo run --release --locked -- components \
 
 Run Cargo from this directory so `rust-toolchain.toml` selects
 `nightly-2026-01-15`. `components`, `statement-trace`, `project-air`,
-`verifier-stages`, `topology` and `cairo-statement` read data files from a `proving` checkout and
+`verifier-stages`, `topology`, `cairo-statement` and `fold-tree` read data files from a `proving` checkout and
 refuse any checkout whose inputs differ from the pinned revision's
 (`src/upstream.rs` and each subcommand's pinned aggregate digest). `prove-small`
 takes `--memory-budget BYTES` (default 4 GiB) and refuses a circuit whose

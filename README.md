@@ -81,6 +81,7 @@ These build settings do not change prover worker policy or proof identities.
 | `stwo-zig-riscv-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT RV32IM CLI with resident-AIR and zero-fallback evidence |
 | `stwo-cairo-cpu` | Zig-supported hosts with Rust build tooling | Released CPU/SIMD CLI; complete admitted corpus accepted by official Rust |
 | `stwo-cairo-metal` | macOS with Apple Metal | Parity-gated authenticated-AOT CLI; exact CPU parity, zero-fallback telemetry, and official Rust acceptance across the release corpus |
+| `stwo-circuit-recursion-cpu` | Zig-supported hosts | Parity-gated recursive tree (`fold-tree`) and registry generation (`circuit-params`) CLI; byte-identical to StarkWare's `proving@5a7c5ed` binaries on the canonical_small test registries |
 | CUDA products | Current NVIDIA qualification host pending | Working source retained, distribution deferred, and no fallback or placeholder execution |
 
 The checked four-PIE Cairo coverage record is proof-independent: PIE bytes

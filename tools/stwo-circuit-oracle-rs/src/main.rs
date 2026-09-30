@@ -14,6 +14,7 @@ mod contexts;
 #[path = "../../stwo-eval-program-abi/src/lib.rs"]
 mod eval_program_abi;
 mod finalize;
+mod fold_tree;
 mod gadgets;
 mod goldens;
 mod multiverifier_inputs;
@@ -46,6 +47,7 @@ const USAGE: &str = "usage: stwo-circuit-oracle primitives [--output PATH]
        stwo-circuit-oracle verify-circuit --proof PATH --request PATH [--output PATH]
        stwo-circuit-oracle air-programs [--output PATH]
        stwo-circuit-oracle topology --proving-root DIR [--output PATH]
+       stwo-circuit-oracle fold-tree --proving-root DIR [--output PATH]
        stwo-circuit-oracle verifier-stages --proving-root DIR [--output PATH]
        stwo-circuit-oracle cairo-statement --proving-root DIR [--output PATH]
        stwo-circuit-oracle prove-lifted-example [--output PATH]
@@ -136,6 +138,7 @@ fn main() -> Result<()> {
         "project-air" => project_air::run(root()?)?,
         "air-programs" => air_programs::run()?,
         "topology" => output::json(&topology::run(root()?)?)?,
+        "fold-tree" => output::json(&fold_tree::run(root()?)?)?,
         "verifier-stages" => output::json(&verifier_stages::run(root()?)?)?,
         "cairo-statement" => output::json(&cairo_statement::run(root()?)?)?,
         "prove-lifted-example" => prove_lifted_example::run()?,
@@ -150,7 +153,9 @@ fn main() -> Result<()> {
         )?,
         "prove-cairo" => {
             let proved = prove_cairo::run(
-                prover_input.as_deref().context("prove-cairo requires --prover-input")?,
+                prover_input
+                    .as_deref()
+                    .context("prove-cairo requires --prover-input")?,
                 params.as_deref().context("prove-cairo requires --params")?,
                 proving_root.as_deref(),
                 lifting_size_policy

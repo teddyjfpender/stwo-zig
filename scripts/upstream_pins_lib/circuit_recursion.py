@@ -56,6 +56,7 @@ ORACLE_ARTIFACTS = (
     (f"{VECTORS}/r7/prove_profiles.json", "r7", "prove-profiles", False),
     (f"{VECTORS}/official/circuit_air.air_programs_v1.bin", "r7", "air-programs", False),
     (f"{VECTORS}/r6/cairo_statement.json", "r6", "cairo-statement", True),
+    (f"{VECTORS}/r9/fold_tree.json", "r9", "fold-tree", True),
 )
 # (fixture, rung, adapted ProverInput under the repository root, registry in the proving
 # checkout) for `prove-cairo`, the leaf-lane Cairo proofs (R10c). The inputs are the
@@ -169,6 +170,34 @@ UPSTREAM_COPIES = (
     (
         f"{VECTORS}/official/leaf_prover/expected_output.json",
         "crates/leaf_prover/tests/data/expected_output.json",
+    ),
+    (
+        f"{VECTORS}/official/programs/leaf_simple_bootloader_compiled.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/leaf_simple_bootloader_compiled.json",
+    ),
+    (
+        f"{VECTORS}/official/registry_definitions/canonical_small/definition.json",
+        "circuit_registry_definitions/canonical_small/definition.json",
+    ),
+    (
+        f"{VECTORS}/official/registry_definitions/canonical_small/cairo_prover_params.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/cairo_prover_params.json",
+    ),
+    (
+        f"{VECTORS}/official/registry_definitions/canonical_small/circuit_fri_config.json",
+        "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_fri_config.json",
+    ),
+    (
+        f"{VECTORS}/official/registry_definitions/leaf_prover_canonical_small/definition.json",
+        "crates/leaf_prover/tests/data/circuit_registry_definition_canonical_small.json",
+    ),
+    (
+        f"{VECTORS}/official/registry_definitions/leaf_prover_canonical_small/cairo_prover_params.json",
+        "crates/leaf_prover/tests/data/cairo_prover_params_canonical_small.json",
+    ),
+    (
+        f"{VECTORS}/official/registry_definitions/leaf_prover_canonical_small/circuit_fri_config.json",
+        "crates/leaf_prover/tests/data/circuit_fri_config_canonical_small.json",
     ),
     (
         f"{VECTORS}/official/recursive_tree/four_leaves/leaf.json",

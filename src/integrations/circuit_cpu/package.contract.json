@@ -23,6 +23,7 @@
     "Internal",
     "Root",
     "air",
+    "cairo_verifier_proof",
     "prove",
     "recursion",
     "verifier_proof"

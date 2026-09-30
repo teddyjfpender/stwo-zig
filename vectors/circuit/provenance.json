@@ -8,8 +8,8 @@
     "manifest": "tools/stwo-circuit-oracle-rs/Cargo.toml",
     "toolchain": "nightly-2026-01-15",
     "lock": "tools/stwo-circuit-oracle-rs/Cargo.lock",
-    "lock_sha256": "c275004ff32d5f5a8460c2359f6a23876c06087af458c135578bc0bd1b5bfadf",
-    "source_sha256": "e4f8a75acdea9b59ed1c560e8c8de45fc442f0776b20074005b3f2d2c36774fe"
+    "lock_sha256": "4aedd6bd869d7e2fa46f12dc30bcd20a607ec1225083180c087513d2af9a93ac",
+    "source_sha256": "698c14c385a935f5cdc254d787e52fee2d55a5a26de9b0e4f0849037db6299cc"
   },
   "generator": "scripts/generate_circuit_oracle_vectors.py",
   "generated_on": "2026-09-30",
@@ -82,6 +82,12 @@
       "sha256": "18c3e1dd245e93f0e08831291b4e5cc3374d47d10517a216def6b25683376d29"
     },
     {
+      "path": "vectors/circuit/official/programs/leaf_simple_bootloader_compiled.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/leaf_simple_bootloader_compiled.json",
+      "bytes": 1563071,
+      "sha256": "5e2befae48dcdea8d19dc655e40ac236285d049d12573bfb341bec9ce39182f5"
+    },
+    {
       "path": "vectors/circuit/official/programs/use_all_opcodes_and_builtins_compiled.json",
       "upstream_path": "crates/leaf_prover/tests/data/use_all_opcodes_and_builtins_compiled.json",
       "bytes": 585859,
@@ -128,6 +134,42 @@
       "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
       "bytes": 1970,
       "sha256": "438ad2b5f9324306d20d3cc0297d1574d34a46d776f9cf884d99715245c74ab2"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/canonical_small/cairo_prover_params.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/cairo_prover_params.json",
+      "bytes": 455,
+      "sha256": "bc01843047672cf162e92fcbb3ed7f64c9d4d3132c39e0d7b6394971f012b69e"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/canonical_small/circuit_fri_config.json",
+      "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_fri_config.json",
+      "bytes": 130,
+      "sha256": "f16869efc3316afc71f14e99b5732c8d99a6afeb981b918e318b9dcf05a4cd04"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/canonical_small/definition.json",
+      "upstream_path": "circuit_registry_definitions/canonical_small/definition.json",
+      "bytes": 583,
+      "sha256": "c60f28c16ee64ca97ac4029906c4c0be455e70313c36db63e6b56cc98fbf0c0c"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/leaf_prover_canonical_small/cairo_prover_params.json",
+      "upstream_path": "crates/leaf_prover/tests/data/cairo_prover_params_canonical_small.json",
+      "bytes": 455,
+      "sha256": "bc01843047672cf162e92fcbb3ed7f64c9d4d3132c39e0d7b6394971f012b69e"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/leaf_prover_canonical_small/circuit_fri_config.json",
+      "upstream_path": "crates/leaf_prover/tests/data/circuit_fri_config_canonical_small.json",
+      "bytes": 130,
+      "sha256": "cb2763874bd586c8082b20a2bdbf53141239e5879befec56be340f5b09968050"
+    },
+    {
+      "path": "vectors/circuit/official/registry_definitions/leaf_prover_canonical_small/definition.json",
+      "upstream_path": "crates/leaf_prover/tests/data/circuit_registry_definition_canonical_small.json",
+      "bytes": 394,
+      "sha256": "f1bc1655685f17352d762637841b07f7bcf9dd640eb051850cbc702a5bd5c3e1"
     },
     {
       "path": "vectors/circuit/r0/primitives.json",
@@ -488,6 +530,20 @@
       ],
       "bytes": 4146,
       "sha256": "490dfdc5f130ce0a4218a98348fafa9eede4c5636763a8c77be89525e2777f33"
+    },
+    {
+      "path": "vectors/circuit/r9/fold_tree.json",
+      "rung": "r9",
+      "command": [
+        "stwo-circuit-oracle",
+        "fold-tree",
+        "--proving-root",
+        "<proving checkout at the pinned revision>",
+        "--output",
+        "vectors/circuit/r9/fold_tree.json"
+      ],
+      "bytes": 9152,
+      "sha256": "7e0691d1bc3865554ea7cec4019a3b610017146bd0bf0e13c4d2597dc0cbdb2f"
     }
   ]
 }

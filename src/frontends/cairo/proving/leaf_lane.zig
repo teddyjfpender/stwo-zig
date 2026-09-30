@@ -37,6 +37,16 @@ pub const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
 pub const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
 pub const Variant = preprocessed_variant.Variant;
 
+/// The Cairo preprocessed trace a `ProverParameters.preprocessed_trace`
+/// names.
+pub fn variantOf(trace: parameters.PreprocessedTraceVariant) Variant {
+    return switch (trace) {
+        .canonical => .canonical,
+        .canonical_small => .canonical_small,
+        .canonical_without_pedersen => .canonical_without_pedersen,
+    };
+}
+
 pub const Error = error{
     UnsupportedLiftingSizePolicy,
     LeafLaneRequiresAllPreprocessedColumns,
@@ -82,11 +92,7 @@ pub const Lane = struct {
                 fri.fold_step,
             ),
             .channel_salt = params.channel_salt,
-            .variant = switch (params.preprocessed_trace) {
-                .canonical => .canonical,
-                .canonical_small => .canonical_small,
-                .canonical_without_pedersen => .canonical_without_pedersen,
-            },
+            .variant = variantOf(params.preprocessed_trace),
             .memory_id_to_big_components = count,
             .store_polynomials_coefficients = params.store_polynomials_coefficients,
             .fixed_lifting_log_size = fixed_lifting_log_size,

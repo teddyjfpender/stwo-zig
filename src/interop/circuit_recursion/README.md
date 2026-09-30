@@ -42,6 +42,7 @@ flowchart LR
 | `SerializedLeafProof`, `DigestHex`, `LeafInput`, leaves manifest | `leaf_proof_json` | `leaf_proof_format`, `stwo_run_and_prove_recursive_tree/src/leaf_io.rs` |
 | `PackedNode` tree, root output digest | `packed_node` | `leaf_proof_format`, `stwo_run_and_prove_recursive_tree/src/output.rs` |
 | Circuit registry and its queries | `registry` | `circuit_registry`, `ProverParameters` |
+| Registry definition (`circuit-params --definition`) | `registry_definition` | `circuit_params::RegistryDefinition` |
 | Leaf output digest from a decimal felt preimage | `blake2_felt252` | `LeafInput::output_digest`, `Blake2Felt252::encode_felts_to_u32s` |
 | serde_json pretty and compact text | `json_text` | `serde_json` |
 
@@ -80,7 +81,8 @@ try wire.registry.writeRegistry(writer, registry.registry);
 | Root proof stream | `circuit_felt_stream` (`CairoCircuitProof`, `decode`, `encode`, `writeJson`, `sortAndTransposeQueriedValues`) |
 | Leaf files | `leaf_proof_json` (`DigestHex`, `SerializedLeafProof`, `LeafInput`, parse and write functions, `parseLeavesManifest`) |
 | Tree outputs | `packed_node` (`PackedNode`, `parsePackedNode`, `writePackedNode`, `writeRootOutputs`, `parseRootOutputs`) |
-| Registry | `registry` (`CircuitRegistry` with `config`, `leafVerifier`, `maxLeafTraceLogSize`, `multiverifier`) |
+| Registry | `registry` (`CircuitRegistry` with `config`, `leafVerifier`, `maxLeafTraceLogSize`, `multiverifier`; `parseProverParameters`, `parseFriConfig` for the definition's parameter files) |
+| Registry definition | `registry_definition` (`RegistryDefinition`, `parseRegistryDefinition`) |
 | Felt preimages | `blake2_felt252` (`parseDecimalFelt`, `appendFeltWords`, `outputDigest`) |
 | JSON text | `json_text` (`Writer`, strict field readers) |
 

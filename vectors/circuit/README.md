@@ -22,6 +22,7 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `r4/verifier_stages.json` | R4 | the multiverifier over `test_data/circuit_multiverifier/{proof,proof_cairo}.bin`, a gate summary after every verifier stage |
 | `r5/finalize.json` | R5 | the `prover_test.rs` circuits after `finalize_constants`, guess finalization, each padding kind and ZK blinding |
 | `r6/topology.json` | R6 | both registries' multiverifiers rebuilt (layout, per-column digests, preprocessed root, circuit hash); the canonical_small Cairo preprocessed roots |
+| `r9/fold_tree.json` | R9 | upstream's recursive tree over 1-5 copies of the golden leaf: layer and reduction counts, `root_outputs.json` and `root_packed.json` verbatim, `root.proof` length and SHA-256; the four-leaf tree equals the `official/recursive_tree/four_leaves` goldens |
 | `r7/prove_small.json` | R7 | proofs of the `prover_test.rs` circuits: per-step transcript digests, per-column digests, claimed sums, roots, FRI, nonces |
 | `r7/prove_profiles.json` | R7 | `fibonacci` and `blake_g_gate` under the 26-bit circuit FRI config on the internal and root channel profiles, with the `prove_small.json` records |
 | `r7/multiverifier_inputs.json` | R7 | the multiverifier circuit `official/circuit_multiverifier/proof.bin` proves: digests of its gate lists and values, the preprocessed root, and the SHA-256 of the 179 MB `STWZCIRC/1` inputs file kept outside the tree |
@@ -34,6 +35,8 @@ host-specific. `python3 scripts/check_upstream_pins.py` rejects any drift. Regen
 | `official/recursive_tree/four_leaves/*` | R9 | the recursive tree's four-leaf goldens: `leaf.json` (`LeafInput`), `root.proof`, `root_outputs.json`, `root_packed.json` |
 | `r6/cairo_statement.json` | R6 | `CairoStatement` host facts: constants, leaf `enabled_bits`, ordered preprocessed ids, program limbs and hash, a synthetic `FlatClaim`'s aux data and mix digests, the leaf `ProofConfig` and proof size |
 | `official/programs/use_all_opcodes_and_builtins_compiled.json` | R6, R8 | upstream `crates/leaf_prover/tests/data/`: the leaf test program |
+| `official/programs/leaf_simple_bootloader_compiled.json` | registry | upstream `crates/stwo_run_and_prove_recursive_tree/test_data/`: the program of the recursive-tree registry definition |
+| `official/registry_definitions/{canonical_small,leaf_prover_canonical_small}/*.json` | registry | upstream `circuit-params` definitions of the two canonical_small test registries and the parameter files they name |
 | `r10/use_all_opcodes_and_builtins.prover_input.json` | R10c, R8 | the leaf prover's test program (`crates/leaf_prover/tests/data`) run and adapted by upstream `prove_leaf.rs` steps 1-2 |
 | `r10/all_opcodes.fixed_22.prove_cairo.json` | R10c | `all_opcodes` under `LiftingSizePolicy::Fixed(22)`: every tree, the preprocessed one included, lifted one level above its columns |
 | `r10/prove_lifted_example.json` | R10 lift | upstream's wide-Fibonacci prover test with the trace tree lifted 0, 1 and 3 levels: `bincode(StarkProof)` digests |
@@ -247,6 +250,22 @@ byte-identically; they stay in the tree because they are the only Rust-made
 instances of these formats, and producing them again needs a full leaf and
 fold proving run on a large host. Keep them until the ladder's R7-R9 rungs
 reproduce them from Zig.
+
+## R9 fold tree and registry generation
+
+`r9/fold_tree.json` (`fold-tree`) runs upstream's library entry point of the
+`stwo_run_and_prove_recursive_tree` binary on copies of the golden leaf, as
+its `dupe_and_fold` test does. `zig build circuit-parity-r9` (circuit CPU
+integration) folds the same leaves with the Zig tree and compares all three
+root files as raw bytes: the four-leaf tree against the upstream goldens,
+the others against this checkpoint. The release binary, run separately on the
+same manifests, wrote the same bytes.
+
+`zig build circuit-parity-registry` generates both canonical_small registries
+from their definitions (`official/registry_definitions`) and compares them
+with the committed registries byte for byte. The committed registries are the
+release `circuit-params --registry` output for those definitions, byte for
+byte (upstream's own slow test compares them only as JSON).
 
 ## Leaf-lane Cairo proofs (R10c)
 

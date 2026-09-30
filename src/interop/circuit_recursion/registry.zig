@@ -161,6 +161,22 @@ pub fn parseRegistry(gpa: std.mem.Allocator, text: []const u8) ReadError!OwnedRe
     } };
 }
 
+/// A `ProverParameters` JSON file (`serde_json::from_str`), such as a
+/// registry definition's `cairo_prover_params_json`.
+pub fn parseProverParameters(gpa: std.mem.Allocator, text: []const u8) ReadError!ProverParameters {
+    var parsed = try json_text.parse(gpa, text);
+    defer parsed.deinit();
+    return readProverParameters(try json_text.object(parsed.value));
+}
+
+/// A `FriConfig` JSON file, such as a registry definition's
+/// `circuit_fri_config_json`.
+pub fn parseFriConfig(gpa: std.mem.Allocator, text: []const u8) ReadError!FriConfig {
+    var parsed = try json_text.parse(gpa, text);
+    defer parsed.deinit();
+    return readFriConfig(try json_text.object(parsed.value));
+}
+
 fn nameLessThan(_: void, lhs: NamedProofConfig, rhs: NamedProofConfig) bool {
     return std.mem.lessThan(u8, lhs.name, rhs.name);
 }
@@ -211,16 +227,20 @@ fn readFriConfig(map: std.json.ObjectMap) ReadError!FriConfig {
 }
 
 fn readProofConfig(map: std.json.ObjectMap) ReadError!CircuitProofConfig {
-    const sizes = try json_text.object(try json_text.field(map, "component_log_sizes"));
     return .{
         .fri_config = try readFriConfig(try json_text.object(try json_text.field(map, "fri_config"))),
-        .component_log_sizes = .{
-            .eq = try json_text.unsigned(u32, try json_text.field(sizes, "eq")),
-            .qm31_ops = try json_text.unsigned(u32, try json_text.field(sizes, "qm31_ops")),
-            .m31_to_u32 = try json_text.unsigned(u32, try json_text.field(sizes, "m31_to_u32")),
-            .triple_xor = try json_text.unsigned(u32, try json_text.field(sizes, "triple_xor")),
-            .blake_g_gate = try json_text.unsigned(u32, try json_text.field(sizes, "blake_g_gate")),
-        },
+        .component_log_sizes = try readLogSizes(try json_text.object(try json_text.field(map, "component_log_sizes"))),
+    };
+}
+
+/// A `LogSizes` JSON object.
+pub fn readLogSizes(sizes: std.json.ObjectMap) ReadError!LogSizes {
+    return .{
+        .eq = try json_text.unsigned(u32, try json_text.field(sizes, "eq")),
+        .qm31_ops = try json_text.unsigned(u32, try json_text.field(sizes, "qm31_ops")),
+        .m31_to_u32 = try json_text.unsigned(u32, try json_text.field(sizes, "m31_to_u32")),
+        .triple_xor = try json_text.unsigned(u32, try json_text.field(sizes, "triple_xor")),
+        .blake_g_gate = try json_text.unsigned(u32, try json_text.field(sizes, "blake_g_gate")),
     };
 }
 

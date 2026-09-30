@@ -25,6 +25,7 @@ const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
 const registry_codec = @import("stwo_circuit_recursion_wire").registry;
 const testing = @import("circuit_testing");
+const circuit_params = @import("stwo_circuit_cpu_integration").recursion.circuit_params;
 
 const builder = circuit.builder;
 const fixture = testing.fixture_json;
@@ -32,7 +33,6 @@ const finalize = circuit.common.finalize;
 const preprocessed = circuit.common.preprocessed;
 const circuit_hash = circuit.common.circuit_hash;
 const circuit_statement = circuit.statements.circuit_statement;
-const cairo_verifier = circuit.statements.cairo_verifier;
 const cairo_leaf_config = circuit.statements.cairo_leaf_config;
 const layout = core.cairo_air_layout;
 const ComponentSizes = finalize.ComponentSizes;
@@ -92,25 +92,26 @@ test "R6 leaf: the rebuilt canonical_small leaf verifier reproduces the registry
     const program = try cairo.statement.circuit_leaf.programFeltsFromCompiledJson(gpa, program_json);
     defer gpa.free(program);
 
-    // `leaf_verifier_config`, completed with the program, root and blinding.
-    var leaf_config = try cairo_leaf_config.leafVerifierConfig(gpa, &table, variant, cairo_params.fri_config, leaf.trace_log_size);
-    defer leaf_config.deinit(gpa);
-    try std.testing.expectEqual(@as(usize, 79), leaf_config.n_enabled_components);
-    const zk_blinding_amount: ?usize = if (leaf.zk_blinding) @as(usize, circuit_fri.n_queries) + cairo_verifier.NON_QUERY_INFO_LEAK else null;
-    const config = leaf_config.verifierConfig(program, cairo_root, zk_blinding_amount);
+    // `leaf_verifier_config`: 79 of the 83 Cairo slots are enabled.
+    {
+        var leaf_config = try cairo_leaf_config.leafVerifierConfig(gpa, &table, variant, cairo_params.fri_config, leaf.trace_log_size);
+        defer leaf_config.deinit(gpa);
+        try std.testing.expectEqual(@as(usize, 79), leaf_config.n_enabled_components);
+    }
 
-    const relation_ids = cairo.air.claims.relation_ids;
-    const constants: circuit.statements.cairo_statement.Constants = .{
-        .opcodes_relation_id = relation_ids.OPCODES.v,
-        .memory_address_to_id_relation_id = relation_ids.MEMORY_ADDRESS_TO_ID.v,
-        .memory_id_to_big_relation_id = relation_ids.MEMORY_ID_TO_BIG.v,
-        .memory = table.constants,
-    };
-
+    // `CircuitBuilder::build_context` with the committed root, then
     // `padded_preprocessed_circuit` at the registry's shared target.
+    const leaf_builder: circuit_params.LeafBuilder = .{
+        .table = &table,
+        .variant = variant,
+        .cairo_fri_config = cairo_params.fri_config,
+        .circuit_fri_config = circuit_fri,
+        .program = program,
+        .add_zk_blinding = leaf.zk_blinding,
+    };
     const target = ComponentSizes.fromLogSizes(circuit_config.component_log_sizes);
     var pp = blk: {
-        var ctx = try cairo_verifier.buildCairoVerifierTopology(gpa, &table, &config, constants, circuit.stark_verifier.verify.NoStages{});
+        var ctx = try leaf_builder.buildTopology(gpa, leaf.trace_log_size, cairo_root);
         defer ctx.deinit();
         const unpadded = finalize.computePaddedSizes(&ctx.circuit);
         try std.testing.expectEqual(target, target.elementwiseMax(unpadded));

@@ -567,6 +567,21 @@
         ]
       ]
     },
+    "circuit_recursion_cpu": {
+      "host": "linux",
+      "local": "hosted",
+      "description": "Circuit recursion CPU product: leaf wrap, recursive tree and registry generation CLI (recursion M8, M9)",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test-circuit-recursion-cpu-product",
+          "stwo-circuit-recursion-cpu",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
+    },
     "cairo_metal": {
       "host": "macos",
       "hosted": false,
@@ -751,6 +766,9 @@
     "cairo_metal": [
       "cairo_metal"
     ],
+    "circuit_recursion_cpu": [
+      "circuit_recursion_cpu"
+    ],
     "native_cuda": [
       "native_cuda_static",
       "native_cuda_device"
@@ -817,6 +835,7 @@
         "riscv_metal",
         "cairo_cpu",
         "cairo_metal",
+        "circuit_recursion_cpu",
         "aggregate_cpu",
         "native_metal",
         "aggregate_metal"
@@ -1115,7 +1134,17 @@
       ],
       "lanes": [
         "circuit_frontend",
-        "circuit_cpu_integration"
+        "circuit_cpu_integration",
+        "circuit_recursion_cpu"
+      ]
+    },
+    {
+      "prefixes": [
+        "build_support/products/circuit_recursion_cpu.zig",
+        "src/products/circuit_recursion_cpu"
+      ],
+      "lanes": [
+        "circuit_recursion_cpu"
       ]
     },
     {
@@ -1146,7 +1175,8 @@
       ],
       "lanes": [
         "cairo_cpu",
-        "cairo_metal"
+        "cairo_metal",
+        "circuit_recursion_cpu"
       ]
     },
     {

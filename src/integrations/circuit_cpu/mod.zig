@@ -7,6 +7,7 @@
 pub const air = @import("air.zig");
 pub const prove = @import("prove.zig");
 pub const verifier_proof = @import("verifier_proof.zig");
+pub const cairo_verifier_proof = @import("cairo_verifier_proof.zig");
 pub const recursion = @import("recursion/mod.zig");
 
 pub const Internal = prove.Internal;
@@ -27,5 +28,6 @@ test {
     _ = air;
     _ = prove;
     _ = verifier_proof;
+    _ = cairo_verifier_proof;
     _ = recursion;
 }

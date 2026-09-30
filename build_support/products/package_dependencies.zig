@@ -125,6 +125,19 @@ pub const cairo_cpu_protocol_package_roots = &.{
     "dependency:../src/prover_api:mod.zig",
 };
 
+pub const circuit_recursion_cpu_protocol_package_roots = &.{
+    "dependency:../src/backend:mod.zig",
+    "dependency:../src/backends/cpu_scalar:mod.zig",
+    "dependency:../src/core:mod.zig",
+    "dependency:../src/frontends/cairo:mod.zig",
+    "dependency:../src/frontends/circuit:mod.zig",
+    "dependency:../src/integrations/cairo_cpu:mod.zig",
+    "dependency:../src/integrations/circuit_cpu:mod.zig",
+    "dependency:../src/interop/circuit_recursion:mod.zig",
+    "dependency:../src/prover:mod.zig",
+    "dependency:../src/prover_api:mod.zig",
+};
+
 pub const cairo_metal_cpu_protocol_package_roots = &.{
     "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
