@@ -1,0 +1,136 @@
+{
+ "format": "stwo-zig-starknet-mainnet-pies-v1",
+ "chain": "SN_MAIN",
+ "starknet_version": "0.14.3",
+ "producer": {
+  "snos": "keep-starknet-strange/snos feature/0.14.3 @38cabc9 (sequencer APOLLO-0.14.3-RC.15), layout all_cairo, full_output=1, use_kzg_da=0",
+  "aggregator": "tools/starknet-aggregator-rs (starknet_os::runner::run_aggregator, APOLLO-0.14.3-RC.15)",
+  "rpc": "recorded via tools/starknet-block-collector from Cartridge mainnet and https://mainnet.nodes.starknet.org/rpc/v0_10"
+ },
+ "pies": [
+  {
+   "file": "pies/aggregator/aggregator-15627902-15627907_x1.zip",
+   "sha256": "b60d137c4c87cf3b1a7a16690fc0239286b60bae6a785bd4e71991c09a9e379d",
+   "bytes": 114915,
+   "n_steps": 17325,
+   "n_memory_holes": 17,
+   "blocks": [
+    15627902,
+    15627907
+   ],
+   "initial_root": null,
+   "final_root": null,
+   "builtins": {
+    "output_builtin": 312,
+    "range_check_builtin": 922
+   },
+   "note": "Starknet aggregator run over the leaf outputs (1 leaf: 15627902-15627907; x2: 15627902-15627904 + 15627905-15627907); output = [n_tasks, per-task bootloader outputs, combined OS output]"
+  },
+  {
+   "file": "pies/leaves/15627902-15627904.zip",
+   "sha256": "91df995bc7f9950a52a2deccff84e5a65aa5b56be5eae9ed5abec0d5ba11e21e",
+   "bytes": 7612934,
+   "n_steps": 1224007,
+   "n_memory_holes": 225048,
+   "blocks": [
+    15627902,
+    15627904
+   ],
+   "initial_root": "0x503c672070275a03c6ffc1c1c639b8242010d47784eb9290b1acfa5a69db6b8",
+   "final_root": "0x44eb983c7f8784f47fa61b0076471f2d0b3dcb4f1509700ffbc6d2118f98aef",
+   "builtins": {
+    "output_builtin": 206,
+    "range_check_builtin": 66022,
+    "pedersen_builtin": 2486,
+    "bitwise_builtin": 32,
+    "ec_op_builtin": 15,
+    "poseidon_builtin": 414
+   }
+  },
+  {
+   "file": "pies/leaves/15627902-15627907.zip",
+   "sha256": "0550d445d6262b6b976ab6b4a19151e31a31c7a58170fbc59b8fa5f1ef1ffd46",
+   "bytes": 9739933,
+   "n_steps": 1580295,
+   "n_memory_holes": 253031,
+   "blocks": [
+    15627902,
+    15627907
+   ],
+   "initial_root": "0x503c672070275a03c6ffc1c1c639b8242010d47784eb9290b1acfa5a69db6b8",
+   "final_root": "0x6489e07861160ed59ea887855f45a73140d3029ac1a608d8d50eb161804c207",
+   "builtins": {
+    "output_builtin": 248,
+    "range_check_builtin": 83322,
+    "pedersen_builtin": 4766,
+    "bitwise_builtin": 60,
+    "ec_op_builtin": 33,
+    "poseidon_builtin": 740
+   }
+  },
+  {
+   "file": "pies/leaves/15627905-15627907.zip",
+   "sha256": "e7e76d57001b6b05eac0024d8b8262a85ce496c95e96c9f22f4f6e71079f22f6",
+   "bytes": 5204748,
+   "n_steps": 785807,
+   "n_memory_holes": 174804,
+   "blocks": [
+    15627905,
+    15627907
+   ],
+   "initial_root": "0x44eb983c7f8784f47fa61b0076471f2d0b3dcb4f1509700ffbc6d2118f98aef",
+   "final_root": "0x6489e07861160ed59ea887855f45a73140d3029ac1a608d8d50eb161804c207",
+   "builtins": {
+    "output_builtin": 188,
+    "range_check_builtin": 40370,
+    "pedersen_builtin": 2280,
+    "bitwise_builtin": 28,
+    "ec_op_builtin": 18,
+    "poseidon_builtin": 326
+   }
+  },
+  {
+   "file": "pies/leaves/15630654-15630683.zip",
+   "sha256": "8391e1f1770dc295d9aecb1df6811d16cdcd7d903801f8f88417a7829f70938f",
+   "bytes": 79122114,
+   "n_steps": 13370386,
+   "n_memory_holes": 1176613,
+   "blocks": [
+    15630654,
+    15630683
+   ],
+   "initial_root": "0x75c7ce2807bd4a31ed3d1aa5e36c7fde7e529d8d68918d6ba888a912e69de03",
+   "final_root": "0x5c70350bd4c918a2c7e5cfe7ae5bb098e8d3fee32f1cf2da1214663da36668f",
+   "builtins": {
+    "output_builtin": 1082,
+    "range_check_builtin": 706798,
+    "pedersen_builtin": 51680,
+    "keccak_builtin": 24,
+    "bitwise_builtin": 2770,
+    "ec_op_builtin": 135,
+    "poseidon_builtin": 9282,
+    "range_check96_builtin": 44430,
+    "add_mod_builtin": 66,
+    "mul_mod_builtin": 10455
+   }
+  },
+  {
+   "file": "pipeline/15627902-15627907_x2/aggregator-15627902-15627907.zip",
+   "sha256": "e391308abff8fed025eec3990c0509982d583f4bc3a8cd7ed037536bf25b9c15",
+   "bytes": 124242,
+   "n_steps": 18816,
+   "n_memory_holes": 20,
+   "blocks": [
+    15627902,
+    15627907
+   ],
+   "initial_root": null,
+   "final_root": null,
+   "builtins": {
+    "output_builtin": 460,
+    "range_check_builtin": 960
+   },
+   "note": "Starknet aggregator run over the leaf outputs (1 leaf: 15627902-15627907; x2: 15627902-15627904 + 15627905-15627907); output = [n_tasks, per-task bootloader outputs, combined OS output]"
+  }
+ ]
+}

@@ -219,14 +219,22 @@ fn rebindDomainConstants(
         return;
     const source_stride = @as(u64, 1) << @intCast(source_log);
     const target_stride = @as(u64, 1) << @intCast(target_log);
-    for (1..claim_generator.memory_address_to_id_split) |chunk| {
-        const source = std.math.cast(u32, chunk * source_stride) orelse
+    const chunk_count = claim_generator.memory_address_to_id_split - 1;
+    var sources: [chunk_count]u32 = undefined;
+    var targets: [chunk_count]u32 = undefined;
+    var counts: [chunk_count]usize = undefined;
+    for (0..chunk_count) |index| {
+        const chunk = index + 1;
+        sources[index] = std.math.cast(u32, chunk * source_stride) orelse
             return error.InvalidTemplateGeometry;
-        const target = std.math.cast(u32, chunk * target_stride) orelse
+        targets[index] = std.math.cast(u32, chunk * target_stride) orelse
             return error.InvalidTemplateGeometry;
-        if (try program.replaceBaseConstant(source, target) == 0)
-            return error.MissingDomainConstant;
     }
+    // The chunk offsets of two log sizes overlap whenever they differ by fewer
+    // than log2(split) bits (e.g. 8 * 2^10 == 1 * 2^13), so sequential
+    // single-constant replacement would rewrite an already rebound offset.
+    try program.replaceBaseConstantsSimultaneous(&sources, &targets, &counts);
+    for (counts) |count| if (count == 0) return error.MissingDomainConstant;
 }
 
 fn rebindSequenceColumn(
@@ -378,4 +386,59 @@ test "sequence rebinding permits larger components without sequence inputs" {
         small.indexOf("blake_sigma_0").?,
         projected[0],
     );
+}
+
+test "memory address chunk offsets rebind exactly once for every live log size" {
+    const allocator = std.testing.allocator;
+    const library_path = try std.fs.cwd().realpathAlloc(
+        allocator,
+        "vectors/cairo/official/air_template_library_v1.json",
+    );
+    defer allocator.free(library_path);
+    var library = try template_library.Library.readFile(allocator, library_path);
+    defer library.deinit();
+    const split = claim_generator.memory_address_to_id_split;
+    var checked: usize = 0;
+    inline for (.{ preprocessed.Variant.canonical, preprocessed.Variant.canonical_small }) |variant| {
+        // Includes target logs one to three above the template log, where a
+        // rebound chunk offset equals a later chunk's template offset.
+        var log: u32 = 4;
+        while (log <= 22) : (log += 1) {
+            const live_components = try allocator.dupe(
+                claim_generator.ComponentGeometry,
+                &.{.{ .name = "memory_address_to_id", .log_size = .{ .known = log } }},
+            );
+            var geometry = claim_generator.OwnedClaimGeometry{
+                .allocator = allocator,
+                .components = live_components,
+            };
+            defer geometry.deinit();
+            var bundle = instantiate(allocator, library, &geometry, variant, .{}) catch |err| switch (err) {
+                // This variant carries no sequence column of that size.
+                error.MissingTargetSequenceColumn => continue,
+                else => return err,
+            };
+            defer bundle.deinit();
+            checked += 1;
+            const source = try library.sourceFor("memory_address_to_id", log, variant);
+            const template = source.find("memory_address_to_id").?;
+            const source_stride = @as(u64, 1) << @intCast(template.trace_log_size);
+            const target_stride = @as(u64, 1) << @intCast(log);
+            for (template.parts, bundle.components[0].parts) |template_part, live_part| {
+                const original = template_part.program.base_insts;
+                const rebound = live_part.program.base_insts;
+                try std.testing.expectEqual(original.len, rebound.len);
+                for (original, rebound) |before, after| {
+                    if (before.op != .constant) continue;
+                    var expected = before.a;
+                    for (1..split) |chunk| {
+                        if (@as(u64, before.a) == chunk * source_stride)
+                            expected = @intCast(chunk * target_stride);
+                    }
+                    try std.testing.expectEqual(expected, after.a);
+                }
+            }
+        }
+    }
+    try std.testing.expect(checked >= 20);
 }

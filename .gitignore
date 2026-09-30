@@ -36,3 +36,6 @@ vectors/reports/prove_checkpoints_artifacts/
 
 # Local unattended night-run scratch: prompt, runner, log, report.
 .riscv-night-run/
+
+# Starknet block collector data (RPC recordings, PIEs, benchmark outputs)
+/block-data/

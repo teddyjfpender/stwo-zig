@@ -281,6 +281,38 @@ pub const Program = struct {
         return replacements;
     }
 
+    /// Rebinds several recorded field constants in one pass. Every
+    /// instruction is rewritten at most once, so a target that equals a later
+    /// source is never rewritten again. `counts[i]` receives the number of
+    /// instructions rebound from `sources[i]`.
+    pub fn replaceBaseConstantsSimultaneous(
+        self: *Program,
+        sources: []const u32,
+        targets: []const u32,
+        counts: []usize,
+    ) !void {
+        if (sources.len != targets.len or sources.len != counts.len)
+            return error.InvalidArgument;
+        for (sources, targets, 0..) |source, target, index| {
+            if (source >= m31_prime or target >= m31_prime)
+                return error.InvalidFieldElement;
+            if (std.mem.indexOfScalar(u32, sources[0..index], source) != null)
+                return error.DuplicateConstant;
+        }
+        @memset(counts, 0);
+        var replacements: usize = 0;
+        for (self.base_insts) |*instruction| {
+            if (instruction.op != .constant) continue;
+            const index = std.mem.indexOfScalar(u32, sources, instruction.a) orelse
+                continue;
+            instruction.a = targets[index];
+            counts[index] += 1;
+            replacements += 1;
+        }
+        if (replacements != 0)
+            self.header.semantic_hash = self.semanticHash();
+    }
+
     pub fn semanticHash(self: Program) u64 {
         var hash: u64 = 0xcbf29ce484222325;
         for (self.base_consts) |value| hashInt(&hash, u32, value);
