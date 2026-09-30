@@ -54,14 +54,14 @@ def parser() -> argparse.ArgumentParser:
     )
     result.add_argument(
         "--frontend",
-        choices=("native", "cairo", "riscv", "sm83"),
+        choices=("native", "cairo", "circuit", "riscv", "sm83"),
         default="native",
         help="Frontend whose exact AOT catalog is being built",
     )
     result.add_argument(
         "--aot-set",
         action="append",
-        choices=(".", "cairo_eval", "cairo_canonical_eval", "cairo_witness"),
+        choices=(".", "cairo_eval", "cairo_canonical_eval", "cairo_witness", "circuit_eval"),
         help="Authenticated frontend AOT set; defaults to the Native set only",
     )
     result.add_argument(

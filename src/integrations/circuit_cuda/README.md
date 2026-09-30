@@ -83,6 +83,14 @@ sources and lowers every body to `sm_80` and `sm_90` PTX. The check also
 validates each source SHA-256 and the exact eleven-body placement inventory.
 The catalogue also admits a geometry-bound AIR only when all eleven placements
 retain their pinned normalized program identities and constant counts. The
+strict CUDA product now pins those eleven generated kernels as its
+`circuit_eval` AOT set. `circuit-cuda-aot-product-check` regenerates them from
+the recorded AIR, validates every source and cache identity, and compares the
+generated sources byte for byte with the pinned product. The circuit product
+selects the Native, canonical Cairo evaluation, canonical Cairo witness, and
+circuit evaluation AOT sets together; its plan-only archive check admits all
+191 sources without requiring a GPU. This is build admission, not proof parity.
+The
 CUDA circuit resident geometry now derives four lifted commitment trees and
 every FRI layer from that authenticated AIR and the circuit column layout. Its
 column logs, lifting heights and FRI count match all ten pinned Rust R7 proofs,

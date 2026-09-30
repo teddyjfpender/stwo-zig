@@ -59,6 +59,11 @@ EXPECTED_NATIVE_IMPLEMENTATION_SOURCES = {
         "cairo/witness_multi_edge.cu",
         "cairo/witness_seed.cu",
     },
+    "circuit": {
+        "circuit/base_witness.cu",
+        "circuit/interaction_fractions.cu",
+        "circuit/lookup_sum.cu",
+    },
     "commitment": {
         "commitment/merkle.cu",
         "commitment/progressive.cu",

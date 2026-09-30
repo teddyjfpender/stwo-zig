@@ -72,6 +72,10 @@ pub fn build(b: *std.Build) void {
     aot_run.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") });
     const aot_directory = aot_run.addOutputDirectoryArg("circuit-cuda-air-aot");
     aot_step.dependOn(&aot_run.step);
+    const circuit_product_check = b.addSystemCommand(&.{ "python3", b.pathFromRoot("../../tools/circuit_cuda_air_aot/check_product.py") });
+    circuit_product_check.addDirectoryArg(aot_directory);
+    circuit_product_check.addDirectoryArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/aot/native/circuit_eval") });
+    b.step("circuit-cuda-aot-product-check", "Validate generated circuit AOT sources against the pinned strict CUDA product set").dependOn(&circuit_product_check.step);
     const aot_ptx_step = b.step("circuit-cuda-air-ptx-check", "Authenticate and lower all eleven circuit AIR kernels to sm_80 and sm_90 PTX");
     if (cuda_clang) |clang| {
         const ptx_check = b.addSystemCommand(&.{ "python3", b.pathFromRoot("../../tools/circuit_cuda_air_aot/check_ptx.py"), "--clang", clang, "--generated" });
