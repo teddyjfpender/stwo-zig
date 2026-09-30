@@ -22,6 +22,17 @@ pub fn compile(
     columns: []const proof_ir.TraceColumn,
     tree: proof_ir.CommitmentTree,
 ) !Geometry {
+    return compileWithBlowup(allocator, columns, tree, null);
+}
+
+/// The PCS column expansion and the lifted Merkle height are independent.
+/// Canonical leaf proofs use log-one LDE columns in a log-26 Merkle domain.
+pub fn compileWithBlowup(
+    allocator: std.mem.Allocator,
+    columns: []const proof_ir.TraceColumn,
+    tree: proof_ir.CommitmentTree,
+    column_blowup_log: ?u32,
+) !Geometry {
     if (columns.len == 0) return error.InvalidTraceCommitPlan;
     var max_trace_log: u32 = 0;
     for (columns) |trace_column| {
@@ -29,7 +40,9 @@ pub fn compile(
     }
     if (tree.evaluation_log_rows <= max_trace_log)
         return error.InvalidTraceCommitPlan;
-    const blowup = tree.evaluation_log_rows - max_trace_log;
+    const blowup = column_blowup_log orelse tree.evaluation_log_rows - max_trace_log;
+    if (blowup == 0 or max_trace_log + blowup > tree.evaluation_log_rows)
+        return error.InvalidTraceCommitPlan;
     const logs = try allocator.alloc(u32, columns.len);
     errdefer allocator.free(logs);
     const offsets = try allocator.alloc(u32, columns.len + 1);

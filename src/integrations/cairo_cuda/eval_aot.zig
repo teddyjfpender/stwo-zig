@@ -479,7 +479,7 @@ fn writeJsonLabel(writer: anytype, label: []const u8) !void {
     if (label.len == 0) return error.InvalidComponentLabel;
     const indexed_memory = std.mem.startsWith(u8, label, "memory_id_to_big[") and
         label[label.len - 1] == ']' and
-        (std.fmt.parseUnsigned(u32, label["memory_id_to_big[".len .. label.len - 1], 10) catch return error.InvalidComponentLabel) < 8;
+        (std.fmt.parseUnsigned(u32, label["memory_id_to_big[".len .. label.len - 1], 10) catch return error.InvalidComponentLabel) < @import("stwo_cairo_frontend").witness.memory_tables.max_big_components;
     for (label) |byte| {
         if (!std.ascii.isAlphanumeric(byte) and byte != '_' and !(indexed_memory and (byte == '[' or byte == ']')))
             return error.InvalidComponentLabel;

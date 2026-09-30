@@ -40,6 +40,9 @@ pub const CommitmentOptions = struct {
     preprocessed_preparation_cache: bool = false,
     preprocessed_overlap: bool = false,
     preparation_byte_budget: usize = 1024 * 1024 * 1024,
+    /// Optional provider for the canonical proof-of-work search. It changes
+    /// where the grind runs; the PCS still validates the returned nonce.
+    proof_of_work: type = void,
 };
 pub const CpuBackend = configured(.{});
 
@@ -48,6 +51,7 @@ pub const CpuBackend = configured(.{});
 /// the policy through the existing environment switch.
 pub fn configured(comptime options: CommitmentOptions) type {
     return struct {
+        pub const ProofOfWork = options.proof_of_work;
         pub const capabilities: backend.Capabilities = .{
             .host_batch_inverse = true,
             .fri_folding = true,

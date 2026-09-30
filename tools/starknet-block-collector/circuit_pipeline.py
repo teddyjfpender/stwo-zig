@@ -35,15 +35,17 @@ def digest(path: Path) -> str:
 
 def run(command: list[str], log: Path) -> dict:
     started = time.perf_counter()
+    time_flags = ["-l"] if sys.platform == "darwin" else ["-v"]
     with log.open("w") as sink:
-        result = subprocess.run(["/usr/bin/time", "-l", *command], cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
+        result = subprocess.run(["/usr/bin/time", *time_flags, *command], cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
     content = log.read_text(errors="replace")
     if result.returncode:
         raise RuntimeError(f"{command[0]} exited {result.returncode}; see {log}:\n{content[-2000:]}")
     rss = re.search(r"(\d+)\s+maximum resident set size", content)
+    rss_kb = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", content)
     footprint = re.search(r"(\d+)\s+peak memory footprint", content)
     return {"wall_s": round(time.perf_counter() - started, 3),
-            "peak_rss_bytes": int(rss.group(1)) if rss else None,
+            "peak_rss_bytes": int(rss.group(1)) if rss else int(rss_kb.group(1)) * 1024 if rss_kb else None,
             "peak_memory_footprint_bytes": int(footprint.group(1)) if footprint else None,
             "log": str(log)}
 
@@ -103,7 +105,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--oracle", type=Path, required=True, help="pinned stwo-circuit-oracle binary")
     parser.add_argument("--proving-root", type=Path, required=True, help="proving@5a7c5ed checkout")
-    parser.add_argument("--backend", choices=("cpu", "metal"), default="cpu")
+    parser.add_argument("--backend", choices=("cpu", "metal", "cuda-hybrid"), default="cpu")
     parser.add_argument("--circuit-prover", type=Path, help="override the selected backend's binary")
     parser.add_argument("--rust-reducer", type=Path, help="optional pinned Rust reducer for byte parity")
     parser.add_argument("--out", type=Path, required=True)
@@ -116,8 +118,12 @@ def main() -> None:
     proving_commit = subprocess.check_output(["git", "-C", str(proving), "rev-parse", "HEAD"], text=True).strip()
     if proving_commit != PINNED_PROVING_COMMIT:
         raise ValueError(f"expected proving@{PINNED_PROVING_COMMIT}, got {proving_commit}")
-    default_prover = (ROOT / "zig-out/bin/stwo-circuit-recursion-cpu" if args.backend == "cpu"
-                      else ROOT / "src/integrations/circuit_metal/zig-out/bin/stwo-circuit-recursion-metal")
+    default_provers = {
+        "cpu": ROOT / "zig-out/bin/stwo-circuit-recursion-cpu",
+        "metal": ROOT / "src/integrations/circuit_metal/zig-out/bin/stwo-circuit-recursion-metal",
+        "cuda-hybrid": ROOT / "src/integrations/circuit_cuda/zig-out/bin/stwo-circuit-recursion-cuda-hybrid",
+    }
+    default_prover = default_provers[args.backend]
     prover = (args.circuit_prover or default_prover).resolve()
     rows = []
     manifest = []
@@ -174,6 +180,8 @@ def main() -> None:
             raise ValueError(f"Rust root mismatch: {equal}")
     registry = json.loads(REGISTRY.read_text())
     receipt = {"schema": "stwo-starknet-circuit-pipeline-v1", "backend": args.backend,
+               "device_scope": ("circuit interaction and FRI proof-of-work grinds only; Cairo and circuit PCS on CPU"
+                                if args.backend == "cuda-hybrid" else args.backend),
                "proving_commit": proving_commit,
                "oracle_binary_sha256": digest(oracle), "prover_binary_sha256": digest(prover),
                "scope": "contiguous Starknet PIEs to one recursive circuit root; final applicative aggregation is separate",

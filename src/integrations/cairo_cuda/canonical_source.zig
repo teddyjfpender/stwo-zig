@@ -10,6 +10,9 @@ const identities = @import("identity.zig");
 
 pub const Paths = struct {
     input: []const u8,
+    /// When set, prove the pinned circuit leaf protocol under this registry
+    /// lane. The variant and memory padding come from the lane, not CLI hints.
+    leaf_lane: ?cairo.proving.leaf_lane.Lane = null,
     variant: cairo.preprocessed.trace.Variant = .canonical_small,
     automatic_variant: bool = true,
     library: []const u8 = "vectors/cairo/official/air_template_library_v1.json",
@@ -65,11 +68,22 @@ pub fn prepare(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.exe
     const fixed_source = try cairo.witness.fixed_table_bundle.Bundle.readFile(allocator, paths.fixed);
     const relations = try cairo.witness.relation_bundle.Bundle.readFile(allocator, paths.relations);
     const library = try @import("canonical_eval_aot.zig").loadLibrary(allocator, paths.library);
-    var claim = try cairo.claim_generator.deriveFromProverInput(allocator, &input, .{ .preprocessed_variant = @enumFromInt(@intFromEnum(paths.variant)) });
-    const variant = try cairo.air.preprocessed_admission.select(allocator, &claim, library, paths.variant, paths.automatic_variant);
-    if (variant != paths.variant) {
+    const preferred_variant: cairo.preprocessed.trace.Variant = if (paths.leaf_lane) |lane|
+        @enumFromInt(@intFromEnum(lane.variant))
+    else
+        paths.variant;
+    const memory_components: ?usize = if (paths.leaf_lane) |lane| lane.memory_id_to_big_components else null;
+    var claim = try cairo.claim_generator.deriveFromProverInput(allocator, &input, .{
+        .preprocessed_variant = @enumFromInt(@intFromEnum(preferred_variant)),
+        .memory_id_to_big_components = memory_components,
+    });
+    const variant = try cairo.air.preprocessed_admission.select(allocator, &claim, library, preferred_variant, paths.leaf_lane == null and paths.automatic_variant);
+    if (variant != preferred_variant) {
         claim.deinit();
-        claim = try cairo.claim_generator.deriveFromProverInput(allocator, &input, .{ .preprocessed_variant = @enumFromInt(@intFromEnum(variant)) });
+        claim = try cairo.claim_generator.deriveFromProverInput(allocator, &input, .{
+            .preprocessed_variant = @enumFromInt(@intFromEnum(variant)),
+            .memory_id_to_big_components = memory_components,
+        });
     }
     const spec = try cairo.preprocessed.trace.Spec.init(allocator, variant);
     const fixed = try @import("canonical_fixed.zig").project(allocator, fixed_source, spec);
@@ -78,7 +92,10 @@ pub fn prepare(parent: std.mem.Allocator, paths: Paths, target: cuda.runtime.exe
     const bundle = try library.instantiate(allocator, &claim, variant, input.builtin_segments);
     const feeds = try feeds_mod.compile(allocator, &input, &claim, geometry, topology, fixed);
     const statement = try cairo.statement_bootstrap.encodeCompactStatementV1(allocator, &bundle, &input);
-    const protocol = try @import("canonical_protocol.zig").derive(allocator, bundle, logs);
+    const protocol = if (paths.leaf_lane) |lane|
+        try @import("canonical_protocol.zig").deriveLeaf(allocator, bundle, logs, lane)
+    else
+        try @import("canonical_protocol.zig").derive(allocator, bundle, logs);
     var composition_sha = std.crypto.hash.sha2.Sha256.init(.{});
     composition_sha.update(&parametric.source_authority);
     for (bundle.components) |component| composition_sha.update(&identities.componentProgramDigest(parametric.source_authority, component));
@@ -167,6 +184,81 @@ test "canonical CUDA complete source requests prepare controllers locally" {
         defer controllers.deinit();
         try std.testing.expect(controllers.evaluation.constants.?.len > 0);
     }
+}
+
+test "canonical CUDA circuit leaf prepares lifted M31 source geometry" {
+    const params = cairo.proving.leaf_lane.ProverParameters{
+        .channel_hash = .blake2s,
+        .channel_salt = 0,
+        .fri_config = .{
+            .pow_bits = 26,
+            .log_blowup_factor = 1,
+            .log_last_layer_degree_bound = 0,
+            .n_queries = 70,
+            .fold_step = 1,
+        },
+        .preprocessed_trace = .canonical,
+        .store_polynomials_coefficients = false,
+        .include_all_preprocessed_columns = true,
+        .opt_n_id_to_big_components = 16,
+        .lifting_size_policy = .at_least_preprocessed,
+    };
+    const lane = try cairo.proving.leaf_lane.Lane.fromParameters(params);
+    var prepared = try prepare(std.testing.allocator, .{
+        .input = "vectors/cairo/official/all_builtins.prover_input.json",
+        .leaf_lane = lane,
+    }, @import("request_compiler/sn2_test_support.zig").target());
+    defer prepared.deinit();
+    try std.testing.expectEqual(.blake2s_m31, prepared.protocol.channel_profile);
+    try std.testing.expect(prepared.protocol.include_all_preprocessed_columns);
+    try std.testing.expect(prepared.protocol.fri_lifting_log_size != null);
+    try std.testing.expectEqual(@as(u32, 1), prepared.protocol.fri_fold_step);
+    try std.testing.expectEqual(@as(usize, 0), prepared.request.missing_lowerings.len);
+    var bootstrap = try @import("executor/statement_ingress.zig").derive(
+        std.testing.allocator,
+        prepared.protocol,
+        &prepared.composition,
+        &prepared.input,
+    );
+    defer bootstrap.deinit();
+    const config_words = bootstrap.words(2).?;
+    try std.testing.expectEqualSlices(u32, &.{ 26, 1, 70, 0, 1, 0, 0, 0 }, config_words);
+    var controllers = try @import("executor/ingress/controller_bundle.zig").Prepared.init(
+        std.testing.allocator,
+        &prepared.request,
+        prepared.protocol,
+        prepared.composition,
+        prepared.preprocessed_logs,
+    );
+    defer controllers.deinit();
+    const lifting_log = prepared.protocol.fri_lifting_log_size.?;
+    for (prepared.request.proof_program.commitments) |tree|
+        try std.testing.expectEqual(lifting_log, tree.evaluation_log_rows);
+    for (controllers.main_commit.cohorts) |cohort|
+        try std.testing.expectEqual(cohort.trace_log_rows + params.fri_config.log_blowup_factor, cohort.evaluation_log_rows);
+    try std.testing.expectEqual(@as(u32, 1) << @intCast(lifting_log), controllers.main_commit.tree_size);
+    var quotient_topology = try @import("executor/quotient/topology.zig").derive(
+        std.testing.allocator,
+        prepared.composition,
+        prepared.request.proof_program,
+        prepared.protocol,
+    );
+    defer quotient_topology.deinit();
+    const shape = try cairo.witness.resident_geometry.sampleShapeWithPolicy(
+        std.testing.allocator,
+        prepared.composition,
+        .{ prepared.protocol.trace_columns[0], prepared.protocol.trace_columns[1], prepared.protocol.trace_columns[2] },
+        true,
+    );
+    defer cairo.witness.resident_geometry.freeSampleShape(std.testing.allocator, shape);
+    var sample_count: usize = 0;
+    var periodic_count: usize = 0;
+    for (shape) |tree| for (tree) |count| {
+        sample_count += count;
+        periodic_count += @intFromBool(count == 2);
+    };
+    try std.testing.expectEqual(sample_count, quotient_topology.sampled_value_count);
+    try std.testing.expectEqual(sample_count + periodic_count, quotient_topology.termCount());
 }
 
 test "canonical CUDA SN PIE suite host admission" {

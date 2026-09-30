@@ -58,14 +58,11 @@ pub fn initialize(
 ) !void {
     if (cursor.initialized or cursor.next_step != 0)
         return error.InvalidTranscriptCursor;
-    try Transcript.initialize(
-        session,
-        .trace_commit,
-        view.state,
-        null,
-        null,
-        schedule.initialChain(),
-    );
+    if (schedule.protocol.channel_profile == .blake2s_m31) {
+        try Transcript.initializeM31(session, .trace_commit, view.state, null, null, schedule.initialChain());
+    } else {
+        try Transcript.initialize(session, .trace_commit, view.state, null, null, schedule.initialChain());
+    }
     cursor.initialized = true;
 }
 

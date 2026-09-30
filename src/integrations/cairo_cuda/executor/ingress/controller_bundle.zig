@@ -53,32 +53,36 @@ pub const Prepared = struct {
             request.trace_dispatch,
         );
         errdefer resident.deinit();
-        var preprocessed_commit = try trace_commit.Prepared.initProduced(
+        var preprocessed_commit = try trace_commit.Prepared.initProducedWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             .preprocessed,
+            protocol.log_blowup_factor,
         );
         errdefer preprocessed_commit.deinit();
-        var main_commit = try trace_commit.Prepared.initMain(
+        var main_commit = try trace_commit.Prepared.initMainWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             request.trace_dispatch,
+            protocol.log_blowup_factor,
         );
         errdefer main_commit.deinit();
-        var interaction_commit = try trace_commit.Prepared.initProduced(
+        var interaction_commit = try trace_commit.Prepared.initProducedWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             .interaction,
+            protocol.log_blowup_factor,
         );
         errdefer interaction_commit.deinit();
-        var composition_commit = try trace_commit.Prepared.initProduced(
+        var composition_commit = try trace_commit.Prepared.initProducedWithBlowup(
             allocator,
             request.proof_program,
             request.resident,
             .composition,
+            protocol.log_blowup_factor,
         );
         errdefer composition_commit.deinit();
         var evaluation = try eval_controller.Prepared.init(
@@ -126,6 +130,8 @@ pub const Prepared = struct {
         protocol: compact.CompactProtocolV1,
         bundle: composition.Bundle,
     ) !Bound {
+        var bind_phase: []const u8 = "upload_commit_metadata";
+        errdefer |err| std.log.err("cairo-cuda controller binding phase={s}: {s}", .{ bind_phase, @errorName(err) });
         const Uploader = RoutedUploader(
             @TypeOf(transaction.proofSession()),
             @TypeOf(provider),
@@ -141,24 +147,28 @@ pub const Prepared = struct {
             &self.composition_commit,
         }) |prepared| try prepared.uploadMetadata(&uploader);
 
+        bind_phase = "preprocessed_commit";
         var preprocessed_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.preprocessed_commit,
             provider,
         );
         errdefer preprocessed_commit.deinit();
+        bind_phase = "main_commit";
         var main_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.main_commit,
             provider,
         );
         errdefer main_commit.deinit();
+        bind_phase = "interaction_commit";
         var interaction_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.interaction_commit,
             provider,
         );
         errdefer interaction_commit.deinit();
+        bind_phase = "composition_commit";
         var composition_commit = try trace_commit.Bound.init(
             self.allocator,
             &self.composition_commit,
@@ -166,14 +176,17 @@ pub const Prepared = struct {
         );
         errdefer composition_commit.deinit();
 
+        bind_phase = "pcs_hooks";
         const pcs = try hooks.bind(
             provider,
             &request.resident,
             request.proof_program,
             protocol,
         );
+        bind_phase = "evaluation_ingress";
         var evaluation = try self.evaluation.uploadIngress(transaction);
         errdefer evaluation.deinit();
+        bind_phase = "oods";
         var oods = try oods_controller.prepare(
             self.allocator,
             transaction.proofSession(),
@@ -185,6 +198,7 @@ pub const Prepared = struct {
             self.transcript,
         );
         errdefer oods.deinit();
+        bind_phase = "quotient";
         var quotient = try quotient_controller.prepare(
             self.allocator,
             transaction.proofSession(),
@@ -195,6 +209,7 @@ pub const Prepared = struct {
             pcs,
         );
         errdefer quotient.deinit();
+        bind_phase = "fri";
         var fri = try fri_controller.prepare(
             self.allocator,
             transaction.proofSession(),
@@ -205,6 +220,7 @@ pub const Prepared = struct {
             self.transcript,
         );
         errdefer fri.deinit();
+        bind_phase = "decommit";
         var decommit = try decommit_controller.prepare(
             self.allocator,
             transaction.proofSession(),

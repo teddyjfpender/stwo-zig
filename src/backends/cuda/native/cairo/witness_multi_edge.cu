@@ -22,23 +22,6 @@ static_assert(alignof(MultiEdgeDescriptor) == 8);
 static_assert(offsetof(MultiEdgeDescriptor, producer_rows) == 8);
 static_assert(offsetof(MultiEdgeDescriptor, destination_row_offset) == 24);
 
-__device__ const MultiEdgeDescriptor *edge_for_row(
-    const MultiEdgeDescriptor *descriptors,
-    std::uint32_t edge_count,
-    std::uint32_t row) {
-    std::uint32_t low = 0;
-    std::uint32_t high = edge_count;
-    while (low + 1 < high) {
-        const std::uint32_t middle = low + (high - low) / 2;
-        if (descriptors[middle].destination_row_offset <= row) {
-            low = middle;
-        } else {
-            high = middle;
-        }
-    }
-    return &descriptors[low];
-}
-
 __global__ void gather_witness_edges(
     const std::uint32_t *producer_arena,
     std::size_t producer_word_count,
@@ -53,37 +36,58 @@ __global__ void gather_witness_edges(
     std::uint32_t include_iota) {
     const std::uint32_t row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= consumer_rows) return;
-    const std::uint32_t source_global_row =
-        row < total_real_rows ? row : (row & 15u);
-    const MultiEdgeDescriptor *edge =
-        edge_for_row(descriptors, edge_count, source_global_row);
-
-    const std::uint32_t active_rows = edge->active_rows == 0
-        ? edge->producer_rows : edge->active_rows;
-    const std::uint64_t edge_rows =
-        static_cast<std::uint64_t>(active_rows) *
-        edge->instance_count;
+    // Rust's add_inputs stores complete SIMD packs before scalar remainders.
+    // The remainders from *all* calls are packed only after every complete
+    // instance. A scalar-contiguous gather shifts every later instance when
+    // its producer has a non-multiple-of-16 active row count.
+    std::uint32_t packed_total = 0;
+    for (std::uint32_t i = 0; i < edge_count; ++i) {
+        const MultiEdgeDescriptor &candidate = descriptors[i];
+        const std::uint32_t active = candidate.active_rows == 0
+            ? candidate.producer_rows : candidate.active_rows;
+        packed_total += (active & ~15u) * candidate.instance_count;
+    }
+    std::uint32_t source_global_row = row;
+    if (row >= total_real_rows) {
+        const std::uint32_t packed_remainder_end =
+            (total_real_rows + 15u) & ~15u;
+        source_global_row = row < packed_remainder_end &&
+                packed_total < total_real_rows
+            ? packed_total
+            : (row & 15u);
+    }
+    const bool remainder_phase = source_global_row >= packed_total;
+    std::uint32_t local_row = remainder_phase
+        ? source_global_row - packed_total : source_global_row;
+    const MultiEdgeDescriptor *edge = nullptr;
+    std::uint32_t instance = 0;
+    std::uint32_t producer_row = 0;
+    for (std::uint32_t i = 0; i < edge_count; ++i) {
+        const MultiEdgeDescriptor &candidate = descriptors[i];
+        const std::uint32_t active = candidate.active_rows == 0
+            ? candidate.producer_rows : candidate.active_rows;
+        const std::uint32_t full_rows = active & ~15u;
+        const std::uint32_t phase_rows = remainder_phase
+            ? active - full_rows : full_rows;
+        const std::uint32_t extent = phase_rows * candidate.instance_count;
+        if (local_row >= extent) {
+            local_row -= extent;
+            continue;
+        }
+        if (phase_rows == 0) break;
+        edge = &candidate;
+        instance = local_row / phase_rows;
+        producer_row = local_row % phase_rows +
+            (remainder_phase ? full_rows : 0u);
+        break;
+    }
     const bool structurally_valid =
-        active_rows != 0 && active_rows <= edge->producer_rows && edge->producer_rows != 0 &&
-        edge->producer_rows % 16 == 0 &&
-        edge->words_per_instance == input_width &&
-        edge->instance_count != 0 &&
-        source_global_row >= edge->destination_row_offset &&
-        static_cast<std::uint64_t>(source_global_row) <
-            static_cast<std::uint64_t>(edge->destination_row_offset) +
-                edge_rows;
-    const std::uint32_t local_row = structurally_valid
-        ? source_global_row - edge->destination_row_offset
-        : 0;
-    const std::uint32_t instance = structurally_valid
-        ? local_row / active_rows
-        : 0;
-    const std::uint32_t producer_row = structurally_valid
-        ? local_row % active_rows
-        : 0;
+        edge != nullptr && edge->producer_rows != 0 &&
+        producer_row < edge->producer_rows &&
+        edge->words_per_instance == input_width;
     for (std::uint32_t word = 0; word < input_width; ++word) {
         const std::uint64_t source_word =
-            static_cast<std::uint64_t>(edge->word_base) +
+            static_cast<std::uint64_t>(structurally_valid ? edge->word_base : 0u) +
             static_cast<std::uint64_t>(instance) * input_width + word;
         std::uint64_t source_index = producer_word_count;
         if (structurally_valid &&

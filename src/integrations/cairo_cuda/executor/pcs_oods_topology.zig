@@ -196,11 +196,14 @@ pub fn derive(
     const sources = try allocator.alloc(u32, sample_count);
     errdefer allocator.free(sources);
 
-    const lifting_log = bundle.max_evaluation_log_size;
+    // The circuit leaf PCS lifts every committed tree to its registry height.
+    // OODS samples on that lifted domain, even when the Cairo AIR's own
+    // evaluation domain is shorter.
+    const lifting_log = protocol.fri_lifting_log_size orelse bundle.max_evaluation_log_size;
     const trace_step = canonic.CanonicCoset.new(lifting_log - 1).step();
     var cursor: usize = 0;
     for (masks.preprocessed_used, 0..) |used, local| {
-        if (used) try appendSample(
+        if (used or protocol.include_all_preprocessed_columns) try appendSample(
             quotient,
             0,
             local,
@@ -256,7 +259,7 @@ pub fn derive(
     );
     if (cursor != sample_count)
         return error.InvalidKernelDescriptor;
-    try validateTermSources(allocator, quotient, sources);
+    try validateTermSources(allocator, quotient, sources, protocol.include_all_preprocessed_columns);
 
     const cohort_storage = try allocator.alloc(Cohort, sample_count);
     errdefer allocator.free(cohort_storage);
@@ -443,6 +446,7 @@ fn validateTermSources(
     allocator: std.mem.Allocator,
     quotient: quotient_types.Topology,
     sample_sources: []const u32,
+    allow_unused_preprocessed: bool,
 ) !void {
     const sentinel = std.math.maxInt(u32);
     const term_sources = try allocator.alloc(
@@ -479,8 +483,10 @@ fn validateTermSources(
             seen_samples[term.sample_index] = true;
         }
     }
-    for (seen_samples) |seen| {
-        if (!seen) return error.InvalidKernelDescriptor;
+    for (seen_samples, 0..) |seen, index| {
+        if (!seen and !(allow_unused_preprocessed and
+            quotient.sources[sample_sources[index]].tree_ordinal == 0))
+            return error.InvalidKernelDescriptor;
     }
 }
 

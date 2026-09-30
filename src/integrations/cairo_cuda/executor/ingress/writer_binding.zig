@@ -123,10 +123,14 @@ pub fn prepare(
     );
     for (views.components, feed_sources) |component, *source| {
         const planned = proof.components[component.component_index];
-        const feed_words = if (std.mem.eql(u8, planned.name, "memory_id_to_big") or
-            std.mem.eql(u8, planned.name, "memory_id_to_small"))
+        const family = @import("stwo_cairo_frontend").proof_plan.canonicalComponentName(planned.name, planned.instance);
+        const feed_words = if (std.mem.eql(u8, family, "memory_id_to_big") or
+            std.mem.eql(u8, family, "memory_id_to_small"))
         blk: {
-            const entry = request.trace_dispatch.find(planned.name, planned.instance) orelse return error.MissingBaseTableSchedule;
+            const entry = request.trace_dispatch.find(planned.name, planned.instance) orelse {
+                std.log.err("missing Cairo base-table schedule for {s} instance={}", .{ planned.name, planned.instance });
+                return error.MissingBaseTableSchedule;
+            };
             break :blk (try controllers.main_commit.writerOutput(entry.canonical_ordinal)).storage;
         } else component.sub_words;
         source.* = .{

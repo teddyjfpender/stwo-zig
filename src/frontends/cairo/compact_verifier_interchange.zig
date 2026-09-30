@@ -45,6 +45,11 @@ pub const PreprocessedTraceVariantV1 = enum(u32) {
     }
 };
 
+pub const ChannelProfileV1 = enum(u32) {
+    blake2s = 1,
+    blake2s_m31 = 2,
+};
+
 pub const envelope_magic = envelope.envelope_magic;
 pub const envelope_version = envelope.envelope_version;
 pub const envelope_header_bytes = envelope.envelope_header_bytes;
@@ -135,6 +140,8 @@ pub const CompactProofLayoutV1 = struct {
 /// The exact bounded protocol accepted by Rust `CompactProtocolV1::decode`.
 pub const CompactProtocolV1 = struct {
     preprocessed_variant: PreprocessedTraceVariantV1 = .canonical,
+    channel_profile: ChannelProfileV1 = .blake2s,
+    include_all_preprocessed_columns: bool = false,
     channel_salt: u32 = 0,
     query_pow_bits: u32 = 26,
     log_blowup_factor: u32 = 1,
@@ -155,6 +162,9 @@ pub const CompactProtocolV1 = struct {
     trace_columns: [4]u32 = trace_tree_column_counts,
 
     pub fn validate(self: CompactProtocolV1) Error!void {
+        if (self.channel_profile == .blake2s_m31 and
+            (!self.include_all_preprocessed_columns or self.fri_lifting_log_size == null))
+            return Error.InvalidProtocolGeometry;
         try (RuntimeProtocolGeometryV1{
             .query_pow_bits = self.query_pow_bits,
             .log_blowup_factor = self.log_blowup_factor,
@@ -230,7 +240,8 @@ pub const CompactProtocolV1 = struct {
         @memcpy(bytes[0..protocol_magic.len], &protocol_magic);
         putU16(&bytes, 8, protocol_version);
         putU16(&bytes, 10, protocol_header_bytes);
-        putU32(&bytes, 16, 1); // Blake2s channel.
+        putU32(&bytes, 12, @intFromBool(self.include_all_preprocessed_columns));
+        putU32(&bytes, 16, @intFromEnum(self.channel_profile));
         putU32(&bytes, 20, 1); // resident_sn2_bundle_v1 serialization.
         putU32(&bytes, 24, @intFromEnum(self.preprocessed_variant));
         putU32(&bytes, 28, self.channel_salt);
@@ -260,7 +271,6 @@ pub const CompactProtocolV1 = struct {
             else
                 self.max_log_degree_bound,
         );
-        // Flags at 12 remain canonical zeroes.
         return bytes;
     }
 };

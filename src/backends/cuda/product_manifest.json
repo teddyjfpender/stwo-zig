@@ -50,6 +50,7 @@
       "stwo_blake2s_transcript_draw_secure_on",
       "stwo_blake2s_transcript_draw_u32s_on",
       "stwo_blake2s_transcript_init_on",
+      "stwo_blake2s_m31_transcript_init_on",
       "stwo_blake2s_transcript_mix_words_on",
       "stwo_blake2s_transcript_mix_words_pair_on",
       "stwo_cairo_eval_materialize_params_on",

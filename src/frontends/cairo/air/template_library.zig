@@ -265,8 +265,12 @@ fn parseSha256(encoded: []const u8) ![32]u8 {
 
 fn templateLabelMatches(template: []const u8, live: []const u8) bool {
     if (std.mem.eql(u8, template, live)) return true;
-    return std.mem.eql(u8, live, "memory_id_to_big") and
-        std.mem.eql(u8, template, "memory_id_to_big[0]");
+    if (!std.mem.eql(u8, template, "memory_id_to_big[0]")) return false;
+    if (std.mem.eql(u8, live, "memory_id_to_big")) return true;
+    const prefix = "memory_id_to_big[";
+    if (!std.mem.startsWith(u8, live, prefix) or live.len <= prefix.len or live[live.len - 1] != ']') return false;
+    const index = std.fmt.parseUnsigned(usize, live[prefix.len .. live.len - 1], 10) catch return false;
+    return index < @import("../air/official_claim_registry.zig").memory_id_to_big_enable_slot_count;
 }
 
 test "official Cairo AIR template library covers all claim fields" {

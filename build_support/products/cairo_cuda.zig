@@ -305,6 +305,15 @@ fn createProductModule(
     });
     context.protocol.addImports(root);
     root.addImport("stwo_cairo_cuda", stwo);
+    const cairo_frontend = stwo.import_table.get("stwo_cairo_cuda_integration").?.import_table.get("stwo_cairo_frontend").?;
+    root.addImport("stwo_circuit_recursion_wire", graph.createCircuitRecursionWire(
+        context.b,
+        context.protocol,
+        product_descriptor,
+        context.target,
+        context.optimize,
+        cairo_frontend,
+    ));
     const architecture_options = context.b.addOptions();
     architecture_options.addOption([]const u8, "architectures", architectures);
     root.addOptions("cuda_architectures", architecture_options);

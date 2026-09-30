@@ -18,6 +18,26 @@ pub const Decoded = struct {
 };
 
 pub fn verifyAndDecode(allocator: std.mem.Allocator, prepared: *const source.Prepared, output: terminal.CanonicalProof) !Decoded {
+    return verifyAndDecodeWithOptionalCapture(allocator, prepared, output, null);
+}
+
+/// The recursive leaf path retains authenticated openings in transcript
+/// order. The ordinary publication path avoids that extra host allocation.
+pub fn verifyAndDecodeWithCapture(
+    allocator: std.mem.Allocator,
+    prepared: *const source.Prepared,
+    output: terminal.CanonicalProof,
+    capture: *verifier.ProofCapture,
+) !Decoded {
+    return verifyAndDecodeWithOptionalCapture(allocator, prepared, output, capture);
+}
+
+fn verifyAndDecodeWithOptionalCapture(
+    allocator: std.mem.Allocator,
+    prepared: *const source.Prepared,
+    output: terminal.CanonicalProof,
+    capture: ?*verifier.ProofCapture,
+) !Decoded {
     if (!std.meta.eql(prepared.protocol, output.protocol)) return error.CanonicalProofProtocolMismatch;
     const p = prepared.protocol;
     const geometry = verifier.ProtocolGeometry{
@@ -31,8 +51,10 @@ pub fn verifyAndDecode(allocator: std.mem.Allocator, prepared: *const source.Pre
         .log_last_layer_degree_bound = p.log_last_layer_degree_bound,
         .fold_step = p.fri_fold_step,
         .lifting_log_size = p.fri_lifting_log_size,
+        .m31_channel = p.channel_profile == .blake2s_m31,
+        .include_all_preprocessed_columns = p.include_all_preprocessed_columns,
     };
-    const shape = try verifier.sampleShape(allocator, prepared.composition, .{ p.trace_columns[0], p.trace_columns[1], p.trace_columns[2] });
+    const shape = try cairo.witness.resident_geometry.sampleShapeWithPolicy(allocator, prepared.composition, .{ p.trace_columns[0], p.trace_columns[1], p.trace_columns[2] }, p.include_all_preprocessed_columns);
     defer verifier.freeSampleShape(allocator, shape);
     const preprocessed_logs = try allocator.dupe(u32, prepared.preprocessed_logs);
     defer allocator.free(preprocessed_logs);
@@ -54,7 +76,17 @@ pub fn verifyAndDecode(allocator: std.mem.Allocator, prepared: *const source.Pre
             else => prepared.request.statement_bootstrap.words(ordinal) orelse return error.InvalidCanonicalStatement,
         } };
     }
-    try verifier.verifyRuntime(allocator, .{ .bundle = output.structural, .composition = prepared.composition, .tree_logs = tree_logs, .transcript_inputs = &transcript, .statement = &prepared.input }, geometry);
+    const verify_input: verifier.VerifyInput = .{
+        .bundle = output.structural,
+        .composition = prepared.composition,
+        .tree_logs = tree_logs,
+        .transcript_inputs = &transcript,
+        .statement = &prepared.input,
+    };
+    if (capture) |out|
+        try verifier.verifyRuntimeWithProofCapture(allocator, verify_input, geometry, out)
+    else
+        try verifier.verifyRuntime(allocator, verify_input, geometry);
     var proof = try verifier.decodeProofWithGeometry(allocator, output.structural, .{ .trees = shape }, geometry);
     errdefer proof.deinit(allocator);
     const sums = try allocator.alloc(QM31, prepared.composition.components.len);

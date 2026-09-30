@@ -46,6 +46,7 @@ const FakeSession = struct {
 };
 
 const FakeTranscript = struct {
+    pub const initializeM31 = initialize;
     pub fn initialize(
         session: *FakeSession,
         stage: telemetry.Stage,

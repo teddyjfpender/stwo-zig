@@ -2,6 +2,7 @@
 
 #include "candidate.cuh"
 #include "safety.cuh"
+#include "../transcript/state.cuh"
 
 #include <cuda_runtime_api.h>
 
@@ -70,8 +71,10 @@ __global__ void prefix_kernel(
     uint32_t pow_bits,
     uint32_t *prefix_digest) {
     if (blockIdx.x != 0 || threadIdx.x != 0) return;
-    const blake2s::Hash value =
-        transcript::pow_prefix(transcript_state, pow_bits);
+    const auto *state =
+        reinterpret_cast<const transcript::State *>(transcript_state);
+    const blake2s::Hash value = transcript::channel_hash(
+        transcript::pow_prefix(transcript_state, pow_bits), state);
 #pragma unroll
     for (uint32_t word = 0; word < 8; ++word) {
         prefix_digest[word] = value.words[word];
@@ -80,6 +83,7 @@ __global__ void prefix_kernel(
 
 #if defined(STWO_CUMETAL)
 __global__ void search_kernel(
+    const uint32_t *transcript_state,
     const uint32_t *prefix_digest,
     uint32_t pow_bits,
     unsigned long long window_begin,
@@ -96,7 +100,10 @@ __global__ void search_kernel(
     for (uint32_t offset = 0; offset < window_size; ++offset) {
         const unsigned long long nonce =
             index_to_nonce(window_begin + offset);
-        if (trailing_zeros(candidate_hash_word(prefix, nonce)) >= pow_bits) {
+        uint32_t word = candidate_hash_word(prefix, nonce);
+        if (reinterpret_cast<const transcript::State *>(transcript_state)->reserved != 0)
+            word = transcript::reduce_m31_word(word);
+        if (trailing_zeros(word) >= pow_bits) {
             *best_nonce = nonce;
             *completed_blocks = 1;
             transcript_nonce[0] = static_cast<uint32_t>(nonce);
@@ -111,6 +118,7 @@ __global__ void search_kernel(
 #else
 __global__ __launch_bounds__(kThreads, kMinimumBlocksPerMultiprocessor)
 void search_kernel(
+    const uint32_t *transcript_state,
     const uint32_t *prefix_digest,
     uint32_t pow_bits,
     unsigned long long search_end,
@@ -133,7 +141,10 @@ void search_kernel(
         const unsigned long long candidate = index_to_nonce(index);
         const unsigned long long current_best = atomicAdd(best_nonce, 0ull);
         if (candidate >= current_best) break;
-        if (trailing_zeros(candidate_hash_word(prefix, candidate)) >= pow_bits) {
+        uint32_t word = candidate_hash_word(prefix, candidate);
+        if (reinterpret_cast<const transcript::State *>(transcript_state)->reserved != 0)
+            word = transcript::reduce_m31_word(word);
+        if (trailing_zeros(word) >= pow_bits) {
             atomic_min_u64(best_nonce, candidate);
         }
         if (stride >= search_end - index) break;
@@ -231,7 +242,7 @@ extern "C" int stwo_blake2s_pow_persistent_on(
             1,
             0,
             proof_stream>>>(
-                prefix_digest, pow_bits, window_begin,
+                transcript_state, prefix_digest, pow_bits, window_begin,
                 static_cast<uint32_t>(window_size), best_nonce,
                 completed_blocks, transcript_nonce);
         status = cudaPeekAtLastError();
@@ -264,7 +275,7 @@ extern "C" int stwo_blake2s_pow_persistent_on(
         stwo::cuda::pow::kThreads,
         0,
         proof_stream>>>(
-            prefix_digest, pow_bits, search_end, best_nonce, completed_blocks,
+            transcript_state, prefix_digest, pow_bits, search_end, best_nonce, completed_blocks,
             transcript_nonce);
     return static_cast<int>(cudaPeekAtLastError());
 #endif

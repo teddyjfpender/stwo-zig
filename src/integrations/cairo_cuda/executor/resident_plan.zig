@@ -249,7 +249,7 @@ const Builder = struct {
             );
             if (!treeIsMixed(self.program, tree)) continue;
             if (fusedMixedTree(self.program, tree)) {
-                const prefix_log = compactPrefixLog(self.program, tree);
+                const prefix_log = compactPrefixLog(self.program, tree, self.protocol.log_blowup_factor);
                 if (commitStageFor(tree.role) == .trace_commit)
                     trace_prefix_log = @max(trace_prefix_log, prefix_log)
                 else
@@ -609,11 +609,8 @@ fn fusedMixedTree(program: proof_ir.ProofProgram, tree: proof_ir.CommitmentTree)
     return count > 0 and count <= @import("stwo_cuda_backend").runtime.stages.commitment.max_mixed_segments;
 }
 
-fn compactPrefixLog(program: proof_ir.ProofProgram, tree: proof_ir.CommitmentTree) u32 {
+fn compactPrefixLog(program: proof_ir.ProofProgram, tree: proof_ir.CommitmentTree, blowup: u32) u32 {
     const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
-    var maximum: u32 = 0;
-    for (columns) |trace_column| maximum = @max(maximum, trace_column.log_rows);
-    const blowup = tree.evaluation_log_rows - maximum;
     var prefix: u32 = 0;
     for (columns) |trace_column| {
         const log = trace_column.log_rows + blowup;
@@ -668,7 +665,8 @@ fn validateInputs(
                 ) catch return Error.GeometryOverflow,
             );
         }
-        if (tree.evaluation_log_rows != expected_log)
+        const tree_log = protocol.fri_lifting_log_size orelse expected_log;
+        if (tree.evaluation_log_rows != tree_log)
             return Error.UnsupportedGeometry;
         next_column = std.math.add(u32, next_column, count) catch
             return Error.GeometryOverflow;

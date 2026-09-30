@@ -57,6 +57,8 @@ pub fn grind(channel: anytype, pow_bits: u32) u64 {
 /// implementation before it can enter the transcript.
 pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) !u64 {
     if (pow_bits == 0) return 0;
+    if (comptime Backend != void and @hasDecl(Backend, "ProofOfWork") and Backend.ProofOfWork != void)
+        return grindForBackend(Backend.ProofOfWork, channel, pow_bits);
     if (comptime @TypeOf(channel.*) == Blake2sChannel) {
         if (pow_bits > pow_order.MAX_POW_BITS) return error.UnsupportedProofOfWorkBits;
         const prefix = computePowPrefix(channel.*, pow_bits);

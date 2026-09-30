@@ -14,7 +14,8 @@ pub fn derive(allocator: std.mem.Allocator, proof: *const frontend.proof_plan.Ca
         entries.deinit(allocator);
     }
     for (proof.components) |component| {
-        const relation_name = if (std.mem.eql(u8, component.name, "memory_id_to_small")) "memory_id_to_big" else component.name;
+        const component_name = frontend.proof_plan.canonicalComponentName(component.name, component.instance);
+        const relation_name = if (std.mem.eql(u8, component_name, "memory_id_to_small")) "memory_id_to_big" else component_name;
         var found = false;
         for (entries.items) |entry| {
             if (std.mem.eql(u8, entry.name, relation_name)) {
@@ -25,8 +26,8 @@ pub fn derive(allocator: std.mem.Allocator, proof: *const frontend.proof_plan.Ca
         if (found) continue; // Memory-value component instances share one descriptor family.
         const name = try allocator.dupe(u8, relation_name);
         errdefer allocator.free(name);
-        if (topology.find(component.name)) |source| {
-            const program = programs.find(component.name) orelse return error.MissingCanonicalWitness;
+        if (topology.find(component_name)) |source| {
+            const program = programs.find(component_name) orelse return error.MissingCanonicalWitness;
             var compiled = try frontend.witness.interaction_topology.compileProgram(allocator, source, program.program);
             errdefer compiled.deinit();
             const traces = try allocator.alloc(relations.Trace, 1);
@@ -36,10 +37,10 @@ pub fn derive(allocator: std.mem.Allocator, proof: *const frontend.proof_plan.Ca
         } else {
             // These implicit families are also used by the accepted CPU/Metal
             // transaction. All recorded-witness families use current IR above.
-            if (!std.mem.eql(u8, component.name, "memory_address_to_id") and
-                !std.mem.eql(u8, component.name, "memory_id_to_big") and
-                !std.mem.eql(u8, component.name, "memory_id_to_small") and
-                !std.mem.eql(u8, component.name, "verify_bitwise_xor_12"))
+            if (!std.mem.eql(u8, component_name, "memory_address_to_id") and
+                !std.mem.eql(u8, component_name, "memory_id_to_big") and
+                !std.mem.eql(u8, component_name, "memory_id_to_small") and
+                !std.mem.eql(u8, component_name, "verify_bitwise_xor_12"))
                 return error.MissingCanonicalInteractionTopology;
             const entry = implicit.find(relation_name) orelse return error.MissingImplicitInteractionTopology;
             const traces = try allocator.alloc(relations.Trace, entry.traces.len);

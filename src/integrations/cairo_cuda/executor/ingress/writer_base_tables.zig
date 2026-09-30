@@ -9,6 +9,7 @@ const execution_tables = @import("stwo_cairo_frontend").witness.execution_tables
 const common = @import("stwo_cuda_backend").runtime.stages.common;
 const fixed_plan = @import("../../base_writer_plan/fixed_tables.zig");
 const memory_plan = @import("../../base_writer_plan/memory.zig");
+const memory_geometry = @import("stwo_cairo_frontend").witness.memory_tables;
 const request_compiler = @import("../../request_compiler.zig");
 const resident_plan = @import("../resident_plan.zig");
 const trace_commit = @import("../trace_commit.zig");
@@ -46,6 +47,12 @@ pub fn prepare(
 ) !Bound {
     if (proof.components.len != components.components.len)
         return error.InvalidBaseTableInventory;
+    // The recorded Cairo witness ABI exposes one global 28-limb big-value
+    // table. Registry-requested extra big components are zero-padded traces;
+    // they are proved below but have no live IDs to serve to witness kernels.
+    // A second live 2^24-value chunk needs an explicit paged execution ABI.
+    if (input.memory.f252_values.len > memory_geometry.max_big_rows)
+        return error.CudaExecutionTableNeedsPaging;
 
     var fixed_tables = try fixed_plan.compile(
         allocator,
@@ -166,9 +173,17 @@ pub fn prepare(
     var execution: [37]common.Words = undefined;
     var execution_cursor: usize = 0;
     var source_cursor: usize = 0;
+    var big_multiplicity_cursor: usize = 0;
+    var big_multiplicity_instance: u32 = 0;
     for (memory_tables.entries) |entry| {
+        if (entry.component_index >= proof.components.len)
+            return error.MissingBaseTableSchedule;
+        const planned = proof.components[entry.component_index];
+        if (planned.instance != entry.instance or
+            !std.mem.eql(u8, proof_plan.canonicalComponentName(planned.name, planned.instance), entry.name))
+            return error.MissingBaseTableSchedule;
         const scheduled = request.trace_dispatch.find(
-            entry.name,
+            planned.name,
             entry.instance,
         ) orelse return error.MissingBaseTableSchedule;
         const view = views.find(entry.component_index) orelse
@@ -179,6 +194,7 @@ pub fn prepare(
             .address_to_id => 1,
             .id_to_big, .id_to_small => entry.limb_count,
         };
+        const in_execution_table = entry.kind != .id_to_big or entry.instance == 0;
         const source_rows = try memorySourceRows(entry);
         const source_words = try std.math.mul(
             usize,
@@ -191,7 +207,7 @@ pub fn prepare(
             source_words,
         );
         if (source_end > memory_sources.len or
-            execution_cursor + source_columns > execution.len)
+            (in_execution_table and execution_cursor + source_columns > execution.len))
         {
             return error.InvalidMemorySourceExtent;
         }
@@ -208,11 +224,13 @@ pub fn prepare(
             entry,
             execution_columns,
         );
-        @memcpy(
-            execution[execution_cursor..][0..source_columns],
-            execution_columns,
-        );
-        execution_cursor += source_columns;
+        if (in_execution_table) {
+            @memcpy(
+                execution[execution_cursor..][0..source_columns],
+                execution_columns,
+            );
+            execution_cursor += source_columns;
+        }
         source_cursor = source_end;
         const writer_columns = switch (entry.kind) {
             .address_to_id => blk: {
@@ -233,10 +251,26 @@ pub fn prepare(
         };
         const all_multiplicities = feeds.destination(multiplicity_name) orelse
             return error.MissingMultiplicityDestination;
-        const multiplicities = if (entry.kind == .id_to_big)
-            try all_multiplicities.sub(entry.source_value_offset, entry.row_count)
-        else
-            all_multiplicities;
+        const multiplicities = if (entry.kind == .id_to_big) blk: {
+            // Value IDs use a fixed 2^24 stride, but multiplicity storage
+            // concatenates each component's *padded row count*. A registry
+            // may require 16 components while only component 0 has live
+            // values; the other components occupy 16 counters each, not a
+            // 2^24-counter gap.
+            if (entry.instance != big_multiplicity_instance)
+                return error.InvalidMultiplicityExtent;
+            const part = try all_multiplicities.sub(
+                big_multiplicity_cursor,
+                entry.row_count,
+            );
+            big_multiplicity_cursor = try std.math.add(
+                usize,
+                big_multiplicity_cursor,
+                entry.row_count,
+            );
+            big_multiplicity_instance += 1;
+            break :blk part;
+        } else all_multiplicities;
         const dependencies = try dependencyCapabilities(
             owned,
             scheduled.dependencies,
@@ -302,7 +336,8 @@ pub fn prepare(
     }
     if (binding_cursor != bindings.len or
         source_cursor != memory_sources.len or
-        execution_cursor != execution.len)
+        execution_cursor != execution.len or
+        (feeds.destination("memory_id_to_big") orelse return error.MissingMultiplicityDestination).len != big_multiplicity_cursor)
     {
         return error.InvalidBaseTableInventory;
     }

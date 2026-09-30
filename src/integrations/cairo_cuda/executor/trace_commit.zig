@@ -57,7 +57,18 @@ pub const Prepared = struct {
             plan,
             .main,
             schedule,
+            null,
         );
+    }
+
+    pub fn initMainWithBlowup(
+        allocator: std.mem.Allocator,
+        program: proof_ir.ProofProgram,
+        plan: resident_plan.Plan,
+        schedule: trace_schedule.Schedule,
+        column_blowup_log: u32,
+    ) !Prepared {
+        return init(allocator, program, plan, .main, schedule, column_blowup_log);
     }
 
     /// Compiles the same compact resident PCS path for a tree whose
@@ -77,7 +88,19 @@ pub const Prepared = struct {
             plan,
             role,
             null,
+            null,
         );
+    }
+
+    pub fn initProducedWithBlowup(
+        allocator: std.mem.Allocator,
+        program: proof_ir.ProofProgram,
+        plan: resident_plan.Plan,
+        role: proof_ir.CommitmentRole,
+        column_blowup_log: u32,
+    ) !Prepared {
+        if (role == .main) return error.InvalidTraceCommitRole;
+        return init(allocator, program, plan, role, null, column_blowup_log);
     }
 
     fn init(
@@ -86,6 +109,7 @@ pub const Prepared = struct {
         plan: resident_plan.Plan,
         role: proof_ir.CommitmentRole,
         schedule: ?trace_schedule.Schedule,
+        column_blowup_log: ?u32,
     ) !Prepared {
         try program.validate();
         if (std.mem.allEqual(u8, &plan.identity, 0) or
@@ -112,7 +136,7 @@ pub const Prepared = struct {
         const tree_ordinal: u32 = @intCast(located.ordinal);
         const columns = program.trace_columns[tree.first_column .. tree.first_column + tree.column_count];
 
-        const geometry = try geometry_compiler.compile(allocator, columns, tree);
+        const geometry = try geometry_compiler.compileWithBlowup(allocator, columns, tree, column_blowup_log);
         errdefer geometry.deinit(allocator);
         const writers = if (schedule) |writer_schedule|
             try geometry_compiler.compileWriterSpans(

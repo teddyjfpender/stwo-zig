@@ -65,7 +65,7 @@ fn proveOnce(
     var timer = try std.time.Timer.start();
     var phase: []const u8 = "resolve_input";
     errdefer |err| std.debug.print("cairo-cuda phase={s} failed: {s}\n", .{ phase, @errorName(err) });
-    var paths = try @import("canonical_paths.zig").Paths.init(allocator, request.input);
+    var paths = try @import("canonical_paths.zig").Paths.init(allocator, request.input, request.circuit_registry);
     defer paths.deinit();
     const paths_end_ns = timer.read();
     const runtime_end_ns = timer.read();

@@ -102,8 +102,54 @@ pub fn fromStarkProof(
     interaction_pow_nonce: u64,
     channel_salt: u32,
 ) !VerifierProof {
-    const stark = &extended_proof.proof.commitment_scheme_proof;
-    const aux = &extended_proof.aux;
+    return fromProofMaterial(allocator, &extended_proof.proof, &extended_proof.aux, false, proof_config, claimed_sums_in, interaction_pow_nonce, channel_salt);
+}
+
+/// Convert a verified resident proof using the native verifier's expanded
+/// paths. A CUDA prover publishes the compressed STARK proof; it has no host
+/// prover aux tree. The capture is populated only after full verification and
+/// preserves the original transcript-query order, including duplicates.
+pub fn fromVerifiedCapture(
+    allocator: std.mem.Allocator,
+    proof: anytype,
+    capture: anytype,
+    proof_config: wire.ProofConfig,
+    claimed_sums_in: []const QM31,
+    interaction_pow_nonce: u64,
+    channel_salt: u32,
+) !VerifierProof {
+    return fromProofMaterial(allocator, proof, capture, true, proof_config, claimed_sums_in, interaction_pow_nonce, channel_salt);
+}
+
+test "verified capture conversion rejects a missing commitment inventory" {
+    const H = core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
+    const empty = try std.testing.allocator.alloc(H.Hash, 0);
+    defer std.testing.allocator.free(empty);
+    var proof: core.proof.StarkProof(H) = undefined;
+    proof.commitment_scheme_proof.commitments = core.pcs.TreeVec(H.Hash).initOwned(empty);
+    const capture: core.verifier.ProofCapture(H) = undefined;
+    try std.testing.expectError(error.InvalidCircuitProof, fromVerifiedCapture(
+        std.testing.allocator,
+        &proof,
+        &capture,
+        undefined,
+        &.{},
+        0,
+        0,
+    ));
+}
+
+fn fromProofMaterial(
+    allocator: std.mem.Allocator,
+    proof: anytype,
+    material: anytype,
+    comptime verified_capture: bool,
+    proof_config: wire.ProofConfig,
+    claimed_sums_in: []const QM31,
+    interaction_pow_nonce: u64,
+    channel_salt: u32,
+) !VerifierProof {
+    const stark = &proof.commitment_scheme_proof;
     if (stark.commitments.items.len != wire.n_traces or stark.sampled_values.items.len != wire.n_traces)
         return error.InvalidCircuitProof;
     proof_config.validate() catch return error.InvalidCircuitProof;
@@ -115,7 +161,7 @@ pub fn fromStarkProof(
     var config = proof_config;
     config.component_shapes = try a.dupe(wire.ComponentShape, proof_config.component_shapes);
     const n_queries = config.nQueries();
-    const queries = aux.unsorted_query_locations;
+    const queries = if (comptime verified_capture) material.queries.raw else material.unsorted_query_locations;
     if (queries.len != n_queries) return error.InvalidCircuitProof;
 
     const claimed_sums = try a.dupe(QM31, claimed_sums_in);
@@ -168,14 +214,22 @@ pub fn fromStarkProof(
 
     // Eval-domain auth paths.
     const depth = config.logEvaluationDomainSize();
-    if (aux.trace_decommitment.items.len != wire.n_traces) return error.InvalidCircuitProof;
-    for (aux.trace_decommitment.items, 0..) |decommitment, tree| {
+    if (if (comptime verified_capture) material.trace_paths.len != wire.n_traces else material.trace_decommitment.items.len != wire.n_traces)
+        return error.InvalidCircuitProof;
+    for (0..wire.n_traces) |tree| {
         const paths = try a.alloc(wire.Hash, n_queries * depth);
         for (queries, 0..) |query, q| {
-            var position = query;
-            for (0..depth) |level| {
-                paths[q * depth + level] = try nodeAt(decommitment.all_node_values, level, position ^ 1);
-                position >>= 1;
+            if (comptime verified_capture) {
+                const capture_path = material.trace_paths[tree];
+                if (capture_path.path_depth != depth or capture_path.positions.len != n_queries or capture_path.positions[q] != query)
+                    return error.InvalidCircuitProof;
+                @memcpy(paths[q * depth ..][0..depth], capture_path.path(q));
+            } else {
+                var position = query;
+                for (0..depth) |level| {
+                    paths[q * depth + level] = try nodeAt(material.trace_decommitment.items[tree].all_node_values, level, position ^ 1);
+                    position >>= 1;
+                }
             }
         }
         out.eval_domain_auth_paths[tree] = paths;
@@ -186,7 +240,7 @@ pub fn fromStarkProof(
     const steps = config.friFoldSteps(&steps_buffer);
     const n_layers = steps.len;
     if (stark.fri_proof.inner_layers.len + 1 != n_layers or
-        aux.fri.inner_layers.len + 1 != n_layers)
+        (if (comptime verified_capture) material.fri.layers.len != n_layers else material.fri.inner_layers.len + 1 != n_layers))
         return error.InvalidCircuitProof;
     const commitments = try a.alloc(wire.Hash, n_layers);
     commitments[0] = stark.fri_proof.first_layer.commitment;
@@ -197,23 +251,32 @@ pub fn fromStarkProof(
     var fold_sum: usize = 0;
     for (steps, 0..) |step_u32, layer| {
         const step: usize = step_u32;
-        const layer_aux = if (layer == 0) &aux.fri.first_layer else &aux.fri.inner_layers[layer - 1];
-        const pack_shift: usize = if (log_layer_size >= LOG_PACKED_LEAF_SIZE and step > 1) LOG_PACKED_LEAF_SIZE else 0;
         const path_len = log_layer_size - step;
         const paths = try a.alloc(wire.Hash, n_queries * path_len);
         const coset = try a.alloc(QM31, n_queries << @intCast(step));
         for (queries, 0..) |query, q| {
-            var position = query >> @intCast(fold_sum + step);
-            for (step..log_layer_size, 0..) |level, index| {
-                paths[q * path_len + index] = try nodeAt(layer_aux.decommitment.all_node_values, level - pack_shift, position ^ 1);
-                position >>= 1;
+            if (comptime verified_capture) {
+                const captured = material.fri.layers[layer];
+                const width: usize = @as(usize, 1) << @intCast(step);
+                if (captured.query_count != n_queries or captured.fold_width != width or captured.path_depth != path_len or
+                    captured.positions[q] != query >> @intCast(fold_sum)) return error.InvalidCircuitProof;
+                @memcpy(paths[q * path_len ..][0..path_len], captured.queryPath(q));
+                @memcpy(coset[q * width ..][0..width], captured.queryValues(q));
+            } else {
+                const layer_aux = if (layer == 0) &material.fri.first_layer else &material.fri.inner_layers[layer - 1];
+                const pack_shift: usize = if (log_layer_size >= LOG_PACKED_LEAF_SIZE and step > 1) LOG_PACKED_LEAF_SIZE else 0;
+                var position = query >> @intCast(fold_sum + step);
+                for (step..log_layer_size, 0..) |level, index| {
+                    paths[q * path_len + index] = try nodeAt(layer_aux.decommitment.all_node_values, level - pack_shift, position ^ 1);
+                    position >>= 1;
+                }
+                // `construct_fri_witness`: the fold coset of the query's position
+                // in this layer.
+                const layer_position = query >> @intCast(fold_sum);
+                const start = (layer_position >> @intCast(step)) << @intCast(step);
+                for (0..@as(usize, 1) << @intCast(step)) |i|
+                    coset[(q << @intCast(step)) + i] = try valueAt(layer_aux.all_values, start + i);
             }
-            // `construct_fri_witness`: the fold coset of the query's position
-            // in this layer.
-            const layer_position = query >> @intCast(fold_sum);
-            const start = (layer_position >> @intCast(step)) << @intCast(step);
-            for (0..@as(usize, 1) << @intCast(step)) |i|
-                coset[(q << @intCast(step)) + i] = try valueAt(layer_aux.all_values, start + i);
         }
         auth_paths[layer] = paths;
         witness[layer] = coset;

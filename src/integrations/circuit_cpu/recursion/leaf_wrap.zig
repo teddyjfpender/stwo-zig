@@ -213,6 +213,40 @@ pub fn wrapCairoProof(
     cairo_proof: anytype,
     input: *const cairo.adapter.ProverInput,
 ) !LeafProof {
+    return wrapCairoProofImpl(allocator, wrap, cairo_proof, input, false, {});
+}
+
+/// The resident Cairo prover retains only its verified, compressed STARK
+/// proof and opening capture. This explicit view is the handoff from a CUDA
+/// leaf proof to the recursive verifier circuit; no CPU Cairo re-proving or
+/// host prover auxiliary tree is required.
+pub const VerifiedCairoLeaf = struct {
+    proof: *const core.proof.StarkProof(cairo.witness.resident_verifier.Hasher),
+    composition: *const cairo.witness.composition_bundle.Bundle,
+    claimed_sums: []const QM31,
+    interaction_pow: u64,
+    channel_salt: u32,
+    preprocessed_variant: cairo.preprocessed.trace.Variant,
+    capture: *const core.verifier.ProofCapture(cairo.witness.resident_verifier.Hasher),
+};
+
+pub fn wrapVerifiedCairoLeaf(
+    allocator: std.mem.Allocator,
+    wrap: *const LeafWrap,
+    leaf: VerifiedCairoLeaf,
+    input: *const cairo.adapter.ProverInput,
+) !LeafProof {
+    return wrapCairoProofImpl(allocator, wrap, leaf, input, true, leaf.capture);
+}
+
+fn wrapCairoProofImpl(
+    allocator: std.mem.Allocator,
+    wrap: *const LeafWrap,
+    cairo_proof: anytype,
+    input: *const cairo.adapter.ProverInput,
+    comptime verified_capture: bool,
+    capture: anytype,
+) !LeafProof {
     const registry = wrap.registry;
     const params = registry.cairo_prover_params;
     if (!params.include_all_preprocessed_columns) return error.IncludeAllPreprocessedColumnsRequired;
@@ -221,7 +255,8 @@ pub fn wrapCairoProof(
     if (!std.mem.eql(u8, @tagName(cairo_proof.preprocessed_variant), @tagName(variant))) return error.VariantMismatch;
 
     // 1. The trace log size and the registry entry.
-    const stark = &cairo_proof.proof.proof.commitment_scheme_proof;
+    const proof = if (comptime verified_capture) cairo_proof.proof else &cairo_proof.proof.proof;
+    const stark = &proof.commitment_scheme_proof;
     const pcs = stark.revision_config orelse return error.MissingLiftingHeights;
     if (pcs.trace_lifting_log_size != pcs.preprocessed_lifting_log_size) return error.UnequalLiftingHeights;
     const trace_log_size = std.math.sub(u32, pcs.trace_lifting_log_size, pcs.fri_config.log_blowup_factor) catch
@@ -249,21 +284,33 @@ pub fn wrapCairoProof(
     defer build_stage.end();
 
     // 3. `prepare_cairo_proof_for_circuit_verifier` and the output digest.
-    var geometry = try cairo.statement_bootstrap.deriveFlatClaimGeometry(allocator, &cairo_proof.composition);
+    const composition = if (comptime verified_capture) cairo_proof.composition else &cairo_proof.composition;
+    var geometry = try cairo.statement_bootstrap.deriveFlatClaimGeometry(allocator, composition);
     defer geometry.deinit();
     if (!std.mem.eql(bool, geometry.component_enable_bits, config.enabled_bits)) return error.EnabledComponentsMismatch;
 
     var arena_state = std.heap.ArenaAllocator.init(allocator);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
-    var converted = try verifier_proof.fromStarkProof(
-        allocator,
-        &cairo_proof.proof,
-        wire_config,
-        cairo_proof.claimed_sums,
-        cairo_proof.interaction_pow,
-        cairo_proof.channel_salt,
-    );
+    var converted = if (comptime verified_capture)
+        try verifier_proof.fromVerifiedCapture(
+            allocator,
+            proof,
+            capture,
+            wire_config,
+            cairo_proof.claimed_sums,
+            cairo_proof.interaction_pow,
+            cairo_proof.channel_salt,
+        )
+    else
+        try verifier_proof.fromStarkProof(
+            allocator,
+            &cairo_proof.proof,
+            wire_config,
+            cairo_proof.claimed_sums,
+            cairo_proof.interaction_pow,
+            cairo_proof.channel_salt,
+        );
     defer converted.deinit();
     const proof_values = try verifier_proof.circuitVerifierValues(arena, &converted.proof, converted.config);
 

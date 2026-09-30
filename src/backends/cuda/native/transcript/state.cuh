@@ -40,6 +40,20 @@ static_assert(offsetof(State, cursor) == 36);
 static_assert(offsetof(State, status) == 40);
 static_assert(offsetof(State, chain) == 48);
 
+__device__ __forceinline__ uint32_t reduce_m31_word(uint32_t word) {
+    const uint32_t folded = (word & kM31Prime) + (word >> 31);
+    return folded >= kM31Prime ? folded - kM31Prime : folded;
+}
+
+__device__ __forceinline__ Hash channel_hash(Hash value, const State *state) {
+    if (state->reserved == 0) return value;
+#pragma unroll
+    for (uint32_t word = 0; word < 8; ++word) {
+        value.words[word] = reduce_m31_word(value.words[word]);
+    }
+    return value;
+}
+
 __device__ __forceinline__ State *as_state(std::uint32_t *words) {
     return reinterpret_cast<State *>(words);
 }
@@ -77,7 +91,8 @@ __device__ __forceinline__ void finish_step(
 }
 
 __device__ __forceinline__ Hash draw(State *state) {
-    const Hash result = hash_draw(state->digest, state->draws);
+    const Hash result = channel_hash(
+        hash_draw(state->digest, state->draws), state);
     ++state->draws;
     return result;
 }
@@ -86,7 +101,8 @@ __device__ __forceinline__ void update_digest(
     State *state,
     const std::uint32_t *words,
     std::uint32_t count) {
-    const Hash result = hash_digest_and_words(state->digest, words, count);
+    const Hash result = channel_hash(
+        hash_digest_and_words(state->digest, words, count), state);
     copy_words(state->digest, result.words, 8);
     state->draws = 0;
 }
@@ -95,8 +111,10 @@ __device__ __forceinline__ bool valid_pow(
     const State *state,
     std::uint32_t pow_bits,
     const std::uint32_t nonce[2]) {
-    const Hash prefix = pow_prefix(state->digest, pow_bits);
-    const Hash result = hash_digest_and_words(prefix.words, nonce, 2);
+    const Hash prefix = channel_hash(
+        pow_prefix(state->digest, pow_bits), state);
+    const Hash result = channel_hash(
+        hash_digest_and_words(prefix.words, nonce, 2), state);
     return trailing_zero_bits_128(result) >= pow_bits;
 }
 
