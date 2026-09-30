@@ -276,6 +276,33 @@ wall second against upstream's 8.5). It is 2.5-3x slower than upstream and
 above the 8 GB per-process budget of the development host; both are
 milestone M11 work (design §9), not parity issues.
 
+M11 scheduling (2026-09-30, same host, AC power, ReleaseFast, other agents'
+jobs running, so indicative): `zig build bench-fold -- 2` (one root
+reduction of two golden leaves, `root.proof` checked against upstream)
+went from 47.5 s (75.4 s in a more contended run) to 28.3 s wall with the
+peak RSS unchanged (14.6 GB before, 14.2 GB after, sampled). Three
+byte-neutral changes:
+
+- composition evaluates one component at a time on the whole pool
+  (`pool_exclusive_domain`); the default scheduler split only the first
+  2^24-row domain (qm31_ops) and left blake_g_gate on one core
+  (composition 17.7-28.9 s to 3.1-3.5 s);
+- the preprocessed tree builds on the scheme's deferred first-tree worker
+  while the base trace is written, and is joined before the circuit hash
+  (3.8 s to a 0.4 s join);
+- both grinds on `Blake2sM31Channel` (leaves and internal folds) use the
+  prover pool's prepared-prefix first-word search, as the root's
+  `Blake2sChannel` already did, instead of spawning threads per grind:
+  about 360 to 430-530 million canonical indices per second at 26 bits
+  (`zig build bench-grind`); nonces are unchanged (Rust `SimdBackend`
+  known answers in `test-pcs-blake2s-pow`).
+
+`bench-fold` prints the stage profile, now including the circuit
+prover's own stages (`circuit_*`) before `prove_ex`. The largest
+remaining stages are single-core: the interaction trace (8.8 s) and base
+trace (3.2 s) witnesses, and the compact interaction commit (5.5 s, about
+2.7 cores).
+
 ## Contract and invariants
 
 - Proof bytes equal upstream's for the same inputs on both profiles; every

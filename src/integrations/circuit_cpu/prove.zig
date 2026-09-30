@@ -42,6 +42,7 @@ const preprocessed = circuit.common.preprocessed;
 const circuit_hash = circuit.common.circuit_hash;
 const witness = circuit.witness.trace;
 const PerComponent = component_list.PerComponent;
+const Stage = prover.stage_profile.StageScope;
 const CapturedComponent = cairo.proving.air.component.Component;
 
 pub const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
@@ -148,14 +149,30 @@ pub fn Prover(comptime MC: type) type {
             scheme.setStorePolynomialsCoefficients();
             if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
 
-            // Preprocessed tree.
-            try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
-            const preprocessed_root = scheme.trees.items[0].commitment.root();
-            step(observer, .commit_preprocessed, &channel);
+            const recorder = options.recorder;
+            // Preprocessed tree. Its build is channel-independent: the
+            // scheme runs the first tree on its deferred worker
+            // (`pcs.deferred_commit`) while this thread writes the base
+            // trace, and the flush joins it and mixes its root in the same
+            // transcript position as a sequential commit.
+            var preprocessed_stage = try Stage.begin(recorder, "circuit_commit_preprocessed", "Circuit preprocessed commit (spawn)");
+            defer preprocessed_stage.end();
+            try Engine.commit(&scheme, allocator, try preprocessedColumns(allocator, pp), recorder, &channel);
+            preprocessed_stage.end();
 
             // Base trace.
+            var base_trace_stage = try Stage.begin(recorder, "circuit_base_trace", "Circuit base trace");
+            defer base_trace_stage.end();
             var base = try witness.writeTrace(allocator, values, pp);
             defer base.deinit();
+            base_trace_stage.end();
+
+            var preprocessed_join_stage = try Stage.begin(recorder, "circuit_commit_preprocessed_join", "Circuit preprocessed commit (join)");
+            defer preprocessed_join_stage.end();
+            try Engine.flushPendingCommit(&scheme, allocator, &channel);
+            preprocessed_join_stage.end();
+            const preprocessed_root = scheme.trees.items[0].commitment.root();
+            step(observer, .commit_preprocessed, &channel);
             const hash = try circuit_hash.hostCircuitHash(
                 base.log_sizes,
                 pcs_config.fri_config.log_blowup_factor,
@@ -167,11 +184,19 @@ pub fn Prover(comptime MC: type) type {
             step(observer, .mix_claim, &channel);
             // The commitment owns (and extends) what it commits; the base
             // columns stay here for the interaction pass.
-            try commit(&scheme, allocator, try dupColumns(allocator, base.columns), &channel);
+            var base_commit_stage = try Stage.begin(recorder, "circuit_commit_base", "Circuit base trace commit");
+            defer base_commit_stage.end();
+            try commit(&scheme, allocator, try dupColumns(allocator, base.columns), &channel, recorder);
+            base_commit_stage.end();
             step(observer, .commit_base_trace, &channel);
 
             // Interaction elements.
-            const nonce = channel.grind(component_list.INTERACTION_POW_BITS);
+            var grind_stage = try Stage.begin(recorder, "circuit_interaction_pow", "Circuit interaction proof of work");
+            defer grind_stage.end();
+            // The prover pool's search when one is bound, the channel's own
+            // threads otherwise; both return the canonical (Rust) nonce.
+            const nonce = prover.pcs.proof_of_work.grind(&channel, component_list.INTERACTION_POW_BITS);
+            grind_stage.end();
             channel.mixU64(nonce);
             step(observer, .mix_interaction_pow_nonce, &channel);
             const elements = try lookup_transcript.drawLookupElements(allocator, &channel);
@@ -179,6 +204,8 @@ pub fn Prover(comptime MC: type) type {
             step(observer, .draw_interaction_elements, &channel);
 
             // Interaction trace.
+            var interaction_stage = try Stage.begin(recorder, "circuit_interaction_trace", "Circuit interaction trace");
+            defer interaction_stage.end();
             var interaction = try witness.writeInteractionTrace(
                 allocator,
                 base.columns,
@@ -190,13 +217,17 @@ pub fn Prover(comptime MC: type) type {
             defer interaction.deinit();
             const sum = try witness.lookupSum(base.output_values, interaction.claimed_sums, elements.z, elements.alpha);
             if (!sum.isZero()) return error.InvalidLookupSum;
+            interaction_stage.end();
             // The interaction pass was the base columns' last reader; the
             // commitment holds its own copy.
             witness.freeColumns(allocator, base.takeColumns());
             const claimed_sums = interaction.claimed_sums.toArray();
             lookup_transcript.mixInteractionClaim(&channel, &claimed_sums);
             step(observer, .mix_interaction_claim, &channel);
-            try commit(&scheme, allocator, interaction.takeColumns(), &channel);
+            var interaction_commit_stage = try Stage.begin(recorder, "circuit_commit_interaction", "Circuit interaction trace commit");
+            defer interaction_commit_stage.end();
+            try commit(&scheme, allocator, interaction.takeColumns(), &channel, recorder);
+            interaction_commit_stage.end();
             step(observer, .commit_interaction_trace, &channel);
             // The committed trees hold the blown-up evaluations
             // (`CommitmentSchemeProver::evaluations`).
@@ -225,6 +256,13 @@ pub fn Prover(comptime MC: type) type {
                     claimed_sum,
                 );
                 component.* = runtime.asProverComponent();
+                // Evaluate one component at a time on the whole pool. By
+                // default only the first of the two 2^24-row domains splits
+                // its rows and blake_g_gate, the widest, runs on one core;
+                // one component at a time also keeps a single component's
+                // coefficient-expanded trace resident. Row values are exact
+                // field sums in fixed constraint order: no byte changes.
+                component.pool_exclusive_domain = true;
             }
 
             scheme_owned = false;
@@ -248,8 +286,8 @@ pub fn Prover(comptime MC: type) type {
         }
 
         /// Commits owned columns as the next tree and mixes its root.
-        fn commit(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []prover.pcs.ColumnEvaluation, channel: *Channel) !void {
-            try Engine.commit(scheme, allocator, columns, null, channel);
+        fn commit(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []prover.pcs.ColumnEvaluation, channel: *Channel, recorder: ?*prover.stage_profile.Recorder) !void {
+            try Engine.commit(scheme, allocator, columns, recorder, channel);
             try Engine.flushPendingCommit(scheme, allocator, channel);
         }
 
