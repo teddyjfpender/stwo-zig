@@ -62,3 +62,21 @@ and 1-2 minutes) wraps `use_all_opcodes_and_builtins` and requires the file
 to equal `vectors/circuit/official/leaf_prover/expected_output.json`, the
 golden upstream's `cli_test.rs` pins. Upstream's release `leaf-prover`
 reproduced that golden on this host on 2026-09-30.
+
+## Measurements
+
+Apple M4 Max, AC power, `ReleaseFast`, compact storage from log 18, with
+other agents' jobs running and 8-14 GB of swap in use (an upper band, not a
+benchmark):
+
+| Leaf | Bucket | Cairo proof | Wrap | Wall | Max RSS | Peak footprint |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `use_all_opcodes_and_builtins` (canonical_small) | 20 | 1.6-2.7 s | 36-44 s | 43-60 s | 11-17.5 GB | 17.5-22 GB |
+| mainnet `15627905-15627907` (leaf bootloader over the PIE; canonical) | 25 | 75.2 s | 39.0 s | 114.4 s | 18.5 GB | 28.1 GB |
+
+The mainnet row used a canonical registry built by upstream `circuit-params`
+for trace logs 25-26; the Zig wrap's circuit hash and preprocessed root
+equal its leaf entry. Upstream `leaf-prover` was not run on that leaf (it
+needs more than this host's 36 GB). On the canonical_small leaf upstream
+`leaf-prover` takes 30.4 s, 12.6 GB maximum RSS and 25.4 GB peak footprint
+on the same host.
