@@ -35,6 +35,9 @@ const goldens_dir = "vectors/circuit/official/recursive_tree/four_leaves";
 const checkpoint_path = "vectors/circuit/r9/fold_tree.json";
 const projection_path = "vectors/circuit/official/compiled_air_constraints_v1.bin";
 
+/// The product's fold options.
+const fold_options = recursion.fold.default_options;
+
 /// The tree's shared inputs: registry, evaluators, AIR bundle, canonical
 /// circuit and the golden leaf.
 const Setup = struct {
@@ -62,6 +65,9 @@ const Setup = struct {
         errdefer self.bundle.deinit();
         self.canonical = try recursion.CanonicalCircuit.build(gpa, &self.table, self.registry.registry);
         errdefer self.canonical.deinit(gpa);
+        // Every reduction leases one committed preprocessed tree, on both
+        // channel profiles (design §7.2).
+        try self.canonical.commitPreprocessed(gpa, fold_options);
         self.leaf = try wire.leaf_proof_json.parseLeafInput(gpa, try std.fs.cwd().readFileAlloc(a, leaf_path, 8 << 20));
     }
 
@@ -105,7 +111,7 @@ fn foldCopies(gpa: std.mem.Allocator, setup: *const Setup, n: usize) !Outputs {
         .canonical = &setup.canonical,
         .table = &setup.table,
         .bundle = &setup.bundle,
-        .options = .{ .compact_polynomial_min_log = 18 },
+        .options = fold_options,
         .packed_allocator = packed_arena.allocator(),
     };
     const leaves = try gpa.alloc(wire.leaf_proof_json.LeafInput, n);

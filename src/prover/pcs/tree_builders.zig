@@ -87,7 +87,11 @@ pub fn appendCommittedTree(
     if (comptime @hasDecl(@TypeOf(scheme.*), "liftCommittedTree"))
         try scheme.liftCommittedTree(allocator, &retained);
     if (comptime @hasField(@TypeOf(scheme.*), "compact_polynomial_storage")) {
-        if (scheme.compact_polynomial_storage)
+        // A lease on a shared tree keeps its owner's storage policy: the
+        // owner chose what every lease retains, and cannot be compacted
+        // under other leases.
+        const leased = comptime @hasField(@TypeOf(retained), "shared_owner");
+        if (scheme.compact_polynomial_storage and !(leased and retained.shared_owner != null))
             try retained.compactPolynomialStorage(allocator, scheme.compact_polynomial_min_log_size);
     }
     scheme.trees.appendAssumeCapacity(retained);

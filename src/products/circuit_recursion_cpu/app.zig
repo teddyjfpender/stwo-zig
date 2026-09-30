@@ -329,20 +329,26 @@ pub fn foldTreeProfiled(
     defer circuit_table.deinit();
     var bundle = try airBundle(gpa);
     defer bundle.deinit();
-    var canonical = blk: {
+    // The canonical circuit with its committed preprocessed tree, by fold
+    // topology; every reduction of the tree leases that one commitment.
+    // Every reduction stores its trees as `fold.default_options` says.
+    var options = recursion.fold.default_options;
+    options.recorder = recorder;
+    var topologies = recursion.canonical.Cache.init(gpa, .{});
+    defer topologies.deinit();
+    const canonical = blk: {
         var stage = try circuit_cpu.prove.StageScope.begin(recorder, "fold_canonical_build", "build and preprocess the canonical multiverifier");
         defer stage.end();
-        break :blk try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry);
+        break :blk try recursion.canonical.acquire(gpa, &topologies, &circuit_table, registry, options);
     };
-    defer canonical.deinit(gpa);
 
     var packed_arena = std.heap.ArenaAllocator.init(gpa);
     defer packed_arena.deinit();
     const fold: recursion.Fold = .{
-        .canonical = &canonical,
+        .canonical = canonical,
         .table = &circuit_table,
         .bundle = &bundle,
-        .options = .{ .compact_polynomial_min_log = cli.default_compact_min_log, .recorder = recorder },
+        .options = options,
         .packed_allocator = packed_arena.allocator(),
     };
     var folded = try recursion.tree.foldLeaves(gpa, &fold, leaves);

@@ -19,7 +19,10 @@ const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const wire = @import("stwo_circuit_recursion_wire");
 const verifier_proof = @import("../verifier_proof.zig");
+const prove = @import("../prove.zig");
 const circuit_params = @import("circuit_params.zig");
+const topology_key = @import("topology_key.zig");
+const topology_cache = @import("topology_cache.zig");
 
 const builder = circuit.builder;
 const finalize = circuit.common.finalize;
@@ -51,6 +54,10 @@ pub const CanonicalCircuit = struct {
     /// equal to the registry's multiverifier entry.
     preprocessed_root: Hash,
     circuit_hash: Hash,
+    /// The committed preprocessed tree every fold leases (design §7.2), and
+    /// the twiddles every fold borrows; set by `commitPreprocessed`.
+    commitment: ?prove.PreprocessedCommitment = null,
+    twiddles: ?prove.TwiddleTower = null,
 
     /// `CanonicalCircuit::build`. `table` is the circuit AIR's in-circuit
     /// evaluator table (`air_eval.circuit_components.build`).
@@ -93,7 +100,47 @@ pub const CanonicalCircuit = struct {
         };
     }
 
+    /// Commits the preprocessed tree once, as every fold under `options`
+    /// would, and keeps it with the twiddle tower it was extended with. The
+    /// root must equal the identity's, which `build` checked against the
+    /// registry. The tree is stored as `options` says, for every fold.
+    pub fn commitPreprocessed(self: *CanonicalCircuit, gpa: std.mem.Allocator, options: prove.Options) !void {
+        if (self.commitment != null) return error.AlreadyCommitted;
+        const pcs_config = self.shared.pcs_config;
+        var twiddles = try prove.twiddleTower(gpa, pcs_config);
+        errdefer twiddles.deinit(gpa);
+        var commit_options = options;
+        commit_options.twiddle_tower = &twiddles;
+        commit_options.preprocessed_commitment = null;
+        var commitment = try prove.PreprocessedCommitment.build(gpa, &self.preprocessed, pcs_config, commit_options);
+        errdefer commitment.deinit(gpa);
+        if (!std.mem.eql(u8, &commitment.root(), &self.preprocessed_root)) return error.PreprocessedRootMismatch;
+        self.twiddles = twiddles;
+        self.commitment = commitment;
+    }
+
+    /// `options` with this circuit's committed tree and twiddles, when
+    /// `commitPreprocessed` ran. The tower lives in `self`, so the result
+    /// must not outlive it (nor the circuit move).
+    pub fn proveOptions(self: *const CanonicalCircuit, options: prove.Options) prove.Options {
+        var out = options;
+        if (self.commitment) |*commitment| out.preprocessed_commitment = commitment;
+        if (self.twiddles) |*twiddles| out.twiddle_tower = twiddles;
+        return out;
+    }
+
+    /// Retained bytes, for the topology cache's budget.
+    pub fn byteSize(self: *const CanonicalCircuit) usize {
+        var bytes: usize = 0;
+        for (self.preprocessed.columns) |column| bytes += column.values.len * @sizeOf(core.fields.m31.M31);
+        if (self.commitment) |*commitment| bytes += commitment.byteSize();
+        if (self.twiddles) |*twiddles| bytes += twiddles.retainedBytes();
+        return bytes;
+    }
+
     pub fn deinit(self: *CanonicalCircuit, gpa: std.mem.Allocator) void {
+        if (self.commitment) |*commitment| commitment.deinit(gpa);
+        if (self.twiddles) |*twiddles| twiddles.deinit(gpa);
         self.preprocessed.deinit(gpa);
         self.shared.deinit(gpa);
         self.* = undefined;
@@ -105,3 +152,46 @@ pub const CanonicalCircuit = struct {
         return self.shared.proof_config.shape();
     }
 };
+
+/// Canonical circuits by fold topology (design §3.5): a fold's topology
+/// depends on the registry config alone (`topology_key.FoldKey`), so one
+/// entry serves every tree of every registry with that config.
+pub const Cache = topology_cache.TopologyCache(CanonicalCircuit);
+
+/// The fold `TopologyKey` of `registry`'s multiverifier.
+pub fn foldKey(registry: wire.registry.CircuitRegistry) !topology_key.TopologyKey {
+    const entry = try registry.multiverifier();
+    const config = try registry.config(entry.config);
+    return (topology_key.FoldKey{
+        .config_name = entry.config,
+        .circuit_fri = config.fri_config,
+        .target = ComponentSizes.fromLogSizes(config.component_log_sizes),
+    }).key();
+}
+
+/// The canonical circuit of `registry`: from `cache` on a hit, else built,
+/// checked against the registry, committed under `options` and published.
+/// A hit still checks the registry's multiverifier circuit hash, which the
+/// key does not cover. `cache` must use `gpa`. The pointer is valid until the
+/// cache's next publish or deinit.
+pub fn acquire(
+    gpa: std.mem.Allocator,
+    cache: *Cache,
+    table: *const component_table.Table,
+    registry: wire.registry.CircuitRegistry,
+    options: prove.Options,
+) !*const CanonicalCircuit {
+    const key = try foldKey(registry);
+    const expected = (try registry.multiverifier()).circuit_hash.toBytes();
+    if (cache.get(key)) |hit| {
+        if (!std.mem.eql(u8, &hit.circuit_hash, &expected)) return error.MultiverifierCircuitHash;
+        return hit;
+    }
+    var built = try CanonicalCircuit.build(gpa, table, registry);
+    var owned = true;
+    defer if (owned) built.deinit(gpa);
+    try built.commitPreprocessed(gpa, options);
+    const published = try cache.publish(key, built);
+    owned = false;
+    return published;
+}

@@ -98,6 +98,9 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
     return struct {
         pub const CommittedTree = BackendCommitmentTree;
         pub const revision = Revision.of(MC);
+        /// The committed-tree type; a shared tree (`share`/`retainShared`)
+        /// may be appended to any scheme of the same backend and hasher.
+        pub const CommitmentTree = BackendCommitmentTree;
         trees: std.ArrayListUnmanaged(BackendCommitmentTree),
         config: PcsConfig,
         coefficient_retention_policy: CoefficientRetentionPolicy,
@@ -133,6 +136,14 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         pub fn initRevision(allocator: std.mem.Allocator, config: revision_lifting.PcsConfigV2) !Self {
             var scheme = try init(allocator, Revision.proving_5a7c5ed.legacyView(config));
             errdefer scheme.deinit(allocator);
+            try scheme.setRevisionConfig(config);
+            return scheme;
+        }
+        /// `initRevision` with twiddles borrowed from a long-lived tower, so
+        /// consecutive proofs share one precompute. Twiddles are canonical,
+        /// so the proof is unchanged.
+        pub fn initRevisionWithTwiddleTower(config: revision_lifting.PcsConfigV2, tower: *const M31TwiddleTower) !Self {
+            var scheme = initWithTwiddleTower(Revision.proving_5a7c5ed.legacyView(config), tower);
             try scheme.setRevisionConfig(config);
             return scheme;
         }

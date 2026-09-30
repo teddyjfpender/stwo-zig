@@ -101,15 +101,29 @@ pub const LeafTopology = struct {
     /// Eight little-endian words of the committed root and the circuit hash.
     preprocessed_root: [8]u32,
     circuit_hash: [8]u32,
+    /// The committed preprocessed tree and the twiddles every wrap of the
+    /// key shares (design §7.1, §9.2 item 1).
+    commitment: prove.PreprocessedCommitment,
+    twiddles: prove.TwiddleTower,
 
     pub fn deinit(self: *LeafTopology, allocator: std.mem.Allocator) void {
+        self.commitment.deinit(allocator);
+        self.twiddles.deinit(allocator);
         self.preprocessed.deinit(allocator);
     }
 
     pub fn byteSize(self: *const LeafTopology) usize {
         var bytes: usize = 0;
         for (self.preprocessed.columns) |column| bytes += column.values.len * @sizeOf(M31);
-        return bytes;
+        return bytes + self.commitment.byteSize() + self.twiddles.retainedBytes();
+    }
+
+    /// `options` with this topology's commitment and twiddles.
+    fn proveOptions(self: *const LeafTopology, options: prove.Options) prove.Options {
+        var out = options;
+        out.preprocessed_commitment = &self.commitment;
+        out.twiddle_tower = &self.twiddles;
+        return out;
     }
 };
 
@@ -162,6 +176,32 @@ pub const LeafProof = struct {
         try wire.leaf_proof_json.writeSerializedLeafProof(out, self.serialized());
     }
 };
+
+/// A cache miss's entry: the preprocessed circuit of `circuit`, committed
+/// once under `options` (the root and hash are set after the proof passes).
+fn buildTopology(
+    allocator: std.mem.Allocator,
+    circuit_ctx: anytype,
+    circuit_fri: core.pcs.config_v2.FriConfigV2,
+    options: prove.Options,
+) !LeafTopology {
+    var pp = try PreprocessedCircuit.fromBuilderCircuit(allocator, circuit_ctx);
+    errdefer pp.deinit(allocator);
+    const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, pp.traceLogSize());
+    var twiddles = try prove.twiddleTower(allocator, pcs_config);
+    errdefer twiddles.deinit(allocator);
+    var commit_options = options;
+    commit_options.twiddle_tower = &twiddles;
+    const commitment = try prove.PreprocessedCommitment.build(allocator, &pp, pcs_config, commit_options);
+    return .{
+        .preprocessed = pp,
+        .n_vars = circuit_ctx.n_vars,
+        .preprocessed_root = undefined,
+        .circuit_hash = undefined,
+        .commitment = commitment,
+        .twiddles = twiddles,
+    };
+}
 
 /// Wraps `cairo_proof`, the Cairo lane's `Result` for the leaf engine, of
 /// the execution `input`.
@@ -264,12 +304,7 @@ pub fn wrapCairoProof(
     } else blk: {
         var preprocess_stage = try StageScope.begin(recorder, "leaf_wrap_preprocess", "preprocess the leaf circuit (topology miss)");
         defer preprocess_stage.end();
-        fresh = .{
-            .preprocessed = try PreprocessedCircuit.fromBuilderCircuit(wrap.cache.allocator, &ctx.circuit),
-            .n_vars = ctx.circuit.n_vars,
-            .preprocessed_root = undefined,
-            .circuit_hash = undefined,
-        };
+        fresh = try buildTopology(wrap.cache.allocator, &ctx.circuit, circuit_fri, wrap.options);
         break :blk &fresh.?;
     };
     log.info("leaf topology {f}: {s}, {d} variables", .{ key, if (fresh == null) "cached" else "built", ctx.circuit.n_vars });
@@ -280,7 +315,7 @@ pub fn wrapCairoProof(
     ctx_owned = false;
     defer allocator.free(values);
     const pcs_config = PcsConfigV2.fromFriAndTraceSize(circuit_fri, topology.preprocessed.traceLogSize());
-    var circuit_proof = try prove.Internal.prove(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, wrap.options, {});
+    var circuit_proof = try prove.Internal.prove(allocator, values, &topology.preprocessed, wrap.bundle, pcs_config, topology.proveOptions(wrap.options), {});
     defer circuit_proof.deinit();
     const root = blake2_hash.digestToU32s(circuit_proof.stark_proof.proof.commitment_scheme_proof.commitments.items[0]);
     const hash = blake2_hash.digestToU32s(circuit_proof.circuit_hash);
