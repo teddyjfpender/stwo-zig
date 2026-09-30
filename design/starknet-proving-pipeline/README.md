@@ -1,4 +1,4 @@
-# Starknet proving pipeline: leaves, aggregation, settlement — 2026-09-29
+# Starknet proving pipeline: leaves, aggregation, settlement — 2026-09-29 (cost model updated 2026-09-30)
 
 What it takes to prove Starknet the way StarkWare does: many Starknet OS
 "leaf" proofs, recursively merged, aggregated into one Starknet state update,
@@ -25,10 +25,18 @@ Status markers: **VERIFIED** (read in code or on chain, with a reference),
 - Ethereum still verifies a **Stone** proof (`recursive_large_output` layout,
   Keccak channel) through the SHARP GPS verifier: ~5.6–6.0M gas per proof,
   one proof every ~1.5 h, shared with other SHARP customers (VERIFIED on chain).
-- Mainnet load is small. All leaf + recursion proving is roughly **4–8 H100
-  GPU-hours per day**; cluster size is set by latency, redundancy and GPU memory,
-  not throughput. L1 gas (~$120k/yr at 1 gwei and an assumed $3k/ETH) exceeds
-  compute (~$42k/yr).
+- Mainnet load is small. With stwo-zig CUDA leaf proofs at 0.66–1.03 s on an
+  H200 (PR #203), all GPU proving is roughly **2–4 H200-hours per day**. Cluster
+  size is set by GPU memory (~100 GB for 14M-step leaves), redundancy and
+  latency, not throughput.
+- **The time bottleneck is the CPU side, not the GPU.** cairo-vm OS execution
+  costs tens of CPU-seconds per leaf, cold ingress ~5 s, and aggregation runs in
+  cairo-vm, against ~1 s of GPU per leaf proof. Recursion (leaf wrap plus fold,
+  two fixed-shape circuit proofs per leaf) costs about as much GPU as the leaves
+  themselves.
+- **Estimated running cost ≈ $215/day (~$78k/yr)** at today's gas (0.10 gwei,
+  ETH $2,674): about $170/day of compute and $45/day of L1. The range is
+  ~$170–550/day depending on reserved vs on-demand pricing and gas (§5.4).
 
 ## 2. The pipeline
 
@@ -40,7 +48,7 @@ Status markers: **VERIFIED** (read in code or on chain, with a reference),
                                  │ OS input for N blocks (txs, execution
                                  │ infos, trie proofs, compiled classes)
                                  ▼
- ┌──────────── GPU NODE (H100 80GB, ~26 vCPU, ~200GB RAM) ─────────────┐
+ ┌──────────── GPU NODE (H200 141GB, ~24 vCPU, ~250GB RAM) ────────────┐
  │ [1] EXECUTE      CPU · Rust (cairo-vm + starknet_os hints)          │
  │     runs  os.cairo  ─────────────────────────────►  CairoPie (RAM)  │
  │ [2] LEAF RUN     CPU · Rust (cairo-program-runner + adapter)        │
@@ -121,7 +129,7 @@ bit-for-bit.
 
 ## 5. Workload and cost model
 
-MEASURED from mainnet RPC (2026-09-29) and the four SN PIEs:
+### 5.1 Load (MEASURED from mainnet RPC, 2026-09-29, and the SN PIEs)
 
 | | now | June 2026 |
 |---|---|---|
@@ -132,31 +140,92 @@ MEASURED from mainnet RPC (2026-09-29) and the four SN PIEs:
 | empty block | ~15k steps (collector) | |
 | state update | every 1,500 blocks ≈ 160 leaves (VERIFIED on chain) | |
 
-With the user's measurement of SN_PIE_2 (7.7M steps) in ~1.5 s on an H100
-(Rust Stwo CUDA), leaf proving is ~5M steps/s/GPU. Starknet needs roughly
-2–4 GPU-hours/day for leaves, 1–2 for circuit recursion (assuming the ~3 s
-circuit verifier), negligible aggregation: **4–8 H100-hours/day**.
+A ~13M-step leaf is ~30 blocks today (MEASURED: 15630654–683 = 13,370,386
+steps; 15630684–713 = 10,816,445), so the chain produces **~1.7k leaves/day
+now** and ~5k/day at June-2026 load. Sizing below uses the June load (5k/day) as
+the design point.
 
-Recommended deployment: 2 × single-H100 nodes on different providers, with
-execute/leaf-run on the GPU node's own CPUs (PIE/ProverInput stays in RAM; 300 MB
-per leaf would otherwise be 1.5–3 TB/day of I/O), plus a 64-core CPU server for
-Stone and coordination.
+### 5.2 Where the work is, per 1,500-block batch (~160 leaves)
 
-| Item | Assumed price | Monthly |
-|---|---|---|
-| 2 × H100 80GB, 1-yr reserved | ~$1.8/GPU-hr | ~$2.6k |
-| 1–2 × 64-core/256GB dedicated | $300–400 each | ~$0.35–0.7k |
-| storage/network (co-located) | | ~$0.1–0.3k |
-| **Compute total** | | **~$3.5k (~$42k/yr)** |
+| Stage | Jobs/batch | Per job | Where | Share of GPU time |
+|---|---|---|---|---|
+| OS execution (cairo-vm + OS hints → PIE) | 160 | ~13M steps; ~30–60 CPU-s (INFERRED) | CPU, single-threaded per leaf | CPU only — **largest by wall-clock** |
+| Leaf ingress (adapt + upload) | 160 | ~4–5 s (MEASURED, PR #203 cold ingress) | CPU/PCIe | overlappable |
+| **Leaf Cairo proof** | 160 | **0.66–1.03 s** (MEASURED, H200, PR #203) | GPU, 61–100 GB | ~45% |
+| **Leaf wrap** (circuit verifies Cairo proof) | 160 | fixed circuit shape (qm31/blake_g 2²³ rows); today 50–65 s Zig CPU / ~20 s Rust CPU (MEASURED, M4 Max); ~0.5–1 s on GPU (INFERRED) | GPU (planned) | ~25–30% |
+| **Fold** (2-to-1 multiverifier) | 159 | same shape as the wrap | GPU (planned) | ~25–30% |
+| Aggregation (applicative bootloader: aggregator + in-Cairo root verification) | 1 | aggregator ~17k steps per leaf (MEASURED, 1–2 leaves) + circuit verifier ~5–20M steps (INFERRED); ~30–60 s cairo-vm + ~1–2 s GPU | CPU + GPU | <1% |
+| Stone wrap for L1 | ~0.5 | ~2²² steps, minutes | CPU | CPU only |
 
-L1 at SHARP's cadence: ~110M gas/day ≈ 0.11 ETH/day at 1 gwei. That's
-≈$120k/yr at an assumed $3k/ETH, linear in gas price. Prices are assumptions,
-not quotes.
+Consequences:
 
-**GPU memory is the open sizing question.** stwo-zig's CUDA plan puts SN_PIE_2
-at ~58 GB device memory; Metal host footprint is 32–52 GB for SN_PIE_1–4 (M5
-Max, `autoresearch/notes/2026-09-27-cairo-completion`). If 14M-step leaves do not
-fit 80 GB, cap leaves at ~8M steps (cheap with circuit recursion) or use H200.
+1. **Recursion costs about as much as the leaves.** Each leaf needs one wrap and
+   about one fold, two circuit proofs of the same fixed shape. At the CPU speeds
+   measured today, recursion would be ~40× the leaf cost. The ≥10× fold
+   optimisation loop and a CUDA circuit prover are therefore the highest-value
+   GPU work.
+2. **Aggregation is negligible in throughput.** It is one proof per 1,500 blocks
+   and matters only for latency.
+3. **The CPU side dominates wall-clock.** OS execution in cairo-vm and cold
+   ingress are 5–60× the GPU proof time per leaf. The next big wins are parallel
+   or streaming OS execution, and feeding the prover in memory (no PIE file, no
+   re-adaptation).
+4. **Latency path at batch close:** the last leaf's OS run (30–60 s), its proof
+   (~1 s + ingress), its wrap, **8 sequential folds**, aggregation (cairo-vm +
+   proof), then Stone (minutes).
+
+### 5.3 Deployment (H200)
+
+- **GPU:** 2 × single-H200 nodes (141 GB) on different providers, for
+  redundancy.
+  - Each node runs leaves, wraps and folds.
+  - 14M-step leaves need ~100 GB of device memory (SN_PIE_1/3), so they do not
+    fit an H100. Using H100s means capping leaves at ~7–8M steps (SN_PIE_2:
+    61 GB). That roughly doubles leaves, and with them recursion.
+  - Per-leaf GPU time is ~2–3 s (leaf ~1 s + wrap and fold ~1–2 s, ingress
+    overlapped). At 5k leaves/day that is ~3–4 H200-hours/day, **~10–15% of one
+    H200**, so one node carries ~7–15× today's load.
+- **CPU:** a ~32-core pool co-located with the GPUs, for OS execution and
+  aggregation. At 5k leaves × ~60 CPU-s that is ~3.5 cores on average, plus
+  headroom for burst latency. One 64-core box runs Stone.
+- **Data:** PIEs and prover inputs stay in RAM on the GPU node and never cross
+  the network.
+
+### 5.4 Daily cost estimate (2026-09-30)
+
+Market inputs, queried 2026-09-30: Ethereum base fee median 0.101 gwei over the
+last ~1,024 blocks (p90 0.159), blob base fee ~6 Mwei, ETH $2,674. Hardware
+prices are assumptions, not quotes.
+
+| Item | Basis | $/day (reserved / dedicated) | $/day (on-demand cloud) |
+|---|---|---:|---:|
+| 2 × H200 | $3.00 / $4.25 per GPU-hr | 144 | 204 |
+| CPU pool, 32 cores (OS execution, aggregation) | dedicated ~$300/mo; cloud ~$1.2/hr | 10 | 29 |
+| Stone box, 64 cores | dedicated ~$350/mo; cloud ~$2.5/hr | 12 | 60 |
+| Storage, network, coordination | co-located | 5 | 10 |
+| **Compute** | | **~171** | **~303** |
+| L1 execution gas | ~110M gas/day (16 SHARP-style proofs × 5.8M + 39 `updateStateKzgDA` × ~450k) at 0.15 gwei effective | 44 | 44 |
+| L1 blob gas | 39 updates × ~5 blobs × 131,072 blob gas at ~6 Mwei | <1 | <1 |
+| **Total** | | **≈ $215/day (~$78k/yr)** | **≈ $348/day (~$127k/yr)** |
+
+Sensitivity and unit costs:
+
+- **Gas:** at 1 gwei, L1 rises to ~$294/day and becomes the largest line again
+  (total ~$465–600/day). L1 cost is linear in gas price. Settling less often (2–3
+  state updates per proof, as SHARP does) is the main lever.
+- **GPU is mostly idle standby.** GPU time actually used is ~3–4 H200-hours/day
+  ≈ $10–17/day. A single H200 plus a cheaper standby (or on-demand failover)
+  roughly halves the GPU line.
+- **Per transaction:** ~$0.002/tx at today's 109k tx/day, ~$0.0008/tx at June
+  load.
+
+**INFERRED inputs to measure:**
+
+- circuit-proof time on a GPU (no CUDA circuit prover exists yet; wave E M12);
+- OS execution time with sequencer-supplied input (our 30-block leaf was bound
+  by RPC latency: 92 s CPU over 50 min wall);
+- the circuit verifier's step count in Cairo, and aggregation cost at 160
+  leaves.
 
 ## 6. What stwo-zig can prove today
 
