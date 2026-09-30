@@ -146,6 +146,7 @@ pub fn build(b: *std.Build) void {
     const handoff_test = b.addTest(.{ .root_module = handoff_root });
     const run_handoff_test = b.addRunArtifact(handoff_test);
     run_handoff_test.setCwd(repository_root);
+    b.step("circuit-cuda-leaf-handoff-check", "Compile the verified CUDA Cairo proof-to-recursion leaf handoff without a GPU").dependOn(&run_handoff_test.step);
     test_step.dependOn(&run_handoff_test.step);
     const product_root = b.createModule(.{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../products/circuit_recursion_cuda/main.zig") },

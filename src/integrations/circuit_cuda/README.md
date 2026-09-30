@@ -87,7 +87,8 @@ Cairo CUDA product now exposes an in-process verified-proof sink; the circuit
 recursion app accepts its compressed proof plus authenticated opening capture
 through `leafWrapVerified`. The typed adapter is
 `src/products/circuit_recursion_cuda/verified_sink.zig`. It has a local
-compile/contract test, but is not installed as a full-CUDA pipeline command:
+compile/contract test (`zig build circuit-cuda-leaf-handoff-check --build-file
+src/integrations/circuit_cuda/build.zig`), but is not installed as a full-CUDA pipeline command:
 the circuit wrap and fold still use the CPU PCS until the resident circuit
 session is implemented.
 
