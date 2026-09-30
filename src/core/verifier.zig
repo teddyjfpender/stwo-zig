@@ -145,6 +145,23 @@ pub fn verifyBorrowedWithProofCapture(
     return verifyImpl(H, MC, false, allocator, component_list, channel, commitment_scheme, proof.*, null, capture, false);
 }
 
+/// Borrowed pinned-revision proof capture for circuits whose PCS opens every
+/// preprocessed column. This preserves the caller's decoded proof for the
+/// recursive witness conversion after successful native verification.
+pub fn verifyBorrowedExWithProofCapture(
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    component_list: []const air_components.Component,
+    channel: anytype,
+    commitment_scheme: *pcs_verifier.CommitmentSchemeVerifier(H, MC),
+    proof: *const proof_mod.StarkProof(H),
+    include_all_preprocessed_columns: bool,
+    capture: *ProofCapture(H),
+) anyerror!void {
+    return verifyImpl(H, MC, false, allocator, component_list, channel, commitment_scheme, proof.*, null, capture, include_all_preprocessed_columns);
+}
+
 fn verifyImpl(
     comptime H: type,
     comptime MC: type,

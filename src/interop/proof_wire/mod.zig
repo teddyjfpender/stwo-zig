@@ -402,7 +402,7 @@ fn decodeDecommitmentsFor(
         initialized += 1;
     }
 
-    return pcs.TreeVec(MerkleDecommitment).initOwned(out);
+    return pcs.TreeVec(D).initOwned(out);
 }
 
 fn decodeFriProof(allocator: std.mem.Allocator, wire: FriProofWire) !fri.FriProof(Hasher) {

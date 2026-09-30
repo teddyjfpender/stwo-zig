@@ -176,6 +176,7 @@ pub fn addProduct(context: Context) void {
         cairo_eval_aot,
     );
     cuda.linkRuntime(installed.executable, options.toolchain(), archive);
+    addCircuitResidentBenchmark(context, options.toolchain(), cairo_eval_aot);
     const install_archive = context.b.addInstallFile(
         archive.directory.path(context.b, "libstwo_cuda_kernels.a"),
         "lib/libstwo_cuda_kernels.a",
@@ -214,6 +215,61 @@ pub fn addProduct(context: Context) void {
         descriptor.benchmark_step.?,
         "Run the strict resident SN2 Cairo CUDA benchmark",
     ).dependOn(&benchmark.step);
+}
+
+/// The circuit benchmark is a separate executable and full circuit AOT
+/// archive. It does not change the Cairo product's source closure or binary.
+fn addCircuitResidentBenchmark(context: Context, toolchain: cuda.Toolchain, cairo_eval_aot: cuda_aot.GeneratedSet) void {
+    const b = context.b;
+    const dependencies = .{ .target = context.target, .optimize = context.optimize };
+    const core = b.dependency("stwo_core", dependencies).module("stwo_core");
+    const prover = b.dependency("stwo_prover_engine", dependencies).module("stwo_prover_engine");
+    const prover_api = b.dependency("stwo_prover_api", dependencies).module("stwo_prover_api");
+    const circuit_dep = b.dependency("stwo_circuit_frontend", dependencies);
+    const circuit = circuit_dep.module("stwo_circuit_frontend");
+    const cairo_frontend = b.dependency("stwo_cairo_frontend", dependencies).module("stwo_cairo_frontend");
+    const cairo_cuda = b.dependency("stwo_cairo_cuda_integration", dependencies).module("stwo_cairo_cuda_integration");
+    const circuit_cpu = b.dependency("stwo_circuit_cpu_integration", dependencies).module("stwo_circuit_cpu_integration");
+    const backend_contracts = cairo_cuda.import_table.get("stwo_backend_contracts") orelse @panic("missing CUDA backend contracts");
+    const cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse @panic("missing CUDA runtime");
+    const native_cuda = cairo_cuda.import_table.get("stwo_native_cuda_integration") orelse @panic("missing native CUDA integration");
+    const cpu_backend = circuit_cpu.import_table.get("stwo_cpu_backend") orelse @panic("missing circuit CPU backend");
+    const integration = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cuda/mod.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    integration.addImport("stwo_core", core);
+    integration.addImport("stwo_backend_contracts", backend_contracts);
+    integration.addImport("stwo_prover_api", prover_api);
+    integration.addImport("stwo_prover_engine", prover);
+    integration.addImport("stwo_cpu_backend", cpu_backend);
+    integration.addImport("stwo_circuit_frontend", circuit);
+    integration.addImport("stwo_cairo_frontend", cairo_frontend);
+    integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    integration.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    integration.addImport("stwo_cuda_backend", cuda_backend);
+    integration.addImport("stwo_native_cuda_integration", native_cuda);
+    const root = b.createModule(.{
+        .root_source_file = b.path("src/integrations/circuit_cuda/tests/resident_bench.zig"),
+        .target = context.target,
+        .optimize = context.optimize,
+    });
+    root.addImport("stwo_core", core);
+    root.addImport("stwo_circuit_frontend", circuit);
+    root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    root.addImport("stwo_circuit_cuda_integration", integration);
+    root.addImport("stwo_cuda_backend", cuda_backend);
+    root.addImport("circuit_testing", circuit_dep.module("circuit_testing"));
+    const exe = b.addExecutable(.{ .name = "stwo-circuit-cuda-resident-bench", .root_module = root });
+    const circuit_archive = cuda.addCircuitArchive(
+        b,
+        toolchain,
+        cairo_eval_aot,
+        b.path("src/backends/cuda/aot/native/circuit_eval"),
+    );
+    cuda.linkRuntime(exe, toolchain, circuit_archive);
+    b.step("benchmark-circuit-cuda-resident", "Build the verified resident circuit-recursion CUDA benchmark").dependOn(&b.addInstallArtifact(exe, .{}).step);
 }
 
 fn createStwoModule(

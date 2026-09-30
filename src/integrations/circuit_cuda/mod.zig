@@ -52,6 +52,10 @@ pub const resident_terminal_decode = @import("resident_terminal_decode.zig");
 pub const resident_terminal_capture = @import("resident_terminal_capture.zig");
 pub const resident_proof_layout = @import("resident_proof_layout.zig");
 pub const resident_pipeline = @import("resident_pipeline.zig");
+pub const resident_memory_plan = @import("resident_memory_plan.zig");
+pub const resident_memory_binding = @import("resident_memory_binding.zig");
+pub const resident_prover = @import("resident_prover.zig");
+pub const resident_verifier = @import("resident_verifier.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -116,6 +120,10 @@ test {
     _ = resident_fri;
     _ = resident_quotient;
     _ = resident_decommit;
+    _ = resident_memory_plan;
+    _ = resident_memory_binding;
+    _ = resident_prover;
+    _ = resident_verifier;
 }
 
 test "provider path: the engine's grind returns the CPU channel's nonce through the (emulated) kernel" {

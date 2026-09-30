@@ -170,6 +170,38 @@ pub fn build(b: *std.Build) void {
     product_root.addImport("stwo_cairo_cpu_integration", cairo_cpu);
     product_root.addImport("stwo_circuit_cuda_integration", integration);
 
+    const resident_bench_root = b.createModule(.{
+        .root_source_file = b.path("tests/resident_bench.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    resident_bench_root.addImport("stwo_core", core);
+    resident_bench_root.addImport("stwo_circuit_frontend", circuit);
+    resident_bench_root.addImport("stwo_circuit_cpu_integration", circuit_cpu);
+    resident_bench_root.addImport("stwo_circuit_cuda_integration", integration);
+    resident_bench_root.addImport("stwo_cuda_backend", cuda_backend);
+    resident_bench_root.addImport("circuit_testing", circuit_testing);
+    const resident_bench_check = b.addObject(.{
+        .name = "circuit-cuda-resident-bench-check",
+        .root_module = resident_bench_root,
+    });
+    b.step("circuit-cuda-resident-bench-check", "Typecheck the complete resident CUDA proof and Rust R7 benchmark harness without a GPU").dependOn(&resident_bench_check.step);
+    if (b.option([]const u8, "cuda-native-archive", "Full circuit CUDA runtime static archive for resident proof benchmarking")) |archive_path| {
+        const host_runtime = b.option([]const u8, "cuda-host-runtime", "CUDA host compiler runtime object");
+        const unwind_runtime = b.option([]const u8, "cuda-host-unwind-runtime", "CUDA host compiler unwind object");
+        if (cuda_library_dir == null or host_runtime == null or unwind_runtime == null)
+            @panic("resident CUDA benchmark needs -Dcuda-library-dir, -Dcuda-host-runtime, and -Dcuda-host-unwind-runtime");
+        const resident_exe = b.addExecutable(.{ .name = "stwo-circuit-cuda-resident-bench", .root_module = resident_bench_root });
+        resident_exe.addObjectFile(.{ .cwd_relative = archive_path });
+        resident_exe.addObjectFile(.{ .cwd_relative = host_runtime.? });
+        resident_exe.addObjectFile(.{ .cwd_relative = unwind_runtime.? });
+        resident_exe.addLibraryPath(.{ .cwd_relative = cuda_library_dir.? });
+        resident_exe.linkSystemLibrary("cudart");
+        resident_exe.linkSystemLibrary("cuda");
+        resident_exe.linkLibC();
+        b.step("circuit-cuda-resident-bench", "Build the fully resident circuit proof benchmark on a CUDA host").dependOn(&b.addInstallArtifact(resident_exe, .{}).step);
+    }
+
     // Host emulation: the kernel's own search code as host C++.
     // The unit tests get their own instance of `mod.zig`, so the emulation
     // object never rides along with the public module.

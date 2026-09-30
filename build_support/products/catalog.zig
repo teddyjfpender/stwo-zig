@@ -64,6 +64,7 @@ pub const Configure = struct {
 /// carried by a product descriptor. Root dispatch and closure validation both
 /// consume this exact list.
 pub const steps = [_]Step{
+    .{ .name = "benchmark-circuit-cuda-resident", .description = "Build the verified resident circuit recursion CUDA benchmark", .scope = .cairo_cuda },
     .{ .name = "check-cairo-cuda-local", .description = "Compile the full Cairo CUDA product without a GPU or CUDA runtime", .scope = .cairo_cuda },
     .{ .name = "test-cairo-cuda-local", .description = "Test canonical CUDA source admission and table geometry without a GPU", .scope = .cairo_cuda },
     .{ .name = "test-stwo-prover-fft", .description = "Test circle transforms, radix scheduling and coefficient parity", .scope = .prover },

@@ -78,7 +78,11 @@ pub const Geometry = struct {
             trees[tree_index] = try treeFor(allocator, spec[0], logs, pcs_config, blowup);
             owned += 1;
         }
-        const composition_log = try bound.verifierMaxLogDegreeBound();
+        // The prover interpolates the unsplit composition evaluation domain.
+        // `verifierMaxLogDegreeBound()` is one lower and is only the verifier's
+        // post-split mask bound. Using it here halves every committed
+        // composition column and makes the native split write past its slot.
+        const composition_log = bound.max_evaluation_log_size;
         const split = core.verifier_types.COMPOSITION_LOG_SPLIT;
         if (composition_log <= split) return error.InvalidCircuitGeometry;
         const composition_logs = try allocator.alloc(u32, 4 << @intCast(split));

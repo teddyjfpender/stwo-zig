@@ -85,6 +85,11 @@ test "resident circuit claims and both nonces occupy disjoint terminal ranges" {
 
 test "resident circuit terminal verdict typechecks the native device guard" {
     const std = @import("std");
-    const entry: *const fn (*cuda.runtime.NativeSession, shared.resident_views.Proof, common.Words, common.Words) anyerror!void = &sealVerdict;
+    const Dispatch = struct {
+        fn run(session: *cuda.runtime.NativeSession, proof: shared.resident_views.Proof, degree: common.Words, error_flag: common.Words) anyerror!void {
+            try sealVerdict(session, proof, degree, error_flag);
+        }
+    };
+    const entry: *const fn (*cuda.runtime.NativeSession, shared.resident_views.Proof, common.Words, common.Words) anyerror!void = &Dispatch.run;
     try std.testing.expect(@intFromPtr(entry) != 0);
 }
