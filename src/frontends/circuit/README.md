@@ -137,6 +137,17 @@ builder calls (the table is in the file header). Cairo layout facts
 relation ids and verifier constants come from the caller, which reads them
 from the projection or from `vectors/circuit/r6/cairo_statement.json`.
 
+`statements/cairo_verifier.zig` ports the rest of
+`crates/cairo_verifier/src/verify.rs`: `CairoVerifierConfig`,
+`VerifierStatement(V)` (the `impl Statement for CairoStatement`, binding the
+port to `stark_verifier.verify` and to the enabled slots of the 83-slot
+Cairo table) and `buildCairoVerifierCircuit` /
+`buildCairoVerifierTopology` (`build_and_fill_cairo_verifier_circuit`,
+`build_cairo_verifier_circuit`). `cairo_leaf_config.LeafVerifierConfig`
+completes `leaf_verifier_config` through `verifierConfig`. The leaf R6 rung
+(`circuit-parity-r6-leaf`) lives in the circuit CPU integration, which sees
+the Cairo frontend's program loader and relation ids.
+
 ## Public API
 
 ```zig
@@ -180,7 +191,7 @@ const statement = try Statement.init(arena, &ctx, inputs);
 | Harness data | `stark_verifier.test_utils.TestComponentData` |
 | Utilities | `common.component_utils.seqOfComponentSize` |
 | In-circuit verifier | `stark_verifier.verify` (`verify`, `Stage`, `NoStages`), `stark_verifier.proof` (`Proof`, `guess`, `emptyProof`), `stark_verifier.{channel,circle,merkle,sort_queries,select_queries,fri,oods}` |
-| Statements | `statements.circuit_statement` (`CircuitStatement`), `statements.multiverifier` (`buildMultiverifierCircuit`, `buildMultiverifierTopology`), `statements.cairo_statement`, `statements.cairo_leaf_config` |
+| Statements | `statements.circuit_statement` (`CircuitStatement`), `statements.multiverifier` (`buildMultiverifierCircuit`, `buildMultiverifierTopology`), `statements.cairo_statement`, `statements.cairo_leaf_config`, `statements.cairo_verifier` (`CairoVerifierConfig`, `VerifierStatement`, `buildCairoVerifierCircuit`, `buildCairoVerifierTopology`) |
 
 Every evaluator is generic over a builder context type `Ctx` exposing `Var`,
 `zero`, `one`, `constant`, `add`, `sub`, `mul`, `eq`, `inv` and `newVar` with
@@ -253,6 +264,8 @@ Tests that read `vectors/circuit` run from the repository root.
   `vectors/circuit/r6/topology.json`'s.
 - The Cairo leaf host inputs and R10b roots are gated from the Cairo side
   (`zig build test-cairo-frontend`, `zig build test-cairo-leaf-proof`).
+  The leaf circuit itself is checked by `circuit-parity-r6-leaf` of the
+  circuit CPU integration.
 
 ## Contract and invariants
 

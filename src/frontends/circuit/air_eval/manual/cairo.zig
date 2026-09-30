@@ -108,8 +108,11 @@ pub fn evaluateMemoryIdToBig(interp: anytype, constants: Constants, index: u32) 
     try interp.acc.addToRelation(ctx, numerator, &tuple);
 
     // The component size must not exceed 2^MAX_SEQUENCE_LOG_SIZE rows, or its
-    // ids would overlap the next component's.
-    for (constants.max_sequence_log_size + 1..interp.data.maxComponentSizeBits()) |bit_pos| {
+    // ids would overlap the next component's. Like the Rust range, empty when
+    // the verified trace is too small for that (e.g. canonical_small leaves,
+    // whose size bits stop below MAX_SEQUENCE_LOG_SIZE + 1).
+    const first_checked_bit = constants.max_sequence_log_size + 1;
+    for (@min(first_checked_bit, interp.data.maxComponentSizeBits())..interp.data.maxComponentSizeBits()) |bit_pos| {
         const bit = try interp.data.getNInstancesBit(ctx, bit_pos);
         try ctx.eq(bit, ctx.zero());
     }
