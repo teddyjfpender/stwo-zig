@@ -38,6 +38,7 @@ pub const air_aot = @import("air_aot.zig");
 pub const geometry = @import("geometry.zig");
 pub const transcript_prefix = @import("transcript_prefix.zig");
 pub const resident_transcript = @import("resident_transcript.zig");
+pub const resident_commit = @import("resident_commit.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -93,6 +94,7 @@ test {
     _ = geometry;
     _ = transcript_prefix;
     _ = resident_transcript;
+    _ = resident_commit;
 }
 
 test "provider path: the engine's grind returns the CPU channel's nonce through the (emulated) kernel" {

@@ -94,6 +94,14 @@ device-held roots, claims and lookup challenges. The device sink currently has
 a call-order test, **not** a GPU proof-parity result; composition, PCS/FRI and
 decommitment still need to connect before it can prove a reduction.
 
+The next controller reuses Cairo CUDA's compact transforms and plain Blake2s
+Merkle builder for all four circuit trees. It groups columns by their actual
+height, extends each group, and hashes mixed-height leaves directly. It keeps
+the Merkle root in the final tree slot and allocates no dense lifted columns or
+per-row progressive Blake2s states. Recorded AIR tree sizes and a native CUDA
+dispatch compile check pass locally. A device root comparison against Rust
+remains necessary before treating this as a qualified commitment path.
+
 The Cairo CUDA product now exposes an in-process verified-proof sink; the circuit
 recursion app accepts its compressed proof plus authenticated opening capture
 through `leafWrapVerified`. The typed adapter is

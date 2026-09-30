@@ -226,6 +226,12 @@ pub fn Sink(comptime Session: type, comptime Transcript: type, comptime Fri: typ
     };
 }
 
+pub const NativeSink = Sink(
+    cuda.runtime.NativeSession,
+    cuda.runtime.stages.transcript.Native,
+    cuda.runtime.stages.fri.Native,
+);
+
 fn chainAt(seed: u64, step: u32) u64 {
     var value = seed ^ (@as(u64, step) *% 0x9e37_79b9_7f4a_7c15);
     value ^= value >> 30;
@@ -357,4 +363,27 @@ test "resident circuit prefix uses ten ordered device transcript operations" {
     try std.testing.expectEqual(@as(u32, 1), session.pow_calls);
     try std.testing.expectEqual(@as(u32, 11), session.transcript_calls);
     try std.testing.expect(session.m31);
+}
+
+test "resident circuit transcript native dispatch compiles against CUDA session" {
+    const Dispatch = struct {
+        fn execute(device: *NativeSink, config: PcsConfigV2, root: common.Words, claim: common.Words, sums: common.Words) !void {
+            try device.prime(0, config);
+            try device.initialize();
+            var prefix = @import("transcript_prefix.zig").Prefix(NativeSink){ .sink = device };
+            try prefix.mixSalt(0);
+            try prefix.mixFriConfig(config);
+            try prefix.commitPreprocessed(root);
+            try prefix.mixCircuitHash(root);
+            try prefix.mixClaim(claim);
+            try prefix.commitBase(root);
+            try prefix.absorbInteractionNonce({});
+            _ = try prefix.drawLookupElements();
+            try prefix.mixInteractionClaim(sums);
+            try prefix.commitInteraction(root);
+            try prefix.admitComposition();
+        }
+    };
+    const entry: *const fn (*NativeSink, PcsConfigV2, common.Words, common.Words, common.Words) anyerror!void = &Dispatch.execute;
+    try std.testing.expect(@intFromPtr(entry) != 0);
 }

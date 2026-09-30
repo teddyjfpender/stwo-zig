@@ -30,6 +30,8 @@ pub fn build(b: *std.Build) void {
     const cairo_cuda = b.dependency("stwo_cairo_cuda_integration", dependency_options).module("stwo_cairo_cuda_integration");
     const cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse
         @panic("Cairo CUDA integration is missing stwo_cuda_backend");
+    const native_cuda = cairo_cuda.import_table.get("stwo_native_cuda_integration") orelse
+        @panic("Cairo CUDA integration is missing stwo_native_cuda_integration");
     const cpu_dependency = b.dependency("stwo_circuit_cpu_integration", dependency_options);
     const circuit_cpu = cpu_dependency.module("stwo_circuit_cpu_integration");
     // The CPU integration's own module instances (one module per file per
@@ -52,6 +54,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     integration.addImport("stwo_cairo_cuda_integration", cairo_cuda);
     integration.addImport("stwo_cuda_backend", cuda_backend);
+    integration.addImport("stwo_native_cuda_integration", native_cuda);
 
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
@@ -170,6 +173,10 @@ pub fn build(b: *std.Build) void {
     for (integration.import_table.keys(), integration.import_table.values()) |name, module| unit_root.addImport(name, module);
     const unit_tests = b.addTest(.{ .root_module = unit_root, .filters = filters });
     addEmulation(b, unit_tests);
+    unit_tests.root_module.addCSourceFile(.{
+        .file = b.path("tests/resident_link_stubs.c"),
+        .flags = &.{ "-std=c11", "-Wno-strict-prototypes" },
+    });
     const run_unit = b.addRunArtifact(unit_tests);
     run_unit.setCwd(repository_root);
     test_step.dependOn(&run_unit.step);
