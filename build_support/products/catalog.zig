@@ -9,6 +9,7 @@ pub const Scope = enum {
     architecture,
     cairo_cpu,
     cairo_metal,
+    circuit_recursion_cpu,
     compatibility_tools,
     core,
     cairo_cuda,

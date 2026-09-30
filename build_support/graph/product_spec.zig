@@ -1,7 +1,7 @@
 //! Product capabilities and identity contracts independent of module construction.
 const std = @import("std");
 
-pub const Frontend = enum { none, native, riscv, cairo, aggregate };
+pub const Frontend = enum { none, native, riscv, cairo, circuit, aggregate };
 pub const Backend = enum { none, contracts, cpu, metal, cuda };
 pub const Role = enum { library, cli, benchmark, @"test", gate };
 
@@ -30,6 +30,7 @@ pub const Product = struct {
             .native => "native-examples",
             .riscv => "sail-rv32im-zkvm",
             .cairo => "cairo",
+            .circuit => "circuit-recursion",
             .aggregate => "aggregate",
         };
     }
