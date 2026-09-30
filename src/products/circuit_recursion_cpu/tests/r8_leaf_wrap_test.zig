@@ -21,7 +21,10 @@ const app = @import("app");
 const expected_path = "vectors/circuit/official/leaf_prover/expected_output.json";
 
 test "R8: leaf-wrap of use_all_opcodes_and_builtins equals leaf-prover's expected_output.json" {
-    const allocator = std.testing.allocator;
+    // This is a multi-gigabyte, parallel proof. The test allocator's global
+    // safety bookkeeping serializes allocations and distorts this gate's
+    // timings; parity is checked against the upstream bytes below.
+    const allocator = std.heap.smp_allocator;
     var timings = app.Timings{};
     var leaf = try app.leafWrap(allocator, .{
         .registry_path = "vectors/circuit/official/registries/leaf_prover_canonical_small.json",
