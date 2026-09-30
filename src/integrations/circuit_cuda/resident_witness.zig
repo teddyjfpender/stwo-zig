@@ -108,16 +108,6 @@ pub const Plan = struct {
     }
 };
 
-/// Called only at final proof assembly. A malformed address or lookup tuple
-/// sets this device flag; no proof may be published when it is nonzero.
-pub fn admitResult(session: anytype, error_flag: common.Words) !void {
-    if (error_flag.len != 1) return error.InvalidCircuitWitnessBuffers;
-    var status = [1]u32{0};
-    try session.context.readProofSlice(u32, &status, error_flag);
-    try session.context.sync();
-    if (status[0] != 0) return error.InvalidCircuitWitness;
-}
-
 test "circuit base witness maps stable sorted preprocessed columns to CUDA gate inputs" {
     const sizes = @import("stwo_circuit_cpu_integration").air.recorded_sizes;
     const layout = try preprocessed.ColumnLayout.fromComponentSizes(sizes);
@@ -151,12 +141,7 @@ test "resident circuit witness native dispatch binds to a CUDA session" {
         fn run(plan: *const Plan, session: *cuda.runtime.NativeSession, values: common.Words, pp: []const common.Words, columns: []const common.Words, error_flag: common.Words) !void {
             try plan.execute(session, values, pp, columns, error_flag);
         }
-        fn admit(session: *cuda.runtime.NativeSession, error_flag: common.Words) !void {
-            try admitResult(session, error_flag);
-        }
     };
     const entry: *const fn (*const Plan, *cuda.runtime.NativeSession, common.Words, []const common.Words, []const common.Words, common.Words) anyerror!void = &Dispatch.run;
-    const admission: *const fn (*cuda.runtime.NativeSession, common.Words) anyerror!void = &Dispatch.admit;
     try std.testing.expect(@intFromPtr(entry) != 0);
-    try std.testing.expect(@intFromPtr(admission) != 0);
 }

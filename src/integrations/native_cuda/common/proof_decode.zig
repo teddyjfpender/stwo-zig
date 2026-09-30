@@ -25,10 +25,6 @@ pub fn DecoderFor(
     comptime Layout: type,
     comptime Descriptor: type,
 ) type {
-    comptime {
-        if (!@hasDecl(Descriptor, "geometry"))
-            @compileError("proof decoder descriptor requires geometry");
-    }
     return struct {
         pub const OwnedProofWire = struct {
             arena: std.heap.ArenaAllocator,
@@ -59,14 +55,50 @@ pub fn DecoderFor(
             return proof_wire.wireToProof(allocator, wire.value);
         }
 
+        /// Mixed-height frontends authenticate their geometry before the
+        /// terminal read and pass that exact layout here. This path shares
+        /// the opening decoder without forcing a uniform-log description.
+        pub fn decodeProofWithLayout(
+            allocator: std.mem.Allocator,
+            bundle: anytype,
+            logical: *const Layout,
+        ) !proof_wire.Proof {
+            var arena = std.heap.ArenaAllocator.init(allocator);
+            defer arena.deinit();
+            const value = try decodeWireWithLayout(arena.allocator(), bundle, logical);
+            return proof_wire.wireToProof(allocator, value);
+        }
+
+        pub fn decodeProofWithLayoutFor(
+            comptime H: type,
+            allocator: std.mem.Allocator,
+            bundle: anytype,
+            logical: *const Layout,
+        ) !@import("stwo_core").proof.StarkProof(H) {
+            var arena = std.heap.ArenaAllocator.init(allocator);
+            defer arena.deinit();
+            const value = try decodeWireWithLayout(arena.allocator(), bundle, logical);
+            return proof_wire.wireToProofFor(H, allocator, value);
+        }
+
         fn decodeWire(
             allocator: std.mem.Allocator,
             bundle: stark_bundle.Bundle,
         ) !proof_wire.ProofWire {
-            const protocol = bundle.protocol;
-            const geometry = try Descriptor.geometry(protocol);
+            if (!@hasDecl(Descriptor, "geometry"))
+                @compileError("default proof decoding requires Descriptor.geometry");
+            const geometry = try Descriptor.geometry(bundle.protocol);
             var logical = try Layout.init(allocator, geometry);
             defer logical.deinit(allocator);
+            return decodeWireWithLayout(allocator, bundle, &logical);
+        }
+
+        fn decodeWireWithLayout(
+            allocator: std.mem.Allocator,
+            bundle: anytype,
+            logical: *const Layout,
+        ) !proof_wire.ProofWire {
+            const protocol = bundle.protocol;
             try logical.validate();
 
             var opened_tree_count: usize = 0;
@@ -92,7 +124,7 @@ pub fn DecoderFor(
                 Descriptor,
                 allocator,
                 bundle.sampledValues(),
-                &logical.trace_trees,
+                logical,
             );
             const trace = try decodeTraceOpenings(
                 allocator,
@@ -137,16 +169,17 @@ fn decodeSamples(
     comptime Descriptor: type,
     allocator: std.mem.Allocator,
     words: []const u32,
-    trace_trees: []const uniform_layout.TraceTree,
+    logical: anytype,
 ) ![][][]proof_wire.Qm31Wire {
+    const trace_trees = &logical.trace_trees;
     var sampled_value_count: usize = 0;
-    for (trace_trees) |tree| {
+    for (trace_trees, 0..) |tree, tree_index| {
         if (!tree.sampled) continue;
         for (0..tree.column_count) |column_index| {
             sampled_value_count = std.math.add(
                 usize,
                 sampled_value_count,
-                try sampleCount(Descriptor, tree, column_index),
+                try sampleCount(Descriptor, logical, tree_index, column_index),
             ) catch return error.SizeOverflow;
         }
     }
@@ -168,10 +201,10 @@ fn decodeSamples(
         );
     }
     var word_cursor: usize = 0;
-    for (trace_trees, trees) |tree, columns| {
+    for (trace_trees, trees, 0..) |tree, columns, tree_index| {
         for (columns, 0..) |*column, column_index| {
             const count = if (tree.sampled)
-                try sampleCount(Descriptor, tree, column_index)
+                try sampleCount(Descriptor, logical, tree_index, column_index)
             else
                 0;
             const word_count = std.math.mul(
@@ -199,11 +232,14 @@ fn decodeSamples(
 
 fn sampleCount(
     comptime Descriptor: type,
-    tree: uniform_layout.TraceTree,
+    logical: anytype,
+    tree_index: usize,
     column_index: usize,
 ) !usize {
-    const count = if (@hasDecl(Descriptor, "sampleCount"))
-        try Descriptor.sampleCount(tree, column_index)
+    const count = if (@hasDecl(@TypeOf(logical.*), "sampleCount"))
+        try logical.sampleCount(tree_index, column_index)
+    else if (@hasDecl(Descriptor, "sampleCount"))
+        try Descriptor.sampleCount(logical.trace_trees[tree_index], column_index)
     else
         1;
     if (count == 0) return error.InvalidSampleLayout;
@@ -249,7 +285,7 @@ fn decodeTraceOpenings(
             tree.query_count,
         ) catch return error.SizeOverflow;
         if (tree.kind != .trace or
-            tree.role != @intFromEnum(trace_tree.role) or
+            tree.role != role_index or
             tree.leaf_log_size != trace_tree.commitment_log_size or
             tree.query_count != bundle.unique_query_count or
             tree.values_count != values_count or
@@ -271,7 +307,7 @@ fn decodeTraceOpenings(
         decommitments[role_index] = .{
             .hash_witness = try treeHashes(allocator, bundle, tree),
         };
-        try validateMerkleArtifacts(bundle, tree, queries);
+        try validateMerkleArtifacts(allocator, bundle, tree, queries);
         opening_index += 1;
     }
     if (opening_index != opened_tree_count)
@@ -307,7 +343,7 @@ fn decodeQueriedColumns(
 
 fn decodeFri(
     allocator: std.mem.Allocator,
-    outer: stark_bundle.Bundle,
+    outer: anytype,
     fri_trees: []const uniform_layout.FriTree,
     last_layer_degree_log: u32,
 ) !proof_wire.FriProofWire {
@@ -346,7 +382,7 @@ fn decodeFriLayer(
     commitment: proof_wire.HashWire,
 ) !proof_wire.FriLayerWire {
     if (fri_tree.tree_index >= bundle.trees.len or
-        fri_tree.fold_step != 1 or
+        fri_tree.fold_step == 0 or fri_tree.fold_step > 4 or
         fri_tree.log_rows_per_leaf != 0)
     {
         return error.InvalidFriOpening;
@@ -365,7 +401,7 @@ fn decodeFriLayer(
     {
         return error.InvalidFriOpening;
     }
-    const expanded = try expandedQueries(allocator, expected_queries);
+    const expanded = try expandedQueries(allocator, expected_queries, fri_tree.fold_step);
     const all_words = try scaledSection(
         bundle,
         tree.all_values_offset,
@@ -405,7 +441,7 @@ fn decodeFriLayer(
         }
     }
     if (witness_index != witness.len) return error.InvalidFriOpening;
-    try validateMerkleArtifacts(bundle, tree, expanded);
+    try validateMerkleArtifacts(allocator, bundle, tree, expanded);
     return .{
         .fri_witness = witness,
         .decommitment = .{
@@ -416,14 +452,16 @@ fn decodeFriLayer(
 }
 
 fn validateMerkleArtifacts(
+    allocator: std.mem.Allocator,
     bundle: decommit_bundle.Bundle,
     tree: decommit_bundle.TreeMeta,
     queries: []const u32,
 ) !void {
-    var current: [decommit_bundle.max_protocol_queries * 2]u32 = undefined;
-    if (queries.len == 0 or queries.len > current.len)
+    if (queries.len == 0 or queries.len > decommit_bundle.max_protocol_queries * 16)
         return error.InvalidMerkleArtifacts;
-    @memcpy(current[0..queries.len], queries);
+    const current = try allocator.alloc(u32, queries.len);
+    defer allocator.free(current);
+    @memcpy(current, queries);
     var current_len = queries.len;
     var expected_hashes: usize = 0;
     var expected_aux: usize = 0;
@@ -569,16 +607,18 @@ fn foldedQueries(
 fn expandedQueries(
     allocator: std.mem.Allocator,
     queries: []const u32,
+    fold_step: u32,
 ) ![]u32 {
-    const output = try allocator.alloc(u32, queries.len * 2);
+    if (fold_step == 0 or fold_step > 4) return error.InvalidFriOpening;
+    const coset_size: u32 = @as(u32, 1) << @intCast(fold_step);
+    const output = try allocator.alloc(u32, std.math.mul(usize, queries.len, coset_size) catch return error.SizeOverflow);
     var count: usize = 0;
     var previous_coset: ?u32 = null;
     for (queries) |query| {
-        const coset = query >> 1;
+        const coset = query >> @intCast(fold_step);
         if (previous_coset != null and previous_coset.? == coset) continue;
-        output[count] = 2 * coset;
-        output[count + 1] = 2 * coset + 1;
-        count += 2;
+        for (0..coset_size) |member| output[count + member] = coset * coset_size + @as(u32, @intCast(member));
+        count += coset_size;
         previous_coset = coset;
     }
     return output[0..count];
@@ -600,6 +640,17 @@ fn findSorted(values: []const u32, needle: u32) ?usize {
 
 fn requireM31(value: u32) Error!void {
     if (value >= m31.Modulus) return error.InvalidFieldElement;
+}
+
+test "four-fold FRI query expansion retains each canonical coset once" {
+    const allocator = std.testing.allocator;
+    const expanded = try expandedQueries(allocator, &.{ 0, 3, 15, 16, 18, 32 }, 4);
+    defer allocator.free(expanded.ptr[0 .. 6 * 16]);
+    try std.testing.expectEqual(@as(usize, 3 * 16), expanded.len);
+    for (0..expanded.len) |index| {
+        const expected: u32 = if (index < 32) @intCast(index) else @intCast(index + 0);
+        try std.testing.expectEqual(expected, expanded[index]);
+    }
 }
 
 test "sample reconstruction follows role descriptors" {
@@ -631,11 +682,12 @@ test "sample reconstruction follows role descriptors" {
     };
     var words: [11 * stark_bundle.secure_words]u32 = undefined;
     for (&words, 0..) |*word, index| word.* = @intCast(index + 1);
+    const logical = struct { trace_trees: [3]uniform_layout.TraceTree }{ .trace_trees = trees };
     const sampled = try decodeSamples(
         struct {},
         std.testing.allocator,
         &words,
-        &trees,
+        &logical,
     );
     defer {
         for (sampled) |columns| {
@@ -685,11 +737,12 @@ test "sample reconstruction preserves unsampled tree columns" {
     };
     var words: [10 * stark_bundle.secure_words]u32 = undefined;
     for (&words, 0..) |*word, index| word.* = @intCast(index + 1);
+    const logical = struct { trace_trees: [3]uniform_layout.TraceTree }{ .trace_trees = trees };
     const sampled = try decodeSamples(
         struct {},
         std.testing.allocator,
         &words,
-        &trees,
+        &logical,
     );
     defer {
         for (sampled) |columns| {

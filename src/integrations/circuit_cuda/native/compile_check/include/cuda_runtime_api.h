@@ -75,6 +75,9 @@ __device__ __forceinline__ unsigned atomicAdd(unsigned *address, unsigned value)
 __device__ __forceinline__ unsigned atomicOr(unsigned *address, unsigned value) {
     return __nvvm_atom_or_gen_i(reinterpret_cast<int *>(address), static_cast<int>(value));
 }
+__device__ __forceinline__ unsigned atomicExch(unsigned *address, unsigned value) {
+    return __nvvm_atom_xchg_gen_i(reinterpret_cast<int *>(address), static_cast<int>(value));
+}
 __device__ __forceinline__ unsigned long long atomicMin(unsigned long long *address,
                                                         unsigned long long value) {
     return __nvvm_atom_min_gen_ull(address, value);

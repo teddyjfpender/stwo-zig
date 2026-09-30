@@ -114,8 +114,11 @@ pub const Plan = struct {
 
     /// All arithmetic, Merkle commitments, challenge draws and terminal
     /// interpolation remain on the device. `sink` owns the exact transcript.
-    pub fn execute(self: *const Plan, session: anytype, sink: anytype, view: shared.resident_views.Fri, inverse_twiddles: common.Words) !void {
+    pub fn execute(self: *const Plan, session: anytype, sink: anytype, view: shared.resident_views.Fri, inverse_twiddles: common.Words, proof: shared.resident_views.Proof) !void {
         try self.validate(view, inverse_twiddles);
+        if (proof.fri_commitments.len != self.layers.len * 8 or
+            proof.fri_last_layer.len != view.last_transcript.len * 4)
+            return error.InvalidCircuitFriBuffers;
         try sink.setFriLayers(@intCast(self.layers.len));
         const Builder = shared.commit_tree.BuilderFor(stages.commitment.PlainNative);
         for (self.layers, 0..) |layer, ordinal| {
@@ -128,6 +131,7 @@ pub const Plan = struct {
                 resident.merkle_hashes,
                 self.descriptors[layer.merkle_first..][0..layer.merkle_count],
             );
+            try shared.proof_assembly.captureFriRoot(session, .{ .proof = proof }, ordinal, root);
             try sink.mixFriRoot(try root.cast(u32));
             try sink.drawFriAlpha(view.alpha);
             const destination = if (ordinal + 1 < self.layers.len)
@@ -160,6 +164,7 @@ pub const Plan = struct {
             view.last_degree_error,
             try view.last_transcript.cast(u32),
         );
+        try shared.proof_assembly.captureLastLayer(session, .{ .proof = proof, .fri = view });
         try sink.mixLastLayer(view.last_transcript);
     }
 };
@@ -181,7 +186,9 @@ fn twiddleOffset(words: usize, log: u32, circle: bool) !u32 {
     return std.math.cast(u32, words - consumed) orelse error.CircuitFriSizeOverflow;
 }
 
-fn fullTreeHashes(rows: usize) !usize { return try std.math.mul(usize, rows, 2) - 1; }
+fn fullTreeHashes(rows: usize) !usize {
+    return try std.math.mul(usize, rows, 2) - 1;
+}
 fn pow2(log: u32) !usize {
     if (log >= @bitSizeOf(usize)) return error.CircuitFriSizeOverflow;
     return @as(usize, 1) << @intCast(log);
@@ -190,9 +197,15 @@ fn pow2u32(log: u32) !u32 {
     if (log >= 31) return error.CircuitFriSizeOverflow;
     return @as(u32, 1) << @intCast(log);
 }
-fn add(a: usize, b: usize) !usize { return std.math.add(usize, a, b) catch error.CircuitFriSizeOverflow; }
-fn addU32(a: u32, b: u32) !u32 { return std.math.add(u32, a, b) catch error.CircuitFriSizeOverflow; }
-fn mul(a: usize, b: usize) !usize { return std.math.mul(usize, a, b) catch error.CircuitFriSizeOverflow; }
+fn add(a: usize, b: usize) !usize {
+    return std.math.add(usize, a, b) catch error.CircuitFriSizeOverflow;
+}
+fn addU32(a: u32, b: u32) !u32 {
+    return std.math.add(u32, a, b) catch error.CircuitFriSizeOverflow;
+}
+fn mul(a: usize, b: usize) !usize {
+    return std.math.mul(usize, a, b) catch error.CircuitFriSizeOverflow;
+}
 
 test "resident circuit FRI derives exact Rust R7 layer and terminal geometry" {
     const allocator = std.testing.allocator;
@@ -230,10 +243,10 @@ test "resident circuit FRI derives exact Rust R7 layer and terminal geometry" {
 
 test "resident circuit FRI four-fold controller typechecks against native CUDA session" {
     const Dispatch = struct {
-        fn run(plan: *const Plan, session: *cuda.runtime.NativeSession, sink: *@import("resident_transcript.zig").NativeSink, view: shared.resident_views.Fri, twiddles: common.Words) !void {
-            try plan.execute(session, sink, view, twiddles);
+        fn run(plan: *const Plan, session: *cuda.runtime.NativeSession, sink: *@import("resident_transcript.zig").NativeSink, view: shared.resident_views.Fri, twiddles: common.Words, proof: shared.resident_views.Proof) !void {
+            try plan.execute(session, sink, view, twiddles, proof);
         }
     };
-    const entry: *const fn (*const Plan, *cuda.runtime.NativeSession, *@import("resident_transcript.zig").NativeSink, shared.resident_views.Fri, common.Words) anyerror!void = &Dispatch.run;
+    const entry: *const fn (*const Plan, *cuda.runtime.NativeSession, *@import("resident_transcript.zig").NativeSink, shared.resident_views.Fri, common.Words, shared.resident_views.Proof) anyerror!void = &Dispatch.run;
     try std.testing.expect(@intFromPtr(entry) != 0);
 }

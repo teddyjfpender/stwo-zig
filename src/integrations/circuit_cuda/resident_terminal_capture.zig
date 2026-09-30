@@ -41,6 +41,23 @@ pub fn captureQueryNonce(
     try session.context.copyDeviceSlice(u32, try proof.pow_nonce.sub(2, 2), nonce);
 }
 
+/// The sole device-side admission flag. Called after FRI's terminal degree
+/// check and before the proof stage ends; a failing circuit cannot publish a
+/// zero terminal verdict even if its Merkle/FRI transcript is otherwise valid.
+pub fn sealVerdict(
+    session: anytype,
+    proof: shared.resident_views.Proof,
+    fri_degree_error: common.Words,
+    circuit_error: common.Words,
+) !void {
+    try cuda.runtime.stages.fri.Native.circuitDegreeVerdict(
+        session,
+        fri_degree_error,
+        circuit_error,
+        proof.degree_verdict,
+    );
+}
+
 test "resident circuit claims and both nonces occupy disjoint terminal ranges" {
     const std = @import("std");
     const FakeContext = struct {
@@ -64,4 +81,10 @@ test "resident circuit claims and both nonces occupy disjoint terminal ranges" {
     try std.testing.expectEqual(@as(usize, 0x1000 + 32 * 4), session.context.offsets[0]);
     try std.testing.expectEqual(@as(usize, 0x2000), session.context.offsets[1]);
     try std.testing.expectEqual(@as(usize, 0x2000 + 2 * 4), session.context.offsets[2]);
+}
+
+test "resident circuit terminal verdict typechecks the native device guard" {
+    const std = @import("std");
+    const entry: *const fn (*cuda.runtime.NativeSession, shared.resident_views.Proof, common.Words, common.Words) anyerror!void = &sealVerdict;
+    try std.testing.expect(@intFromPtr(entry) != 0);
 }

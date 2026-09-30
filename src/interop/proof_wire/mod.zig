@@ -165,6 +165,13 @@ pub fn proofToWire(allocator: std.mem.Allocator, proof: Proof) !ProofWire {
 
 /// Converts a validated wire shape into an independently owned STARK proof.
 pub fn wireToProof(allocator: std.mem.Allocator, wire: ProofWire) !Proof {
+    return wireToProofFor(Hasher, allocator, wire);
+}
+
+/// Decode the same wire contract under a caller-selected Blake2s Merkle
+/// domain. Circuit recursion uses plain Blake2s; the historical exchange
+/// format uses prefixed Blake2s. Hash bytes are identical in representation.
+pub fn wireToProofFor(comptime H: type, allocator: std.mem.Allocator, wire: ProofWire) !proof_mod.StarkProof(H) {
     if (wire.config.fri_config.n_queries > std.math.maxInt(usize)) return CodecError.ValueOutOfRange;
 
     var fri_config = try fri.FriConfig.init(
@@ -191,7 +198,7 @@ pub fn wireToProof(allocator: std.mem.Allocator, wire: ProofWire) !Proof {
         sv.deinitDeep(allocator);
     }
 
-    const decommitments = try decodeDecommitments(allocator, wire.decommitments);
+    const decommitments = try decodeDecommitmentsFor(H, allocator, wire.decommitments);
     errdefer {
         var ds = decommitments;
         for (ds.items) |*decommitment| decommitment.deinit(allocator);
@@ -204,7 +211,7 @@ pub fn wireToProof(allocator: std.mem.Allocator, wire: ProofWire) !Proof {
         qv.deinitDeep(allocator);
     }
 
-    const fri_proof = try decodeFriProof(allocator, wire.fri_proof);
+    const fri_proof = try decodeFriProofFor(H, allocator, wire.fri_proof);
     errdefer {
         var fp = fri_proof;
         fp.deinit(allocator);
@@ -371,7 +378,16 @@ fn decodeDecommitments(
     allocator: std.mem.Allocator,
     decommitments: []const MerkleDecommitmentWire,
 ) !pcs.TreeVec(MerkleDecommitment) {
-    const out = try allocator.alloc(MerkleDecommitment, decommitments.len);
+    return decodeDecommitmentsFor(Hasher, allocator, decommitments);
+}
+
+fn decodeDecommitmentsFor(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    decommitments: []const MerkleDecommitmentWire,
+) !pcs.TreeVec(vcs_verifier.MerkleDecommitmentLifted(H)) {
+    const D = vcs_verifier.MerkleDecommitmentLifted(H);
+    const out = try allocator.alloc(D, decommitments.len);
     errdefer allocator.free(out);
 
     var initialized: usize = 0;
@@ -390,13 +406,17 @@ fn decodeDecommitments(
 }
 
 fn decodeFriProof(allocator: std.mem.Allocator, wire: FriProofWire) !fri.FriProof(Hasher) {
-    const first_layer = try decodeFriLayer(allocator, wire.first_layer);
+    return decodeFriProofFor(Hasher, allocator, wire);
+}
+
+fn decodeFriProofFor(comptime H: type, allocator: std.mem.Allocator, wire: FriProofWire) !fri.FriProof(H) {
+    const first_layer = try decodeFriLayerFor(H, allocator, wire.first_layer);
     errdefer {
         var layer = first_layer;
         layer.deinit(allocator);
     }
 
-    const inner_layers = try allocator.alloc(fri.FriLayerProof(Hasher), wire.inner_layers.len);
+    const inner_layers = try allocator.alloc(fri.FriLayerProof(H), wire.inner_layers.len);
     errdefer allocator.free(inner_layers);
 
     var initialized: usize = 0;
@@ -405,7 +425,7 @@ fn decodeFriProof(allocator: std.mem.Allocator, wire: FriProofWire) !fri.FriProo
     }
 
     for (wire.inner_layers, 0..) |layer, i| {
-        inner_layers[i] = try decodeFriLayer(allocator, layer);
+        inner_layers[i] = try decodeFriLayerFor(H, allocator, layer);
         initialized += 1;
     }
 
@@ -421,6 +441,10 @@ fn decodeFriProof(allocator: std.mem.Allocator, wire: FriProofWire) !fri.FriProo
 }
 
 fn decodeFriLayer(allocator: std.mem.Allocator, wire: FriLayerWire) !fri.FriLayerProof(Hasher) {
+    return decodeFriLayerFor(Hasher, allocator, wire);
+}
+
+fn decodeFriLayerFor(comptime H: type, allocator: std.mem.Allocator, wire: FriLayerWire) !fri.FriLayerProof(H) {
     const fri_witness = try allocator.alloc(QM31, wire.fri_witness.len);
     errdefer allocator.free(fri_witness);
     for (wire.fri_witness, 0..) |value, i| {

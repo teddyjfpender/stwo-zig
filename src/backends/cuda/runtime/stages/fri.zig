@@ -9,6 +9,25 @@ pub const Native = OpsFor(abi);
 
 pub fn OpsFor(comptime Api: type) type {
     return struct {
+        pub fn circuitDegreeVerdict(
+            session: anytype,
+            fri_degree_error: common.Words,
+            circuit_error: common.Words,
+            verdict: common.Words,
+        ) runtime_error.Error!void {
+            const stage = telemetry.Stage.fri_commit;
+            try common.requireStage(session, stage);
+            if (fri_degree_error.len != 1 or circuit_error.len != 1 or verdict.len != 1)
+                return error.InvalidKernelDescriptor;
+            const status = Api.stwo_circuit_degree_verdict_on(
+                try common.words(session, fri_degree_error, 1),
+                try common.words(session, circuit_error, 1),
+                try common.words(session, verdict, 1),
+                session.context.stream,
+            );
+            try common.record(session, stage, status);
+        }
+
         pub fn fold(
             session: anytype,
             circle: bool,

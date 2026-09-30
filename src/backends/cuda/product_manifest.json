@@ -60,6 +60,7 @@
       "stwo_cairo_memory_split_small_on",
       "stwo_cairo_memory_value_base_on",
       "stwo_circuit_base_witness_on",
+      "stwo_circuit_degree_verdict_on",
       "stwo_circuit_interaction_fractions_on",
       "stwo_circuit_lookup_sum_on",
       "stwo_combine_quotients_from_compact_numerators_on",

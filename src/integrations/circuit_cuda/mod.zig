@@ -50,6 +50,8 @@ pub const resident_decommit = @import("resident_decommit.zig");
 pub const resident_terminal_bundle = @import("resident_terminal_bundle.zig");
 pub const resident_terminal_decode = @import("resident_terminal_decode.zig");
 pub const resident_terminal_capture = @import("resident_terminal_capture.zig");
+pub const resident_proof_layout = @import("resident_proof_layout.zig");
+pub const resident_pipeline = @import("resident_pipeline.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 

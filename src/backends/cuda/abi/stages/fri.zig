@@ -2,6 +2,13 @@
 
 const field = @import("../field.zig");
 
+pub extern "c" fn stwo_circuit_degree_verdict_on(
+    fri_degree_error: [*]const u32,
+    circuit_error: [*]const u32,
+    verdict: [*]u32,
+    stream: *anyopaque,
+) c_int;
+
 pub extern "c" fn stwo_fold_circle_into_line_on(
     domain: [*]const u32,
     domain_words: usize,

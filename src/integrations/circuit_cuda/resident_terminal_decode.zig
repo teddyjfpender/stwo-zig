@@ -1,10 +1,15 @@
 //! Strict one-read circuit proof reconstruction. The SWPC envelope is a
 //! transport format; the returned words use the verifier's canonical order.
 const std = @import("std");
+const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const canonical = @import("stwo_cairo_frontend").witness.proof_bundle;
+const cuda = @import("stwo_cuda_backend");
 const shared = @import("stwo_native_cuda_integration").common.proof_bundle;
+const native = @import("stwo_native_cuda_integration").common;
 const terminal = @import("resident_terminal_bundle.zig");
+const proof_layout = @import("resident_proof_layout.zig");
+const Plain = core.vcs_lifted.blake2_merkle.Blake2sPlainMerkleHasher;
 
 pub const MeasuredRead = struct {
     operations: u64,
@@ -29,6 +34,40 @@ pub const Proof = struct {
         self.decoded.deinit(allocator);
         allocator.free(self.words);
         self.* = undefined;
+    }
+
+    /// Materialize the ordinary Stwo proof under the circuit's plain Blake2s
+    /// Merkle profile. The caller still verifies the AIR and transcript before
+    /// exposing it to the in-circuit verifier conversion.
+    pub fn decodeStarkProof(
+        self: *const Proof,
+        allocator: std.mem.Allocator,
+        logical: *const proof_layout.Layout,
+        config: core.pcs.config_v2.PcsConfigV2,
+    ) !core.proof.StarkProof(Plain) {
+        try logical.validate();
+        const decommit_words = self.words[self.decoded.layout.decommitment.start..self.decoded.layout.decommitment.end];
+        var nested = try cuda.runtime.proof_assembly.decommit_bundle.Bundle.decodeBorrowed(allocator, decommit_words);
+        defer nested.deinit(allocator);
+        const view = StarkView{
+            .proof = self,
+            .decommitment = nested,
+            .protocol = .{
+                .log_n_rows = logical.fri_trees[0].evaluation_log_size,
+                .sequence_len = 0,
+                .pow_bits = config.fri_config.pow_bits,
+                .log_blowup_factor = config.fri_config.log_blowup_factor,
+                .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
+                .n_queries = config.fri_config.n_queries,
+                .fold_step = config.fri_config.fold_step,
+                .lifting_log_size = config.trace_lifting_log_size,
+                .commitment_root_count = 4,
+                .fri_root_count = @intCast(logical.fri_trees.len),
+                .decommit_tree_count = @intCast(4 + logical.fri_trees.len),
+            },
+        };
+        const Decoder = native.proof_decode.DecoderFor(proof_layout.Layout, struct {});
+        return Decoder.decodeProofWithLayoutFor(Plain, allocator, view, logical);
     }
 
     pub fn decode(
@@ -64,6 +103,32 @@ pub const Proof = struct {
         for (capacity[decoded.decommitment.words.len..]) |word|
             if (word != 0) return error.NonzeroCircuitDecommitmentTail;
         return .{ .words = words, .decoded = decoded, .read = read };
+    }
+};
+
+const StarkView = struct {
+    proof: *const Proof,
+    decommitment: cuda.runtime.proof_assembly.decommit_bundle.Bundle,
+    protocol: cuda.runtime.proof_assembly.stark_bundle.Protocol,
+
+    fn words(self: StarkView, range: canonical.Range) []const u32 {
+        return self.proof.words[range.start..range.end];
+    }
+    pub fn commitmentRoots(self: StarkView) []const u32 {
+        return self.words(self.proof.decoded.layout.commitments);
+    }
+    pub fn sampledValues(self: StarkView) []const u32 {
+        return self.words(self.proof.decoded.layout.sampled_values);
+    }
+    pub fn friRoots(self: StarkView) []const u32 {
+        return self.words(self.proof.decoded.layout.fri_commitments);
+    }
+    pub fn lastLayerPolynomial(self: StarkView) []const u32 {
+        return self.words(self.proof.decoded.layout.final_line_poly);
+    }
+    pub fn powNonce(self: StarkView) u64 {
+        const nonce = self.words(self.proof.decoded.layout.query_pow);
+        return @as(u64, nonce[0]) | (@as(u64, nonce[1]) << 32);
     }
 };
 
@@ -127,4 +192,9 @@ test "resident circuit decoder rejects an unmeasured or poisoned terminal" {
     try std.testing.expectError(error.InvalidTerminalRead, Proof.decode(allocator, layout, decommit, words, read));
     const measured = MeasuredRead{ .operations = 1, .bytes = descriptor.total_words * 4, .runtime_compile_attempts = 0, .cpu_fallback_attempts = 0 };
     try std.testing.expectError(error.InvalidCircuitTerminalHeader, Proof.decode(allocator, layout, decommit, words, measured));
+}
+
+test "resident circuit decoder typechecks plain Blake2s proof reconstruction" {
+    const entry: *const fn (*const Proof, std.mem.Allocator, *const proof_layout.Layout, core.pcs.config_v2.PcsConfigV2) anyerror!core.proof.StarkProof(Plain) = &Proof.decodeStarkProof;
+    try std.testing.expect(@intFromPtr(entry) != 0);
 }
