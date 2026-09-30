@@ -43,6 +43,7 @@ const air = @import("../air.zig");
 const verifier_proof = @import("../verifier_proof.zig");
 const topology_key = @import("topology_key.zig");
 const topology_cache = @import("topology_cache.zig");
+const circuit_params = @import("circuit_params.zig");
 
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -68,8 +69,6 @@ pub const Error = error{
     IncludeAllPreprocessedColumnsRequired,
     /// The registry's lifting policy is not `AtLeastPreprocessed`.
     AtLeastPreprocessedRequired,
-    /// The registry names a preprocessed trace no leaf circuit verifies.
-    UnsupportedVariant,
     /// The Cairo proof was made with another preprocessed trace.
     VariantMismatch,
     /// The Cairo proof carries no explicit lifting heights.
@@ -128,13 +127,7 @@ pub const LeafWrap = struct {
     /// The statement constants: the Cairo relation ids and the projection's
     /// memory constants.
     pub fn constants(self: *const LeafWrap) cairo_statement.Constants {
-        const relation_ids = cairo.air.claims.relation_ids;
-        return .{
-            .opcodes_relation_id = relation_ids.OPCODES.v,
-            .memory_address_to_id_relation_id = relation_ids.MEMORY_ADDRESS_TO_ID.v,
-            .memory_id_to_big_relation_id = relation_ids.MEMORY_ID_TO_BIG.v,
-            .memory = self.cairo_table.constants,
-        };
+        return circuit_params.cairoConstants(self.cairo_table);
     }
 };
 
@@ -179,8 +172,7 @@ pub fn wrapCairoProof(
     const params = registry.cairo_prover_params;
     if (!params.include_all_preprocessed_columns) return error.IncludeAllPreprocessedColumnsRequired;
     if (params.lifting_size_policy != .at_least_preprocessed) return error.AtLeastPreprocessedRequired;
-    const variant = std.meta.stringToEnum(layout.Variant, @tagName(params.preprocessed_trace)) orelse
-        return error.UnsupportedVariant;
+    const variant = cairo.proving.leaf_lane.variantOf(params.preprocessed_trace);
     if (!std.mem.eql(u8, @tagName(cairo_proof.preprocessed_variant), @tagName(variant))) return error.VariantMismatch;
 
     // 1. The trace log size and the registry entry.
@@ -199,8 +191,7 @@ pub fn wrapCairoProof(
     defer leaf_config.deinit(allocator);
     if (stark.commitments.items.len == 0) return error.ColumnCountMismatch;
     const cairo_root = circuit_hash.leU32sFromBytes(8, &stark.commitments.items[0]);
-    const zk_blinding_amount: ?usize = if (entry.zk_blinding) @as(usize, circuit_fri.n_queries) + cairo_verifier.NON_QUERY_INFO_LEAK else null;
-    const config = leaf_config.verifierConfig(wrap.program, cairo_root, zk_blinding_amount);
+    const config = leaf_config.verifierConfig(wrap.program, cairo_root, circuit_params.zkBlindingAmount(entry.zk_blinding, circuit_fri));
 
     var shapes: [cairo_leaf_config.cairo_slot_count]wire.circuit_serialize.ComponentShape = undefined;
     for (config.proof_config.component_shapes, shapes[0..config.proof_config.component_shapes.len]) |shape, *out|

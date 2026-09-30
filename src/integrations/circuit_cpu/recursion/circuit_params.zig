@@ -98,7 +98,7 @@ pub const LeafBuilder = struct {
     pub fn init(tables: Tables, inputs: Inputs) LeafBuilder {
         return .{
             .table = tables.cairo,
-            .variant = variantOf(inputs.cairo_params.preprocessed_trace),
+            .variant = cairo.proving.leaf_lane.variantOf(inputs.cairo_params.preprocessed_trace),
             .cairo_fri_config = inputs.cairo_params.fri_config,
             .circuit_fri_config = inputs.circuit_fri_config,
             .program = inputs.program,
@@ -111,11 +111,7 @@ pub const LeafBuilder = struct {
     pub fn buildTopology(self: *const LeafBuilder, gpa: std.mem.Allocator, trace_log_size: u32, cairo_root: [8]u32) !builder.Context(builder.NoValue) {
         var leaf_config = try cairo_leaf_config.leafVerifierConfig(gpa, self.table, self.variant, self.cairo_fri_config, trace_log_size);
         defer leaf_config.deinit(gpa);
-        const zk_blinding_amount: ?usize = if (self.add_zk_blinding)
-            @as(usize, self.circuit_fri_config.n_queries) + cairo_verifier.NON_QUERY_INFO_LEAK
-        else
-            null;
-        const config = leaf_config.verifierConfig(self.program, cairo_root, zk_blinding_amount);
+        const config = leaf_config.verifierConfig(self.program, cairo_root, zkBlindingAmount(self.add_zk_blinding, self.circuit_fri_config));
         return cairo_verifier.buildCairoVerifierTopology(gpa, self.table, &config, cairoConstants(self.table), circuit.stark_verifier.verify.NoStages{});
     }
 
@@ -149,23 +145,21 @@ pub const LeafBuilder = struct {
     }
 };
 
+/// The zk blinding a leaf circuit adds (`add_zk_blinding`): one value per
+/// circuit FRI query and the non-query leaks, or none.
+pub fn zkBlindingAmount(add_zk_blinding: bool, circuit_fri_config: FriConfig) ?usize {
+    return if (add_zk_blinding) @as(usize, circuit_fri_config.n_queries) + cairo_verifier.NON_QUERY_INFO_LEAK else null;
+}
+
 /// The Cairo facts the leaf statement reads: relation ids from the Cairo
 /// claim registry, memory constants from the projection.
-fn cairoConstants(table: *const component_table.Table) circuit.statements.cairo_statement.Constants {
+pub fn cairoConstants(table: *const component_table.Table) circuit.statements.cairo_statement.Constants {
     const relation_ids = cairo.air.claims.relation_ids;
     return .{
         .opcodes_relation_id = relation_ids.OPCODES.v,
         .memory_address_to_id_relation_id = relation_ids.MEMORY_ADDRESS_TO_ID.v,
         .memory_id_to_big_relation_id = relation_ids.MEMORY_ID_TO_BIG.v,
         .memory = table.constants,
-    };
-}
-
-fn variantOf(variant: registry_format.PreprocessedTraceVariant) layout.Variant {
-    return switch (variant) {
-        .canonical => .canonical,
-        .canonical_without_pedersen => .canonical_without_pedersen,
-        .canonical_small => .canonical_small,
     };
 }
 
@@ -213,8 +207,12 @@ fn paddedPreprocessed(gpa: std.mem.Allocator, ctx: *builder.Context(builder.NoVa
     return preprocessed.PreprocessedCircuit.fromBuilderCircuit(gpa, &ctx.circuit);
 }
 
-/// `circuit_hash_and_preprocessed_root`.
-fn identity(gpa: std.mem.Allocator, pp: *const preprocessed.PreprocessedCircuit, log_blowup_factor: u32) !struct { circuit_hash: [32]u8, preprocessed_root: [32]u8 } {
+/// A preprocessed circuit's registry identity.
+pub const Identity = struct { circuit_hash: [32]u8, preprocessed_root: [32]u8 };
+
+/// `circuit_hash_and_preprocessed_root`: the preprocessed root at
+/// `log_blowup_factor` and the host circuit hash over it.
+pub fn identity(gpa: std.mem.Allocator, pp: *const preprocessed.PreprocessedCircuit, log_blowup_factor: u32) !Identity {
     const pp_layout = pp.layout();
     const root = try pp.preprocessedRoot(gpa, log_blowup_factor);
     const log_sizes = try circuit.statements.circuit_statement.circuitComponentLogSizes(&pp_layout);

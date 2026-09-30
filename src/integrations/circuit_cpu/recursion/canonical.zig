@@ -19,6 +19,7 @@ const core = @import("stwo_core");
 const circuit = @import("stwo_circuit_frontend");
 const wire = @import("stwo_circuit_recursion_wire");
 const verifier_proof = @import("../verifier_proof.zig");
+const circuit_params = @import("circuit_params.zig");
 
 const builder = circuit.builder;
 const finalize = circuit.common.finalize;
@@ -82,18 +83,15 @@ pub const CanonicalCircuit = struct {
             return error.PaddingParity;
 
         // 4. The registry's trust anchor.
-        const log_blowup_factor = shared.pcs_config.fri_config.log_blowup_factor;
-        const root = try pp.preprocessedRoot(gpa, log_blowup_factor);
-        const log_sizes = try circuit.statements.circuit_statement.circuitComponentLogSizes(&layout);
-        const hash = try circuit_hash.hostCircuitHash(log_sizes, log_blowup_factor, root);
-        if (!std.mem.eql(u8, &hash, &entry.circuit_hash.toBytes())) return error.MultiverifierCircuitHash;
+        const identity = try circuit_params.identity(gpa, &pp, shared.pcs_config.fri_config.log_blowup_factor);
+        if (!std.mem.eql(u8, &identity.circuit_hash, &entry.circuit_hash.toBytes())) return error.MultiverifierCircuitHash;
 
         return .{
             .shared = shared,
             .target_sizes = target,
             .preprocessed = pp,
-            .preprocessed_root = root,
-            .circuit_hash = hash,
+            .preprocessed_root = identity.preprocessed_root,
+            .circuit_hash = identity.circuit_hash,
         };
     }
 
