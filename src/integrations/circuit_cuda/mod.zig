@@ -1,5 +1,6 @@
-//! The circuit prover with NVIDIA CUDA grinds (design 02-design.md §4.6,
-//! §9.2 item 7, milestone M12): the transcript of `circuit_cpu.prove`
+//! Circuit CUDA integration. The currently exported `provers` are a hybrid
+//! CPU PCS with NVIDIA CUDA grinds (design 02-design.md §4.6, §9.2 item 7,
+//! milestone M12): the transcript of `circuit_cpu.prove`
 //! (`crates/circuit_prover/src/prover.rs` of
 //! https://github.com/starkware-libs/proving at
 //! 5a7c5ede4299c91a61df19a07cba4f7502c14230) on the CPU PCS, with both §4.7
@@ -15,9 +16,8 @@
 //! the kernels (§9.2 item 7): a 26-bit grind is about 2^26 Blake2s
 //! compressions per proof, on the CPU a large share of a small reduction.
 //!
-//! A device proof must be byte-equal to the CPU scalar oracle. It is by
-//! construction everywhere but the two nonces (the rest of the prover is the
-//! oracle's code), and the nonces are the canonical minimum of
+//! The exported hybrid proof is byte-equal to the CPU scalar oracle. Its
+//! nonces are the canonical minimum of
 //! `core/channel/blake2s_pow_order.zig`, which the kernel computes and the
 //! engine revalidates. The R7 rung proves it on a GPU host
 //! (`circuit-parity-r7-cuda`); on any host it runs against the kernel's
@@ -39,6 +39,7 @@ pub const geometry = @import("geometry.zig");
 pub const transcript_prefix = @import("transcript_prefix.zig");
 pub const resident_transcript = @import("resident_transcript.zig");
 pub const resident_commit = @import("resident_commit.zig");
+pub const resident_witness = @import("resident_witness.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -95,6 +96,7 @@ test {
     _ = transcript_prefix;
     _ = resident_transcript;
     _ = resident_commit;
+    _ = resident_witness;
 }
 
 test "provider path: the engine's grind returns the CPU channel's nonce through the (emulated) kernel" {

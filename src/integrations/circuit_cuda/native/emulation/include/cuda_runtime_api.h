@@ -7,8 +7,8 @@
 #ifndef STWO_CIRCUIT_CUDA_EMULATION_RUNTIME_API_H
 #define STWO_CIRCUIT_CUDA_EMULATION_RUNTIME_API_H
 
-#if !defined(STWO_CIRCUIT_GRIND_HOST_EMULATION)
-#error "the emulation shim requires STWO_CIRCUIT_GRIND_HOST_EMULATION"
+#if !defined(STWO_CIRCUIT_GRIND_HOST_EMULATION) && !defined(STWO_CIRCUIT_BASE_HOST_EMULATION)
+#error "the emulation shim requires circuit CUDA host emulation"
 #endif
 
 #include <stdint.h>
@@ -31,6 +31,18 @@ static inline unsigned long long atomicAdd(unsigned long long *address, unsigned
 static inline unsigned long long atomicMin(unsigned long long *address, unsigned long long value) {
     const unsigned long long old = *address;
     if (value < old) *address = value;
+    return old;
+}
+
+static inline unsigned atomicAdd(unsigned *address, unsigned value) {
+    const unsigned old = *address;
+    *address = old + value;
+    return old;
+}
+
+static inline unsigned atomicOr(unsigned *address, unsigned value) {
+    const unsigned old = *address;
+    *address = old | value;
     return old;
 }
 

@@ -180,6 +180,17 @@ pub fn build(b: *std.Build) void {
     const run_unit = b.addRunArtifact(unit_tests);
     run_unit.setCwd(repository_root);
     test_step.dependOn(&run_unit.step);
+    const witness_test_root = b.createModule(.{
+        .root_source_file = b.path("tests/base_witness_emulation_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    witness_test_root.addImport("stwo_core", core);
+    witness_test_root.addImport("stwo_circuit_frontend", circuit);
+    witness_test_root.addImport("stwo_cuda_backend", cuda_backend);
+    const witness_test = b.addTest(.{ .root_module = witness_test_root, .filters = filters });
+    addEmulation(b, witness_test);
+    test_step.dependOn(&b.addRunArtifact(witness_test).step);
 
     const r7_imports = R7Imports{
         .core = core,
@@ -217,6 +228,17 @@ pub fn build(b: *std.Build) void {
             ptx.addArg("-o");
             _ = ptx.addOutputFileArg("circuit_grind_" ++ arch ++ ".ptx");
             compile_check_step.dependOn(&ptx.step);
+            const base_ptx = b.addSystemCommand(&.{
+                clang,        "-x",              "cuda",    "--cuda-device-only", "--cuda-gpu-arch=" ++ arch,
+                "-Xclang",    "-target-feature", "-Xclang", "+ptx78",             "-nocudainc",
+                "-nocudalib", "-std=c++17",      "-O3",     "-Wall",              "-Wextra",
+                "-Werror",    "-S",
+            });
+            base_ptx.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
+            base_ptx.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/base_witness.cu") });
+            base_ptx.addArg("-o");
+            _ = base_ptx.addOutputFileArg("circuit_base_" ++ arch ++ ".ptx");
+            compile_check_step.dependOn(&base_ptx.step);
         }
         const host = b.addSystemCommand(&.{
             clang,        "-x",         "cuda",          "--cuda-host-only", "--cuda-gpu-arch=sm_90",
@@ -226,6 +248,13 @@ pub fn build(b: *std.Build) void {
         host.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
         host.addFileArg(b.path(kernel_source));
         compile_check_step.dependOn(&host.step);
+        const base_host = b.addSystemCommand(&.{
+            clang,        "-x",  "cuda",  "--cuda-host-only", "--cuda-gpu-arch=sm_90", "-nocudainc",    "-nocudalib",
+            "-std=c++17", "-O2", "-Wall", "-Wextra",          "-Werror",               "-fsyntax-only",
+        });
+        base_host.addPrefixedDirectoryArg("-I", b.path("native/compile_check/include"));
+        base_host.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/base_witness.cu") });
+        compile_check_step.dependOn(&base_host.step);
     } else {
         compile_check_step.dependOn(&b.addFail("circuit-cuda-compile-check requires -Dcuda-clang=<NVPTX-capable clang>, e.g. /opt/homebrew/opt/llvm/bin/clang").step);
     }
@@ -350,6 +379,11 @@ fn addEmulation(b: *std.Build, compile: *std.Build.Step.Compile) void {
     compile.root_module.addCSourceFile(.{
         .file = b.path(kernel_source),
         .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_GRIND_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" },
+        .language = .cpp,
+    });
+    compile.root_module.addCSourceFile(.{
+        .file = .{ .cwd_relative = b.pathFromRoot("../../backends/cuda/native/circuit/base_witness.cu") },
+        .flags = &.{ "-std=c++17", "-O3", "-DSTWO_CIRCUIT_BASE_HOST_EMULATION", "-Wall", "-Wextra", "-Werror" },
         .language = .cpp,
     });
     compile.linkLibCpp();

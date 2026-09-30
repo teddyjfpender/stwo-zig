@@ -102,6 +102,17 @@ per-row progressive Blake2s states. Recorded AIR tree sizes and a native CUDA
 dispatch compile check pass locally. A device root comparison against Rust
 remains necessary before treating this as a qualified commitment path.
 
+The circuit base witness now has resident CUDA row kernels for all five gate
+components and the 22 lookup-table multiplicity columns. The controller maps
+the stable size-sorted preprocessed layout to gate inputs, validates resident
+buffer ranges, and writes directly into the base commitment input. The exact
+CUDA row function also runs in a host emulation test against the circuit CPU
+component oracle: nonzero gate inputs, every output column, every table count,
+and malformed address/lookup rejection match. Both sm_80 and sm_90 PTX and the
+host ABI compile locally. This is not yet a device-parity or timing result;
+the interaction LogUp trace, circuit composition, PCS tail and proof assembly
+remain to be connected before a full-CUDA recursion proof can be benchmarked.
+
 The Cairo CUDA product now exposes an in-process verified-proof sink; the circuit
 recursion app accepts its compressed proof plus authenticated opening capture
 through `leafWrapVerified`. The typed adapter is

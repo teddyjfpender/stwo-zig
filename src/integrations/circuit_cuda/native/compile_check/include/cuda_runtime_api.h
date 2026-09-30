@@ -45,6 +45,7 @@ cudaError_t cudaSetupArgument(const void *argument, size_t size, size_t offset);
 cudaError_t cudaLaunch(const void *function);
 cudaError_t cudaGetDeviceCount(int *count);
 cudaError_t cudaPeekAtLastError(void);
+cudaError_t cudaGetLastError(void);
 cudaError_t cudaStreamCreateWithFlags(cudaStream_t *stream, unsigned flags);
 cudaError_t cudaStreamDestroy(cudaStream_t stream);
 cudaError_t cudaStreamSynchronize(cudaStream_t stream);
@@ -67,6 +68,12 @@ __device__ __forceinline__ unsigned long long atomicAdd(unsigned long long *addr
                                                         unsigned long long value) {
     return __nvvm_atom_add_gen_ll(reinterpret_cast<long long *>(address),
                                   static_cast<long long>(value));
+}
+__device__ __forceinline__ unsigned atomicAdd(unsigned *address, unsigned value) {
+    return __nvvm_atom_add_gen_i(reinterpret_cast<int *>(address), static_cast<int>(value));
+}
+__device__ __forceinline__ unsigned atomicOr(unsigned *address, unsigned value) {
+    return __nvvm_atom_or_gen_i(reinterpret_cast<int *>(address), static_cast<int>(value));
 }
 __device__ __forceinline__ unsigned long long atomicMin(unsigned long long *address,
                                                         unsigned long long value) {
