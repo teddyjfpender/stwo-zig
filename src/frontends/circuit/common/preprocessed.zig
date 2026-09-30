@@ -11,7 +11,7 @@
 //! - the columns are stable-sorted by length, so ties keep insertion order;
 //! - multiplicities count gate uses, with `multiplicities[0]` raised by the
 //!   permutation rows' uses of the constant 0 and the blake_g multiplicity
-//!   read from `out_a` and asserted equal for `out_b..out_d`;
+//!   read from the first output (`out_base`) and asserted equal for the other three;
 //! - permutations lower to Add rows through fresh wires starting at `n_vars`.
 //!
 //! The fixed tables come from `stwo_core.preprocessed_tables`; the root is

@@ -73,6 +73,7 @@ pub fn build(b: *std.Build) void {
     multiverifier_root.addImport("stwo_core", core);
     multiverifier_root.addImport("stwo_prover_engine", prover);
     multiverifier_root.addImport("stwo_circuit_frontend", circuit);
+    multiverifier_root.addImport("stwo_circuit_recursion_wire", wire);
     const multiverifier_tests = b.addRunArtifact(b.addTest(.{ .root_module = multiverifier_root, .filters = filters }));
     multiverifier_tests.setCwd(repository_root);
     // Large (a 2^21-row circuit at blowup 3); not part of `test`.

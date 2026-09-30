@@ -154,6 +154,27 @@ before editing):
    - **One proof shape model**: `core.circuit_proof_shape` holds the column
      counts, FRI schedule and `CircuitSerialize` size that the in-circuit
      verifier's `ProofConfig` and the wire package's reader both use.
+   - **Multi-size ZK registry, checked once by hand.** A canonical_small
+     definition with `min_trace_log_size` 20, `max_trace_log_size` 22,
+     `add_zk_blinding: true` and no `pad_to_component_log_sizes` generates
+     the same registry bytes from Zig `circuit-params --registry` as from
+     upstream's release `circuit-params` (2026-09-30; Zig 6.4 s and 3.3 GB,
+     upstream 10.3 s and 8.0 GB, other jobs running). No rung runs it yet:
+     upstream builds the registry in `circuit_params/src/main.rs`, not in the
+     library the oracle links, so a committed fixture needs a black-box
+     binary lane.
+   - **Still open after the audit fixes** (tracked, not closed here):
+     the `ExtendedBinary` Cairo proof reader and `leaf-wrap --cairo-proof`
+     (§2.3, §7.4; a Rust-made Cairo proof cannot be wrapped yet; R10c pins
+     the Zig Cairo proofs to upstream `prove_cairo` byte for byte, so the
+     leaf lane's input is equivalent for the fixtures it covers); the
+     `--checkpoints` records and `scripts/circuit_checkpoint_diff.py` of
+     §1.3 (a divergence in R8/R8b/R9 still has to be bisected by hand);
+     the big-host gates (production and privacy registries, R8 gate 2 on
+     the mainnet leaf, R10d); the Cairo `stwo_circuit_verifier` half of R11;
+     trees of distinct leaves (N = 7, mixed preimages); an automated ZK
+     multi-size registry rung; and memory (M11: 11-18 GB peaks against the
+     8 GB guidance).
 
 Rust paths are relative to the root of
 [`starkware-libs/proving`](https://github.com/starkware-libs/proving) at commit
