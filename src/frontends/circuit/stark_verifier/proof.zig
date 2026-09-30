@@ -1,17 +1,23 @@
 //! The shape of a circuit STARK proof: `ProofConfig` (the AIR and PCS
 //! parameters a verifier circuit is built for) and `ProofInfo` (its size).
 //!
-//! Ports the config half of `crates/stark_verifier/src/proof.rs`
+//! Ports `crates/stark_verifier/src/proof.rs` and the proof halves of
+//! `fri_proof.rs`, `merkle.rs` and `oods.rs`
 //! (https://github.com/starkware-libs/proving at
-//! 5a7c5ede4299c91a61df19a07cba4f7502c14230). The `Proof(T)` value type and
-//! its single `guess` traversal build on the circuit builder and land with
-//! it; `ProofInfo.totalBytes` is the size model the `CircuitSerialize`
-//! reader and writer (M3) must agree with, computed from the same config
-//! walk rather than a second model.
+//! 5a7c5ede4299c91a61df19a07cba4f7502c14230). `Proof(T)` is one structure
+//! for proof values (`T = QM31`), topology placeholders (`T = NoValue`) and
+//! circuit wires (`T = Var`); `guess` is its single traversal, in the Rust
+//! `Guess` order. Its flat layout is the `CircuitSerialize` one of the wire
+//! format (M3), so a decoded proof converts without reordering.
+//! `ProofInfo.totalBytes` is the size model the `CircuitSerialize` reader and
+//! writer must agree with, computed from the same config walk rather than a
+//! second model.
 
 const std = @import("std");
 const core = @import("stwo_core");
+const builder = @import("../builder/mod.zig");
 const oods = @import("oods.zig");
+const constraint_eval = @import("constraint_eval.zig");
 
 const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
 const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
@@ -136,6 +142,12 @@ pub const ProofConfig = struct {
         return core.fri.nFoldSteps(self.degreeLogRatio(), self.fri.fold_step);
     }
 
+    /// `compute_all_fold_steps(log_trace_size - log_last_layer, fold_step)`,
+    /// written into `buffer`.
+    pub fn friFoldSteps(self: ProofConfig, buffer: *[MAX_FRI_LAYERS]u32) []const u32 {
+        return core.fri.allFoldSteps(self.degreeLogRatio(), self.fri.fold_step, buffer);
+    }
+
     fn degreeLogRatio(self: ProofConfig) u32 {
         return @as(u32, @intCast(self.log_trace_size)) - self.fri.log_last_layer_degree_bound;
     }
@@ -208,6 +220,248 @@ pub const ProofInfo = struct {
                 self.fri_witness_per_query) * self.n_queries;
     }
 };
+
+const Var = builder.Var;
+const QM31 = core.fields.qm31.QM31;
+const NoValue = builder.NoValue;
+const HashValue = builder.blake.HashValue;
+const M31Wrapper = builder.wrappers.M31Wrapper;
+const InteractionAtOods = constraint_eval.InteractionAtOods;
+
+/// Upper bound on FRI layers (`log_trace_size <= 30`).
+pub const MAX_FRI_LAYERS: usize = 32;
+
+pub const StructureError = error{
+    /// A proof length differs from the one its config implies
+    /// (`validate_structure`).
+    ProofShapeMismatch,
+};
+
+/// `EvalDomainSamples<T>`: the M31 value of every column of every tree at
+/// every query. Per tree, column-major: column `c` at query `q` is
+/// `[c * n_queries + q]`.
+pub fn EvalDomainSamples(comptime T: type) type {
+    return struct {
+        const Self = @This();
+        n_queries: usize,
+        data: [N_TRACES][]M31Wrapper(T),
+
+        pub fn nColumns(self: *const Self, trace_idx: usize) usize {
+            return self.data[trace_idx].len / self.n_queries;
+        }
+
+        /// `EvalDomainSamples::at`.
+        pub fn at(self: *const Self, trace_idx: usize, column_idx: usize, query_idx: usize) M31Wrapper(T) {
+            return self.data[trace_idx][column_idx * self.n_queries + query_idx];
+        }
+    };
+}
+
+/// `AuthPaths<T>`: per tree, per query, the authentication path, leaf
+/// sibling first. Per tree, query-major: node `level` of query `q` is
+/// `[q * depth + level]`.
+pub fn AuthPaths(comptime T: type) type {
+    return struct {
+        const Self = @This();
+        n_queries: usize,
+        trees: [][]HashValue(T),
+
+        pub fn depth(self: *const Self, tree_idx: usize) usize {
+            return self.trees[tree_idx].len / self.n_queries;
+        }
+
+        /// `AuthPaths::at`.
+        pub fn at(self: *const Self, tree_idx: usize, query_idx: usize) []const HashValue(T) {
+            const d = self.depth(tree_idx);
+            return self.trees[tree_idx][query_idx * d ..][0..d];
+        }
+    };
+}
+
+/// `FriProof<T>`: the layer commitments, the last layer, and per layer and
+/// query the authentication path and the `2^fold_step` coset values
+/// (query-major).
+pub fn FriProof(comptime T: type) type {
+    return struct {
+        layer_commitments: []HashValue(T),
+        last_layer_coefs: []T,
+        auth_paths: AuthPaths(T),
+        witness: [][]T,
+    };
+}
+
+/// `Proof<T>`.
+pub fn Proof(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        channel_salt: T,
+        trace_root: HashValue(T),
+        interaction_root: HashValue(T),
+        composition_polynomial_root: HashValue(T),
+        /// One per component.
+        claimed_sums: []T,
+        preprocessed_columns_at_oods: []T,
+        trace_at_oods: []T,
+        interaction_at_oods: []InteractionAtOods(T),
+        composition_eval_at_oods: [oods.N_COMPOSITION_COLUMNS]T,
+        eval_domain_samples: EvalDomainSamples(T),
+        eval_domain_auth_paths: AuthPaths(T),
+        pow_nonce: T,
+        interaction_pow_nonce: T,
+        fri: FriProof(T),
+
+        /// `Proof::merkle_roots`: trace, interaction, composition.
+        pub fn merkleRoots(self: *const Self) [N_TRACES - 1]HashValue(T) {
+            return .{ self.trace_root, self.interaction_root, self.composition_polynomial_root };
+        }
+
+        /// `Proof::validate_structure`.
+        pub fn validateStructure(self: *const Self, config: ProofConfig) StructureError!void {
+            const n_queries = config.nQueries();
+            try expectLen(self.claimed_sums.len, config.nComponents());
+            try expectLen(self.preprocessed_columns_at_oods.len, config.n_preprocessed_columns);
+            try expectLen(self.trace_at_oods.len, config.n_trace_columns);
+            try expectLen(self.interaction_at_oods.len, config.n_interaction_columns);
+            for (self.interaction_at_oods, config.cumulative_sum_columns) |column, is_cumulative_sum| {
+                if ((column.at_prev != null) != is_cumulative_sum) return error.ProofShapeMismatch;
+            }
+            const columns = config.nColumnsPerTrace();
+            const eval_depth = config.logEvaluationDomainSize();
+            try expectLen(self.eval_domain_samples.n_queries, n_queries);
+            try expectLen(self.eval_domain_auth_paths.n_queries, n_queries);
+            try expectLen(self.eval_domain_auth_paths.trees.len, N_TRACES);
+            for (0..N_TRACES) |tree| {
+                try expectLen(self.eval_domain_samples.data[tree].len, columns[tree] * n_queries);
+                try expectLen(self.eval_domain_auth_paths.trees[tree].len, eval_depth * n_queries);
+            }
+
+            var steps_buffer: [MAX_FRI_LAYERS]u32 = undefined;
+            const fold_steps = config.friFoldSteps(&steps_buffer);
+            const fri = self.fri;
+            try expectLen(fri.layer_commitments.len, fold_steps.len);
+            try expectLen(fri.last_layer_coefs.len, @as(usize, 1) << @intCast(config.fri.log_last_layer_degree_bound));
+            try expectLen(fri.auth_paths.n_queries, n_queries);
+            try expectLen(fri.auth_paths.trees.len, fold_steps.len);
+            try expectLen(fri.witness.len, fold_steps.len);
+            var layer_size = eval_depth;
+            for (fold_steps, 0..) |step, layer| {
+                layer_size -= step;
+                try expectLen(fri.auth_paths.trees[layer].len, layer_size * n_queries);
+                try expectLen(fri.witness[layer].len, n_queries << @intCast(step));
+            }
+        }
+    };
+}
+
+fn expectLen(actual: usize, expected: usize) StructureError!void {
+    if (actual != expected) return error.ProofShapeMismatch;
+}
+
+/// `empty_proof`: the topology-mode proof of `config`, allocated from
+/// `allocator` (an arena: nothing is freed individually).
+pub fn emptyProof(allocator: std.mem.Allocator, config: ProofConfig) std.mem.Allocator.Error!Proof(NoValue) {
+    const n_queries = config.nQueries();
+    const interaction = try allocator.alloc(InteractionAtOods(NoValue), config.n_interaction_columns);
+    for (interaction, config.cumulative_sum_columns) |*column, is_cumulative_sum| {
+        column.* = .{ .at_oods = .{}, .at_prev = if (is_cumulative_sum) NoValue{} else null };
+    }
+    const columns = config.nColumnsPerTrace();
+    var samples: [N_TRACES][]M31Wrapper(NoValue) = undefined;
+    const eval_trees = try allocator.alloc([]HashValue(NoValue), N_TRACES);
+    for (&samples, eval_trees, columns) |*tree_samples, *tree_paths, n_columns| {
+        tree_samples.* = try allocator.alloc(M31Wrapper(NoValue), n_columns * n_queries);
+        tree_paths.* = try allocator.alloc(HashValue(NoValue), config.logEvaluationDomainSize() * n_queries);
+    }
+
+    var steps_buffer: [MAX_FRI_LAYERS]u32 = undefined;
+    const fold_steps = config.friFoldSteps(&steps_buffer);
+    const fri_trees = try allocator.alloc([]HashValue(NoValue), fold_steps.len);
+    const witness = try allocator.alloc([]NoValue, fold_steps.len);
+    var layer_size = config.logEvaluationDomainSize();
+    for (fold_steps, fri_trees, witness) |step, *paths, *values| {
+        layer_size -= step;
+        paths.* = try allocator.alloc(HashValue(NoValue), layer_size * n_queries);
+        values.* = try allocator.alloc(NoValue, n_queries << @intCast(step));
+    }
+
+    return .{
+        .channel_salt = .{},
+        .trace_root = undefined,
+        .interaction_root = undefined,
+        .composition_polynomial_root = undefined,
+        .claimed_sums = try allocator.alloc(NoValue, config.nComponents()),
+        .preprocessed_columns_at_oods = try allocator.alloc(NoValue, config.n_preprocessed_columns),
+        .trace_at_oods = try allocator.alloc(NoValue, config.n_trace_columns),
+        .interaction_at_oods = interaction,
+        .composition_eval_at_oods = @splat(.{}),
+        .eval_domain_samples = .{ .n_queries = n_queries, .data = samples },
+        .eval_domain_auth_paths = .{ .n_queries = n_queries, .trees = eval_trees },
+        .pow_nonce = .{},
+        .interaction_pow_nonce = .{},
+        .fri = .{
+            .layer_commitments = try allocator.alloc(HashValue(NoValue), fold_steps.len),
+            .last_layer_coefs = try allocator.alloc(NoValue, @as(usize, 1) << @intCast(config.fri.log_last_layer_degree_bound)),
+            .auth_paths = .{ .n_queries = n_queries, .trees = fri_trees },
+            .witness = witness,
+        },
+    };
+}
+
+/// `Guess for Proof`: every value becomes a guessed wire, in the Rust field
+/// order (roots, claimed sums, OODS samples, evaluation-domain samples and
+/// paths, the two nonces, FRI, then the channel salt). The wires live in the
+/// context's scratch arena.
+pub fn guess(comptime V: type, ctx: *builder.Context(V), proof: *const Proof(V)) builder.context.Error!Proof(Var) {
+    const scratch = ctx.scratch();
+    var out: Proof(Var) = undefined;
+    out.trace_root = try builder.blake.guessHash(V, ctx, proof.trace_root);
+    out.interaction_root = try builder.blake.guessHash(V, ctx, proof.interaction_root);
+    out.composition_polynomial_root = try builder.blake.guessHash(V, ctx, proof.composition_polynomial_root);
+    out.claimed_sums = try guessValues(V, ctx, proof.claimed_sums);
+    out.preprocessed_columns_at_oods = try guessValues(V, ctx, proof.preprocessed_columns_at_oods);
+    out.trace_at_oods = try guessValues(V, ctx, proof.trace_at_oods);
+    out.interaction_at_oods = try scratch.alloc(InteractionAtOods(Var), proof.interaction_at_oods.len);
+    for (out.interaction_at_oods, proof.interaction_at_oods) |*wire, column| {
+        const at_oods = try ctx.guess(column.at_oods);
+        wire.* = .{ .at_oods = at_oods, .at_prev = if (column.at_prev) |at_prev| try ctx.guess(at_prev) else null };
+    }
+    for (&out.composition_eval_at_oods, proof.composition_eval_at_oods) |*wire, value| wire.* = try ctx.guess(value);
+
+    out.eval_domain_samples.n_queries = proof.eval_domain_samples.n_queries;
+    for (&out.eval_domain_samples.data, proof.eval_domain_samples.data) |*wires, values| {
+        wires.* = try scratch.alloc(M31Wrapper(Var), values.len);
+        for (wires.*, values) |*wire, value| wire.* = try builder.wrappers.guessM31(V, ctx, value);
+    }
+    out.eval_domain_auth_paths = try guessAuthPaths(V, ctx, proof.eval_domain_auth_paths);
+    out.pow_nonce = try ctx.guess(proof.pow_nonce);
+    out.interaction_pow_nonce = try ctx.guess(proof.interaction_pow_nonce);
+
+    out.fri.layer_commitments = try scratch.alloc(HashValue(Var), proof.fri.layer_commitments.len);
+    for (out.fri.layer_commitments, proof.fri.layer_commitments) |*wire, root| wire.* = try builder.blake.guessHash(V, ctx, root);
+    out.fri.last_layer_coefs = try guessValues(V, ctx, proof.fri.last_layer_coefs);
+    out.fri.auth_paths = try guessAuthPaths(V, ctx, proof.fri.auth_paths);
+    out.fri.witness = try scratch.alloc([]Var, proof.fri.witness.len);
+    for (out.fri.witness, proof.fri.witness) |*wires, values| wires.* = try guessValues(V, ctx, values);
+
+    out.channel_salt = try ctx.guess(proof.channel_salt);
+    return out;
+}
+
+fn guessValues(comptime V: type, ctx: *builder.Context(V), values: []const V) builder.context.Error![]Var {
+    const wires = try ctx.scratch().alloc(Var, values.len);
+    for (wires, values) |*wire, value| wire.* = try ctx.guess(value);
+    return wires;
+}
+
+fn guessAuthPaths(comptime V: type, ctx: *builder.Context(V), paths: AuthPaths(V)) builder.context.Error!AuthPaths(Var) {
+    const trees = try ctx.scratch().alloc([]HashValue(Var), paths.trees.len);
+    for (trees, paths.trees) |*wires, nodes| {
+        wires.* = try ctx.scratch().alloc(HashValue(Var), nodes.len);
+        for (wires.*, nodes) |*wire, node| wire.* = try builder.blake.guessHash(V, ctx, node);
+    }
+    return .{ .n_queries = paths.n_queries, .trees = trees };
+}
 
 test "proof config: cumulative-sum columns are the last four of each component" {
     const shapes = [_]ComponentShape{

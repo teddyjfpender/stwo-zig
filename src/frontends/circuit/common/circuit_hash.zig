@@ -11,6 +11,7 @@
 
 const std = @import("std");
 const core = @import("stwo_core");
+const builder = @import("../builder/mod.zig");
 const component_list = @import("component_list.zig");
 
 const PerComponent = component_list.PerComponent;
@@ -54,6 +55,25 @@ pub fn hostCircuitHash(
 ) Error!Blake2sHash {
     const words = try configWords(log_blowup_factor, component_log_sizes);
     return Hasher.hashU32sFollowedByDigest(&words, preprocessed_root);
+}
+
+/// `compute_circuit_hash` of `crates/circuit_verifier/src/circuit_hash.rs`:
+/// the same hash in-circuit, the config words interned as `u32` constants in
+/// order, then `blake2s_u32s(config_words || preprocessed_root)`.
+pub fn circuitHash(
+    comptime V: type,
+    ctx: *builder.Context(V),
+    component_log_sizes: PerComponent(u32),
+    log_blowup_factor: u32,
+    preprocessed_root: builder.blake.HashValue(builder.Var),
+) (Error || builder.context.Error)!builder.blake.HashValue(builder.Var) {
+    const U32Wrapper = builder.wrappers.U32Wrapper;
+    var message: [CONFIG_N_WORDS + builder.blake.digest_n_words]U32Wrapper(builder.Var) = undefined;
+    for (try configWords(log_blowup_factor, component_log_sizes), message[0..CONFIG_N_WORDS]) |word, *wire| {
+        wire.* = try builder.wrappers.constU32(V, ctx, word);
+    }
+    @memcpy(message[CONFIG_N_WORDS..], &preprocessed_root.words);
+    return builder.blake.blake2sU32s(V, ctx, &message, 4 * message.len);
 }
 
 /// `le_u32s_from_bytes`: consecutive little-endian u32 words.

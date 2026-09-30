@@ -47,6 +47,8 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Compile and test the stwo_circuit_cpu_integration package");
     test_step.dependOn(&unit_tests.step);
 
+    // The frontend's fixture helpers (the oracle's test circuits, digests).
+    const circuit_testing = b.dependency("stwo_circuit_frontend", dependency_options).module("circuit_testing");
     const r7_root = b.createModule(.{
         .root_source_file = b.path("tests/r7_prove_small_test.zig"),
         .target = target,
@@ -58,6 +60,7 @@ pub fn build(b: *std.Build) void {
     r7_root.addImport("stwo_circuit_frontend", circuit);
     r7_root.addImport("stwo_cairo_frontend", cairo);
     r7_root.addImport("stwo_circuit_recursion_wire", wire);
+    r7_root.addImport("circuit_testing", circuit_testing);
     const r7_tests = b.addRunArtifact(b.addTest(.{ .root_module = r7_root, .filters = filters }));
     r7_tests.setCwd(repository_root);
     test_step.dependOn(&r7_tests.step);
@@ -77,6 +80,25 @@ pub fn build(b: *std.Build) void {
         "circuit-parity-r7-multiverifier",
         "Rung R7: reproduce test_data/circuit_multiverifier/proof.bin (needs STWO_CIRCUIT_MULTIVERIFIER_INPUTS)",
     ).dependOn(&multiverifier_tests.step);
+
+    // R4, value mode: the multiverifier over the committed proofs, stage by
+    // stage (the frontend's `circuit-parity-r4` runs topology mode).
+    const r4_root = b.createModule(.{
+        .root_source_file = b.path("tests/r4_verifier_values_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    r4_root.addImport("stwo_circuit_cpu_integration", integration);
+    r4_root.addImport("stwo_core", core);
+    r4_root.addImport("stwo_circuit_frontend", circuit);
+    r4_root.addImport("stwo_circuit_recursion_wire", wire);
+    r4_root.addImport("circuit_testing", circuit_testing);
+    const r4_tests = b.addRunArtifact(b.addTest(.{ .root_module = r4_root, .filters = filters }));
+    r4_tests.setCwd(repository_root);
+    b.step(
+        "circuit-parity-r4-values",
+        "Rung R4: the in-circuit verifier over test_data/circuit_multiverifier in value mode, and the circuit proof.bin proves",
+    ).dependOn(&r4_tests.step);
 
     const r7_step = b.step(
         "circuit-parity-r7",

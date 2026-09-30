@@ -18,13 +18,10 @@ const circuit = @import("stwo_circuit_frontend");
 const cairo = @import("stwo_cairo_frontend");
 const circuit_cpu = @import("stwo_circuit_cpu_integration");
 const rust_verifier = @import("rust_verifier.zig");
+const circuit_testing = @import("circuit_testing");
+const contexts = circuit_testing.contexts;
 
 const QM31 = core.fields.qm31.QM31;
-const builder = circuit.builder;
-const ivalue = builder.ivalue;
-const wrappers = builder.wrappers;
-const Context = builder.Context(QM31);
-const Var = builder.Var;
 const component_list = circuit.common.component_list;
 const preprocessed = circuit.common.preprocessed;
 const checkpoint = cairo.conformance.checkpoint;
@@ -49,127 +46,10 @@ const interaction_domains = checkpoint.Domains{
     .accumulator = "STWO_CIRCUIT_INTERACTION_ACCUMULATOR_V1\x00",
 };
 
-// ---------------------------------------------------------------------------
-// The contexts of `tools/stwo-circuit-oracle-rs/src/contexts.rs`.
+// The contexts of `tools/stwo-circuit-oracle-rs/src/contexts.rs`, shared
+// with the frontend's R5 rung.
 
-const TestContext = enum { fibonacci, permutation, blake, triple_xor, m31_to_u32, blake_g_gate };
-
-fn nReserved(which: TestContext) usize {
-    return switch (which) {
-        .permutation, .blake => 0,
-        else => N_RESERVED,
-    };
-}
-
-fn buildContext(allocator: std.mem.Allocator, which: TestContext) !Context {
-    var ctx = try Context.init(allocator, nReserved(which));
-    errdefer ctx.deinit();
-    switch (which) {
-        .fibonacci => {
-            var a = try ctx.guess(ivalue.qm31FromU32s(0, 0, 0, 0));
-            var b = try ctx.guess(ivalue.qm31FromU32s(1, 0, 0, 0));
-            for (2..1030) |_| {
-                const next = try ctx.add(a, b);
-                a = b;
-                b = next;
-            }
-            try std.testing.expect(ctx.get(b).eql(QM31.fromU32Unchecked(809871181, 0, 0, 0)));
-            const out = try builder.blake.m31ToU32(QM31, &ctx, b);
-            try setDigestOutputs(&ctx, &.{out});
-        },
-        .permutation => {
-            const a = try ctx.guess(ivalue.qm31FromU32s(0, 2, 0, 2));
-            const b = try ctx.guess(ivalue.qm31FromU32s(1, 1, 1, 1));
-            const first = try ctx.permute(&.{ a, b }, ivalue.sortByUCoordinate(QM31));
-            const copy = [_]Var{ first[0], first[1] };
-            _ = try ctx.permute(&copy, ivalue.sortByUCoordinate(QM31));
-        },
-        .blake => {
-            ctx.assert_eq_on_eval = true;
-            var inputs: [9]Var = undefined;
-            for (&inputs, 0..) |*input, i| {
-                const base: u32 = @intCast(4 * i + 82);
-                input.* = try ctx.guess(ivalue.qm31FromU32s(base, base + 1, base + 2, base + 3));
-            }
-            for (0..15) |_| {
-                const output = try builder.blake.blake2sM31(QM31, &ctx, &inputs, 9 * 16);
-                _ = try ctx.add(output.low, output.high);
-            }
-        },
-        .triple_xor => {
-            const cases = [_][3]u32{
-                .{ 42, 17, 55 },
-                .{ 0x10000, 0x20000, 0x30001 },
-                .{ 0x30005, 0x10007, 0x4000b },
-            };
-            const expected = [_]QM31{
-                QM31.fromU32Unchecked(12, 0, 0, 0),
-                QM31.fromU32Unchecked(1, 0, 0, 0),
-                QM31.fromU32Unchecked(9, 6, 0, 0),
-            };
-            var out: wrappers.U32Wrapper(Var) = undefined;
-            for (cases, expected) |case, want| {
-                const a = try guessU32(&ctx, case[0]);
-                const b = try guessU32(&ctx, case[1]);
-                const c = try guessU32(&ctx, case[2]);
-                out = try builder.blake.tripleXor(QM31, &ctx, a, b, c);
-                try std.testing.expect(ctx.get(out.get()).eql(want));
-            }
-            try setDigestOutputs(&ctx, &.{out});
-        },
-        .m31_to_u32 => {
-            const cases = [_]u32{ 42, 100_000, 2_000_042 };
-            const expected = [_]QM31{
-                QM31.fromU32Unchecked(42, 0, 0, 0),
-                QM31.fromU32Unchecked(34464, 1, 0, 0),
-                QM31.fromU32Unchecked(33962, 30, 0, 0),
-            };
-            var outs: [3]wrappers.U32Wrapper(Var) = undefined;
-            for (cases, expected, &outs) |case, want, *out| {
-                const input = try ctx.guess(QM31.fromU32Unchecked(case, 0, 0, 0));
-                out.* = try builder.blake.m31ToU32(QM31, &ctx, input);
-                try std.testing.expect(ctx.get(out.get()).eql(want));
-            }
-            try setDigestOutputs(&ctx, &outs);
-        },
-        .blake_g_gate => {
-            const words = [_]u32{ 305419896, 4294967295, 2147483647, 123456789, 987654321, 468798 };
-            var in: [6]wrappers.U32Wrapper(Var) = undefined;
-            for (&in, words) |*wire, word| wire.* = try guessU32(&ctx, word);
-            const outs = try builder.blake.blakeGGate(QM31, &ctx, in[0], in[1], in[2], in[3], in[4], in[5]);
-            const expected = [_]QM31{
-                QM31.fromU32Unchecked(49809, 43146, 0, 0),
-                QM31.fromU32Unchecked(53691, 63264, 0, 0),
-                QM31.fromU32Unchecked(464, 51992, 0, 0),
-                QM31.fromU32Unchecked(46984, 55514, 0, 0),
-            };
-            for (outs, expected) |out, want| try std.testing.expect(ctx.get(out.get()).eql(want));
-            try setDigestOutputs(&ctx, &outs);
-        },
-    }
-    return ctx;
-}
-
-fn guessU32(ctx: *Context, word: u32) !wrappers.U32Wrapper(Var) {
-    return wrappers.guessU32(QM31, ctx, wrappers.u32Value(QM31, word));
-}
-
-/// `set_digest_outputs`: cycles `words` through the reserved output wires.
-fn setDigestOutputs(ctx: *Context, words: []const wrappers.U32Wrapper(Var)) !void {
-    var outputs: [N_RESERVED]Var = undefined;
-    for (&outputs, 0..) |*out, i| out.* = words[i % words.len].get();
-    try ctx.setOutputs(&outputs);
-}
-
-/// `values_sha256` of `tools/stwo-circuit-oracle-rs/src/checkpoint.rs`.
-fn valuesSha256(values: []const QM31) [64]u8 {
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    hasher.update("STWO_CIRCUIT_VALUES_V1\x00");
-    hasher.update(&std.mem.toBytes(std.mem.nativeToLittle(u64, values.len)));
-    for (values) |v| for (v.toM31Array()) |limb|
-        hasher.update(&std.mem.toBytes(std.mem.nativeToLittle(u32, limb.toU32())));
-    return std.fmt.bytesToHex(hasher.finalResult(), .lower);
-}
+const TestContext = contexts.TestContext;
 
 // ---------------------------------------------------------------------------
 // The observer: step digests, lookup elements and tree digests.
@@ -343,13 +223,13 @@ fn proveAndCompare(comptime lane: Lane, comptime which: TestContext) !void {
     defer parsed.deinit();
     const expected = try expectedProof(lane, which, parsed.value);
 
-    var ctx = try buildContext(allocator, which);
+    var ctx = try contexts.build(QM31, allocator, which);
     defer ctx.deinit();
     try ctx.finalize(false);
     var pp = try preprocessed.PreprocessedCircuit.preprocessContext(QM31, allocator, &ctx);
     defer pp.deinit(allocator);
     try std.testing.expect(try ctx.isCircuitValid());
-    try std.testing.expectEqualStrings(field(expected, "values_sha256").string, &valuesSha256(ctx.values()));
+    try std.testing.expectEqualStrings(field(expected, "values_sha256").string, &std.fmt.bytesToHex(circuit_testing.circuit_summary.valuesSha256(ctx.values()), .lower));
     try std.testing.expectEqual(@as(u32, @intCast(field(expected, "trace_log_size").integer)), pp.traceLogSize());
 
     const pcs_config = switch (lane) {

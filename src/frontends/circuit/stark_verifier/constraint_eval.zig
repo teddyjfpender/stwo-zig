@@ -6,9 +6,8 @@
 //! Upstream's `RelationUse` lives with the other static component facts in
 //! `common/component_list.zig`.
 //!
-//! Ownership: written by stream M4 (the evaluators cannot run without it) in
-//! the M5 `stark_verifier/` layout of design §2.2, so M5 extends this file with
-//! `ComponentData` and `compute_composition_polynomial` instead of re-porting.
+//! Stream M4 wrote the accumulator (the evaluators cannot run without it);
+//! M5 added `ComponentData` and `compute_composition_polynomial`.
 //!
 //! `ComponentDataTrait` is a comptime duck type. A component-data value `data`
 //! of type `Data` provides:
@@ -22,6 +21,8 @@
 const std = @import("std");
 const logup = @import("logup.zig");
 const stwo_core = @import("stwo_core");
+const builder = @import("../builder/mod.zig");
+const circle = @import("circle.zig");
 
 const QM31 = stwo_core.fields.qm31.QM31;
 const SECURE_EXTENSION_DEGREE = stwo_core.fields.qm31.SECURE_EXTENSION_DEGREE;
@@ -166,4 +167,115 @@ pub fn fromPartialEvals(comptime Ctx: type, ctx: *Ctx, values: [SECURE_EXTENSION
     var sum = try ctx.add(values[0], try ctx.mul(values[1], i));
     sum = try ctx.add(sum, try ctx.mul(values[2], u));
     return ctx.add(sum, try ctx.mul(values[3], iu));
+}
+
+/// `ComponentData`: one component's OODS samples, its row count and the
+/// bits of every component's row count (lane `index` is this one's).
+pub fn ComponentData(comptime V: type) type {
+    return struct {
+        const Self = @This();
+        const Var = builder.Var;
+
+        trace: []const Var,
+        interaction: []const InteractionAtOods(Var),
+        n_instances: Var,
+        index: usize,
+        n_instances_bits: []const builder.simd.Simd,
+
+        pub fn traceColumns(self: *const Self) []const Var {
+            return self.trace;
+        }
+
+        pub fn interactionColumns(self: *const Self) []const InteractionAtOods(Var) {
+            return self.interaction;
+        }
+
+        pub fn nInstances(self: *const Self) Var {
+            return self.n_instances;
+        }
+
+        /// `get_n_instances_bit`: bit `bit` (LSB first) of the row count.
+        pub fn getNInstancesBit(self: *const Self, ctx: *builder.Context(V), bit: usize) !Var {
+            if (bit >= self.n_instances_bits.len) return error.InstanceBitOutOfRange;
+            return builder.simd.unpackIdx(V, ctx, self.n_instances_bits[bit], self.index);
+        }
+
+        pub fn maxComponentSizeBits(self: *const Self) usize {
+            return self.n_instances_bits.len;
+        }
+    };
+}
+
+/// `EvaluateArgs`: the OODS samples and challenges of one composition
+/// evaluation.
+pub const EvaluateArgs = struct {
+    preprocessed_columns: []const builder.Var,
+    trace: []const builder.Var,
+    interaction: []const InteractionAtOods(builder.Var),
+    pt: circle.Point(builder.Var),
+    log_domain_size: usize,
+    composition_polynomial_coeff: builder.Var,
+    interaction_elements: [2]builder.Var,
+    claimed_sums: []const builder.Var,
+    component_sizes: []const builder.Var,
+    n_instances_bits: []const builder.simd.Simd,
+};
+
+/// `compute_composition_polynomial`: every component's constraints and
+/// LogUp batches, in statement order, accumulated and divided by the trace
+/// coset's vanishing polynomial at the OODS point.
+///
+/// `statement` provides `preprocessedColumnIds()`, `publicParams(ctx,
+/// *ColumnMap)`, `nComponents()` and `evaluateComponent(index, ctx, data,
+/// acc)`; `component_shapes` gives each component's column counts in the
+/// same order.
+pub fn computeCompositionPolynomial(
+    comptime V: type,
+    ctx: *builder.Context(V),
+    component_shapes: anytype,
+    statement: anytype,
+    args: EvaluateArgs,
+) !builder.Var {
+    const Ctx = builder.Context(V);
+    const Var = builder.Var;
+    const allocator = ctx.scratch();
+    const ids = statement.preprocessedColumnIds();
+    if (ids.len != args.preprocessed_columns.len) return error.PreprocessedColumnCountMismatch;
+    var preprocessed: ColumnMap(Var) = .empty;
+    for (ids, args.preprocessed_columns) |id, value| try preprocessed.put(allocator, id, value);
+    var public_params: ColumnMap(Var) = .empty;
+    try statement.publicParams(ctx, &public_params);
+
+    var acc = CompositionConstraintAccumulator(Ctx).init(
+        allocator,
+        ctx,
+        &preprocessed,
+        &public_params,
+        args.composition_polynomial_coeff,
+        args.interaction_elements,
+    );
+    const n_components = statement.nComponents();
+    if (component_shapes.len != n_components or args.claimed_sums.len != n_components or args.component_sizes.len != n_components)
+        return error.ComponentCountMismatch;
+    var trace = args.trace;
+    var interaction = args.interaction;
+    for (component_shapes, args.claimed_sums, args.component_sizes, 0..) |shape, claimed_sum, component_size, index| {
+        if (trace.len < shape.trace_columns or interaction.len < shape.interaction_columns) return error.MissingOodsSamples;
+        const data: ComponentData(V) = .{
+            .trace = trace[0..shape.trace_columns],
+            .interaction = interaction[0..shape.interaction_columns],
+            .n_instances = component_size,
+            .index = index,
+            .n_instances_bits = args.n_instances_bits,
+        };
+        trace = trace[shape.trace_columns..];
+        interaction = interaction[shape.interaction_columns..];
+        try statement.evaluateComponent(index, ctx, &data, &acc);
+        try acc.finalizeLogupInPairs(ctx, data.interaction, &data, claimed_sum);
+    }
+    if (trace.len != 0 or interaction.len != 0) return error.UnconsumedOodsSamples;
+
+    const final_evaluation = acc.finalize();
+    const denom_inverse = try circle.denomInverse(V, ctx, args.pt.x, args.log_domain_size);
+    return ctx.mul(final_evaluation, denom_inverse);
 }

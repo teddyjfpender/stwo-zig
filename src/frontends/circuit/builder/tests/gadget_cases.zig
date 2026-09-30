@@ -314,18 +314,28 @@ fn reduceHashValueCase(comptime V: type, ctx: *builder.Context(V)) Error![]const
 /// `compute_circuit_hash` of `crates/circuit_verifier/src/circuit_hash.rs`
 /// for the `circuit_hash_test.rs` golden: log blowup 3 and component log
 /// sizes `[eq 17, qm31_ops 21, triple_xor 17, m31_to_u32 18, blake_g_gate 20,
-/// xor8 16, xor12 20, xor4 8, xor7 14, xor9 18, range_check_16 16]`, packed
-/// one byte each after the blowup byte into three little-endian words. The
-/// production gadget belongs to the circuit-verifier statement (M5); this
-/// harness replays its builder calls: the config words as constants, then
-/// `blake2s_u32s(config || root)` over 44 bytes.
+/// xor8 16, xor12 20, xor4 8, xor7 14, xor9 18, range_check_16 16]`, through
+/// the production gadget `common.circuit_hash.circuitHash`.
 fn circuitHashCase(comptime V: type, ctx: *builder.Context(V)) Error![]const Var {
     var root_words: [8]u32 = undefined;
     for (&root_words, 0..) |*w, i| w.* = @intCast(i);
     const root = try guessHash(V, ctx, root_words);
-    const config_bytes = [12]u8{ 3, 17, 21, 17, 18, 20, 16, 20, 8, 14, 18, 16 };
-    var message: [11]wrappers.U32Wrapper(Var) = undefined;
-    for (message[0..3], 0..) |*w, i| w.* = try wrappers.constU32(V, ctx, std.mem.readInt(u32, config_bytes[4 * i ..][0..4], .little));
-    @memcpy(message[3..], &root.words);
-    return hashVars(V, ctx, try blake.blake2sU32s(V, ctx, &message, 4 * message.len));
+    const sizes = circuit.common.component_list.PerComponent(u32){
+        .eq = 17,
+        .qm31_ops = 21,
+        .triple_xor = 17,
+        .m_31_to_u_32 = 18,
+        .blake_g_gate = 20,
+        .verify_bitwise_xor_8 = 16,
+        .verify_bitwise_xor_12 = 20,
+        .verify_bitwise_xor_4 = 8,
+        .verify_bitwise_xor_7 = 14,
+        .verify_bitwise_xor_9 = 18,
+        .range_check_16 = 16,
+    };
+    const hash = circuit.common.circuit_hash.circuitHash(V, ctx, sizes, 3, root) catch |err| switch (err) {
+        error.ValueDoesNotFitInByte => unreachable,
+        else => |e| return e,
+    };
+    return hashVars(V, ctx, hash);
 }

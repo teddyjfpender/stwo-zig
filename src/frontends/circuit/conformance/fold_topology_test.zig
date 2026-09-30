@@ -13,13 +13,16 @@
 //!   `proof.bin` fixture (182,884 bytes, `LOG_BLOWUP_FACTOR` 3).
 //!
 //! Upstream: https://github.com/starkware-libs/proving at
-//! 5a7c5ede4299c91a61df19a07cba4f7502c14230. The multiverifier's own
-//! `preprocessed_root` (`MULTIVERIFIER_PREPROCESSED_ROOT`, and the registry
-//! roots) needs the built multiverifier circuit and is not checked here.
+//! 5a7c5ede4299c91a61df19a07cba4f7502c14230. The multiverifiers' own
+//! preprocessed roots need the built circuits: `fold_rebuild_test.zig`
+//! (registries) and `verifier_stages_test.zig`
+//! (`MULTIVERIFIER_PREPROCESSED_ROOT`) check them.
 
 const std = @import("std");
-const core = @import("stwo_core");
 const circuit = @import("circuit_frontend");
+const testing = @import("circuit_testing");
+const fold_registry = testing.fold_registry;
+const verifier_stages = testing.verifier_stages;
 
 const preprocessed = circuit.common.preprocessed;
 const circuit_hash = circuit.common.circuit_hash;
@@ -28,17 +31,9 @@ const ComponentSizes = circuit.common.finalize.ComponentSizes;
 const multiverifier = circuit.statements.multiverifier;
 const circuit_statement = circuit.statements.circuit_statement;
 const ProofInfo = circuit.stark_verifier.proof.ProofInfo;
-const FriConfigV2 = core.pcs.config_v2.FriConfigV2;
-const PcsConfigV2 = core.pcs.config_v2.PcsConfigV2;
 
 /// `TARGET_PADDING_SIZES` of `circuit_multiverifier/src/test_utils.rs`.
-const TARGET_PADDING_SIZES: ComponentSizes = .{
-    .eq = 1 << 17,
-    .qm31_ops = 1 << 21,
-    .m31_to_u32 = 1 << 18,
-    .triple_xor = 1 << 17,
-    .blake_g_gate = 1 << 20,
-};
+const TARGET_PADDING_SIZES = verifier_stages.privacy_target_sizes;
 
 /// `multiverifier_preprocessed_column_log_sizes()`.
 const MULTIVERIFIER_LAYOUT = [_]preprocessed.LayoutEntry{
@@ -89,13 +84,6 @@ const MULTIVERIFIER_LAYOUT = [_]preprocessed.LayoutEntry{
     .{ .id = "qm31_ops_mults", .log_size = 21 },
 };
 
-/// `get_pcs_config(PRIVACY_CAIRO_VERIFIER_TRACE_LOG_SIZE = 21,
-/// LOG_BLOWUP_FACTOR = 3)` of `cairo_verifier/src/privacy.rs`.
-fn multiverifierTestPcsConfig() !PcsConfigV2 {
-    const fri = try FriConfigV2.init(27, 0, 3, 23, 4);
-    return PcsConfigV2.fromFriAndTraceSize(fri, 21);
-}
-
 const MULTIVERIFIER_PROOF_BIN_BYTES: usize = 182_884;
 
 test "r6 fold: layout_from_component_sizes reproduces the 45-column multiverifier layout" {
@@ -111,7 +99,7 @@ test "r6 fold: layout_from_component_sizes reproduces the 45-column multiverifie
 test "r6 fold: ProofInfo total bytes equal the multiverifier proof.bin length" {
     const allocator = std.testing.allocator;
     const layout = try preprocessed.ColumnLayout.fromComponentSizes(TARGET_PADDING_SIZES);
-    var shared = try multiverifier.sharedConfig(allocator, layout, try multiverifierTestPcsConfig());
+    var shared = try multiverifier.sharedConfig(allocator, layout, try verifier_stages.privacyPcsConfig());
     defer shared.deinit(allocator);
     const config = shared.proof_config;
     try std.testing.expectEqual(@as(usize, 45), config.n_preprocessed_columns);
@@ -122,78 +110,25 @@ test "r6 fold: ProofInfo total bytes equal the multiverifier proof.bin length" {
     try std.testing.expectEqual(MULTIVERIFIER_PROOF_BIN_BYTES, info.totalBytes());
 }
 
-const DigestWords = [8][]const u8;
-
-const RegistryFriConfig = struct {
-    pow_bits: u32,
-    log_blowup_factor: u32,
-    log_last_layer_degree_bound: u32,
-    n_queries: u32,
-    fold_step: u32,
-};
-
-const RegistryLogSizes = struct {
-    eq: u32,
-    qm31_ops: u32,
-    m31_to_u32: u32,
-    triple_xor: u32,
-    blake_g_gate: u32,
-};
-
-const RegistryCircuitConfig = struct {
-    fri_config: RegistryFriConfig,
-    component_log_sizes: RegistryLogSizes,
-};
-
-const RegistryEntry = struct {
-    config: []const u8,
-    preprocessed_root: DigestWords,
-    circuit_hash: DigestWords,
-};
-
-/// Test-only reader for the fields R6 needs. The interop registry codec
-/// (M3 `registry.zig`) replaces it once it lands.
-const Registry = struct {
-    circuit_proof_configs: std.json.ArrayHashMap(RegistryCircuitConfig),
-    leaf_verifiers: []const RegistryEntry,
-    multiverifiers: []const RegistryEntry,
-};
-
-fn parseDigest(words: DigestWords) ![32]u8 {
-    var out: [8]u32 = undefined;
-    for (words, &out) |text, *word| {
-        if (!std.mem.startsWith(u8, text, "0x")) return error.InvalidDigestWord;
-        word.* = try std.fmt.parseInt(u32, text[2..], 16);
-    }
-    return circuit_hash.bytesFromLeU32s(8, out);
-}
-
 fn checkRegistry(path: []const u8) !usize {
     const allocator = std.testing.allocator;
-    const bytes = try std.fs.cwd().readFileAlloc(allocator, path, 1 << 20);
-    defer allocator.free(bytes);
-    const parsed = try std.json.parseFromSlice(Registry, allocator, bytes, .{ .ignore_unknown_fields = true });
+    const parsed = try fold_registry.load(allocator, path);
     defer parsed.deinit();
 
     var checked: usize = 0;
-    for ([_][]const RegistryEntry{ parsed.value.leaf_verifiers, parsed.value.multiverifiers }) |entries| {
+    for ([_][]const fold_registry.Entry{ parsed.value.leaf_verifiers, parsed.value.multiverifiers }) |entries| {
         for (entries) |entry| {
             const config = parsed.value.circuit_proof_configs.map.get(entry.config) orelse return error.MissingConfig;
-            const fri = config.fri_config;
             const target_sizes = ComponentSizes.fromLogSizes(config.component_log_sizes);
-            var shared = try multiverifier.foldSharedConfig(
-                allocator,
-                target_sizes,
-                try FriConfigV2.init(fri.pow_bits, fri.log_last_layer_degree_bound, fri.log_blowup_factor, fri.n_queries, fri.fold_step),
-            );
+            var shared = try multiverifier.foldSharedConfig(allocator, target_sizes, try config.fri_config.toFriConfig());
             defer shared.deinit(allocator);
             const log_sizes = try circuit_statement.circuitComponentLogSizes(&shared.preprocessed_column_log_sizes);
             const got = try circuit_hash.hostCircuitHash(
                 log_sizes,
                 shared.pcs_config.fri_config.log_blowup_factor,
-                try parseDigest(entry.preprocessed_root),
+                try fold_registry.parseDigest(entry.preprocessed_root),
             );
-            try std.testing.expectEqualSlices(u8, &(try parseDigest(entry.circuit_hash)), &got);
+            try std.testing.expectEqualSlices(u8, &(try fold_registry.parseDigest(entry.circuit_hash)), &got);
             checked += 1;
         }
     }

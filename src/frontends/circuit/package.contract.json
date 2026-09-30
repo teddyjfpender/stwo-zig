@@ -12,7 +12,8 @@
     "stwo_prover_engine": "../../prover"
   },
   "injected_modules": [
-    "circuit_frontend"
+    "circuit_frontend",
+    "circuit_testing"
   ],
   "api_surface": [
     "air_eval",
