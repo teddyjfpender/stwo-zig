@@ -333,27 +333,28 @@ test "official Cairo AIR templates instantiate live logs and segment starts" {
 
 test "official Cairo AIR templates derive vanishing inverses from live geometry" {
     const allocator = std.testing.allocator;
+    // Every inverse is the live trace coset's vanishing polynomial, inverted,
+    // at the live evaluation domain's bit-reversed point. At one blowup the
+    // canonic-coset values do not depend on the trace size: 8 -> 9 and
+    // 9 -> 10 agree.
+    inline for (.{ .{ 8, 9 }, .{ 9, 10 }, .{ 8, 10 } }) |logs| {
+        const inverses = try composition.denominatorInverses(allocator, logs[0], logs[1]);
+        defer allocator.free(inverses);
+        const log_blowup = logs[1] - logs[0];
+        try std.testing.expectEqual(@as(usize, 1) << log_blowup, inverses.len);
+        const trace_coset = core.poly.circle.canonic.CanonicCoset.new(logs[0]).coset();
+        const evaluation_domain = core.poly.circle.canonic.CanonicCoset.new(logs[1]).circleDomain();
+        for (inverses, 0..) |inverse, index| {
+            const point_index = core.utils.bitReverseIndex(index, log_blowup);
+            const vanishing = core.constraints.cosetVanishing(M31, trace_coset, evaluation_domain.at(point_index));
+            try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
+        }
+    }
     const source = try composition.denominatorInverses(allocator, 8, 9);
     defer allocator.free(source);
     const rebound = try composition.denominatorInverses(allocator, 9, 10);
     defer allocator.free(rebound);
-
-    try std.testing.expectEqual(@as(usize, 2), source.len);
-    try std.testing.expectEqual(@as(usize, 2), rebound.len);
-    try std.testing.expect(!std.mem.eql(u32, source, rebound));
-    for (source, 0..) |inverse, index| {
-        const trace_coset =
-            core.poly.circle.canonic.CanonicCoset.new(8).coset();
-        const evaluation_domain =
-            core.poly.circle.canonic.CanonicCoset.new(9).circleDomain();
-        const point_index = core.utils.bitReverseIndex(index, 1);
-        const vanishing = core.constraints.cosetVanishing(
-            M31,
-            trace_coset,
-            evaluation_domain.at(point_index),
-        );
-        try std.testing.expect(vanishing.mul(M31.fromCanonical(inverse)).eql(M31.one()));
-    }
+    try std.testing.expectEqualSlices(u32, source, rebound);
 }
 
 test "sequence rebinding permits larger components without sequence inputs" {
