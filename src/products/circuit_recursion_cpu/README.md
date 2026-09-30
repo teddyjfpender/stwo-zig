@@ -119,10 +119,12 @@ byte. A proof run reads the committed registry and does not regenerate it.
 
 `fold-tree` uses one reduction at a time by default. Set
 `STWO_CIRCUIT_FOLD_JOBS=2` to prove independent sibling pairs concurrently
-when memory permits. On this M5 Max, four identical test leaves took 22.98 s
-and 13.8 GB peak RSS with one job, or 20.44 s and 25.2 GB with two; the three
-root files were byte-identical. The measured trade-off keeps one job as the
-default.
+when memory permits. On this M5 Max, four identical test leaves took 21.34 s
+and 13.8 GB peak RSS with one job, or 18.42 s and 25.2 GB with two; the three
+root files were byte-identical. The earlier SIMD composition path took
+22.98 s and 20.44 s respectively on the same fixture. Native CPU composition
+is enabled by default in these measurements. The measured memory trade-off
+keeps one fold job as the default.
 
 ## Test
 

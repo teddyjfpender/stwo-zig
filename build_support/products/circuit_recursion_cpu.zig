@@ -9,7 +9,6 @@ const graph_install = @import("../graph/install.zig");
 const graph = @import("../graph/modules.zig");
 const integration_graph = @import("../graph/integrations.zig");
 const product_policy = @import("../graph/product.zig");
-const composition_aot = @import("../../src/integrations/circuit_cpu/composition_aot_build.zig");
 
 const protocol_features = "circuit-recursion-proving-5a7c5ed-v1";
 
@@ -269,11 +268,62 @@ fn createProductModuleAt(context: Context, product_descriptor: graph.Product, ro
     integration.addImport("stwo_circuit_frontend", circuit_frontend);
     integration.addImport("stwo_cairo_frontend", cairo_frontend);
     integration.addImport("stwo_circuit_recursion_wire", wire);
-    integration.addImport("circuit_composition_cpu_aot", composition_aot.createModule(b, context.target, context.optimize, context.protocol.core, cairo_frontend, ""));
+    integration.addImport("circuit_composition_cpu_aot", createCompositionModule(b, context.target, context.optimize, context.protocol.core, cairo_frontend));
     root.addImport("stwo_circuit_cpu_integration", integration);
 
     for (embedded_assets) |asset| root.addAnonymousImport(asset.name, .{ .root_source_file = b.path(asset.path) });
     return root;
+}
+
+/// The root build owns its generated module. Zig's build-module ownership
+/// prevents importing the package build's helper file into this build graph.
+fn createCompositionModule(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    core: *std.Build.Module,
+    cairo_frontend: *std.Build.Module,
+) *std.Build.Module {
+    const generator = b.addExecutable(.{
+        .name = "circuit-composition-cpu-codegen",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/tools/cairo_composition_cpu_codegen/bundle_main.zig"),
+            .target = b.graph.host,
+            .optimize = .ReleaseFast,
+        }),
+    });
+    const surface = b.createModule(.{
+        .root_source_file = b.path("src/frontends/cairo/codegen_surface.zig"),
+        .target = b.graph.host,
+        .optimize = .ReleaseFast,
+    });
+    surface.addImport("stwo_core", core);
+    generator.root_module.addImport("stwo_cairo", surface);
+    const generate = b.addRunArtifact(generator);
+    generate.addFileArg(b.path("vectors/circuit/official/circuit_air.air_programs_v1.bin"));
+    generate.addArgs(&.{
+        "7b8022b09d84db371cc433aa0fcf132f7687f2720e05e4dc9a7650c575dc02c2",
+        "circuit_cpu_air",
+        "11",
+    });
+    const directory = generate.addOutputDirectoryArg("circuit-composition-cpu-aot");
+    const module = b.createModule(.{
+        .root_source_file = directory.path(b, "registry.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    module.addImport("stwo_cairo_frontend", cairo_frontend);
+    const kernels = b.addLibrary(.{
+        .name = "circuit-composition-cpu-kernels",
+        .linkage = .static,
+        .root_module = b.createModule(.{ .target = target, .optimize = optimize, .pic = true, .link_libc = true }),
+    });
+    for (0..11) |index| kernels.root_module.addCSourceFile(.{
+        .file = directory.path(b, b.fmt("circuit_cpu_air_{d}.c", .{index})),
+        .flags = &.{ "-std=c11", "-O3", "-fstrict-aliasing", "-fno-vectorize", "-fno-slp-vectorize", "-gline-tables-only" },
+    });
+    module.linkLibrary(kernels);
+    return module;
 }
 
 fn product(role: graph.Role) graph.Product {
