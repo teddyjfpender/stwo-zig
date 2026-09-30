@@ -63,11 +63,10 @@ const Setup = struct {
         try std.testing.expectEqualStrings(circuit_cpu.air.bundle_sha256, &sha256Hex(bundle_bytes));
         self.bundle = try circuit_cpu.air.parse(gpa, bundle_bytes);
         errdefer self.bundle.deinit();
-        self.canonical = try recursion.CanonicalCircuit.build(gpa, &self.table, self.registry.registry);
-        errdefer self.canonical.deinit(gpa);
         // Every reduction leases one committed preprocessed tree, on both
         // channel profiles (design §7.2).
-        try self.canonical.commitPreprocessed(gpa, fold_options);
+        self.canonical = try recursion.CanonicalCircuit.build(gpa, &self.table, self.registry.registry, fold_options);
+        errdefer self.canonical.deinit(gpa);
         self.leaf = try wire.leaf_proof_json.parseLeafInput(gpa, try std.fs.cwd().readFileAlloc(a, leaf_path, 8 << 20));
     }
 
@@ -81,6 +80,21 @@ const Setup = struct {
         self.arena.deinit();
     }
 };
+
+/// One setup for every tree of the rung, as one process of the product
+/// serves every tree of a fold topology: the canonical circuit is built,
+/// committed and checked against the registry once. It lives until the
+/// test process exits.
+var shared_setup: Setup = undefined;
+var shared_setup_ready = false;
+
+fn sharedSetup() !*const Setup {
+    if (!shared_setup_ready) {
+        try shared_setup.init(std.heap.smp_allocator);
+        shared_setup_ready = true;
+    }
+    return &shared_setup;
+}
 
 const Outputs = struct {
     proof: std.Io.Writer.Allocating,
@@ -149,11 +163,7 @@ fn expectStats(n: usize, stats: recursion.Stats) !void {
 
 test "R9: four leaves reproduce the upstream goldens byte for byte" {
     const gpa = std.heap.smp_allocator;
-    var setup: Setup = undefined;
-    try setup.init(gpa);
-    defer setup.deinit(gpa);
-
-    var out = try foldCopies(gpa, &setup, 4);
+    var out = try foldCopies(gpa, try sharedSetup(), 4);
     defer out.deinit();
     try expectStats(4, out.stats);
     inline for (.{ .{ "root.proof", "proof" }, .{ "root_outputs.json", "outputs" }, .{ "root_packed.json", "packed_tree" } }) |pair| {
@@ -172,10 +182,7 @@ fn expectCheckpointTree(n: usize) !void {
         if (try fixture.unsigned(usize, try fixture.field(candidate, "n_leaves")) == n) break candidate;
     } else return error.MissingTree;
 
-    var setup: Setup = undefined;
-    try setup.init(gpa);
-    defer setup.deinit(gpa);
-    var out = try foldCopies(gpa, &setup, n);
+    var out = try foldCopies(gpa, try sharedSetup(), n);
     defer out.deinit();
 
     try expectStats(n, out.stats);

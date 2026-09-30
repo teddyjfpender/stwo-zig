@@ -214,8 +214,14 @@ pub const Identity = struct { circuit_hash: [32]u8, preprocessed_root: [32]u8 };
 /// `circuit_hash_and_preprocessed_root`: the preprocessed root at
 /// `log_blowup_factor` and the host circuit hash over it.
 pub fn identity(gpa: std.mem.Allocator, pp: *const preprocessed.PreprocessedCircuit, log_blowup_factor: u32) !Identity {
+    return identityFromRoot(pp, log_blowup_factor, try pp.preprocessedRoot(gpa, log_blowup_factor));
+}
+
+/// `identity` with the preprocessed root already committed (for example by
+/// the topology's shared `prove.PreprocessedCommitment`), so the columns are
+/// not extended and hashed a second time.
+pub fn identityFromRoot(pp: *const preprocessed.PreprocessedCircuit, log_blowup_factor: u32, root: [32]u8) !Identity {
     const pp_layout = pp.layout();
-    const root = try pp.preprocessedRoot(gpa, log_blowup_factor);
     const log_sizes = try circuit.statements.circuit_statement.circuitComponentLogSizes(&pp_layout);
     return .{ .circuit_hash = try circuit_hash.hostCircuitHash(log_sizes, log_blowup_factor, root), .preprocessed_root = root };
 }
