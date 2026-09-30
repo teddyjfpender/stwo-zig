@@ -29,6 +29,7 @@ const ColumnEvaluation = prover.pcs.ColumnEvaluation;
 const PerComponent = component_list.PerComponent;
 const N_COMPONENTS = component_list.N_COMPONENTS;
 const logup_columns = prover.air.logup_columns;
+const row_spans = prover.air.row_spans;
 const Lookup = components.Lookup;
 
 /// `circuits::context::U_VAR_IDX`: the outputs follow the `u` wire.
@@ -154,48 +155,68 @@ pub fn writeTrace(
     defer tables.deinit(allocator);
     var log_sizes: [N_COMPONENTS]u32 = undefined;
 
+    // The gather components, each over row spans on the work pool: every
+    // row writes its own base columns, and the table uses are exact integer
+    // counts, so the trace does not depend on the split.
     // eq.
     {
         const K = components.eq;
         const addr = try pp.columns(preprocessed.EQ_COLUMN_IDS);
         const log_size = try gatherLogSize(addr[0].len);
         log_sizes[0] = log_size;
-        const cols = try sink.block(K.n_columns, log_size);
-        for (0..addr[0].len) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            K.row(try value(values, addr[0][r]), &row);
-            scatter(K.n_columns, &cols, r, &row);
-        }
+        const Rows = struct {
+            values: []const QM31,
+            addr: @TypeOf(addr),
+            cols: [K.n_columns][]M31,
+            fn row(self: *const @This(), _: usize, r: usize) Error!void {
+                var out: [K.n_columns]M31 = undefined;
+                K.row(try value(self.values, self.addr[0][r]), &out);
+                scatter(K.n_columns, &self.cols, r, &out);
+            }
+        };
+        try forRows(gatherSpans(addr[0].len), addr[0].len, Rows{ .values = values, .addr = addr, .cols = try sink.block(K.n_columns, log_size) }, Rows.row);
     }
     // qm31_ops: binary rows, then permutation rows in pairs whose in0 is the
     // zero wire (`extract_component_inputs`).
     {
         const K = components.qm31_ops;
         const pc = try pp.columns(preprocessed.QM31_OPS_COLUMN_IDS);
-        const in0 = pc[4];
-        const in1 = pc[5];
-        const out_address = pc[6];
-        const n_rows = in0.len;
+        const n_rows = pc[4].len;
         const log_size = try gatherLogSize(n_rows);
         log_sizes[1] = log_size;
         const first_permutation_row = circuit.first_permutation_row;
         if (first_permutation_row > n_rows or (n_rows - first_permutation_row) % 2 != 0)
             return error.InvalidPreprocessedCircuit;
-        const cols = try sink.block(K.n_columns, log_size);
-        for (0..n_rows) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            if (r < first_permutation_row) {
-                K.row(try value(values, in0[r]), try value(values, in1[r]), try value(values, out_address[r]), &row);
-            } else {
-                const pair = r - (r - first_permutation_row) % 2;
-                const through = if (r == pair)
-                    try value(values, in1[pair])
-                else
-                    try value(values, out_address[pair + 1]);
-                K.row(QM31.zero(), through, through, &row);
+        const Rows = struct {
+            values: []const QM31,
+            in0: []const M31,
+            in1: []const M31,
+            out_address: []const M31,
+            first_permutation_row: usize,
+            cols: [K.n_columns][]M31,
+            fn row(self: *const @This(), _: usize, r: usize) Error!void {
+                var out: [K.n_columns]M31 = undefined;
+                if (r < self.first_permutation_row) {
+                    K.row(try value(self.values, self.in0[r]), try value(self.values, self.in1[r]), try value(self.values, self.out_address[r]), &out);
+                } else {
+                    const pair = r - (r - self.first_permutation_row) % 2;
+                    const through = if (r == pair)
+                        try value(self.values, self.in1[pair])
+                    else
+                        try value(self.values, self.out_address[pair + 1]);
+                    K.row(QM31.zero(), through, through, &out);
+                }
+                scatter(K.n_columns, &self.cols, r, &out);
             }
-            scatter(K.n_columns, &cols, r, &row);
-        }
+        };
+        try forRows(gatherSpans(n_rows), n_rows, Rows{
+            .values = values,
+            .in0 = pc[4],
+            .in1 = pc[5],
+            .out_address = pc[6],
+            .first_permutation_row = first_permutation_row,
+            .cols = try sink.block(K.n_columns, log_size),
+        }, Rows.row);
     }
     // triple_xor.
     {
@@ -203,20 +224,26 @@ pub fn writeTrace(
         const pc = try pp.columns(preprocessed.TRIPLE_XOR_COLUMN_IDS);
         const log_size = try gatherLogSize(pc[0].len);
         log_sizes[2] = log_size;
-        const cols = try sink.block(K.n_columns, log_size);
-        for (0..pc[0].len) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            K.row(
-                u32Of(try value(values, pc[0][r])),
-                u32Of(try value(values, pc[1][r])),
-                u32Of(try value(values, pc[2][r])),
-                u32Of(try value(values, pc[3][r])),
-                &row,
-            );
-            scatter(K.n_columns, &cols, r, &row);
-            const lookups = K.lookups(&row, .{ .in0 = pc[0][r], .in1 = pc[1][r], .in2 = pc[2][r], .out = pc[3][r], .mults = pc[4][r] });
-            try tables.addUses(&lookups);
-        }
+        const Rows = struct {
+            values: []const QM31,
+            pc: @TypeOf(pc),
+            cols: [K.n_columns][]M31,
+            fn row(self: *const @This(), tables_view: *const components.TableMultiplicities, r: usize) Error!void {
+                const c = &self.pc;
+                var out: [K.n_columns]M31 = undefined;
+                K.row(
+                    u32Of(try value(self.values, c[0][r])),
+                    u32Of(try value(self.values, c[1][r])),
+                    u32Of(try value(self.values, c[2][r])),
+                    u32Of(try value(self.values, c[3][r])),
+                    &out,
+                );
+                scatter(K.n_columns, &self.cols, r, &out);
+                const lookups = K.lookups(&out, .{ .in0 = c[0][r], .in1 = c[1][r], .in2 = c[2][r], .out = c[3][r], .mults = c[4][r] });
+                try tables_view.addUses(&lookups);
+            }
+        };
+        try forCountingRows(allocator, &tables, pc[0].len, Rows{ .values = values, .pc = pc, .cols = try sink.block(K.n_columns, log_size) }, Rows.row);
     }
     // m_31_to_u_32.
     {
@@ -224,14 +251,20 @@ pub fn writeTrace(
         const pc = try pp.columns(preprocessed.M31_TO_U32_COLUMN_IDS);
         const log_size = try gatherLogSize(pc[0].len);
         log_sizes[3] = log_size;
-        const cols = try sink.block(K.n_columns, log_size);
-        for (0..pc[0].len) |r| {
-            var row: [K.n_columns]M31 = undefined;
-            K.row((try value(values, pc[0][r])).toM31Array()[0], &row);
-            scatter(K.n_columns, &cols, r, &row);
-            const lookups = K.lookups(&row, .{ .input = pc[0][r], .output = pc[1][r], .mults = pc[2][r] });
-            try tables.addUses(&lookups);
-        }
+        const Rows = struct {
+            values: []const QM31,
+            pc: @TypeOf(pc),
+            cols: [K.n_columns][]M31,
+            fn row(self: *const @This(), tables_view: *const components.TableMultiplicities, r: usize) Error!void {
+                const c = &self.pc;
+                var out: [K.n_columns]M31 = undefined;
+                K.row((try value(self.values, c[0][r])).toM31Array()[0], &out);
+                scatter(K.n_columns, &self.cols, r, &out);
+                const lookups = K.lookups(&out, .{ .input = c[0][r], .output = c[1][r], .mults = c[2][r] });
+                try tables_view.addUses(&lookups);
+            }
+        };
+        try forCountingRows(allocator, &tables, pc[0].len, Rows{ .values = values, .pc = pc, .cols = try sink.block(K.n_columns, log_size) }, Rows.row);
     }
     // blake_g_gate.
     {
@@ -239,16 +272,21 @@ pub fn writeTrace(
         const pc = try pp.columns(preprocessed.BLAKE_G_GATE_COLUMN_IDS);
         const log_size = try gatherLogSize(pc[0].len);
         log_sizes[4] = log_size;
-        const cols = try sink.block(K.n_columns, log_size);
-        for (0..pc[0].len) |r| {
-            var words: [10]u32 = undefined;
-            for (&words, 0..) |*word, index| word.* = u32Of(try value(values, pc[index][r]));
-            var row: [K.n_columns]M31 = undefined;
-            K.row(words, &row);
-            scatter(K.n_columns, &cols, r, &row);
-            const lookups = K.lookups(&row, blakePp(&pc, r));
-            try tables.addUses(&lookups);
-        }
+        const Rows = struct {
+            values: []const QM31,
+            pc: @TypeOf(pc),
+            cols: [K.n_columns][]M31,
+            fn row(self: *const @This(), tables_view: *const components.TableMultiplicities, r: usize) Error!void {
+                var words: [10]u32 = undefined;
+                for (&words, 0..) |*word, index| word.* = u32Of(try value(self.values, self.pc[index][r]));
+                var out: [K.n_columns]M31 = undefined;
+                K.row(words, &out);
+                scatter(K.n_columns, &self.cols, r, &out);
+                const lookups = K.lookups(&out, blakePp(&self.pc, r));
+                try tables_view.addUses(&lookups);
+            }
+        };
+        try forCountingRows(allocator, &tables, pc[0].len, Rows{ .values = values, .pc = pc, .cols = try sink.block(K.n_columns, log_size) }, Rows.row);
     }
     // The tables: their multiplicity columns.
     const table_columns = .{
@@ -278,6 +316,48 @@ pub fn writeTrace(
         .columns = columns,
         .output_values = output_values,
     };
+}
+
+/// Row spans of a gather component (`row_spans`).
+fn gatherSpans(n_rows: usize) usize {
+    return row_spans.spanCount(n_rows, 1 << 12);
+}
+
+/// Calls `rowFn(&context, span, r)` for every `r < n_rows` over `spans` row
+/// spans on the work pool; the lowest failing span's error wins.
+fn forRows(spans: usize, n_rows: usize, context: anytype, comptime rowFn: fn (*const @TypeOf(context), usize, usize) Error!void) Error!void {
+    const Context = @TypeOf(context);
+    const Span = struct {
+        context: *const Context,
+        fn run(self: @This(), index: usize, rows: row_spans.Span) anyerror!void {
+            for (rows.start..rows.end) |r| try rowFn(self.context, index, r);
+        }
+    };
+    row_spans.run(spans, n_rows, Span{ .context = &context }, Span.run) catch |err|
+        return @as(Error, @errorCast(err));
+}
+
+/// `forRows` for a component that counts table uses: each span counts into
+/// its own `SpanTables` view, merged into `tables` afterwards.
+fn forCountingRows(
+    allocator: std.mem.Allocator,
+    tables: *const components.TableMultiplicities,
+    n_rows: usize,
+    context: anytype,
+    comptime rowFn: fn (*const @TypeOf(context), *const components.TableMultiplicities, usize) Error!void,
+) (Error || std.mem.Allocator.Error)!void {
+    const spans = gatherSpans(n_rows);
+    var views = try components.SpanTables.init(allocator, tables, spans);
+    defer views.deinit(allocator);
+    const Counting = struct {
+        context: @TypeOf(context),
+        views: []components.TableMultiplicities,
+        fn row(self: *const @This(), span: usize, r: usize) Error!void {
+            try rowFn(&self.context, &self.views[span], r);
+        }
+    };
+    try forRows(spans, n_rows, Counting{ .context = context, .views = views.views }, Counting.row);
+    views.merge(tables);
 }
 
 inline fn scatter(comptime n: usize, cols: *const [n][]M31, r: usize, row: *const [n]M31) void {
@@ -482,7 +562,7 @@ pub fn writeInteractionTrace(
         const pc = try pp.columns(entry[2]);
         if (pc[0].len != @as(usize, 1) << @intCast(logs[index])) return error.InvalidTraceShape;
         const Rows = GatherRows(K, index);
-        outputs[index] = try logup_columns.build(allocator, logs[index], widths[index] / 4, Rows{
+        outputs[index] = try logup_columns.buildParallel(allocator, logs[index], widths[index] / 4, Rows{
             .base = base,
             .pp = &pc,
             .elements = &elements,
@@ -499,18 +579,18 @@ pub fn writeInteractionTrace(
         const index = entry[1];
         const pc = try pp.columns(.{ entry[2] ++ "_0", entry[2] ++ "_1", entry[2] ++ "_2" });
         const mults = base.component(index, table.relations.len);
-        outputs[index] = try logup_columns.build(allocator, logs[index], widths[index] / 4, XorTableRows{
+        outputs[index] = try logup_columns.buildParallel(allocator, logs[index], widths[index] / 4, XorTableRows{
             .table = table,
             .mults = mults,
             .pp = pc,
             .elements = &elements,
         }, XorTableRows.fill);
     }
-    outputs[6] = try logup_columns.build(allocator, logs[6], widths[6] / 4, Xor12Rows{
+    outputs[6] = try logup_columns.buildParallel(allocator, logs[6], widths[6] / 4, Xor12Rows{
         .mults = base.component(6, components.xor_12.n_mult_columns),
         .elements = &elements,
     }, Xor12Rows.fill);
-    outputs[10] = try logup_columns.build(allocator, logs[10], widths[10] / 4, RangeCheckRows{
+    outputs[10] = try logup_columns.buildParallel(allocator, logs[10], widths[10] / 4, RangeCheckRows{
         .mults = base.component(10, 1),
         .seq = try pp.column("seq_16"),
         .elements = &elements,

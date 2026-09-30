@@ -468,7 +468,11 @@ pub const TableMultiplicities = struct {
     }
 
     /// Counts every table use among `lookups` (gate lookups are skipped).
-    pub fn addUses(self: *TableMultiplicities, lookups: []const Lookup) Error!void {
+    /// Concurrent callers each count into a `SpanTables` view: the small
+    /// tables are the view's own, and `xor12` (shared, too large to copy
+    /// per span) takes atomic increments. Integer counts are the same
+    /// whatever order the rows add in.
+    pub fn addUses(self: *const TableMultiplicities, lookups: []const Lookup) Error!void {
         for (lookups) |*lookup| {
             const tuple = lookup.values();
             const id = lookup.tuple[0];
@@ -479,7 +483,7 @@ pub const TableMultiplicities = struct {
                 self.xor8[1][try xorRow(8, tuple)] += 1;
             } else if (id.eql(xor12)) {
                 const slot = try xor_12.slotOf(tuple);
-                self.xor12[slot.column][slot.row] += 1;
+                _ = @atomicRmw(u32, &self.xor12[slot.column][slot.row], .Add, 1, .monotonic);
             } else if (id.eql(xor4)) {
                 self.xor4[try xorRow(4, tuple)] += 1;
             } else if (id.eql(xor7)) {
@@ -490,6 +494,61 @@ pub const TableMultiplicities = struct {
                 self.rc16[try range_check_16.rowOf(tuple)] += 1;
             } else unreachable;
         }
+    }
+};
+
+/// Per-span views of a `TableMultiplicities` for concurrent counting: each
+/// view owns zeroed small tables and shares `xor12`; `merge` adds the
+/// views' counts into the shared tables (exact integer sums).
+pub const SpanTables = struct {
+    views: []TableMultiplicities,
+    storage: []u32,
+
+    const small_len = 2 * (1 << (2 * 8)) + (1 << (2 * 4)) + (1 << (2 * 7)) + (1 << (2 * 9)) + (1 << range_check_16.log_size);
+
+    pub fn init(allocator: std.mem.Allocator, shared: *const TableMultiplicities, count: usize) !SpanTables {
+        const views = try allocator.alloc(TableMultiplicities, count);
+        errdefer allocator.free(views);
+        const storage = try allocator.alloc(u32, count * small_len);
+        @memset(storage, 0);
+        for (views, 0..) |*view, index| {
+            var rest: []u32 = storage[index * small_len ..][0..small_len];
+            const take = struct {
+                fn f(slice: *[]u32, len: usize) []u32 {
+                    const out = slice.*[0..len];
+                    slice.* = slice.*[len..];
+                    return out;
+                }
+            }.f;
+            view.xor8 = .{ take(&rest, shared.xor8[0].len), take(&rest, shared.xor8[1].len) };
+            view.xor12 = shared.xor12;
+            view.xor4 = take(&rest, shared.xor4.len);
+            view.xor7 = take(&rest, shared.xor7.len);
+            view.xor9 = take(&rest, shared.xor9.len);
+            view.rc16 = take(&rest, shared.rc16.len);
+            std.debug.assert(rest.len == 0);
+        }
+        return .{ .views = views, .storage = storage };
+    }
+
+    pub fn merge(self: *const SpanTables, shared: *const TableMultiplicities) void {
+        for (self.views) |view| {
+            for (shared.xor8, view.xor8) |into, from| addCounts(into, from);
+            addCounts(shared.xor4, view.xor4);
+            addCounts(shared.xor7, view.xor7);
+            addCounts(shared.xor9, view.xor9);
+            addCounts(shared.rc16, view.rc16);
+        }
+    }
+
+    fn addCounts(into: []u32, from: []const u32) void {
+        for (into, from) |*count, add| count.* += add;
+    }
+
+    pub fn deinit(self: *SpanTables, allocator: std.mem.Allocator) void {
+        allocator.free(self.storage);
+        allocator.free(self.views);
+        self.* = undefined;
     }
 };
 
