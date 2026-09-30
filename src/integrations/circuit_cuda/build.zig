@@ -64,8 +64,18 @@ pub fn build(b: *std.Build) void {
     const aot_exe = b.addExecutable(.{ .name = "circuit-cuda-air-aot", .root_module = aot_root });
     const aot_run = b.addRunArtifact(aot_exe);
     aot_run.addFileArg(.{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") });
-    _ = aot_run.addOutputDirectoryArg("circuit-cuda-air-aot");
+    const aot_directory = aot_run.addOutputDirectoryArg("circuit-cuda-air-aot");
     aot_step.dependOn(&aot_run.step);
+    const aot_ptx_step = b.step("circuit-cuda-air-ptx-check", "Authenticate and lower all eleven circuit AIR kernels to sm_80 and sm_90 PTX");
+    if (cuda_clang) |clang| {
+        const ptx_check = b.addSystemCommand(&.{ "python3", b.pathFromRoot("../../tools/circuit_cuda_air_aot/check_ptx.py"), "--clang", clang, "--generated" });
+        ptx_check.addDirectoryArg(aot_directory);
+        ptx_check.addArg("--stub");
+        ptx_check.addDirectoryArg(b.path("native/compile_check/include"));
+        aot_ptx_step.dependOn(&ptx_check.step);
+    } else {
+        aot_ptx_step.dependOn(&b.addFail("circuit-cuda-air-ptx-check requires -Dcuda-clang=<NVPTX-capable clang>").step);
+    }
     const r7_emulated_step = b.step(
         "circuit-parity-r7-cuda-emulated",
         "Rung R7 with both grinds on the CUDA kernel's host emulation, byte for byte against the CPU oracle's fixture (any host)",

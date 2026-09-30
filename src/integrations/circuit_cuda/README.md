@@ -71,11 +71,16 @@ same authenticated CUDA evaluator used by Cairo. Run
 `zig build circuit-cuda-air-aot --build-file src/integrations/circuit_cuda/build.zig`
 to generate eleven unique kernels and their placement manifest in the Zig
 build cache. Normalized kernel identities were checked across two distinct
-circuit-size bindings; all eleven kernels passed `sm_90` PTX compilation
+circuit-size bindings; all eleven kernels passed `sm_80` and `sm_90` PTX compilation
 with an NVPTX-capable Clang. This completes the circuit AIR code-generation
 piece, **not** device composition, PCS commitment, quotient, FRI, or the
 PIE-to-root CUDA pipeline. Those stages still need an actual resident proof
 session and H100 byte-parity measurements.
+`zig build circuit-cuda-air-ptx-check --build-file
+src/integrations/circuit_cuda/build.zig
+-Dcuda-clang=/opt/homebrew/opt/llvm/bin/clang` regenerates the authenticated
+sources and lowers every body to `sm_80` and `sm_90` PTX. The check also
+validates each source SHA-256 and the exact eleven-body placement inventory.
 
 ## Build steps
 
