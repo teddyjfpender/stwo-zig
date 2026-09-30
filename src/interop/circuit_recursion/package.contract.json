@@ -22,7 +22,8 @@
     "json_text",
     "leaf_proof_json",
     "packed_node",
-    "registry"
+    "registry",
+    "registry_definition"
   ],
   "api_contract": {
     "signature_tests": [

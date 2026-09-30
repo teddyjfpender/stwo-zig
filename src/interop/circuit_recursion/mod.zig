@@ -17,6 +17,8 @@ pub const leaf_proof_json = @import("leaf_proof_json.zig");
 pub const packed_node = @import("packed_node.zig");
 /// The circuit registry JSON and its queries.
 pub const registry = @import("registry.zig");
+/// `RegistryDefinition`: the input of `circuit-params`.
+pub const registry_definition = @import("registry_definition.zig");
 /// Leaf output digests from decimal felt preimages.
 pub const blake2_felt252 = @import("blake2_felt252.zig");
 /// The serde_json text surface shared by the JSON formats.
@@ -39,6 +41,9 @@ test "api signature: circuit recursion wire formats expose their codecs" {
     try expectParams(circuit_felt_stream.writeJson, &.{ Writer, *const circuit_felt_stream.CairoCircuitProof });
     try expectParams(registry.parseRegistry, &.{ Allocator, []const u8 });
     try expectParams(registry.writeRegistry, &.{ Writer, registry.CircuitRegistry });
+    try expectParams(registry.parseProverParameters, &.{ Allocator, []const u8 });
+    try expectParams(registry.parseFriConfig, &.{ Allocator, []const u8 });
+    try expectParams(registry_definition.parseRegistryDefinition, &.{ Allocator, []const u8 });
     try expectParams(leaf_proof_json.parseLeafInput, &.{ Allocator, []const u8 });
     try expectParams(leaf_proof_json.writeLeafInput, &.{ Writer, leaf_proof_json.LeafInput });
     try expectParams(packed_node.parsePackedNode, &.{ Allocator, []const u8 });
