@@ -7,8 +7,11 @@ const std = @import("std");
 
 /// `CircuitSerialize`: binary circuit proofs, sized by a `ProofConfig`.
 pub const circuit_serialize = @import("circuit_serialize.zig");
-/// `stwo-cairo-serialize` felt primitives and the felt JSON text.
-pub const cairo_serialize = @import("cairo_serialize.zig");
+/// `stwo-cairo-serialize` felt primitives, the felt JSON text and the
+/// verifier's queried-value layout: the CairoSerde transport
+/// (`src/interop/felt_json.zig`) the Cairo frontend's `proof.cairo_serde`
+/// shares, injected as `interop_felt_json`.
+pub const cairo_serialize = @import("interop_felt_json");
 /// The root `CairoCircuitProof` felt stream and its query-value layout.
 pub const circuit_felt_stream = @import("circuit_felt_stream.zig");
 /// `SerializedLeafProof`, `DigestHex`, `LeafInput`, the leaves manifest.

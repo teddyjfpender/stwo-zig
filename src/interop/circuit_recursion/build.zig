@@ -7,13 +7,15 @@ pub fn build(b: *std.Build) void {
     const filters: []const []const u8 = if (filter) |value| &.{value} else &.{};
     const dependency_options = .{ .target = target, .optimize = optimize };
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
-    // The felt JSON writer is shared with the Cairo frontend; it is injected
-    // as a single-file module because a file cannot belong to two modules.
+    // The CairoSerde transport (`cairo_serialize`) is shared with the Cairo
+    // frontend; it is injected as a single-file module because a file cannot
+    // belong to two modules.
     const felt_json = b.createModule(.{
         .root_source_file = b.path("../felt_json.zig"),
         .target = target,
         .optimize = optimize,
     });
+    felt_json.addImport("stwo_core", core);
     // `ProverParameters` is shared with the Cairo frontend's leaf lane the
     // same way.
     const prover_parameters = b.createModule(.{

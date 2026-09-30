@@ -151,6 +151,11 @@ before editing):
      R0-R7, registry generation, R10b/R10c, R11) is the product's release
      gate; `circuit-parity-large` runs R8, R8b, R9 and the R7 multiverifier;
      `circuit-parity` runs both (§8.2).
+   - **One CairoSerde transport**: `src/interop/felt_json.zig` (injected
+     as `interop_felt_json` into the Cairo frontend and the wire package)
+     owns the felt JSON text, the `stwo-cairo-serialize` primitives and
+     `sort_and_transpose_queried_values`; the Cairo proof's CairoSerde
+     encoder and the root proof's felt stream both use them (§2.3).
    - **One proof shape model**: `core.circuit_proof_shape` holds the column
      counts, FRI schedule and `CircuitSerialize` size that the in-circuit
      verifier's `ProofConfig` and the wire package's reader both use.
@@ -420,7 +425,13 @@ src/frontends/circuit/
   module (`interop_felt_json`, injected into the Cairo frontend like the RISC-V
   frontend's `interop_postcard`) that this package imports rather than owns.
   Cairo re-exports it as `proof.cairo_serde.felt_json`; the move is
-  byte-neutral.
+  byte-neutral. As built (errata 11), the same injected module also holds
+  the `stwo-cairo-serialize` primitives (`FeltWriter`, `FeltReader`) and
+  `sortAndTransposeQueriedValues`: the wire package's `cairo_serialize` is
+  that module, and the Cairo frontend's `cairo_serde/pcs.zig` and
+  `queries.zig` encode on it, so the primitives and the query layout have
+  one definition (CairoSerde bytes of `all_opcodes` and `all_builtins`
+  unchanged).
 - `registry.zig`: `CircuitRegistry` and `LogSizes`, parsed into typed values
   and written in Rust struct order (config map keys in byte order) as pretty
   output + `\n`.

@@ -188,12 +188,14 @@ pub fn createCairoFrontend(
     });
     protocol.addImports(frontend);
     // The injected interop felt JSON writer behind `proof.cairo_serde`.
-    frontend.addImport("interop_felt_json", create(b, .{
+    const felt_json = create(b, .{
         .product = product,
         .root_source_file = "src/interop/felt_json.zig",
         .target = target,
         .optimize = optimize,
-    }));
+    });
+    felt_json.addImport("stwo_core", protocol.core);
+    frontend.addImport("interop_felt_json", felt_json);
     // The injected `ProverParameters` (the circuit registry's
     // `cairo_prover_params`, shared with the circuit-recursion wire package)
     // behind `proving.leaf_lane`.
