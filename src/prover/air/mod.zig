@@ -9,6 +9,7 @@ pub const device_composition = @import("device_composition.zig");
 pub const lookup_polynomial_v2 = @import("lookup_polynomial_v2.zig");
 pub const prepared_domain = @import("prepared_domain.zig");
 pub const logup_columns = @import("logup_columns.zig");
+pub const row_spans = @import("row_spans.zig");
 
 test {
     _ = @import("component_prover_test.zig");
@@ -19,6 +20,7 @@ test {
     _ = component_trace;
     _ = prepared_domain;
     _ = logup_columns;
+    _ = row_spans;
     _ = @import("component_prepared_test.zig");
 }
 pub const secure_polynomial_program_v1 = @import("secure_polynomial_program_v1.zig");
