@@ -181,6 +181,31 @@ root. Adapted input to root took 296.902 s: Cairo proving 155.270 s, wrap
 stages predominantly ran on the host CPU; only the grinds used CUDA. This
 receipt is therefore a coverage diagnostic, not a full-CUDA throughput result.
 
+For the same two contiguous mainnet leaf files on the M5, the qualified CPU
+pipeline took 106.126 s (Cairo 34.14 + 36.24 s, wraps 12.89 + 12.91 s,
+fold 8.582 s, peak RSS 28.49 GB); Metal took 75.979 s (Cairo 18.27 +
+19.22 s, wraps 11.96 + 12.37 s, fold 12.867 s, peak RSS 17.04 GB).
+These whole-pipeline receipts include loading and orchestration. A fresh
+`fold-tree --profile` on those same leaf files isolates the root reducer:
+
+| Root reduction stage | CPU | Metal |
+| :--- | ---: | ---: |
+| Reduction including circuit build | 6.322 s | 10.460 s |
+| Base and interaction commitments | 1.984 s | 2.671 s |
+| Interaction witness | 1.203 s | 1.185 s |
+| Composition evaluation | 0.527 s | 1.919 s |
+| Trace decommit | 0.003 s | 1.480 s |
+| Sampled values | 0.545 s | 0.892 s |
+| Quotient/FRI commit | 0.650 s | 0.666 s |
+
+Both profiled root runs emitted the same proof bytes (SHA-256
+`9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724`).
+The Metal composition path staged 10,872 MiB of traces over 41 dispatches,
+while its reported GPU staging execution was only 74.770 ms. The resident
+CUDA design must therefore retain trace and PCS data across stages instead
+of copying the Metal host-slice contract directly. These measurements do
+not predict a CUDA root time; no full-CUDA circuit proof has run yet.
+
 ### Expected effect (hypothesis, from CPU measurements)
 
 On the M4 Max development host (AC power, other agents running, so these are

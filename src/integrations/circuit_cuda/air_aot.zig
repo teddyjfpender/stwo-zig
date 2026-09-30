@@ -44,6 +44,33 @@ pub const Catalog = struct {
         self.allocator.free(self.occurrences);
         self.* = undefined;
     }
+
+    /// Admit a geometry-bound circuit AIR only when every placed program is
+    /// the pinned AOT body. Base literals are deliberately dynamic: binding
+    /// another registry changes their values, but cannot select new code.
+    pub fn admitBound(self: *const Catalog, bound: *const circuit_cpu.air.Bundle) !void {
+        var occurrence_index: usize = 0;
+        for (bound.components, 0..) |component, component_index| {
+            for (component.parts, 0..) |part, part_index| {
+                if (occurrence_index >= self.occurrences.len)
+                    return error.CircuitAirPlacementMismatch;
+                const occurrence = self.occurrences[occurrence_index];
+                occurrence_index += 1;
+                if (occurrence.component_index != component_index or
+                    occurrence.part_index != part_index or
+                    occurrence.body_index >= self.bodies.len)
+                    return error.CircuitAirPlacementMismatch;
+                var normalized = try parametric.normalize(self.allocator, part.program);
+                defer normalized.deinit();
+                const body = self.bodies[occurrence.body_index];
+                if (!std.mem.eql(u8, &body.normalized_program_identity, &codegen.programIdentity(normalized)) or
+                    body.constant_count != try parametric.constantWordCount(part.program))
+                    return error.CircuitAirBodyMismatch;
+            }
+        }
+        if (occurrence_index != self.occurrences.len)
+            return error.CircuitAirPlacementMismatch;
+    }
 };
 
 /// Build only from the pinned recorded circuit AIR. Runtime binding may vary
@@ -138,6 +165,13 @@ test "pinned circuit AIR lowers to authenticated CUDA evaluation bodies" {
     }
     for (catalog.occurrences) |occurrence|
         try std.testing.expect(occurrence.body_index < catalog.bodies.len);
+    var template = try circuit_cpu.air.parse(allocator, encoded);
+    defer template.deinit();
+    try catalog.admitBound(&template);
+    const original_body = catalog.occurrences[0].body_index;
+    catalog.occurrences[0].body_index = @intCast(catalog.bodies.len);
+    try std.testing.expectError(error.CircuitAirPlacementMismatch, catalog.admitBound(&template));
+    catalog.occurrences[0].body_index = original_body;
     var tampered = try allocator.dupe(u8, encoded);
     defer allocator.free(tampered);
     tampered[tampered.len - 1] ^= 1;
@@ -161,6 +195,10 @@ test "circuit CUDA AIR bodies are invariant under registry-sized rebinding" {
     defer original.deinit();
     var smaller = try circuit_cpu.air.bind(allocator, &template, try circuit.common.component_list.circuitComponentLogSizes(&smaller_layout), &smaller_layout);
     defer smaller.deinit();
+    var catalog = try build(allocator, encoded);
+    defer catalog.deinit();
+    try catalog.admitBound(&original);
+    try catalog.admitBound(&smaller);
     try std.testing.expectEqual(original.components.len, smaller.components.len);
     for (original.components, smaller.components) |left, right| {
         try std.testing.expectEqual(left.parts.len, right.parts.len);

@@ -21,6 +21,43 @@ different host CPU. The H100 hybrid spent 155.270 s in CPU Cairo, 87.600 s in
 CPU circuit wraps, and 51.509 s in CPU fold. These host differences prevent a
 direct device-speed ratio from the three full-pipeline totals.
 
+An earlier profiled M5 circuit leaf wrap spent 3.114 s in composition
+evaluation, 2.037 s in quotient/FRI commit, 1.543 s in trace decommit,
+1.322 s and 1.240 s in base and interaction commits, and 1.206 s in
+interaction witness generation (13.01 s wrap). The single-leaf root fold
+spent 1.237 s in interaction witness, 1.212 s in composition, 1.098 s and
+0.997 s in interaction and base commits, and 0.688 s in quotient/FRI commit
+(7.259 s root reduction). These receipts are
+`/tmp/stwo-recursion-m5-bench/leaf-compact-profile.txt` and
+`/tmp/stwo-recursion-m5-bench/fold-cpu-profile.txt` on the M5; their input
+is a smaller qualification case, not the two mainnet leaves. They show that
+CUDA composition alone cannot make wrap or fold sub-second. Witness,
+commitment, quotient, decommit, and host orchestration all need attention.
+
+On the same M5 machine and the **same two mainnet leaf files**, a fresh
+`fold-tree --profile` comparison on 30 September 2026 produced byte-identical
+root proofs (SHA-256
+`9093f941c4a9144fd653441c582cc0921bac8431df8df46bdd556b8e661af724`):
+
+| Root reduction stage | CPU | Metal |
+| :--- | ---: | ---: |
+| Entire reduction, including 0.451 s circuit build | 6.322 s | 10.460 s |
+| Base and interaction commitments | 1.984 s | 2.671 s |
+| Interaction witness | 1.203 s | 1.185 s |
+| Composition evaluation | 0.527 s | 1.919 s |
+| Trace decommit | 0.003 s | 1.480 s |
+| Sampled values | 0.545 s | 0.892 s |
+| Quotient/FRI commit | 0.650 s | 0.666 s |
+
+The Metal composition log reports 10,872 MiB of trace staging, 41 dispatches,
+and only 74.770 ms of device execution for that staging step. This is direct
+evidence against porting the Metal host-slice adapter literally to CUDA. The
+selected transfer is the **resident Cairo CUDA lifetime model**, keeping
+columns, Merkle state, sampled values, quotient and FRI data on device until
+the final small proof openings are published. A generic GPU adapter that
+re-uploads columns for each stage is retained only as a parity oracle, if
+needed; it is not the target fast path.
+
 Constraints and exploitable structure: circuit registry topology and AIR
 programs repeat across leaves, but proof values vary. The transcript is
 sequential at commitment, challenge, and opening boundaries; within each
