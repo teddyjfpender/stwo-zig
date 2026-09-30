@@ -106,6 +106,20 @@ numbers are serial wall time on 2026-09-30; process peak RSS is not additive.
 | `circuit_multiverifier`, two leaves → root | 15627902–907 | — | 8.58 s | 12.87 s | 13.81 / 16.90 GB |
 | **PIEs → one circuit root** | **15627902–907** | **2,009,814** | **106.13 s** | **75.98 s** | **28.49 / 17.04 GB** |
 
+The serial totals break down as follows. Each receipt now also records these
+phases in `phase_breakdown_s`; the small remainder includes process startup,
+file publication, and rounding of the per-proof timers.
+
+| Phase | CPU | Metal |
+|---|---:|---:|
+| Adapt the two PIEs | 0.85 s | 0.81 s |
+| Load the adapted inputs | 0.44 s | 0.43 s |
+| Prove the two Cairo PIEs | 70.38 s | 37.49 s |
+| Wrap the two proofs as circuit leaves | 25.80 s | 24.33 s |
+| Fold both leaves into one root | 8.58 s | 12.87 s |
+| Process overhead | 0.07 s | 0.05 s |
+| **Serial total** | **106.13 s** | **75.98 s** |
+
 The root proof is 1,508,773 bytes. Both Metal leaf proofs, the root proof,
 root outputs, and packed tree are byte-identical to CPU; the three root files
 are also identical to the pinned Rust reducer. The first CPU leaf proof is

@@ -85,6 +85,20 @@ def leaf_stages(log: Path) -> dict[str, float]:
     return dict(zip(("load_s", "cairo_prove_s", "wrap_s"), map(float, match.groups())))
 
 
+def phase_breakdown(rows: list[dict], fold: dict) -> dict[str, float]:
+    """Account for the serial wall clock without hiding process overhead."""
+    phases = {
+        "adapt_s": sum(row["adapt"]["wall_s"] for row in rows),
+        "load_s": sum(row["leaf_stages"]["load_s"] for row in rows),
+        "cairo_prove_s": sum(row["leaf_stages"]["cairo_prove_s"] for row in rows),
+        "circuit_wrap_s": sum(row["leaf_stages"]["wrap_s"] for row in rows),
+        "fold_s": fold["wall_s"],
+    }
+    total = sum(row["adapt"]["wall_s"] + row["leaf_wrap"]["wall_s"] for row in rows) + fold["wall_s"]
+    phases["process_overhead_s"] = total - sum(phases.values())
+    return {key: round(value, 3) for key, value in phases.items()}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--oracle", type=Path, required=True, help="pinned stwo-circuit-oracle binary")
@@ -167,6 +181,7 @@ def main() -> None:
                             "circuit_fri": registry["circuit_proof_configs"]["default"]["fri_config"]},
                "registry_sha256": digest(REGISTRY),
                "leaves": rows, "fold": fold,
+               "phase_breakdown_s": phase_breakdown(rows, fold),
                "serial_wall_s": round(sum(row["adapt"]["wall_s"] + row["leaf_wrap"]["wall_s"] for row in rows) + fold["wall_s"], 3),
                "serial_peak_rss_bytes": max([fold["peak_rss_bytes"], *[row["leaf_wrap"]["peak_rss_bytes"] for row in rows]]),
                "serial_peak_memory_footprint_bytes": max([fold["peak_memory_footprint_bytes"], *[row["leaf_wrap"]["peak_memory_footprint_bytes"] for row in rows]]),
