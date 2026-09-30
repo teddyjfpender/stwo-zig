@@ -15,6 +15,7 @@
 //! so at most one layer of proofs is live.
 
 const std = @import("std");
+const prover = @import("stwo_prover_engine");
 const wire = @import("stwo_circuit_recursion_wire");
 const fold_mod = @import("fold.zig");
 
@@ -43,6 +44,14 @@ pub const Folded = struct {
 /// `fold_entries`: folds the layer-0 `entries` (consumed, in order) to the
 /// root. On error every entry not yet folded is released.
 pub fn foldEntries(gpa: std.mem.Allocator, fold: *const Fold, entries: []LayerEntry) !Folded {
+    return foldEntriesBounded(gpa, fold, entries, 1);
+}
+
+/// Pair independent siblings concurrently, with at most two reductions live.
+/// The caller must provide a thread-safe `gpa` and `fold.packed_allocator`
+/// when `max_jobs > 1`. Profiles stay serial because their stage recorder has
+/// one stack. The final root remains one ordinary reduction.
+pub fn foldEntriesBounded(gpa: std.mem.Allocator, fold: *const Fold, entries: []LayerEntry, max_jobs: usize) !Folded {
     if (entries.len == 0) return error.EmptyLeaves;
     var stats: Stats = .{ .n_leaves = entries.len, .n_layers = 0, .n_pair_reductions = 0 };
     // `live[0..len]` are the entries of the current layer that are still
@@ -67,6 +76,61 @@ pub fn foldEntries(gpa: std.mem.Allocator, fold: *const Fold, entries: []LayerEn
         const is_root = live.len == 2;
         var next_len: usize = 0;
         var index: usize = 0;
+        const parallel = max_jobs > 1 and live.len >= 4 and fold.options.recorder == null and
+            std.mem.eql(u8, fold.provers.backend_name, "cpu");
+        if (parallel) {
+            const pair_count = live.len / 2;
+            const cpu_count = std.Thread.getCpuCount() catch 1;
+            const worker_count = @max(1, cpu_count / @min(max_jobs, max_parallel_jobs));
+            var pair_idx: usize = 0;
+            while (pair_idx < pair_count) {
+                const wave = @min(@min(max_jobs, max_parallel_jobs), pair_count - pair_idx);
+                var jobs: [max_parallel_jobs]PairJob = undefined;
+                var threads: [max_parallel_jobs]?std.Thread = @splat(null);
+                for (0..wave) |j| {
+                    const child_index = 2 * (pair_idx + j);
+                    jobs[j] = .{
+                        .gpa = gpa,
+                        .fold = fold,
+                        .left = &live[child_index],
+                        .right = &live[child_index + 1],
+                        .layer_idx = layer_idx + 1,
+                        .pair_idx = pair_idx + j,
+                        .worker_count = worker_count,
+                    };
+                    if (std.Thread.spawn(.{}, PairJob.run, .{&jobs[j]})) |thread| {
+                        threads[j] = thread;
+                    } else |_| {
+                        // A failed thread creation still consumes its pair.
+                        jobs[j].run();
+                    }
+                }
+                for (threads[0..wave]) |thread| if (thread) |running| running.join();
+                const first_error: ?anyerror = for (jobs[0..wave]) |job| {
+                    if (job.failure) |err| break err;
+                } else null;
+                if (first_error) |err| {
+                    for (jobs[0..wave]) |*job| if (job.parent) |*parent| parent.deinit();
+                    releaseAfterFailure(live, next_len, 2 * (pair_idx + wave));
+                    live = live[0..0];
+                    return err;
+                }
+                for (jobs[0..wave]) |*job| {
+                    live[next_len] = job.parent.?;
+                    next_len += 1;
+                    stats.n_pair_reductions += 1;
+                }
+                pair_idx += wave;
+            }
+            if (live.len % 2 != 0) {
+                log.info("layer {d} pair {d}: carrying the unpaired entry to the next layer", .{ layer_idx, pair_count });
+                live[next_len] = live[live.len - 1];
+                next_len += 1;
+            }
+            live = live[0..next_len];
+            layer_idx += 1;
+            continue;
+        }
         while (index < live.len) : (index += 2) {
             const pair_idx = index / 2;
             if (index + 1 < live.len) {
@@ -98,6 +162,10 @@ pub fn foldEntries(gpa: std.mem.Allocator, fold: *const Fold, entries: []LayerEn
 /// entries of `leaves` (`LayerEntry::from_leaf`, in order), folded to the
 /// root.
 pub fn foldLeaves(gpa: std.mem.Allocator, fold: *const Fold, leaves: []const wire.leaf_proof_json.LeafInput) !Folded {
+    return foldLeavesBounded(gpa, fold, leaves, 1);
+}
+
+pub fn foldLeavesBounded(gpa: std.mem.Allocator, fold: *const Fold, leaves: []const wire.leaf_proof_json.LeafInput, max_jobs: usize) !Folded {
     if (leaves.len == 0) return error.EmptyLeaves;
     const entries = try gpa.alloc(LayerEntry, leaves.len);
     defer gpa.free(entries);
@@ -109,8 +177,54 @@ pub fn foldLeaves(gpa: std.mem.Allocator, fold: *const Fold, leaves: []const wir
     }
     // `foldEntries` owns the entries from here, on success and on error.
     loaded = 0;
-    return foldEntries(gpa, fold, entries);
+    return foldEntriesBounded(gpa, fold, entries, max_jobs);
 }
+
+const max_parallel_jobs = 2;
+
+const PairJob = struct {
+    gpa: std.mem.Allocator,
+    fold: *const Fold,
+    left: *LayerEntry,
+    right: *LayerEntry,
+    layer_idx: usize,
+    pair_idx: usize,
+    worker_count: usize,
+    parent: ?LayerEntry = null,
+    failure: ?anyerror = null,
+
+    fn run(self: *PairJob) void {
+        if (prover.work_pool.currentScopedPool() != null) {
+            self.prove();
+            return;
+        }
+        var pool: prover.work_pool.WorkPool = undefined;
+        pool.initInPlaceWithOptions(.{ .worker_count = self.worker_count }) catch |err| {
+            self.failBeforeReduce(err);
+            return;
+        };
+        defer pool.deinit();
+        var binding = prover.work_pool.ScopedPoolBinding.init(&pool) catch |err| {
+            self.failBeforeReduce(err);
+            return;
+        };
+        defer binding.deinit();
+        self.prove();
+    }
+
+    fn prove(self: *PairJob) void {
+        self.parent = fold_mod.reducePair(self.gpa, self.fold, self.left, self.right, self.layer_idx, self.pair_idx, false) catch |err| {
+            self.failure = err;
+            return;
+        };
+    }
+
+    fn failBeforeReduce(self: *PairJob, err: anyerror) void {
+        self.left.deinit();
+        self.right.deinit();
+        self.failure = err;
+    }
+};
 
 /// Releases a layer after a failed reduction: the finished parents
 /// `live[0..n_parents]` and the untouched children `live[first_pending..]`.

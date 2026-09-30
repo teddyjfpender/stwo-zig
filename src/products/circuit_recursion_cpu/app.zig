@@ -368,21 +368,39 @@ pub fn foldTreeWithProfiled(
 
     var packed_arena = std.heap.ArenaAllocator.init(gpa);
     defer packed_arena.deinit();
+    var packed_safe = std.heap.ThreadSafeAllocator{ .child_allocator = packed_arena.allocator() };
     const fold: recursion.Fold = .{
         .canonical = canonical,
         .table = &circuit_table,
         .bundle = &bundle,
         .options = options,
         .provers = provers,
-        .packed_allocator = packed_arena.allocator(),
+        .packed_allocator = packed_safe.allocator(),
     };
-    var folded = try recursion.tree.foldLeaves(gpa, &fold, leaves);
+    const jobs = if (recorder == null and std.mem.eql(u8, provers.backend_name, "cpu"))
+        parallelFoldJobs(gpa)
+    else
+        1;
+    var folded = try recursion.tree.foldLeavesBounded(gpa, &fold, leaves, jobs);
     defer folded.root.deinit();
 
     var files: RootFiles = .{ .proof = .init(gpa), .outputs = .init(gpa), .packed_tree = .init(gpa), .stats = folded.stats };
     errdefer files.deinit();
     try recursion.tree.writeRootOutputs(&folded.root, &files.proof.writer, &files.outputs.writer, &files.packed_tree.writer);
     return files;
+}
+
+/// Two simultaneous folds nearly double peak memory for a modest M5 speedup.
+/// Keep the memory-efficient serial path as the default; operators with a
+/// larger memory budget can request two sibling jobs explicitly.
+fn parallelFoldJobs(allocator: std.mem.Allocator) usize {
+    const override = std.process.getEnvVarOwned(allocator, "STWO_CIRCUIT_FOLD_JOBS") catch null;
+    if (override) |value| {
+        defer allocator.free(value);
+        const parsed = std.fmt.parseInt(usize, value, 10) catch return 1;
+        return @min(@max(parsed, 1), 2);
+    }
+    return 1;
 }
 
 /// `stwo_run_and_prove_recursive_tree`: loads the leaves and the registry,

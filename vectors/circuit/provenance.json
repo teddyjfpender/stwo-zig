@@ -142,6 +142,20 @@
       "sha256": "7e0a8a8bfa636d5e15bd7df2d0b29ee03f3e8a4dab09d39d7a180a8ad1e614b2"
     },
     {
+      "path": "vectors/circuit/official/registries/production.json",
+      "upstream_definition": "circuit_registry_definitions/production/definition.json",
+      "command": [
+        "circuit-params",
+        "--definition",
+        "circuit_registry_definitions/production/definition.json",
+        "--registry",
+        "--output-path",
+        "vectors/circuit/official/registries/production.json"
+      ],
+      "bytes": 4028,
+      "sha256": "a2503220947f161185a4f5160fd5953db92f6aec0055367830ebc8a65187eabf"
+    },
+    {
       "path": "vectors/circuit/official/registries/recursive_tree_test.json",
       "upstream_path": "crates/stwo_run_and_prove_recursive_tree/test_data/circuit_registry.json",
       "bytes": 1970,
