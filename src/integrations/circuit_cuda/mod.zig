@@ -35,6 +35,9 @@ pub const emulation = @import("emulation.zig");
 /// Known answers for a grind under test (emulation and device tests).
 pub const grind_vectors = @import("grind_vectors.zig");
 pub const air_aot = @import("air_aot.zig");
+pub const geometry = @import("geometry.zig");
+pub const transcript_prefix = @import("transcript_prefix.zig");
+pub const resident_transcript = @import("resident_transcript.zig");
 
 const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
 
@@ -87,6 +90,9 @@ test {
     _ = emulation;
     _ = grind_vectors;
     _ = air_aot;
+    _ = geometry;
+    _ = transcript_prefix;
+    _ = resident_transcript;
 }
 
 test "provider path: the engine's grind returns the CPU channel's nonce through the (emulated) kernel" {

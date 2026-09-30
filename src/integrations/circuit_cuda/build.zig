@@ -28,6 +28,8 @@ pub fn build(b: *std.Build) void {
     const cairo = b.dependency("stwo_cairo_frontend", dependency_options).module("stwo_cairo_frontend");
     const cairo_cpu = b.dependency("stwo_cairo_cpu_integration", dependency_options).module("stwo_cairo_cpu_integration");
     const cairo_cuda = b.dependency("stwo_cairo_cuda_integration", dependency_options).module("stwo_cairo_cuda_integration");
+    const cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse
+        @panic("Cairo CUDA integration is missing stwo_cuda_backend");
     const cpu_dependency = b.dependency("stwo_circuit_cpu_integration", dependency_options);
     const circuit_cpu = cpu_dependency.module("stwo_circuit_cpu_integration");
     // The CPU integration's own module instances (one module per file per
@@ -49,6 +51,7 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_circuit_frontend", circuit);
     integration.addImport("stwo_circuit_cpu_integration", circuit_cpu);
     integration.addImport("stwo_cairo_cuda_integration", cairo_cuda);
+    integration.addImport("stwo_cuda_backend", cuda_backend);
 
     // Fixture tests read `vectors/circuit` from the repository root.
     const repository_root: std.Build.LazyPath = .{ .cwd_relative = b.pathFromRoot("../../..") };
@@ -113,8 +116,7 @@ pub fn build(b: *std.Build) void {
     app.addAnonymousImport("circuit_air_programs", .{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../../vectors/circuit/official/circuit_air.air_programs_v1.bin") },
     });
-    const cairo_cuda_backend = cairo_cuda.import_table.get("stwo_cuda_backend") orelse
-        @panic("Cairo CUDA integration is missing stwo_cuda_backend");
+    const cairo_cuda_backend = cuda_backend;
     const cairo_facade = b.createModule(.{
         .root_source_file = .{ .cwd_relative = b.pathFromRoot("../../cairo_cuda.zig") },
         .target = target,

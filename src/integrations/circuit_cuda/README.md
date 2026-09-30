@@ -83,7 +83,18 @@ sources and lowers every body to `sm_80` and `sm_90` PTX. The check also
 validates each source SHA-256 and the exact eleven-body placement inventory.
 The catalogue also admits a geometry-bound AIR only when all eleven placements
 retain their pinned normalized program identities and constant counts. The
-Cairo CUDA product now exposes an in-process verified-proof sink; the circuit
+CUDA circuit resident geometry now derives four lifted commitment trees and
+every FRI layer from that authenticated AIR and the circuit column layout. Its
+column logs, lifting heights and FRI count match all ten pinned Rust R7 proofs,
+including the internal and root production-security profiles. The circuit
+transcript prefix has an ordered sink contract: a host reference replays all
+ten Rust proofs' digests through the interaction commitment, while a resident
+CUDA sink uses the existing device Blake2s transcript and PoW kernels with
+device-held roots, claims and lookup challenges. The device sink currently has
+a call-order test, **not** a GPU proof-parity result; composition, PCS/FRI and
+decommitment still need to connect before it can prove a reduction.
+
+The Cairo CUDA product now exposes an in-process verified-proof sink; the circuit
 recursion app accepts its compressed proof plus authenticated opening capture
 through `leafWrapVerified`. The typed adapter is
 `src/products/circuit_recursion_cuda/verified_sink.zig`. It has a local
