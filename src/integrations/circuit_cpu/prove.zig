@@ -42,6 +42,8 @@ const preprocessed = circuit.common.preprocessed;
 const circuit_hash = circuit.common.circuit_hash;
 const witness = circuit.witness.trace;
 const PerComponent = component_list.PerComponent;
+/// Stage timing scope; a null recorder makes it a no-op.
+pub const StageScope = prover.stage_profile.StageScope;
 const CapturedComponent = cairo.proving.air.component.Component;
 
 pub const profiles = core.vcs_lifted.channel_profile.proving_5a7c5ed;
@@ -148,13 +150,22 @@ pub fn Prover(comptime MC: type) type {
             scheme.setStorePolynomialsCoefficients();
             if (options.compact_polynomial_min_log) |min_log| scheme.setCompactPolynomialStorage(min_log);
 
+            const recorder = options.recorder;
             // Preprocessed tree.
-            try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), &channel);
+            {
+                var stage = try StageScope.begin(recorder, "circuit_commit_preprocessed", "commit preprocessed tree");
+                defer stage.end();
+                try commit(&scheme, allocator, try preprocessedColumns(allocator, pp), recorder, &channel);
+            }
             const preprocessed_root = scheme.trees.items[0].commitment.root();
             step(observer, .commit_preprocessed, &channel);
 
             // Base trace.
-            var base = try witness.writeTrace(allocator, values, pp);
+            var base = blk: {
+                var stage = try StageScope.begin(recorder, "circuit_base_witness", "base trace witness");
+                defer stage.end();
+                break :blk try witness.writeTrace(allocator, values, pp);
+            };
             defer base.deinit();
             const hash = try circuit_hash.hostCircuitHash(
                 base.log_sizes,
@@ -167,11 +178,19 @@ pub fn Prover(comptime MC: type) type {
             step(observer, .mix_claim, &channel);
             // The commitment owns (and extends) what it commits; the base
             // columns stay here for the interaction pass.
-            try commit(&scheme, allocator, try dupColumns(allocator, base.columns), &channel);
+            {
+                var stage = try StageScope.begin(recorder, "circuit_commit_base", "commit base trace");
+                defer stage.end();
+                try commit(&scheme, allocator, try dupColumns(allocator, base.columns), recorder, &channel);
+            }
             step(observer, .commit_base_trace, &channel);
 
             // Interaction elements.
-            const nonce = channel.grind(component_list.INTERACTION_POW_BITS);
+            const nonce = blk: {
+                var stage = try StageScope.begin(recorder, "circuit_interaction_pow", "interaction grind");
+                defer stage.end();
+                break :blk channel.grind(component_list.INTERACTION_POW_BITS);
+            };
             channel.mixU64(nonce);
             step(observer, .mix_interaction_pow_nonce, &channel);
             const elements = try lookup_transcript.drawLookupElements(allocator, &channel);
@@ -179,14 +198,18 @@ pub fn Prover(comptime MC: type) type {
             step(observer, .draw_interaction_elements, &channel);
 
             // Interaction trace.
-            var interaction = try witness.writeInteractionTrace(
-                allocator,
-                base.columns,
-                base.log_sizes,
-                pp,
-                elements.z,
-                elements.alpha,
-            );
+            var interaction = blk: {
+                var stage = try StageScope.begin(recorder, "circuit_interaction_witness", "interaction trace witness");
+                defer stage.end();
+                break :blk try witness.writeInteractionTrace(
+                    allocator,
+                    base.columns,
+                    base.log_sizes,
+                    pp,
+                    elements.z,
+                    elements.alpha,
+                );
+            };
             defer interaction.deinit();
             const sum = try witness.lookupSum(base.output_values, interaction.claimed_sums, elements.z, elements.alpha);
             if (!sum.isZero()) return error.InvalidLookupSum;
@@ -196,7 +219,11 @@ pub fn Prover(comptime MC: type) type {
             const claimed_sums = interaction.claimed_sums.toArray();
             lookup_transcript.mixInteractionClaim(&channel, &claimed_sums);
             step(observer, .mix_interaction_claim, &channel);
-            try commit(&scheme, allocator, interaction.takeColumns(), &channel);
+            {
+                var stage = try StageScope.begin(recorder, "circuit_commit_interaction", "commit interaction trace");
+                defer stage.end();
+                try commit(&scheme, allocator, interaction.takeColumns(), recorder, &channel);
+            }
             step(observer, .commit_interaction_trace, &channel);
             // The committed trees hold the blown-up evaluations
             // (`CommitmentSchemeProver::evaluations`).
@@ -205,7 +232,12 @@ pub fn Prover(comptime MC: type) type {
 
             // Components.
             const layout = pp.layout();
-            var bound = try air.bind(allocator, air_template, base.log_sizes, &layout);
+            var bind_stage = try StageScope.begin(recorder, "circuit_bind_components", "bind circuit components");
+            var bound = air.bind(allocator, air_template, base.log_sizes, &layout) catch |err| {
+                bind_stage.end();
+                return err;
+            };
+            bind_stage.end();
             defer bound.deinit();
             var preprocessed_logs: [preprocessed.N_PREPROCESSED_COLUMNS]u32 = undefined;
             for (layout.entries, &preprocessed_logs) |entry, *log_size| log_size.* = entry.log_size;
@@ -248,8 +280,8 @@ pub fn Prover(comptime MC: type) type {
         }
 
         /// Commits owned columns as the next tree and mixes its root.
-        fn commit(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []prover.pcs.ColumnEvaluation, channel: *Channel) !void {
-            try Engine.commit(scheme, allocator, columns, null, channel);
+        fn commit(scheme: *Engine.Scheme, allocator: std.mem.Allocator, columns: []prover.pcs.ColumnEvaluation, recorder: ?*prover.stage_profile.Recorder, channel: *Channel) !void {
+            try Engine.commit(scheme, allocator, columns, recorder, channel);
             try Engine.flushPendingCommit(scheme, allocator, channel);
         }
 

@@ -304,6 +304,17 @@ pub const RootFiles = struct {
 /// canonical multiverifier of `registry` (checked against it), folds
 /// `leaves` in order and renders the three root files.
 pub fn foldTree(gpa: std.mem.Allocator, registry: wire.registry.CircuitRegistry, leaves: []const wire.leaf_proof_json.LeafInput) !RootFiles {
+    return foldTreeProfiled(gpa, registry, leaves, null);
+}
+
+/// `foldTree` with every reduction's stages (build, then the prover's)
+/// recorded into `recorder`. Recording never changes the bytes.
+pub fn foldTreeProfiled(
+    gpa: std.mem.Allocator,
+    registry: wire.registry.CircuitRegistry,
+    leaves: []const wire.leaf_proof_json.LeafInput,
+    recorder: ?*prover.stage_profile.Recorder,
+) !RootFiles {
     if (leaves.len == 0) return error.EmptyLeaves;
     // A proof-scoped worker pool (`STWO_ZIG_WORKERS` sizes it), as R9 folds.
     var pool: prover.work_pool.WorkPool = undefined;
@@ -318,7 +329,11 @@ pub fn foldTree(gpa: std.mem.Allocator, registry: wire.registry.CircuitRegistry,
     defer circuit_table.deinit();
     var bundle = try airBundle(gpa);
     defer bundle.deinit();
-    var canonical = try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry);
+    var canonical = blk: {
+        var stage = try circuit_cpu.prove.StageScope.begin(recorder, "fold_canonical_build", "build and preprocess the canonical multiverifier");
+        defer stage.end();
+        break :blk try recursion.CanonicalCircuit.build(gpa, &circuit_table, registry);
+    };
     defer canonical.deinit(gpa);
 
     var packed_arena = std.heap.ArenaAllocator.init(gpa);
@@ -327,7 +342,7 @@ pub fn foldTree(gpa: std.mem.Allocator, registry: wire.registry.CircuitRegistry,
         .canonical = &canonical,
         .table = &circuit_table,
         .bundle = &bundle,
-        .options = .{ .compact_polynomial_min_log = cli.default_compact_min_log },
+        .options = .{ .compact_polynomial_min_log = cli.default_compact_min_log, .recorder = recorder },
         .packed_allocator = packed_arena.allocator(),
     };
     var folded = try recursion.tree.foldLeaves(gpa, &fold, leaves);
@@ -354,7 +369,9 @@ fn foldTreeCommand(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
     }
     const registry = try wire.registry.parseRegistry(arena, try readFile(arena, command.circuit_registry_json));
 
-    var files = try foldTree(gpa, registry.registry, leaves);
+    var recorder = prover.stage_profile.Recorder.init(gpa, "cpu", "circuit-fold-tree");
+    defer recorder.deinit();
+    var files = try foldTreeProfiled(gpa, registry.registry, leaves, if (command.profile) &recorder else null);
     defer files.deinit();
     try writeFile(command.proof_path, files.proof.written());
     try writeFile(command.program_output, files.outputs.written());
@@ -364,6 +381,15 @@ fn foldTreeCommand(gpa: std.mem.Allocator, command: cli.FoldTree) !void {
         files.stats.n_layers,
         files.stats.n_pair_reductions,
     });
+    if (command.profile) {
+        var stderr_buffer: [4096]u8 = undefined;
+        var stderr = std.fs.File.stderr().writerStreaming(&stderr_buffer);
+        const out = &stderr.interface;
+        defer out.flush() catch {};
+        var profile = try recorder.snapshot(gpa);
+        defer profile.deinit(gpa);
+        for (profile.stages) |stage| try printStage(out, stage, 0);
+    }
 }
 
 /// `verify_circuit` on a proof file: prints the verdict; false when the

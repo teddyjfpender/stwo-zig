@@ -15,7 +15,7 @@
 //!   and a pipeline runs the adapter, then this command;
 //! - `fold-tree`: `stwo_run_and_prove_recursive_tree` (`--program_input`,
 //!   `--proof_path`, `--program_output`, `--packed_output_path`,
-//!   `--circuit_registry_json`), drop-in;
+//!   `--circuit_registry_json`), drop-in, plus this product's `--profile`;
 //! - `circuit-params`: `circuit-params --definition D --registry
 //!   [--output-path P]`. Only the registry output exists; upstream's
 //!   human-readable sizes report is not ported;
@@ -67,6 +67,9 @@ pub const FoldTree = struct {
     packed_output_path: []const u8,
     /// The registry the leaves were proven against.
     circuit_registry_json: []const u8,
+    /// Print each reduction's stage times (this product's flag; upstream
+    /// has none).
+    profile: bool = false,
 };
 
 pub const CircuitParams = struct {
@@ -113,7 +116,7 @@ pub const usage =
     \\           [--compact-min-log N|off] [--profile]
     \\       stwo-circuit-recursion-cpu fold-tree --program_input LEAVES.json --proof_path ROOT.proof
     \\           --program_output ROOT_OUTPUTS.json --packed_output_path ROOT_PACKED.json
-    \\           --circuit_registry_json REGISTRY.json
+    \\           --circuit_registry_json REGISTRY.json [--profile]
     \\       stwo-circuit-recursion-cpu circuit-params --definition DEFINITION.json --registry
     \\           [--output-path REGISTRY.json]
     \\       stwo-circuit-recursion-cpu verify --proof PROOF.bin --request REQUEST.json
@@ -155,7 +158,27 @@ pub fn parse(argv: []const []const u8) Error!Parsed {
                 .profile = profile,
             } };
         },
-        .@"fold-tree" => .{ .fold_tree = try parseFlags(FoldTree, argv[1..], .{ .spelling = .snake }) },
+        .@"fold-tree" => blk: {
+            var profile = false;
+            const parsed = try parseFlags(struct {
+                program_input: []const u8,
+                proof_path: []const u8,
+                program_output: []const u8,
+                packed_output_path: []const u8,
+                circuit_registry_json: []const u8,
+            }, argv[1..], .{
+                .spelling = .snake,
+                .switches = &.{.{ .name = "--profile", .set = &profile }},
+            });
+            break :blk .{ .fold_tree = .{
+                .program_input = parsed.program_input,
+                .proof_path = parsed.proof_path,
+                .program_output = parsed.program_output,
+                .packed_output_path = parsed.packed_output_path,
+                .circuit_registry_json = parsed.circuit_registry_json,
+                .profile = profile,
+            } };
+        },
         .@"circuit-params" => blk: {
             var registry = false;
             const parsed = try parseFlags(struct { definition: []const u8, output_path: ?[]const u8 }, argv[1..], .{
@@ -296,6 +319,10 @@ test "circuit recursion cli: fold-tree takes upstream's flags, in either value f
     try std.testing.expectEqualStrings("leaves.json", parsed.fold_tree.program_input);
     try std.testing.expectEqualStrings("root.proof", parsed.fold_tree.proof_path);
     try std.testing.expectEqualStrings("registry.json", parsed.fold_tree.circuit_registry_json);
+    try std.testing.expect(!parsed.fold_tree.profile);
+    const profiled = try parse(&.{ "fold-tree", "--profile", "--program_input=l", "--proof_path=p", "--program_output=o", "--packed_output_path=k", "--circuit_registry_json=r" });
+    try std.testing.expect(profiled.fold_tree.profile);
+    try std.testing.expectError(error.DuplicateFlag, parse(&.{ "fold-tree", "--profile", "--profile" }));
     try std.testing.expectError(error.MissingRequiredFlag, parse(&.{ "fold-tree", "--program_input", "x" }));
     try std.testing.expectError(error.MissingValue, parse(&.{ "fold-tree", "--program_input" }));
     try std.testing.expectError(error.DuplicateFlag, parse(&.{ "fold-tree", "--proof_path", "a", "--proof_path", "b" }));
